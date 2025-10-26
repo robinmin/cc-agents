@@ -1,0 +1,17 @@
+{
+  "name": "cc-agents",
+  "owner": {
+    "name": "Robin Min",
+    "email": "minlongbing@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "my-first-plugin",
+      "source": "./",
+      "description": "My first test plugin",
+      "version": "0.0.1",
+      "keywords": ["test", "commands", "automation"],
+      "commands": ["./commands/hello.md"]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "my-first-plugin",
+  "description": "一个学习插件基础知识的简单问候插件",
+  "version": "1.0.0",
+  "author": {
+    "name": "你的名字"
+  }
+}
