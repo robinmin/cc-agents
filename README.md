@@ -39,3 +39,10 @@ Use the following commands to enable the tools in your Claude Code:
 /plugin uninstall my-first-plugin@cc-agents/
 
 ```
+
+## Reference
+- [Plugin marketplaces](https://docs.claude.com/en/docs/claude-code/plugin-marketplaces)
+- [davila7/claude-code-templates](https://github.com/davila7/claude-code-templates)
+- [wshobson/agents](https://github.com/wshobson/agents)
+- [不仅仅是代码助手：用 Plugins 将 Claude Code 打造成你的专属研发终端(1/4)](https://surfing.salty.vip/articles/cn/claude_code_plugins_01/)
+- [不仅仅是代码助手：用 Plugins 将 Claude Code 打造成你的专属研发终端(2/4)](https://surfing.salty.vip/articles/cn/claude_code_plugins_02/)
