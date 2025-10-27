@@ -6,7 +6,9 @@
       "Bash(chmod:*)",
       "Bash(for file in 10-dev-check.md 10-dev-init.md 10-dev-integrate.md)",
       "Bash(do sed -i.bak 's|/rd:check-10-dev|/rd:10-dev-check|g; s|/rd:apply-10-dev|/rd:10-dev-apply|g; s|/rd:init-10-dev|/rd:10-dev-init|g; s|/rd:integrate-10-dev|/rd:10-dev-integrate|g' \"$file\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Skill(rd:cc-skills)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
