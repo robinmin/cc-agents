@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": ["Bash(commands/10-stages-developing/*.md)", "Bash(echo:*)"],
+    "deny": [],
+    "ask": []
+  }
+}

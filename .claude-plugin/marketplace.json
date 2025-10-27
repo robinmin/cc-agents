@@ -12,6 +12,29 @@
       "version": "0.0.1",
       "keywords": ["test", "commands", "automation"],
       "commands": ["./commands/hello.md"]
+    },
+    {
+      "name": "rd",
+      "source": "./",
+      "description": "Rapid Development: Systematic 10-stage TDD workflow for high-quality function development with test-first principles, syntax validation, and comprehensive testing (Python, JS/TS, Java, Go, Rust)",
+      "version": "1.0.0",
+      "keywords": [
+        "tdd",
+        "testing",
+        "workflow",
+        "pytest",
+        "jest",
+        "development",
+        "quality",
+        "test-driven",
+        "multi-language"
+      ],
+      "commands": [
+        "./commands/10-stages-developing/apply-10-dev.md",
+        "./commands/10-stages-developing/check-10-dev.md",
+        "./commands/10-stages-developing/init-10-dev.md",
+        "./commands/10-stages-developing/integrate-10-dev.md"
+      ]
     }
   ]
 }

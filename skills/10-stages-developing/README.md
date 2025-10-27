@@ -21,16 +21,16 @@ The fastest way to use this skill is through the **"rd" (Rapid Development)** pl
 
 ```bash
 # 1. Check if your project is ready for the workflow
-/check-10-dev
+/rd:check-10-dev
 
 # 2. Initialize build configuration (if needed)
-/init-10-dev
+/rd:init-10-dev
 
 # 3. Apply the workflow to implement a function
-/apply-10-dev validate_email
+/rd:apply-10-dev validate_email
 
 # 4. Create integration tests for related functions
-/integrate-10-dev get_user_info set_user_info
+/rd:integrate-10-dev get_user_info set_user_info
 ```
 
 ### Manual Workflow
@@ -111,7 +111,7 @@ Example integration test scenarios:
 
 The **"rd" (Rapid Development)** plugin provides 4 commands:
 
-### `/check-10-dev`
+### `/rd:check-10-dev`
 
 **Purpose**: Verify project preconditions before starting workflow
 
@@ -130,20 +130,20 @@ The **"rd" (Rapid Development)** plugin provides 4 commands:
 STATUS: 90% Ready - Can proceed with workflow
 ```
 
-### `/apply-10-dev <function-name>`
+### `/rd:apply-10-dev <function-name>`
 
 **Purpose**: Execute complete 10-stage workflow for a function
 
 **Usage**:
 ```bash
 # Basic usage
-/apply-10-dev validate_email
+/rd:apply-10-dev validate_email
 
 # With integration tests
-/apply-10-dev set_user_info --with-integration
+/rd:apply-10-dev set_user_info --with-integration
 
 # Specify language
-/apply-10-dev processPayment --language java
+/rd:apply-10-dev processPayment --language java
 ```
 
 **Process**:
@@ -153,20 +153,20 @@ STATUS: 90% Ready - Can proceed with workflow
 4. Creates unit tests and optionally integration tests
 5. Provides completion report with coverage metrics
 
-### `/init-10-dev`
+### `/rd:init-10-dev`
 
 **Purpose**: Initialize build tool configuration for your project
 
 **Usage**:
 ```bash
 # Auto-detect language
-/init-10-dev
+/rd:init-10-dev
 
 # Specify language
-/init-10-dev --language python
+/rd:init-10-dev --language python
 
 # Copy specific template
-/init-10-dev --template typescript
+/rd:init-10-dev --template typescript
 ```
 
 **What it does**:
@@ -174,7 +174,7 @@ STATUS: 90% Ready - Can proceed with workflow
 2. Copies appropriate template (Makefile, package.json, pom.xml)
 3. Customizes for your project structure
 4. Creates directory structure (src/, tests/, tests/integration/)
-5. Verifies setup with `/check-10-dev`
+5. Verifies setup with `/rd:check-10-dev`
 
 **Templates provided**:
 - **Python**: Makefile with uv, ruff, mypy, pytest
@@ -183,20 +183,20 @@ STATUS: 90% Ready - Can proceed with workflow
 - **Go**: Makefile with golangci-lint, go test
 - **Rust**: Makefile with cargo, clippy, rustfmt
 
-### `/integrate-10-dev <func1> <func2> ...`
+### `/rd:integrate-10-dev <func1> <func2> ...`
 
 **Purpose**: Create integration tests for related functions
 
 **Usage**:
 ```bash
 # Test two related functions
-/integrate-10-dev get_user_info set_user_info
+/rd:integrate-10-dev get_user_info set_user_info
 
 # Test a workflow
-/integrate-10-dev create_order process_payment ship_order
+/rd:integrate-10-dev create_order process_payment ship_order
 
 # Test all functions in a module
-/integrate-10-dev --module user_service
+/rd:integrate-10-dev --module user_service
 ```
 
 **Process**:
@@ -443,11 +443,11 @@ cp templates/javascript/function-template.js src/myFunction.js
 cp templates/javascript/test-template.js tests/myFunction.test.js
 ```
 
-### With `/init-10-dev` Command
+### With `/rd:init-10-dev` Command
 
 Let Claude Code do it automatically:
 ```bash
-/init-10-dev
+/rd:init-10-dev
 ```
 
 This will:
@@ -557,31 +557,31 @@ This workflow transforms ad-hoc function development into a **predictable, high-
 ### For New Projects
 ```bash
 # 1. Initialize build configuration
-/init-10-dev --language python
+/rd:init-10-dev --language python
 
 # 2. Install dependencies
 make install  # or npm install
 
 # 3. Start development
-/apply-10-dev first_function
+/rd:apply-10-dev first_function
 ```
 
 ### For Existing Projects
 ```bash
 # 1. Check current setup
-/check-10-dev
+/rd:check-10-dev
 
 # 2. Adapt templates to match your conventions
 # Edit Makefile or package.json to fit your project
 
 # 3. Start using the workflow
-/apply-10-dev new_function
+/rd:apply-10-dev new_function
 ```
 
 ## Troubleshooting
 
 ### "Build tool not found"
-**Solution**: Install required build tool or use `/init-10-dev` to set up configuration
+**Solution**: Install required build tool or use `/rd:init-10-dev` to set up configuration
 
 ### "Tests fail to run"
 **Solution**: Check that test framework is installed (`make install` or `npm install`)
@@ -632,4 +632,4 @@ Found an issue or have a suggestion?
 
 **Remember**: This is a systematic workflow designed for quality and consistency. Following all stages in order produces the best results!
 
-**Quick Start**: Run `/check-10-dev` to get started!
+**Quick Start**: Run `/rd:check-10-dev` to get started!
