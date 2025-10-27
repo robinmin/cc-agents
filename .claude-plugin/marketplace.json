@@ -30,10 +30,10 @@
         "multi-language"
       ],
       "commands": [
-        "./commands/10-stages-developing/apply-10-dev.md",
-        "./commands/10-stages-developing/check-10-dev.md",
-        "./commands/10-stages-developing/init-10-dev.md",
-        "./commands/10-stages-developing/integrate-10-dev.md"
+        "./commands/apply-10-dev.md",
+        "./commands/check-10-dev.md",
+        "./commands/init-10-dev.md",
+        "./commands/integrate-10-dev.md"
       ]
     }
   ]

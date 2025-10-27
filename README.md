@@ -5,15 +5,26 @@ A collection of plugins, skills, and tools for Claude Code to enhance your devel
 ## What's Included
 
 ### Plugins
-- **my-first-plugin**: Example plugin demonstrating Claude Code plugin capabilities
-- **rd (Rapid Development)**: 10-stage TDD workflow automation with 4 commands
+
+This marketplace contains two plugins organized in separate directories:
+
+- **hello** (`plugins/hello/`): Simple example plugin demonstrating Claude Code plugin capabilities
+  - Version: 0.0.1
+  - Commands: `/hello:hello` - Display a personalized greeting message
+
+- **rd (Rapid Development)** (`plugins/rd/`): Production-ready 10-stage TDD workflow automation
+  - Version: 1.0.0
+  - Commands: 4 workflow commands for systematic test-driven development
+  - Skills: Auto-discovered from `plugins/rd/skills/10-stages-developing/`
 
 ### Skills
+
 - **10-stages-developing**: Systematic test-driven development workflow for building high-quality functions
   - Multi-language support (Python, JavaScript, TypeScript, Java, Go, Rust)
   - Soft contract build tool approach
   - Integration testing capabilities
   - Modern tooling defaults (uv, ruff, pytest, pnpm, Jest, cargo, etc.)
+  - Location: `plugins/rd/skills/10-stages-developing/`
 
 ## Usage
 
@@ -29,10 +40,10 @@ Use the following commands to enable the tools in your Claude Code:
 /plugin marketplace list
 
 # Step 3: Install a plugin from the marketplace
-/plugin install my-first-plugin@cc-agents/
+/plugin install hello@cc-agents/
 
 # Step 4: Trigger the plugin's command
-/my-first-plugin:hello
+/hello:hello
 
 # Then you will see the output like this:
 ```
@@ -54,7 +65,7 @@ Use the following commands to enable the tools in your Claude Code:
 
 ```bash
 # If you don't need the plugin anymore, uninstall it
-/plugin uninstall my-first-plugin@cc-agents/
+/plugin uninstall hello@cc-agents/
 ```
 
 ### Plugin Management
@@ -66,17 +77,17 @@ Common plugin management operations:
 /plugin list
 
 # Update a specific plugin to get latest changes
-/plugin update my-first-plugin@cc-agents/
+/plugin update rd@cc-agents/
 
 # Update all plugins from a marketplace
 /plugin update-all cc-agents/
 
 # View plugin details and available commands
-/plugin info my-first-plugin@cc-agents/
+/plugin info rd@cc-agents/
 
 # Reinstall a plugin (useful for troubleshooting)
-/plugin uninstall my-first-plugin@cc-agents/
-/plugin install my-first-plugin@cc-agents/
+/plugin uninstall rd@cc-agents/
+/plugin install rd@cc-agents/
 ```
 
 ### Example: Using the 10-Stage Development Workflow
@@ -88,19 +99,19 @@ This repository includes a comprehensive TDD workflow skill with plugin integrat
 /plugin install rd@cc-agents/
 
 # Check if your project is ready for the workflow
-/check-10-dev
+/rd:check-10-dev
 
 # Initialize build configuration for your project
-/init-10-dev
+/rd:init-10-dev
 
 # Apply 10-stage workflow to implement a function
-/apply-10-dev validate_email
+/rd:apply-10-dev validate_email
 
 # Create integration tests for related functions
-/integrate-10-dev get_user_info set_user_info
+/rd:integrate-10-dev get_user_info set_user_info
 ```
 
-See `skills/10-stages-developing/` for complete documentation.
+See `plugins/rd/skills/10-stages-developing/` for complete documentation.
 
 ## Available Commands
 
@@ -108,16 +119,16 @@ See `skills/10-stages-developing/` for complete documentation.
 
 | Command | Description |
 |---------|-------------|
-| `/check-10-dev` | Verify project preconditions for 10-stage workflow |
-| `/apply-10-dev <function-name>` | Execute complete 10-stage workflow for a function |
-| `/init-10-dev` | Initialize build tool configuration for your project |
-| `/integrate-10-dev <func1> <func2>...` | Create integration tests for related functions |
+| `/rd:check-10-dev` | Verify project preconditions for 10-stage workflow |
+| `/rd:apply-10-dev <function-name>` | Execute complete 10-stage workflow for a function |
+| `/rd:init-10-dev` | Initialize build tool configuration for your project |
+| `/rd:integrate-10-dev <func1> <func2>...` | Create integration tests for related functions |
 
-### my-first-plugin
+### hello (Example Plugin)
 
 | Command | Description |
 |---------|-------------|
-| `/my-first-plugin:hello` | Display a personalized greeting message |
+| `/hello:hello` | Display a personalized greeting message |
 
 ## Reference
 
