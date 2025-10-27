@@ -106,7 +106,7 @@
 ## User Experience Impact
 
 ### Before (Typical User Journey)
-1. User: "How do I use /rd:apply-10-dev?"
+1. User: "How do I use /rd:10-dev-apply?"
 2. Opens apply-10-dev.md
 3. Reads 465 lines trying to find usage syntax
 4. Gets lost in detailed explanations
@@ -115,7 +115,7 @@
 7. **Friction**: "Just tell me HOW to use it!"
 
 ### After (Improved Journey)
-1. User: "How do I use /rd:apply-10-dev?"
+1. User: "How do I use /rd:10-dev-apply?"
 2. Opens apply-10-dev.md
 3. Sees clear sections: Purpose → Usage → Examples
 4. Finds exactly what they need in first 50 lines

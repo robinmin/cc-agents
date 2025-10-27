@@ -20,22 +20,22 @@ Guides you through systematic function implementation:
 
 ```bash
 # Basic usage
-/rd:apply-10-dev <function-name>
+/rd:10-dev-apply <function-name>
 
 # With context
-/rd:apply-10-dev <function-name> --context "Brief description"
+/rd:10-dev-apply <function-name> --context "Brief description"
 
 # Specify language explicitly
-/rd:apply-10-dev <function-name> --language python
+/rd:10-dev-apply <function-name> --language python
 
 # Include integration tests
-/rd:apply-10-dev <function-name> --with-integration
+/rd:10-dev-apply <function-name> --with-integration
 
 # Resume from specific stage
-/rd:apply-10-dev <function-name> --resume-from 5
+/rd:10-dev-apply <function-name> --resume-from 5
 
 # Refactor existing function
-/rd:apply-10-dev <function-name> --mode refactor
+/rd:10-dev-apply <function-name> --mode refactor
 ```
 
 ## Parameters
@@ -50,7 +50,7 @@ Guides you through systematic function implementation:
 ## What Happens
 
 ### Pre-Flight
-- Runs `/rd:check-10-dev` automatically
+- Runs `/rd:10-dev-check` automatically
 - Detects project language and build tool
 - Verifies test framework availability
 
@@ -174,7 +174,7 @@ If related functions exist (e.g., `get_user_info` + `set_user_info`):
   - get_user_info (existing)
   - set_user_info (just implemented)
 
-Recommend: /rd:integrate-10-dev get_user_info set_user_info
+Recommend: /rd:10-dev-integrate get_user_info set_user_info
 
 Continue without integration tests? [Y/n]
 ```
@@ -183,15 +183,15 @@ Continue without integration tests? [Y/n]
 
 | Issue | Solution |
 |-------|----------|
-| "Preconditions not met" | Run `/rd:check-10-dev`, then `/rd:init-10-dev` |
+| "Preconditions not met" | Run `/rd:10-dev-check`, then `/rd:10-dev-init` |
 | "Test fails at Stage 8" | Claude auto-fixes; review error messages |
 | "Build tool not found" | Install tool or verify PATH |
 | "Cannot detect language" | Use `--language <lang>` flag |
 
 ## See Also
 
-- **Setup**: `/rd:check-10-dev` (verify preconditions), `/rd:init-10-dev` (initialize build config)
-- **Integration**: `/rd:integrate-10-dev` (create integration tests)
+- **Setup**: `/rd:10-dev-check` (verify preconditions), `/rd:10-dev-init` (initialize build config)
+- **Integration**: `/rd:10-dev-integrate` (create integration tests)
 - **Documentation**: `skills/10-stages-developing/SKILL.md` (complete workflow details)
 - **Examples**: `skills/10-stages-developing/docs/examples.md` (multi-language examples)
 - **Troubleshooting**: `skills/10-stages-developing/docs/troubleshooting.md` (stage-specific issues)

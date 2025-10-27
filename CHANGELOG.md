@@ -1,5 +1,40 @@
 # CHANGELOG
 
+## [1.1.0] - 2025-10-26
+
+### Added
+- **Meta-skill system for skill management:** `cc-skills` skill with comprehensive best practices
+  - SKILL.md: Core domain knowledge for Claude Code Agent Skills
+  - BEST_PRACTICES.md: Detailed guidelines and examples
+  - EXAMPLES.md: Complete skill examples (code review, API docs, test automation, data processing)
+  - TEMPLATES.md: Starter templates (basic, complete, workflow, analysis)
+- **Skill creation automation:** `/rd:add-skill` command
+  - Creates skill with proper structure and frontmatter
+  - Supports 4 templates: basic, complete, workflow, analysis
+  - Validates skill name and generates README with next steps
+  - Bash script (`addskill.sh`) for file generation
+- **Skill refinement:** `/rd:refine-skill` command
+  - Analyzes skills against best practices
+  - Identifies issues and generates improvement plan
+  - Applies refinements with user approval
+- **Skill evaluation:** `/rd:evaluate-skill` command
+  - Read-only comprehensive quality assessment
+  - Evaluates 6 categories: frontmatter, content, structure, efficiency, best practices, code
+  - Generates detailed report with scoring and recommendations
+  - Prioritized improvement suggestions
+
+### Changed
+- **Reorganized commands by prefix for better grouping:**
+  - Skill management commands now grouped with `skill-*` prefix:
+    - `add-skill` → `skill-add`
+    - `evaluate-skill` → `skill-evaluate`
+    - `refine-skill` → `skill-refine`
+  - 10-stage workflow commands now grouped with `10-dev-*` prefix:
+    - `apply-10-dev` → `10-dev-apply`
+    - `check-10-dev` → `10-dev-check`
+    - `init-10-dev` → `10-dev-init`
+    - `integrate-10-dev` → `10-dev-integrate`
+
 ## [1.0.0] - 2025-10-26
 
 ### Added

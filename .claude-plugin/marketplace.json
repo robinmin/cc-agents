@@ -17,7 +17,7 @@
       "name": "rd",
       "source": "./plugins/rd",
       "description": "Rapid Development: Systematic 10-stage TDD workflow for high-quality function development with test-first principles, syntax validation, and comprehensive testing (Python, JS/TS, Java, Go, Rust)",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "keywords": [
         "tdd",
         "testing",
@@ -30,10 +30,14 @@
         "multi-language"
       ],
       "commands": [
-        "./commands/apply-10-dev.md",
-        "./commands/check-10-dev.md",
-        "./commands/init-10-dev.md",
-        "./commands/integrate-10-dev.md"
+        "./commands/10-dev-apply.md",
+        "./commands/10-dev-check.md",
+        "./commands/10-dev-init.md",
+        "./commands/10-dev-integrate.md",
+
+        "./commands/skill-add.md",
+        "./commands/skill-evaluate.md",
+        "./commands/skill-refine.md"
       ]
     }
   ]

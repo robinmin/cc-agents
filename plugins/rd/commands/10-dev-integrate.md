@@ -19,16 +19,16 @@ When you have multiple related functions (e.g., `get_user_info` and `set_user_in
 
 ```bash
 # Test two related functions
-/rd:integrate-10-dev get_user_info set_user_info
+/rd:10-dev-integrate get_user_info set_user_info
 
 # Test a workflow chain
-/rd:integrate-10-dev create_order process_payment ship_order
+/rd:10-dev-integrate create_order process_payment ship_order
 
 # Test all functions in a module
-/rd:integrate-10-dev --module user_service
+/rd:10-dev-integrate --module user_service
 
 # Add to existing integration suite
-/rd:integrate-10-dev validate_email --add-to-suite
+/rd:10-dev-integrate validate_email --add-to-suite
 ```
 
 ## Parameters
@@ -41,7 +41,7 @@ When you have multiple related functions (e.g., `get_user_info` and `set_user_in
 ## When to Use
 
 ### Automatic Suggestion
-After `/rd:apply-10-dev` Stage 6, workflow suggests integration tests when:
+After `/rd:10-dev-apply` Stage 6, workflow suggests integration tests when:
 - Multiple functions share data models
 - Functions form workflow chains (CRUD operations)
 - Functions have input/output dependencies
@@ -233,21 +233,21 @@ def test_error_recovery():
 
 ### Example 1: User Management
 ```bash
-/rd:integrate-10-dev get_user set_user delete_user
+/rd:10-dev-integrate get_user set_user delete_user
 ```
 
 Creates integration tests for complete user lifecycle.
 
 ### Example 2: Payment Processing
 ```bash
-/rd:integrate-10-dev create_order process_payment ship_order --scenario pipeline
+/rd:10-dev-integrate create_order process_payment ship_order --scenario pipeline
 ```
 
 Tests order fulfillment pipeline end-to-end.
 
 ### Example 3: Module Integration
 ```bash
-/rd:integrate-10-dev --module authentication
+/rd:10-dev-integrate --module authentication
 ```
 
 Tests all authentication functions together (login, logout, refresh_token, validate_session).
@@ -273,14 +273,14 @@ Tests all authentication functions together (login, logout, refresh_token, valid
 
 | Issue | Solution |
 |-------|----------|
-| "No related functions found" | Manually specify: `/rd:integrate-10-dev func1 func2` |
+| "No related functions found" | Manually specify: `/rd:10-dev-integrate func1 func2` |
 | "Integration tests fail but unit tests pass" | Check function call order, data transformations, state management |
 | "Tests are slow" | Use mocks for external dependencies, optimize test data |
-| "Integration directory not found" | Run `/rd:init-10-dev` to create directory structure |
+| "Integration directory not found" | Run `/rd:10-dev-init` to create directory structure |
 
 ## See Also
 
-- **Implementation**: `/rd:apply-10-dev` (implement functions with unit tests)
-- **Setup**: `/rd:check-10-dev` (verify test setup)
+- **Implementation**: `/rd:10-dev-apply` (implement functions with unit tests)
+- **Setup**: `/rd:10-dev-check` (verify test setup)
 - **Patterns**: `skills/10-stages-developing/docs/examples.md` (integration test examples)
 - **Workflow**: `skills/10-stages-developing/SKILL.md` (Stage 6b details)

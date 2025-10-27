@@ -19,19 +19,19 @@ Automatically sets up build tool configuration with standard tasks:
 
 ```bash
 # Auto-detect language and initialize
-/rd:init-10-dev
+/rd:10-dev-init
 
 # Specify language explicitly
-/rd:init-10-dev --language python
+/rd:10-dev-init --language python
 
 # Force overwrite existing configuration
-/rd:init-10-dev --force
+/rd:10-dev-init --force
 
 # Preview without making changes
-/rd:init-10-dev --dry-run
+/rd:10-dev-init --dry-run
 
 # Custom directories
-/rd:init-10-dev --src-dir custom/src --test-dir custom/tests
+/rd:10-dev-init --src-dir custom/src --test-dir custom/tests
 ```
 
 ## Parameters
@@ -128,7 +128,7 @@ Language-specific adjustments:
 
 ### Example 1: Python Project
 ```bash
-/rd:init-10-dev
+/rd:10-dev-init
 ```
 
 **Output**:
@@ -158,19 +158,19 @@ Tooling: uv, ruff, mypy, pytest
 📋 Next Steps:
 1. Run: make install
 2. Verify: make test
-3. Ready: /rd:apply-10-dev <function-name>
+3. Ready: /rd:10-dev-apply <function-name>
 ```
 
 ### Example 2: JavaScript Project
 ```bash
-/rd:init-10-dev --language javascript
+/rd:10-dev-init --language javascript
 ```
 
 **Creates**: package.json with jest, eslint, prettier configured
 
 ### Example 3: Existing Configuration
 ```bash
-/rd:init-10-dev
+/rd:10-dev-init
 ```
 
 **Behavior**:
@@ -230,24 +230,24 @@ go version
 
 ### New Projects
 ```bash
-/rd:init-10-dev           # Initialize
+/rd:10-dev-init           # Initialize
 make install           # Install dependencies
-/rd:check-10-dev          # Verify setup
-/rd:apply-10-dev function # Start developing
+/rd:10-dev-check          # Verify setup
+/rd:10-dev-apply function # Start developing
 ```
 
 ### Existing Projects
 ```bash
-/rd:check-10-dev          # See what's missing
-/rd:init-10-dev           # Configure (merge mode)
+/rd:10-dev-check          # See what's missing
+/rd:10-dev-init           # Configure (merge mode)
 # Adapt templates to match your conventions
-/rd:apply-10-dev function # Use workflow
+/rd:10-dev-apply function # Use workflow
 ```
 
 ## See Also
 
-- **Verification**: `/rd:check-10-dev` (verify setup completeness)
-- **Usage**: `/rd:apply-10-dev` (use the workflow)
+- **Verification**: `/rd:10-dev-check` (verify setup completeness)
+- **Usage**: `/rd:10-dev-apply` (use the workflow)
 - **Philosophy**: `skills/10-stages-developing/README.md` (soft contract approach)
 - **Templates**: `skills/10-stages-developing/templates/` (view/customize templates)
 - **Customization**: `skills/10-stages-developing/templates/README.md` (template guide)

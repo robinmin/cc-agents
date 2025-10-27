@@ -97,3 +97,36 @@ To complete this process, we need to add commands and register plugins into Clau
 - register a plugin named as 'rd' in @.claude-plugin/marketplace.json, which at least includes above commands `check-10-dev` and `apply-10-dev`.
 
 Of course, if you have any other commands or other stuff need to be added, please let me know.
+
+## Meta slash commands for Add new skills
+
+- Add one script to plugin 'rd' named as 'addskill.sh'. This script will help us to add new skills to the any plugin(Both the name of the plugin and the name of the skill will be specified by the user via arguments).
+- Refer to the following links to generate another skill at folder `plugins/rd/skills/cc-skills`. It's the domain knowledge and best practices for Claude Code Agent Skills. We will use this skill to generate a new skill or refine existing skills. Here comes the links:
+
+  - https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview
+  - https://docs.claude.com/en/docs/agents-and-tools/agent-skills/quickstart
+  - https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices
+
+  I need you distill the key information and the best practices as domain knowledge for Claude Code Agent Skills, we will create new skills or refine existing skills all based on these knowledge.
+
+- Add a new slash command `addskill` to plugin 'rd'. This command will call the script 'addskill.sh' to add new skills to the any plugin by template and add some initial draft version for the skill based on the meta skills defined in @plugins/rd/skills/cc-skills.
+- Add a new slash command `refineskill` to plugin 'rd'. This command will take the arguments as the folder of the skill to be refined. This command will refine the skill based on the meta skills defined in @plugins/rd/skills/cc-skills.
+
+- Based on the same meta-skill and with the same approach, add a new slash command `evaluate-skill`. This command will take the arguments as the skill folder to be evaluated. This command will evaluate the skill based on the meta skills defined in @plugins/rd/skills/cc-skills, and it will work on the read-only mode, after the comprehensive evaluation, it will generate a well structured and well-written report, including which parts are good and which parts need improvement and suggestions for improvement and so on so forth.
+- To help end users to use these commands, we rename them as follows:
+  - `addskill` --> `add-skill`
+  - `refineskill` --> `refine-skill`
+
+### Rename commands
+
+## To help the commands grouped together by default, we rename all `rd` commands(@plugins/rd/commands) as follows:
+
+- add-skill.md --> skill-add.md
+- evaluate-skill.md --> skill-evaluate.md
+- refine-skill.md --> skill-refine.md
+- apply-10-dev.md --> 10-dev-apply.md
+- check-10-dev.md --> 10-dev-check.md
+- init-10-dev.md --> 10-dev-init.md
+- integrate-10-dev.md --> 10-dev-integrate.md
+
+Rename these files and update relevant files.

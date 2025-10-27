@@ -99,16 +99,16 @@ This repository includes a comprehensive TDD workflow skill with plugin integrat
 /plugin install rd@cc-agents/
 
 # Check if your project is ready for the workflow
-/rd:check-10-dev
+/rd:10-dev-check
 
 # Initialize build configuration for your project
-/rd:init-10-dev
+/rd:10-dev-init
 
 # Apply 10-stage workflow to implement a function
-/rd:apply-10-dev validate_email
+/rd:10-dev-apply validate_email
 
 # Create integration tests for related functions
-/rd:integrate-10-dev get_user_info set_user_info
+/rd:10-dev-integrate get_user_info set_user_info
 ```
 
 See `plugins/rd/skills/10-stages-developing/` for complete documentation.
@@ -117,12 +117,22 @@ See `plugins/rd/skills/10-stages-developing/` for complete documentation.
 
 ### rd (Rapid Development) Plugin
 
+**10-Stage TDD Workflow Commands:**
+
 | Command | Description |
 |---------|-------------|
-| `/rd:check-10-dev` | Verify project preconditions for 10-stage workflow |
-| `/rd:apply-10-dev <function-name>` | Execute complete 10-stage workflow for a function |
-| `/rd:init-10-dev` | Initialize build tool configuration for your project |
-| `/rd:integrate-10-dev <func1> <func2>...` | Create integration tests for related functions |
+| `/rd:10-dev-check` | Verify project preconditions for 10-stage workflow |
+| `/rd:10-dev-apply <function-name>` | Execute complete 10-stage workflow for a function |
+| `/rd:10-dev-init` | Initialize build tool configuration for your project |
+| `/rd:10-dev-integrate <func1> <func2>...` | Create integration tests for related functions |
+
+**Skill Management Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `/rd:skill-add <plugin> <skill> [template]` | Create new Claude Code Agent Skill with templates |
+| `/rd:skill-evaluate <skill-folder>` | Generate comprehensive quality report for skill |
+| `/rd:skill-refine <skill-folder>` | Improve existing skill with guided refinements |
 
 ### hello (Example Plugin)
 

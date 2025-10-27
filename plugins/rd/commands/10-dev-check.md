@@ -19,13 +19,13 @@ Validates project environment readiness:
 
 ```bash
 # Check current project
-/rd:check-10-dev
+/rd:10-dev-check
 
 # Detailed report
-/rd:check-10-dev --verbose
+/rd:10-dev-check --verbose
 
 # Check specific language
-/rd:check-10-dev --language python
+/rd:10-dev-check --language python
 ```
 
 ## Parameters
@@ -121,7 +121,7 @@ Test Framework: pytest
 📋 RECOMMENDATIONS:
 1. Create tests/integration/ directory
 2. Add notify tasks to Makefile
-3. Ready to use /rd:apply-10-dev
+3. Ready to use /rd:10-dev-apply
 
 OVERALL STATUS: 90% Ready
 ```
@@ -130,21 +130,21 @@ OVERALL STATUS: 90% Ready
 
 | Status | Meaning | Action |
 |--------|---------|--------|
-| ✅ READY | All requirements met | Proceed with `/rd:apply-10-dev` |
-| ⚠️ NEEDS ATTENTION | Minor issues | Use `/rd:init-10-dev` or fix manually |
-| ❌ MISSING | Critical issues | Install tools, run `/rd:init-10-dev` |
+| ✅ READY | All requirements met | Proceed with `/rd:10-dev-apply` |
+| ⚠️ NEEDS ATTENTION | Minor issues | Use `/rd:10-dev-init` or fix manually |
+| ❌ MISSING | Critical issues | Install tools, run `/rd:10-dev-init` |
 
 ## What to Do After Checking
 
 ### 100% Ready
 ```bash
-/rd:apply-10-dev <function-name>
+/rd:10-dev-apply <function-name>
 ```
 
 ### Items Need Attention
 ```bash
 # Option 1: Auto-fix
-/rd:init-10-dev
+/rd:10-dev-init
 
 # Option 2: Manual fixes
 mkdir -p tests/integration
@@ -158,24 +158,24 @@ pip install pytest ruff mypy  # Python
 npm install -D jest eslint    # JavaScript
 
 # Initialize configuration
-/rd:init-10-dev
+/rd:10-dev-init
 
 # Verify
-/rd:check-10-dev
+/rd:10-dev-check
 ```
 
 ## Examples
 
 ### Example 1: Python Project Ready
 ```bash
-/rd:check-10-dev
+/rd:10-dev-check
 ```
 
 **Output**: 100% Ready - All preconditions met
 
 ### Example 2: JavaScript Project Needs Setup
 ```bash
-/rd:check-10-dev
+/rd:10-dev-check
 ```
 
 **Output**:
@@ -184,12 +184,12 @@ npm install -D jest eslint    # JavaScript
   - package.json missing test scripts
   - eslint not configured
 
-📋 Run: /rd:init-10-dev
+📋 Run: /rd:10-dev-init
 ```
 
 ### Example 3: New Project
 ```bash
-/rd:check-10-dev
+/rd:10-dev-check
 ```
 
 **Output**:
@@ -199,7 +199,7 @@ npm install -D jest eslint    # JavaScript
   - Test framework not installed
   - Directory structure missing
 
-📋 Run: /rd:init-10-dev to set up project
+📋 Run: /rd:10-dev-init to set up project
 ```
 
 ## Integration with Other Commands
@@ -207,22 +207,22 @@ npm install -D jest eslint    # JavaScript
 ### Typical Workflow
 ```bash
 # 1. Check readiness
-/rd:check-10-dev
+/rd:10-dev-check
 
 # 2. If needed, initialize
-/rd:init-10-dev
+/rd:10-dev-init
 
 # 3. Verify setup
-/rd:check-10-dev
+/rd:10-dev-check
 
 # 4. Start development
-/rd:apply-10-dev <function-name>
+/rd:10-dev-apply <function-name>
 ```
 
 ### Periodic Health Check
 ```bash
 # Run occasionally to ensure configuration maintained
-/rd:check-10-dev --verbose
+/rd:10-dev-check --verbose
 ```
 
 ## Troubleshooting
@@ -230,13 +230,13 @@ npm install -D jest eslint    # JavaScript
 | Issue | Solution |
 |-------|----------|
 | "Cannot detect project type" | Create language files (.py, package.json, go.mod) or use `--language` flag |
-| "Build tool not found" | Install make or ensure package.json exists; run `/rd:init-10-dev` |
+| "Build tool not found" | Install make or ensure package.json exists; run `/rd:10-dev-init` |
 | "Test framework not configured" | Install framework (pytest, jest, etc.) and add to project |
-| "Standard tasks missing" | Run `/rd:init-10-dev` or manually add tasks from templates |
+| "Standard tasks missing" | Run `/rd:10-dev-init` or manually add tasks from templates |
 
 ## See Also
 
-- **Setup**: `/rd:init-10-dev` (initialize build configuration)
-- **Usage**: `/rd:apply-10-dev` (use the workflow)
+- **Setup**: `/rd:10-dev-init` (initialize build configuration)
+- **Usage**: `/rd:10-dev-apply` (use the workflow)
 - **Documentation**: `skills/10-stages-developing/README.md` (setup guide)
 - **Templates**: `skills/10-stages-developing/templates/` (build tool templates)
