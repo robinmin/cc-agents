@@ -130,3 +130,61 @@ Of course, if you have any other commands or other stuff need to be added, pleas
 - integrate-10-dev.md --> 10-dev-integrate.md
 
 Rename these files and update relevant files.
+
+### Optimize <claude_code_plugins_02.md>
+
+#### Background and current issues
+
+I am writing a series of articles to introduce how to leverage Claude Code Plugins mechanism to enhance your daily works. The target audience is developers, designers, and product managers who want to leverage Claude Code Plugins mechanism to enhance their daily works. I already prepared two pieces of articles:
+
+- @docs/claude_code_plugins_01.md, majorly focusing on introducing core concepts of Claude Code Plugins mechanism. Already published.
+- @docs/claude_code_plugins_02.md, majorly focusing on practice and experience to show how to develop a Claude Code Plugin. I already wrote a few days ago. but I am not very satisfied with the quality of the article. I need you leverage agent seo-content-planner and agent seo-content-writer's capacities to plan and re-write it.
+
+## Current status majorly in the following:
+
+- It looks more like a operation guide or tutorial, instead of a well-written article. A good article should be easy to understand and engaging. And not only how to do it, but also why and when to do it. (Actually, we encountered the same issue in the previous article @docs/claude_code_plugins_01.md. But it was published, we can not improve it now. The thing we can do is to improve the quality of the up-coming articles.)
+- This article reeks of AI-generated content and stands out as distinctly different from authentic Chinese expressions used in real-world contexts, especially for an article.
+- It took a inappropriately sample to demonstrate how to develop a Claude Code Plugin, as we already have so many mature solutions for 提交前检查插件.
+- And more importantly, this article lacks best practices and tips for developing high-quality Claude Code Plugins. That's added-value as an article.
+
+#### Revise requirements and guidelines
+
+- We need to take two samples to demonstrate how to develop a Claude Code Plugin.
+  - The first one is our `hello` plugin defined in @.claude-plugin/marketplace.json and folder plugins/hello. We will use it to show the simplest way to develop a Claude Code Plugin.
+  - The second one is part of our `rd` plugin defined in @.claude-plugin/marketplace.json and folder plugins/rd. We will use it to show a full circle to develop a Claude Code Plugin, including the development process, challenges, the design decision making and the relevant reasons. The key points are:
+    - How to extract or distill the knowledge from the best practices(https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices) and build up meta-skill `cc-skills`;
+    - how to add user defined script: `plugins/rd/scripts/addskill.sh`
+    - How to implement user defined slash command: `/rd:skill-add`, `/rd:skill-evaluate` and `/rd:skill-refine`
+    - how to add marketplace and install `rd` plugin
+    - how to use slash command `/rd:skill-evaluate` to evaluate the meta-skill `cc-skills`, as the final demonstration of the `rd` plugin. And with these slash commands, we can build up a powerful agent that can help us to build up skill libraries based on the specified operation guide and best practices for any domain.
+    - at the end of this part, we can post some of the results of slash commands `/rd:skill-evaluate plugins/rd/skills/cc-skills`;
+    - To simplify the demo, do not mention plugins/rd/skills/10-stages-developing and relevant slash commands.
+- Refer to the following resources, I need you distill all the key points and best practices for developing high-quality Claude Code Plugins first. And embed them into this article when we demo above the two samples. At the end of this article, we will summarize and highlight the key points and best practices again.
+- You can split this job into 3 steps: Planning, generating content, and reviewing and polishing, so that we can have a well-written and solid article with authentic Chinese content.
+- Create a new file @docs/claude_code_plugins_02_new.md, and output your final content into it.
+- Do not worry the length of the article, focus on the quality and accuracy of the content. If it's too long, we will divide it into multiple articles.
+- If necessary, appropriate text, graphics, tables, etc., can be configured. External image resources are acceptable. For diagrams, I am preferring in mermaid format.
+
+#### References
+
+- https://docs.claude.com/en/docs/claude-code/plugins
+- https://docs.claude.com/en/docs/claude-code/plugin-marketplaces
+- https://docs.claude.com/en/docs/claude-code/sub-agents#best-practices
+- https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices
+- https://www.anthropic.com/engineering/claude-code-best-practices
+- https://www.shuttle.dev/blog/2025/10/16/claude-code-best-practices
+- https://docs.claude.com/en/docs/claude-code/hooks#security-best-practices
+
+## agent super-coder
+
+Help to design a new plugin agents named as "super-coder" in file @plugins/rd/agnts/super-coder.md with best practices. He is a powerful and senior full stack developer with very disciplined and experienced skills to get the thing done with the 10-stage TDD workflow.
+
+He is also a master of the 10-stage TDD workflow, which includes planning, designing, coding, testing, and deploying. He is the core of the team to ensure the quality and reliability of the system.
+
+## agent cool-commander
+
+with the same methodology, help to design a new plugin agents named as "cool-commander" in file @plugins/rd/agnts/cool-commander.md with best practices. He is designed as the partner of the super-coder, and act as a combination roles, including architect, tech leader and sort of a project manager.
+
+He fully in charge of converting the business requirements into technical specifications and designs, ensuring that the technical solutions meet the business needs and are aligned with the overall project goals. He also ensures that the technical solutions are scalable, maintainable, and secure. He acts as the planning role and command super-coder as the implementation role.
+
+He familiar with the best practices of the 10-stage TDD workflow and `openspec` workflow.
