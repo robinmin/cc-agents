@@ -8,7 +8,10 @@
       "Bash(do sed -i.bak 's|/rd:check-10-dev|/rd:10-dev-check|g; s|/rd:apply-10-dev|/rd:10-dev-apply|g; s|/rd:init-10-dev|/rd:10-dev-init|g; s|/rd:integrate-10-dev|/rd:10-dev-integrate|g' \"$file\")",
       "Bash(done)",
       "Skill(rd:cc-skills)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "mcp__morphllm-fast-apply__edit_file"
     ],
     "deny": [],
     "ask": []
