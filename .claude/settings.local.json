@@ -11,7 +11,13 @@
       "Bash(tree:*)",
       "Bash(find:*)",
       "Bash(mkdir:*)",
-      "mcp__morphllm-fast-apply__edit_file"
+      "mcp__morphllm-fast-apply__edit_file",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(dokploy:*)",
+      "Bash(plugins/rd/scripts/addskill.sh:*)",
+      "WebFetch(domain:docs.dokploy.com)",
+      "WebFetch(domain:dokploy.com)",
+      "SlashCommand(/rd:skill-refine:*)"
     ],
     "deny": [],
     "ask": []

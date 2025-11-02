@@ -188,3 +188,43 @@ with the same methodology, help to design a new plugin agents named as "cool-com
 He fully in charge of converting the business requirements into technical specifications and designs, ensuring that the technical solutions meet the business needs and are aligned with the overall project goals. He also ensures that the technical solutions are scalable, maintainable, and secure. He acts as the planning role and command super-coder as the implementation role.
 
 He familiar with the best practices of the 10-stage TDD workflow and `openspec` workflow.
+
+## add dokploy skills
+
+### Background
+
+I need to add dokploy skills to help all agents to understand how to deploy their code to production via dokploy and my gitops infrastructure.
+
+- my Dokply website: https://gate.robinmin.net/
+- And, I already installed dokploy CLI on my laptop, you also need to consider to use it if necessary.
+- Relevant documentation here: @docs/DokployGitOpsIntegrationAndBestPractices.md
+- Relevant Reference links here:
+  - [Dokploy documentation](https://docs.dokploy.com/)
+  - [Dokploy CLI](https://docs.dokploy.com/docs/cli)
+  - [Dokploy API](https://docs.dokploy.com/docs/api)
+  - [Dokploy Auto-Deploy](https://docs.dokploy.com/docs/core/auto-deploy)
+  - [How to Deploy Apps with Docker Compose in 2025](https://dokploy.com/fr/blog/how-to-deploy-apps-with-docker-compose-in-2025)
+  - [GitHub Actions documentation](https://docs.github.com/en/actions)
+- Slash command we need to use to develop `dokploy` skills:
+  - `/rd:skill-add`
+  - `/rd:skill-evaluate`
+  - `/rd:skill-refine`
+
+### Requirements
+
+- Use above materials to develop a new skills `dokploy` and stored under @plugins/rd/skills/.
+- Develop a new slashcommand `/rd:dokploy-new` to create a new deployment via Dokploy with `dokploy` skills. It will take user requirements via augmentation.
+- Develop a new slashcommand `/rd:dokploy-refine` to refine an existing deployment via Dokploy with `dokploy` skills. It will take user requirements via augmentation.
+
+You need to split this job into two parts:
+1, Planning stage: Prepare everything ready and figure out the task list to be done. If case of any ambiguity, please confirm with me.
+2, Implementation stage: Implement the task list.
+
+Did you already fetch and embedded the information in the following links? If not, use MCP to do it and leverage slashcommand `/rd:skill-refine` to refine skills `dokploy` under @plugins/rd/skills/dokploy. If yes, just tell me should be okay.
+Here comes the important links:
+
+- [Dokploy documentation](https://docs.dokploy.com/)
+- [Dokploy CLI](https://docs.dokploy.com/docs/cli)
+- [Dokploy API](https://docs.dokploy.com/docs/api)
+- [Dokploy Auto-Deploy](https://docs.dokploy.com/docs/core/auto-deploy)
+- [How to Deploy Apps with Docker Compose in 2025](https://dokploy.com/fr/blog/how-to-deploy-apps-with-docker-compose-in-2025)
