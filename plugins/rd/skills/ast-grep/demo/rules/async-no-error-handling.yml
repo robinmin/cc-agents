@@ -1,0 +1,16 @@
+id: async-no-error-handling
+language: javascript
+message: "Async function uses await without try-catch error handling"
+note: "Consider adding try-catch block for error handling"
+severity: warning
+
+rule:
+  all:
+    - kind: function_declaration
+    - has:
+        pattern: await $EXPR
+        stopBy: end
+    - not:
+        has:
+          pattern: try { $$$ } catch ($E) { $$$ }
+          stopBy: end

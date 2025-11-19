@@ -1,0 +1,23 @@
+id: promise-all-with-await
+language: javascript
+message: "Promise.all contains await expression (anti-pattern)"
+note: "Remove await inside Promise.all - use Promise.all([fetch(), fetch()]) not Promise.all([await fetch(), await fetch()])"
+severity: error
+
+rule:
+  pattern: Promise.all($ARRAY)
+  has:
+    pattern: await $EXPR
+    stopBy: end
+
+# Example of bad code:
+# const results = await Promise.all([
+#   await fetch('/api/1'),  // ❌ Don't await here
+#   await fetch('/api/2'),  // ❌ Don't await here
+# ]);
+#
+# Should be:
+# const results = await Promise.all([
+#   fetch('/api/1'),  // ✅ Promise returned
+#   fetch('/api/2'),  // ✅ Promise returned
+# ]);

@@ -17,7 +17,12 @@
       "Bash(plugins/rd/scripts/addskill.sh:*)",
       "WebFetch(domain:docs.dokploy.com)",
       "WebFetch(domain:dokploy.com)",
-      "SlashCommand(/rd:skill-refine:*)"
+      "SlashCommand(/rd:skill-refine:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__tavily__tavily-search",
+      "mcp__context7__get-library-docs",
+      "Bash(ast-grep run:*)",
+      "Bash(ast-grep scan:*)"
     ],
     "deny": [],
     "ask": []
