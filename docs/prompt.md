@@ -28,11 +28,11 @@ Here
 I want to create a set of workflow to implement TDD for my daily development tasks with Claude Code skills. Under folder @skills/10-stages-dev is the files I Prepared. I want to name it as '10-stages-dev'. I need your help to:
 
 - Refer to the following official documentations and best practices to refine this skills, make it as a clean and concise skills for the LLM and human:
-  - https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview
-  - https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices
+  - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview>
+  - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices>
 - Re-organize the workflow and file layout to make it more organized and maintainable.
 
-## A few points to enhance the workflow and file layout:
+## A few points to enhance the workflow and file layout
 
 ### About toolings
 
@@ -103,9 +103,9 @@ Of course, if you have any other commands or other stuff need to be added, pleas
 - Add one script to plugin 'rd' named as 'addskill.sh'. This script will help us to add new skills to the any plugin(Both the name of the plugin and the name of the skill will be specified by the user via arguments).
 - Refer to the following links to generate another skill at folder `plugins/rd/skills/cc-skills`. It's the domain knowledge and best practices for Claude Code Agent Skills. We will use this skill to generate a new skill or refine existing skills. Here comes the links:
 
-  - https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview
-  - https://docs.claude.com/en/docs/agents-and-tools/agent-skills/quickstart
-  - https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices
+  - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview>
+  - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/quickstart>
+  - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices>
 
   I need you distill the key information and the best practices as domain knowledge for Claude Code Agent Skills, we will create new skills or refine existing skills all based on these knowledge.
 
@@ -119,7 +119,7 @@ Of course, if you have any other commands or other stuff need to be added, pleas
 
 ### Rename commands
 
-## To help the commands grouped together by default, we rename all `rd` commands(@plugins/rd/commands) as follows:
+## To help the commands grouped together by default, we rename all `rd` commands(@plugins/rd/commands) as follows
 
 - add-skill.md --> skill-add.md
 - evaluate-skill.md --> skill-evaluate.md
@@ -140,19 +140,19 @@ I am writing a series of articles to introduce how to leverage Claude Code Plugi
 - @docs/claude_code_plugins_01.md, majorly focusing on introducing core concepts of Claude Code Plugins mechanism. Already published.
 - @docs/claude_code_plugins_02.md, majorly focusing on practice and experience to show how to develop a Claude Code Plugin. I already wrote a few days ago. but I am not very satisfied with the quality of the article. I need you leverage agent seo-content-planner and agent seo-content-writer's capacities to plan and re-write it.
 
-## Current status majorly in the following:
+## Current status majorly in the following
 
 - It looks more like a operation guide or tutorial, instead of a well-written article. A good article should be easy to understand and engaging. And not only how to do it, but also why and when to do it. (Actually, we encountered the same issue in the previous article @docs/claude_code_plugins_01.md. But it was published, we can not improve it now. The thing we can do is to improve the quality of the up-coming articles.)
 - This article reeks of AI-generated content and stands out as distinctly different from authentic Chinese expressions used in real-world contexts, especially for an article.
 - It took a inappropriately sample to demonstrate how to develop a Claude Code Plugin, as we already have so many mature solutions for 提交前检查插件.
 - And more importantly, this article lacks best practices and tips for developing high-quality Claude Code Plugins. That's added-value as an article.
 
-#### Revise requirements and guidelines
+### Revise requirements and guidelines
 
 - We need to take two samples to demonstrate how to develop a Claude Code Plugin.
   - The first one is our `hello` plugin defined in @.claude-plugin/marketplace.json and folder plugins/hello. We will use it to show the simplest way to develop a Claude Code Plugin.
   - The second one is part of our `rd` plugin defined in @.claude-plugin/marketplace.json and folder plugins/rd. We will use it to show a full circle to develop a Claude Code Plugin, including the development process, challenges, the design decision making and the relevant reasons. The key points are:
-    - How to extract or distill the knowledge from the best practices(https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices) and build up meta-skill `cc-skills`;
+    - How to extract or distill the knowledge from the best practices(<https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices>) and build up meta-skill `cc-skills`;
     - how to add user defined script: `plugins/rd/scripts/addskill.sh`
     - How to implement user defined slash command: `/rd:skill-add`, `/rd:skill-evaluate` and `/rd:skill-refine`
     - how to add marketplace and install `rd` plugin
@@ -167,13 +167,13 @@ I am writing a series of articles to introduce how to leverage Claude Code Plugi
 
 #### References
 
-- https://docs.claude.com/en/docs/claude-code/plugins
-- https://docs.claude.com/en/docs/claude-code/plugin-marketplaces
-- https://docs.claude.com/en/docs/claude-code/sub-agents#best-practices
-- https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices
-- https://www.anthropic.com/engineering/claude-code-best-practices
-- https://www.shuttle.dev/blog/2025/10/16/claude-code-best-practices
-- https://docs.claude.com/en/docs/claude-code/hooks#security-best-practices
+- <https://docs.claude.com/en/docs/claude-code/plugins>
+- <https://docs.claude.com/en/docs/claude-code/plugin-marketplaces>
+- <https://docs.claude.com/en/docs/claude-code/sub-agents#best-practices>
+- <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices>
+- <https://www.anthropic.com/engineering/claude-code-best-practices>
+- <https://www.shuttle.dev/blog/2025/10/16/claude-code-best-practices>
+- <https://docs.claude.com/en/docs/claude-code/hooks#security-best-practices>
 
 ## agent super-coder
 
@@ -195,7 +195,7 @@ He familiar with the best practices of the 10-stage TDD workflow and `openspec` 
 
 I need to add dokploy skills to help all agents to understand how to deploy their code to production via dokploy and my gitops infrastructure.
 
-- my Dokply website: https://gate.robinmin.net/
+- my Dokply website: <https://gate.robinmin.net/>
 - And, I already installed dokploy CLI on my laptop, you also need to consider to use it if necessary.
 - Relevant documentation here: @docs/DokployGitOpsIntegrationAndBestPractices.md
 - Relevant Reference links here:
@@ -222,6 +222,89 @@ You need to split this job into two parts:
 
 Did you already fetch and embedded the information in the following links? If not, use MCP to do it and leverage slashcommand `/rd:skill-refine` to refine skills `dokploy` under @plugins/rd/skills/dokploy. If yes, just tell me should be okay.
 Here comes the important links:
+
+## Prompts Management Tool
+
+### Background
+
+On every project, we need to maintain a set of prompts to help agents to perform their tasks. And we need to manage these prompts in a centralized way. So I need to develop a prompts management tool to help us to manage prompts.
+
+Before this tools ready, I always create a centralized file @docs/prompts.md to store all prompts. It gives us a good overview of all prompts and make it easy to manage them. But it's not a good way to manage prompts, especially when we have a lot of prompts.
+
+Based on this experience, I decide to develop a prompts management tool(@plugins/rd/scripts/prompts.sh) to help us to manage prompts.
+
+### Requirements
+
+- Store all prompts in a centralized folder @docs/prompts/ instead of @docs/prompts.md.
+- File name should be in the format of `<xxxx>_<yyyy>.md`. The `<xxxx>` is the non-duplicate sequnce number, we named it as WBS number; And `<yyyy>` is the name of the prompt, could be any name you like.
+- Besides the prompt file, we also have dot file `.kanban.md` to store the kanban board for the prompt. It will follow up with Obsidian's kanban template. Our script will generate the kanban board automatically once user create a new prompt or update the prompts. For the document of Obsidian's Kanban plugin, please refer to <https://publish.obsidian.md/kanban/Obsidian+Kanban+Plugin>. For the stages of the kanban board, by default we use `Backlog`, `To Do`, `In Progress`, `Testing`, `Done`. One sample kanban board is as follows:
+
+```markdown
+# Kanban Board
+
+## Backlog
+
+- [ ] 001_Prompt1
+- [ ] 002_Prompt2
+
+## To Do
+
+- [ ] 07_Prompt1
+- [ ] 08_Prompt2
+
+## In Progress
+
+- [.] 09_Prompt1
+- [.] 10_Prompt2
+
+## Testing
+
+- [x] 11_Prompt1
+- [x] 12_Prompt2
+
+## Done
+
+- [x] 13_Prompt1
+- [x] 14_Prompt2
+```
+
+> Note: We can define a better kanban board template to make it more user-friendly.
+
+- This tool is a single file script (@plugins/rd/scripts/prompts.sh), and commposed with a set of subcommands to manage prompts. Each subcommand is a function to perform a specific task. It at least include the following subcommands:
+
+  - `init`: Initialize the prompts management tool. It will:
+
+    - create the necessary files and folders(`docs/prompts/` and `docs/prompts/.kanban.md`) in current project.
+    - Install necessary dependencies, for example `glow` -- so far only towards macOS, so use `brew install glow` to install it should be okay.
+    - generate a default template for each prompt file `docs/prompts/.template.md`. The default template is same as the subagent format created by Anthropic as follows:
+
+```markdown
+---
+name: <prompt name>
+description: <prompt description>
+status: <prompt status>
+created_at: <prompt created at>
+updated_at: <prompt updated at>
+---
+
+## <prompt name>
+
+### Background
+
+### Requirements / Objectives
+
+### Solutions / Goals
+
+### References
+```
+
+- `list <stage>`: List all prompts in the specified stage in `docs/prompts/.kanban.md` with `glow` command to show markdown format in terminal. If no stage specified, list all prompts.
+- `create <prompt name>`: Create a new prompt based on the template `docs/prompts/.template.md`. It will generate a new prompt file in `docs/prompts/` folder and name it as `<xxxx>_<yyyy>.md`. xxxx is the four-digit sequence number(only count on non-dot files + 1), <yyyy> is the prompt name.
+- `update <WBS number> <stage>`: Update the specified prompt to the specified stage. It will update the kanban board automatically.
+- `refresh`: Refresh the kanban board. It will extract 'status' field from each prompt file and update the kanban board automatically. Each time when user update a prompt or create a new prompt, it will trigger this command automatically.
+- `help`: Show help information.
+
+### References
 
 - [Dokploy documentation](https://docs.dokploy.com/)
 - [Dokploy CLI](https://docs.dokploy.com/docs/cli)

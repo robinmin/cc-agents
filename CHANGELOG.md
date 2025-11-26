@@ -1,8 +1,24 @@
 # CHANGELOG
 
+## [1.1.2] - 2025-11-25
+
+### Added
+
+- **Prompts Management Tool:** `prompts.sh` script for managing LLM prompts.
+  - `init`: Initialize prompts directory, Kanban board, and template.
+  - `create`: Create new prompts from template with automatic WBS numbering.
+  - `list`: List prompts by stage.
+  - `update`: Update prompt status and move cards on Kanban board.
+  - `refresh`: Sync Kanban board with prompt files.
+  - Automatic symlink creation (`/usr/local/bin/prompts`) for easy access.
+  - Dynamic template support with placeholders (`{{PROMPT_NAME}}`, `{{WBS}}`, etc.).
+  - Obsidian Kanban plugin integration.
+- **Documentation:** `docs/about_prompts.md` guide.
+
 ## [1.1.0] - 2025-10-26
 
 ### Added
+
 - **Meta-skill system for skill management:** `cc-skills` skill with comprehensive best practices
   - SKILL.md: Core domain knowledge for Claude Code Agent Skills
   - BEST_PRACTICES.md: Detailed guidelines and examples
@@ -24,6 +40,7 @@
   - Prioritized improvement suggestions
 
 ### Changed
+
 - **Reorganized commands by prefix for better grouping:**
   - Skill management commands now grouped with `skill-*` prefix:
     - `add-skill` → `skill-add`
@@ -38,22 +55,26 @@
 ## [1.0.0] - 2025-10-26
 
 ### Added
+
 - Production-ready `rd` plugin (v1.0.0) for 10-stage TDD workflow
 - Multi-plugin architecture with separate directories (`plugins/hello/`, `plugins/rd/`)
 - Flattened command structure: `/rd:apply-10-dev` instead of `/rd:10-stages-developing:apply-10-dev`
 
 ### Changed
+
 - Streamlined command documentation (36% reduction: 1,521 → 979 lines)
 - Restructured project to support multiple plugins cleanly
 - Updated all documentation to use `/rd:` command prefix
 
 ### Fixed
+
 - Plugin namespace conflicts resolved through separate source directories
 - Command reference consistency across all documentation files
 
 ## [0.0.1] - 2025-10-25
 
 ### Added
+
 - Initial project structure
 - Example plugin (my-first-plugin)
 - 10-stage development workflow skill

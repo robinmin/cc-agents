@@ -9,6 +9,7 @@ A collection of plugins, skills, and tools for Claude Code to enhance your devel
 This marketplace contains two plugins organized in separate directories:
 
 - **hello** (`plugins/hello/`): Simple example plugin demonstrating Claude Code plugin capabilities
+
   - Version: 0.0.1
   - Commands: `/hello:hello` - Display a personalized greeting message
 
@@ -119,25 +120,25 @@ See `plugins/rd/skills/10-stages-developing/` for complete documentation.
 
 **10-Stage TDD Workflow Commands:**
 
-| Command | Description |
-|---------|-------------|
-| `/rd:10-dev-check` | Verify project preconditions for 10-stage workflow |
-| `/rd:10-dev-apply <function-name>` | Execute complete 10-stage workflow for a function |
-| `/rd:10-dev-init` | Initialize build tool configuration for your project |
-| `/rd:10-dev-integrate <func1> <func2>...` | Create integration tests for related functions |
+| Command                                   | Description                                          |
+| ----------------------------------------- | ---------------------------------------------------- |
+| `/rd:10-dev-check`                        | Verify project preconditions for 10-stage workflow   |
+| `/rd:10-dev-apply <function-name>`        | Execute complete 10-stage workflow for a function    |
+| `/rd:10-dev-init`                         | Initialize build tool configuration for your project |
+| `/rd:10-dev-integrate <func1> <func2>...` | Create integration tests for related functions       |
 
 **Skill Management Commands:**
 
-| Command | Description |
-|---------|-------------|
+| Command                                     | Description                                       |
+| ------------------------------------------- | ------------------------------------------------- |
 | `/rd:skill-add <plugin> <skill> [template]` | Create new Claude Code Agent Skill with templates |
-| `/rd:skill-evaluate <skill-folder>` | Generate comprehensive quality report for skill |
-| `/rd:skill-refine <skill-folder>` | Improve existing skill with guided refinements |
+| `/rd:skill-evaluate <skill-folder>`         | Generate comprehensive quality report for skill   |
+| `/rd:skill-refine <skill-folder>`           | Improve existing skill with guided refinements    |
 
 ### hello (Example Plugin)
 
-| Command | Description |
-|---------|-------------|
+| Command        | Description                             |
+| -------------- | --------------------------------------- |
 | `/hello:hello` | Display a personalized greeting message |
 
 ## Reference
@@ -156,3 +157,4 @@ See `plugins/rd/skills/10-stages-developing/` for complete documentation.
 - [wshobson/agents](https://github.com/wshobson/agents)
 - [不仅仅是代码助手：用 Plugins 将 Claude Code 打造成你的专属研发终端(1/4)](https://surfing.salty.vip/articles/cn/claude_code_plugins_01/)
 - [不仅仅是代码助手：用 Plugins 将 Claude Code 打造成你的专属研发终端(2/4)](https://surfing.salty.vip/articles/cn/claude_code_plugins_02/)
+- [alirezarezvani/claude-code-tresor](https://github.com/alirezarezvani/claude-code-tresor)
