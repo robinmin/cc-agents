@@ -311,3 +311,9 @@ updated_at: <prompt updated at>
 - [Dokploy API](https://docs.dokploy.com/docs/api)
 - [Dokploy Auto-Deploy](https://docs.dokploy.com/docs/core/auto-deploy)
 - [How to Deploy Apps with Docker Compose in 2025](https://dokploy.com/fr/blog/how-to-deploy-apps-with-docker-compose-in-2025)
+
+---
+
+- [A2UI Protocol v0.8](https://a2ui.org/specification/v0.8-a2ui/)
+- [Build with Google's new A2UI Spec: Agent User Interfaces with A2UI + AG-UI](https://www.copilotkit.ai/blog/build-with-googles-new-a2ui-spec-agent-user-interfaces-with-a2ui-ag-ui)
+- [AI Speaks UI: Exploring Google’s A2UI Protocol](https://medium.com/@LakshmiNarayana_U/ai-speaks-ui-exploring-googles-a2ui-protocol-eda28783c2c9)

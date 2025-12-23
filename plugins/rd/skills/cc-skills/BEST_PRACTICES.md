@@ -440,3 +440,187 @@ Track these indicators:
 - Works on Haiku, Sonnet, and Opus?
 - Behavior consistent across models?
 - Performance acceptable on smaller models?
+
+---
+
+## Context Engineering Patterns (2025)
+
+> "Context engineering refers to the set of strategies for curating and maintaining the optimal set of tokens during LLM inference." — Anthropic, 2025
+
+### The Attention Budget Principle
+
+LLMs have a finite "attention budget." Each additional token consumes this budget and reduces the model's ability to focus on what matters.
+
+**Key Insight:** Find the smallest set of high-signal tokens that achieve desired outcomes.
+
+### Naive Loading vs. Just-in-Time Retrieval
+
+❌ **Naive Loading:**
+```markdown
+Load all context upfront:
+- Read entire codebase (~50k tokens)
+- Read all documentation (~20k tokens)
+- Process everything at once
+```
+
+**Problems:**
+- Wastes attention on irrelevant information
+- Doesn't scale beyond context window
+- Model loses focus with excessive tokens
+
+✓ **Just-in-Time Retrieval:**
+```markdown
+Load identifiers first:
+- List files (~500 tokens)
+- Read summaries of each (~2k tokens)
+- Retrieve full content only when needed
+```
+
+**Benefits:**
+- Token-efficient exploration
+- Scales to arbitrarily large contexts
+- Mirrors human file navigation patterns
+
+### Hybrid Approach (Recommended)
+
+```markdown
+Load critical context upfront:
+- Core workflow (~2k tokens)
+- Key examples (~1k tokens)
+
+Use JIT for rest:
+- File paths for exploration (~500 tokens)
+- Retrieve specific files as needed
+```
+
+### Progressive Disclosure Implementation
+
+**Level 1: Discovery (Always Loaded)**
+```yaml
+name: security-review
+description: Reviews code for SQL injection, XSS, and auth vulnerabilities.
+```
+(~100 tokens - Claude knows when to trigger)
+
+**Level 2: Core Workflow (When Triggered)**
+```markdown
+## Workflow
+1. Scan for common vulnerability patterns
+2. Check input validation
+3. Verify authentication/authorization
+4. Generate report
+```
+(~3k tokens - Main procedural knowledge)
+
+**Level 3: Details (As Needed)**
+```markdown
+See VULN_PATTERNS.md for comprehensive vulnerability catalog
+See EXAMPLES.md for concrete code examples
+```
+(Retrieved only when specific questions arise)
+
+### Canonical Examples Over Exhaustive Lists
+
+❌ **Exhaustive (Wasteful):**
+```markdown
+SQL Injection happens in these patterns:
+1. f-strings with {variable}
+2. format() with {variable}
+3. % formatting with %s
+4. string concatenation with +
+5. join() with user input
+... (15 more patterns)
+```
+
+✓ **Canonical (Efficient):**
+```markdown
+SQL Injection Patterns:
+1. String interpolation: f"{user_input}"
+2. Raw methods: .raw(f"SELECT...{input}")
+3. Format strings: .format(user_input)
+
+Claude will generalize from these representative examples.
+```
+
+### External State for Long-Running Tasks
+
+For tasks spanning context windows:
+
+```bash
+# Create tracking file
+echo "# Progress" > NOTES.md
+
+# Update after each step
+echo "- [x] Completed step 1" >> NOTES.md
+echo "- [ ] Next: step 2" >> NOTES.md
+
+# After context reset
+cat NOTES.md  # Resume from where we left off
+```
+
+This provides persistent memory without bloating context.
+
+### MCP Integration for External Data
+
+When skills need data from external sources:
+
+| Scenario | Approach | Why |
+|----------|----------|-----|
+| Large database queries | MCP server | Token-efficient retrieval |
+| API calls | MCP server | Skills lack network access |
+| File processing | Built-in tools | Sufficient for most cases |
+| Image operations | MCP server | Specialized tools faster |
+
+**Pattern: Skill Orchestrates, MCP Executes**
+```markdown
+## Workflow
+
+1. Query database via MCP:
+   mcp-query postgres --sql "SELECT id, name FROM users LIMIT 100"
+
+2. Process results with built-in tools
+
+3. Store findings:
+   echo "Analysis: ..." > RESULTS.md
+```
+
+### Token Efficiency Checklist
+
+- [ ] Every token earns its place (addresses observed need)
+- [ ] No content Claude already knows from training
+- [ ] Canonical examples instead of exhaustive lists
+- [ ] Progressive disclosure (metadata → core → details)
+- [ ] External state for long-horizon tasks
+- [ ] MCP for external data access
+- [ ] References one level deep (not nested)
+- [ ] SKILL.md under 500 lines
+
+### Context Anti-Patterns
+
+❌ **Over-stuffing Examples:**
+Don't load every edge case into prompts. Use 3-5 diverse, canonical examples.
+
+❌ **Brittle Hardcoded Logic:**
+Don't encode complex decision trees. Let Claude reason.
+
+❌ **Premature Optimization:**
+Don't optimize for theoretical use cases. Address observed failures.
+
+❌ **Ignoring Context Rot:**
+Don't assume large context = better performance. More tokens → less focus.
+
+✓ **Good Patterns:**
+- Minimal viable content addressing verified gaps
+- Clear structure with XML tags/headers
+- External state for persistence
+- Progressive disclosure
+- JIT retrieval for large datasets
+
+---
+
+## For Further Reading
+
+- **CONCEPTS.md**: Deep dive into context engineering principles
+- **EVALUATION.md**: Evaluation-first development framework
+- **GETTING_STARTED.md**: Hands-on tutorials
+- **REFERENCE.md**: Technical specifications

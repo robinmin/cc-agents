@@ -22,7 +22,8 @@
       "mcp__tavily__tavily-search",
       "mcp__context7__get-library-docs",
       "Bash(ast-grep run:*)",
-      "Bash(ast-grep scan:*)"
+      "Bash(ast-grep scan:*)",
+      "mcp__tavily__tavily-extract"
     ],
     "deny": [],
     "ask": []
