@@ -34,6 +34,7 @@
         "./commands/10-dev-check.md",
         "./commands/10-dev-init.md",
         "./commands/10-dev-integrate.md",
+        "./commands/task-run.md",
 
         "./commands/skill-add.md",
         "./commands/skill-evaluate.md",
