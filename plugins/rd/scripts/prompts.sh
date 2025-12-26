@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Prompts Management Tool
+# Tasks Management Tool
 # Location: plugins/rd/scripts/prompts.sh
 
 PROMPTS_DIR="docs/prompts"
@@ -56,7 +56,7 @@ function check_dependencies() {
 }
 
 function cmd_init() {
-    log_info "Initializing prompts management tool..."
+    log_info "Initializing tasks management tool..."
 
     # Create prompts directory
     if [ ! -d "$PROMPTS_DIR" ]; then
@@ -119,17 +119,17 @@ EOF
 
     check_dependencies
     
-    # Create soft link
-    if [ ! -L "/usr/local/bin/prompts" ] && [ ! -f "/usr/local/bin/prompts" ]; then
-        log_info "Creating soft link /usr/local/bin/prompts..."
-        if ln -s "$SCRIPT_PATH" /usr/local/bin/prompts 2>/dev/null; then
+    # Create soft link to /opt/homebrew/bin/tasks
+    if [ ! -L "/opt/homebrew/bin/tasks" ] && [ ! -f "/opt/homebrew/bin/tasks" ]; then
+        log_info "Creating soft link /opt/homebrew/bin/tasks..."
+        if ln -s "$SCRIPT_PATH" /opt/homebrew/bin/tasks 2>/dev/null; then
              log_info "Soft link created successfully."
         else
              log_error "Failed to create soft link. Permission denied?"
-             log_info "You can try running: sudo ln -s \"$SCRIPT_PATH\" /usr/local/bin/prompts"
+             log_info "You can try running: sudo ln -s \"$SCRIPT_PATH\" /opt/homebrew/bin/tasks"
         fi
     else
-        log_info "Soft link /usr/local/bin/prompts already exists."
+        log_info "Soft link /opt/homebrew/bin/tasks already exists."
     fi
 
     log_info "Initialization complete."
@@ -233,8 +233,8 @@ EOF
 function cmd_create() {
     local prompt_name="$1"
     if [ -z "$prompt_name" ]; then
-        log_error "Please provide a prompt name."
-        echo "Usage: $0 create <prompt name>"
+        log_error "Please provide a task name."
+        echo "Usage: tasks create <task name>"
         exit 1
     fi
 
@@ -307,13 +307,13 @@ function cmd_create() {
 }
 
 function cmd_help() {
-    echo "Usage: $0 <subcommand> [arguments]"
+    echo "Usage: tasks <subcommand> [arguments]"
     echo ""
     echo "Subcommands:"
-    echo "  init                     Initialize the prompts management tool"
-    echo "  create <prompt name>     Create a new prompt"
-    echo "  list [stage]             List prompts (optionally filter by stage)"
-    echo "  update <WBS> <stage>     Update a prompt's stage"
+    echo "  init                     Initialize the tasks management tool"
+    echo "  create <task name>       Create a new task"
+    echo "  list [stage]             List tasks (optionally filter by stage)"
+    echo "  update <WBS> <stage>     Update a task's stage"
     echo "  refresh                  Refresh the kanban board"
     echo "  help                     Show this help message"
 }
@@ -378,7 +378,7 @@ function cmd_update() {
     local stage="$2"
 
     if [ -z "$wbs" ] || [ -z "$stage" ]; then
-        log_error "Usage: $0 update <WBS> <stage>"
+        log_error "Usage: tasks update <WBS> <stage>"
         exit 1
     fi
 
@@ -396,7 +396,7 @@ function cmd_update() {
     
     # Check if file exists
     if [ ! -e "${files[0]}" ]; then
-        log_error "No prompt found with WBS: $wbs"
+        log_error "No task found with WBS: $wbs"
         exit 1
     fi
 
@@ -428,13 +428,13 @@ function cmd_update() {
 }
 
 function cmd_help() {
-    echo "Usage: $0 <subcommand> [arguments]"
+    echo "Usage: tasks <subcommand> [arguments]"
     echo ""
     echo "Subcommands:"
-    echo "  init                     Initialize the prompts management tool"
-    echo "  create <prompt name>     Create a new prompt"
-    echo "  list [stage]             List prompts (optionally filter by stage)"
-    echo "  update <WBS> <stage>     Update a prompt's stage"
+    echo "  init                     Initialize the tasks management tool"
+    echo "  create <task name>       Create a new task"
+    echo "  list [stage]             List tasks (optionally filter by stage)"
+    echo "  update <WBS> <stage>     Update a task's stage"
     echo "  refresh                  Refresh the kanban board"
     echo "  help                     Show this help message"
 }
