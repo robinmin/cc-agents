@@ -223,71 +223,72 @@ You need to split this job into two parts:
 Did you already fetch and embedded the information in the following links? If not, use MCP to do it and leverage slashcommand `/rd:skill-refine` to refine skills `dokploy` under @plugins/rd/skills/dokploy. If yes, just tell me should be okay.
 Here comes the important links:
 
-## Prompts Management Tool
+## Tasks Management Tool
 
 ### Background
 
-On every project, we need to maintain a set of prompts to help agents to perform their tasks. And we need to manage these prompts in a centralized way. So I need to develop a prompts management tool to help us to manage prompts.
+On every project, we need to maintain a set of task prompts to help agents to perform their tasks. And we need to manage these task prompts in a centralized way. So I developed a tasks management tool to help us manage task prompts.
 
-Before this tools ready, I always create a centralized file @docs/prompts.md to store all prompts. It gives us a good overview of all prompts and make it easy to manage them. But it's not a good way to manage prompts, especially when we have a lot of prompts.
+Before this tool was ready, I always created a centralized file @docs/prompts.md to store all prompts. It gives us a good overview of all prompts and make it easy to manage them. But it's not a good way to manage prompts, especially when we have a lot of prompts.
 
-Based on this experience, I decide to develop a prompts management tool(@plugins/rd/scripts/prompts.sh) to help us to manage prompts.
+Based on this experience, I decided to develop a tasks management tool (@plugins/rd/scripts/prompts.sh, accessed via `tasks` command) to help us manage task prompts.
 
 ### Requirements
 
-- Store all prompts in a centralized folder @docs/prompts/ instead of @docs/prompts.md.
-- File name should be in the format of `<xxxx>_<yyyy>.md`. The `<xxxx>` is the non-duplicate sequnce number, we named it as WBS number; And `<yyyy>` is the name of the prompt, could be any name you like.
-- Besides the prompt file, we also have dot file `.kanban.md` to store the kanban board for the prompt. It will follow up with Obsidian's kanban template. Our script will generate the kanban board automatically once user create a new prompt or update the prompts. For the document of Obsidian's Kanban plugin, please refer to <https://publish.obsidian.md/kanban/Obsidian+Kanban+Plugin>. For the stages of the kanban board, by default we use `Backlog`, `To Do`, `In Progress`, `Testing`, `Done`. One sample kanban board is as follows:
+- Store all task prompts in a centralized folder @docs/prompts/ instead of @docs/prompts.md.
+- File name should be in the format of `<xxxx>_<yyyy>.md`. The `<xxxx>` is the non-duplicate sequence number, we named it as WBS number; And `<yyyy>` is the name of the task, could be any name you like.
+- Besides the task file, we also have dot file `.kanban.md` to store the kanban board for the tasks. It will follow up with Obsidian's kanban template. Our script will generate the kanban board automatically once user creates a new task or updates the tasks. For the document of Obsidian's Kanban plugin, please refer to <https://publish.obsidian.md/kanban/Obsidian+Kanban+Plugin>. For the stages of the kanban board, by default we use `Backlog`, `Todo`, `WIP`, `Testing`, `Done`. One sample kanban board is as follows:
 
 ```markdown
 # Kanban Board
 
 ## Backlog
 
-- [ ] 001_Prompt1
-- [ ] 002_Prompt2
+- [ ] 0001_Task1
+- [ ] 0002_Task2
 
-## To Do
+## Todo
 
-- [ ] 07_Prompt1
-- [ ] 08_Prompt2
+- [ ] 0007_Task3
+- [ ] 0008_Task4
 
-## In Progress
+## WIP
 
-- [.] 09_Prompt1
-- [.] 10_Prompt2
+- [.] 0009_Task5
+- [.] 0010_Task6
 
 ## Testing
 
-- [x] 11_Prompt1
-- [x] 12_Prompt2
+- [x] 0011_Task7
+- [x] 0012_Task8
 
 ## Done
 
-- [x] 13_Prompt1
-- [x] 14_Prompt2
+- [x] 0013_Task9
+- [x] 0014_Task10
 ```
 
 > Note: We can define a better kanban board template to make it more user-friendly.
 
-- This tool is a single file script (@plugins/rd/scripts/prompts.sh), and commposed with a set of subcommands to manage prompts. Each subcommand is a function to perform a specific task. It at least include the following subcommands:
+- This tool is a single file script (@plugins/rd/scripts/prompts.sh), accessed via `tasks` command, and composed of a set of subcommands to manage tasks. Each subcommand is a function to perform a specific task. It includes the following subcommands:
 
-  - `init`: Initialize the prompts management tool. It will:
+  - `init`: Initialize the tasks management tool. It will:
 
     - create the necessary files and folders(`docs/prompts/` and `docs/prompts/.kanban.md`) in current project.
     - Install necessary dependencies, for example `glow` -- so far only towards macOS, so use `brew install glow` to install it should be okay.
-    - generate a default template for each prompt file `docs/prompts/.template.md`. The default template is same as the subagent format created by Anthropic as follows:
+    - create a symlink at `/opt/homebrew/bin/tasks` for easy access.
+    - generate a default template for each task file `docs/prompts/.template.md`. The default template is same as the subagent format created by Anthropic as follows:
 
 ```markdown
 ---
-name: <prompt name>
-description: <prompt description>
-status: <prompt status>
-created_at: <prompt created at>
-updated_at: <prompt updated at>
+name: <task name>
+description: <task description>
+status: <task status>
+created_at: <task created at>
+updated_at: <task updated at>
 ---
 
-## <prompt name>
+## <task name>
 
 ### Background
 
@@ -298,11 +299,11 @@ updated_at: <prompt updated at>
 ### References
 ```
 
-- `list <stage>`: List all prompts in the specified stage in `docs/prompts/.kanban.md` with `glow` command to show markdown format in terminal. If no stage specified, list all prompts.
-- `create <prompt name>`: Create a new prompt based on the template `docs/prompts/.template.md`. It will generate a new prompt file in `docs/prompts/` folder and name it as `<xxxx>_<yyyy>.md`. xxxx is the four-digit sequence number(only count on non-dot files + 1), <yyyy> is the prompt name.
-- `update <WBS number> <stage>`: Update the specified prompt to the specified stage. It will update the kanban board automatically.
-- `refresh`: Refresh the kanban board. It will extract 'status' field from each prompt file and update the kanban board automatically. Each time when user update a prompt or create a new prompt, it will trigger this command automatically.
-- `help`: Show help information.
+  - `list <stage>`: List all tasks in the specified stage in `docs/prompts/.kanban.md` with `glow` command to show markdown format in terminal. If no stage specified, list all tasks.
+  - `create <task name>`: Create a new task based on the template `docs/prompts/.template.md`. It will generate a new task file in `docs/prompts/` folder and name it as `<xxxx>_<yyyy>.md`. xxxx is the four-digit sequence number(only count on non-dot files + 1), <yyyy> is the task name.
+  - `update <WBS number> <stage>`: Update the specified task to the specified stage. It will update the kanban board automatically.
+  - `refresh`: Refresh the kanban board. It will extract 'status' field from each task file and update the kanban board automatically. Each time when user updates a task or creates a new task, it will trigger this command automatically.
+  - `help`: Show help information.
 
 ### References
 
