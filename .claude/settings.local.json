@@ -23,7 +23,9 @@
       "mcp__context7__get-library-docs",
       "Bash(ast-grep run:*)",
       "Bash(ast-grep scan:*)",
-      "mcp__tavily__tavily-extract"
+      "mcp__tavily__tavily-extract",
+      "mcp__augment-context-engine__codebase-retrieval",
+      "mcp__ultra-mcp__deep-reasoning"
     ],
     "deny": [],
     "ask": []
