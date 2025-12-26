@@ -1,19 +1,30 @@
 # CHANGELOG
 
+## [1.1.3] - 2025-12-26
+
+### Changed
+
+- **Tasks Management Tool:** Renamed command from `prompts` to `tasks` for better clarity.
+  - Symlink location changed from `/usr/local/bin/prompts` to `/opt/homebrew/bin/tasks`
+  - Updated all documentation to use `tasks` command instead of `prompts`
+  - New documentation: `docs/about_tasks.md` replaces `docs/about_prompts.md`
+  - Script file remains at `plugins/rd/scripts/prompts.sh` for backward compatibility
+  - All subcommands work with `tasks` command: `tasks init`, `tasks create`, `tasks list`, `tasks update`, `tasks refresh`
+
 ## [1.1.2] - 2025-11-25
 
 ### Added
 
-- **Prompts Management Tool:** `prompts.sh` script for managing LLM prompts.
-  - `init`: Initialize prompts directory, Kanban board, and template.
-  - `create`: Create new prompts from template with automatic WBS numbering.
-  - `list`: List prompts by stage.
-  - `update`: Update prompt status and move cards on Kanban board.
-  - `refresh`: Sync Kanban board with prompt files.
-  - Automatic symlink creation (`/usr/local/bin/prompts`) for easy access.
+- **Tasks Management Tool:** `prompts.sh` script for managing LLM task prompts.
+  - `init`: Initialize tasks directory, Kanban board, and template.
+  - `create`: Create new tasks from template with automatic WBS numbering.
+  - `list`: List tasks by stage.
+  - `update`: Update task status and move cards on Kanban board.
+  - `refresh`: Sync Kanban board with task files.
+  - Automatic symlink creation (`/opt/homebrew/bin/tasks`) for easy access.
   - Dynamic template support with placeholders (`{{PROMPT_NAME}}`, `{{WBS}}`, etc.).
   - Obsidian Kanban plugin integration.
-- **Documentation:** `docs/about_prompts.md` guide.
+- **Documentation:** `docs/about_tasks.md` guide.
 
 ## [1.1.0] - 2025-10-26
 
