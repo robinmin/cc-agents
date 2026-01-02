@@ -27,11 +27,17 @@ The output is written back to the task file, creating a self-documenting artifac
 # Run with analysis only (no modifications)
 /rd:task-run <task-file.md> --dry-run
 
+# Skip discovery interview phase (for well-defined tasks)
+/rd:task-run <task-file.md> --no-interview
+
 # Skip task refinement phase
 /rd:task-run <task-file.md> --no-refine
 
 # Specify planning scope
 /rd:task-run <task-file.md> --scope <minimal|standard|comprehensive>
+
+# Fast mode: skip both interview and refinement
+/rd:task-run <task-file.md> --no-interview --no-refine
 ```
 
 ## Arguments
@@ -44,6 +50,7 @@ The output is written back to the task file, creating a self-documenting artifac
 ## Options
 
 - `--dry-run`: Analyze and display output without modifying the file
+- `--no-interview`: Skip requirements discovery interview (use when requirements are already well-defined)
 - `--no-refine`: Skip task refinement, use as-is
 - `--scope <level>`: Planning depth (default: standard)
 - `--plan-only`: Skip solution design, only create implementation plan
@@ -169,7 +176,144 @@ Validating required sections...
 - Prompt for missing information
 - Ask user to confirm before proceeding
 
-### Phase 2: Analyze & Refine (unless `--no-refine`)
+### Phase 2: Requirements Discovery Interview (unless `--no-interview`)
+
+```
+Starting requirements discovery...
+Analyzing gaps in task definition...
+Preparing targeted questions...
+```
+
+**Purpose:** Uncover hidden requirements, implicit assumptions, and decision points through structured interviewing before design begins.
+
+**Interview Framework:**
+
+Use `AskUserQuestion` tool with targeted, non-obvious questions. Each interview round should explore 1-4 related questions. Continue iteratively until requirements are sufficiently clear.
+
+**Question Categories (in priority order):**
+
+#### 1. Jobs-to-be-Done (JTBD) - Understand the "Why"
+
+Focus on the underlying motivation, not just the feature request:
+
+- "What situation or event triggered this task? What problem became urgent?"
+- "What are you trying to achieve beyond this immediate task?"
+- "What does success look like? How will you measure it?"
+- "What workarounds exist today? What's painful about them?"
+
+#### 2. Constraints & Non-Functional Requirements
+
+Uncover hidden technical and business constraints:
+
+- "Are there performance requirements (response time, throughput, scale)?"
+- "What security or compliance requirements apply?"
+- "Are there existing systems, APIs, or patterns this must integrate with?"
+- "What's the deployment environment (cloud, on-prem, edge)?"
+- "Are there backward compatibility requirements?"
+
+#### 3. Scope Boundaries
+
+Prevent scope creep by defining what's explicitly out:
+
+- "What should this explicitly NOT do?"
+- "Are there related features we should defer to a later phase?"
+- "What's the MVP vs. the full vision?"
+- "What edge cases are acceptable to ignore for now?"
+
+#### 4. User Experience & Workflows
+
+For features with user-facing components:
+
+- "Who are the primary users? Any secondary personas?"
+- "Walk me through the ideal user flow step-by-step"
+- "What existing UI patterns should this follow?"
+- "Are there accessibility requirements?"
+
+#### 5. Data & State
+
+Clarify data ownership and persistence:
+
+- "What data entities are involved? What's their lifecycle?"
+- "Where does data come from? Where does it go?"
+- "What happens on failure? Is retry/recovery needed?"
+- "Are there data migration requirements?"
+
+#### 6. Trade-off Decisions
+
+Surface architectural decisions that need stakeholder input:
+
+- "Speed vs. quality: Is this exploratory or production-critical?"
+- "Build vs. buy: Are there existing libraries/services to consider?"
+- "Simplicity vs. flexibility: Hardcode or make configurable?"
+- "Consistency vs. availability: What's acceptable during failures?"
+
+**Interview Best Practices:**
+
+1. **Ask "how" and "what", not "why"** - Gets more concrete, actionable answers
+2. **One topic per question round** - Avoid overwhelming with unrelated questions
+3. **Use concrete scenarios** - "If X happens, what should occur?" beats abstract questions
+4. **Probe deeper on vague answers** - "Can you give a specific example?" or "What would that look like?"
+5. **Validate assumptions explicitly** - "I'm assuming X. Is that correct?"
+6. **Know when to stop** - End when answers start repeating or user indicates clarity
+
+**Completion Criteria:**
+
+The interview phase is complete when:
+
+- [ ] Core job-to-be-done is understood (not just feature request)
+- [ ] Key constraints are documented
+- [ ] Scope boundaries are defined (what's in/out)
+- [ ] Major trade-off decisions are made
+- [ ] No critical "it depends" answers remain
+
+**Example Interview Flow:**
+
+```
+Round 1 (JTBD):
+Q: "What situation triggered this task? What problem became urgent?"
+A: "Users are complaining about slow search..."
+
+Round 2 (Constraints):
+Q: "What's the acceptable search latency? How many concurrent users?"
+A: "Under 200ms, peak 1000 users..."
+
+Round 3 (Scope):
+Q: "Should search include fuzzy matching, or exact match only for MVP?"
+A: "Exact match for MVP, fuzzy later..."
+
+Round 4 (Trade-offs):
+Q: "For the search index, prefer real-time updates or batch with delay?"
+A: "Batch is fine, up to 5 min delay acceptable..."
+
+→ Interview complete. Proceeding to analysis.
+```
+
+**Output:**
+
+After the interview, summarize findings in a structured format that feeds into Phase 3:
+
+```markdown
+## Interview Summary
+
+### Core Job
+[What the user is ultimately trying to achieve]
+
+### Key Constraints
+- [Constraint 1]
+- [Constraint 2]
+
+### Scope Decisions
+- In scope: [...]
+- Out of scope: [...]
+
+### Trade-off Decisions
+- [Decision 1]: [Choice made and rationale]
+
+### Open Questions (for Phase 3)
+- [Any remaining ambiguities to resolve during analysis]
+```
+
+### Phase 3: Analyze & Refine (unless `--no-refine`)
 
 ```
 Analyzing task requirements...
@@ -199,7 +343,7 @@ AFTER: "Add JWT-based authentication to REST API endpoints:
 - Refresh token endpoint for renewal"
 ```
 
-### Phase 3: Design Solution Blueprint
+### Phase 4: Design Solution Blueprint
 
 ```
 Designing solution architecture...
@@ -253,7 +397,7 @@ Defining integration points...
 [Continues below...]
 ```
 
-### Phase 4: Create Implementation Plan
+### Phase 5: Create Implementation Plan
 
 ```
 Breaking down into phases...
@@ -308,7 +452,7 @@ Estimating complexity...
 ...
 ```
 
-### Phase 5: Write Results
+### Phase 6: Write Results
 
 ```
 Updating task file...
@@ -713,13 +857,13 @@ The implementation plan is a starting point. Adjust for:
 
 ## Troubleshooting
 
-| Issue                        | Solution                                              |
-| ---------------------------- | ----------------------------------------------------- |
+| Issue                        | Solution                                            |
+| ---------------------------- | --------------------------------------------------- |
 | "File not found"             | Use `tasks create <name>` to create task file first |
 | "Missing YAML frontmatter"   | Ensure file was created via `tasks create`          |
-| "Missing required sections"  | Add Background and Requirements / Objectives          |
-| "Solution seems too generic" | Add more details to Background and Requirements       |
-| "Plan has too many steps"    | Use `--scope minimal` for simpler plan                |
+| "Missing required sections"  | Add Background and Requirements / Objectives        |
+| "Solution seems too generic" | Add more details to Background and Requirements     |
+| "Plan has too many steps"    | Use `--scope minimal` for simpler plan              |
 
 ## Template Reference
 
