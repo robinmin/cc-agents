@@ -9,19 +9,21 @@ description: Meta-skill for creating Claude Code Agent Skills with progressive d
 You are a meta-skill containing domain knowledge for creating effective Claude Code Agent Skills.
 
 Your expertise applies when:
+
 - Creating new skills from scratch
 - Refining existing skills for better performance
 - Diagnosing why a skill isn't triggering or working as expected
 - Evaluating skill quality against 2025 best practices
-</role_definition>
+  </role_definition>
 
 <core_principles>
+
 - **Progressive disclosure**: Load information only when needed (3-level architecture)
 - **Minimal viable context**: Smallest set of high-signal tokens for desired outcome
 - **Evaluation-first**: Build tests before extensive documentation
 - **Diátaxis alignment**: Organize content by user intent (tutorials/how-to/reference/explanation)
 - **Context engineering**: Just-in-time retrieval over naive loading
-</core_principles>
+  </core_principles>
 
 This skill provides comprehensive guidance for creating and refining Claude Code Agent Skills effectively.
 
@@ -36,31 +38,37 @@ Every skill MUST have a `SKILL.md` file with YAML frontmatter:
 name: skill-name
 description: What this skill does and when to use it
 ---
+
 ```
 
 **Frontmatter Rules:**
+
 - `name`: Max 64 chars, lowercase/numbers/hyphens only, no "anthropic" or "claude"
 - `description`: Max 1024 chars, non-empty, no XML tags
-</required_structure>
+  </required_structure>
 
 <progressive_disclosure>
 
 ### Three-Level Content Loading
 
 **2025 Context Engineering Principle:**
+
 > "Progressive disclosure allows agents to incrementally discover relevant context through exploration. Each interaction yields context that informs the next decision." — Anthropic Engineering, 2025
 
 Skills use progressive disclosure to optimize token usage:
 
 **Level 1: Metadata (Always Loaded)**
+
 - YAML frontmatter only (~100 tokens/skill)
 - Used for discovery and triggering
 
 **Level 2: Instructions (Loaded When Triggered)**
+
 - Main SKILL.md body (under 5k tokens recommended)
 - Procedural knowledge and workflows
 
 **Level 3: Resources (Loaded As Needed)**
+
 - Additional markdown files, scripts, templates
 - Referenced one level deep from SKILL.md
 - Scripts execute without loading code into context
@@ -88,6 +96,7 @@ skill-name/
 ```
 
 **Diátxis Framework Alignment (2025 Standard):**
+
 - **Tutorials**: Learning-oriented, step-by-step lessons
 - **How-to guides**: Goal-oriented, practical steps to achieve outcomes
 - **Reference**: Information-oriented, precise technical details
@@ -103,11 +112,13 @@ See [Diátaxis Framework](https://diataxis.fr/) for the complete methodology.
 ### Naming Conventions
 
 **Skill Names:**
+
 - Use gerund form: "processing-pdfs", "analyzing-data"
 - Or noun phrases: "code-review-guide", "api-docs-builder"
 - Avoid vague terms: "helper", "utils", "tools"
 
 **Descriptions:**
+
 - Write in third person
 - Include BOTH what it does AND when to use it
 - Example: "Analyzes Excel spreadsheets and creates pivot tables. Use when working with .xlsx files or analyzing tabular data."
@@ -115,28 +126,34 @@ See [Diátaxis Framework](https://diataxis.fr/) for the complete methodology.
 ### Content Guidelines
 
 **Conciseness:**
+
 - Only include information Claude doesn't already know
 - Challenge each piece: if Claude likely knows it, omit it
 - Keep SKILL.md under 500 lines
 - Split additional content into referenced files
 
 **Appropriate Freedom Levels:**
+
 - **High freedom (text instructions)**: When multiple valid approaches exist
 - **Medium freedom (pseudocode)**: When preferred patterns exist but variation is acceptable
 - **Low freedom (specific scripts)**: For fragile operations requiring exact sequences
 
 **Consistency:**
+
 - Use ONE term per concept throughout
 - Don't mix: "API endpoint/URL/path" or "extract/pull/get/retrieve"
 
 **Avoid Time-Sensitivity:**
+
 - No dates or version cutoffs
 - Use "old patterns" sections for deprecated approaches
 
 **Evaluation-First Development (2025):**
+
 > "Start with evaluation: Identify specific gaps in your agents' capabilities by running them on representative tasks and observing where they struggle." — Anthropic, 2025
 
 Before writing skill content:
+
 1. Create test scenarios
 2. Document baseline performance (what Claude misses without the skill)
 3. Write ONLY what addresses identified gaps
@@ -150,16 +167,19 @@ See EVALUATION.md for the complete evaluation framework.
 ### Structure Best Practices
 
 **Progressive Disclosure:**
+
 - Keep SKILL.md focused and under 500 lines
 - Reference additional files one level deep
 - Use clear, descriptive filenames: `form_validation_rules.md` not `doc2.md`
 
 **Workflows:**
+
 - Break complex tasks into clear steps
 - Provide checklists for critical operations
 - Include validation loops: run validator → fix errors → repeat
 
 **Examples:**
+
 - Provide concrete input/output pairs
 - Show desired style and detail level
 - Especially important for format-dependent tasks
@@ -169,6 +189,7 @@ See EVALUATION.md for the complete evaluation framework.
 ### Script Guidelines
 
 **Error Handling:**
+
 - Scripts should solve problems, not defer to Claude
 - Handle error conditions explicitly with helpful messages
 - Example:
@@ -179,12 +200,14 @@ See EVALUATION.md for the complete evaluation framework.
   ```
 
 **Documentation:**
+
 - Justify parameters (no "magic numbers")
 - Document why each constant value was chosen
 - Make clear: should Claude execute or read as reference?
 
 **Verification Pattern:**
 For complex batch operations:
+
 1. Analyze inputs
 2. Create plan
 3. Validate plan
@@ -192,6 +215,7 @@ For complex batch operations:
 5. Verify outputs
 
 **Dependencies:**
+
 - List required packages explicitly
 - Verify availability in code execution environment
 - No network access for external API calls
@@ -200,14 +224,15 @@ For complex batch operations:
 **MCP Integration Pattern (2025):**
 Skills can complement MCP servers by orchestrating workflows that use external tools.
 
-| Scenario | Use MCP | Why |
-|----------|---------|-----|
-| Database queries (>100 rows) | ✓ | Token-efficient retrieval |
-| API calls to external services | ✓ | Skills have no network access |
-| Image processing | ✓ | Specialized tools are faster |
-| Simple file operations | ✗ | Built-in tools sufficient |
+| Scenario                       | Use MCP | Why                           |
+| ------------------------------ | ------- | ----------------------------- |
+| Database queries (>100 rows)   | ✓       | Token-efficient retrieval     |
+| API calls to external services | ✓       | Skills have no network access |
+| Image processing               | ✓       | Specialized tools are faster  |
+| Simple file operations         | ✗       | Built-in tools sufficient     |
 
 Pattern: Skill as MCP Client
+
 1. Query external data via MCP
 2. Process results using built-in tools
 3. Store findings in external files
@@ -227,6 +252,7 @@ Before finalizing any skill, verify:
 For tasks spanning multiple context windows (large migrations, research projects):
 
 **Pattern 1: Structured Note-Taking**
+
 ```bash
 # Create tracking file
 echo "# Migration Progress" > MIGRATION_NOTES.md
@@ -241,21 +267,24 @@ cat MIGRATION_NOTES.md
 
 **Pattern 2: Compaction Points**
 Define explicit checkpoints where context is summarized:
+
 - Architectural decisions made
 - Outstanding issues
 - Next steps
 - Last 5 files modified
-</long_horizon_tasks>
+  </long_horizon_tasks>
 
 <quality_checklist>
 
 **Structure:**
+
 - [ ] YAML frontmatter valid (name ≤64 chars, description ≤1024 chars)
 - [ ] SKILL.md under 500 lines
 - [ ] Additional details in separate files (one level deep)
 - [ ] File references use forward slashes (not Windows paths)
 
 **Content:**
+
 - [ ] Description includes what it does AND when to use it
 - [ ] No time-sensitive information (dates, version cutoffs)
 - [ ] Consistent terminology throughout
@@ -264,18 +293,21 @@ Define explicit checkpoints where context is summarized:
 - [ ] No excessive options without defaults
 
 **Code:**
+
 - [ ] Scripts handle errors explicitly
 - [ ] Parameters are justified (no magic numbers)
 - [ ] Dependencies listed and verified
 - [ ] Clear execution vs reference intent
 
 **Testing:**
+
 - [ ] Tested with fresh Claude instance
 - [ ] Works across Haiku, Sonnet, and Opus
 - [ ] Real usage scenarios validated
 - [ ] Observed behavior matches expectations
 
 **Security (2025):**
+
 - [ ] No hardcoded credentials
 - [ ] No obfuscated code
 - [ ] No untrusted network connections
@@ -301,37 +333,43 @@ Avoid these mistakes:
 ❌ **Abstract examples**: Always use concrete input/output pairs
 
 ❌ **2025 Anti-Patterns:**
+
 - **Over-stuffing examples**: Don't load every edge case into prompts. Use diverse, canonical examples.
 - **Brittle hardcoded logic**: Let Claude reason instead of encoding complex decision trees.
 - **Ignoring MCP integration**: Don't reinvent external tool access—use MCP servers.
 - **No evaluation baseline**: Don't build skills without first measuring what Claude misses.
-</common_anti_patterns>
+  </common_anti_patterns>
 
 <skill_workflows>
 
 When creating a new skill:
 
 1. **Define Purpose**
+
    - What specific problem does this solve?
    - When should Claude use this?
    - What are the activation keywords?
 
 2. **Build Evaluations First**
+
    - Create test scenarios
    - Establish baselines
    - Identify gaps in Claude's existing knowledge
 
 3. **Write Minimal Instructions**
+
    - Address only identified gaps
    - Start with core workflow
    - Add details only where Claude struggles
 
 4. **Organize Resources**
+
    - Separate advanced topics into referenced files
    - Create utility scripts for fragile operations
    - Provide templates for common patterns
 
 5. **Test and Iterate**
+
    - Test with fresh Claude instances
    - Observe real usage patterns
    - Refine based on observed behavior, not assumptions
@@ -346,18 +384,21 @@ When creating a new skill:
 When refining an existing skill:
 
 1. **Observe Issues**
+
    - Where does Claude struggle?
    - Missed connections?
    - Ignored content?
    - Overreliance on certain sections?
 
 2. **Analyze Root Causes**
+
    - Too verbose?
    - Unclear activation conditions?
    - Missing concrete examples?
    - Inconsistent terminology?
 
 3. **Apply Refinements**
+
    - Simplify overlong sections
    - Add examples where Claude struggles
    - Remove redundant information Claude already knows
@@ -367,54 +408,61 @@ When refining an existing skill:
    - Test with fresh Claude instances
    - Verify across different models
    - Confirm real usage scenarios work better
-</skill_workflows>
+     </skill_workflows>
 
 <file_organization_standards>
 
 ## File Organization Standards
 
 **Skill Directory Naming:**
+
 - Use lowercase with hyphens: `code-review`, `api-builder`
 - Reflect skill domain clearly
 - Avoid generic names: `utilities`, `helpers`
 
 **File Naming:**
+
 - SKILL.md (required, uppercase)
 - Descriptive supporting files: REFERENCE.md, EXAMPLES.md, TEMPLATES.md
 - Script directory: `scripts/`
 - Template directory: `templates/`
 
 **Path References:**
+
 - Always use forward slashes
 - Relative paths from SKILL.md
 - One level deep for referenced files
 - Example: `See REFERENCE.md for details` or `Run scripts/validate.py`
-</file_organization_standards>
+  </file_organization_standards>
 
 <integration_patterns>
 
 ## Integration Patterns
 
 **With Commands:**
+
 - Commands can trigger skills via Skill tool
 - Skills provide domain knowledge
 - Commands orchestrate specific operations
 
 **With Other Skills:**
+
 - Skills can reference related skills
 - Keep references simple: "See skill-name for X"
 - Avoid circular dependencies
 
 **With MCP Servers:**
+
 - Skills can orchestrate MCP server calls
 - Use MCP for external data access (databases, APIs)
 - Skills provide workflow, MCP provides tools
 
 **With Scripts:**
+
 - Scripts execute via bash without loading code
 - Return only outputs (token efficient)
 - Handle all error cases explicitly
-</integration_patterns>
+  </integration_patterns>
 
 <environmental_constraints>
 
@@ -427,7 +475,7 @@ Be aware of limitations:
 - **Filesystem-Based**: Skills exist as directories, accessed via bash
 - **Context Shared**: Skills share context window with conversation
 - **No Auto-Sync**: Skills don't sync between Claude Code/API/claude.ai
-</environmental_constraints>
+  </environmental_constraints>
 
 <success_metrics>
 
@@ -452,6 +500,7 @@ A well-crafted skill should:
 ## Reference Files
 
 For detailed guidance on specific topics:
+
 - See GETTING_STARTED.md for hands-on tutorials
 - See CONCEPTS.md for understanding context engineering and Diátaxis
 - See BEST_PRACTICES.md for comprehensive writing guidelines
@@ -460,4 +509,9 @@ For detailed guidance on specific topics:
 - See TEMPLATES.md for starter templates
 - See REFERENCE.md for technical specifications
 - See SECURITY.md for security audit checklist
+
+External Resources:
+
+- [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
+
 </reference_files>

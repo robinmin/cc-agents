@@ -427,6 +427,38 @@ function cmd_update() {
     fi
 }
 
+function cmd_open() {
+    local wbs="$1"
+
+    if [ -z "$wbs" ]; then
+        log_error "Usage: tasks open <WBS>"
+        exit 1
+    fi
+
+    if [ ! -d "$PROMPTS_DIR" ]; then
+        log_error "Prompts directory not found. Run 'init' first."
+        exit 1
+    fi
+
+    # Find file by WBS
+    local files=("$PROMPTS_DIR/${wbs}_"*.md)
+
+    # Check if file exists
+    if [ ! -e "${files[0]}" ]; then
+        log_error "No task found with WBS: $wbs"
+        exit 1
+    fi
+
+    if [ ${#files[@]} -gt 1 ]; then
+        log_error "Multiple files found for WBS: $wbs. This shouldn't happen."
+        exit 1
+    fi
+
+    local file="${files[0]}"
+    log_info "Opening: $file"
+    open "$file"
+}
+
 function cmd_help() {
     echo "Usage: tasks <subcommand> [arguments]"
     echo ""
@@ -435,6 +467,7 @@ function cmd_help() {
     echo "  create <task name>       Create a new task"
     echo "  list [stage]             List tasks (optionally filter by stage)"
     echo "  update <WBS> <stage>     Update a task's stage"
+    echo "  open <WBS>               Open a task file in default editor"
     echo "  refresh                  Refresh the kanban board"
     echo "  help                     Show this help message"
 }
@@ -477,6 +510,14 @@ case "$1" in
             exit 1
         fi
         cmd_refresh
+        ;;
+    open)
+        validate_project_root
+        if [ ! -d "$PROMPTS_DIR" ]; then
+            log_error "Prompts directory not found at $PROMPTS_DIR. Please run from project root or run 'init'."
+            exit 1
+        fi
+        cmd_open "$2"
         ;;
     help|*)
         cmd_help
