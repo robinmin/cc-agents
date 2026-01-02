@@ -1,5 +1,56 @@
 # CHANGELOG
 
+## [1.1.5] - 2026-01-02
+
+### Summary
+
+**Slash Command Refinements - Industry Best Practices Update**
+
+Comprehensive refinement of 5 slash commands to follow 2025 industry best practices, making them project-agnostic and more effective for any codebase.
+
+### Changed
+
+- **`/rd:task-run`**: Added structured Requirements Discovery Interview framework
+  - 6 prioritized question categories: JTBD, Constraints, Scope, UX, Data, Trade-offs
+  - Interview best practices (ask "how/what" not "why", completion criteria)
+  - New `--no-interview` flag to skip for well-defined tasks
+  - Structured interview summary output format
+
+- **`/rd:gitmsg`**: Upgraded to full Conventional Commits 1.0.0 specification
+  - Complete commit type table with SemVer mapping (feat→MINOR, fix→PATCH, etc.)
+  - Message guidelines: imperative mood, 50-char subject, 72-char body wrap
+  - Breaking change syntax (`!` suffix and `BREAKING CHANGE:` footer)
+  - Anti-patterns table with corrections
+  - New `--amend` and `--breaking` arguments
+
+- **`/rd:fixall`**: Enhanced with language-specific patterns and auto-detection
+  - Auto-detection heuristics for project types (Biome, ESLint, Ruff, Cargo, Go)
+  - Language-specific fix patterns for TypeScript, Python, Rust, Go
+  - "Suppress vs Fix" decision matrix
+  - Circular dependency and unfixable issue handling
+  - Structured completion summary format
+
+- **`/rd:cleanup`**: Improved dead code detection with Meta's SCARF approach
+  - Dead code categories with risk levels and detection methods
+  - Common false positives table (dynamic imports, plugins, feature flags)
+  - Streamlined tool detection tables
+  - Enhanced MANIFEST.md format with restore commands
+  - New `--dry-run` and `--scope` arguments
+
+- **`/rd:livingspec`**: Updated for modern Docs-as-Code practices
+  - Industry statistics on documentation ROI (30-45% faster onboarding)
+  - "What to Document" guidance (APIs, business rules, not implementation details)
+  - SemVer for documentation versioning
+  - Completion report format
+  - New `--full`, `--diff`, `--section` arguments
+
+### References
+
+- [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)
+- [Meta: Automating Dead Code Cleanup](https://engineering.fb.com/2023/10/24/data-infrastructure/automating-dead-code-cleanup/)
+- [Docs-as-Code (Write the Docs)](https://www.writethedocs.org/guide/docs-as-code/)
+- [JTBD Interview Techniques](https://www.lyssna.com/blog/jtbd-interviews/)
+
 ## [1.1.4] - 2025-12-26
 
 ### Summary
