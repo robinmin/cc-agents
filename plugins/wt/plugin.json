@@ -16,25 +16,5 @@
     "ghostwriting",
     "tone",
     "copywriting"
-  ],
-  "commands": [
-    {
-      "name": "style-extractor",
-      "path": "./commands/style-extractor.md",
-      "description": "Extract writing style fingerprint from text files in a folder"
-    },
-    {
-      "name": "style-apply",
-      "path": "./commands/style-apply.md",
-      "description": "Apply a saved writing style profile to content generation"
-    }
-  ],
-  "storage": {
-    "location": "~/.claude/wt/styles/",
-    "scope": "user",
-    "files": [
-      "registry.json",
-      "*.style.md"
-    ]
-  }
+  ]
 }

@@ -27,7 +27,8 @@
       "mcp__augment-context-engine__codebase-retrieval",
       "mcp__ultra-mcp__deep-reasoning",
       "mcp__auggie-mcp__codebase-retrieval",
-      "WebSearch"
+      "WebSearch",
+      "mcp__ref__ref_read_url"
     ],
     "deny": [],
     "ask": []
