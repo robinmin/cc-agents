@@ -14,6 +14,27 @@
       "commands": ["./commands/hello.md"]
     },
     {
+      "name": "wt",
+      "source": "./plugins/wt",
+      "description": "Writing Tools: Professional writing style extraction and application - extract your unique voice fingerprint and apply it to generate consistent content",
+      "version": "1.0.0",
+      "keywords": [
+        "writing",
+        "style",
+        "voice",
+        "content-generation",
+        "stylometry",
+        "authorship",
+        "ghostwriting",
+        "tone",
+        "copywriting"
+      ],
+      "commands": [
+        "./commands/style-extractor.md",
+        "./commands/style-apply.md"
+      ]
+    },
+    {
       "name": "rd",
       "source": "./plugins/rd",
       "description": "Rapid Development: Systematic 10-stage TDD workflow for high-quality function development with test-first principles, syntax validation, and comprehensive testing (Python, JS/TS, Java, Go, Rust)",

@@ -1,0 +1,40 @@
+{
+  "name": "wt",
+  "version": "1.0.0",
+  "description": "Writing Tools: Professional writing style extraction and application - extract your unique voice fingerprint and apply it to generate consistent content",
+  "author": {
+    "name": "Robin Min",
+    "email": "minlongbing@gmail.com"
+  },
+  "keywords": [
+    "writing",
+    "style",
+    "voice",
+    "content-generation",
+    "stylometry",
+    "authorship",
+    "ghostwriting",
+    "tone",
+    "copywriting"
+  ],
+  "commands": [
+    {
+      "name": "style-extractor",
+      "path": "./commands/style-extractor.md",
+      "description": "Extract writing style fingerprint from text files in a folder"
+    },
+    {
+      "name": "style-apply",
+      "path": "./commands/style-apply.md",
+      "description": "Apply a saved writing style profile to content generation"
+    }
+  ],
+  "storage": {
+    "location": "~/.claude/wt/styles/",
+    "scope": "user",
+    "files": [
+      "registry.json",
+      "*.style.md"
+    ]
+  }
+}
