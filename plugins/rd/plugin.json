@@ -1,0 +1,20 @@
+{
+  "name": "rd",
+  "version": "1.1.5",
+  "description": "Rapid Development: Systematic 10-stage TDD workflow for high-quality function development with test-first principles, syntax validation, and comprehensive testing (Python, JS/TS, Java, Go, Rust)",
+  "author": {
+    "name": "Robin Min",
+    "email": "minlongbing@gmail.com"
+  },
+  "keywords": [
+    "tdd",
+    "testing",
+    "workflow",
+    "pytest",
+    "jest",
+    "development",
+    "quality",
+    "test-driven",
+    "multi-language"
+  ]
+}

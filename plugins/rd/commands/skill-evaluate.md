@@ -1,6 +1,10 @@
+---
+description: Evaluate Skill Quality - Comprehensive security and quality assessment for Claude Code Agent Skills
+---
+
 # Evaluate Skill Quality
 
-Comprehensive read-only evaluation of a Claude Code Agent Skill against best practices and quality standards.
+Comprehensive read-only evaluation of a Claude Code Agent Skill against best practices, quality standards, and security requirements.
 
 ## Purpose
 
@@ -66,6 +70,14 @@ When you invoke this command, Claude will:
    - Concrete examples present
    - Terminology consistency
    - Freedom level appropriateness
+
+   **Security (for skills with scripts/commands):**
+   - Command injection risks
+   - File system access scope
+   - Credential/secret handling
+   - Input validation
+   - Privilege escalation vectors
+   - Network access patterns
 
    **Structure:**
    - Progressive disclosure
@@ -188,7 +200,60 @@ When you invoke this command, Claude will:
 
 ---
 
-### 3. Structure & Organization
+### 3. Security Assessment
+
+**Status:** [Secure/Caution/At Risk/Critical/N/A]
+**Risk Level:** [None/Low/Medium/High/Critical]
+
+**Scripts & Commands Inventory:**
+| File | Type | Risk Areas |
+|------|------|------------|
+| [script.sh] | Shell | [File access, Commands] |
+| [tool.py] | Python | [Network, Subprocess] |
+
+**Command Injection:** [X/10]
+- User input sanitization: [Present/Missing/N/A]
+- Shell command construction: [Safe/Unsafe/N/A]
+- Dynamic command execution: [None/Sandboxed/Unrestricted]
+
+**File System Access:** [X/10]
+- Scope: [Restricted/Project-only/Unrestricted]
+- Path traversal protection: [Present/Missing/N/A]
+- Sensitive file access: [None/Logged/Uncontrolled]
+
+**Credential Handling:** [X/10]
+- Secrets in code: [None/Detected]
+- Environment variable usage: [Safe/Exposed]
+- API key handling: [Secure/At Risk/N/A]
+
+**Input Validation:** [X/10]
+- User input validated: [Yes/Partial/No]
+- Boundary checks: [Present/Missing]
+- Type checking: [Present/Missing]
+
+**Privilege & Access:** [X/10]
+- Minimum privilege principle: [Followed/Violated]
+- Sudo/admin operations: [None/Documented/Undocumented]
+- Network access: [None/Restricted/Unrestricted]
+
+**Security Issues Found:**
+
+| Severity | Issue | Location | Risk |
+|----------|-------|----------|------|
+| 🔴 Critical | [Issue] | [File:line] | [Impact] |
+| 🟠 High | [Issue] | [File:line] | [Impact] |
+| 🟡 Medium | [Issue] | [File:line] | [Impact] |
+| 🟢 Low | [Issue] | [File:line] | [Impact] |
+
+**Recommendations:**
+- [Security recommendation 1]
+- [Security recommendation 2]
+
+**Score:** [X/10] or [N/A if no scripts]
+
+---
+
+### 4. Structure & Organization
 
 **Status:** [Excellent/Good/Fair/Poor]
 
@@ -223,7 +288,7 @@ When you invoke this command, Claude will:
 
 ---
 
-### 4. Token Efficiency
+### 5. Token Efficiency
 
 **Status:** [Excellent/Good/Fair/Poor]
 
@@ -257,7 +322,7 @@ When you invoke this command, Claude will:
 
 ---
 
-### 5. Best Practices Compliance
+### 6. Best Practices Compliance
 
 **Status:** [Excellent/Good/Fair/Poor]
 
@@ -287,7 +352,7 @@ When you invoke this command, Claude will:
 
 ---
 
-### 6. Code Quality (if applicable)
+### 7. Code Quality (if applicable)
 
 **Status:** [Excellent/Good/Fair/Poor/N/A]
 
@@ -328,13 +393,16 @@ When you invoke this command, Claude will:
 
 | Category | Score | Weight | Weighted Score |
 |----------|-------|--------|----------------|
-| Frontmatter Compliance | X/10 | 15% | X.X |
-| Content Quality | X/10 | 30% | X.X |
-| Structure & Organization | X/10 | 20% | X.X |
-| Token Efficiency | X/10 | 15% | X.X |
-| Best Practices | X/10 | 15% | X.X |
-| Code Quality | X/10 | 5% | X.X |
+| Frontmatter Compliance | X/10 | 10% | X.X |
+| Content Quality | X/10 | 25% | X.X |
+| Security Assessment | X/10 | 20% | X.X |
+| Structure & Organization | X/10 | 15% | X.X |
+| Token Efficiency | X/10 | 10% | X.X |
+| Best Practices | X/10 | 10% | X.X |
+| Code Quality | X/10 | 10% | X.X |
 | **Overall Score** | | | **X.X/10** |
+
+**Security Gate:** Skills with Security score < 6/10 are **NOT production ready** regardless of overall score.
 
 **Grade:** [A/B/C/D/F]
 - A (9.0-10.0): Excellent - Production ready
@@ -456,6 +524,11 @@ This evaluation used the following standards from `cc-skills` meta-skill:
 - Proper progressive disclosure
 - Token-efficient content
 - Scripts handle errors (if applicable)
+- **Security: No command injection vectors**
+- **Security: Input validation present**
+- **Security: No hardcoded secrets**
+- **Security: File access properly scoped**
+- **Security: Least privilege principle followed**
 
 **Best Practices Applied:**
 - Conciseness principles
@@ -465,6 +538,9 @@ This evaluation used the following standards from `cc-skills` meta-skill:
 - Clear naming conventions
 - Example-driven documentation
 - Validation loop patterns
+- **Security-first script design**
+- **Defense-in-depth for file/network access**
+- **Explicit permission documentation**
 
 ---
 
@@ -483,7 +559,7 @@ This evaluation used the following standards from `cc-skills` meta-skill:
 
 ## Evaluation Criteria Details
 
-### Frontmatter Compliance (15%)
+### Frontmatter Compliance (10%)
 
 **Pass Criteria:**
 - Name: lowercase, hyphens, ≤64 chars, no reserved words
@@ -496,7 +572,7 @@ This evaluation used the following standards from `cc-skills` meta-skill:
 - Reserved words present
 - Invalid characters in name
 
-### Content Quality (30%)
+### Content Quality (25%)
 
 **Evaluation Factors:**
 - Clarity: Easy to understand, well-explained
@@ -512,7 +588,60 @@ This evaluation used the following standards from `cc-skills` meta-skill:
 - Inconsistent term usage
 - Excessive length (>500 lines)
 
-### Structure & Organization (20%)
+### Security Assessment (20%)
+
+**CRITICAL: This section is mandatory for skills containing scripts, shell commands, or file operations.**
+
+**Evaluation Factors:**
+
+| Category | What to Check |
+|----------|---------------|
+| **Command Injection** | User input used in shell commands without sanitization |
+| **Path Traversal** | Unchecked file paths allowing `../` escape |
+| **Secrets Exposure** | Hardcoded credentials, API keys, tokens |
+| **Input Validation** | Missing type/boundary/format checks |
+| **Privilege Escalation** | Unnecessary sudo, root, or admin operations |
+| **Network Access** | Uncontrolled external connections |
+| **Data Exfiltration** | Potential for sending data to external services |
+
+**Critical Security Anti-Patterns:**
+
+| Anti-Pattern | Example | Risk |
+|--------------|---------|------|
+| **Shell injection** | `os.system(f"rm {user_input}")` | Arbitrary command execution |
+| **Unsanitized paths** | `open(user_path)` without validation | Read/write arbitrary files |
+| **Hardcoded secrets** | `API_KEY = "sk-..."` | Credential theft |
+| **Eval on user input** | `eval(user_code)` | Code execution |
+| **Unrestricted network** | `requests.get(user_url)` | SSRF, data leak |
+| **Excessive permissions** | `chmod 777`, `sudo` without justification | Privilege escalation |
+| **Unsafe deserialization** | `pickle.load(user_data)` | Code execution |
+
+**Secure Patterns to Verify:**
+
+| Pattern | Implementation |
+|---------|----------------|
+| **Input sanitization** | Allowlist validation, regex patterns, type checking |
+| **Path restriction** | `os.path.realpath()` + prefix check, chroot |
+| **Secret management** | Environment variables, secret managers, no hardcoding |
+| **Subprocess safety** | `subprocess.run([...], shell=False)`, shlex.quote() |
+| **Least privilege** | Minimal permissions, no sudo unless documented |
+| **Network allowlist** | Explicit allowed domains, no user-controlled URLs |
+
+**Security Severity Levels:**
+
+| Level | Criteria | Action Required |
+|-------|----------|-----------------|
+| 🔴 **Critical** | Immediate exploitation possible, data loss/theft risk | Block deployment, fix immediately |
+| 🟠 **High** | Exploitation with some effort, significant impact | Fix before production |
+| 🟡 **Medium** | Limited exploitation, moderate impact | Fix in next iteration |
+| 🟢 **Low** | Theoretical risk, minimal impact | Document and monitor |
+
+**N/A Conditions:**
+- Skill contains no scripts, commands, or file operations
+- Skill is documentation-only
+- Skill contains only read operations on non-sensitive data
+
+### Structure & Organization (15%)
 
 **Evaluation Factors:**
 - Progressive disclosure: Main content in SKILL.md, details in references
@@ -526,7 +655,7 @@ This evaluation used the following standards from `cc-skills` meta-skill:
 - No clear workflow structure
 - Missing checklists for complex processes
 
-### Token Efficiency (15%)
+### Token Efficiency (10%)
 
 **Evaluation Factors:**
 - Content uniqueness: Not duplicating Claude's knowledge
@@ -540,7 +669,7 @@ This evaluation used the following standards from `cc-skills` meta-skill:
 - Could use tables/lists instead of paragraphs
 - No use of referenced files for details
 
-### Best Practices Compliance (15%)
+### Best Practices Compliance (10%)
 
 **Anti-Patterns Checked:**
 - ❌ Windows paths (`\` instead of `/`)
@@ -559,7 +688,7 @@ This evaluation used the following standards from `cc-skills` meta-skill:
 - ✅ Validation loops
 - ✅ Error handling in scripts
 
-### Code Quality (5%)
+### Code Quality (10%)
 
 **Evaluation Factors:**
 - Error handling: Explicit, helpful messages
