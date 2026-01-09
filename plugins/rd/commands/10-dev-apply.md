@@ -1,5 +1,6 @@
 ---
-description: Apply the 10-stage TDD workflow to implement a function systematically with test-first principles.
+description: Apply the 10-stage TDD workflow to implement a function systematically with test-first principles
+argument-hint: <function-spec>
 ---
 
 # apply-10-dev
