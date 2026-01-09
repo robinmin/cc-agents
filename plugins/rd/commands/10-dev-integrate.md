@@ -1,5 +1,6 @@
 ---
-description: Create integration tests for related functions to verify they work together correctly.
+description: Create integration tests for related functions to verify they work together correctly
+argument-hint: <function1> <function2> [function3...]
 ---
 
 # integrate-10-dev
