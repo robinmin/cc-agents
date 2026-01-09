@@ -1,5 +1,6 @@
 ---
-description: Check if all preconditions for the 10-stage development workflow are met.
+description: Check if all preconditions for the 10-stage development workflow are met
+argument-hint: [project-path]
 ---
 
 # check-10-dev
