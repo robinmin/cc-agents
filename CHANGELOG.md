@@ -1,5 +1,69 @@
 # CHANGELOG
 
+## [1.3.0] - 2026-01-08
+
+### Summary
+
+**Claude Code 2026 Plugin Modernization & Prompt Engineering Optimization**
+
+Major update aligning the project with Claude Code 2026 plugin specifications and applying industry best practices for prompt engineering. All slash commands refined for conciseness and effectiveness.
+
+### Added
+
+- **Agent `super-reve`**: Enhanced with triggering examples, severity definitions, edge case handling
+  - Added required `color: cyan` field
+  - Added 3 `<example>` blocks for proper agent triggering
+  - Added explicit severity criteria table (🔴 High, 🟡 Medium, 🟢 Low)
+  - Added edge case handling section
+
+- **Frontmatter `argument-hint`**: Added to all slash commands lacking it
+  - `10-dev-apply.md`: `<function-spec>`
+  - `10-dev-check.md`: `[project-path]`
+  - `10-dev-init.md`: `[language]`
+  - `10-dev-integrate.md`: `<function1> <function2> [function3...]`
+  - `dokploy-new.md`: `<service-name> [--env test|prod]`
+  - `dokploy-refine.md`: `[service-name] [--migrate]`
+  - `translate.md`: `<file_path> <target_language>`
+
+### Changed
+
+- **Project Structure Cleanup**
+  - Removed deprecated `plugins/hello/` sample plugin
+  - Renamed `plugins/rd/scripts/prompts.sh` → `plugins/rd/scripts/tasks.sh` (aligns with `tasks` alias)
+
+- **Plugin Configuration (2026 Format)**
+  - `plugins/rd/plugin.json`: Updated to v1.2.0 with auto-discovery paths (`commands`, `skills`, `agents`)
+  - `plugins/wt/plugin.json`: Updated to v1.1.0 with auto-discovery paths
+  - `.claude-plugin/marketplace.json`: Simplified structure, removed `hello` plugin
+
+- **Slash Commands - Prompt Engineering Optimization**
+  All 7 key commands refined following "concise is key" principle:
+
+  | Command | Before | After | Reduction |
+  |---------|--------|-------|-----------|
+  | `task-run.md` | 908 lines | 157 lines | 83% |
+  | `task-fixall.md` | 225 lines | 147 lines | 35% |
+  | `task-spec.md` | 429 lines | 232 lines | 46% |
+  | `agent-meta.md` | 471 lines | 223 lines | 53% |
+  | `skill-add.md` | 208 lines | 89 lines | 57% |
+  | `skill-evaluate.md` | 801 lines | 152 lines | 81% |
+  | `skill-refine.md` | 416 lines | 144 lines | 65% |
+
+  Key improvements across all commands:
+  - Quick Start sections at top
+  - Tables over prose for scannability
+  - Consistent structure (Arguments, Workflow, Output, See Also)
+  - Removed redundant examples and explanations
+  - Progressive disclosure pattern
+
+### References
+
+- [Claude Code Plugin Discovery](https://code.claude.com/docs/en/discover-plugins)
+- [Claude Code Subagents](https://code.claude.com/docs/en/sub-agents)
+- [Claude Code Agent Skills](https://code.claude.com/docs/en/skills)
+- [Anthropic: Equipping Agents with Skills](https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills)
+- [Skill Authoring Best Practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
+
 ## [1.1.5] - 2026-01-02
 
 ### Summary

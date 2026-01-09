@@ -29,7 +29,8 @@
       "mcp__auggie-mcp__codebase-retrieval",
       "WebSearch",
       "mcp__ref__ref_read_url",
-      "mcp__ref__ref_search_documentation"
+      "mcp__ref__ref_search_documentation",
+      "WebFetch(domain:www.anthropic.com)"
     ],
     "deny": [],
     "ask": []
