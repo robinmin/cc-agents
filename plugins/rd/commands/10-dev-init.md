@@ -1,5 +1,6 @@
 ---
-description: Initialize build tool configuration for the 10-stage development workflow.
+description: Initialize build tool configuration for the 10-stage development workflow
+argument-hint: [language]
 ---
 
 # init-10-dev
