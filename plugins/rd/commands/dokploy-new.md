@@ -1,5 +1,6 @@
 ---
-description: Create a new Dokploy deployment with GitHub Actions workflow, central repository structure, and production-ready configuration.
+description: Create a new Dokploy deployment with GitHub Actions workflow and production-ready configuration
+argument-hint: <service-name> [--env test|prod]
 ---
 
 # dokploy-new
