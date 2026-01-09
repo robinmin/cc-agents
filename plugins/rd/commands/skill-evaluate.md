@@ -1,799 +1,151 @@
 ---
-description: Evaluate Skill Quality - Comprehensive security and quality assessment for Claude Code Agent Skills
+description: Comprehensive security and quality assessment for Claude Code Agent Skills
+argument-hint: <skill-folder>
 ---
 
 # Evaluate Skill Quality
 
-Comprehensive read-only evaluation of a Claude Code Agent Skill against best practices, quality standards, and security requirements.
+Read-only evaluation of a skill against best practices, quality standards, and security requirements.
 
-## Purpose
+## Quick Start
 
-Analyze an existing skill and generate a detailed quality report without making any changes. Provides objective assessment with specific recommendations for improvement.
-
-## Usage
-
-```bash
-/rd:skill-evaluate <skill-folder>
-```
-
-### Arguments
-
-- `skill-folder` (required): Path to skill directory to evaluate
-  - Can be relative: `skills/my-skill`
-  - Can be absolute: `/Users/robin/projects/cc-agents/plugins/rd/skills/my-skill`
-  - Can be skill name only: `my-skill` (searches in current plugin)
-
-## Examples
-
-**Evaluate skill in current plugin:**
 ```bash
 /rd:skill-evaluate 10-stages-developing
-```
-
-**Evaluate skill with full path:**
-```bash
 /rd:skill-evaluate plugins/rd/skills/code-review
 ```
 
-**Evaluate skill in another plugin:**
-```bash
-/rd:skill-evaluate plugins/hello/skills/greeting-messages
-```
+## Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `<skill-folder>` | Path to skill directory (relative, absolute, or name only) |
 
 ## Workflow
 
-When you invoke this command, Claude will:
+1. **Load Framework**: Invoke `cc-skills` for evaluation criteria
+2. **Analyze Structure**: Read SKILL.md and supporting files
+3. **Evaluate Criteria**: Score each dimension
+4. **Generate Report**: Produce detailed findings
+
+## Evaluation Dimensions
+
+| Category | Weight | Key Criteria |
+|----------|--------|--------------|
+| **Frontmatter** | 10% | Name format, description length, activation clarity |
+| **Content** | 25% | Clarity, conciseness, completeness, examples |
+| **Security** | 20% | Command injection, file access, credentials, input validation |
+| **Structure** | 15% | Progressive disclosure, organization, workflow design |
+| **Efficiency** | 10% | Token count (<500 lines), uniqueness, references |
+| **Best Practices** | 10% | Naming, anti-patterns, conventions |
+| **Code Quality** | 10% | Error handling, dependencies, clarity (N/A if no scripts) |
+
+## Frontmatter Criteria
+
+| Check | Pass |
+|-------|------|
+| Name format | lowercase-hyphens, ≤64 chars |
+| Description | ≤1024 chars, no XML tags |
+| Activation | Clear "when to use" statement |
+| Reserved words | No `anthropic`, `claude` |
+
+## Security Assessment
+
+**Critical for skills with scripts/commands:**
+
+| Risk | What to Check |
+|------|---------------|
+| **Command Injection** | User input in shell commands without sanitization |
+| **Path Traversal** | Unchecked paths allowing `../` escape |
+| **Secrets** | Hardcoded credentials, API keys |
+| **Input Validation** | Missing type/boundary checks |
+| **Privileges** | Unnecessary sudo/admin operations |
+
+**Severity Levels:**
+- 🔴 Critical: Block deployment
+- 🟠 High: Fix before production
+- 🟡 Medium: Fix next iteration
+- 🟢 Low: Document and monitor
+
+**Security Gate:** Score <6/10 = NOT production ready
+
+## Anti-Patterns Checked
 
-1. **Load Evaluation Framework**
-   - Invoke `cc-skills` skill for domain knowledge
-   - Load quality standards and best practices
-   - Load evaluation criteria and metrics
-
-2. **Analyze Skill Structure**
-   - Read SKILL.md and all supporting files
-   - Validate YAML frontmatter
-   - Assess file organization
-   - Check directory structure
-   - Identify all resources (scripts, templates, docs)
-
-3. **Evaluate Against Criteria**
-
-   **Frontmatter Compliance:**
-   - Name format and length (≤64 chars)
-   - Description quality and length (≤1024 chars)
-   - No XML tags or reserved words
-   - Activation conditions clear
-
-   **Content Quality:**
-   - Clarity and conciseness
-   - Appropriate detail level
-   - Concrete examples present
-   - Terminology consistency
-   - Freedom level appropriateness
-
-   **Security (for skills with scripts/commands):**
-   - Command injection risks
-   - File system access scope
-   - Credential/secret handling
-   - Input validation
-   - Privilege escalation vectors
-   - Network access patterns
-
-   **Structure:**
-   - Progressive disclosure
-   - File reference depth
-   - Workflow organization
-   - Documentation completeness
-
-   **Token Efficiency:**
-   - SKILL.md length (target <500 lines)
-   - Content uniqueness (not duplicating Claude's knowledge)
-   - Reference organization
-   - Compression opportunities
-
-   **Code Quality (if scripts exist):**
-   - Error handling
-   - Parameter justification
-   - Dependency management
-   - Execution clarity
-
-4. **Generate Comprehensive Report**
-   - Executive summary
-   - Detailed findings by category
-   - Strengths and weaknesses
-   - Specific recommendations
-   - Priority rankings
-   - Quality metrics
-
-5. **Provide Actionable Next Steps**
-   - Prioritized improvement list
-   - Suggested commands to run
-   - Additional resources
-
-## Evaluation Report Format
-
-```markdown
-# Skill Quality Evaluation: [Skill Name]
-
-**Evaluation Date:** [Date]
-**Skill Location:** [Path]
-**Evaluator:** Claude Code with cc-skills framework
-
----
-
-## Executive Summary
-
-**Overall Quality:** [Excellent/Good/Fair/Needs Improvement]
-**Readiness:** [Production Ready/Needs Minor Fixes/Needs Major Revision]
-
-**Key Strengths:**
-- [Strength 1]
-- [Strength 2]
-- [Strength 3]
-
-**Critical Issues:**
-- [Issue 1]
-- [Issue 2]
-
-**Recommendation:** [Brief overall recommendation]
-
----
-
-## Detailed Evaluation
-
-### 1. Frontmatter Compliance
-
-**Status:** [Pass/Fail]
-
-| Criterion | Status | Details |
-|-----------|--------|---------|
-| Name format | ✅/❌ | [Details] |
-| Name length | ✅/❌ | [X/64 characters] |
-| Description length | ✅/❌ | [X/1024 characters] |
-| No XML tags | ✅/❌ | [Details] |
-| No reserved words | ✅/❌ | [Details] |
-| Activation clarity | ✅/❌ | [Assessment] |
-
-**Issues Found:**
-- [Issue if any]
-
-**Recommendations:**
-- [Recommendation if any]
-
-**Score:** [X/10]
-
----
-
-### 2. Content Quality
-
-**Status:** [Excellent/Good/Fair/Poor]
-
-**Clarity:** [X/10]
-- [Assessment of how clear and understandable the content is]
-- Examples: [Present/Missing]
-- Terminology: [Consistent/Inconsistent]
-
-**Conciseness:** [X/10]
-- Current length: [X lines]
-- Target length: [<500 lines]
-- Efficiency: [High/Medium/Low]
-- Redundancy: [None/Some/Significant]
-
-**Completeness:** [X/10]
-- Workflows: [Complete/Partial/Missing]
-- Examples: [Concrete/Abstract/Missing]
-- Error handling: [Covered/Partial/Missing]
-
-**Strengths:**
-- [Specific strong point 1]
-- [Specific strong point 2]
-
-**Weaknesses:**
-- [Specific weak point 1]
-- [Specific weak point 2]
-
-**Recommendations:**
-- [Specific recommendation 1]
-- [Specific recommendation 2]
-
-**Score:** [X/10]
-
----
-
-### 3. Security Assessment
-
-**Status:** [Secure/Caution/At Risk/Critical/N/A]
-**Risk Level:** [None/Low/Medium/High/Critical]
-
-**Scripts & Commands Inventory:**
-| File | Type | Risk Areas |
-|------|------|------------|
-| [script.sh] | Shell | [File access, Commands] |
-| [tool.py] | Python | [Network, Subprocess] |
-
-**Command Injection:** [X/10]
-- User input sanitization: [Present/Missing/N/A]
-- Shell command construction: [Safe/Unsafe/N/A]
-- Dynamic command execution: [None/Sandboxed/Unrestricted]
-
-**File System Access:** [X/10]
-- Scope: [Restricted/Project-only/Unrestricted]
-- Path traversal protection: [Present/Missing/N/A]
-- Sensitive file access: [None/Logged/Uncontrolled]
-
-**Credential Handling:** [X/10]
-- Secrets in code: [None/Detected]
-- Environment variable usage: [Safe/Exposed]
-- API key handling: [Secure/At Risk/N/A]
-
-**Input Validation:** [X/10]
-- User input validated: [Yes/Partial/No]
-- Boundary checks: [Present/Missing]
-- Type checking: [Present/Missing]
-
-**Privilege & Access:** [X/10]
-- Minimum privilege principle: [Followed/Violated]
-- Sudo/admin operations: [None/Documented/Undocumented]
-- Network access: [None/Restricted/Unrestricted]
-
-**Security Issues Found:**
-
-| Severity | Issue | Location | Risk |
-|----------|-------|----------|------|
-| 🔴 Critical | [Issue] | [File:line] | [Impact] |
-| 🟠 High | [Issue] | [File:line] | [Impact] |
-| 🟡 Medium | [Issue] | [File:line] | [Impact] |
-| 🟢 Low | [Issue] | [File:line] | [Impact] |
-
-**Recommendations:**
-- [Security recommendation 1]
-- [Security recommendation 2]
-
-**Score:** [X/10] or [N/A if no scripts]
-
----
-
-### 4. Structure & Organization
-
-**Status:** [Excellent/Good/Fair/Poor]
-
-**Progressive Disclosure:** [X/10]
-- SKILL.md role: [Appropriate/Too detailed/Too sparse]
-- Supporting files: [Well organized/Could improve/Missing]
-- Reference depth: [One level/Too deep/Mixed]
-
-**File Organization:** [X/10]
-```
-[Actual directory tree]
-```
-
-**Assessment:**
-- [Analysis of organization effectiveness]
-
-**Workflow Design:** [X/10]
-- Steps clarity: [Clear/Unclear]
-- Validation loops: [Present/Missing]
-- Checklists: [Effective/Could improve/Missing]
-
-**Strengths:**
-- [Specific structural strength]
-
-**Weaknesses:**
-- [Specific structural weakness]
-
-**Recommendations:**
-- [Specific structural recommendation]
-
-**Score:** [X/10]
-
----
-
-### 5. Token Efficiency
-
-**Status:** [Excellent/Good/Fair/Poor]
-
-**Metrics:**
-- SKILL.md length: [X lines] (Target: <500)
-- Total token estimate: [~X tokens]
-- Efficiency rating: [High/Medium/Low]
-
-**Content Uniqueness:** [X/10]
-- Redundancy with Claude's knowledge: [Minimal/Some/Significant]
-- Information density: [High/Medium/Low]
-
-**Reference Strategy:** [X/10]
-- File references: [Efficient/Could improve]
-- Content distribution: [Well balanced/Unbalanced]
-
-**Compression Opportunities:**
-- [Opportunity 1]
-- [Opportunity 2]
-
-**Strengths:**
-- [Efficiency strength]
-
-**Weaknesses:**
-- [Efficiency weakness]
-
-**Recommendations:**
-- [Efficiency recommendation]
-
-**Score:** [X/10]
-
----
-
-### 6. Best Practices Compliance
-
-**Status:** [Excellent/Good/Fair/Poor]
-
-**Naming Conventions:** [X/10]
-- Skill name: [Follows/Violates] conventions
-- File names: [Descriptive/Could improve]
-- Terminology: [Consistent/Inconsistent]
-
-**Anti-Patterns Detected:**
-- [ ] Windows-style paths
-- [ ] Deeply nested references
-- [ ] Time-sensitive content
-- [ ] Excessive options without defaults
-- [ ] Magic numbers in scripts
-- [ ] Vague file names
-- [ ] Inconsistent terminology
-
-**Issues Found:**
-[List each anti-pattern found with location]
-
-**Best Practices Applied:**
-- ✅ [Practice 1]
-- ✅ [Practice 2]
-- ❌ [Missing practice]
-
-**Score:** [X/10]
-
----
-
-### 7. Code Quality (if applicable)
-
-**Status:** [Excellent/Good/Fair/Poor/N/A]
-
-**Scripts Found:**
-- [script1.py]
-- [script2.sh]
-
-**Error Handling:** [X/10]
-- [Assessment of error handling quality]
-- Examples: [Good/Missing]
-
-**Parameter Justification:** [X/10]
-- Magic numbers: [None/Some/Many]
-- Documentation: [Complete/Partial/Missing]
-
-**Dependencies:** [X/10]
-- Listed: [Yes/No]
-- Verified: [Yes/No/Unknown]
-
-**Execution Clarity:** [X/10]
-- Intent clear: [Yes/Unclear]
-- Usage documented: [Yes/No]
-
-**Strengths:**
-- [Code strength]
-
-**Weaknesses:**
-- [Code weakness]
-
-**Recommendations:**
-- [Code recommendation]
-
-**Score:** [X/10] or [N/A]
-
----
-
-## Quality Metrics Summary
-
-| Category | Score | Weight | Weighted Score |
-|----------|-------|--------|----------------|
-| Frontmatter Compliance | X/10 | 10% | X.X |
-| Content Quality | X/10 | 25% | X.X |
-| Security Assessment | X/10 | 20% | X.X |
-| Structure & Organization | X/10 | 15% | X.X |
-| Token Efficiency | X/10 | 10% | X.X |
-| Best Practices | X/10 | 10% | X.X |
-| Code Quality | X/10 | 10% | X.X |
-| **Overall Score** | | | **X.X/10** |
-
-**Security Gate:** Skills with Security score < 6/10 are **NOT production ready** regardless of overall score.
-
-**Grade:** [A/B/C/D/F]
-- A (9.0-10.0): Excellent - Production ready
-- B (7.0-8.9): Good - Minor improvements needed
-- C (5.0-6.9): Fair - Moderate revision needed
-- D (3.0-4.9): Poor - Major revision needed
-- F (0.0-2.9): Failing - Complete rewrite recommended
-
----
-
-## Prioritized Recommendations
-
-### Critical (Fix Immediately)
-1. [Critical issue 1]
-   - **Impact:** [Why this matters]
-   - **Fix:** [How to address]
-   - **Effort:** [Low/Medium/High]
-
-### High Priority (Fix Soon)
-1. [High priority issue 1]
-   - **Impact:** [Why this matters]
-   - **Fix:** [How to address]
-   - **Effort:** [Low/Medium/High]
-
-### Medium Priority (Improve When Possible)
-1. [Medium priority issue 1]
-   - **Impact:** [Why this matters]
-   - **Fix:** [How to address]
-   - **Effort:** [Low/Medium/High]
-
-### Low Priority (Nice to Have)
-1. [Low priority issue 1]
-   - **Impact:** [Why this matters]
-   - **Fix:** [How to address]
-   - **Effort:** [Low/Medium/High]
-
----
-
-## Strengths to Maintain
-
-1. **[Strength Category]**
-   - [Specific strength 1]
-   - [Specific strength 2]
-   - **Why this works:** [Explanation]
-
-2. **[Another Strength Category]**
-   - [Specific strength 3]
-   - **Why this works:** [Explanation]
-
----
-
-## Examples of Issues
-
-### Issue Example 1: [Issue Name]
-
-**Location:** [File:line or section]
-**Severity:** [Critical/High/Medium/Low]
-
-**Current:**
-```
-[Show problematic code/content]
-```
-
-**Problem:** [Explain what's wrong]
-
-**Suggested Fix:**
-```
-[Show improved version]
-```
-
-**Why this matters:** [Impact explanation]
-
----
-
-## Next Steps
-
-### Immediate Actions
-
-1. **Fix Critical Issues:**
-   ```bash
-   # Edit SKILL.md to fix [critical issue]
-   # Run validation: /rd:evaluate-skill [skill-name]
-   ```
-
-2. **Apply High Priority Fixes:**
-   ```bash
-   # Use refinement command for guided improvements
-   /rd:refine-skill [skill-name]
-   ```
-
-### Recommended Workflow
-
-1. Address critical issues manually
-2. Run `/rd:refine-skill [skill-name]` for guided improvements
-3. Re-evaluate: `/rd:evaluate-skill [skill-name]`
-4. Test with fresh Claude instance
-5. Validate activation and functionality
-
-### Resources
-
-- **Best Practices:** `plugins/rd/skills/cc-skills/BEST_PRACTICES.md`
-- **Examples:** `plugins/rd/skills/cc-skills/EXAMPLES.md`
-- **Templates:** `plugins/rd/skills/cc-skills/TEMPLATES.md`
-
----
-
-## Evaluation Criteria Reference
-
-This evaluation used the following standards from `cc-skills` meta-skill:
-
-**Quality Checklist:**
-- YAML frontmatter valid
-- SKILL.md under 500 lines
-- Description includes activation conditions
-- Concrete examples present
-- Consistent terminology
-- No anti-patterns
-- Clear workflows
-- Proper progressive disclosure
-- Token-efficient content
-- Scripts handle errors (if applicable)
-- **Security: No command injection vectors**
-- **Security: Input validation present**
-- **Security: No hardcoded secrets**
-- **Security: File access properly scoped**
-- **Security: Least privilege principle followed**
-
-**Best Practices Applied:**
-- Conciseness principles
-- Appropriate freedom levels
-- Cross-model compatibility
-- Progressive disclosure
-- Clear naming conventions
-- Example-driven documentation
-- Validation loop patterns
-- **Security-first script design**
-- **Defense-in-depth for file/network access**
-- **Explicit permission documentation**
-
----
-
-## Conclusion
-
-[Final assessment paragraph summarizing overall quality, key strengths, main areas for improvement, and recommended next actions]
-
-**Ready for Production:** [Yes/No/With Minor Fixes]
-
-**Estimated Effort to Production Ready:** [X hours/days]
-
----
-
-*This evaluation was generated using the cc-skills meta-skill framework based on official Claude Code Agent Skills best practices.*
-```
-
-## Evaluation Criteria Details
-
-### Frontmatter Compliance (10%)
-
-**Pass Criteria:**
-- Name: lowercase, hyphens, ≤64 chars, no reserved words
-- Description: non-empty, ≤1024 chars, no XML tags
-- Includes both what it does AND when to use it
-
-**Common Issues:**
-- Description too long
-- Missing activation conditions
-- Reserved words present
-- Invalid characters in name
-
-### Content Quality (25%)
-
-**Evaluation Factors:**
-- Clarity: Easy to understand, well-explained
-- Conciseness: No unnecessary verbosity
-- Completeness: All necessary information present
-- Examples: Concrete, not abstract
-- Terminology: Consistent throughout
-
-**Red Flags:**
-- Claude already knows this information
-- Too many explanations of basics
-- Missing concrete examples
-- Inconsistent term usage
-- Excessive length (>500 lines)
-
-### Security Assessment (20%)
-
-**CRITICAL: This section is mandatory for skills containing scripts, shell commands, or file operations.**
-
-**Evaluation Factors:**
-
-| Category | What to Check |
-|----------|---------------|
-| **Command Injection** | User input used in shell commands without sanitization |
-| **Path Traversal** | Unchecked file paths allowing `../` escape |
-| **Secrets Exposure** | Hardcoded credentials, API keys, tokens |
-| **Input Validation** | Missing type/boundary/format checks |
-| **Privilege Escalation** | Unnecessary sudo, root, or admin operations |
-| **Network Access** | Uncontrolled external connections |
-| **Data Exfiltration** | Potential for sending data to external services |
-
-**Critical Security Anti-Patterns:**
-
-| Anti-Pattern | Example | Risk |
-|--------------|---------|------|
-| **Shell injection** | `os.system(f"rm {user_input}")` | Arbitrary command execution |
-| **Unsanitized paths** | `open(user_path)` without validation | Read/write arbitrary files |
-| **Hardcoded secrets** | `API_KEY = "sk-..."` | Credential theft |
-| **Eval on user input** | `eval(user_code)` | Code execution |
-| **Unrestricted network** | `requests.get(user_url)` | SSRF, data leak |
-| **Excessive permissions** | `chmod 777`, `sudo` without justification | Privilege escalation |
-| **Unsafe deserialization** | `pickle.load(user_data)` | Code execution |
-
-**Secure Patterns to Verify:**
-
-| Pattern | Implementation |
-|---------|----------------|
-| **Input sanitization** | Allowlist validation, regex patterns, type checking |
-| **Path restriction** | `os.path.realpath()` + prefix check, chroot |
-| **Secret management** | Environment variables, secret managers, no hardcoding |
-| **Subprocess safety** | `subprocess.run([...], shell=False)`, shlex.quote() |
-| **Least privilege** | Minimal permissions, no sudo unless documented |
-| **Network allowlist** | Explicit allowed domains, no user-controlled URLs |
-
-**Security Severity Levels:**
-
-| Level | Criteria | Action Required |
-|-------|----------|-----------------|
-| 🔴 **Critical** | Immediate exploitation possible, data loss/theft risk | Block deployment, fix immediately |
-| 🟠 **High** | Exploitation with some effort, significant impact | Fix before production |
-| 🟡 **Medium** | Limited exploitation, moderate impact | Fix in next iteration |
-| 🟢 **Low** | Theoretical risk, minimal impact | Document and monitor |
-
-**N/A Conditions:**
-- Skill contains no scripts, commands, or file operations
-- Skill is documentation-only
-- Skill contains only read operations on non-sensitive data
-
-### Structure & Organization (15%)
-
-**Evaluation Factors:**
-- Progressive disclosure: Main content in SKILL.md, details in references
-- File organization: Logical, one level deep
-- Workflow design: Clear steps, validation loops
-- Navigation: Easy to find information
-
-**Red Flags:**
-- Everything in one file when should be split
-- References too deep (>1 level)
-- No clear workflow structure
-- Missing checklists for complex processes
-
-### Token Efficiency (10%)
-
-**Evaluation Factors:**
-- Content uniqueness: Not duplicating Claude's knowledge
-- Length appropriateness: <500 lines for SKILL.md
-- Reference strategy: Efficient use of progressive disclosure
-- Compression: Tables vs paragraphs, symbols vs words
-
-**Red Flags:**
-- Explaining concepts Claude already knows
-- Repetitive content
-- Could use tables/lists instead of paragraphs
-- No use of referenced files for details
-
-### Best Practices Compliance (10%)
-
-**Anti-Patterns Checked:**
 - ❌ Windows paths (`\` instead of `/`)
-- ❌ Deeply nested references
-- ❌ Time-sensitive content ("as of 2024")
+- ❌ Deeply nested references (>1 level)
+- ❌ Time-sensitive content
 - ❌ Excessive options without defaults
-- ❌ Magic numbers
-- ❌ Vague file names
+- ❌ Magic numbers in scripts
 - ❌ Inconsistent terminology
 
-**Best Practices Checked:**
-- ✅ Gerund/noun phrase naming
-- ✅ Third-person descriptions
-- ✅ Concrete examples
-- ✅ One term per concept
-- ✅ Validation loops
-- ✅ Error handling in scripts
+## Output Report
 
-### Code Quality (10%)
+```markdown
+# Skill Quality Evaluation: [Name]
 
-**Evaluation Factors:**
-- Error handling: Explicit, helpful messages
-- Parameter justification: No magic numbers
-- Dependencies: Listed and verified
-- Execution intent: Clear whether to run or read
+**Quality:** [Excellent/Good/Fair/Needs Work]
+**Readiness:** [Production/Minor Fixes/Major Revision]
 
-**N/A if no scripts present**
+## Summary
+**Strengths:** [list]
+**Critical Issues:** [list]
 
-## Scoring Guidelines
+## Scores
 
-**10/10 - Excellent:**
-- Exemplary implementation of all criteria
-- Could be used as reference example
-- No improvements needed
+| Category | Score |
+|----------|-------|
+| Frontmatter | X/10 |
+| Content | X/10 |
+| Security | X/10 |
+| Structure | X/10 |
+| Efficiency | X/10 |
+| Best Practices | X/10 |
+| Code Quality | X/10 |
+| **Overall** | **X.X/10** |
 
-**8-9/10 - Good:**
-- Solid implementation
-- Minor improvements possible
-- Production ready
+## Recommendations
 
-**6-7/10 - Fair:**
-- Functional but needs improvement
-- Several best practices missing
-- Moderate revision recommended
+### Critical
+1. **[Issue]**: [Current] → [Fix]
 
-**4-5/10 - Poor:**
-- Significant issues present
-- Major revision needed
-- May need restructuring
+### High Priority
+[...]
 
-**0-3/10 - Failing:**
-- Critical issues present
-- Does not meet basic standards
-- Complete rewrite recommended
+## Next Steps
+1. Fix critical issues
+2. Run `/rd:skill-refine [name]`
+3. Re-evaluate
+```
+
+## Grading Scale
+
+| Grade | Score | Status |
+|-------|-------|--------|
+| A | 9.0-10.0 | Production ready |
+| B | 7.0-8.9 | Minor fixes needed |
+| C | 5.0-6.9 | Moderate revision |
+| D | 3.0-4.9 | Major revision |
+| F | 0.0-2.9 | Rewrite needed |
 
 ## Read-Only Guarantee
 
-This command makes **NO changes** to the skill:
+This command **makes NO changes**:
+- ✅ Only reads files
+- ✅ Only analyzes content
+- ✅ Only generates report
 
-✅ **Only reads files**
-✅ **Only analyzes content**
-✅ **Only generates report**
+Use `/rd:skill-refine` to apply improvements.
 
-❌ **Does not modify SKILL.md**
-❌ **Does not change supporting files**
-❌ **Does not alter structure**
+## Integration
 
-To apply improvements, use `/rd:skill-refine` after reviewing the evaluation report.
-
-## When to Use
-
-**Use evaluate-skill when:**
-- Want objective quality assessment
-- Preparing skill for release/sharing
-- Learning best practices through analysis
-- Comparing different skill approaches
-- Need detailed improvement roadmap
-
-**Use skill-refine when:**
-- Ready to make actual improvements
-- Want guided interactive refinement
-- Prefer automated fixes where possible
-
-**Use both in sequence:**
 ```bash
-# 1. Get assessment
-/rd:skill-evaluate my-skill
-
-# 2. Review report and decide on fixes
-
-# 3. Apply improvements
-/rd:skill-refine my-skill
-
-# 4. Verify improvements
-/rd:skill-evaluate my-skill
+/rd:skill-evaluate my-skill    # Get assessment
+# Review report
+/rd:skill-refine my-skill      # Apply fixes
+/rd:skill-evaluate my-skill    # Verify improvements
 ```
-
-## Troubleshooting
-
-**Skill not found:**
-- Verify path is correct
-- Check skill exists in specified location
-- Try full absolute path
-
-**Report too long:**
-- Focus on highest priority sections
-- Ask for summary of specific categories
-- Request condensed version
-
-**Disagree with assessment:**
-- Review evaluation criteria reference
-- Check against official best practices
-- Consider if Claude's knowledge changed
-- Provide feedback on specific points
-
-**Want specific category details:**
-- Ask Claude to expand specific section
-- Request examples of issues found
-- Ask for comparison with best practices
 
 ## See Also
 
-- `/rd:skill-add` - Create new skills with templates
-- `/rd:skill-refine` - Apply improvements to skills
-- `plugins/rd/skills/cc-skills/` - Best practices reference
-- `plugins/rd/skills/cc-skills/BEST_PRACTICES.md` - Detailed guidelines
-- `plugins/rd/skills/cc-skills/EXAMPLES.md` - Reference examples
+- `/rd:skill-add` - Create new skills
+- `/rd:skill-refine` - Apply improvements
+- `cc-skills` skill - Best practices reference
