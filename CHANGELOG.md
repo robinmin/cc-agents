@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## [1.3.2] - 2026-01-09
+
+### Summary
+
+**Google Antigravity Support & Migration Tooling**
+
+Official support for Google Antigravity / Gemini Code Assist workflows and rules. This update introduces a sophisticated migration engine to keep Claude Code plugins and Antigravity workflows in perfect sync, alongside a major repository-wide documentation overhaul.
+
+### Added
+
+- **Antigravity Migration Engine (`antigravity-install.sh`)**:
+    - **Dual Platform Sync**: Automatically converts Claude Code Slash Commands to Antigravity Workflows (`.agent/workflows`) and Agent Skills to Antigravity Rules (`.agent/rules`).
+    - **Global & Local Installation**: Added `--global` flag support to install tools to `~/.gemini/antigravity/` for cross-project availability.
+    - **Context Awareness**: Preserves skill context (docs, templates) during migration by intelligently mapping directory structures.
+    - **Manager Agent Rule**: Auto-generates a master orchestration rule for Antigravity discovered capabilities.
+
+### Changed
+
+- **Unified Repository Branding & Documentation**:
+    - **README Overhaul**: Completely rewritten to officially support both Claude Code and Google Antigravity.
+    - **Installation Modernization**: Updated Claude Code plugin installation guides to reflect latest `/plugin` command syntax.
+    - **Antigravity Quick Start**: Added comprehensive guides for both global and local Antigravity setups.
+
 ## [1.3.0] - 2026-01-08
 
 ### Summary
