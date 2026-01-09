@@ -1,20 +1,19 @@
 {
   "name": "wt",
-  "version": "1.0.1",
-  "description": "Writing Tools: Professional writing style extraction and application - extract your unique voice fingerprint and apply it to generate consistent content",
+  "version": "1.1.0",
+  "description": "Writing Tools: Style extraction, application, and professional translation",
   "author": {
     "name": "Robin Min",
     "email": "minlongbing@gmail.com"
   },
+  "license": "MIT",
   "keywords": [
     "writing",
     "style",
+    "translation",
     "voice",
     "content-generation",
-    "stylometry",
-    "authorship",
-    "ghostwriting",
-    "tone",
     "copywriting"
-  ]
+  ],
+  "commands": "./commands"
 }

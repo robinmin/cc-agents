@@ -1,20 +1,23 @@
 {
   "name": "rd",
-  "version": "1.1.5",
-  "description": "Rapid Development: Systematic 10-stage TDD workflow for high-quality function development with test-first principles, syntax validation, and comprehensive testing (Python, JS/TS, Java, Go, Rust)",
+  "version": "1.2.0",
+  "description": "Rapid Development: Systematic 10-stage TDD workflow, task management, skill development, and code quality tools",
   "author": {
     "name": "Robin Min",
     "email": "minlongbing@gmail.com"
   },
+  "license": "MIT",
   "keywords": [
     "tdd",
     "testing",
     "workflow",
-    "pytest",
-    "jest",
+    "task-management",
+    "skills",
+    "agents",
     "development",
-    "quality",
-    "test-driven",
-    "multi-language"
-  ]
+    "quality"
+  ],
+  "commands": "./commands",
+  "skills": "./skills",
+  "agents": "./agnts"
 }
