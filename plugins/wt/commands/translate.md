@@ -1,5 +1,6 @@
 ---
-description: Translate - Professional Multi-lingual Content Translation
+description: Professional multi-lingual content translation (EN, ZH, JA)
+argument-hint: <file_path> <target_language>
 ---
 
 # Professional Content Translation
