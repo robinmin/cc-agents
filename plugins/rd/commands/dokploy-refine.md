@@ -1,5 +1,6 @@
 ---
-description: Analyze and refine existing Dokploy deployment configuration, migrating to API-driven approach and implementing production best practices.
+description: Analyze and refine existing Dokploy deployment configuration with production best practices
+argument-hint: [service-name] [--migrate]
 ---
 
 # dokploy-refine
