@@ -5,18 +5,51 @@
 1. **ref (MCP)** - `ref_search_documentation`, `ref_read_url` - Documentation verification
 2. **mcp**grep**searchGitHub** - GitHub code search (fast, for github.com URLs)
 3. **WebSearch** - Recent facts, announcements (< 6 months)
-4. **Local text utilities** - `grep`, `awk`, `sed`, `wc` (native bash tools)
-5. **ast-grep (skill)** - `rd:ast-grep` - Structural code search
-6. **Read/Grep/Glob** - Project file operations (Claude's built-in tools)
-7. **LSP** - Syntax validation, type checking
-8. **Jupyter** - Code execution, runtime verification
+4. **WebFetch** - Fetch and process specific URLs
+5. **rd:agent-browser** - Browser automation, JS-rendered content, screenshots, form testing
+6. **Local text utilities** - `grep`, `awk`, `sed`, `wc` (native bash tools)
+7. **ast-grep (skill)** - `rd:ast-grep` - Structural code search
+8. **Read/Grep/Glob** - Project file operations (Claude's built-in tools)
+9. **LSP** - Syntax validation, type checking
+10. **Jupyter** - Code execution, runtime verification
 
-### WebSearch Decision Tree
+---
+
+## Web Content Decision Tree
+
+```
+IF fetching web content:
+├── IF static HTML/documentation needed:
+│   ├── Use WebFetch FIRST (fastest, ~1500 tokens)
+│   └── Fallback: rd:agent-browser
+├── IF JavaScript-rendered content (SPA, dynamic):
+│   └── Use rd:agent-browser (renders JS)
+├── IF screenshots or visual verification needed:
+│   └── Use rd:agent-browser (only option)
+├── IF form interaction or testing needed:
+│   └── Use rd:agent-browser (only option)
+├── IF clean markdown output needed:
+│   └── Use rd:agent-browser + markitdown
+└── IF WebFetch fails/unavailable:
+    └── Fallback: rd:agent-browser
+```
+
+---
+
+## Code Search Decision Tree
 
 ```
 IF searching GitHub content:
 ├── Use mcp__grep__searchGitHub FIRST (fast)
 └── Fallback: WebSearch
+
+IF searching local codebase:
+├── IF exact string/identifier match:
+│   └── Use Grep tool
+├── IF structural pattern (AST-based):
+│   └── Use rd:ast-grep skill
+└── IF file discovery:
+    └── Use Glob tool
 
 IF searching general web:
 └── Use WebSearch
@@ -45,15 +78,27 @@ Use `rd:ast-grep` for structural code search when:
 
 Auto-routing activates based on these keywords:
 
-| Keywords                                                 | Agent                       |
-| -------------------------------------------------------- | --------------------------- |
-| python, pytest, async, decorator, generator, type hint   | `python-expert`             |
-| typescript, generics, utility types, discriminated union | `typescript-expert`         |
-| mcp, model context protocol, server integration          | `mcp-expert`                |
-| break down task, decompose, workflow design              | `task-decomposition-expert` |
-| create agent, generate expert                            | `agent-expert`              |
-| validate agent, evaluate agent                           | `agent-doctor`              |
-| web automation, visible validation                       | `agent-browser`             |
+| Keywords                                                             | Agent                          |
+| -------------------------------------------------------------------- | ------------------------------ |
+| python, pytest, async, decorator, generator, type hint               | `rd:python-expert`             |
+| typescript, generics, utility types, discriminated union             | `rd:typescript-expert`         |
+| mcp, model context protocol, server integration                      | `rd:mcp-expert`                |
+| break down task, decompose, workflow design                          | `rd:task-decomposition-expert` |
+| create agent, generate expert                                        | `rd:agent-expert`              |
+| validate agent, evaluate agent                                       | `rd:agent-doctor`              |
+| browser automation, screenshot, form fill, web scraping, JS-rendered | `rd:agent-browser`             |
+
+### rd:agent-browser Activation Triggers
+
+Use `rd:agent-browser` subagent when user needs:
+
+- **Browser automation** - Navigate, click, fill forms, interact with elements
+- **Screenshots** - Capture viewport, full-page, or element screenshots
+- **JavaScript-rendered content** - SPAs, dynamic pages that WebFetch can't handle
+- **Form testing** - Fill and submit forms, verify results
+- **Web scraping with interaction** - Login-protected or dynamic content
+- **Visual verification** - Confirm UI state, check element visibility
+- **Markdown extraction** - Use with `markitdown` for clean output
 
 ---
 
@@ -67,45 +112,48 @@ Auto-routing activates based on these keywords:
 
 BEFORE generating ANY answer, you MUST:
 
-- [x] Search First: Use ref (ref_search_documentation) to verify current information
-- [x] Check Recency: Look for updates in the last 6 months (APIs/libraries change frequently)
-- [x] Cite Sources: Every technical claim must reference documentation or authoritative source
-- [x] Acknowledge Uncertainty: If unsure, say "I need to verify this" and search
-- [x] Version Awareness: Always note version numbers — behavior changes between versions
+- [x] **Search First**: Use ref (`ref_search_documentation`) to verify current information
+- [x] **Check Recency**: Look for updates in the last 6 months (APIs/libraries change frequently)
+- [x] **Cite Sources**: Every technical claim must reference documentation or authoritative source
+- [x] **Acknowledge Uncertainty**: If unsure, say "I need to verify this" and search
+- [x] **Version Awareness**: Always note version numbers — behavior changes between versions
 
 ### Question Type Routing
 
-| Question Type            | Primary Verification Tool      | Fallback Chain                    |
-| ------------------------ | ------------------------------ | --------------------------------- |
-| **API/Library usage**    | ref (ref_search_documentation) | WebSearch → Read local docs       |
-| **GitHub code patterns** | mcp**grep**searchGitHub        | ast-grep → WebSearch              |
-| **Recent facts/SOTA**    | WebSearch (last 6 months)      | ref → ArXiv search                |
-| **File content**         | Read with Filesystem           | Grep → Glob                       |
-| **Model comparison**     | HuggingFace MCP                | WebSearch → Papers                |
-| **Code verification**    | LSP                            | Jupyter execution → Manual review |
-| **Version-specific**     | ref + version filter           | GitHub changelog → Release notes  |
+| Question Type               | Primary Verification Tool        | Fallback Chain                          |
+| --------------------------- | -------------------------------- | --------------------------------------- |
+| **API/Library usage**       | ref (`ref_search_documentation`) | WebSearch → WebFetch → rd:agent-browser |
+| **GitHub code patterns**    | `mcp__grep__searchGitHub`        | ast-grep → WebSearch                    |
+| **Recent facts/SOTA**       | WebSearch (last 6 months)        | ref → ArXiv search                      |
+| **File content**            | Read with Filesystem             | Grep → Glob                             |
+| **Model comparison**        | HuggingFace MCP                  | WebSearch → Papers                      |
+| **Code verification**       | LSP                              | Jupyter execution → Manual review       |
+| **Version-specific**        | ref + version filter             | GitHub changelog → Release notes        |
+| **JS-rendered web content** | rd:agent-browser                 | WebFetch (limited)                      |
+| **Web UI verification**     | rd:agent-browser                 | N/A (only option)                       |
 
 ### Confidence Scoring (REQUIRED)
 
 Every response MUST include confidence level:
 
-| Level      | Threshold | Criteria                                             | Example                                                                            |
-| ---------- | --------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **HIGH**   | >90%      | Direct quote from official docs, verified today      | "Python 3.11 introduced `Self` type [Python Docs, 2022]"                           |
-| **MEDIUM** | 70-90%    | Synthesized from multiple authoritative sources      | "React 18 includes automatic batching based on [React Blog, 2022] and [MDN, 2022]" |
-| **LOW**    | <70%      | FLAG FOR USER REVIEW — state "I cannot fully verify" | "I believe FastAPI 0.100+ changed this, but I cannot fully verify. Please check."  |
+| Level      | Threshold | Criteria                                             | Example                                                             |
+| ---------- | --------- | ---------------------------------------------------- | ------------------------------------------------------------------- |
+| **HIGH**   | >90%      | Direct quote from official docs, verified today      | "Python 3.11 introduced `Self` type [Python Docs, 2022]"            |
+| **MEDIUM** | 70-90%    | Synthesized from multiple authoritative sources      | "React 18 includes automatic batching [React Blog, 2022]"           |
+| **LOW**    | <70%      | FLAG FOR USER REVIEW — state "I cannot fully verify" | "I believe FastAPI 0.100+ changed this, but I cannot fully verify." |
 
 ### Red Flags — STOP and Verify
 
 These situations have HIGH hallucination risk. ALWAYS verify before answering:
 
-- API endpoints or method signatures from memory (high hallucination risk)
+- API endpoints or method signatures from memory
 - Configuration options without documentation backing
 - Version-specific features without version check
 - Performance claims without benchmark citations
 - Deprecated features that may have changed
 - Package versions without checking current releases
 - Command-line flags without verification
+- Web page structure assumptions without fetching
 
 ### Source Priority Decision Tree
 
@@ -147,8 +195,8 @@ Use inline citations with date:
 
 # Bad citations (no date, no source)
 
-- "React 18 introduced automatic batching" ← When? According to whom?
-- "Python recently added Self type" ← Too vague
+- "React 18 introduced automatic batching" <- When? According to whom?
+- "Python recently added Self type" <- Too vague
 ```
 
 ### What to NEVER Do
@@ -168,17 +216,20 @@ Use inline citations with date:
 
 ### Layer Selection Guidelines
 
-| Scenario                   | Start Layer             | Reason                   |
-| -------------------------- | ----------------------- | ------------------------ |
-| Syntax/type checking       | LSP                     | Fastest, most accurate   |
-| Code behavior verification | Jupyter                 | Real execution           |
-| API/library questions      | ref                     | Official docs            |
-| GitHub code search         | mcp**grep**searchGitHub | Fast GitHub search       |
-| Structural code patterns   | ast-grep (rd:ast-grep)  | AST-based matching       |
-| Model information          | HuggingFace             | Authoritative model data |
-| Recent changes (<6 months) | WebSearch               | Catch recent updates     |
-| Local project files        | Read/Grep/Glob          | Project-specific content |
-| Text processing            | grep/awk/sed            | Native bash tools        |
+| Scenario                   | Start Layer               | Reason                   |
+| -------------------------- | ------------------------- | ------------------------ |
+| Syntax/type checking       | LSP                       | Fastest, most accurate   |
+| Code behavior verification | Jupyter                   | Real execution           |
+| API/library questions      | ref                       | Official docs            |
+| GitHub code search         | `mcp__grep__searchGitHub` | Fast GitHub search       |
+| Structural code patterns   | ast-grep (`rd:ast-grep`)  | AST-based matching       |
+| Model information          | HuggingFace MCP           | Authoritative model data |
+| Recent changes (<6 months) | WebSearch                 | Catch recent updates     |
+| Local project files        | Read/Grep/Glob            | Project-specific content |
+| Text processing            | grep/awk/sed              | Native bash tools        |
+| Static web content         | WebFetch                  | Fast, low token cost     |
+| Dynamic web content        | rd:agent-browser          | JS rendering required    |
+| Visual web verification    | rd:agent-browser          | Screenshots, UI state    |
 
 ---
 
@@ -186,15 +237,17 @@ Use inline citations with date:
 
 ### Tool Unavailability Handling
 
-| Tool                                | Unavailable Fallback          | Confidence Adjustment     |
-| ----------------------------------- | ----------------------------- | ------------------------- |
-| **ref**                             | WebSearch → WebFetch          | Reduce to MEDIUM          |
-| **mcp**grep**searchGitHub**         | ast-grep → WebSearch          | Reduce to MEDIUM          |
-| **ast-grep (skill)**                | Grep tool → WebSearch         | Reduce to MEDIUM          |
-| **WebSearch**                       | Local docs → cached knowledge | Reduce to LOW if critical |
-| **Jupyter**                         | Static analysis → LSP         | Note as "untested"        |
-| **LSP**                             | Manual review                 | Note as "unchecked"       |
-| **Local text tools (grep/awk/sed)** | Claude's Read/Grep            | Cannot proceed without    |
+| Tool                                | Unavailable Fallback                           | Confidence Adjustment        |
+| ----------------------------------- | ---------------------------------------------- | ---------------------------- |
+| **ref**                             | WebSearch → WebFetch → rd:agent-browser        | Reduce to MEDIUM             |
+| **mcp**grep**searchGitHub**         | ast-grep → WebSearch                           | Reduce to MEDIUM             |
+| **ast-grep (skill)**                | Grep tool → WebSearch                          | Reduce to MEDIUM             |
+| **WebSearch**                       | WebFetch → rd:agent-browser → cached knowledge | Reduce to LOW if critical    |
+| **WebFetch**                        | rd:agent-browser                               | Same confidence              |
+| **rd:agent-browser**                | WebFetch (limited for static only)             | Reduce to MEDIUM for dynamic |
+| **Jupyter**                         | Static analysis → LSP                          | Note as "untested"           |
+| **LSP**                             | Manual review                                  | Note as "unchecked"          |
+| **Local text tools (grep/awk/sed)** | Claude's Read/Grep                             | Same confidence              |
 
 ### Uncertainty Handling
 
@@ -247,21 +300,23 @@ All expert agent responses should include:
 
 ## Best Practices
 
-### DO ✓
+### DO
 
 - [x] Search before answering (verification-first)
 - [x] Cite sources with dates
 - [x] Include confidence scores
 - [x] State uncertainty explicitly
 - [x] Use ref for documentation
-- [x] Use mcp**grep**searchGitHub for GitHub content
-- [x] Use ast-grep (rd:ast-grep) for structural code search
+- [x] Use `mcp__grep__searchGitHub` for GitHub content
+- [x] Use ast-grep (`rd:ast-grep`) for structural code search
 - [x] Use native bash tools (grep, awk, sed, wc) for text processing
+- [x] Use WebFetch for static web content (token-efficient)
+- [x] Use rd:agent-browser for JS-rendered content, screenshots, forms
 - [x] Follow multi-layer fallback chain
 - [x] Check version information
 - [x] Note deprecation warnings
 
-### DON'T ✗
+### DON'T
 
 - [ ] Answer from memory alone
 - [ ] Invent API signatures
@@ -272,7 +327,8 @@ All expert agent responses should include:
 - [ ] Use outdated information
 - [ ] Assume API behavior
 - [ ] Recommend deprecated tools without checking
-- [ ] Present guesses as facts
+- [ ] Use rd:agent-browser for simple static pages (wasteful)
+- [ ] Assume web page structure without fetching
 
 ---
 
@@ -293,4 +349,13 @@ grep "pattern" file.txt | awk '{print $1}'
 
 # Check recent changes
 WebSearch: "TypeScript 5.3 new features 2024"
+
+# Fetch static web content (fast, low tokens)
+WebFetch: "https://docs.example.com/api"
+
+# Fetch JS-rendered content or take screenshots
+rd:agent-browser: "open https://spa.example.com, snapshot, screenshot"
+
+# Convert web page to clean markdown
+rd:agent-browser + markitdown: "curl -s <url> | markitdown"
 ```
