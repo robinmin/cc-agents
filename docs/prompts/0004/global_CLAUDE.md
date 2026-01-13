@@ -53,6 +53,7 @@ Auto-routing activates based on these keywords:
 | break down task, decompose, workflow design              | `task-decomposition-expert` |
 | create agent, generate expert                            | `agent-expert`              |
 | validate agent, evaluate agent                           | `agent-doctor`              |
+| web automation, visible validation                       | `agent-browser`             |
 
 ---
 
