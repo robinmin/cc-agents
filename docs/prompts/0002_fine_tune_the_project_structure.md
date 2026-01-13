@@ -3,7 +3,7 @@ name: fine tune the project structure
 description: Align project structure with Claude Code 2026 plugin best practices
 status: Done
 created_at: 2026-01-08 16:07:28
-updated_at: 2026-01-08 17:09:17
+updated_at: 2026-01-12 21:46:37
 ---
 
 ## 0002. fine tune the project structure

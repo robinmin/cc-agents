@@ -1,9 +1,9 @@
 ---
 name: upgrade skills for ast-grep
 description: <prompt description>
-status: Backlog
+status: Done
 created_at: 2026-01-07 11:48:31
-updated_at: 2026-01-07 11:48:31
+updated_at: 2026-01-12 21:46:40
 ---
 
 ## 0001. upgrade skills for ast-grep
