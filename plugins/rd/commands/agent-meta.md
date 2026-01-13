@@ -10,7 +10,7 @@ Analyze and refine prompts, slash commands, and agent skills for maximum clarity
 ## Quick Start
 
 ```bash
-/rd:agent-meta plugins/rd/commands/task-run.md
+/rd:agent-meta plugins/rd/commands/task-runner.md
 /rd:agent-meta plugins/rd/skills/my-skill/SKILL.md efficiency
 ```
 
