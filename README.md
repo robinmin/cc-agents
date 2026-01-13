@@ -2,14 +2,14 @@
 
 A collection of high-quality agents, skills, and workflows for **Claude Code** and **Google Antigravity / Gemini Code Assist**.
 
-## 🚀 One Toolkit, Two Platforms
+## One Toolkit, Two Platforms
 
 This repository provides a unified development automation toolkit that officially supports:
 
 - **Claude Code**: Advanced terminal-based AI coding assistant.
 - **Google Antigravity**: Next-generation AI-powered IDE and agentic workflow platform.
 
-## 📦 What's Included
+## What's Included
 
 ### rd (Rapid Development)
 Production-ready automation for systematic test-driven development (TDD) and server management.
@@ -24,7 +24,7 @@ Content generation and translation utilities.
 
 ---
 
-## 🛠 Installation
+## Installation
 
 ### For Google Antigravity (Recommended)
 
@@ -77,7 +77,7 @@ Claude Code uses a marketplace-based plugin system.
 
 ---
 
-## 📖 Usage Examples
+## Usage Examples
 
 ### 10-Stage Development Workflow
 The flagship feature of this toolkit. It guides you from specification to implementation with strict quality checks.
@@ -94,7 +94,7 @@ The flagship feature of this toolkit. It guides you from specification to implem
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 - `plugins/`: Core logic and documentation for all tools.
     - `rd/`: Rapid Development plugin.
@@ -102,10 +102,10 @@ The flagship feature of this toolkit. It guides you from specification to implem
 - `.agent/`: (Generated) Antigravity-specific workflows and rules.
 - `antigravity-install.sh`: The migration engine that keeps both platforms in sync.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! If you add a new command or skill, simply run `./antigravity-install.sh` to ensure it's available for Antigravity users.
 
-## 📄 License
+## References
+- [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
 
-MIT
