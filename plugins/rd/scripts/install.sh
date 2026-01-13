@@ -174,6 +174,9 @@ install_python_tools() {
 
   print_info "Installing ty (Rust-based Python type checker)..."
   uv tool install ty || true
+
+  print_info "Installing MarkItDown (Microsoft's HTML/PDF/Office to Markdown converter)..."
+  uv tool install 'markitdown[all]' || true
 }
 
 install_go_tools() {
