@@ -1,36 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(commands/10-stages-developing/*.md)",
-      "Bash(echo:*)",
-      "Bash(chmod:*)",
-      "Bash(for file in 10-dev-check.md 10-dev-init.md 10-dev-integrate.md)",
-      "Bash(do sed -i.bak 's|/rd:check-10-dev|/rd:10-dev-check|g; s|/rd:apply-10-dev|/rd:10-dev-apply|g; s|/rd:init-10-dev|/rd:10-dev-init|g; s|/rd:integrate-10-dev|/rd:10-dev-integrate|g' \"$file\")",
-      "Bash(done)",
       "Skill(rd:cc-skills)",
-      "Bash(tree:*)",
-      "Bash(find:*)",
-      "Bash(mkdir:*)",
-      "mcp__morphllm-fast-apply__edit_file",
-      "mcp__sequential-thinking__sequentialthinking",
-      "Bash(dokploy:*)",
-      "Bash(plugins/rd/scripts/addskill.sh:*)",
-      "WebFetch(domain:docs.dokploy.com)",
-      "WebFetch(domain:dokploy.com)",
       "SlashCommand(/rd:skill-refine:*)",
-      "mcp__context7__resolve-library-id",
-      "mcp__tavily__tavily-search",
-      "mcp__context7__get-library-docs",
       "Bash(ast-grep run:*)",
       "Bash(ast-grep scan:*)",
-      "mcp__tavily__tavily-extract",
-      "mcp__augment-context-engine__codebase-retrieval",
-      "mcp__ultra-mcp__deep-reasoning",
       "mcp__auggie-mcp__codebase-retrieval",
       "WebSearch",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
-      "WebFetch(domain:www.anthropic.com)"
+      "mcp__huggingface__hf_doc_fetch",
+      "mcp__huggingface__hf_doc_search"
     ],
     "deny": [],
     "ask": []
