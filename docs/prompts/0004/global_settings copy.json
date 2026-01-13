@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git blame*)",
+      "Bash(git grep*)",
+      "Bash(git branch --list*)",
+      "Bash(git branch -l*)",
+      "Bash(git tag --list*)",
+      "Bash(git tag -l*)",
+      "Bash(git remote -v*)",
+      "Bash(git remote show*)",
+      "Bash(git stash list*)",
+      "Bash(git ls-files*)",
+      "Bash(git ls-tree*)",
+      "Bash(git ls-remote*)",
+      "Bash(git rev-parse*)",
+      "Bash(git rev-list*)",
+      "Bash(git describe*)",
+      "Bash(git shortlog*)",
+      "Bash(git reflog*)",
+      "Bash(git cat-file*)",
+      "Bash(git config --get*)",
+      "Bash(git config --list*)"
+    ],
+    "ask": [
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(git pull*)",
+      "Bash(git fetch*)",
+      "Bash(git merge*)",
+      "Bash(git rebase*)",
+      "Bash(git checkout*)",
+      "Bash(git switch*)",
+      "Bash(git branch -d*)",
+      "Bash(git branch -D*)",
+      "Bash(git branch -m*)",
+      "Bash(git tag -a*)",
+      "Bash(git tag -d*)",
+      "Bash(git stash*)",
+      "Bash(git cherry-pick*)",
+      "Bash(git revert*)",
+      "Bash(git reset --soft*)",
+      "Bash(git reset --mixed*)",
+      "Bash(git restore*)",
+      "Bash(git clone*)",
+      "Bash(git init*)",
+      "Bash(git remote add*)",
+      "Bash(git remote remove*)",
+      "Bash(git submodule*)",
+      "Bash(git worktree*)",
+      "Bash(curl*|*sh*)",
+      "Bash(curl*|*bash*)",
+      "Bash(wget*|*sh*)",
+      "Bash(wget*|*bash*)"
+    ],
+    "deny": [
+      "Bash(git reset --hard*)",
+      "Bash(git clean -fd*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git filter-branch*)",
+      "Bash(git reflog expire*)",
+      "Bash(gh *)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~*)",
+      "Bash(sudo rm*)",
+      "Bash(sudo dd*)",
+      "Bash(dd if=/dev/zero*)",
+      "Bash(dd if=/dev/random*)",
+      "Bash(mkfs*)",
+      "Bash(fdisk*)",
+      "Bash(parted*)",
+      "Bash(diskutil erase*)",
+      "Bash(diskutil partition*)",
+      "Bash(chmod -R 777 /*)",
+      "Bash(chmod -R 000 /*)",
+      "Bash(chown -R*)",
+      "Bash(shutdown*)",
+      "Bash(reboot*)",
+      "Bash(halt*)",
+      "Bash(poweroff*)",
+      "Bash(init 0*)",
+      "Bash(init 6*)",
+      "Bash(kill -9 -1*)",
+      "Bash(killall*)",
+      "Bash(pkill -9*)",
+      "Bash(shred*)",
+      "Bash(wipe*)",
+      "Bash(srm*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/plugins/rd/scripts/session-init.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before finishing, verify: Did you follow the anti-hallucination protocol? Did you cite sources for any API claims? If not, respond with 'continue' to add verification. If yes, respond with 'stop'."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/plugins/rd/scripts/validate-write.sh",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/plugins/rd/scripts/validate-bash.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write(*.{js,jsx,ts,tsx,json,jsonc})",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bunx --bun @biomejs/biome check --write --unsafe \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.py)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ruff check --fix --unsafe-fixes \"$CLAUDE_FILE_PATH\" 2>/dev/null && ruff format \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.go)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gofumpt -w \"$CLAUDE_FILE_PATH\" 2>/dev/null && golangci-lint run --fix \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.rs)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "rustfmt --edition 2021 \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.md)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bunx --bun markdownlint-cli2 --fix \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.{yaml,yml})",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "yamlfmt \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.sql)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sqruff fix \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.{html,htm})",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bunx --bun prettier --write \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.{css,scss,less})",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bunx --bun stylelint --fix \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.toml)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "taplo fmt \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(Dockerfile*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "hadolint \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(*.sh)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "shfmt -w -i 2 -ci \"$CLAUDE_FILE_PATH\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
