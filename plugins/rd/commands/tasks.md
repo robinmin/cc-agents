@@ -125,7 +125,7 @@ Display user-friendly error messages:
 ## Integration
 
 This command integrates with:
-- `/rd:task-run` - Generate implementation plans for tasks
+- `/rd:task-runner` - Generate implementation plans for tasks
 - `/rd:task-fixall` - Run verification after implementation
 - `docs/prompts/.kanban.md` - Visual kanban board
 
