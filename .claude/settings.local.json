@@ -2,7 +2,6 @@
   "permissions": {
     "allow": [
       "Skill(rd:cc-skills)",
-      "SlashCommand(/rd:skill-refine:*)",
       "Bash(ast-grep run:*)",
       "Bash(ast-grep scan:*)",
       "mcp__auggie-mcp__codebase-retrieval",
