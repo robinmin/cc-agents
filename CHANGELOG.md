@@ -1,5 +1,52 @@
 # CHANGELOG
 
+## [1.4.1] - 2026-01-12
+
+### Summary
+
+**Plugin Hooks Architecture & Browser Automation Agent**
+
+This release introduces proper plugin-scoped hooks configuration, browser automation capabilities, and the `/tasks` slash command for task management from Claude's input field.
+
+### Added
+
+- **Browser Automation Agent (`plugins/rd/agnts/agent-browser.md`)**:
+  - Ref-based browser automation expert using snapshot-first workflow
+  - 66 competency items across 12 categories (navigation, snapshots, clicks, text input, screenshots, waits, semantic locators, sessions, debugging, workflows, pitfalls)
+  - Core workflow: `open` → `snapshot -i` → interact with `@refs` → re-snapshot
+  - 12 DO rules and 12 DON'T rules for reliable automation
+  - Scored 92/100 on quality validation
+
+- **Plugin Hooks Configuration (`plugins/rd/hooks/hooks.json`)**:
+  - Moved plugin-specific hooks from global `~/.claude/settings.json` to plugin context
+  - Proper wrapper format with `description` and `hooks` fields
+  - Hook events: `SessionStart`, `PreToolUse`, `Stop`, `SessionEnd`, `Notification`
+  - Uses `${CLAUDE_PLUGIN_ROOT}` which is only available in plugin context
+
+- **New Scripts (`plugins/rd/scripts/`)**:
+  - **`session-end.sh`**: SessionEnd cleanup with session logging, duration calculation, temp file cleanup, and state preservation to `.claude/last-session.json`
+  - **`notification.sh`**: Notification handler with logging to `.claude/logs/notifications.log`, optional macOS notifications, and optional webhook integration
+
+- **New Slash Command (`plugins/rd/commands/tasks.md`)**:
+  - `/rd:tasks` command for task management from Claude input field
+  - Wraps `tasks.sh` with all subcommands: `init`, `create`, `list`, `update`, `open`, `refresh`, `help`
+  - Added `allowed-tools: Bash` for proper tool permissions
+
+### Changed
+
+- **Global Settings (`~/.claude/settings.json`)**:
+  - Removed plugin-specific hooks (SessionStart, PreToolUse, Stop) that incorrectly used `${CLAUDE_PLUGIN_ROOT}`
+  - Retained PostToolUse formatters (biome, ruff, rustfmt, etc.) which use `$CLAUDE_FILE_PATH` and work in global context
+
+### Fixed
+
+- **PreToolUse:Bash hook error**: Fixed by moving hooks from global settings to plugin's `hooks/hooks.json` where `${CLAUDE_PLUGIN_ROOT}` is properly set by Claude Code
+
+### References
+
+- [Claude Code Hooks Documentation](https://docs.anthropic.com/en/docs/claude-code/hooks)
+- [Claude Code Plugin Discovery](https://code.claude.com/docs/en/discover-plugins)
+
 ## [1.4.0] - 2026-01-12
 
 ### Summary
