@@ -295,6 +295,21 @@ Update `docs/prompts/0004/global_CLAUDE.md` routing table:
 
 ---
 
+### Available events:
+
+- PreToolUse: Before Claude uses any tool
+- PostToolUse: After Claude successfully uses any tool
+- PostToolUseFailure: After Claude tool execution fails
+- PermissionRequest: When a permission dialog is shown
+- UserPromptSubmit: When user submits a prompt
+- Notification: When Claude Code sends notifications
+- Stop: When Claude attempts to stop
+- SubagentStart: When a subagent is started
+- SubagentStop: When a subagent attempts to stop
+- SessionStart: At the beginning of sessions
+- SessionEnd: At the end of sessions
+- PreCompact: Before conversation history is compacted
+
 ## References
 
 - `docs/prompts/0004/global_CLAUDE.md` - Runtime behavioral guidelines
