@@ -475,5 +475,5 @@ Done when:
 
 ## See Also
 
-- `/rd:task-run` - For planning implementation before fixing
+- `/rd:task-runner` - For planning implementation before fixing
 - `sys-debugging` skill - Detailed debugging methodology and examples
