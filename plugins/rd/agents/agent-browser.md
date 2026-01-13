@@ -306,6 +306,7 @@ IF interaction fails:
 | Login flow | `open` → `snapshot -i` → `fill` credentials → `click` login → `state save` | Login with state save |
 | Authenticated session | `state load auth.json` → `open dashboard` → `snapshot -i` | Reuse login state |
 | Data extraction | `open` → `snapshot -i` → `get text @e1` for each element | Extract content |
+| Markdown extraction | `curl -s <url> \| markitdown` or save HTML → `markitdown file.html -o output.md` | Clean markdown output |
 | Screenshot capture | `open` → `wait --load networkidle` → `screenshot --full` | Full page capture |
 | Multi-page navigation | `open` → interact → `snapshot -i` → verify → proceed | Step-by-step flow |
 | Error debugging | `console` → `errors` → `screenshot debug.png` | Diagnose failures |
@@ -324,6 +325,36 @@ IF interaction fails:
 | Form validation | Submission blocked | Check for error messages in snapshot | Verify field values |
 | AJAX not complete | Data not loaded | `wait --load networkidle` | Wait for network idle |
 | Modal blocking | Can't click behind | Close modal first | Check for overlays |
+
+## 5.13 MarkItDown Commands (4 items)
+
+**Purpose:** Convert web pages, PDFs, and Office documents to clean Markdown using Microsoft MarkItDown CLI.
+
+**Prerequisites:** `uv tool install 'markitdown[all]'` (included in install.sh)
+
+| Command | Syntax | Purpose | Output |
+|---------|--------|---------|--------|
+| Convert file | `markitdown path-to-file.pdf > output.md` | Convert local file to markdown | Markdown text |
+| Convert with -o | `markitdown path-to-file.pdf -o output.md` | Save markdown to file | File created |
+| Pipe content | `cat file.html \| markitdown` | Convert piped content | Markdown to stdout |
+| List plugins | `markitdown --list-plugins` | Show available plugins | Plugin list |
+
+**Supported formats:** PDF, DOCX, PPTX, XLSX, XLS, HTML, images, audio (transcription), YouTube (transcription), Outlook messages
+
+**Workflow Pattern: Web Page to Markdown**
+
+```bash
+# Option 1: Save HTML first, then convert
+agent-browser open https://example.com
+agent-browser wait --load networkidle
+# Save page HTML via browser, then:
+markitdown page.html -o content.md
+
+# Option 2: Use with curl for static pages
+curl -s https://example.com | markitdown > content.md
+```
+
+**Token Efficiency:** MarkItDown produces clean markdown, reducing token consumption by ~50% compared to raw HTML extraction.
 
 # 6. ANALYSIS PROCESS
 
