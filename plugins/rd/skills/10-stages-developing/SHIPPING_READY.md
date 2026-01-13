@@ -1,6 +1,8 @@
 # 10-Stages-Dev Skill - Streamlining Complete ✅
 
-**Status**: 🟢 **98% Ready to Ship**
+> ⚠️ **DEPRECATED**: This skill and its associated commands have been removed. This document is preserved for historical reference only.
+
+**Status**: 🔴 **DEPRECATED - Commands Removed**
 
 ## Transformation Summary
 

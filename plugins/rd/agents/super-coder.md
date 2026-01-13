@@ -8,8 +8,6 @@ tools:
   - "Bash"
   - "Grep"
   - "Glob"
-  - "/rd:10-dev-apply"
-  - "/rd:10-dev-check"
 model: sonnet
 ---
 

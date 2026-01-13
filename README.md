@@ -82,14 +82,9 @@ Claude Code uses a marketplace-based plugin system.
 ### 10-Stage Development Workflow
 The flagship feature of this toolkit. It guides you from specification to implementation with strict quality checks.
 
-**In Antigravity:**
-```bash
-/rd_dev-apply validate_email --context "Check for valid email format"
+Use the `rd:10-stages-developing` skill for systematic TDD workflow:
 ```
-
-**In Claude Code:**
-```bash
-/rd:10-dev-apply validate_email
+Implement a validate_email function using the 10-stage TDD methodology
 ```
 
 ---

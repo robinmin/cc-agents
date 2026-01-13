@@ -1,5 +1,7 @@
 # 10-Stage Development Workflow Skill
 
+> ⚠️ **DEPRECATED**: This skill is pending removal. The associated slash commands (`/rd:10-dev-check`, `/rd:10-dev-init`, `/rd:10-dev-apply`, `/rd:10-dev-integrate`) have been removed. Use the skill directly by mentioning "10-stage workflow" or "TDD workflow" in your requests.
+
 A systematic, test-driven development workflow for building high-quality functions in any programming language with modern tooling and flexible automation.
 
 ## Overview
@@ -10,32 +12,13 @@ This Claude Code skill provides a disciplined 10-stage workflow for function dev
 - ✅ Soft contract build tool approach (flexible, maintainable)
 - ✅ Integration testing for related functions
 - ✅ Continuous validation and comprehensive testing
-- ✅ Claude Code plugin integration with 4 commands
 - ✅ Modern tooling defaults (uv, ruff, pytest, pnpm, Jest, cargo, etc.)
 
 ## Quick Start
 
-### Using Claude Code Commands
+### Using the Skill
 
-The fastest way to use this skill is through the **"rd" (Rapid Development)** plugin:
-
-```bash
-# 1. Check if your project is ready for the workflow
-/rd:10-dev-check
-
-# 2. Initialize build configuration (if needed)
-/rd:10-dev-init
-
-# 3. Apply the workflow to implement a function
-/rd:10-dev-apply validate_email
-
-# 4. Create integration tests for related functions
-/rd:10-dev-integrate get_user_info set_user_info
-```
-
-### Manual Workflow
-
-Alternatively, activate the skill automatically by:
+Activate the skill by:
 1. Mentioning "10-stage workflow" or "TDD workflow" in your request
 2. Asking Claude Code to implement a function with comprehensive testing
 3. The skill will guide you through all 10 stages systematically
@@ -109,7 +92,9 @@ Example integration test scenarios:
 
 ## Claude Code Plugin Commands
 
-The **"rd" (Rapid Development)** plugin provides 4 commands:
+> ⚠️ **REMOVED**: The commands documented below have been removed. This section is preserved for historical reference only. Use the skill directly by mentioning "10-stage workflow" in your requests.
+
+~~The **"rd" (Rapid Development)** plugin provides 4 commands:~~
 
 ### `/rd:10-dev-check`
 
@@ -443,10 +428,11 @@ cp templates/javascript/function-template.js src/myFunction.js
 cp templates/javascript/test-template.js tests/myFunction.test.js
 ```
 
-### With `/rd:10-dev-init` Command
+### ~~With `/rd:10-dev-init` Command~~ (REMOVED)
 
-Let Claude Code do it automatically:
+~~Let Claude Code do it automatically:~~
 ```bash
+# Command removed - use skill directly instead
 /rd:10-dev-init
 ```
 
@@ -554,34 +540,24 @@ This workflow transforms ad-hoc function development into a **predictable, high-
 
 ## Integration with Existing Projects
 
+> ⚠️ **Note**: The commands shown below have been removed. Use the skill directly by asking Claude to "use the 10-stage TDD workflow" for your function.
+
 ### For New Projects
 ```bash
-# 1. Initialize build configuration
-/rd:10-dev-init --language python
-
-# 2. Install dependencies
-make install  # or npm install
-
-# 3. Start development
-/rd:10-dev-apply first_function
+# Commands removed - use skill directly instead
+# Ask: "Initialize a Python project for 10-stage TDD workflow"
 ```
 
 ### For Existing Projects
 ```bash
-# 1. Check current setup
-/rd:10-dev-check
-
-# 2. Adapt templates to match your conventions
-# Edit Makefile or package.json to fit your project
-
-# 3. Start using the workflow
-/rd:10-dev-apply new_function
+# Commands removed - use skill directly instead
+# Ask: "Check if my project is ready for the 10-stage workflow"
 ```
 
 ## Troubleshooting
 
 ### "Build tool not found"
-**Solution**: Install required build tool or use `/rd:10-dev-init` to set up configuration
+**Solution**: Install required build tool or ask Claude to set up configuration
 
 ### "Tests fail to run"
 **Solution**: Check that test framework is installed (`make install` or `npm install`)
@@ -632,4 +608,4 @@ Found an issue or have a suggestion?
 
 **Remember**: This is a systematic workflow designed for quality and consistency. Following all stages in order produces the best results!
 
-**Quick Start**: Run `/rd:10-dev-check` to get started!
+**Quick Start**: Ask Claude to "use the 10-stage TDD workflow" for your function!
