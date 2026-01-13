@@ -140,4 +140,4 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-claude-code-subagents-collection/
+/claude-code-subagents-collection
