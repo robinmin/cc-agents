@@ -1,5 +1,88 @@
 # CHANGELOG
 
+## [1.5.0] - 2026-01-13
+
+### Summary
+
+**Task Orchestration Architecture Overhaul**
+
+Major release introducing a complete task orchestration system with two specialized subagents working in tandem: `task-decomposition-expert` for planning and `task-runner` for execution. This release establishes checkpoint discipline, TodoWrite synchronization, and expert delegation patterns.
+
+### Added
+
+- **New Subagent: `task-runner` (`plugins/rd/agents/task-runner.md`)**:
+  - Senior Task Execution Specialist with checkpoint discipline
+  - Sequential phase execution with atomic checkpoint writes
+  - Status state machine: `pending` → `in_progress` → `completed` | `blocked`
+  - Expert Agent Delegation Protocol (Section 5.5) — signals delegation needs to parent context
+  - Resume capability via `--resume` flag for interrupted work
+  - TodoWrite synchronization after every status change
+
+- **Expert Agent Delegation Protocol**:
+  - Clear separation: subagents signal needs, parent context (Claude Code) invokes experts
+  - Decision tree for delegation routing (Python → python-expert, TypeScript → typescript-expert, etc.)
+  - Structured delegation signal format with recommended expert and prompt
+
+- **Batch Execution Pattern**:
+  - 3-7 implementation phases for task-runner consumption
+  - Phase independence with verifiable deliverables
+  - Checkpoint discipline: write to disk after each phase
+
+### Changed
+
+- **Renamed Command: `/rd:task-run` → `/rd:task-runner`**:
+  - Aligns with subagent naming convention
+  - Updated all references in `task-fixall.md`, `tasks.md`, `agent-meta.md`
+
+- **Refactored `/rd:task-runner` Command (`plugins/rd/commands/task-runner.md`)**:
+  - Lean orchestration format delegating to specialized subagents
+  - 66% reduction: 534 → 180 lines
+  - Two-phase workflow: Planning (task-decomposition-expert) → Execution (task-runner)
+  - Expert Delegation table for action pattern routing
+
+- **Enhanced `task-decomposition-expert` (`plugins/rd/agents/task-decomposition-expert.md`)**:
+  - 37% reduction: 592 → 370 lines (removed redundancy while preserving key content)
+  - Added TodoWrite Synchronization Protocol to Section 4
+  - Added Batch Execution Pattern to Section 5.1
+  - Added Agent Invocation Format with Task tool examples
+  - Updated Expert Agent Capabilities table (8 agents)
+  - Consolidated decomposition patterns from 16 to 7 key patterns
+
+- **Optimized `task-runner` Subagent (`plugins/rd/agents/task-runner.md`)**:
+  - 54% reduction from initial draft: 789 → 366 lines
+  - Merged redundant sections (5.3+5.6 → 5.3, 5.2+5.5 → 5.2)
+  - Reduced output templates from 7 to 4
+  - Preserved all critical protocols and verification steps
+
+### Technical Details
+
+**Task Tool Invocation Format:**
+```python
+Task(
+  subagent_type="rd:task-decomposition-expert",
+  prompt="Analyze and decompose task file: {task_file}",
+  description="Decompose task into phases"
+)
+```
+
+**TodoWrite Synchronization:**
+- Task file `impl_progress` is source of truth
+- TodoWrite mirrors for user visibility
+- Sync immediately after every checkpoint
+
+**Optimization Summary:**
+| File | Before | After | Reduction |
+|------|--------|-------|-----------|
+| `task-runner.md` (agent) | 789 | 366 | 54% |
+| `task-decomposition-expert.md` | 592 | 370 | 37% |
+| `task-runner.md` (command) | 534 | 180 | 66% |
+| **Total** | 1,915 | 916 | **52%** |
+
+### References
+
+- [Claude Code Subagents](https://code.claude.com/docs/en/sub-agents)
+- [Task Tool Documentation](https://docs.anthropic.com/en/docs/claude-code/sub-agents)
+
 ## [1.4.1] - 2026-01-12
 
 ### Summary
