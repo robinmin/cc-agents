@@ -1,5 +1,50 @@
 # CHANGELOG
 
+## [1.4.0] - 2026-01-12
+
+### Summary
+
+**Expert-Based Subagent Architecture & Quality Assurance Skills**
+
+Major release introducing a comprehensive expert-based subagent system for specialized task handling, along with new skills focused on code quality, debugging methodology, and hallucination prevention. This update establishes a robust multi-agent orchestration framework.
+
+### Added
+
+- **Expert-Based Subagents (`plugins/rd/agnts/`)**:
+  - **`agent-doctor`**: Quality specialist for evaluating expert agents against 8-section anatomy framework, with scoring and improvement recommendations
+  - **`agent-expert`**: General-purpose expert agent for complex development tasks
+  - **`task-decomposition-expert`**: Workflow architect for task breakdown, dependency mapping, and multi-agent orchestration
+  - **`python-expert`**: Python development specialist with verification protocols
+  - **`typescript-expert`**: TypeScript/JavaScript specialist with framework-specific competencies
+  - **`mcp-expert`**: Model Context Protocol specialist for MCP server development and integration
+
+- **New Skills**:
+  - **`anti-hallucination`**: Systematic protocol to prevent hallucination when working with APIs, libraries, and external services. Enforces "verify before generating" principle
+  - **`code-patterns`**: Curated collection of production-ready patterns for API design, testing, Docker, and database work
+    - `api-patterns.md`: REST, GraphQL, error handling, pagination
+    - `testing-patterns.md`: Unit, integration, E2E, mocking strategies
+    - `docker-patterns.md`: Multi-stage builds, security, compose
+    - `database-patterns.md`: Migrations, queries, indexing, ORM patterns
+  - **`sys-debugging`**: Four-phase debugging methodology emphasizing root cause analysis before fixes
+
+- **New Scripts (`plugins/rd/scripts/`)**:
+  - **`install.sh`**: Comprehensive plugin installation script
+  - **`session-init.sh`**: Session initialization for agent context setup
+  - **`validate-bash.sh`**: Bash command validation for security
+  - **`validate-write.sh`**: Write operation validation
+
+### Changed
+
+- **Plugin Configuration**: Updated `plugins/rd/plugin.json` to v1.4.0 with refined agent directory structure (`./agnts`)
+- **Slash Commands**:
+  - Enhanced `task-fixall.md` with improved error detection and fixing workflows
+  - Enhanced `task-run.md` with better task execution patterns
+
+### References
+
+- [Claude Code Subagents](https://code.claude.com/docs/en/sub-agents)
+- [Expert-Based Agent Architecture](docs/prompts/0004_expert_based_agent_architecture.md)
+
 ## [1.3.2] - 2026-01-09
 
 ### Summary

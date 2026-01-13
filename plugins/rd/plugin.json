@@ -1,23 +1,23 @@
 {
-	"name": "rd",
-	"version": "1.3.2",
-	"description": "Rapid Development: Systematic 10-stage TDD workflow, task management, skill development, and code quality tools",
-	"author": {
-		"name": "Robin Min",
-		"email": "minlongbing@gmail.com"
-	},
-	"license": "MIT",
-	"keywords": [
-		"tdd",
-		"testing",
-		"workflow",
-		"task-management",
-		"skills",
-		"agents",
-		"development",
-		"quality"
-	],
-	"commands": "./commands",
-	"skills": "./skills",
-	"agents": "./agnts"
+  "name": "rd",
+  "version": "1.4.0",
+  "description": "Rapid Development: Systematic 10-stage TDD workflow, task management, skill development, and code quality tools",
+  "author": {
+    "name": "Robin Min",
+    "email": "minlongbing@gmail.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "tdd",
+    "testing",
+    "workflow",
+    "task-management",
+    "skills",
+    "agents",
+    "development",
+    "quality"
+  ],
+  "commands": "./commands",
+  "skills": "./skills",
+  "agents": "./agnts"
 }
