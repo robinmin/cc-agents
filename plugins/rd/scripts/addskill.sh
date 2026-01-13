@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # addskill.sh - Add a new Claude Code Agent Skill
 #
