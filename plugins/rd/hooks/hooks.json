@@ -41,7 +41,8 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Before finishing, verify: Did you follow the anti-hallucination protocol? Did you cite sources for any API claims? If not, respond with 'continue' to add verification. If yes, respond with 'stop'."
+            "prompt": "Evaluate if Claude should stop. Context: $ARGUMENTS\n\nCheck if:\n1. The anti-hallucination protocol was followed\n2. Sources were cited for API claims\n3. All requested tasks are complete\n\nRespond with JSON: {\"ok\": true} to allow stopping, or {\"ok\": false, \"reason\": \"Add verification for [specific uncited claims]\"} to continue working.",
+            "timeout": 30
           }
         ]
       }
