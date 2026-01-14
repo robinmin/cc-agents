@@ -1,5 +1,55 @@
 # CHANGELOG
 
+## [1.5.1] - 2026-01-14
+
+### Summary
+
+**Expert Agent Optimization & Global CLAUDE.md Enhancement**
+
+Token efficiency update reducing 10 expert agent definitions by 74% (5,977 → 1,553 lines) while preserving production quality. Expanded agent routing table from 7 to 19 agents.
+
+### Changed
+
+- **Expert Agent Optimization (`plugins/rd/agents/`)**:
+  - Applied consistent 8-section anatomy with condensed format
+  - Converted verbose competency tables to comma-separated lists
+  - Compressed frontmatter examples from 3 to 1 per agent
+  - Merged philosophy/rules sections into single-line entries
+
+  | Agent | Before | After | Reduction |
+  |-------|--------|-------|-----------|
+  | `super-researcher.md` | 781 | 160 | 79% |
+  | `backend-architect.md` | 698 | 154 | 78% |
+  | `ml-expert.md` | 682 | 157 | 77% |
+  | `golang-expert.md` | 674 | 174 | 74% |
+  | `frontend-expert.md` | 601 | 147 | 76% |
+  | `ios-expert.md` | 595 | 150 | 75% |
+  | `uiux-expert.md` | 561 | 149 | 73% |
+  | `prompt-expert.md` | 541 | 156 | 71% |
+  | `seo-expert.md` | 426 | 151 | 65% |
+  | `mobile-expert.md` | 418 | 155 | 63% |
+  | **Total** | 5,977 | 1,553 | **74%** |
+
+- **Global CLAUDE.md Agent Routing**:
+  - Expanded routing table from 7 to 19 agents
+  - Added 12 new `rd:` prefixed agents with trigger keywords
+  - Fixed markdown escaping for `mcp__grep__searchGitHub` tool references
+
+### Added
+
+- **New Agent Routing Entries**:
+  - `rd:golang-expert` — go, golang, goroutines, channels, concurrency
+  - `rd:task-runner` — execute task, run phase, checkpoint
+  - `rd:backend-architect` — API design, microservices, distributed systems
+  - `rd:frontend-expert` — React, Next.js, Server Components, Tailwind
+  - `rd:ios-expert` — iOS, Swift, SwiftUI, UIKit, Xcode
+  - `rd:mobile-expert` — React Native, Flutter, Expo, cross-platform
+  - `rd:ml-expert` — ML, PyTorch, TensorFlow, MLOps
+  - `rd:prompt-expert` — prompt engineering, system prompt, few-shot
+  - `rd:seo-expert` — SEO, keyword research, Core Web Vitals
+  - `rd:super-researcher` — literature review, meta-analysis, evidence synthesis
+  - `rd:uiux-expert` — UI design, UX research, accessibility, WCAG
+
 ## [1.5.0] - 2026-01-13
 
 ### Summary
