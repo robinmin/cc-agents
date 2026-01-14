@@ -3,7 +3,7 @@
 ## Tool Priority
 
 1. **ref (MCP)** - `ref_search_documentation`, `ref_read_url` - Documentation verification
-2. **mcp**grep**searchGitHub** - GitHub code search (fast, for github.com URLs)
+2. **mcp\_\_grep\_\_searchGitHub** - GitHub code search (fast, for github.com URLs)
 3. **WebSearch** - Recent facts, announcements (< 6 months)
 4. **WebFetch** - Fetch and process specific URLs
 5. **rd:agent-browser** - Browser automation, JS-rendered content, screenshots, form testing
@@ -82,11 +82,22 @@ Auto-routing activates based on these keywords:
 | -------------------------------------------------------------------- | ------------------------------ |
 | python, pytest, async, decorator, generator, type hint               | `rd:python-expert`             |
 | typescript, generics, utility types, discriminated union             | `rd:typescript-expert`         |
+| go, golang, goroutines, channels, concurrency, defer, go modules     | `rd:golang-expert`             |
 | mcp, model context protocol, server integration                      | `rd:mcp-expert`                |
-| break down task, decompose, workflow design                          | `rd:task-decomposition-expert` |
+| break down task, decompose, workflow design, project planning        | `rd:task-decomposition-expert` |
+| execute task, run phase, checkpoint, task execution                  | `rd:task-runner`               |
 | create agent, generate expert                                        | `rd:agent-expert`              |
 | validate agent, evaluate agent                                       | `rd:agent-doctor`              |
 | browser automation, screenshot, form fill, web scraping, JS-rendered | `rd:agent-browser`             |
+| API design, microservices, distributed systems, database schema      | `rd:backend-architect`         |
+| React, Next.js, Server Components, Tailwind, shadcn/ui, Vitest       | `rd:frontend-expert`           |
+| iOS, Swift, SwiftUI, UIKit, Xcode, Core Data, App Store              | `rd:ios-expert`                |
+| React Native, Flutter, Expo, mobile app, cross-platform, Detox       | `rd:mobile-expert`             |
+| ML, PyTorch, TensorFlow, model training, MLOps, model serving        | `rd:ml-expert`                 |
+| prompt engineering, system prompt, few-shot, chain-of-thought        | `rd:prompt-expert`             |
+| SEO, keyword research, Core Web Vitals, schema markup, meta tags     | `rd:seo-expert`                |
+| literature review, meta-analysis, evidence synthesis, fact-checking  | `rd:super-researcher`          |
+| UI design, UX research, accessibility, WCAG, wireframes, Figma       | `rd:uiux-expert`               |
 
 ### rd:agent-browser Activation Triggers
 
@@ -240,7 +251,7 @@ Use inline citations with date:
 | Tool                                | Unavailable Fallback                           | Confidence Adjustment        |
 | ----------------------------------- | ---------------------------------------------- | ---------------------------- |
 | **ref**                             | WebSearch → WebFetch → rd:agent-browser        | Reduce to MEDIUM             |
-| **mcp**grep**searchGitHub**         | ast-grep → WebSearch                           | Reduce to MEDIUM             |
+| **mcp\_\_grep\_\_searchGitHub**     | ast-grep → WebSearch                           | Reduce to MEDIUM             |
 | **ast-grep (skill)**                | Grep tool → WebSearch                          | Reduce to MEDIUM             |
 | **WebSearch**                       | WebFetch → rd:agent-browser → cached knowledge | Reduce to LOW if critical    |
 | **WebFetch**                        | rd:agent-browser                               | Same confidence              |
