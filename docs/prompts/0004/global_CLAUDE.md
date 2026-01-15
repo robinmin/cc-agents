@@ -98,6 +98,7 @@ Auto-routing activates based on these keywords:
 | SEO, keyword research, Core Web Vitals, schema markup, meta tags     | `rd:seo-expert`                |
 | literature review, meta-analysis, evidence synthesis, fact-checking  | `rd:super-researcher`          |
 | UI design, UX research, accessibility, WCAG, wireframes, Figma       | `rd:uiux-expert`               |
+| test design, TDD, BDD, flaky tests, mocking, coverage, CI/CD tests   | `rd:test-expert`               |
 
 ### rd:agent-browser Activation Triggers
 
