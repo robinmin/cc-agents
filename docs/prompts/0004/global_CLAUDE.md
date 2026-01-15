@@ -7,11 +7,13 @@
 3. **WebSearch** - Recent facts, announcements (< 6 months)
 4. **WebFetch** - Fetch and process specific URLs
 5. **rd:agent-browser** - Browser automation, JS-rendered content, screenshots, form testing
-6. **Local text utilities** - `grep`, `awk`, `sed`, `wc` (native bash tools)
-7. **ast-grep (skill)** - `rd:ast-grep` - Structural code search
-8. **Read/Grep/Glob** - Project file operations (Claude's built-in tools)
-9. **LSP** - Syntax validation, type checking
-10. **Jupyter** - Code execution, runtime verification
+6. **tasks CLI** - `tasks create/list/update/refresh` - External task management for three-agent workflow
+7. **Local text utilities** - `grep`, `awk`, `sed`, `wc` (native bash tools)
+8. **ast-grep (skill)** - `rd:ast-grep` - Structural code search
+9. **Read/Grep/Glob** - Project file operations (Claude's built-in tools)
+10. **LSP** - Syntax validation, type checking
+11. **Jupyter** - Code execution, runtime verification
+12. **TodoWrite** - Internal todo list management (syncs with tasks CLI)
 
 ---
 
@@ -84,8 +86,9 @@ Auto-routing activates based on these keywords:
 | typescript, generics, utility types, discriminated union             | `rd:typescript-expert`         |
 | go, golang, goroutines, channels, concurrency, defer, go modules     | `rd:golang-expert`             |
 | mcp, model context protocol, server integration                      | `rd:mcp-expert`                |
-| break down task, decompose, workflow design, project planning        | `rd:task-decomposition-expert` |
-| execute task, run phase, checkpoint, task execution                  | `rd:task-runner`               |
+| break down task, decompose, task planning, project breakdown         | `rd:task-decomposition-expert` |
+| execute task file, code test fix, checkpoint, phase execution         | `rd:task-runner`               |
+| coordinate workflow, multi-agent orchestration, manage execution     | `rd:orchestrator-expert`       |
 | create agent, generate expert                                        | `rd:agent-expert`              |
 | validate agent, evaluate agent                                       | `rd:agent-doctor`              |
 | browser automation, screenshot, form fill, web scraping, JS-rendered | `rd:agent-browser`             |
@@ -99,6 +102,46 @@ Auto-routing activates based on these keywords:
 | literature review, meta-analysis, evidence synthesis, fact-checking  | `rd:super-researcher`          |
 | UI design, UX research, accessibility, WCAG, wireframes, Figma       | `rd:uiux-expert`               |
 | test design, TDD, BDD, flaky tests, mocking, coverage, CI/CD tests   | `rd:test-expert`               |
+
+### Three-Agent Workflow Architecture
+
+For complex multi-phase projects, use the three-agent workflow:
+
+```
+User Request
+     ↓
+orchestrator-expert (Meta-Coordinator)
+     ├─→ task-decomposition-expert (Planning)
+     │        ↓
+     │   Task Files (docs/prompts/XXXX_name.md)
+     │   + TodoWrite Sync
+     │        ↓
+     └─→ task-runner (Execution)
+              ↓
+         Code→Test→Fix→Done
+              ↓
+      orchestrator-expert (continues loop)
+```
+
+**Agent Responsibilities:**
+
+| Agent | Phase | Responsibility | Keywords |
+|-------|-------|----------------|----------|
+| **orchestrator-expert** | ORCHESTRATION | Coordinate workflow, monitor progress, handle resumption | coordinate workflow, multi-agent orchestration, manage execution |
+| **task-decomposition-expert** | PLANNING | Break down goals, create task files, sync TodoWrite | break down task, decompose, task planning |
+| **task-runner** | EXECUTION | Execute task files, code→test→fix workflow, status sync | execute task file, code test fix, checkpoint |
+
+**Tasks CLI Integration:**
+
+All three agents use the `tasks` command for external task management:
+- `tasks create <name>` - Create task file (task-decomposition-expert)
+- `tasks list [stage]` - View kanban board (orchestrator-expert)
+- `tasks update <WBS> <stage>` - Update status (task-runner)
+- `tasks refresh` - Sync kanban view (all agents)
+
+**Status Flow:** Backlog → Todo → WIP → Testing → Done
+
+---
 
 ### rd:agent-browser Activation Triggers
 
@@ -370,4 +413,28 @@ rd:agent-browser: "open https://spa.example.com, snapshot, screenshot"
 
 # Convert web page to clean markdown
 rd:agent-browser + markitdown: "curl -s <url> | markitdown"
+
+# Tasks CLI (three-agent workflow)
+tasks create "Implement feature"        # Create task file
+tasks list wip                          # View WIP tasks
+tasks update 0001 done                  # Mark task as done
+tasks refresh                           # Sync kanban board
+```
+
+### Three-Agent Workflow Quick Reference
+
+```bash
+# For complex multi-phase projects, use orchestrator-expert
+# It will coordinate task-decomposition-expert and task-runner
+
+# Orchestration happens automatically:
+# 1. orchestrator-expert receives request
+# 2. task-decomposition-expert creates task files
+# 3. task-runner executes with code→test→fix workflow
+# 4. orchestrator-expert monitors and continues loop
+
+# Direct task management:
+tasks list                    # View all tasks
+tasks update <WBS> <stage>     # Update task status
+tasks create <name>            # Create new task
 ```
