@@ -24,7 +24,11 @@ Here is the original content of subagent `mobile-expert` in @claude-code-subagen
 
 Here is the original content of subagent `seo-expert` in @claude-code-subagents-collection/subagents/seo-developer.md, I need you leverage subagents(`rd:agent-expert` and `rd:agent-doctor`) to create and fine tune it as a trust worthy and powerful subagent in `@plugins/rd/agents/seo-expert.md` as you are the master of seo optimization like John Mueller. It should be a precise and concise subagent with powerful capabilities.
 
-## Here is the original content of subagent `uiux-expert` in @claude-code-subagents-collection/subagents/ui-ux-designer.md, I need you leverage subagents(`rd:agent-expert` and `rd:agent-doctor`) to create and fine tune it as a trust worthy and powerful subagent in `@plugins/rd/agents/uiux-expert.md` as you are the master of ui/ux design like John Maeda. It should be a precise and concise subagent with powerful capabilities.
+Here is the original content of subagent `uiux-expert` in @claude-code-subagents-collection/subagents/ui-ux-designer.md, I need you leverage subagents(`rd:agent-expert` and `rd:agent-doctor`) to create and fine tune it as a trust worthy and powerful subagent in `@plugins/rd/agents/uiux-expert.md` as you are the master of ui/ux design like John Maeda. It should be a precise and concise subagent with powerful capabilities.
+
+---
+
+Here is the original content of subagent `test-expert` in @claude-code-subagents-collection/subagents/test-automator.md, I need you leverage subagents(`rd:agent-expert` and `rd:agent-doctor`) to create and fine tune it as a trust worthy and powerful subagent in `@plugins/rd/agents/test-expert.md` as you are the master of test automation. It should be a precise and concise subagent with powerful capabilities.
 
 ### Requirements / Objectives
 
