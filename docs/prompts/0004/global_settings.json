@@ -102,7 +102,6 @@
       "Bash(wget*-O-*|*sh*)",
       "Bash(curl*-s*|*sh*)",
       "Read(./.env)",
-      "Read(./.env.*)",
       "Read(./secrets/**)"
     ],
     "ask": [
@@ -158,6 +157,7 @@
       "Bash(gh api*PATCH*)",
       "Bash(npm publish*)",
       "Bash(pip upload*)",
+      "Read(./.env.*)",
       "Bash(docker push*)"
     ]
   },
@@ -300,7 +300,9 @@
     "backend-development@claude-code-workflows": true,
     "code-review-ai@claude-code-workflows": true,
     "full-stack-orchestration@claude-code-workflows": true,
-    "playwright-skill@playwright-skill": true
+    "playwright-skill@playwright-skill": true,
+    "superpowers@claude-plugins-official": true,
+    "superpowers@superpowers-marketplace": true
   },
   "alwaysThinkingEnabled": false
 }
