@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## [1.5.2] - 2026-01-15
+
+### Summary
+
+**Plugin Hooks Bug Fix**
+
+Fixed JSON validation error in Stop hook by correcting the prompt-based hook output format to match Claude Code specification.
+
+### Fixed
+
+- **Stop Hook JSON Validation Error** (`plugins/rd/hooks/hooks.json`):
+  - Root cause: Prompt was requesting incorrect JSON output format (`{"ok": true}` instead of `{"decision": "approve"}`)
+  - Updated Stop hook prompt to use correct decision format:
+    - `{"decision": "approve", "reason": "..."}` to allow stopping
+    - `{"decision": "block", "reason": "...", "systemMessage": "..."}` to continue working
+  - Changed field names: `ok` → `decision`, boolean `true/false` → string `"approve"/"block"`
+  - Added `systemMessage` field for block case (optional but recommended)
+
+### References
+
+- [Claude Code Hooks Documentation - Stop Event](https://github.com/anthropics/claude-code/blob/main/plugins/plugin-dev/skills/hook-development/SKILL.md#stop)
+- Stop hook output specification: `{"decision": "approve|block", "reason": "...", "systemMessage": "..."}`
+
 ## [1.5.1] - 2026-01-14
 
 ### Summary
