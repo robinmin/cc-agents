@@ -10,7 +10,8 @@
       "mcp__ref__ref_search_documentation",
       "mcp__huggingface__hf_doc_fetch",
       "mcp__huggingface__hf_doc_search",
-      "Skill(superpowers:using-superpowers)"
+      "Skill(superpowers:using-superpowers)",
+      "Skill(cc-skills)"
     ],
     "deny": [],
     "ask": []
