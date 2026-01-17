@@ -1,5 +1,6 @@
 ---
 description: Comprehensive security and quality assessment for Claude Code Agent Skills
+skills: [cc-skills]
 argument-hint: <skill-folder>
 ---
 
@@ -16,8 +17,8 @@ Read-only evaluation of a skill against best practices, quality standards, and s
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument         | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
 | `<skill-folder>` | Path to skill directory (relative, absolute, or name only) |
 
 ## Workflow
@@ -29,38 +30,39 @@ Read-only evaluation of a skill against best practices, quality standards, and s
 
 ## Evaluation Dimensions
 
-| Category | Weight | Key Criteria |
-|----------|--------|--------------|
-| **Frontmatter** | 10% | Name format, description length, activation clarity |
-| **Content** | 25% | Clarity, conciseness, completeness, examples |
-| **Security** | 20% | Command injection, file access, credentials, input validation |
-| **Structure** | 15% | Progressive disclosure, organization, workflow design |
-| **Efficiency** | 10% | Token count (<500 lines), uniqueness, references |
-| **Best Practices** | 10% | Naming, anti-patterns, conventions |
-| **Code Quality** | 10% | Error handling, dependencies, clarity (N/A if no scripts) |
+| Category           | Weight | Key Criteria                                                  |
+| ------------------ | ------ | ------------------------------------------------------------- |
+| **Frontmatter**    | 10%    | Name format, description length, activation clarity           |
+| **Content**        | 25%    | Clarity, conciseness, completeness, examples                  |
+| **Security**       | 20%    | Command injection, file access, credentials, input validation |
+| **Structure**      | 15%    | Progressive disclosure, organization, workflow design         |
+| **Efficiency**     | 10%    | Token count (<500 lines), uniqueness, references              |
+| **Best Practices** | 10%    | Naming, anti-patterns, conventions                            |
+| **Code Quality**   | 10%    | Error handling, dependencies, clarity (N/A if no scripts)     |
 
 ## Frontmatter Criteria
 
-| Check | Pass |
-|-------|------|
-| Name format | lowercase-hyphens, ≤64 chars |
-| Description | ≤1024 chars, no XML tags |
-| Activation | Clear "when to use" statement |
-| Reserved words | No `anthropic`, `claude` |
+| Check          | Pass                          |
+| -------------- | ----------------------------- |
+| Name format    | lowercase-hyphens, ≤64 chars  |
+| Description    | ≤1024 chars, no XML tags      |
+| Activation     | Clear "when to use" statement |
+| Reserved words | No `anthropic`, `claude`      |
 
 ## Security Assessment
 
 **Critical for skills with scripts/commands:**
 
-| Risk | What to Check |
-|------|---------------|
+| Risk                  | What to Check                                     |
+| --------------------- | ------------------------------------------------- |
 | **Command Injection** | User input in shell commands without sanitization |
-| **Path Traversal** | Unchecked paths allowing `../` escape |
-| **Secrets** | Hardcoded credentials, API keys |
-| **Input Validation** | Missing type/boundary checks |
-| **Privileges** | Unnecessary sudo/admin operations |
+| **Path Traversal**    | Unchecked paths allowing `../` escape             |
+| **Secrets**           | Hardcoded credentials, API keys                   |
+| **Input Validation**  | Missing type/boundary checks                      |
+| **Privileges**        | Unnecessary sudo/admin operations                 |
 
 **Severity Levels:**
+
 - 🔴 Critical: Block deployment
 - 🟠 High: Fix before production
 - 🟡 Medium: Fix next iteration
@@ -86,31 +88,35 @@ Read-only evaluation of a skill against best practices, quality standards, and s
 **Readiness:** [Production/Minor Fixes/Major Revision]
 
 ## Summary
+
 **Strengths:** [list]
 **Critical Issues:** [list]
 
 ## Scores
 
-| Category | Score |
-|----------|-------|
-| Frontmatter | X/10 |
-| Content | X/10 |
-| Security | X/10 |
-| Structure | X/10 |
-| Efficiency | X/10 |
-| Best Practices | X/10 |
-| Code Quality | X/10 |
-| **Overall** | **X.X/10** |
+| Category       | Score      |
+| -------------- | ---------- |
+| Frontmatter    | X/10       |
+| Content        | X/10       |
+| Security       | X/10       |
+| Structure      | X/10       |
+| Efficiency     | X/10       |
+| Best Practices | X/10       |
+| Code Quality   | X/10       |
+| **Overall**    | **X.X/10** |
 
 ## Recommendations
 
 ### Critical
+
 1. **[Issue]**: [Current] → [Fix]
 
 ### High Priority
+
 [...]
 
 ## Next Steps
+
 1. Fix critical issues
 2. Run `/rd:skill-refine [name]`
 3. Re-evaluate
@@ -118,17 +124,18 @@ Read-only evaluation of a skill against best practices, quality standards, and s
 
 ## Grading Scale
 
-| Grade | Score | Status |
-|-------|-------|--------|
-| A | 9.0-10.0 | Production ready |
-| B | 7.0-8.9 | Minor fixes needed |
-| C | 5.0-6.9 | Moderate revision |
-| D | 3.0-4.9 | Major revision |
-| F | 0.0-2.9 | Rewrite needed |
+| Grade | Score    | Status             |
+| ----- | -------- | ------------------ |
+| A     | 9.0-10.0 | Production ready   |
+| B     | 7.0-8.9  | Minor fixes needed |
+| C     | 5.0-6.9  | Moderate revision  |
+| D     | 3.0-4.9  | Major revision     |
+| F     | 0.0-2.9  | Rewrite needed     |
 
 ## Read-Only Guarantee
 
 This command **makes NO changes**:
+
 - ✅ Only reads files
 - ✅ Only analyzes content
 - ✅ Only generates report
