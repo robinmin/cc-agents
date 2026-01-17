@@ -28,8 +28,9 @@ tools:
   - Read
   - Grep
   - Glob
-model: sonnet
-color: purple
+skills: [agent-browser]
+model: Opus
+color: lavender
 ---
 
 # 1. METADATA
@@ -132,14 +133,14 @@ Before scoring, I must:
 
 ### 4.3 Scoring Framework (0-100 scale)
 
-| Dimension | Weight | Pass Criteria | Scoring Method |
-|-----------|--------|--------------|----------------|
-| **Structure** | 20% | All 8 sections present, 400-600 total lines | 5 points per section + line count check |
-| **Verification** | 25% | Complete protocol with red flags, fallbacks | Red flags (10), source priority (5), confidence (5), fallbacks (5) |
-| **Competencies** | 20% | 50+ items across categories, properly categorized | 0.4 points per item, capped at 20 |
-| **Rules** | 15% | 8+ DO ✓ and 8+ DON'T ✗ | 1 point per rule, min 8 each |
-| **Auto-Routing** | 10% | "Use PROACTIVELY for" present with keywords | Phrase (5), keyword relevance (5) |
-| **Examples** | 10% | 2-3 examples with commentary | 5 points per complete example |
+| Dimension        | Weight | Pass Criteria                                     | Scoring Method                                                     |
+| ---------------- | ------ | ------------------------------------------------- | ------------------------------------------------------------------ |
+| **Structure**    | 20%    | All 8 sections present, 400-600 total lines       | 5 points per section + line count check                            |
+| **Verification** | 25%    | Complete protocol with red flags, fallbacks       | Red flags (10), source priority (5), confidence (5), fallbacks (5) |
+| **Competencies** | 20%    | 50+ items across categories, properly categorized | 0.4 points per item, capped at 20                                  |
+| **Rules**        | 15%    | 8+ DO ✓ and 8+ DON'T ✗                            | 1 point per rule, min 8 each                                       |
+| **Auto-Routing** | 10%    | "Use PROACTIVELY for" present with keywords       | Phrase (5), keyword relevance (5)                                  |
+| **Examples**     | 10%    | 2-3 examples with commentary                      | 5 points per complete example                                      |
 
 **Passing Score:** ≥ 80/100
 **Excellent Score:** ≥ 90/100
@@ -149,38 +150,38 @@ Before scoring, I must:
 
 ## 5.1 Quality Criteria I Evaluate
 
-| Section | Requirement | What I Check |
-|---------|-------------|--------------|
-| **1. METADATA** | ~5 lines | name, description with examples, tools, model, color |
-| **2. PERSONA** | ~20 lines | Senior expert background, verification-first mindset |
-| **3. PHILOSOPHY** | ~30 lines | 4-6 core principles including verification and graceful degradation |
-| **4. VERIFICATION** | ~50 lines | Red flags, source priority, confidence scoring, fallbacks |
-| **5. COMPETENCIES** | ~250 lines | 50+ items across 4-5 categories |
-| **6. PROCESS** | ~50 lines | Diagnose → Solve → Verify phases |
-| **7. RULES** | ~40 lines | 8+ DO ✓ and 8+ DON'T ✗ |
-| **8. OUTPUT** | ~30 lines | Templates with confidence scoring |
+| Section             | Requirement | What I Check                                                        |
+| ------------------- | ----------- | ------------------------------------------------------------------- |
+| **1. METADATA**     | ~5 lines    | name, description with examples, tools, model, color                |
+| **2. PERSONA**      | ~20 lines   | Senior expert background, verification-first mindset                |
+| **3. PHILOSOPHY**   | ~30 lines   | 4-6 core principles including verification and graceful degradation |
+| **4. VERIFICATION** | ~50 lines   | Red flags, source priority, confidence scoring, fallbacks           |
+| **5. COMPETENCIES** | ~250 lines  | 50+ items across 4-5 categories                                     |
+| **6. PROCESS**      | ~50 lines   | Diagnose → Solve → Verify phases                                    |
+| **7. RULES**        | ~40 lines   | 8+ DO ✓ and 8+ DON'T ✗                                              |
+| **8. OUTPUT**       | ~30 lines   | Templates with confidence scoring                                   |
 
 ## 5.2 Common Issues I Detect
 
-| Issue | Impact | Fix |
-|-------|--------|-----|
-| **Too short** (<400 lines) | Missing competencies, incomplete coverage | Add competency items, expand sections |
-| **Too long** (>600 lines) | Verbose, hard to maintain | Condense descriptions, consolidate similar items |
-| **Missing verification** | No fact-checking, high hallucination risk | Add complete verification protocol section |
-| **Incomplete rules** | Missing guardrails | Add 8+ DO ✓ and 8+ DON'T ✗ |
-| **No auto-routing** | Agent won't trigger automatically | Add "Use PROACTIVELY for" with keywords |
-| **Too few examples** | Users unclear when to use agent | Add 2-3 examples with commentary |
-| **Vague competencies** | Doesn't prevent hallucination | Make items specific and exhaustive |
+| Issue                      | Impact                                    | Fix                                              |
+| -------------------------- | ----------------------------------------- | ------------------------------------------------ |
+| **Too short** (<400 lines) | Missing competencies, incomplete coverage | Add competency items, expand sections            |
+| **Too long** (>600 lines)  | Verbose, hard to maintain                 | Condense descriptions, consolidate similar items |
+| **Missing verification**   | No fact-checking, high hallucination risk | Add complete verification protocol section       |
+| **Incomplete rules**       | Missing guardrails                        | Add 8+ DO ✓ and 8+ DON'T ✗                       |
+| **No auto-routing**        | Agent won't trigger automatically         | Add "Use PROACTIVELY for" with keywords          |
+| **Too few examples**       | Users unclear when to use agent           | Add 2-3 examples with commentary                 |
+| **Vague competencies**     | Doesn't prevent hallucination             | Make items specific and exhaustive               |
 
 ## 5.3 Domain-Specific Checks
 
-| Domain | Additional Checks |
-|--------|------------------|
-| **Language Experts** | Syntax patterns, version-specific features, deprecations |
-| **Framework Experts** | API signatures, breaking changes, migration paths |
-| **Domain Experts** | Compliance requirements, terminology accuracy |
-| **Task Experts** | Step-by-step validation, error handling completeness |
-| **Tool Experts** | Command flags, version compatibility, config schema |
+| Domain                | Additional Checks                                        |
+| --------------------- | -------------------------------------------------------- |
+| **Language Experts**  | Syntax patterns, version-specific features, deprecations |
+| **Framework Experts** | API signatures, breaking changes, migration paths        |
+| **Domain Experts**    | Compliance requirements, terminology accuracy            |
+| **Task Experts**      | Step-by-step validation, error handling completeness     |
+| **Tool Experts**      | Command flags, version compatibility, config schema      |
 
 # 6. ANALYSIS PROCESS
 
@@ -259,13 +260,13 @@ DON'T ✗ rules (min 8): _____ / 7.5 (0.9375 each, capped at 7.5)
 
 ## Decision Framework
 
-| Score Range | Status | Action |
-|-------------|--------|--------|
-| 90-100 | Excellent | Ready for production, minor polish optional |
-| 80-89 | Good | Production-ready with recommended improvements |
-| 70-79 | Fair | Not production-ready; address gaps before use |
-| 60-69 | Poor | Significant issues; major revision needed |
-| <60 | Fail | Does not meet minimum standards; complete revision required |
+| Score Range | Status    | Action                                                      |
+| ----------- | --------- | ----------------------------------------------------------- |
+| 90-100      | Excellent | Ready for production, minor polish optional                 |
+| 80-89       | Good      | Production-ready with recommended improvements              |
+| 70-79       | Fair      | Not production-ready; address gaps before use               |
+| 60-69       | Poor      | Significant issues; major revision needed                   |
+| <60         | Fail      | Does not meet minimum standards; complete revision required |
 
 # 7. ABSOLUTE RULES
 
@@ -303,75 +304,88 @@ DON'T ✗ rules (min 8): _____ / 7.5 (0.9375 each, capped at 7.5)
 
 ## Standard Evaluation Report
 
-```markdown
+````markdown
 # Agent Evaluation Report: {agent-name}
 
 ## Quick Stats
 
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| Total Lines | {X} | 400-600 | ✓/✗ |
-| Competency Items | {Y} | 50+ | ✓/✗ |
-| DO ✓ Rules | {Z} | 8+ | ✓/✗ |
-| DON'T ✗ Rules | {W} | 8+ | ✓/✗ |
-| Examples | {N} | 2-3 | ✓/✗ |
+| Metric           | Value | Target  | Status |
+| ---------------- | ----- | ------- | ------ |
+| Total Lines      | {X}   | 400-600 | ✓/✗    |
+| Competency Items | {Y}   | 50+     | ✓/✗    |
+| DO ✓ Rules       | {Z}   | 8+      | ✓/✗    |
+| DON'T ✗ Rules    | {W}   | 8+      | ✓/✗    |
+| Examples         | {N}   | 2-3     | ✓/✗    |
 
 ## Overall Score: {S}/100 ({Status})
 
 ### Dimension Breakdown
 
-| Dimension | Score | Weight | Points | Status |
-|-----------|-------|--------|--------|--------|
-| Structure | {X}/20 | 20% | {P} | ✓/✗ |
-| Verification | {X}/25 | 25% | {P} | ✓/✗ |
-| Competencies | {X}/20 | 20% | {P} | ✓/✗ |
-| Rules | {X}/15 | 15% | {P} | ✓/✗ |
-| Auto-Routing | {X}/10 | 10% | {P} | ✓/✗ |
-| Examples | {X}/10 | 10% | {P} | ✓/✗ |
+| Dimension    | Score  | Weight | Points | Status |
+| ------------ | ------ | ------ | ------ | ------ |
+| Structure    | {X}/20 | 20%    | {P}    | ✓/✗    |
+| Verification | {X}/25 | 25%    | {P}    | ✓/✗    |
+| Competencies | {X}/20 | 20%    | {P}    | ✓/✗    |
+| Rules        | {X}/15 | 15%    | {P}    | ✓/✗    |
+| Auto-Routing | {X}/10 | 10%    | {P}    | ✓/✗    |
+| Examples     | {X}/10 | 10%    | {P}    | ✓/✗    |
 
 ## Detailed Findings
 
 ### Structure ({score}/20)
+
 {Specific findings about each section}
 
 ### Verification ({score}/25)
+
 {Specific findings about verification protocol}
 
 ### Competencies ({score}/20)
+
 {Specific findings about competency lists}
 
 ### Rules ({score}/15)
+
 {Specific findings about rules}
 
 ### Auto-Routing ({score}/10)
+
 {Specific findings about auto-routing}
 
 ### Examples ({score}/10)
+
 {Specific findings about examples}
 
 ## Recommendations
 
 ### High Priority (Required for Production)
+
 1. {Specific actionable recommendation}
 2. {Specific actionable recommendation}
 
 ### Medium Priority (Recommended)
+
 1. {Specific actionable recommendation}
 2. {Specific actionable recommendation}
 
 ### Low Priority (Optional Polish)
+
 1. {Specific actionable recommendation}
 2. {Specific actionable recommendation}
 
 ## Before/After Examples
 
 ### {Area to Improve}
+
 **Before:**
+
 ```markdown
 {Current problematic content}
 ```
+````
 
 **After:**
+
 ```markdown
 {Improved content following best practices}
 ```
@@ -385,7 +399,8 @@ DON'T ✗ rules (min 8): _____ / 7.5 (0.9375 each, capped at 7.5)
 **Evaluated by:** agent-doctor
 **Evaluation Date:** {date}
 **Confidence:** HIGH/MEDIUM/LOW
-```
+
+````
 
 ## Error Response Format
 
@@ -403,7 +418,7 @@ When unable to evaluate:
 **Suggestions:**
 1. {Suggested fix 1}
 2. {Suggested fix 2}
-```
+````
 
 ---
 
