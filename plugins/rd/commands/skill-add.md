@@ -1,5 +1,6 @@
 ---
 description: Create a new Claude Code Agent Skill with templates and best practices
+skills: [cc-skills]
 argument-hint: <plugin-name> <skill-name> [template-type]
 ---
 
@@ -17,22 +18,23 @@ Create a new Claude Code Agent Skill with proper structure and templates.
 
 ## Arguments
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `plugin-name` | Yes | Target plugin (e.g., "rd", "wt") |
-| `skill-name` | Yes | Skill name (lowercase-hyphens, ≤64 chars) |
-| `template-type` | No | `basic` (default), `complete`, `workflow`, `analysis` |
+| Argument        | Required | Description                                           |
+| --------------- | -------- | ----------------------------------------------------- |
+| `plugin-name`   | Yes      | Target plugin (e.g., "rd", "wt")                      |
+| `skill-name`    | Yes      | Skill name (lowercase-hyphens, ≤64 chars)             |
+| `template-type` | No       | `basic` (default), `complete`, `workflow`, `analysis` |
 
 ## Templates
 
-| Template | Use When | Structure |
-|----------|----------|-----------|
-| **basic** | Simple, focused task | SKILL.md |
-| **complete** | Complex domain with docs | SKILL.md, REFERENCE.md, EXAMPLES.md, scripts/ |
-| **workflow** | Multi-stage with validation | SKILL.md (staged) |
-| **analysis** | Investigation/review task | SKILL.md (framework) |
+| Template     | Use When                    | Structure                                     |
+| ------------ | --------------------------- | --------------------------------------------- |
+| **basic**    | Simple, focused task        | SKILL.md                                      |
+| **complete** | Complex domain with docs    | SKILL.md, REFERENCE.md, EXAMPLES.md, scripts/ |
+| **workflow** | Multi-stage with validation | SKILL.md (staged)                             |
+| **analysis** | Investigation/review task   | SKILL.md (framework)                          |
 
 **Decision Guide:**
+
 - Claude already knows most of this? → `basic`
 - Need detailed API docs or edge cases? → `complete`
 - Multi-step process with validation? → `workflow`
@@ -47,11 +49,11 @@ Create a new Claude Code Agent Skill with proper structure and templates.
 
 ## Validation Rules
 
-| Rule | Valid | Invalid |
-|------|-------|---------|
-| Format | `code-review`, `api-docs-v2` | `Code_Review`, `api.docs` |
-| Length | ≤64 characters | Longer names |
-| Reserved | - | Contains `anthropic`, `claude` |
+| Rule     | Valid                        | Invalid                        |
+| -------- | ---------------------------- | ------------------------------ |
+| Format   | `code-review`, `api-docs-v2` | `Code_Review`, `api.docs`      |
+| Length   | ≤64 characters               | Longer names                   |
+| Reserved | -                            | Contains `anthropic`, `claude` |
 
 ## Next Steps After Creation
 
@@ -74,12 +76,12 @@ Create a new Claude Code Agent Skill with proper structure and templates.
 
 ## Troubleshooting
 
-| Error | Solution |
-|-------|----------|
-| Invalid name | Use lowercase, numbers, hyphens only |
-| Name too long | ≤64 characters |
-| Already exists | Choose different name |
-| Plugin not found | Verify plugin name |
+| Error            | Solution                             |
+| ---------------- | ------------------------------------ |
+| Invalid name     | Use lowercase, numbers, hyphens only |
+| Name too long    | ≤64 characters                       |
+| Already exists   | Choose different name                |
+| Plugin not found | Verify plugin name                   |
 
 ## See Also
 
