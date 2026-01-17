@@ -10,8 +10,9 @@ description: |
   </example>
 
 tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch]
-model: sonnet
-color: purple
+skills: [super-coder]
+model: Opus
+color: burgundy
 ---
 
 # 1. METADATA
