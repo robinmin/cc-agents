@@ -1,5 +1,6 @@
 ---
 description: Improve skill quality using cc-skills meta-skill best practices
+skills: [cc-skills]
 argument-hint: <skill-folder>
 ---
 
@@ -16,8 +17,8 @@ Improve skill quality: clarity, conciseness, structure, activation, and complian
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument         | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
 | `<skill-folder>` | Path to skill directory (relative, absolute, or name only) |
 
 ## Workflow
@@ -31,12 +32,14 @@ Improve skill quality: clarity, conciseness, structure, activation, and complian
 ## Analysis Checklist
 
 ### Structure
+
 - [ ] Frontmatter valid (name ≤64, description ≤1024 chars)
 - [ ] SKILL.md under 500 lines
 - [ ] References one level deep
 - [ ] Forward slashes (not Windows paths)
 
 ### Content
+
 - [ ] Description: what + when to use
 - [ ] No time-sensitive info
 - [ ] Consistent terminology
@@ -44,18 +47,19 @@ Improve skill quality: clarity, conciseness, structure, activation, and complian
 - [ ] Clear workflows
 
 ### Code (if scripts exist)
+
 - [ ] Error handling
 - [ ] No magic numbers
 - [ ] Dependencies listed
 
 ## Issue Priority
 
-| Priority | Examples | Action |
-|----------|----------|--------|
-| **Critical** | Invalid frontmatter, name >64 chars | Fix immediately |
-| **High** | >500 lines, unclear activation | Reduce/clarify |
-| **Medium** | Missing examples, inconsistent terms | Add/standardize |
-| **Low** | Organization improvements | When time permits |
+| Priority     | Examples                             | Action            |
+| ------------ | ------------------------------------ | ----------------- |
+| **Critical** | Invalid frontmatter, name >64 chars  | Fix immediately   |
+| **High**     | >500 lines, unclear activation       | Reduce/clarify    |
+| **Medium**   | Missing examples, inconsistent terms | Add/standardize   |
+| **Low**      | Organization improvements            | When time permits |
 
 ## Refinement Patterns
 
@@ -72,14 +76,14 @@ Improve skill quality: clarity, conciseness, structure, activation, and complian
 
 ### Adding Examples
 
-```diff
+````diff
 - Validate the input data before processing.
 + **Input Validation:**
 + ```python
 + if not all(k in data for k in ['name', 'email']):
 +     raise ValidationError("Missing required fields")
 + ```
-```
+````
 
 ### Terminology Consistency
 
@@ -125,6 +129,7 @@ Step 4: Validation
 ## Interactive Mode
 
 Claude may ask:
+
 - "Move advanced topics to REFERENCE.md?"
 - "Standardize on 'endpoint' or 'URL'?"
 - "Ready to apply changes? [y/n]"
