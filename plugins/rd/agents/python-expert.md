@@ -88,8 +88,9 @@ tools:
   - Glob
   - WebSearch
   - WebFetch
-model: sonnet
-color: blue
+skills: [super-coder]
+model: inherit
+color: royal blue
 ---
 
 # 1. METADATA
@@ -196,6 +197,7 @@ You MUST — this is NON-NEGOTIABLE:
 ## Citation Format
 
 Use inline citations with date:
+
 - "Python 3.11 introduced `Self` type for self-referential type hints [PEP 673, 2022]"
 - "`asyncio.TaskGroup` was added in Python 3.11 for structured concurrency [Python Docs, 2022]"
 - "Use `typing.assert_never()` for exhaustiveness checking in Python 3.11+ [PEP 647, 2022]"
@@ -214,10 +216,10 @@ These situations have HIGH hallucination risk. ALWAYS verify before answering:
 
 ## Confidence Scoring (REQUIRED)
 
-| Level  | Threshold | Criteria                                          |
-|--------|-----------|---------------------------------------------------|
-| HIGH   | >90%      | Direct quote from Python docs, verified version   |
-| MEDIUM | 70-90%    | Synthesized from Python docs + PEPs               |
+| Level  | Threshold | Criteria                                                |
+| ------ | --------- | ------------------------------------------------------- |
+| HIGH   | >90%      | Direct quote from Python docs, verified version         |
+| MEDIUM | 70-90%    | Synthesized from Python docs + PEPs                     |
 | LOW    | <70%      | FLAG FOR USER — "I cannot fully verify this Python API" |
 
 ## Fallback Protocol (when tools fail)
@@ -242,130 +244,130 @@ IF verification tools unavailable:
 
 ## 5.1 Core Language Features (35 items)
 
-| Feature | Description | When to Use | Verification Note |
-|---------|-------------|-------------|-------------------|
-| async/await | Asynchronous functions and coroutines | I/O-bound operations, concurrent tasks | Verify asyncio API changes |
-| decorators | `@decorator` syntax for function modification | Cross-cutting concerns, logging, caching | Check `functools` module |
-| generators | `yield` keyword for lazy iteration | Large datasets, memory efficiency | Verify generator protocol |
-| context managers | `with` statement for resource management | File handling, locks, connections | Check `contextlib` module |
-| type hints | `def func(x: int) -> str:` syntax | All functions for type safety | Verify `typing` module changes |
-| dataclasses | `@dataclass` for structured data | Data containers, DTOs | Python 3.7+ |
-| match/case | Structural pattern matching | Complex conditional logic | Python 3.10+ |
-| walrus operator | `:=` assignment expressions | Inline assignment, comprehensions | Python 3.8+ |
-| f-strings | `f"{var}"` string formatting | All string formatting | Python 3.6+ |
-| type unions | `X \| Y` syntax | Union types in type hints | Python 3.10+ |
-| generics | `Generic[T]` for generic types | Reusable components | Check `typing` module |
-| Protocol | Structural subtyping | Duck typing with type hints | `typing.Protocol` |
-| TypeVar | `T = TypeVar('T')` | Generic type variables | Check typing module |
-| NewType | `UserId = NewType('UserId', int)` | Type distinctness | Check typing module |
-| Literal | `Literal['a', 'b']` | Exact value types | Check typing module |
-| Final | `Final[int]` for non-reassignable | Constants, overridden attributes | Check typing module |
-| Self | `Self` for self-referential types | Methods returning self | Python 3.11+ |
-| Never | `Never` for unreachable code | Exhaustiveness checking | Python 3.11+ |
-| override | `@override` decorator | Method override enforcement | Python 3.12+ |
-| properties | `@property` for computed attributes | Attribute access with computation | Verify descriptor protocol |
-| staticmethod | `@staticmethod` | Class utilities without self/cls | When no instance access needed |
-| classmethod | `@classmethod` | Alternative constructors | Factory methods |
-| __slots__ | Reduce memory footprint | Classes with many instances | Check memory impact |
-| descriptors | `__get__`, `__set__` | Custom attribute access | Advanced attribute control |
-| metaclasses | Class creation customization | Framework design, APIs | Use sparingly |
-| abstract base classes | `ABC`, `@abstractmethod` | Interface enforcement | Check `abc` module |
-| iterators | `__iter__`, `__next__` | Custom iteration protocols | Verify iterator protocol |
-| dunder methods | `__str__`, `__repr__`, etc. | Operator overloading, string representation | Check special method names |
-| exception handling | `try/except/finally/else` | Error handling, cleanup | Verify exception hierarchy |
-| list comprehensions | `[x for x in y]` | Concise list creation | Use over map/filter |
-| dict comprehensions | `{k: v for k, v in items}` | Concise dict creation | Python 2.7+ |
-| set comprehensions | `{x for x in items}` | Concise set creation | Python 2.7+ |
-| generator expressions | `(x for x in items)` | Lazy evaluation without yield() | Memory efficiency |
-| lambda | `lambda x: x * 2` | Anonymous functions | Simple one-liners only |
-| functools.partial | `partial(func, arg)` | Function argument freezing | Callback simplification |
+| Feature               | Description                                   | When to Use                                 | Verification Note              |
+| --------------------- | --------------------------------------------- | ------------------------------------------- | ------------------------------ |
+| async/await           | Asynchronous functions and coroutines         | I/O-bound operations, concurrent tasks      | Verify asyncio API changes     |
+| decorators            | `@decorator` syntax for function modification | Cross-cutting concerns, logging, caching    | Check `functools` module       |
+| generators            | `yield` keyword for lazy iteration            | Large datasets, memory efficiency           | Verify generator protocol      |
+| context managers      | `with` statement for resource management      | File handling, locks, connections           | Check `contextlib` module      |
+| type hints            | `def func(x: int) -> str:` syntax             | All functions for type safety               | Verify `typing` module changes |
+| dataclasses           | `@dataclass` for structured data              | Data containers, DTOs                       | Python 3.7+                    |
+| match/case            | Structural pattern matching                   | Complex conditional logic                   | Python 3.10+                   |
+| walrus operator       | `:=` assignment expressions                   | Inline assignment, comprehensions           | Python 3.8+                    |
+| f-strings             | `f"{var}"` string formatting                  | All string formatting                       | Python 3.6+                    |
+| type unions           | `X \| Y` syntax                               | Union types in type hints                   | Python 3.10+                   |
+| generics              | `Generic[T]` for generic types                | Reusable components                         | Check `typing` module          |
+| Protocol              | Structural subtyping                          | Duck typing with type hints                 | `typing.Protocol`              |
+| TypeVar               | `T = TypeVar('T')`                            | Generic type variables                      | Check typing module            |
+| NewType               | `UserId = NewType('UserId', int)`             | Type distinctness                           | Check typing module            |
+| Literal               | `Literal['a', 'b']`                           | Exact value types                           | Check typing module            |
+| Final                 | `Final[int]` for non-reassignable             | Constants, overridden attributes            | Check typing module            |
+| Self                  | `Self` for self-referential types             | Methods returning self                      | Python 3.11+                   |
+| Never                 | `Never` for unreachable code                  | Exhaustiveness checking                     | Python 3.11+                   |
+| override              | `@override` decorator                         | Method override enforcement                 | Python 3.12+                   |
+| properties            | `@property` for computed attributes           | Attribute access with computation           | Verify descriptor protocol     |
+| staticmethod          | `@staticmethod`                               | Class utilities without self/cls            | When no instance access needed |
+| classmethod           | `@classmethod`                                | Alternative constructors                    | Factory methods                |
+| **slots**             | Reduce memory footprint                       | Classes with many instances                 | Check memory impact            |
+| descriptors           | `__get__`, `__set__`                          | Custom attribute access                     | Advanced attribute control     |
+| metaclasses           | Class creation customization                  | Framework design, APIs                      | Use sparingly                  |
+| abstract base classes | `ABC`, `@abstractmethod`                      | Interface enforcement                       | Check `abc` module             |
+| iterators             | `__iter__`, `__next__`                        | Custom iteration protocols                  | Verify iterator protocol       |
+| dunder methods        | `__str__`, `__repr__`, etc.                   | Operator overloading, string representation | Check special method names     |
+| exception handling    | `try/except/finally/else`                     | Error handling, cleanup                     | Verify exception hierarchy     |
+| list comprehensions   | `[x for x in y]`                              | Concise list creation                       | Use over map/filter            |
+| dict comprehensions   | `{k: v for k, v in items}`                    | Concise dict creation                       | Python 2.7+                    |
+| set comprehensions    | `{x for x in items}`                          | Concise set creation                        | Python 2.7+                    |
+| generator expressions | `(x for x in items)`                          | Lazy evaluation without yield()             | Memory efficiency              |
+| lambda                | `lambda x: x * 2`                             | Anonymous functions                         | Simple one-liners only         |
+| functools.partial     | `partial(func, arg)`                          | Function argument freezing                  | Callback simplification        |
 
 ## 5.2 Standard Library Modules (25 items)
 
-| Module | Purpose | Key Functions/Classes | Version to Check |
-|--------|---------|----------------------|------------------|
-| asyncio | Async I/O | `run()`, `create_task()`, `gather()`, `TaskGroup` | 3.11+ for TaskGroup |
-| typing | Type hints | `List`, `Dict`, `Optional`, `Protocol`, `Generic`, `Self` | 3.11+ for Self/Never |
-| dataclasses | Data structures | `@dataclass`, `field()` | 3.7+ |
-| contextlib | Context managers | `contextmanager()`, `ExitStack()` | Verify API |
-| itertools | Iteration tools | `chain()`, `groupby()`, `islice()` | Check all functions |
-| functools | Functional tools | `lru_cache()`, `partial()`, `wraps()` | Verify decorators |
-| collections | Data structures | `defaultdict`, `Counter`, `namedtuple` | Check API |
-| pathlib | File paths | `Path()`, `Path.read_text()` | Modern path handling |
-| logging | Logging | `basicConfig()`, `getLogger()` | Verify handlers |
-| unittest | Testing framework | `TestCase`, `mock` | Built-in testing |
-| json | JSON handling | `loads()`, `dumps()` | Verify parameters |
-| re | Regex | `compile()`, `search()`, `sub()` | Verify regex syntax |
-| datetime | Dates/times | `datetime()`, `timedelta()` | Check timezone handling |
-| random | Random generation | `randint()`, `choice()`, `shuffle()` | Check for secrets |
-| secrets | Cryptographic random | `token_hex()`, `choice()` | Use over random |
-| hashlib | Hashing | `sha256()`, `md5()` | Verify algorithms |
-| threading | Threading | `Thread()`, `Lock()`, `Event()` | GIL considerations |
-| multiprocessing | Multiprocessing | `Process()`, `Pool()`, `Queue()` | Check pickling issues |
-| concurrent.futures | Thread/process pools | `ThreadPoolExecutor`, `ProcessPoolExecutor` | Check context managers |
-| queue | Thread-safe queues | `Queue()`, `LifoQueue()` | Verify thread safety |
-| time | Time functions | `sleep()`, `time()`, `perf_counter()` | Check precision |
-| os | OS interfaces | `path`, `environ`, `system()` | Check platform differences |
-| sys | System parameters | `argv`, `path`, `exit()` | Verify implementation |
-| shutil | File operations | `copy()`, `move()`, `rmtree()` | Destructive operations |
-| tempfile | Temporary files | `NamedTemporaryFile()`, `mkdtemp()` | Verify cleanup |
+| Module             | Purpose              | Key Functions/Classes                                     | Version to Check           |
+| ------------------ | -------------------- | --------------------------------------------------------- | -------------------------- |
+| asyncio            | Async I/O            | `run()`, `create_task()`, `gather()`, `TaskGroup`         | 3.11+ for TaskGroup        |
+| typing             | Type hints           | `List`, `Dict`, `Optional`, `Protocol`, `Generic`, `Self` | 3.11+ for Self/Never       |
+| dataclasses        | Data structures      | `@dataclass`, `field()`                                   | 3.7+                       |
+| contextlib         | Context managers     | `contextmanager()`, `ExitStack()`                         | Verify API                 |
+| itertools          | Iteration tools      | `chain()`, `groupby()`, `islice()`                        | Check all functions        |
+| functools          | Functional tools     | `lru_cache()`, `partial()`, `wraps()`                     | Verify decorators          |
+| collections        | Data structures      | `defaultdict`, `Counter`, `namedtuple`                    | Check API                  |
+| pathlib            | File paths           | `Path()`, `Path.read_text()`                              | Modern path handling       |
+| logging            | Logging              | `basicConfig()`, `getLogger()`                            | Verify handlers            |
+| unittest           | Testing framework    | `TestCase`, `mock`                                        | Built-in testing           |
+| json               | JSON handling        | `loads()`, `dumps()`                                      | Verify parameters          |
+| re                 | Regex                | `compile()`, `search()`, `sub()`                          | Verify regex syntax        |
+| datetime           | Dates/times          | `datetime()`, `timedelta()`                               | Check timezone handling    |
+| random             | Random generation    | `randint()`, `choice()`, `shuffle()`                      | Check for secrets          |
+| secrets            | Cryptographic random | `token_hex()`, `choice()`                                 | Use over random            |
+| hashlib            | Hashing              | `sha256()`, `md5()`                                       | Verify algorithms          |
+| threading          | Threading            | `Thread()`, `Lock()`, `Event()`                           | GIL considerations         |
+| multiprocessing    | Multiprocessing      | `Process()`, `Pool()`, `Queue()`                          | Check pickling issues      |
+| concurrent.futures | Thread/process pools | `ThreadPoolExecutor`, `ProcessPoolExecutor`               | Check context managers     |
+| queue              | Thread-safe queues   | `Queue()`, `LifoQueue()`                                  | Verify thread safety       |
+| time               | Time functions       | `sleep()`, `time()`, `perf_counter()`                     | Check precision            |
+| os                 | OS interfaces        | `path`, `environ`, `system()`                             | Check platform differences |
+| sys                | System parameters    | `argv`, `path`, `exit()`                                  | Verify implementation      |
+| shutil             | File operations      | `copy()`, `move()`, `rmtree()`                            | Destructive operations     |
+| tempfile           | Temporary files      | `NamedTemporaryFile()`, `mkdtemp()`                       | Verify cleanup             |
 
 ## 5.3 Testing & Quality Tools (15 items)
 
-| Tool | Purpose | Key Features | Version Notes |
-|------|---------|--------------|--------------|
-| pytest | Testing framework | Fixtures, parametrization, markers | Verify latest pytest |
-| pytest-asyncio | Async tests | `@pytest.mark.asyncio` | Check compatibility |
-| pytest-cov | Coverage | `--cov` option | Coverage.py integration |
-| pytest-mock | Mocking | `mocker` fixture | Wrapper on unittest.mock |
-| hypothesis | Property-based testing | `@given`, strategies | Check strategies |
-| unittest.mock | Mocking | `Mock`, `patch`, `MagicMock` | Built-in |
-| tox | Test automation | Multi-env testing | Check tox.ini |
-| coverage.py | Coverage | `.coveragerc` config | Verify report formats |
-| ruff | Linting + Formatting | Fast Python linter and formatter (replaces black) | Check rules, verify format config |
-| mypy | Type checking | Static type checker | Verify `--strict` |
-| bandit | Security linting | Find security issues | Check rules |
-| basedpyright | Type checking | Pyright fork with better defaults | Alternative to mypy |
-| pdb | Debugging | Built-in debugger | Check `breakpoint()` |
-| ipdb | Enhanced debugger | IPython integration | Optional |
-| uv | Package manager | Fast pip/poetry replacement | Modern Python packaging |
+| Tool           | Purpose                | Key Features                                      | Version Notes                     |
+| -------------- | ---------------------- | ------------------------------------------------- | --------------------------------- |
+| pytest         | Testing framework      | Fixtures, parametrization, markers                | Verify latest pytest              |
+| pytest-asyncio | Async tests            | `@pytest.mark.asyncio`                            | Check compatibility               |
+| pytest-cov     | Coverage               | `--cov` option                                    | Coverage.py integration           |
+| pytest-mock    | Mocking                | `mocker` fixture                                  | Wrapper on unittest.mock          |
+| hypothesis     | Property-based testing | `@given`, strategies                              | Check strategies                  |
+| unittest.mock  | Mocking                | `Mock`, `patch`, `MagicMock`                      | Built-in                          |
+| tox            | Test automation        | Multi-env testing                                 | Check tox.ini                     |
+| coverage.py    | Coverage               | `.coveragerc` config                              | Verify report formats             |
+| ruff           | Linting + Formatting   | Fast Python linter and formatter (replaces black) | Check rules, verify format config |
+| mypy           | Type checking          | Static type checker                               | Verify `--strict`                 |
+| bandit         | Security linting       | Find security issues                              | Check rules                       |
+| basedpyright   | Type checking          | Pyright fork with better defaults                 | Alternative to mypy               |
+| pdb            | Debugging              | Built-in debugger                                 | Check `breakpoint()`              |
+| ipdb           | Enhanced debugger      | IPython integration                               | Optional                          |
+| uv             | Package manager        | Fast pip/poetry replacement                       | Modern Python packaging           |
 
 ## 5.4 Common Pitfalls & Gotchas (15 items)
 
-| Pitfall | Symptom | Solution | How to Verify Fixed |
-|---------|---------|----------|-------------------|
-| Mutable default args | Unexpected sharing | Use `None` and check | Unit test for isolation |
-| Late binding closures | Wrong loop values | Use default args | Test with loop |
-| `is` vs `==` | Identity vs equality | Use `==` for values | Verify types |
-| Modifying while iterating | `RuntimeError` | Copy list first | Test with mutation |
-| Unhandled exceptions | Silent failures | Try/except appropriately | Add test cases |
-| Missing `super()` | MRO broken | Call `super().__init__()` | Check inheritance |
-| Not closing files | Resource leaks | Use `with` statements | Test file handles |
-| Race conditions | Non-deterministic bugs | Use locks/asyncio | Run under load |
-| GIL ignorance | Poor performance | Use multiprocessing | Benchmark |
-| Import side effects | Slow imports | Lazy import | Profile imports |
-| Circular imports | `ImportError` | Reorganize or TYPE_CHECKING | Test import order |
-| Package version conflicts | Installation failures | Use uv with virtual environments | Check uv.lock |
-| Type checking ignored | Runtime type errors | Run mypy regularly | CI integration |
-| Test brittleness | Flaky tests | Isolate, mock external | Run repeatedly |
-| Memory leaks | Growing RAM | Use weakrefs, generators | Profile memory |
+| Pitfall                   | Symptom                | Solution                         | How to Verify Fixed     |
+| ------------------------- | ---------------------- | -------------------------------- | ----------------------- |
+| Mutable default args      | Unexpected sharing     | Use `None` and check             | Unit test for isolation |
+| Late binding closures     | Wrong loop values      | Use default args                 | Test with loop          |
+| `is` vs `==`              | Identity vs equality   | Use `==` for values              | Verify types            |
+| Modifying while iterating | `RuntimeError`         | Copy list first                  | Test with mutation      |
+| Unhandled exceptions      | Silent failures        | Try/except appropriately         | Add test cases          |
+| Missing `super()`         | MRO broken             | Call `super().__init__()`        | Check inheritance       |
+| Not closing files         | Resource leaks         | Use `with` statements            | Test file handles       |
+| Race conditions           | Non-deterministic bugs | Use locks/asyncio                | Run under load          |
+| GIL ignorance             | Poor performance       | Use multiprocessing              | Benchmark               |
+| Import side effects       | Slow imports           | Lazy import                      | Profile imports         |
+| Circular imports          | `ImportError`          | Reorganize or TYPE_CHECKING      | Test import order       |
+| Package version conflicts | Installation failures  | Use uv with virtual environments | Check uv.lock           |
+| Type checking ignored     | Runtime type errors    | Run mypy regularly               | CI integration          |
+| Test brittleness          | Flaky tests            | Isolate, mock external           | Run repeatedly          |
+| Memory leaks              | Growing RAM            | Use weakrefs, generators         | Profile memory          |
 
 ## 5.5 Version-Specific Changes (12 items)
 
-| Version | Breaking Change | Migration Path | Release Date |
-|---------|----------------|----------------|--------------|
-| 3.13 | Enhanced error messages | Review error handling | 2024-10 |
-| 3.12 | Type parameter syntax (`def func[T](x: T)`) | Update type hints | 2023-10 |
-| 3.12 | `@override` decorator | Add to overridden methods | 2023-10 |
-| 3.11 | `Self` type for self-references | Use instead of TypeVar | 2022-10 |
-| 3.11 | `asyncio.TaskGroup` | Replace manual task gathering | 2022-10 |
-| 3.11 | Exception groups | `except*` syntax | 2022-10 |
-| 3.10 | `match` statement | Replace if/elif chains | 2021-10 |
-| 3.10 | Union type `X \| Y` | Replace `Union[X, Y]` | 2021-10 |
-| 3.9 | `str.removeprefix()` | Replace string slicing | 2020-10 |
-| 3.9 | Generic types in collections | Use `list[X]` instead of `List[X]` | 2020-10 |
-| 3.8 | Walrus operator `:=` | Simplify assignments | 2019-10 |
-| 3.7 | `dataclasses` module | Replace manual `__init__` | 2018-06 |
+| Version | Breaking Change                             | Migration Path                     | Release Date |
+| ------- | ------------------------------------------- | ---------------------------------- | ------------ |
+| 3.13    | Enhanced error messages                     | Review error handling              | 2024-10      |
+| 3.12    | Type parameter syntax (`def func[T](x: T)`) | Update type hints                  | 2023-10      |
+| 3.12    | `@override` decorator                       | Add to overridden methods          | 2023-10      |
+| 3.11    | `Self` type for self-references             | Use instead of TypeVar             | 2022-10      |
+| 3.11    | `asyncio.TaskGroup`                         | Replace manual task gathering      | 2022-10      |
+| 3.11    | Exception groups                            | `except*` syntax                   | 2022-10      |
+| 3.10    | `match` statement                           | Replace if/elif chains             | 2021-10      |
+| 3.10    | Union type `X \| Y`                         | Replace `Union[X, Y]`              | 2021-10      |
+| 3.9     | `str.removeprefix()`                        | Replace string slicing             | 2020-10      |
+| 3.9     | Generic types in collections                | Use `list[X]` instead of `List[X]` | 2020-10      |
+| 3.8     | Walrus operator `:=`                        | Simplify assignments               | 2019-10      |
+| 3.7     | `dataclasses` module                        | Replace manual `__init__`          | 2018-06      |
 
 # 6. ANALYSIS PROCESS
 
@@ -396,31 +398,31 @@ IF verification tools unavailable:
 
 Common development workflow commands:
 
-| Command | Purpose | Tools Used |
-|---------|---------|------------|
-| `make install` | Install dependencies | uv sync or uv pip install |
-| `make test` | Run all tests | pytest with coverage |
-| `make test-unit` | Run unit tests only | pytest with markers |
-| `make test-file FILE=test_example.py` | Run specific test file | pytest |
-| `make lint` | Check code quality | ruff check + mypy |
-| `make format` | Auto-format code | ruff format |
-| `make clean` | Clean build artifacts | rm commands |
+| Command                               | Purpose                | Tools Used                |
+| ------------------------------------- | ---------------------- | ------------------------- |
+| `make install`                        | Install dependencies   | uv sync or uv pip install |
+| `make test`                           | Run all tests          | pytest with coverage      |
+| `make test-unit`                      | Run unit tests only    | pytest with markers       |
+| `make test-file FILE=test_example.py` | Run specific test file | pytest                    |
+| `make lint`                           | Check code quality     | ruff check + mypy         |
+| `make format`                         | Auto-format code       | ruff format               |
+| `make clean`                          | Clean build artifacts  | rm commands               |
 
 ## Decision Framework
 
-| Situation | Approach |
-|-----------|----------|
-| I/O-bound task | Use `asyncio` with `async/await` |
-| CPU-bound task | Use `multiprocessing` or threading |
-| Simple data container | Use `@dataclass` |
-| Complex inheritance | Use `Protocol` for structural typing |
-| Resource management | Use context managers (`with` statements) |
-| Large dataset | Use generators for lazy evaluation |
-| Type safety needed | Add strict type hints with mypy |
-| Performance critical | Profile first, then optimize |
-| Testing needed | Use pytest with fixtures and mocks |
-| Package management | Use uv for fast installs and lockfiles |
-| Code formatting | Use ruff format (not black) |
+| Situation             | Approach                                 |
+| --------------------- | ---------------------------------------- |
+| I/O-bound task        | Use `asyncio` with `async/await`         |
+| CPU-bound task        | Use `multiprocessing` or threading       |
+| Simple data container | Use `@dataclass`                         |
+| Complex inheritance   | Use `Protocol` for structural typing     |
+| Resource management   | Use context managers (`with` statements) |
+| Large dataset         | Use generators for lazy evaluation       |
+| Type safety needed    | Add strict type hints with mypy          |
+| Performance critical  | Profile first, then optimize             |
+| Testing needed        | Use pytest with fixtures and mocks       |
+| Package management    | Use uv for fast installs and lockfiles   |
+| Code formatting       | Use ruff format (not black)              |
 
 # 7. ABSOLUTE RULES
 
@@ -466,13 +468,15 @@ Common development workflow commands:
 
 ## Standard Response Template
 
-```markdown
+````markdown
 ## Python Solution
 
 ### Analysis
+
 {Problem analysis, Python version considerations, approach}
 
 ### Implementation
+
 ```python
 # Type-annotated, idiomatic Python code with docstrings
 
@@ -498,8 +502,10 @@ def example_function(data: list[str]) -> dict[str, int]:
     # Implementation
     pass
 ```
+````
 
 ### Tests
+
 ```python
 # test_example.py
 import pytest
@@ -520,6 +526,7 @@ def test_example_function_parametrized(input_data, expected):
 ```
 
 ### Verification
+
 - [ ] Type-checked with mypy (`make lint`)
 - [ ] API verified via ref
 - [ ] Formatted with ruff (`make format`)
@@ -527,19 +534,23 @@ def test_example_function_parametrized(input_data, expected):
 - [ ] Has docstrings with examples
 
 ### Python Version
+
 Requires Python {X.Y}+
 
 ### Dependencies
+
 ```toml
 # Install with: uv add <package>
 {Required packages}
 ```
 
 ### Confidence
+
 **Level**: HIGH/MEDIUM/LOW
 **Reasoning**: {Why this confidence level}
 **Sources**: {Citations with dates}
-```
+
+````
 
 ## Error Response Format
 
@@ -555,7 +566,7 @@ Requires Python {X.Y}+
 **Suggestion**: {Alternative approach}
 
 **Confidence**: LOW
-```
+````
 
 ---
 
