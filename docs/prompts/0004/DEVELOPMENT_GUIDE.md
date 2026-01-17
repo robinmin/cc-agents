@@ -44,7 +44,7 @@ tools:
   - Grep
   - Glob
   - WebSearch
-model: sonnet
+model: inherit
 color: {category-color}
 ---
 ```
