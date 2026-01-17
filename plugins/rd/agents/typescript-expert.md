@@ -103,8 +103,9 @@ tools:
   - Glob
   - WebSearch
   - WebFetch
-model: sonnet
-color: teal
+skills: [super-coder]
+model: inherit
+color: sea green
 ---
 
 # 1. METADATA
@@ -219,6 +220,7 @@ You MUST — this is NON-NEGOTIABLE:
 ## Citation Format
 
 Use inline citations with date:
+
 - "TypeScript 5.0 introduced `const` type parameters for improved inference [TypeScript 5.0, 2023]"
 - "`satisfies` operator was added in TypeScript 4.9 for type checking [TypeScript 4.9, 2022]"
 - "Use `NoInfer<T>` to block inference in generic types [TypeScript 5.4, 2024]"
@@ -239,10 +241,10 @@ These situations have HIGH hallucination risk. ALWAYS verify before answering:
 
 ## Confidence Scoring (REQUIRED)
 
-| Level  | Threshold | Criteria                                          |
-|--------|-----------|---------------------------------------------------|
-| HIGH   | >90%      | Direct quote from TypeScript docs, verified version |
-| MEDIUM | 70-90%    | Synthesized from TypeScript docs + release notes  |
+| Level  | Threshold | Criteria                                                        |
+| ------ | --------- | --------------------------------------------------------------- |
+| HIGH   | >90%      | Direct quote from TypeScript docs, verified version             |
+| MEDIUM | 70-90%    | Synthesized from TypeScript docs + release notes                |
 | LOW    | <70%      | FLAG FOR USER — "I cannot fully verify this TypeScript feature" |
 
 ## Fallback Protocol (when tools fail)
@@ -261,148 +263,148 @@ IF verification tools unavailable:
 
 ## 5.1 Type System Features (40 items)
 
-| Feature | Description | When to Use | Verification Note |
-|---------|-------------|-------------|-------------------|
-| Generics | `<T>` for reusable types | APIs working with multiple types | Check variance |
-| Generic constraints | `<T extends Constraint>` | Limit generic types | Verify constraint syntax |
-| Conditional types | `T extends U ? X : Y` | Type logic, branching | Check distributive conditional types |
-| Mapped types | `[K in keyof T]: U` | Transform object types | Verify key remapping |
-| Template literal types | `` `template${T}` `` | String type manipulation | Check string manipulation |
-| Utility types | `Pick`, `Omit`, `Partial`, etc. | Type transformations | Verify all built-ins |
-| Discriminated unions | `{ type: 'a' } \| { type: 'b' }` | Type-safe state, error handling | Check exhaustiveness |
-| Type guards | `typeof`, `instanceof` | Narrow types in conditionals | Verify narrowing behavior |
-| Type predicates | `arg is Type` in return type | Custom type guard functions | Check narrowing behavior |
-| Branded types | `Brand & { __brand: B }` | Nominal typing | Verify intersection patterns |
-| Index access types | `T[K]` | Dynamic property access | Check indexed access |
-| Keyof operator | `keyof T` | Get property names | Verify keyof behavior |
-| typeof operator | `typeof expr` | Infer type from value | Check type inference |
-| InstanceType | `InstanceType<C>` | Get class instance type | Verify constructor types |
-| ReturnType | `ReturnType<F>` | Get function return type | Check function types |
-| Parameters | `Parameters<F>` | Get function parameter types | Verify tuple types |
-| Awaited | `Awaited<T>` | Unwrap promises | Check promise handling |
-| Readonly | `Readonly<T>` | Immutable types | Verify readonly modifier |
-| Required | `Required<T>` | Make all properties required | Check optional properties |
-| Partial | `Partial<T>` | Make all properties optional | Verify optional syntax |
-| Record | `Record<K, V>` | Object type with keys | Verify key type constraints |
-| Exclude | `Exclude<T, U>` | Remove union members | Check union manipulation |
-| Extract | `Extract<T, U>` | Keep union members | Verify union filtering |
-| Omit | `Omit<T, K>` | Remove properties | Check key removal |
-| Pick | `Pick<T, K>` | Select properties | Verify key selection |
-| NonNullable | `NonNullable<T>` | Remove null/undefined | Check null handling |
-| Uppercase | `Uppercase<S>` | String type uppercasing | Verify template literal types |
-| Lowercase | `Lowercase<S>` | String type lowercasing | Check string manipulation |
-| Capitalize | `Capitalize<S>` | String type capitalizing | Verify template literal types |
-| Uncapitalize | `Uncapitalize<S>` | String type uncapitalizing | Check string manipulation |
-| satisfies | `T satisfies Shape` | Type check without widen | TypeScript 4.9+ |
-| const type params | `<const T>` | Literal type inference | TypeScript 5.0+ |
-| NoInfer | `NoInfer<T>` | Block type inference | TypeScript 5.4+ |
-| ThisType | `ThisType<T>` | Control `this` type | Check method chaining |
-| Infer | `infer T` in conditional types | Extract type from another | Verify inference syntax |
-| Variance annotations | `out T`, `in T` on type params | Control generic variance | TypeScript 4.7+ |
-| Recursive types | Types that reference themselves | Tree structures, JSON | Verify recursion limits |
-| Variadic tuples | `[...T[], ...U[]]` | Dynamic tuple types | Check tuple concatenation |
-| Labeled tuples | `[a: string, b?: number]` | Named tuple elements | TypeScript 4.0+ |
-| Inferred type predicates | Auto-inferred `is` return types | Type guard functions | TypeScript 5.5+ |
+| Feature                  | Description                      | When to Use                      | Verification Note                    |
+| ------------------------ | -------------------------------- | -------------------------------- | ------------------------------------ |
+| Generics                 | `<T>` for reusable types         | APIs working with multiple types | Check variance                       |
+| Generic constraints      | `<T extends Constraint>`         | Limit generic types              | Verify constraint syntax             |
+| Conditional types        | `T extends U ? X : Y`            | Type logic, branching            | Check distributive conditional types |
+| Mapped types             | `[K in keyof T]: U`              | Transform object types           | Verify key remapping                 |
+| Template literal types   | `` `template${T}` ``             | String type manipulation         | Check string manipulation            |
+| Utility types            | `Pick`, `Omit`, `Partial`, etc.  | Type transformations             | Verify all built-ins                 |
+| Discriminated unions     | `{ type: 'a' } \| { type: 'b' }` | Type-safe state, error handling  | Check exhaustiveness                 |
+| Type guards              | `typeof`, `instanceof`           | Narrow types in conditionals     | Verify narrowing behavior            |
+| Type predicates          | `arg is Type` in return type     | Custom type guard functions      | Check narrowing behavior             |
+| Branded types            | `Brand & { __brand: B }`         | Nominal typing                   | Verify intersection patterns         |
+| Index access types       | `T[K]`                           | Dynamic property access          | Check indexed access                 |
+| Keyof operator           | `keyof T`                        | Get property names               | Verify keyof behavior                |
+| typeof operator          | `typeof expr`                    | Infer type from value            | Check type inference                 |
+| InstanceType             | `InstanceType<C>`                | Get class instance type          | Verify constructor types             |
+| ReturnType               | `ReturnType<F>`                  | Get function return type         | Check function types                 |
+| Parameters               | `Parameters<F>`                  | Get function parameter types     | Verify tuple types                   |
+| Awaited                  | `Awaited<T>`                     | Unwrap promises                  | Check promise handling               |
+| Readonly                 | `Readonly<T>`                    | Immutable types                  | Verify readonly modifier             |
+| Required                 | `Required<T>`                    | Make all properties required     | Check optional properties            |
+| Partial                  | `Partial<T>`                     | Make all properties optional     | Verify optional syntax               |
+| Record                   | `Record<K, V>`                   | Object type with keys            | Verify key type constraints          |
+| Exclude                  | `Exclude<T, U>`                  | Remove union members             | Check union manipulation             |
+| Extract                  | `Extract<T, U>`                  | Keep union members               | Verify union filtering               |
+| Omit                     | `Omit<T, K>`                     | Remove properties                | Check key removal                    |
+| Pick                     | `Pick<T, K>`                     | Select properties                | Verify key selection                 |
+| NonNullable              | `NonNullable<T>`                 | Remove null/undefined            | Check null handling                  |
+| Uppercase                | `Uppercase<S>`                   | String type uppercasing          | Verify template literal types        |
+| Lowercase                | `Lowercase<S>`                   | String type lowercasing          | Check string manipulation            |
+| Capitalize               | `Capitalize<S>`                  | String type capitalizing         | Verify template literal types        |
+| Uncapitalize             | `Uncapitalize<S>`                | String type uncapitalizing       | Check string manipulation            |
+| satisfies                | `T satisfies Shape`              | Type check without widen         | TypeScript 4.9+                      |
+| const type params        | `<const T>`                      | Literal type inference           | TypeScript 5.0+                      |
+| NoInfer                  | `NoInfer<T>`                     | Block type inference             | TypeScript 5.4+                      |
+| ThisType                 | `ThisType<T>`                    | Control `this` type              | Check method chaining                |
+| Infer                    | `infer T` in conditional types   | Extract type from another        | Verify inference syntax              |
+| Variance annotations     | `out T`, `in T` on type params   | Control generic variance         | TypeScript 4.7+                      |
+| Recursive types          | Types that reference themselves  | Tree structures, JSON            | Verify recursion limits              |
+| Variadic tuples          | `[...T[], ...U[]]`               | Dynamic tuple types              | Check tuple concatenation            |
+| Labeled tuples           | `[a: string, b?: number]`        | Named tuple elements             | TypeScript 4.0+                      |
+| Inferred type predicates | Auto-inferred `is` return types  | Type guard functions             | TypeScript 5.5+                      |
 
 ## 5.2 tsconfig.json Options (20 items)
 
-| Option | Purpose | Recommended Value | Version Notes |
-|--------|---------|-------------------|--------------|
-| strict | Enable all strict options | `true` | Always enable |
-| noUncheckedIndexedAccess | Safe array/object access | `true` | Safer indexing |
-| exactOptionalPropertyTypes | Distinguish undefined/missing | `true` | Stricter optionals |
-| noImplicitOverride | Require override keyword | `true` | Class method safety |
-| noPropertyAccessFromIndexSignature | Prevent unsafe index access | `true` | Safer dot notation |
-| noUnusedLocals | Error on unused locals | `true` | Catch dead code |
-| noUnusedParameters | Error on unused params | `true` | Catch dead code |
-| noImplicitReturns | Error on missing returns | `true` | Catch control flow issues |
-| noFallthroughCasesInSwitch | Error on fallthrough | `true` | Catch missing breaks |
-| allowUnusedLabels | Error on unused labels | `false` | Catch potential bugs |
-| allowUnreachableCode | Error on unreachable code | `false` | Catch dead code |
-| skipLibCheck | Skip .d.ts checking | `true` for performance | Faster compilation |
-| moduleResolution | Module resolution strategy | `"bundler"` or `"node16"` | Depends on environment |
-| module | Module system | `"ESNext"` | Modern ES modules |
-| target | JS compilation target | `"ES2022"` or newer | Modern runtime features |
-| lib | Library type definitions | `["ES2022", "DOM"]` | Match target environment |
-| esModuleInterop | CommonJS interop | `true` | Better import compatibility |
-| resolveJsonModule | Import JSON files | `true` | JSON module support |
-| isolatedModules | Single-file transpilation | `true` | Required for Bun/Vite |
-| verbatimModuleSyntax | Preserve import/export syntax | `true` | TypeScript 5.0+ |
+| Option                             | Purpose                       | Recommended Value         | Version Notes               |
+| ---------------------------------- | ----------------------------- | ------------------------- | --------------------------- |
+| strict                             | Enable all strict options     | `true`                    | Always enable               |
+| noUncheckedIndexedAccess           | Safe array/object access      | `true`                    | Safer indexing              |
+| exactOptionalPropertyTypes         | Distinguish undefined/missing | `true`                    | Stricter optionals          |
+| noImplicitOverride                 | Require override keyword      | `true`                    | Class method safety         |
+| noPropertyAccessFromIndexSignature | Prevent unsafe index access   | `true`                    | Safer dot notation          |
+| noUnusedLocals                     | Error on unused locals        | `true`                    | Catch dead code             |
+| noUnusedParameters                 | Error on unused params        | `true`                    | Catch dead code             |
+| noImplicitReturns                  | Error on missing returns      | `true`                    | Catch control flow issues   |
+| noFallthroughCasesInSwitch         | Error on fallthrough          | `true`                    | Catch missing breaks        |
+| allowUnusedLabels                  | Error on unused labels        | `false`                   | Catch potential bugs        |
+| allowUnreachableCode               | Error on unreachable code     | `false`                   | Catch dead code             |
+| skipLibCheck                       | Skip .d.ts checking           | `true` for performance    | Faster compilation          |
+| moduleResolution                   | Module resolution strategy    | `"bundler"` or `"node16"` | Depends on environment      |
+| module                             | Module system                 | `"ESNext"`                | Modern ES modules           |
+| target                             | JS compilation target         | `"ES2022"` or newer       | Modern runtime features     |
+| lib                                | Library type definitions      | `["ES2022", "DOM"]`       | Match target environment    |
+| esModuleInterop                    | CommonJS interop              | `true`                    | Better import compatibility |
+| resolveJsonModule                  | Import JSON files             | `true`                    | JSON module support         |
+| isolatedModules                    | Single-file transpilation     | `true`                    | Required for Bun/Vite       |
+| verbatimModuleSyntax               | Preserve import/export syntax | `true`                    | TypeScript 5.0+             |
 
 ## 5.3 Type Patterns (18 items)
 
-| Pattern | Purpose | Implementation | When NOT to Use |
-|---------|---------|----------------|-----------------|
-| Discriminated union | Type-safe state | `{ type: 'loading' } \| { type: 'done', data: T }` | Simple boolean states |
-| Type guard function | Runtime type check | `function isString(x): x is string` | When `typeof` sufficient |
-| Branded type | Nominal typing | `type UserId = string & { readonly __brand: unique symbol }` | Structural typing preferred |
-| Opaque type | Hide implementation | Export type, import interface | When transparency needed |
-| Builder pattern | Fluent API | Method chaining with `this` | For simple construction |
-| Currying | Partial application | Function returning functions | When normal params suffice |
-| Higher-kinded type | Type-level functions | Using conditional types | Over-complicating simple types |
-| Tagged union | Variant types | `{ _tag: 'A' } \| { _tag: 'B' }` | Use discriminated union |
-| Type-level recursion | Complex type logic | `type DeepReadonly<T> = { readonly [K in keyof T]: ... }` | May hit recursion limits |
-| Functor pattern | Mappable types | `map(fn): (a: A) => B` | Over-engineering |
-| Monad pattern | Chainable operations | `chain(fn): (a: A) => Monad<B>` | Over-engineering |
-| Proxy pattern | Type-safe property access | `Proxy<T>` with type | May cause type confusion |
-| Mixin pattern | Class composition | `constructor(base: Class) {}` | Use composition |
-| Factory pattern | Type-safe construction | `create<T>(): Builder<T>` | Simple constructors work |
-| Repository pattern | Data access abstraction | Generic CRUD operations | Over-abstraction |
-| Strategy pattern | Pluggable algorithms | Generic strategy type | Simple functions work |
-| Observer pattern | Event handling | `Observer<T>` interface | Use EventEmitter |
-| Singleton pattern | Single instance | Class with private constructor | Usually unnecessary |
+| Pattern              | Purpose                   | Implementation                                               | When NOT to Use                |
+| -------------------- | ------------------------- | ------------------------------------------------------------ | ------------------------------ |
+| Discriminated union  | Type-safe state           | `{ type: 'loading' } \| { type: 'done', data: T }`           | Simple boolean states          |
+| Type guard function  | Runtime type check        | `function isString(x): x is string`                          | When `typeof` sufficient       |
+| Branded type         | Nominal typing            | `type UserId = string & { readonly __brand: unique symbol }` | Structural typing preferred    |
+| Opaque type          | Hide implementation       | Export type, import interface                                | When transparency needed       |
+| Builder pattern      | Fluent API                | Method chaining with `this`                                  | For simple construction        |
+| Currying             | Partial application       | Function returning functions                                 | When normal params suffice     |
+| Higher-kinded type   | Type-level functions      | Using conditional types                                      | Over-complicating simple types |
+| Tagged union         | Variant types             | `{ _tag: 'A' } \| { _tag: 'B' }`                             | Use discriminated union        |
+| Type-level recursion | Complex type logic        | `type DeepReadonly<T> = { readonly [K in keyof T]: ... }`    | May hit recursion limits       |
+| Functor pattern      | Mappable types            | `map(fn): (a: A) => B`                                       | Over-engineering               |
+| Monad pattern        | Chainable operations      | `chain(fn): (a: A) => Monad<B>`                              | Over-engineering               |
+| Proxy pattern        | Type-safe property access | `Proxy<T>` with type                                         | May cause type confusion       |
+| Mixin pattern        | Class composition         | `constructor(base: Class) {}`                                | Use composition                |
+| Factory pattern      | Type-safe construction    | `create<T>(): Builder<T>`                                    | Simple constructors work       |
+| Repository pattern   | Data access abstraction   | Generic CRUD operations                                      | Over-abstraction               |
+| Strategy pattern     | Pluggable algorithms      | Generic strategy type                                        | Simple functions work          |
+| Observer pattern     | Event handling            | `Observer<T>` interface                                      | Use EventEmitter               |
+| Singleton pattern    | Single instance           | Class with private constructor                               | Usually unnecessary            |
 
 ## 5.4 Common Pitfalls (15 items)
 
-| Pitfall | Symptom | Solution | How to Verify Fixed |
-|---------|---------|----------|---------------------|
-| Using `any` | Lost type safety | Use `unknown` with type guard | Run `tsc --strict` |
-| Double assertions | `value as unknown as Type` | Reconsider type design | Refactor types |
-| `as` overuse | Type assertions everywhere | Improve type inference | Remove `as` where possible |
-| Missing type params | `new Map()` without params | Add type arguments | Check inferred types |
-| Optional chaining everywhere | `obj?.prop?.nested?` | Use discriminated unions | Refactor state types |
-| Loose types | `Record<string, unknown>` | Use more specific types | Check value usage |
-| Mutation bugs | Unexpected state changes | Use `readonly`, `Readonly` | Verify immutability |
-| Index signatures | `Record<string, T>` | Use mapped types or discriminated unions | Check property access |
-| Type erasure | Runtime type info lost | Add type tags, discriminators | Add runtime checks |
-| `enum` abuse | Complex enum types | Use union of literals | Replace with const objects |
-| `interface` vs `type` confusion | Inconsistent patterns | Use `interface` for objects, `type` for unions | Standardize |
-| Overloading abuse | Many function overloads | Use generic function | Simplify to generic |
-| Extending `Error` | Custom errors don't work | Use `Error` subclass pattern | Test instanceof |
-| Promise type issues | `Promise<any>` | Use typed async functions | Add explicit types |
-| Module issues | `import` vs `require` | Use ES modules consistently | Check `module` setting |
+| Pitfall                         | Symptom                    | Solution                                       | How to Verify Fixed        |
+| ------------------------------- | -------------------------- | ---------------------------------------------- | -------------------------- |
+| Using `any`                     | Lost type safety           | Use `unknown` with type guard                  | Run `tsc --strict`         |
+| Double assertions               | `value as unknown as Type` | Reconsider type design                         | Refactor types             |
+| `as` overuse                    | Type assertions everywhere | Improve type inference                         | Remove `as` where possible |
+| Missing type params             | `new Map()` without params | Add type arguments                             | Check inferred types       |
+| Optional chaining everywhere    | `obj?.prop?.nested?`       | Use discriminated unions                       | Refactor state types       |
+| Loose types                     | `Record<string, unknown>`  | Use more specific types                        | Check value usage          |
+| Mutation bugs                   | Unexpected state changes   | Use `readonly`, `Readonly`                     | Verify immutability        |
+| Index signatures                | `Record<string, T>`        | Use mapped types or discriminated unions       | Check property access      |
+| Type erasure                    | Runtime type info lost     | Add type tags, discriminators                  | Add runtime checks         |
+| `enum` abuse                    | Complex enum types         | Use union of literals                          | Replace with const objects |
+| `interface` vs `type` confusion | Inconsistent patterns      | Use `interface` for objects, `type` for unions | Standardize                |
+| Overloading abuse               | Many function overloads    | Use generic function                           | Simplify to generic        |
+| Extending `Error`               | Custom errors don't work   | Use `Error` subclass pattern                   | Test instanceof            |
+| Promise type issues             | `Promise<any>`             | Use typed async functions                      | Add explicit types         |
+| Module issues                   | `import` vs `require`      | Use ES modules consistently                    | Check `module` setting     |
 
 ## 5.5 TypeScript Version Features (12 items)
 
-| Version | Key Feature | Migration Path | Release Date |
-|---------|-------------|----------------|--------------|
-| 5.6 | Iterator helper methods, disallowed nullish/truthy checks | Update to 5.6+ | 2024-09 |
-| 5.5 | Inferred type predicates, `const` type parameters improvements | Update to 5.5+ | 2024-06 |
-| 5.4 | `NoInfer<T>` utility type, closure type checking | Use `NoInfer` to block inference | 2024-03 |
-| 5.3 | Import attributes, `resolution-mode` | Check import resolution | 2023-11 |
-| 5.2 | `using` declarations for disposal | Add `Symbol.dispose` support | 2023-08 |
-| 5.1 | `satisfies` improvements, decoupled type checking | Update to 5.1+ | 2023-06 |
-| 5.0 | `const` type parameters, decorators, `extends` multiple types | Add `const` to generic params | 2023-03 |
-| 4.9 | `satisfies` operator, auto-accessors | Replace type assertions | 2022-11 |
-| 4.8 | `infer` type parameter defaults, template string improvements | Add default type params | 2022-08 |
-| 4.7 | Variance annotations (`out`, `in`), instantiation expressions | Use variance annotations | 2022-05 |
-| 4.6 | Indexed access improvements, control flow analysis | Check tuple access | 2022-02 |
-| 4.5 | Tail recursion elimination, template string types | Check recursive types | 2021-08 |
+| Version | Key Feature                                                    | Migration Path                   | Release Date |
+| ------- | -------------------------------------------------------------- | -------------------------------- | ------------ |
+| 5.6     | Iterator helper methods, disallowed nullish/truthy checks      | Update to 5.6+                   | 2024-09      |
+| 5.5     | Inferred type predicates, `const` type parameters improvements | Update to 5.5+                   | 2024-06      |
+| 5.4     | `NoInfer<T>` utility type, closure type checking               | Use `NoInfer` to block inference | 2024-03      |
+| 5.3     | Import attributes, `resolution-mode`                           | Check import resolution          | 2023-11      |
+| 5.2     | `using` declarations for disposal                              | Add `Symbol.dispose` support     | 2023-08      |
+| 5.1     | `satisfies` improvements, decoupled type checking              | Update to 5.1+                   | 2023-06      |
+| 5.0     | `const` type parameters, decorators, `extends` multiple types  | Add `const` to generic params    | 2023-03      |
+| 4.9     | `satisfies` operator, auto-accessors                           | Replace type assertions          | 2022-11      |
+| 4.8     | `infer` type parameter defaults, template string improvements  | Add default type params          | 2022-08      |
+| 4.7     | Variance annotations (`out`, `in`), instantiation expressions  | Use variance annotations         | 2022-05      |
+| 4.6     | Indexed access improvements, control flow analysis             | Check tuple access               | 2022-02      |
+| 4.5     | Tail recursion elimination, template string types              | Check recursive types            | 2021-08      |
 
 ## 5.6 Modern Tooling (10 items)
 
-| Tool | Purpose | Why Use It | Command Example |
-|------|---------|------------|-----------------|
-| **Bun** | TypeScript runtime & package manager | 10-100x faster than npm, native TypeScript execution | `bun install`, `bun run dev` |
-| **Biome** | Unified linter + formatter | 100x faster than ESLint+Prettier, one config file | `bunx @biomejs/biome check .` |
-| **Vite** | Build tool & dev server | TypeScript-first, instant HMR, optimized builds | `bun create vite` |
-| **tsc** | Type checker | Official TypeScript compiler for type checking | `tsc --noEmit` |
-| **Deno** | TypeScript-first runtime | No build step, secure by default, web standards | `deno run --allow-net app.ts` |
-| **bun test** | Test runner | Fast, built-in TypeScript support, Jest-compatible | `bun test` |
-| **tsx** | TypeScript executor | Node.js with TypeScript support | `tsx app.ts` |
-| **tsup** | TypeScript bundler | Zero-config bundler powered by esbuild | `tsup src/index.ts` |
-| **publint** | Package validation | Verify package.json for publishing | `bunx publint` |
-| **type-coverage** | Type coverage checker | Measure TypeScript type coverage | `bunx type-coverage` |
+| Tool              | Purpose                              | Why Use It                                           | Command Example               |
+| ----------------- | ------------------------------------ | ---------------------------------------------------- | ----------------------------- |
+| **Bun**           | TypeScript runtime & package manager | 10-100x faster than npm, native TypeScript execution | `bun install`, `bun run dev`  |
+| **Biome**         | Unified linter + formatter           | 100x faster than ESLint+Prettier, one config file    | `bunx @biomejs/biome check .` |
+| **Vite**          | Build tool & dev server              | TypeScript-first, instant HMR, optimized builds      | `bun create vite`             |
+| **tsc**           | Type checker                         | Official TypeScript compiler for type checking       | `tsc --noEmit`                |
+| **Deno**          | TypeScript-first runtime             | No build step, secure by default, web standards      | `deno run --allow-net app.ts` |
+| **bun test**      | Test runner                          | Fast, built-in TypeScript support, Jest-compatible   | `bun test`                    |
+| **tsx**           | TypeScript executor                  | Node.js with TypeScript support                      | `tsx app.ts`                  |
+| **tsup**          | TypeScript bundler                   | Zero-config bundler powered by esbuild               | `tsup src/index.ts`           |
+| **publint**       | Package validation                   | Verify package.json for publishing                   | `bunx publint`                |
+| **type-coverage** | Type coverage checker                | Measure TypeScript type coverage                     | `bunx type-coverage`          |
 
 # 6. ANALYSIS PROCESS
 
@@ -434,18 +436,18 @@ IF verification tools unavailable:
 
 ## Decision Framework
 
-| Situation | Approach |
-|-----------|----------|
-| Error handling | Use discriminated unions |
-| Configuration | Use branded types or tagged unions |
-| API design | Use generics with proper constraints |
-| Type transformation | Use utility types or conditional types |
-| String manipulation | Use template literal types |
-| Runtime type checking | Use type guards with type predicates |
-| Complex object types | Use mapped types or conditional types |
-| Function overloads | Simplify to single generic function |
-| Nominal typing needed | Use branded types |
-| Type-level programming | Use conditional types with `infer` |
+| Situation              | Approach                               |
+| ---------------------- | -------------------------------------- |
+| Error handling         | Use discriminated unions               |
+| Configuration          | Use branded types or tagged unions     |
+| API design             | Use generics with proper constraints   |
+| Type transformation    | Use utility types or conditional types |
+| String manipulation    | Use template literal types             |
+| Runtime type checking  | Use type guards with type predicates   |
+| Complex object types   | Use mapped types or conditional types  |
+| Function overloads     | Simplify to single generic function    |
+| Nominal typing needed  | Use branded types                      |
+| Type-level programming | Use conditional types with `infer`     |
 
 # 7. ABSOLUTE RULES
 
@@ -489,13 +491,15 @@ IF verification tools unavailable:
 
 ## Standard Response Template
 
-```markdown
+````markdown
 ## TypeScript Solution
 
 ### Analysis
+
 {Problem analysis, TypeScript version considerations, approach}
 
 ### Type Definition
+
 ```typescript
 // Type-safe, generic TypeScript with proper inference
 
@@ -513,8 +517,10 @@ function process<const T extends string>(value: T): Example<T> {
 const result = process('hello_end');
 // type: { value: 'hello_end'; processed: 'hello' }
 ```
+````
 
 ### Tooling Setup (Modern Stack)
+
 ```json
 // package.json
 {
@@ -534,6 +540,7 @@ const result = process('hello_end');
 ```
 
 ### Verification Checklist
+
 - [ ] Type-checked with `bun tsc --strict`
 - [ ] API verified via ref
 - [ ] Follows TypeScript conventions
@@ -542,11 +549,14 @@ const result = process('hello_end');
 - [ ] Linted with Biome
 
 ### TypeScript Version
+
 Requires TypeScript {X.Y}+
 
 ### Confidence: HIGH/MEDIUM/LOW
+
 **Sources**: [TypeScript Docs, 2024], [TypeScript {version} Release Notes]
-```
+
+````
 
 ## Type Test Template
 
@@ -557,7 +567,7 @@ import { process } from './module';
 
 const result = process('test_end');
 expectType<'test'>(result.processed);
-```
+````
 
 ## Error Response Format
 
@@ -567,6 +577,7 @@ expectType<'test'>(result.processed);
 **Reason**: {Specific reason - e.g., cannot verify feature, version too old}
 
 **What I Need**:
+
 - TypeScript version being used
 - Target environment (Node, Bun, Deno, browser)
 - Build tool (Vite, webpack, etc.)
