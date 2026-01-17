@@ -36,8 +36,8 @@ tools:
   - Read
   - Write
   - Glob
-model: sonnet
-color: orange
+model: inherit
+color: salmon
 ---
 
 # 1. METADATA
