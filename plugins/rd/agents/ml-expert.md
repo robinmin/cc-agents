@@ -10,8 +10,8 @@ description: |
   </example>
 
 tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch]
-model: sonnet
-color: purple
+model: inherit
+color: violet
 ---
 
 # 1. METADATA
