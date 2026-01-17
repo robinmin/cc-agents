@@ -1,5 +1,82 @@
 # CHANGELOG
 
+## [1.5.4] - 2026-01-16
+
+### Summary
+
+**Software Engineering Protocol & Code Review Agent Expansion**
+
+Added comprehensive software engineering methodology skill (`super-coder`) and specialized code review agent (`reviewer-expert`). This release enhances the plugin's development discipline and quality assurance capabilities with systematic approaches to building reliable software and conducting thorough code reviews.
+
+### Added
+
+- **New Skill: `super-coder` (`plugins/rd/skills/super-coder/`)**:
+  - Complete software engineering protocol based on industry best practices
+  - **Decision Priority Framework**: Correctness → Simplicity → Testability → Maintainability → Performance
+  - **Working Loop**: Clarify → Map impact → Plan minimal diff → Implement → Validate → Refactor → Report
+  - **Two Hats Rule**: Never add features and refactor simultaneously
+  - **Stop & Ask Criteria**: When requirements ambiguous, API changes, cross-module ripples, security risks
+  - **Change Rules**: Minimal diff, domain language, one abstraction level, explicit failures
+  - **Interface Design**: Deep modules, information hiding, dependency inversion
+  - **Verification Guardrail**: When tests required/optional, legacy code protocol
+  - **Anti-Patterns**: Complexity anti-patterns, coupling anti-patterns, error handling anti-patterns
+  - **Output Format**: What changed, how to verify, risks, residual risk
+  - Includes REFERENCE.md with principles from classic texts (Code Complete, Refactoring, Clean Code, etc.)
+
+- **New Agent: `reviewer-expert` (`plugins/rd/agents/reviewer-expert.md`)**:
+  - Senior Code Review Architect & Quality Assurance Specialist
+  - Comprehensive implementation review across multiple dimensions
+  - **10-Section Review Framework**:
+    1. Plan Alignment Verification
+    2. Code Quality Assessment
+    3. Architecture Review
+    4. Security Validation
+    5. Performance Analysis
+    6. Testing Review
+    7. Documentation Review
+    8. Standards Compliance
+    9. Maintainability Assessment
+    10. Integration Review
+  - **Triggering Examples**: Major feature completion, API endpoint completion, quality gate before phase transition
+  - **Tools**: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch
+  - **Skills**: agent-browser for web content verification
+
+### Changed
+
+- **Updated `super-coder` Agent** (`plugins/rd/agents/super-coder.md`):
+  - Enhanced with 8-section anatomy structure
+  - Improved competency definitions and examples
+  - Streamlined verification protocols
+
+- **Refactored Expert Agents**:
+  - Applied consistent formatting and structure across multiple agents
+  - Improved clarity and reduced redundancy
+
+### Technical Details
+
+**super-coder Skill Philosophy:**
+- Based on "A Philosophy of Software Design" - complexity is the enemy
+- From "The Pragmatic Programmer" - ETC (Easier To Change) is the guiding value
+- From "Refactoring" - mixing features and refactoring risks breaking behavior
+- From "Code Complete" - when complexity exceeds mental capacity, defects are inevitable
+- From "Working Effectively with Legacy Code" - characterization tests ensure refactoring safety
+
+**reviewer-expert Activation Triggers:**
+- Major feature implementation completion
+- API endpoint or service completion
+- Quality gates before phase transitions
+- Architecture review requests
+- Security validation needs
+
+### References
+
+- [A Philosophy of Software Design](https://www.oreilly.com/library/view/a-philosophy-of/9781732102212/)
+- [The Pragmatic Programmer](https://pragprog.com/titles/tpp20/)
+- [Refactoring](https://refactoring.com/)
+- [Code Complete](https://www.oreilly.com/library/view/code-complete-second/9780735636976/)
+- [Working Effectively with Legacy Code](https://www.oreilly.com/library/view/working-effectively-with/0131177052/)
+- [Clean Code](https://www.oreilly.com/library/view/clean-code-a/9780136083238/)
+
 ## [1.5.2] - 2026-01-15
 
 ### Summary
