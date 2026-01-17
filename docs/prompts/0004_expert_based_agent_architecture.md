@@ -341,19 +341,16 @@ BEFORE generating any answer, the agent MUST:
 **Four production-ready expert agents** to be generated using agent-expert:
 
 1. **python-expert** (`plugins/rd/agnts/python-expert.md`)
-
    - Core concepts: async/await, decorators, generators, type hints
    - Tools: pytest, black, ruff, mypy
    - Verification: ref to Python docs, LSP via Pylance
 
 2. **typescript-expert** (`plugins/rd/agnts/typescript-expert.md`)
-
    - Core concepts: generics, utility types, conditional types, discriminated unions
    - Tools: eslint, prettier,typescript-eslint
    - Verification: ref to TypeScript docs, LSP via tsserver
 
 3. **mcp-expert** (`plugins/rd/agnts/mcp-expert.md`)
-
    - Core concepts: MCP protocol, server configuration, tool integration
    - Tools: npx, MCP servers
    - Verification: ref to MCP documentation
@@ -395,7 +392,7 @@ tools:
   - Glob
   - WebSearch
   # MCP tools
-model: sonnet
+model: inherit
 color: {category-color}
 ---
 ```
@@ -501,35 +498,30 @@ color: {category-color}
 #### Key Implementation Details
 
 1. **Auto-Routing Mechanism**
-
    - Uses "Use PROACTIVELY for {keywords}" in agent descriptions
    - Claude automatically detects patterns and routes to appropriate expert
    - No explicit @agent invocation needed for common tasks
    - Enables seamless multi-agent collaboration
 
 2. **Verification-First Philosophy**
-
    - Forces verification BEFORE generation (critical difference from standard approach)
    - Transforms Claude from "confident intern" to "rigorous senior"
    - Every technical claim must have source citation
    - Confidence scores indicate verification level
 
 3. **Competency Lists as Structured Memory**
-
    - LLMs cannot invent what's not in the prompt (by design)
    - Exhaustive lists constrain hallucination scope
    - 50+ items minimum across categories
    - Include "when NOT to use" to prevent misapplication
 
 4. **Graceful Degradation**
-
    - Multi-layer verification ensures something always works
    - Each layer falls back to next if unavailable
    - Final fallback: state "UNVERIFIED" with LOW confidence
    - Never present unverified claims as verified facts
 
 5. **Hook Integration**
-
    - Prompt-based hooks for context-aware validation
    - Use \${CLAUDE_PLUGIN_ROOT} for portable paths
    - Parallel execution for performance
@@ -565,7 +557,6 @@ color: {category-color}
 **Status**: completed
 
 - [x] Create `docs/prompts/0004/global_CLAUDE.md` with comprehensive configuration
-
   - [x] Recommended tools section (tool priority and usage)
   - [x] Agent routing rules (auto-detection patterns)
   - [x] Anti-hallucination protocol (verification-first methodology)
@@ -597,7 +588,6 @@ color: {category-color}
 **Status**: completed
 
 - [x] Create `plugins/rd/agnts/agent-doctor.md` following 8-section anatomy
-
   - [x] METADATA: name, description with examples, tools (Read, Grep)
   - [x] PERSONA: Senior QA specialist with prompt engineering expertise
   - [x] PHILOSOPHY: Quality-first, comprehensive evaluation principles
@@ -608,7 +598,6 @@ color: {category-color}
   - [x] OUTPUT FORMAT: Score report with specific improvement suggestions
 
 - [x] Implement scoring framework
-
   - [x] Structure dimension (20%): 8-section check, line count validation
   - [x] Verification dimension (25%): protocol completeness, red flags
   - [x] Competencies dimension (20%): 50+ items, categorization
@@ -634,7 +623,6 @@ color: {category-color}
 **Status**: completed
 
 - [x] Create `hooks/pre-tool-use.json`
-
   - [x] Prompt-based hook for file write validation
   - [x] Path traversal detection
   - [x] Sensitive file detection (.env, credentials)
@@ -642,7 +630,6 @@ color: {category-color}
   - [x] Permission decision output (allow/deny/ask)
 
 - [x] Create `hooks/post-tool-use.json`
-
   - [x] Language-specific formatting triggers
   - [x] Python: black, ruff
   - [x] TypeScript: eslint, prettier
@@ -667,19 +654,16 @@ color: {category-color}
 **Status**: completed
 
 - [x] Invoke agent-expert to generate python-expert skeleton
-
   - [x] Specify domain: Python programming language
   - [x] Request focus areas: async, decorators, type hints, testing
   - [x] Ensure 400-600 line output
 
 - [x] Refine based on author's python-expert reference
-
   - [x] Review author's implementation from claude-code-subagents-collection
   - [x] Incorporate missing patterns and best practices
   - [x] Ensure all 8 sections are comprehensive
 
 - [x] Validate using agent-doctor
-
   - [x] Run agent-doctor on generated python-expert
   - [x] Address any failing dimensions
   - [x] Iterate until score ≥ 80
@@ -704,19 +688,16 @@ color: {category-color}
 **Status**: completed
 
 - [x] Invoke agent-expert to generate typescript-expert skeleton
-
   - [x] Specify domain: TypeScript programming language
   - [x] Request focus areas: generics, utility types, type system design
   - [x] Ensure 400-600 line output
 
 - [x] Refine based on author's typescript-expert reference
-
   - [x] Review author's implementation
   - [x] Incorporate advanced type patterns
   - [x] Ensure comprehensive coverage
 
 - [x] Validate using agent-doctor
-
   - [x] Run agent-doctor on generated typescript-expert
   - [x] Address any failing dimensions
   - [x] Iterate until score ≥ 80
@@ -741,19 +722,16 @@ color: {category-color}
 **Status**: completed
 
 - [x] Invoke agent-expert to generate mcp-expert skeleton
-
   - [x] Specify domain: Model Context Protocol
   - [x] Request focus areas: server configuration, tool integration, protocol design
   - [x] Ensure 400-600 line output
 
 - [x] Refine based on author's mcp-expert reference
-
   - [x] Review author's implementation
   - [x] Add MCP-specific verification patterns
   - [x] Include ref MCP tool usage examples
 
 - [x] Validate using agent-doctor
-
   - [x] Run agent-doctor on generated mcp-expert
   - [x] Address any failing dimensions
   - [x] Iterate until score ≥ 80
@@ -778,19 +756,16 @@ color: {category-color}
 **Status**: completed
 
 - [x] Invoke agent-expert to generate task-decomposition-expert skeleton
-
   - [x] Specify domain: Task breakdown and workflow design
   - [x] Request focus areas: dependency mapping, prioritization, agent orchestration
   - [x] Ensure 400-600 line output
 
 - [x] Refine based on author's task-decomposition-expert reference
-
   - [x] Review author's implementation
   - [x] Add workflow design patterns
   - [x] Include multi-agent collaboration patterns
 
 - [x] Validate using agent-doctor
-
   - [x] Run agent-doctor on generated task-decomposition-expert
   - [x] Address any failing dimensions
   - [x] Iterate until score ≥ 80
@@ -815,28 +790,24 @@ color: {category-color}
 **Status**: pending
 
 - [ ] Test auto-routing
-
   - [ ] Verify python-expert triggers on Python-related requests
   - [ ] Verify typescript-expert triggers on TypeScript-related requests
   - [ ] Verify mcp-expert triggers on MCP-related requests
   - [ ] Verify task-decomposition-expert triggers on workflow requests
 
 - [ ] Test verification protocol
-
   - [ ] Trigger ref searches for technical questions
   - [ ] Verify source citations are included
   - [ ] Check confidence scores are present
   - [ ] Test fallback chains (simulate unavailable tools)
 
 - [ ] Test hooks
-
   - [ ] PreToolUse: Test path traversal detection
   - [ ] PreToolUse: Test sensitive file detection
   - [ ] PostToolUse: Test code formatting
   - [ ] Verify proper JSON output
 
 - [ ] Test agent-doctor
-
   - [ ] Evaluate all four generated agents
   - [ ] Verify scoring accuracy
   - [ ] Check improvement recommendations are actionable
