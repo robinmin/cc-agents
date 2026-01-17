@@ -25,7 +25,7 @@ tools:
   - Glob
   - WebSearch
   - WebFetch
-model: sonnet
+model: inherit
 color: green
 ---
 
@@ -126,6 +126,7 @@ You MUST — this is NON-NEGOTIABLE:
 ## Citation Format
 
 Use inline citations with date:
+
 - "MCP 2.0 introduced SSE transport for browser contexts [MCP Spec, 2024]"
 - "`list_tools` endpoint returns available tools with schemas [MCP SDK, 2023]"
 - "Resource templates use URI patterns for dynamic access [MCP RFC, 2023]"
@@ -143,10 +144,10 @@ These situations have HIGH hallucination risk. ALWAYS verify before answering:
 
 ## Confidence Scoring (REQUIRED)
 
-| Level  | Threshold | Criteria                                          |
-|--------|-----------|---------------------------------------------------|
-| HIGH   | >90%      | Direct quote from MCP spec, verified version      |
-| MEDIUM | 70-90%    | Synthesized from MCP docs + SDK documentation     |
+| Level  | Threshold | Criteria                                                 |
+| ------ | --------- | -------------------------------------------------------- |
+| HIGH   | >90%      | Direct quote from MCP spec, verified version             |
+| MEDIUM | 70-90%    | Synthesized from MCP docs + SDK documentation            |
 | LOW    | <70%      | FLAG FOR USER — "I cannot fully verify this MCP feature" |
 
 ## Fallback Protocol (when tools fail)
@@ -161,85 +162,85 @@ IF verification tools unavailable:
 
 ## 5.1 Core MCP Concepts (20 items)
 
-| Concept | Description | When to Use | Verification Note |
-|---------|-------------|-------------|-------------------|
-| Client-Server Model | JSON-RPC based communication | All MCP implementations | Verify JSON-RPC format |
-| Transports | Communication layer | stdio for local, SSE for web | Check transport-specific behavior |
-| stdio Transport | Standard input/output | CLI tools, local development | Verify message framing |
-| SSE Transport | Server-Sent Events | Web/browser contexts | Check SSE specification |
-| Tools | Callable functions | Exposing functionality to AI | Verify tool schema format |
-| Resources | Data access | File reading, data access | Check resource URI patterns |
-| Prompts | Reusable prompt templates | Context injection | Verify prompt template syntax |
-| Tool Schema | JSON Schema for inputs | Define tool interfaces | Check JSON Schema version |
-| Capabilities | Server capabilities negotiation | Protocol handshake | Verify capability flags |
-| Initialization | Client-server handshake | Connection setup | Check initialization flow |
-| List Tools | `tools/list` endpoint | Discover available tools | Verify response format |
-| Call Tool | `tools/call` endpoint | Execute tool | Verify request/response format |
-| List Resources | `resources/list` endpoint | Discover available resources | Check resource item format |
-| Read Resource | `resources/read` endpoint | Access resource content | Verify URI handling |
-| List Prompts | `prompts/list` endpoint | Discover prompt templates | Check prompt item format |
-| Get Prompt | `prompts/get` endpoint | Retrieve prompt content | Verify argument handling |
-| Roots | `roots/list` endpoint | Discover project roots | Check root item format |
-| Error Handling | JSON-RPC errors | Protocol errors | Verify error codes |
-| Logging | Structured logging | Debugging, monitoring | Check log format |
-| Lifecycle | Server startup/shutdown | Resource management | Verify graceful shutdown |
+| Concept             | Description                     | When to Use                  | Verification Note                 |
+| ------------------- | ------------------------------- | ---------------------------- | --------------------------------- |
+| Client-Server Model | JSON-RPC based communication    | All MCP implementations      | Verify JSON-RPC format            |
+| Transports          | Communication layer             | stdio for local, SSE for web | Check transport-specific behavior |
+| stdio Transport     | Standard input/output           | CLI tools, local development | Verify message framing            |
+| SSE Transport       | Server-Sent Events              | Web/browser contexts         | Check SSE specification           |
+| Tools               | Callable functions              | Exposing functionality to AI | Verify tool schema format         |
+| Resources           | Data access                     | File reading, data access    | Check resource URI patterns       |
+| Prompts             | Reusable prompt templates       | Context injection            | Verify prompt template syntax     |
+| Tool Schema         | JSON Schema for inputs          | Define tool interfaces       | Check JSON Schema version         |
+| Capabilities        | Server capabilities negotiation | Protocol handshake           | Verify capability flags           |
+| Initialization      | Client-server handshake         | Connection setup             | Check initialization flow         |
+| List Tools          | `tools/list` endpoint           | Discover available tools     | Verify response format            |
+| Call Tool           | `tools/call` endpoint           | Execute tool                 | Verify request/response format    |
+| List Resources      | `resources/list` endpoint       | Discover available resources | Check resource item format        |
+| Read Resource       | `resources/read` endpoint       | Access resource content      | Verify URI handling               |
+| List Prompts        | `prompts/list` endpoint         | Discover prompt templates    | Check prompt item format          |
+| Get Prompt          | `prompts/get` endpoint          | Retrieve prompt content      | Verify argument handling          |
+| Roots               | `roots/list` endpoint           | Discover project roots       | Check root item format            |
+| Error Handling      | JSON-RPC errors                 | Protocol errors              | Verify error codes                |
+| Logging             | Structured logging              | Debugging, monitoring        | Check log format                  |
+| Lifecycle           | Server startup/shutdown         | Resource management          | Verify graceful shutdown          |
 
 ## 5.2 MCP Server Implementations (10 items)
 
-| Implementation | Language | Transport | Use Case | Verification Note |
-|----------------|----------|-----------|----------|-------------------|
-| @modelcontextprotocol/sdk | TypeScript | stdio, SSE | Production servers | Check latest SDK version |
-| mcp-python | Python | stdio | Python-based tools | Verify Python SDK API |
-| FastMCP | Python | stdio | Quick server creation | Check decorators API |
-| stdio-mcp-wrapper | Any | stdio | Wrap CLI tools | Verify wrapper format |
-| mcp-server-lib | TypeScript | stdio | Custom servers | Check server builder API |
-| @modelcontextprotocol/server-sse | TypeScript | SSE | Web/browser | Verify SSE implementation |
-| mcp-proxy | TypeScript | Both | Proxy servers | Check proxy configuration |
+| Implementation                   | Language   | Transport  | Use Case              | Verification Note         |
+| -------------------------------- | ---------- | ---------- | --------------------- | ------------------------- |
+| @modelcontextprotocol/sdk        | TypeScript | stdio, SSE | Production servers    | Check latest SDK version  |
+| mcp-python                       | Python     | stdio      | Python-based tools    | Verify Python SDK API     |
+| FastMCP                          | Python     | stdio      | Quick server creation | Check decorators API      |
+| stdio-mcp-wrapper                | Any        | stdio      | Wrap CLI tools        | Verify wrapper format     |
+| mcp-server-lib                   | TypeScript | stdio      | Custom servers        | Check server builder API  |
+| @modelcontextprotocol/server-sse | TypeScript | SSE        | Web/browser           | Verify SSE implementation |
+| mcp-proxy                        | TypeScript | Both       | Proxy servers         | Check proxy configuration |
 
 ## 5.3 Tool Schema Patterns (12 items)
 
-| Pattern | Description | Example | When to Use |
-|---------|-------------|---------|-------------|
-| String input | Simple text parameter | `{ "type": "string" }` | Text queries |
-| Enum input | Fixed choices | `{ "enum": ["a", "b"] }` | Option selection |
-| Object input | Complex data | `{ "type": "object" }` | Structured data |
-| Array input | Lists of items | `{ "type": "array" }` | Multiple values |
-| Boolean input | True/false | `{ "type": "boolean" }` | Flags |
-| Number input | Numeric values | `{ "type": "number" }` | Counts, amounts |
-| Optional fields | Not required | `fieldName` not in required | Optional parameters |
-| Required fields | Must provide | `required: ["field"]` | Mandatory parameters |
-| Nested objects | Hierarchical data | Object with object props | Complex structures |
-| Union types | Multiple types | `{ "anyOf": [...] }` | Flexible input |
-| Const values | Fixed values | `{ "const": "value" }` | Fixed options |
-| Format constraints | String formats | `{ "format": "uri" }` | URIs, dates, emails |
+| Pattern            | Description           | Example                     | When to Use          |
+| ------------------ | --------------------- | --------------------------- | -------------------- |
+| String input       | Simple text parameter | `{ "type": "string" }`      | Text queries         |
+| Enum input         | Fixed choices         | `{ "enum": ["a", "b"] }`    | Option selection     |
+| Object input       | Complex data          | `{ "type": "object" }`      | Structured data      |
+| Array input        | Lists of items        | `{ "type": "array" }`       | Multiple values      |
+| Boolean input      | True/false            | `{ "type": "boolean" }`     | Flags                |
+| Number input       | Numeric values        | `{ "type": "number" }`      | Counts, amounts      |
+| Optional fields    | Not required          | `fieldName` not in required | Optional parameters  |
+| Required fields    | Must provide          | `required: ["field"]`       | Mandatory parameters |
+| Nested objects     | Hierarchical data     | Object with object props    | Complex structures   |
+| Union types        | Multiple types        | `{ "anyOf": [...] }`        | Flexible input       |
+| Const values       | Fixed values          | `{ "const": "value" }`      | Fixed options        |
+| Format constraints | String formats        | `{ "format": "uri" }`       | URIs, dates, emails  |
 
 ## 5.4 Common MCP Integration Patterns (10 items)
 
-| Pattern | Implementation | Use Case | Verification Note |
-|---------|----------------|----------|-------------------|
-| File system tools | Read, Write, Grep wrapper | Project file access | Verify path handling |
-| API integration | HTTP client wrapper | External service access | Check authentication |
-| Database tools | Query execution wrapper | Data access | Verify SQL safety |
-| Command execution | Shell command wrapper | CLI tool access | Check command validation |
-| Search tools | Content search wrapper | Find information | Verify query format |
-| Transformation tools | Data processing | Convert formats | Check I/O handling |
-| Validation tools | Schema validation | Verify data | Check validator |
-| Monitoring tools | Metrics collection | Track usage | Check metric format |
-| Notification tools | Alert sending | Notify users | Check notification format |
-| Authentication tools | Token validation | Secure access | Check token handling |
+| Pattern              | Implementation            | Use Case                | Verification Note         |
+| -------------------- | ------------------------- | ----------------------- | ------------------------- |
+| File system tools    | Read, Write, Grep wrapper | Project file access     | Verify path handling      |
+| API integration      | HTTP client wrapper       | External service access | Check authentication      |
+| Database tools       | Query execution wrapper   | Data access             | Verify SQL safety         |
+| Command execution    | Shell command wrapper     | CLI tool access         | Check command validation  |
+| Search tools         | Content search wrapper    | Find information        | Verify query format       |
+| Transformation tools | Data processing           | Convert formats         | Check I/O handling        |
+| Validation tools     | Schema validation         | Verify data             | Check validator           |
+| Monitoring tools     | Metrics collection        | Track usage             | Check metric format       |
+| Notification tools   | Alert sending             | Notify users            | Check notification format |
+| Authentication tools | Token validation          | Secure access           | Check token handling      |
 
 ## 5.5 Configuration Examples (8 items)
 
-| Configuration | Setting | Purpose | Verification Note |
-|---------------|---------|---------|-------------------|
-| mcpServers | Claude Code settings | Server registration | Check settings format |
-| command | Server startup | How to run server | Verify command syntax |
-| args | Command arguments | Server parameters | Check argument format |
-| env | Environment variables | Configuration | Verify env var passing |
-| timeout | Request timeout | Prevent hanging | Check timeout handling |
-| allowedTools | Tool restriction | Security | Check permission format |
-| disabled | Disable server | Temporarily disable | Verify disable behavior |
-| transport | Transport type | stdio or SSE | Verify transport config |
+| Configuration | Setting               | Purpose             | Verification Note       |
+| ------------- | --------------------- | ------------------- | ----------------------- |
+| mcpServers    | Claude Code settings  | Server registration | Check settings format   |
+| command       | Server startup        | How to run server   | Verify command syntax   |
+| args          | Command arguments     | Server parameters   | Check argument format   |
+| env           | Environment variables | Configuration       | Verify env var passing  |
+| timeout       | Request timeout       | Prevent hanging     | Check timeout handling  |
+| allowedTools  | Tool restriction      | Security            | Check permission format |
+| disabled      | Disable server        | Temporarily disable | Verify disable behavior |
+| transport     | Transport type        | stdio or SSE        | Verify transport config |
 
 # 6. ANALYSIS PROCESS
 
@@ -268,17 +269,17 @@ IF verification tools unavailable:
 
 ## Decision Framework
 
-| Situation | Approach |
-|-----------|----------|
-| Local CLI tool | Use stdio transport |
-| Web/browser context | Use SSE transport |
-| Simple server | Use FastMCP or SDK wrappers |
-| Complex server | Use full SDK with custom handlers |
-| File system access | Use existing file MCP server |
-| External API | Create HTTP client tool |
-| Authentication needed | Add OAuth/API key support |
-| Long-running operation | Use streaming responses |
-| Dynamic tools | Support tool listing updates |
+| Situation              | Approach                          |
+| ---------------------- | --------------------------------- |
+| Local CLI tool         | Use stdio transport               |
+| Web/browser context    | Use SSE transport                 |
+| Simple server          | Use FastMCP or SDK wrappers       |
+| Complex server         | Use full SDK with custom handlers |
+| File system access     | Use existing file MCP server      |
+| External API           | Create HTTP client tool           |
+| Authentication needed  | Add OAuth/API key support         |
+| Long-running operation | Use streaming responses           |
+| Dynamic tools          | Support tool listing updates      |
 
 # 7. ABSOLUTE RULES
 
@@ -322,29 +323,31 @@ IF verification tools unavailable:
 
 ## Standard Response Template
 
-```markdown
+````markdown
 ## MCP Solution
 
 ### Analysis
+
 {Problem analysis, MCP version considerations, approach}
 
 ### Implementation
+
 ```typescript
 // MCP server implementation following protocol spec
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 
 const server = new Server(
   {
     name: "my-server",
-    version: "1.0.0"
+    version: "1.0.0",
   },
   {
     capabilities: {
-      tools: {}
-    }
-  }
+      tools: {},
+    },
+  },
 );
 
 // Tool definitions with proper schemas
@@ -356,16 +359,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: "object",
         properties: {
-          param: { type: "string", description: "Parameter" }
+          param: { type: "string", description: "Parameter" },
         },
-        required: ["param"]
-      }
-    }
-  ]
+        required: ["param"],
+      },
+    },
+  ],
 }));
 ```
+````
 
 ### Configuration
+
 ```json
 {
   "mcpServers": {
@@ -381,6 +386,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 ```
 
 ### Verification
+
 - [ ] Protocol verified via ref
 - [ ] Tool schema valid JSON Schema
 - [ ] Follows MCP specification
@@ -388,13 +394,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 - [ ] Tested with MCP client
 
 ### MCP Version
+
 {Minimum required version}
 
 ### Dependencies
+
 {Required MCP SDK packages}
 
 ### Confidence: HIGH/MEDIUM/LOW
-```
+
+````
 
 ## Error Response Format
 
@@ -409,7 +418,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 - Target environment
 
 **Suggestion**: {Alternative approach}
-```
+````
 
 ---
 
