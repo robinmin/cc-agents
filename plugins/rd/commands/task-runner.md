@@ -1,11 +1,11 @@
 ---
-description: Orchestrate task planning and execution with checkpoint discipline
+description: Orchestrate task planning and execution with checkpoint discipline via orchestrator-expert
 argument-hint: <task-file.md> [--dry-run] [--no-interview] [--scope <level>] [--resume] [--verify <cmd>] [--execute]
 ---
 
 # task-runner
 
-Orchestrate task decomposition and execution using specialized subagents.
+Orchestrate task planning and execution using the orchestrator-expert meta-coordinator, which manages specialized subagents for decomposition, execution, testing, and domain expertise.
 
 ## Quick Start
 
@@ -18,93 +18,81 @@ Orchestrate task decomposition and execution using specialized subagents.
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument         | Description                                           |
+| ---------------- | ----------------------------------------------------- |
 | `<task-file.md>` | Path to task file (created via `tasks create <name>`) |
-| `--dry-run` | Preview without modifying file |
-| `--no-interview` | Skip requirements discovery |
-| `--scope` | `minimal` \| `standard` (default) \| `comprehensive` |
-| `--resume` | Resume from last checkpoint |
-| `--verify <cmd>` | Verification command (e.g., `npm test`) |
-| `--execute` | After planning, execute implementation phases |
+| `--dry-run`      | Preview without modifying file                        |
+| `--no-interview` | Skip requirements discovery                           |
+| `--scope`        | `minimal` \| `standard` (default) \| `comprehensive`  |
+| `--resume`       | Resume from last checkpoint                           |
+| `--verify <cmd>` | Verification command (e.g., `npm test`)               |
+| `--execute`      | After planning, execute implementation phases         |
 
 ## Workflow
 
 ```
-┌────────────────────────────────────────────────────────────────┐
+┌─────────────────────────────────────────────────────────────────┐
 │                  /rd:task-runner Orchestration                  │
-├────────────────────────────┬───────────────────────────────────┤
-│   PLANNING (Phases 1-6)    │         EXECUTION                 │
-│   ───────────────────────  │   ─────────────────────────────   │
-│   rd:task-decomposition-   │   rd:task-runner (subagent)       │
-│   expert (subagent)        │                                   │
-│                            │   • Sequential phase execution    │
-│   • Validate task file     │   • Checkpoint after each phase   │
-│   • Interview requirements │   • TodoWrite synchronization     │
-│   • Design solution        │   • Expert delegation when needed │
-│   • Create impl phases     │   • Resume capability             │
-└────────────────────────────┴───────────────────────────────────┘
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   User Request → rd:orchestrator-expert (Meta-Coordinator)      │
+│                                                                 │
+│   ├─→ Analyze task file state                                   │
+│   ├─→ Determine required subagents                              │
+│   ├─→ Coordinate planning → execution loop                      │
+│   └─→ Manage progress & resumption                              │
+│                                                                 │
+│   Coordinated Subagents:                                        │
+│   ├─→ rd:task-decomposition-expert (Planning phases)            │
+│   ├─→ rd:task-runner (Execution phases)                         │
+│   ├─→ Domain experts (Python/TS/Go/MCP/etc.)                    │
+│   └─→ rd:test-expert (Test generation)                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## Subagent Orchestration
+## Orchestrator Delegation
 
-This command delegates to two specialized subagents:
-
-### Phase 1: Planning (task-decomposition-expert)
+This command delegates to `rd:orchestrator-expert`, which coordinates the workflow:
 
 ```python
 Task(
-  subagent_type="rd:task-decomposition-expert",
-  prompt="""Analyze and decompose task file: {task_file}
+  subagent_type="rd:orchestrator-expert",
+  prompt="""Coordinate task execution for: {task_file}
 
-  Execute planning phases:
-  1. Validate: Check frontmatter and required sections
-  2. Interview: Use AskUserQuestion for requirements (unless --no-interview)
-  3. Design: Create architecture in Solutions/Goals section
-  4. Plan: Create implementation phases with action items
+  Arguments:
+  - dry_run: {dry_run}
+  - no_interview: {no_interview}
+  - scope: {scope}
+  - resume: {resume}
+  - verify_cmd: {verify_cmd}
+  - execute: {execute}
 
-  Scope: {scope}  # minimal|standard|comprehensive
-  Verify command: {verify_cmd}  # if provided
+  Workflow:
+  1. Check task file state (tasks list)
+  2. If planning needed → Invoke rd:task-decomposition-expert
+  3. If execution needed → Invoke rd:task-runner
+  4. If testing needed → Invoke rd:test-expert
+  5. If domain expertise needed → Invoke appropriate expert
+  6. Monitor progress via tasks CLI
+  7. Handle resumption from checkpoints
 
-  Update current_phase in frontmatter after each phase.
-  Initialize impl_progress when plan complete.""",
-  description="Decompose task into phases"
-)
-```
-
-### Phase 2: Execution (task-runner subagent)
-
-Invoked when `--execute` flag set OR when `impl_progress` has pending phases:
-
-```python
-Task(
-  subagent_type="rd:task-runner",
-  prompt="""Execute implementation phases for: {task_file}
-
-  For each pending phase:
-  1. Verify dependencies met
-  2. Set status to in_progress
-  3. Execute action items (delegate to experts if needed)
-  4. Mark action items complete: - [ ] → - [x]
-  5. Set status to completed
-  6. Sync with TodoWrite
-
-  Stop on blocker, document resolution steps.""",
-  description="Execute implementation phase"
+  Maintain progress tracking and error recovery throughout.""",
+  description="Orchestrate task planning and execution"
 )
 ```
 
 ## Progress Tracking
 
-Progress tracked in task file frontmatter (source of truth):
+Progress tracked by orchestrator via tasks CLI and task file frontmatter:
 
 ```yaml
 ---
 name: Feature Name
 status: WIP
-current_phase: 6           # Planning phase (1-6)
-verify_cmd: npm test       # From --verify or interview
-impl_progress:             # Execution tracking
+current_phase: 6 # Planning phase (1-6)
+verify_cmd: npm test # From --verify or interview
+impl_progress: # Execution tracking
   phase_1: completed
   phase_2: in_progress
   phase_3: pending
@@ -112,52 +100,104 @@ updated_at: 2026-01-13
 ---
 ```
 
-**Status values:** `pending` | `in_progress` | `completed` | `blocked`
+**Status values:** `Backlog` | `Todo` | `WIP` | `Testing` | `Done` | `Blocked`
+
+**Impl progress values:** `pending` | `in_progress` | `completed` | `blocked`
 
 ## Resume Protocol
 
-When `--resume` is used:
+When `--resume` is used, the orchestrator:
 
-1. Read `current_phase` → Skip completed planning phases
-2. Read `impl_progress` → Find next pending/in_progress phase
-3. Continue from interruption point
+1. Scans all task files via `tasks list`
+2. Reconstructs state from status frontmatter
+3. Identifies last completed task (Done) and in-progress task (WIP)
+4. Continues from checkpoint or next eligible task
 
 ```bash
-# Check current state before resuming
-grep -E "^(current_phase|impl_progress|status):" docs/prompts/0001_feature.md
+# Orchestrator checks current state before resuming
+tasks list                    # View all tasks
+tasks list wip                # View in-progress tasks
 ```
 
 ## Expert Delegation
 
-During execution, task-runner delegates specialized work:
+The orchestrator delegates specialized work to appropriate experts:
 
-| Action Pattern | Delegated To |
-|----------------|--------------|
-| Python, async, pytest | `rd:python-expert` |
-| TypeScript, React | `rd:typescript-expert` |
-| MCP server | `rd:mcp-expert` |
-| Create agent | `rd:agent-expert` |
-| General coding | `rd:super-coder` |
+| Action Pattern         | Delegated To           |
+| ---------------------- | ---------------------- |
+| Python, async, pytest  | `rd:python-expert`     |
+| TypeScript, React      | `rd:typescript-expert` |
+| Go, goroutines         | `rd:golang-expert`     |
+| MCP server             | `rd:mcp-expert`        |
+| Test design/generation | `rd:test-expert`       |
+| Create agent           | `rd:agent-expert`      |
+| Browser automation     | `rd:agent-browser`     |
+| General coding         | `rd:super-coder`       |
 
 ## Integration
 
 ```bash
-# Full workflow
+# Full workflow (orchestrator-managed)
 tasks create "Feature Name"                    # Create task file
-/rd:task-runner <file> --verify "npm test"     # Plan
-/rd:task-runner <file> --resume --execute      # Execute phases
-/rd:task-fixall npm test                       # Final verification
-tasks update 0001 Done                         # Mark complete
+/rd:task-runner <file> --verify "npm test"     # Orchestrator coordinates planning
+/rd:task-runner <file> --resume --execute      # Orchestrator coordinates execution
+/rd:task-fixall npm test                       # Final verification (optional)
+tasks update 0001 Done                         # Mark complete (or via orchestrator)
+```
+
+## Workflow Flowchart
+
+```
+User invokes /rd:task-runner
+         ↓
+rd:orchestrator-expert receives request
+         ↓
+    ┌──────────────────────┐
+    │ Check task file state │
+    │ (tasks list + status)  │
+    └──────────────────────┘
+         ↓
+    ┌─────────────────────────────────┐
+    │ What state is the task in?      │
+    └─────────────────────────────────┘
+         ↓
+    ┌──────────┬──────────┬──────────┬──────────┐
+    ↓          ↓          ↓          ↓          ↓
+Backlog     Todo       WIP      Testing     Done
+    ↓          ↓          ↓          ↓          ↓
+Invoke    Invoke    Resume    Review     Report
+task-      task-     from      &         complete
+decomp     runner    checkpoint fix
+    │          │          │          │
+    └──────────┴──────────┴──────────┘
+                ↓
+        rd:orchestrator-expert
+        coordinates all subagents
+                ↓
+        Track progress via tasks CLI
+                ↓
+        Handle errors & resumption
+                ↓
+        Report completion
 ```
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| File not found | `tasks create <name>` first |
-| Interrupted | `--resume` to continue |
-| Phase blocked | Check `**Blocker**:` note in phase section |
-| Verification fails | `/rd:task-fixall <cmd>` to fix and re-verify |
+| Issue                | Solution                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| File not found       | `tasks create <name>` first                                                          |
+| Interrupted workflow | `--resume` to continue from checkpoint                                               |
+| Task blocked         | Check `**Blocker**:` note in task file; orchestrator will continue independent tasks |
+| Verification fails   | `/rd:task-fixall <cmd>` to fix and re-verify                                         |
+| Need progress check  | `tasks list` to view all task states                                                 |
+
+## Orchestrator Benefits
+
+1. **Unified coordination**: Single entry point manages all subagent interactions
+2. **State reconstruction**: Can resume from any breakpoint by scanning task files
+3. **Error recovery**: Continues with independent tasks when one fails
+4. **Flexible delegation**: Invokes only the subagents needed for current state
+5. **Progress monitoring**: Tracks all tasks via tasks CLI integration
 
 ## Examples
 
