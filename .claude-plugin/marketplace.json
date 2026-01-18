@@ -6,13 +6,13 @@
   },
   "plugins": [
     {
-      "version": "1.5.4",
+      "version": "1.5.5",
       "name": "wt",
       "source": "./plugins/wt",
       "description": "Writing Tools: Style extraction, application, and professional translation"
     },
     {
-      "version": "1.5.4",
+      "version": "1.5.5",
       "name": "rd",
       "source": "./plugins/rd",
       "description": "Rapid Development: TDD workflow, task management, skill development, and code quality tools"
