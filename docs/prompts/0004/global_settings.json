@@ -1,7 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
+    "MAX_THINKING_TOKENS": "31999"
   },
   "permissions": {
     "allow": [
@@ -302,7 +304,8 @@
     "full-stack-orchestration@claude-code-workflows": true,
     "playwright-skill@playwright-skill": true,
     "superpowers@claude-plugins-official": true,
-    "superpowers@superpowers-marketplace": true
+    "superpowers@superpowers-marketplace": true,
+    "mgrep@Mixedbread-Grep": true
   },
   "alwaysThinkingEnabled": false
 }
