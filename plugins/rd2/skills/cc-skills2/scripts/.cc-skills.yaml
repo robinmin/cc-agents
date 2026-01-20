@@ -1,0 +1,47 @@
+# cc-skills2 Configuration
+#
+# This is the default configuration for skill evaluation.
+# Copy this file to your skill directory and customize as needed.
+#
+# Configuration loading priority (highest to lowest):
+# 1. CC_SKILLS_CONFIG environment variable (full path to config file)
+# 2. .cc-skills.yaml or .cc-skills2.yaml in skill directory
+# 3. Default config in scripts/ directory (this file)
+#
+# When using fallback configs, a warning will be displayed.
+
+# Dimension weights
+# Adjust the importance of each evaluation dimension.
+# Weights must sum to 1.0
+weights:
+  frontmatter: 0.10    # YAML frontmatter quality
+  content: 0.25       # SKILL.md content quality
+  security: 0.20      # Security considerations
+  structure: 0.15      # Directory organization
+  efficiency: 0.10     # Token efficiency
+  best_practices: 0.10  # Coding best practices
+  code_quality: 0.10   # Script code quality
+
+# Disabled checks
+# List of rule IDs to disable during evaluation.
+# Example:
+#   disabled_checks:
+#     - "SEC003"  # Allow __import__ for dynamic loading
+#     - "SEC009"  # Allow innerHTML in specific cases
+#     - "Q001"    # Allow bare except handlers
+disabled_checks: []
+
+# Thresholds
+# Configure evaluation thresholds
+thresholds:
+  max_skill_lines: 500         # Maximum recommended SKILL.md lines
+  max_description_length: 1024  # Maximum description length
+
+# Supported languages
+# Languages to analyze during evaluation
+languages:
+  - "python"
+  - "javascript"
+  - "typescript"
+  - "go"
+  - "bash"
