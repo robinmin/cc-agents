@@ -6,7 +6,7 @@
 
 #### Background
 
-How can I use Claude Code skills to define a development workflow to add new functions like this:
+How can I use Agent Skills to define a development workflow to add new functions like this:
 
 #### Workflow
 
@@ -25,7 +25,7 @@ Here
 
 ### skills/10-stages-dev
 
-I want to create a set of workflow to implement TDD for my daily development tasks with Claude Code skills. Under folder @skills/10-stages-dev is the files I Prepared. I want to name it as '10-stages-dev'. I need your help to:
+I want to create a set of workflow to implement TDD for my daily development tasks with Agent Skills. Under folder @skills/10-stages-dev is the files I Prepared. I want to name it as '10-stages-dev'. I need your help to:
 
 - Refer to the following official documentations and best practices to refine this skills, make it as a clean and concise skills for the LLM and human:
   - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview>
@@ -39,7 +39,6 @@ I want to create a set of workflow to implement TDD for my daily development tas
 At the tooling side, I am more prefering to apply soft contracts instead of hard constraints. Meanwhile, it's very hard to provide or maintain an universal scripts for all programming languages and environments. My solution allows for greater flexibility and adaptability in the development process for end users. For example, I am willing to use the following tools:
 
 - Python/golang/Rust: working with make tool, end user need to wrap all commands as unified make tasks. for example:
-
   - make help
   - make install
   - make test
@@ -50,7 +49,6 @@ At the tooling side, I am more prefering to apply soft contracts instead of hard
   - make build
 
 - JavaScript/TypeScript:working with npm scripts, end user need to wrap all commands as unified npm scripts. for example:
-
   - pnpm install
   - pnpm test
   - pnpm test:unit
@@ -102,7 +100,6 @@ Of course, if you have any other commands or other stuff need to be added, pleas
 
 - Add one script to plugin 'rd' named as 'addskill.sh'. This script will help us to add new skills to the any plugin(Both the name of the plugin and the name of the skill will be specified by the user via arguments).
 - Refer to the following links to generate another skill at folder `plugins/rd/skills/cc-skills`. It's the domain knowledge and best practices for Claude Code Agent Skills. We will use this skill to generate a new skill or refine existing skills. Here comes the links:
-
   - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview>
   - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/quickstart>
   - <https://docs.claude.com/en/docs/agents-and-tools/agent-skills/best-practices>
@@ -271,9 +268,7 @@ Based on this experience, I decided to develop a tasks management tool (@plugins
 > Note: We can define a better kanban board template to make it more user-friendly.
 
 - This tool is a single file script (@plugins/rd/scripts/prompts.sh), accessed via `tasks` command, and composed of a set of subcommands to manage tasks. Each subcommand is a function to perform a specific task. It includes the following subcommands:
-
   - `init`: Initialize the tasks management tool. It will:
-
     - create the necessary files and folders(`docs/prompts/` and `docs/prompts/.kanban.md`) in current project.
     - Install necessary dependencies, for example `glow` -- so far only towards macOS, so use `brew install glow` to install it should be okay.
     - create a symlink at `/opt/homebrew/bin/tasks` for easy access.
@@ -299,11 +294,11 @@ updated_at: <task updated at>
 ### References
 ```
 
-  - `list <stage>`: List all tasks in the specified stage in `docs/prompts/.kanban.md` with `glow` command to show markdown format in terminal. If no stage specified, list all tasks.
-  - `create <task name>`: Create a new task based on the template `docs/prompts/.template.md`. It will generate a new task file in `docs/prompts/` folder and name it as `<xxxx>_<yyyy>.md`. xxxx is the four-digit sequence number(only count on non-dot files + 1), <yyyy> is the task name.
-  - `update <WBS number> <stage>`: Update the specified task to the specified stage. It will update the kanban board automatically.
-  - `refresh`: Refresh the kanban board. It will extract 'status' field from each task file and update the kanban board automatically. Each time when user updates a task or creates a new task, it will trigger this command automatically.
-  - `help`: Show help information.
+- `list <stage>`: List all tasks in the specified stage in `docs/prompts/.kanban.md` with `glow` command to show markdown format in terminal. If no stage specified, list all tasks.
+- `create <task name>`: Create a new task based on the template `docs/prompts/.template.md`. It will generate a new task file in `docs/prompts/` folder and name it as `<xxxx>_<yyyy>.md`. xxxx is the four-digit sequence number(only count on non-dot files + 1), <yyyy> is the task name.
+- `update <WBS number> <stage>`: Update the specified task to the specified stage. It will update the kanban board automatically.
+- `refresh`: Refresh the kanban board. It will extract 'status' field from each task file and update the kanban board automatically. Each time when user updates a task or creates a new task, it will trigger this command automatically.
+- `help`: Show help information.
 
 ### References
 
