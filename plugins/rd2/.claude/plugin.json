@@ -1,6 +1,6 @@
 {
   "name": "rd2",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Next-generation Claude Code plugin with fat-skills/thin-wrappers architecture",
   "author": "cc-agents",
   "tags": ["agents", "skills", "commands", "plugin"],
