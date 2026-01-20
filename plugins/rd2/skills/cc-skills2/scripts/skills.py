@@ -3,7 +3,7 @@
 Skill Management Utility - Initialize, validate, evaluate, and package skills.
 
 Usage:
-    python3 skills.py <command> [options]
+    python3 scripts/skills.py <command> [options]
 
 Commands:
     init <skill-name> --path <path>    Initialize a new skill directory
@@ -12,24 +12,29 @@ Commands:
     package <skill-path> [output-dir]  Package a skill for distribution
 
 Examples:
-    python3 skills.py init my-skill --path ./skills
-    python3 skills.py validate ./skills/my-skill
-    python3 skills.py evaluate ./skills/my-skill
-    python3 skills.py evaluate ./skills/my-skill --json
-    python3 skills.py package ./skills/my-skill ./dist
+    python3 scripts/skills.py init my-skill --path ./skills
+    python3 scripts/skills.py validate ./skills/my-skill
+    python3 scripts/skills.py evaluate ./skills/my-skill
+    python3 scripts/skills.py evaluate ./skills/my-skill --json
+    python3 scripts/skills.py package ./skills/my-skill ./dist
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
+import importlib.util
 import json
 import re
+import shutil
+import subprocess
 import sys
 import zipfile
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Protocol, runtime_checkable
 
 try:
     import yaml  # type: ignore[import-not-found]
@@ -38,6 +43,1254 @@ try:
 except ImportError:
     yaml = None  # type: ignore[assignment]
     HAS_YAML = False
+
+
+###############################################################################
+# AST-BASED SECURITY ANALYSIS
+###############################################################################
+
+
+def find_dangerous_calls_ast(script_path: Path) -> list[tuple[str, int, str]]:
+    """
+    Find dangerous function calls using Python AST analysis.
+
+    This function parses Python source code into an AST and walks the tree
+    to find actual dangerous function calls. Unlike string matching, this
+    approach does not trigger on comments, strings, or documentation.
+
+    Args:
+        script_path: Path to a Python script file
+
+    Returns:
+        List of (pattern, line_number, context) tuples for each finding.
+        Empty list if file has syntax errors or cannot be parsed.
+    """
+    dangerous_calls: list[tuple[str, int, str]] = []
+
+    try:
+        source = script_path.read_text()
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+    except OSError:
+        return []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            # Check for direct function calls
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id
+                if func_name == "eval":
+                    dangerous_calls.append((
+                        "eval()",
+                        node.lineno,
+                        "Direct call to eval() - code injection risk"
+                    ))
+                elif func_name == "exec":
+                    dangerous_calls.append((
+                        "exec()",
+                        node.lineno,
+                        "Direct call to exec() - code injection risk"
+                    ))
+                elif func_name == "__import__":
+                    dangerous_calls.append((
+                        "__import__()",
+                        node.lineno,
+                        "Dynamic import with __import__() - code injection risk"
+                    ))
+
+            # Check for attribute calls
+            if isinstance(node.func, ast.Attribute):
+                attr_name = node.func.attr
+                if isinstance(node.func.value, ast.Name):
+                    obj_name = node.func.value.id
+
+                    if obj_name == "os" and attr_name in ("system", "popen"):
+                        dangerous_calls.append((
+                            f"os.{attr_name}()",
+                            node.lineno,
+                            f"Call to os.{attr_name}() - command injection risk"
+                        ))
+
+                    if obj_name == "pickle" and attr_name == "loads":
+                        dangerous_calls.append((
+                            "pickle.loads()",
+                            node.lineno,
+                            "Call to pickle.loads() - arbitrary code execution risk"
+                        ))
+
+                    if obj_name == "subprocess" and attr_name in (
+                        "call", "run", "Popen", "check_call", "check_output"
+                    ):
+                        for keyword in node.keywords:
+                            if keyword.arg == "shell":
+                                if isinstance(keyword.value, ast.Constant):
+                                    if keyword.value.value is True:
+                                        dangerous_calls.append((
+                                            f"subprocess.{attr_name}(shell=True)",
+                                            node.lineno,
+                                            f"subprocess.{attr_name}() with shell=True - command injection risk"
+                                        ))
+
+    return dangerous_calls
+
+
+def extract_python_code_blocks(markdown_content: str) -> list[tuple[str, int]]:
+    """
+    Extract Python code blocks from markdown content.
+
+    Args:
+        markdown_content: Full markdown file content
+
+    Returns:
+        List of (code_content, start_line_number) tuples
+    """
+    code_blocks: list[tuple[str, int]] = []
+    pattern = r'```(?:python|py)\n(.*?)```'
+
+    for match in re.finditer(pattern, markdown_content, re.DOTALL | re.IGNORECASE):
+        code = match.group(1)
+        start_pos = match.start()
+        line_num = markdown_content[:start_pos].count('\n') + 2
+        code_blocks.append((code, line_num))
+
+    return code_blocks
+
+
+def analyze_markdown_security(skill_md_path: Path) -> list[tuple[str, int, str]]:
+    """
+    Analyze SKILL.md for security issues in Python code blocks only.
+
+    This function extracts Python code blocks from markdown and applies
+    AST-based security analysis. Prose text is completely ignored.
+
+    Args:
+        skill_md_path: Path to SKILL.md file
+
+    Returns:
+        List of (pattern, line_number, context) tuples for each finding.
+    """
+    findings: list[tuple[str, int, str]] = []
+
+    try:
+        content = skill_md_path.read_text()
+    except OSError:
+        return []
+
+    code_blocks = extract_python_code_blocks(content)
+
+    for code, block_start_line in code_blocks:
+        try:
+            tree = ast.parse(code)
+        except SyntaxError:
+            continue
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name):
+                    func_name = node.func.id
+                    if func_name == "eval":
+                        findings.append((
+                            "eval()",
+                            block_start_line + node.lineno - 1,
+                            "Code block contains eval() call"
+                        ))
+                    elif func_name == "exec":
+                        findings.append((
+                            "exec()",
+                            block_start_line + node.lineno - 1,
+                            "Code block contains exec() call"
+                        ))
+                    elif func_name == "__import__":
+                        findings.append((
+                            "__import__()",
+                            block_start_line + node.lineno - 1,
+                            "Code block contains __import__() call"
+                        ))
+
+                if isinstance(node.func, ast.Attribute):
+                    if isinstance(node.func.value, ast.Name):
+                        obj_name = node.func.value.id
+                        attr_name = node.func.attr
+
+                        if obj_name == "os" and attr_name in ("system", "popen"):
+                            findings.append((
+                                f"os.{attr_name}()",
+                                block_start_line + node.lineno - 1,
+                                f"Code block contains os.{attr_name}() call"
+                            ))
+
+                        if obj_name == "pickle" and attr_name == "loads":
+                            findings.append((
+                                "pickle.loads()",
+                                block_start_line + node.lineno - 1,
+                                "Code block contains pickle.loads() call"
+                            ))
+
+                        if obj_name == "subprocess":
+                            for keyword in node.keywords:
+                                if keyword.arg == "shell":
+                                    if isinstance(keyword.value, ast.Constant):
+                                        if keyword.value.value is True:
+                                            findings.append((
+                                                f"subprocess.{attr_name}(shell=True)",
+                                                block_start_line + node.lineno - 1,
+                                                "Code block contains subprocess with shell=True"
+                                            ))
+
+    return findings
+
+
+###############################################################################
+# AST CACHING (Phase 2 - Task 0011)
+###############################################################################
+
+
+def _get_cache_key(path: Path) -> tuple[str, float]:
+    """Create cache key from path and modification time."""
+    return (str(path), path.stat().st_mtime)
+
+
+@lru_cache(maxsize=100)
+def _parse_python_cached(cache_key: tuple[str, float]) -> ast.AST | None:
+    """Parse Python file with caching based on path and mtime."""
+    path = Path(cache_key[0])
+    try:
+        return ast.parse(path.read_text())
+    except (SyntaxError, OSError):
+        return None
+
+
+def get_ast(path: Path) -> ast.AST | None:
+    """Get cached AST for Python file."""
+    try:
+        key = _get_cache_key(path)
+        return _parse_python_cached(key)
+    except OSError:
+        return None
+
+
+@lru_cache(maxsize=100)
+def _read_file_cached(cache_key: tuple[str, float]) -> str | None:
+    """Read file with caching based on path and mtime."""
+    path = Path(cache_key[0])
+    try:
+        return path.read_text()
+    except OSError:
+        return None
+
+
+def get_file_content(path: Path) -> str | None:
+    """Get cached file content."""
+    try:
+        key = _get_cache_key(path)
+        return _read_file_cached(key)
+    except OSError:
+        return None
+
+
+def clear_ast_cache() -> None:
+    """Clear AST and file caches (for testing)."""
+    _parse_python_cached.cache_clear()
+    _read_file_cached.cache_clear()
+
+
+class CacheManager:
+    """Unified cache for skill evaluation.
+
+    Provides:
+    - File content caching with mtime invalidation
+    - AST parsing caching
+    - Evaluation results caching
+    - Cache statistics tracking
+    - Optional persistent cache
+    """
+
+    def __init__(self, max_size: int = 100):
+        self._file_cache: dict[str, tuple[float, str]] = {}
+        self._ast_cache: dict[str, tuple[float, str]] = {}  # Store source as string
+        self._result_cache: dict[str, tuple[float, dict]] = {}
+        self.hits = 0
+        self.misses = 0
+        self._max_size = max_size
+
+    def _evict_if_needed(self) -> None:
+        """Evict oldest entries if cache exceeds max size."""
+        caches = [self._file_cache, self._ast_cache, self._result_cache]
+        total_items = sum(len(c) for c in caches)
+
+        if total_items > self._max_size:
+            # Clear 20% of entries
+            target_size = int(self._max_size * 0.8)
+            for cache in caches:
+                if len(cache) > 0:
+                    # Sort by mtime and keep oldest 80%
+                    sorted_items = sorted(cache.items(), key=lambda x: x[1][0])
+                    keep_count = min(len(sorted_items), int(target_size / 3))
+                    cache.clear()
+                    for key, (mtime, value) in sorted_items[:keep_count]:
+                        cache[key] = (mtime, value)
+
+    def get_file(self, path: Path) -> str | None:
+        """Get cached file content.
+
+        Args:
+            path: Path to file
+
+        Returns:
+            File content or None if not cached/expired
+        """
+        key = str(path)
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            self.misses += 1
+            return None
+
+        if key in self._file_cache:
+            cached_mtime, content = self._file_cache[key]
+            if cached_mtime == mtime:
+                self.hits += 1
+                return content
+
+        self.misses += 1
+        try:
+            content = path.read_text()
+            self._file_cache[key] = (mtime, content)
+            self._evict_if_needed()
+            return content
+        except OSError:
+            return None
+
+    def get_ast(self, path: Path) -> ast.AST | None:
+        """Get cached AST for Python file.
+
+        Args:
+            path: Path to Python file
+
+        Returns:
+            AST or None if parsing failed
+        """
+        key = str(path)
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            self.misses += 1
+            return None
+
+        if key in self._ast_cache:
+            cached_mtime, source = self._ast_cache[key]
+            if cached_mtime == mtime:
+                self.hits += 1
+                try:
+                    return ast.parse(source)
+                except SyntaxError:
+                    return None
+
+        self.misses += 1
+        try:
+            source = path.read_text()
+            tree = ast.parse(source)
+            self._ast_cache[key] = (mtime, source)
+            self._evict_if_needed()
+            return tree
+        except (SyntaxError, OSError):
+            return None
+
+    def get_evaluation(self, skill_path: Path, dimensions: list[str]) -> dict | None:
+        """Get cached evaluation result.
+
+        Args:
+            skill_path: Path to skill directory
+            dimensions: List of dimension names evaluated
+
+        Returns:
+            Cached evaluation dict or None
+        """
+        key = f"{skill_path}:{','.join(sorted(dimensions))}"
+        try:
+            # Use directory mtime as a simple proxy
+            mtime = skill_path.stat().st_mtime
+        except OSError:
+            self.misses += 1
+            return None
+
+        if key in self._result_cache:
+            cached_mtime, result = self._result_cache[key]
+            if cached_mtime == mtime:
+                self.hits += 1
+                return result
+
+        self.misses += 1
+        return None
+
+    def set_evaluation(self, skill_path: Path, dimensions: list[str], result: dict) -> None:
+        """Cache evaluation result.
+
+        Args:
+            skill_path: Path to skill directory
+            dimensions: List of dimension names evaluated
+            result: Evaluation result dict
+        """
+        key = f"{skill_path}:{','.join(sorted(dimensions))}"
+        try:
+            mtime = skill_path.stat().st_mtime
+            self._result_cache[key] = (mtime, result)
+            self._evict_if_needed()
+        except OSError:
+            pass
+
+    def get_stats(self) -> dict[str, Any]:
+        """Get cache statistics.
+
+        Returns:
+            Dict with hits, misses, hit_rate, and sizes
+        """
+        total = self.hits + self.misses
+        hit_rate = (self.hits / total * 100) if total > 0 else 0
+
+        return {
+            "hits": self.hits,
+            "misses": self.misses,
+            "hit_rate": f"{hit_rate:.1f}%",
+            "file_cache_size": len(self._file_cache),
+            "ast_cache_size": len(self._ast_cache),
+            "result_cache_size": len(self._result_cache),
+        }
+
+    def clear(self) -> None:
+        """Clear all caches."""
+        self._file_cache.clear()
+        self._ast_cache.clear()
+        self._result_cache.clear()
+        self.hits = 0
+        self.misses = 0
+
+    def save_to_disk(self, path: Path) -> bool:
+        """Save cache to disk (persistent cache).
+
+        Uses JSON for safe serialization. AST is stored as source code.
+
+        Args:
+            path: Path to cache file
+
+        Returns:
+            True if saved successfully
+        """
+        try:
+            data = {
+                "version": 1,
+                "file_cache": self._file_cache,
+                "ast_cache": self._ast_cache,
+                "result_cache": self._result_cache,
+                "hits": self.hits,
+                "misses": self.misses,
+            }
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(data))
+            return True
+        except (OSError, TypeError):
+            return False
+
+    def load_from_disk(self, path: Path) -> bool:
+        """Load cache from disk.
+
+        Args:
+            path: Path to cache file
+
+        Returns:
+            True if loaded successfully
+        """
+        try:
+            if path.exists():
+                text = path.read_text()
+                data = json.loads(text)
+
+                # Validate version
+                if data.get("version") != 1:
+                    return False
+
+                self._file_cache = data.get("file_cache", {})
+                self._ast_cache = data.get("ast_cache", {})
+                self._result_cache = data.get("result_cache", {})
+                self.hits = data.get("hits", 0)
+                self.misses = data.get("misses", 0)
+                return True
+        except (OSError, json.JSONDecodeError, KeyError, TypeError):
+            pass
+        return False
+
+
+# Global cache manager instance
+_global_cache: CacheManager | None = None
+
+
+def get_cache() -> CacheManager:
+    """Get the global cache manager instance."""
+    global _global_cache
+    if _global_cache is None:
+        _global_cache = CacheManager()
+    return _global_cache
+
+
+def clear_global_cache() -> None:
+    """Clear the global cache."""
+    global _global_cache
+    if _global_cache is not None:
+        _global_cache.clear()
+
+
+###############################################################################
+# RULES SYSTEM (Phase 2 - Task 0010)
+###############################################################################
+
+
+class RuleCategory(Enum):
+    """Rule categories."""
+    SECURITY = "security"
+    CODE_QUALITY = "code_quality"
+    STYLE = "style"
+    PERFORMANCE = "performance"
+    BEST_PRACTICES = "best_practices"
+    FILE_SYSTEM = "file_system"
+
+
+class RuleSeverity(Enum):
+    """Rule severity levels."""
+    ERROR = "error"
+    WARNING = "warning"
+    INFO = "info"
+
+
+class PatternType(Enum):
+    """Pattern types."""
+    AST = "ast"
+    REGEX = "regex"
+    AST_GREP = "ast_grep"
+
+
+@dataclass
+class Rule:
+    """A rule for code analysis."""
+    id: str  # Unique identifier (e.g., "SEC001")
+    pattern: str  # AST pattern, regex, or ast-grep pattern
+    message: str  # Human-readable description
+    category: RuleCategory  # Rule category
+    severity: RuleSeverity  # Severity level
+    languages: list[str]  # Applicable languages
+    pattern_type: PatternType  # Pattern type
+
+    def matches_language(self, language: str) -> bool:
+        """Check if rule applies to given language."""
+        return language in self.languages or "all" in self.languages
+
+
+# Built-in rules - security patterns migrated to rule system
+BUILTIN_RULES: list[Rule] = [
+    # Python security rules
+    Rule(
+        id="SEC001",
+        pattern="eval($$$)",
+        message="eval() - code injection risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC002",
+        pattern="exec($$$)",
+        message="exec() - code injection risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC003",
+        pattern="__import__($$$)",
+        message="__import__() - dynamic import risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.WARNING,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC004",
+        pattern="os.system($$$)",
+        message="os.system() - command injection risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC005",
+        pattern="os.popen($$$)",
+        message="os.popen() - command injection risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC006",
+        pattern="pickle.loads($$$)",
+        message="pickle.loads() - arbitrary code execution risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    # TypeScript security rules
+    Rule(
+        id="SEC007",
+        pattern="eval($$$)",
+        message="eval() - code injection risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.ERROR,
+        languages=["typescript", "javascript"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC008",
+        pattern="new Function($$$)",
+        message="new Function() - code injection risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.ERROR,
+        languages=["typescript", "javascript"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC009",
+        pattern="innerHTML = $$$",
+        message="innerHTML assignment - XSS risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.WARNING,
+        languages=["typescript", "javascript"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC010",
+        pattern="dangerouslySetInnerHTML",
+        message="dangerouslySetInnerHTML - XSS risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.WARNING,
+        languages=["typescript", "javascript"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    # Go security rules
+    Rule(
+        id="SEC011",
+        pattern="exec.Command($$$)",
+        message="exec.Command() - command injection risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.WARNING,
+        languages=["go"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC012",
+        pattern="os.Exec($$$)",
+        message="os.Exec() - command injection risk",
+        category=RuleCategory.SECURITY,
+        severity=RuleSeverity.WARNING,
+        languages=["go"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    # Code quality rules
+    Rule(
+        id="Q001",
+        pattern="except:",
+        message="Bare except catches all exceptions including SystemExit",
+        category=RuleCategory.CODE_QUALITY,
+        severity=RuleSeverity.WARNING,
+        languages=["python"],
+        pattern_type=PatternType.AST,
+    ),
+    # File system - dangerous removal operations
+    Rule(
+        id="SEC013",
+        pattern="shutil.rmtree($$$)",
+        message="shutil.rmtree() - recursive directory deletion",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC014",
+        pattern="os.remove($$$)",
+        message="os.remove() - file deletion",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC015",
+        pattern="os.unlink($$$)",
+        message="os.unlink() - file deletion",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC016",
+        pattern="os.rmdir($$$)",
+        message="os.rmdir() - directory deletion",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["python"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC017",
+        pattern="fs.rm($$$)",
+        message="fs.rm() - file/directory removal",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["typescript", "javascript"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC018",
+        pattern="fs.unlink($$$)",
+        message="fs.unlink() - file deletion",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["typescript", "javascript"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    Rule(
+        id="SEC019",
+        pattern="os.RemoveAll($$$)",
+        message="os.RemoveAll() - recursive directory removal",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["go"],
+        pattern_type=PatternType.AST_GREP,
+    ),
+    # File system - sensitive file access patterns (string-based detection)
+    Rule(
+        id="SEC020",
+        pattern=r'"\.env"',
+        message=".env file access - may contain sensitive credentials",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.WARNING,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC021",
+        pattern=r"'\.env'",
+        message=".env file access - may contain sensitive credentials",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.WARNING,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC022",
+        pattern=r'"/\.ssh/"',
+        message="SSH directory access - may contain private keys",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.WARNING,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC023",
+        pattern=r"'/.ssh/'",
+        message="SSH directory access - may contain private keys",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.WARNING,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC024",
+        pattern=r'"/\.aws/"',
+        message="AWS directory access - may contain credentials",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.WARNING,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC025",
+        pattern=r"'/.aws/'",
+        message="AWS directory access - may contain credentials",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.WARNING,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC026",
+        pattern=r'"/\.config/"',
+        message=".config directory access - may contain sensitive configs",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.WARNING,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC027",
+        pattern=r"'/.config/'",
+        message=".config directory access - may contain sensitive configs",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.WARNING,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC028",
+        pattern=r'"/etc/passwd"',
+        message="/etc/passwd access - system file",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+    Rule(
+        id="SEC029",
+        pattern=r"'/etc/passwd'",
+        message="/etc/passwd access - system file",
+        category=RuleCategory.FILE_SYSTEM,
+        severity=RuleSeverity.ERROR,
+        languages=["all"],
+        pattern_type=PatternType.REGEX,
+    ),
+]
+
+
+def get_rules(
+    category: RuleCategory | None = None,
+    severity: RuleSeverity | None = None,
+    language: str | None = None,
+    custom_rules: list[Rule] | None = None,
+) -> list[Rule]:
+    """
+    Get filtered rules based on criteria.
+
+    Args:
+        category: Filter by category
+        severity: Filter by severity
+        language: Filter by language
+        custom_rules: Additional custom rules to include
+
+    Returns:
+        List of matching rules
+    """
+    rules = BUILTIN_RULES + (custom_rules or [])
+
+    if category:
+        rules = [r for r in rules if r.category == category]
+    if severity:
+        rules = [r for r in rules if r.severity == severity]
+    if language:
+        rules = [r for r in rules if r.matches_language(language)]
+
+    return rules
+
+
+###############################################################################
+# AST-GREP INTEGRATION (Phase 2 - Task 0006)
+###############################################################################
+
+
+# Check if ast-grep is available
+HAS_AST_GREP = shutil.which("ast-grep") is not None
+
+
+@dataclass
+class AstGrepMatch:
+    """Structured ast-grep match result."""
+    file: str
+    line: int
+    column: int
+    text: str
+    pattern: str
+
+
+def run_ast_grep(
+    pattern: str,
+    path: Path,
+    language: str = "python",
+    timeout: float = 5.0,
+) -> list[AstGrepMatch]:
+    """
+    Run ast-grep with a pattern and return structured matches.
+
+    Uses subprocess.run with list arguments (no shell) for security.
+
+    Args:
+        pattern: ast-grep pattern (e.g., 'eval($$$)')
+        path: File or directory to search
+        language: Language to use (python, typescript, go)
+        timeout: Timeout in seconds
+
+    Returns:
+        List of AstGrepMatch objects. Empty list on errors.
+    """
+    if not HAS_AST_GREP:
+        return []
+
+    try:
+        # Using list arguments, not shell=True, for security
+        result = subprocess.run(
+            [
+                "ast-grep",
+                "--pattern", pattern,
+                "--lang", language,
+                "--json",
+                str(path),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+
+        if result.returncode != 0:
+            return []
+
+        matches_json = json.loads(result.stdout) if result.stdout.strip() else []
+        matches = []
+
+        for match in matches_json:
+            matches.append(AstGrepMatch(
+                file=match.get("file", ""),
+                line=match.get("range", {}).get("start", {}).get("line", 0),
+                column=match.get("range", {}).get("start", {}).get("column", 0),
+                text=match.get("text", "")[:100],  # Truncate for readability
+                pattern=pattern,
+            ))
+
+        return matches
+
+    except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
+        return []
+
+
+# Security patterns for ast-grep (kept for backward compatibility)
+# Deprecated: Use BUILTIN_RULES with Rule dataclass instead
+AST_GREP_SECURITY_PATTERNS: dict[str, list[tuple[str, str]]] = {
+    "python": [
+        ("eval($$$)", "eval() - code injection risk"),
+        ("os.system($$$)", "os.system() - command injection risk"),
+        ("os.popen($$$)", "os.popen() - command injection risk"),
+        ("pickle.loads($$$)", "pickle.loads() - arbitrary code execution risk"),
+    ],
+    "typescript": [
+        ("innerHTML = $$$", "innerHTML assignment - XSS risk"),
+        ("dangerouslySetInnerHTML", "dangerouslySetInnerHTML - XSS risk"),
+    ],
+    "go": [
+        ("exec.Command($$$)", "exec.Command() - command injection risk"),
+    ],
+}
+
+
+def scan_with_ast_grep(
+    path: Path,
+    language: str = "python",
+) -> list[tuple[str, int, str]]:
+    """
+    Scan a file/directory for security issues using ast-grep.
+
+    Deprecated: Use evaluate_rules() instead for better filtering.
+
+    Args:
+        path: File or directory to scan
+        language: Language to scan for
+
+    Returns:
+        List of (pattern, line_number, description) tuples.
+    """
+    findings: list[tuple[str, int, str]] = []
+
+    # Use new rules system
+    rules = get_rules(language=language, category=RuleCategory.SECURITY)
+    ast_grep_rules = [r for r in rules if r.pattern_type == PatternType.AST_GREP]
+
+    for rule in ast_grep_rules:
+        matches = run_ast_grep(rule.pattern, path, language)
+        for match in matches:
+            findings.append((rule.pattern, match.line, rule.message))
+
+    return findings
+
+
+def evaluate_rules(
+    path: Path,
+    language: str = "python",
+    category: RuleCategory | None = None,
+    severity: RuleSeverity | None = None,
+) -> list[tuple[str, int, str, str, RuleSeverity]]:
+    """
+    Evaluate rules against a file or directory.
+
+    Args:
+        path: File or directory to analyze
+        language: Language to analyze
+        category: Filter by category
+        severity: Filter by severity
+
+    Returns:
+        List of (rule_id, line_number, pattern, message, severity) tuples.
+    """
+    findings: list[tuple[str, int, str, str, RuleSeverity]] = []
+
+    # Get applicable rules
+    rules = get_rules(category=category, severity=severity, language=language)
+
+    for rule in rules:
+        if rule.pattern_type == PatternType.AST_GREP and HAS_AST_GREP:
+            matches = run_ast_grep(rule.pattern, path, language)
+            for match in matches:
+                findings.append((
+                    rule.id,
+                    match.line,
+                    rule.pattern,
+                    rule.message,
+                    rule.severity,
+                ))
+        elif rule.pattern_type == PatternType.AST:
+            # For AST-based rules, use existing Python AST analysis
+            if language == "python" and path.is_file() and path.suffix == ".py":
+                tree = get_ast(path)
+                if tree:
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.ExceptHandler):
+                            if rule.pattern == "except:" and node.type is None:
+                                findings.append((
+                                    rule.id,
+                                    node.lineno,
+                                    rule.pattern,
+                                    rule.message,
+                                    rule.severity,
+                                ))
+        elif rule.pattern_type == PatternType.REGEX:
+            # For regex-based rules, scan file content for string patterns
+            if path.is_file():
+                try:
+                    content = path.read_text()
+                    # Compile the pattern (rule.pattern is already a regex string)
+                    regex_pattern = re.compile(rule.pattern)
+                    # Search line by line to get line numbers
+                    for line_num, line in enumerate(content.splitlines(), start=1):
+                        if regex_pattern.search(line):
+                            findings.append((
+                                rule.id,
+                                line_num,
+                                rule.pattern,
+                                rule.message,
+                                rule.severity,
+                            ))
+                except (OSError, re.error):
+                    # File not readable or invalid regex pattern
+                    pass
+
+    return findings
+
+
+###############################################################################
+# AST-BASED TYPE HINT ANALYSIS (Phase 2 - Task 0007)
+###############################################################################
+
+
+@dataclass
+class TypeHintAnalysis:
+    """Result of type hint coverage analysis."""
+    has_hints: bool
+    coverage_pct: float
+    annotated_count: int
+    total_count: int
+    details: list[str] = field(default_factory=list)
+
+
+def analyze_type_hints(script_path: Path) -> TypeHintAnalysis:
+    """
+    Analyze type hint coverage using AST.
+
+    This replaces the regex-based detection with accurate AST analysis.
+    Detects function annotations, return types, and variable annotations.
+
+    Args:
+        script_path: Path to Python script
+
+    Returns:
+        TypeHintAnalysis with coverage statistics
+    """
+    tree = get_ast(script_path)
+    if tree is None:
+        return TypeHintAnalysis(
+            has_hints=False,
+            coverage_pct=0.0,
+            annotated_count=0,
+            total_count=0,
+            details=["Could not parse file"],
+        )
+
+    annotated = 0
+    total = 0
+    details: list[str] = []
+
+    for node in ast.walk(tree):
+        # Function definitions (including async)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            total += 1
+            has_return = node.returns is not None
+            has_params = any(arg.annotation for arg in node.args.args)
+
+            if has_return or has_params:
+                annotated += 1
+                if has_return and has_params:
+                    details.append(f"{node.name}: fully annotated")
+                elif has_return:
+                    details.append(f"{node.name}: return type only")
+                else:
+                    details.append(f"{node.name}: parameters only")
+            else:
+                details.append(f"{node.name}: no annotations")
+
+        # Variable annotations (e.g., x: int = 5)
+        if isinstance(node, ast.AnnAssign):
+            annotated += 1
+            total += 1
+
+    coverage = (annotated / total * 100) if total > 0 else 0.0
+
+    return TypeHintAnalysis(
+        has_hints=annotated > 0,
+        coverage_pct=round(coverage, 1),
+        annotated_count=annotated,
+        total_count=total,
+        details=details[:10],  # Limit details to first 10
+    )
+
+
+###############################################################################
+# AST-BASED EXCEPTION HANDLER ANALYSIS (Phase 2 - Task 0008)
+###############################################################################
+
+
+@dataclass
+class ExceptionIssue:
+    """An exception handling issue."""
+    issue_type: str  # bare_except, broad_except
+    line: int
+    description: str
+
+
+def analyze_exception_handlers(script_path: Path) -> list[ExceptionIssue]:
+    """
+    Analyze exception handlers for anti-patterns using AST.
+
+    Detects:
+    - Bare except: (catches everything including SystemExit)
+    - Broad except Exception: (catches all exceptions)
+
+    Args:
+        script_path: Path to Python script
+
+    Returns:
+        List of ExceptionIssue objects
+    """
+    tree = get_ast(script_path)
+    if tree is None:
+        return []
+
+    issues: list[ExceptionIssue] = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ExceptHandler):
+            if node.type is None:
+                # Bare except: (catches everything including SystemExit)
+                issues.append(ExceptionIssue(
+                    issue_type="bare_except",
+                    line=node.lineno,
+                    description="Bare except catches all exceptions including SystemExit",
+                ))
+            elif isinstance(node.type, ast.Name) and node.type.id == "Exception":
+                # except Exception: (very broad)
+                issues.append(ExceptionIssue(
+                    issue_type="broad_except",
+                    line=node.lineno,
+                    description="Broad 'except Exception' - consider more specific types",
+                ))
+
+    return issues
+
+
+###############################################################################
+# MULTI-LANGUAGE SUPPORT (Phase 2 - Task 0009)
+###############################################################################
+
+
+LANGUAGE_EXTENSIONS: dict[str, str] = {
+    ".py": "python",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".go": "go",
+    ".sh": "bash",
+    ".bash": "bash",
+}
+
+
+def get_script_language(path: Path) -> str | None:
+    """Detect script language from file extension."""
+    return LANGUAGE_EXTENSIONS.get(path.suffix.lower())
+
+
+def analyze_script(script_path: Path) -> dict[str, Any]:
+    """
+    Analyze a script file using the appropriate analyzer.
+
+    Routes to Python AST, ast-grep, or other analyzers based on language.
+
+    Args:
+        script_path: Path to script file
+
+    Returns:
+        Dictionary with analysis results
+    """
+    language = get_script_language(script_path)
+
+    if language is None:
+        return {"language": None, "supported": False}
+
+    result: dict[str, Any] = {
+        "language": language,
+        "supported": True,
+        "security_issues": [],
+        "code_quality": {},
+    }
+
+    if language == "python":
+        # Use Python AST for detailed analysis
+        result["security_issues"] = find_dangerous_calls_ast(script_path)
+        result["type_hints"] = analyze_type_hints(script_path)
+        result["exception_issues"] = analyze_exception_handlers(script_path)
+
+    elif language in ("typescript", "go") and HAS_AST_GREP:
+        # Use ast-grep for TypeScript and Go
+        result["security_issues"] = scan_with_ast_grep(script_path, language)
+
+    elif language == "bash":
+        # Basic bash analysis (can be extended with shellcheck)
+        result["note"] = "Bash analysis is basic; consider shellcheck for thorough review"
+
+    return result
+
+
+###############################################################################
+# YAML PARSING
+###############################################################################
 
 
 def parse_simple_yaml(text: str) -> dict[str, Any]:
@@ -71,6 +1324,162 @@ def parse_simple_yaml(text: str) -> dict[str, Any]:
 SCRIPT_DIR = Path(__file__).parent.resolve()
 SKILL_ROOT = SCRIPT_DIR.parent
 ASSETS_DIR = SKILL_ROOT / "assets"
+
+
+###############################################################################
+# CONFIGURATION FILE SUPPORT (Phase 3 - Task 0015)
+###############################################################################
+
+
+@dataclass
+class Config:
+    """Configuration for skill evaluation.
+
+    Attributes:
+        weights: Dimension weights (must sum to 1.0)
+        disabled_checks: List of rule IDs to disable
+        thresholds: Quality thresholds
+        languages: Languages to analyze
+    """
+    weights: dict[str, float] = field(default_factory=lambda: DIMENSION_WEIGHTS.copy())
+    disabled_checks: list[str] = field(default_factory=list)
+    thresholds: dict[str, int] = field(default_factory=dict)
+    languages: list[str] = field(default_factory=lambda: ["python"])
+
+    def __post_init__(self) -> None:
+        """Validate configuration after initialization."""
+        # Validate weights sum to approximately 1.0
+        total_weight = sum(self.weights.values())
+        if abs(total_weight - 1.0) > 0.01:
+            raise ValueError(
+                f"Weights must sum to 1.0, got {total_weight}. "
+                f"Adjust weights in configuration file."
+            )
+
+        # Validate disabled_checks is a list of strings
+        if not isinstance(self.disabled_checks, list):
+            raise ValueError(f"disabled_checks must be a list, got {type(self.disabled_checks).__name__}")
+        for check in self.disabled_checks:
+            if not isinstance(check, str):
+                raise ValueError(f"Each disabled check must be a string, got {type(check).__name__}")
+
+        # Validate thresholds is a dict with string keys and int values
+        if not isinstance(self.thresholds, dict):
+            raise ValueError(f"thresholds must be a dict, got {type(self.thresholds).__name__}")
+        for key, value in self.thresholds.items():
+            if not isinstance(key, str):
+                raise ValueError(f"Threshold keys must be strings, got {type(key).__name__}")
+            if not isinstance(value, int):
+                raise ValueError(f"Threshold values must be integers, got {type(value).__name__}")
+
+        # Validate languages is a list of strings
+        if not isinstance(self.languages, list):
+            raise ValueError(f"languages must be a list, got {type(self.languages).__name__}")
+        for lang in self.languages:
+            if not isinstance(lang, str):
+                raise ValueError(f"Each language must be a string, got {type(lang).__name__}")
+
+
+CONFIG_FILENAME = ".cc-skills2.yaml"
+
+
+def load_config(skill_path: Path) -> Config:
+    """Load configuration from skill directory.
+
+    Looks for .cc-skills2.yaml in the skill directory and merges with defaults.
+
+    Args:
+        skill_path: Path to the skill directory
+
+    Returns:
+        Config with defaults merged with file contents
+    """
+    config = Config()
+
+    config_file = skill_path / CONFIG_FILENAME
+    if config_file.exists():
+        try:
+            # Parse YAML config
+            if HAS_YAML and yaml is not None:
+                data = yaml.safe_load(config_file.read_text())
+            else:
+                data = parse_simple_yaml(config_file.read_text())
+
+            if not isinstance(data, dict):
+                return config
+
+            # Merge weights
+            if "weights" in data and isinstance(data["weights"], dict):
+                # Validate keys are valid dimensions
+                valid_weights = set(DIMENSION_WEIGHTS.keys())
+                for key, value in data["weights"].items():
+                    if key in valid_weights and isinstance(value, (int, float)):
+                        config.weights[key] = float(value)
+
+            # Merge disabled checks
+            if "disabled_checks" in data and isinstance(data["disabled_checks"], list):
+                config.disabled_checks = data["disabled_checks"]
+
+            # Merge thresholds
+            if "thresholds" in data and isinstance(data["thresholds"], dict):
+                config.thresholds.update(data["thresholds"])
+
+            # Merge languages
+            if "languages" in data and isinstance(data["languages"], list):
+                config.languages = data["languages"]
+
+        except Exception as e:
+            # If config parsing fails, use defaults
+            # Log would go here: logging.warning(f"Config parsing failed: {e}")
+            pass
+
+    return config
+
+
+def save_config(skill_path: Path, config: Config) -> bool:
+    """Save configuration to skill directory.
+
+    Args:
+        skill_path: Path to the skill directory
+        config: Config to save
+
+    Returns:
+        True if saved successfully
+    """
+    config_file = skill_path / CONFIG_FILENAME
+
+    try:
+        data = {
+            "weights": config.weights,
+            "disabled_checks": config.disabled_checks,
+            "thresholds": config.thresholds,
+            "languages": config.languages,
+        }
+
+        if HAS_YAML and yaml is not None:
+            content = yaml.dump(data, default_flow_style=False)
+        else:
+            # Simple YAML output
+            lines = []
+            lines.append("# cc-skills2 configuration")
+            lines.append("weights:")
+            for key, value in data["weights"].items():
+                lines.append(f"  {key}: {value}")
+            lines.append(f"disabled_checks: {data['disabled_checks']}")
+            lines.append(f"thresholds: {data['thresholds']}")
+            lines.append(f"languages: {data['languages']}")
+            content = "\n".join(lines)
+
+        config_file.write_text(content)
+        return True
+    except Exception as e:
+        # Log would go here: logging.error(f"Config save failed: {e}")
+        return False
+
+
+###############################################################################
+# TEMPLATES - Read from assets folder
+###############################################################################
 
 
 def load_template(filename: str, fallback: str = "") -> str:
@@ -151,6 +1560,227 @@ Replace with actual reference content or delete if not needed.
 ###############################################################################
 
 ALLOWED_PROPERTIES = {"name", "description", "license", "allowed-tools", "metadata"}
+
+
+###############################################################################
+# PLUGIN ARCHITECTURE (Phase 3 - Task 0013)
+###############################################################################
+
+
+@runtime_checkable
+class DimensionEvaluator(Protocol):
+    """Protocol for evaluation dimension plugins.
+
+    Dimension evaluators are plugins that score a specific aspect of a skill.
+    They must implement this protocol to be discoverable and usable.
+    """
+
+    @property
+    def name(self) -> str:
+        """Dimension name (e.g., 'security', 'code_quality')."""
+        ...
+
+    @property
+    def weight(self) -> float:
+        """Weight in overall score (0.0-1.0)."""
+        ...
+
+    def evaluate(self, skill_path: Path) -> "DimensionScore":
+        """Evaluate the skill and return a score.
+
+        Args:
+            skill_path: Path to the skill directory
+
+        Returns:
+            DimensionScore with findings and recommendations
+        """
+        ...
+
+
+def discover_evaluators(plugins_dir: Path | None = None) -> list[DimensionEvaluator]:
+    """Discover and load evaluator plugins.
+
+    Args:
+        plugins_dir: Path to plugins directory. If None, uses default location.
+
+    Returns:
+        List of evaluator instances
+    """
+    evaluators: list[DimensionEvaluator] = []
+
+    if plugins_dir is None:
+        # Default to scripts/evaluators/ directory
+        plugins_dir = SCRIPT_DIR / "evaluators"
+
+    if not plugins_dir.exists():
+        return evaluators
+
+    # Add parent directory to sys.path so evaluators can be imported as a package
+    import sys
+    parent_dir = str(plugins_dir.parent)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+
+    # Import evaluators package directly
+    try:
+        import evaluators as evals_module
+        # Get all classes from the evaluators module
+        for item_name in dir(evals_module):
+            if item_name.startswith("_"):
+                continue
+            item = getattr(evals_module, item_name)
+            # Check if it's a class (not a module, function, etc.)
+            # Classes from evaluators package have __module__ starting with "evaluators."
+            if isinstance(item, type) and item.__module__.startswith("evaluators."):
+                # Check if class has required properties/methods
+                # Properties use @property decorator (not callable), methods are callable
+                has_name = hasattr(item, "name")
+                has_weight = hasattr(item, "weight")
+                has_evaluate = hasattr(item, "evaluate") and callable(getattr(item, "evaluate"))
+                if has_name and has_weight and has_evaluate:
+                    # Instantiate and add to list
+                    try:
+                        instance = item()
+                        evaluators.append(instance)
+                    except Exception as e:
+                        # Skip evaluators that fail to instantiate
+                        # Log would go here: logging.warning(f"Evaluator instantiation failed: {e}")
+                        pass
+    except ImportError as e:
+        # If evaluators package can't be imported, return empty list
+        # Log would go here: logging.error(f"Failed to import evaluators package: {e}")
+        pass
+
+    return evaluators
+
+
+def register_evaluator(evaluator: DimensionEvaluator) -> None:
+    """Register an evaluator plugin programmatically.
+
+    Args:
+        evaluator: Evaluator instance to register
+    """
+    # This function allows programmatic registration of evaluators
+    # The actual registration happens in the run_quality_assessment function
+    _custom_evaluators.append(evaluator)
+
+
+# List of custom evaluators registered programmatically
+_custom_evaluators: list[DimensionEvaluator] = []
+
+
+###############################################################################
+# EXTENSIBILITY HOOKS (Phase 3 - Task 0018)
+###############################################################################
+
+
+class HookManager:
+    """Manage evaluation lifecycle hooks.
+
+    Hooks allow users to extend evaluation behavior without modifying core code.
+    Hooks can be registered for specific lifecycle events and can modify results.
+
+    Available hooks:
+    - pre_evaluation: Before any analysis begins (receives skill_path)
+    - post_dimension: After each dimension evaluation (receives dimension, score)
+    - pre_report: Before report formatting (receives evaluation_result)
+    - post_report: After report formatting (receives formatted_report)
+    """
+
+    def __init__(self) -> None:
+        self._hooks: dict[str, list[Callable]] = {
+            "pre_evaluation": [],
+            "post_dimension": [],
+            "pre_report": [],
+            "post_report": [],
+        }
+
+    def register(self, hook_name: str, callback: Callable) -> None:
+        """Register a hook callback.
+
+        Args:
+            hook_name: Name of the hook (pre_evaluation, post_dimension, etc.)
+            callback: Callable to execute when hook is triggered
+
+        Raises:
+            ValueError: If hook_name is not a valid hook
+        """
+        if hook_name not in self._hooks:
+            valid_hooks = ", ".join(self._hooks.keys())
+            raise ValueError(
+                f"Invalid hook '{hook_name}'. "
+                f"Valid hooks are: {valid_hooks}"
+            )
+        self._hooks[hook_name].append(callback)
+
+    def trigger(self, hook_name: str, *args: Any, **kwargs: Any) -> list[Any]:
+        """Trigger all callbacks for a hook.
+
+        Args:
+            hook_name: Name of the hook to trigger
+            *args: Positional arguments to pass to callbacks
+            **kwargs: Keyword arguments to pass to callbacks
+
+        Returns:
+            List of results from all callbacks (empty list if no hooks registered)
+        """
+        results = []
+        for callback in self._hooks.get(hook_name, []):
+            try:
+                result = callback(*args, **kwargs)
+                results.append(result)
+            except Exception as e:
+                # Don't let one failed hook break the entire evaluation
+                # Log would go here: logging.warning(f"Hook {hook_name} callback failed: {e}")
+                pass
+        return results
+
+    def clear(self, hook_name: str | None = None) -> None:
+        """Clear hooks.
+
+        Args:
+            hook_name: Specific hook to clear, or None to clear all hooks
+        """
+        if hook_name:
+            self._hooks[hook_name].clear()
+        else:
+            for hooks in self._hooks.values():
+                hooks.clear()
+
+    def list_hooks(self) -> dict[str, int]:
+        """List registered hooks by name.
+
+        Returns:
+            Dict mapping hook names to count of registered callbacks
+        """
+        return {name: len(callbacks) for name, callbacks in self._hooks.items()}
+
+
+# Global hook manager instance
+_hooks: HookManager | None = None
+
+
+def get_hooks() -> HookManager:
+    """Get the global hook manager instance."""
+    global _hooks
+    if _hooks is None:
+        _hooks = HookManager()
+    return _hooks
+
+
+def register_hook(hook_name: str, callback: Callable) -> None:
+    """Register a hook callback (convenience function).
+
+    Args:
+        hook_name: Name of the hook (pre_evaluation, post_dimension, etc.)
+        callback: Callable to execute when hook is triggered
+    """
+    get_hooks().register(hook_name, callback)
+
+
+###############################################################################
+# VALIDATION
+###############################################################################
 
 
 def parse_frontmatter(content: str) -> tuple[dict[str, Any] | None, str]:
@@ -397,7 +2027,7 @@ def init_skill(skill_name: str, path: str) -> Path | None:
     print("\nNext steps:")
     print("1. Edit SKILL.md - complete TODO items and update description")
     print("2. Customize or delete example files in scripts/, references/, assets/")
-    print("3. Run: python3 skills.py validate <skill-path>")
+    print("3. Run: python3 scripts/skills.py validate <skill-path>")
 
     return skill_dir
 
@@ -570,552 +2200,224 @@ class EvaluationResult:
             "grade_description": self.grade.description,
         }
 
-def evaluate_frontmatter(skill_path: Path) -> DimensionScore:
-    """Evaluate frontmatter quality."""
-    findings = []
-    recommendations = []
-    score = 10.0
 
-    skill_md = skill_path / "SKILL.md"
-    if not skill_md.exists():
-        return DimensionScore(
-            name="frontmatter",
-            score=0.0,
-            weight=DIMENSION_WEIGHTS["frontmatter"],
-            findings=["SKILL.md not found"],
-            recommendations=["Create SKILL.md with proper frontmatter"],
-        )
-
-    content = skill_md.read_text()
-    frontmatter, error = parse_frontmatter(content)
-
-    if frontmatter is None:
-        return DimensionScore(
-            name="frontmatter",
-            score=0.0,
-            weight=DIMENSION_WEIGHTS["frontmatter"],
-            findings=[f"Frontmatter error: {error}"],
-            recommendations=["Fix YAML frontmatter syntax"],
-        )
-
-    # Check required fields
-    required_fields = ["name", "description"]
-    for field in required_fields:
-        if field not in frontmatter:
-            findings.append(f"Missing required field: {field}")
-            recommendations.append(f"Add '{field}' to frontmatter")
-            score -= 2.0
-
-    # Check optional fields
-    if "allowed-tools" in frontmatter:
-        findings.append("Has allowed-tools specification")
-    else:
-        recommendations.append("Consider adding allowed-tools for better scoping")
-
-    # Check description quality
-    description = frontmatter.get("description", "")
-    if description:
-        if len(description) < 20:
-            findings.append("Description is very short")
-            recommendations.append("Expand description to better explain the skill")
-            score -= 1.0
-        elif len(description) > 1024:
-            findings.append("Description exceeds 1024 characters")
-            score -= 1.0
-        else:
-            findings.append("Description length is appropriate")
-    else:
-        score -= 3.0
-
-    # Check naming convention
-    name = frontmatter.get("name", "")
-    if name:
-        if not re.match(r"^[a-z0-9-]+$", name):
-            findings.append("Name does not follow hyphen-case convention")
-            score -= 1.0
-        if name.startswith("-") or name.endswith("-") or "--" in name:
-            findings.append("Name has invalid hyphen placement")
-            score -= 1.0
-
-    return DimensionScore(
-        name="frontmatter",
-        score=max(0.0, min(10.0, score)),
-        weight=DIMENSION_WEIGHTS["frontmatter"],
-        findings=findings,
-        recommendations=recommendations,
-    )
-
-
-def evaluate_content(skill_path: Path) -> DimensionScore:
-    """Evaluate content quality."""
-    findings = []
-    recommendations = []
-    score = 10.0
-
-    skill_md = skill_path / "SKILL.md"
-    if not skill_md.exists():
-        return DimensionScore(
-            name="content",
-            score=0.0,
-            weight=DIMENSION_WEIGHTS["content"],
-            findings=["SKILL.md not found"],
-            recommendations=["Create SKILL.md with comprehensive content"],
-        )
-
-    content = skill_md.read_text()
-
-    # Remove frontmatter
-    content_body = re.sub(r"^---\n.*?\n---\n", "", content, flags=re.DOTALL)
-
-    # Check content length
-    lines = [l for l in content_body.split("\n") if l.strip()]
-    if len(lines) < 20:
-        findings.append("Content is very brief (< 20 lines)")
-        recommendations.append("Expand content with more details")
-        score -= 2.0
-    elif len(lines) > 500:
-        findings.append("Content is very long (> 500 lines)")
-        recommendations.append("Consider splitting into smaller skills")
-        score -= 1.0
-    else:
-        findings.append(f"Content length is appropriate ({len(lines)} lines)")
-
-    # Check for sections
-    has_overview = "## Overview" in content or "# Overview" in content
-    has_examples = "## Example" in content or "```" in content
-    has_workflow = "## Workflow" in content or "## When to use" in content
-
-    if has_overview:
-        findings.append("Has Overview section")
-    else:
-        recommendations.append("Add Overview section explaining the skill")
-        score -= 1.0
-
-    if has_examples:
-        findings.append("Has examples or code blocks")
-    else:
-        recommendations.append("Add examples to illustrate usage")
-        score -= 1.5
-
-    if has_workflow:
-        findings.append("Has workflow/usage guidance")
-    else:
-        recommendations.append("Add workflow or step-by-step guidance")
-        score -= 1.5
-
-    # Check for TODO placeholders
-    if "[TODO:" in content:
-        findings.append("Contains unresolved TODO placeholders")
-        recommendations.append("Complete or remove TODO placeholders")
-        score -= 2.0
-
-    # Check for clarity indicators
-    has_quick_start = "## Quick Start" in content or "# Quick Start" in content
-    if has_quick_start:
-        findings.append("Has Quick Start section")
-    else:
-        recommendations.append("Consider adding Quick Start section")
-
-    return DimensionScore(
-        name="content",
-        score=max(0.0, min(10.0, score)),
-        weight=DIMENSION_WEIGHTS["content"],
-        findings=findings,
-        recommendations=recommendations,
-    )
-
-
-def evaluate_security(skill_path: Path) -> DimensionScore:
-    """Evaluate security considerations."""
-    findings = []
-    recommendations = []
-    score = 10.0
-
-    skill_md = skill_path / "SKILL.md"
-    if not skill_md.exists():
-        return DimensionScore(
-            name="security",
-            score=0.0,
-            weight=DIMENSION_WEIGHTS["security"],
-            findings=["SKILL.md not found"],
-            recommendations=["Create SKILL.md with security considerations"],
-        )
-
-    content = skill_md.read_text().lower()
-
-    # Check for dangerous patterns
-    dangerous_patterns = [
-        ("eval(", "Use of eval() - code injection risk"),
-        ("exec(", "Use of exec() - code injection risk"),
-        ("subprocess.call(shell=true)", "shell=True - command injection risk"),
-        ("os.system(", "Use of os.system() - command injection risk"),
-        ("pickle.loads(", "Use of pickle - arbitrary code execution risk"),
-        ("__import__", "Dynamic imports - potential code injection risk"),
-    ]
-
-    for pattern, warning in dangerous_patterns:
-        if pattern in content:
-            findings.append(f"SECURITY: {warning}")
-            recommendations.append(f"Review and document safe use of: {pattern}")
-            score -= 1.5
-
-    # Check for security mentions
-    security_keywords = ["security", "inject", "sanitize", "validate", "escape", "credential"]
-    has_security_discussion = any(keyword in content for keyword in security_keywords)
-
-    if has_security_discussion:
-        findings.append("Mentions security considerations")
-    else:
-        recommendations.append("Add security considerations if applicable")
-
-    # Check for references
-    refs_dir = skill_path / "references"
-    if refs_dir.exists():
-        findings.append("Has references directory for documentation")
-    else:
-        recommendations.append("Consider adding references for security guidance")
-
-    # Check scripts for dangerous patterns
-    scripts_dir = skill_path / "scripts"
-    if scripts_dir.exists():
-        for script_file in scripts_dir.glob("*.py"):
-            script_content = script_file.read_text().lower()
-            for pattern, warning in dangerous_patterns:
-                if pattern in script_content:
-                    findings.append(f"SECURITY in {script_file.name}: {warning}")
-                    score -= 1.0
-
-    if not any("SECURITY:" in f for f in findings):
-        findings.append("No obvious security issues detected")
-
-    return DimensionScore(
-        name="security",
-        score=max(0.0, min(10.0, score)),
-        weight=DIMENSION_WEIGHTS["security"],
-        findings=findings,
-        recommendations=recommendations,
-    )
-
-
-def evaluate_structure(skill_path: Path) -> DimensionScore:
-    """Evaluate structural organization."""
-    findings = []
-    recommendations = []
-    score = 10.0
-
-    # Check directory structure
-    has_skill_md = (skill_path / "SKILL.md").exists()
-    has_scripts = (skill_path / "scripts").exists()
-    has_references = (skill_path / "references").exists()
-    has_assets = (skill_path / "assets").exists()
-
-    if has_skill_md:
-        findings.append("Has SKILL.md")
-    else:
-        recommendations.append("Add SKILL.md")
-        score -= 3.0
-
-    # Check for progressive disclosure
-    skill_md = skill_path / "SKILL.md"
-    if has_skill_md:
-        content = skill_md.read_text()
-
-        # Look for progressive disclosure patterns
-        has_quick_start = "## Quick Start" in content or "# Quick Start" in content
-        has_overview = "## Overview" in content
-        has_advanced = "## Advanced" in content or "###" in content
-
-        if has_quick_start:
-            findings.append("Has Quick Start (progressive disclosure)")
-        else:
-            recommendations.append("Add Quick Start for progressive disclosure")
-            score -= 1.0
-
-        if has_overview:
-            findings.append("Has Overview section")
-        else:
-            score -= 1.0
-
-        # Check heading hierarchy
-        heading_levels = []
-        for line in content.split("\n"):
-            if line.startswith("#"):
-                level = len(line) - len(line.lstrip("#"))
-                if level <= 3:  # Only count top 3 levels
-                    heading_levels.append(level)
-
-        if heading_levels:
-            # Check for proper hierarchy (should start with # or ##)
-            if heading_levels[0] > 2:
-                findings.append("Content structure starts with deep heading")
-                score -= 0.5
-            else:
-                findings.append("Good heading hierarchy")
-        else:
-            recommendations.append("Add clear heading structure")
-
-    # Check resource directories
-    if has_scripts:
-        findings.append("Has scripts/ directory")
-    if has_references:
-        findings.append("Has references/ directory")
-    if has_assets:
-        findings.append("Has assets/ directory")
-
-    return DimensionScore(
-        name="structure",
-        score=max(0.0, min(10.0, score)),
-        weight=DIMENSION_WEIGHTS["structure"],
-        findings=findings,
-        recommendations=recommendations,
-    )
-
-
-def evaluate_efficiency(skill_path: Path) -> DimensionScore:
-    """Evaluate token efficiency."""
-    findings = []
-    recommendations = []
-    score = 10.0
-
-    skill_md = skill_path / "SKILL.md"
-    if not skill_md.exists():
-        return DimensionScore(
-            name="efficiency",
-            score=0.0,
-            weight=DIMENSION_WEIGHTS["efficiency"],
-            findings=["SKILL.md not found"],
-            recommendations=["Create SKILL.md"],
-        )
-
-    content = skill_md.read_text()
-
-    # Check token count (rough estimate: ~4 chars per token)
-    char_count = len(content)
-    token_estimate = char_count / 4
-
-    if token_estimate < 500:
-        findings.append(f"Token-efficient (~{int(token_estimate)} tokens)")
-    elif token_estimate < 1500:
-        findings.append(f"Reasonable size (~{int(token_estimate)} tokens)")
-    elif token_estimate < 3000:
-        findings.append(f"Large skill (~{int(token_estimate)} tokens)")
-        recommendations.append("Consider splitting into smaller skills")
-        score -= 1.0
-    else:
-        findings.append(f"Very large skill (~{int(token_estimate)} tokens)")
-        recommendations.append("Strongly consider splitting into smaller, focused skills")
-        score -= 2.0
-
-    # Check for redundant content
-    lines = content.split("\n")
-    non_empty_lines = [l.strip() for l in lines if l.strip()]
-
-    # Look for repetitive patterns
-    if len(non_empty_lines) > 50:
-        # Check for duplicate lines (case-insensitive)
-        seen = set()
-        duplicates = 0
-        for line in non_empty_lines:
-            line_lower = line.lower()
-            if line_lower in seen and len(line) > 20:  # Only meaningful lines
-                duplicates += 1
-            seen.add(line_lower)
-
-        if duplicates > 5:
-            findings.append(f"Found {duplicates} potentially duplicate lines")
-            recommendations.append("Review and consolidate duplicate content")
-            score -= 1.0
-
-    # Check for excessive verbosity
-    word_counts = [len(line.split()) for line in non_empty_lines if line]
-    if word_counts:
-        avg_words_per_line = sum(word_counts) / len(word_counts)
-        if avg_words_per_line > 30:
-            findings.append("Lines tend to be verbose")
-            recommendations.append("Consider shorter, more concise lines")
-            score -= 0.5
-
-    return DimensionScore(
-        name="efficiency",
-        score=max(0.0, min(10.0, score)),
-        weight=DIMENSION_WEIGHTS["efficiency"],
-        findings=findings,
-        recommendations=recommendations,
-    )
-
-
-def evaluate_best_practices(skill_path: Path) -> DimensionScore:
-    """Evaluate adherence to best practices."""
-    findings = []
-    recommendations = []
-    score = 10.0
-
-    skill_md = skill_path / "SKILL.md"
-    if not skill_md.exists():
-        return DimensionScore(
-            name="best_practices",
-            score=0.0,
-            weight=DIMENSION_WEIGHTS["best_practices"],
-            findings=["SKILL.md not found"],
-            recommendations=["Create SKILL.md"],
-        )
-
-    content = skill_md.read_text()
-    frontmatter, _ = parse_frontmatter(content)
-
-    # Check naming convention
-    if frontmatter:
-        name = frontmatter.get("name", "")
-        if name:
-            if re.match(r"^[a-z0-9-]+$", name):
-                findings.append("Follows hyphen-case naming convention")
-            else:
-                findings.append("Does not follow hyphen-case naming")
-                score -= 1.5
-
-    # Check for anti-patterns
-    todo_count = content.count("TODO:")
-    if todo_count > 0:
-        findings.append(f"Contains {todo_count} TODO placeholders")
-        recommendations.append("Resolve TODO placeholders before production")
-        score -= min(2.0, todo_count * 0.5)
-
-    # Check for clear activation
-    if frontmatter:
-        description = frontmatter.get("description", "")
-        if description:
-            if len(description) >= 20 and len(description) <= 1024:
-                findings.append("Description length is appropriate")
-            else:
-                recommendations.append("Improve description (20-1024 characters)")
-                score -= 1.0
-
-    # Check for when to use guidance
-    if "when to use" in content.lower():
-        findings.append("Has 'when to use' guidance")
-    else:
-        recommendations.append("Consider adding 'when to use' section")
-
-    # Check scripts directory for best practices
-    scripts_dir = skill_path / "scripts"
-    if scripts_dir.exists():
-        for script_file in scripts_dir.glob("*.py"):
-            script_content = script_file.read_text()
-
-            # Check for shebang
-            if script_content.startswith("#!/usr/bin/env python3"):
-                findings.append(f"{script_file.name}: Has proper shebang")
-            else:
-                recommendations.append(f"{script_file.name}: Add #!/usr/bin/env python3 shebang")
-
-            # Check for __future__ imports (Python best practice)
-            if "from __future__ import" in script_content:
-                findings.append(f"{script_file.name}: Uses __future__ imports")
-            else:
-                recommendations.append(
-                    f"{script_file.name}: Consider adding 'from __future__ import annotations'"
-                )
-
-    return DimensionScore(
-        name="best_practices",
-        score=max(0.0, min(10.0, score)),
-        weight=DIMENSION_WEIGHTS["best_practices"],
-        findings=findings,
-        recommendations=recommendations,
-    )
-
-
-def evaluate_code_quality(skill_path: Path) -> DimensionScore:
-    """Evaluate code quality in scripts directory."""
-    findings = []
-    recommendations = []
-    score = 10.0
-
-    scripts_dir = skill_path / "scripts"
-    if not scripts_dir.exists():
-        return DimensionScore(
-            name="code_quality",
-            score=10.0,  # N/A if no scripts
-            weight=DIMENSION_WEIGHTS["code_quality"],
-            findings=["No scripts directory (N/A for this dimension)"],
-            recommendations=[],
-        )
-
-    script_files = list(scripts_dir.glob("*.py"))
-    if not script_files:
-        return DimensionScore(
-            name="code_quality",
-            score=10.0,  # N/A if no scripts
-            weight=DIMENSION_WEIGHTS["code_quality"],
-            findings=["No Python scripts found (N/A for this dimension)"],
-            recommendations=[],
-        )
-
-    for script_file in script_files:
-        script_content = script_file.read_text()
-
-        # Check for error handling
-        if "try:" in script_content:
-            findings.append(f"{script_file.name}: Has error handling")
-        else:
-            recommendations.append(f"{script_file.name}: Consider adding error handling")
-            score -= 0.5
-
-        # Check for main guard
-        if '__name__ == "__main__"' in script_content:
-            findings.append(f"{script_file.name}: Has main guard")
-        else:
-            recommendations.append(f"{script_file.name}: Add main guard")
-            score -= 0.5
-
-        # Check for type hints
-        has_type_hints = bool(
-            re.search(r":\s*(str|int|float|bool|list|dict|Path|None)", script_content)
-        )
-        if has_type_hints:
-            findings.append(f"{script_file.name}: Uses type hints")
-        else:
-            recommendations.append(f"{script_file.name}: Consider adding type hints")
-            score -= 0.5
-
-        # Check for docstrings
-        if '"""' in script_content or "'''" in script_content:
-            findings.append(f"{script_file.name}: Has docstrings")
-        else:
-            recommendations.append(f"{script_file.name}: Add docstrings")
-            score -= 0.5
-
-        # Check for bare except
-        if "except:" in script_content or "except :" in script_content:
-            findings.append(f"{script_file.name}: Has bare except (anti-pattern)")
-            score -= 1.0
-
-    return DimensionScore(
-        name="code_quality",
-        score=max(0.0, min(10.0, score)),
-        weight=DIMENSION_WEIGHTS["code_quality"],
-        findings=findings,
-        recommendations=recommendations,
-    )
-
+# Standalone evaluation functions removed - use evaluator modules instead
+# See scripts/evaluators/ for the actual evaluation implementations
 
 def run_quality_assessment(skill_path: Path) -> dict[str, DimensionScore]:
-    """Run all quality assessment dimensions."""
-    return {
-        "frontmatter": evaluate_frontmatter(skill_path),
-        "content": evaluate_content(skill_path),
-        "security": evaluate_security(skill_path),
-        "structure": evaluate_structure(skill_path),
-        "efficiency": evaluate_efficiency(skill_path),
-        "best_practices": evaluate_best_practices(skill_path),
-        "code_quality": evaluate_code_quality(skill_path),
-    }
+    """Run all quality assessment dimensions using evaluator modules.
+
+    This uses the plugin architecture to discover and run all evaluators.
+    Custom evaluators registered via register_evaluator() are included.
+    """
+    # Discover built-in evaluators from scripts/evaluators/
+    evaluators = discover_evaluators()
+
+    # Add any custom evaluators registered programmatically
+    evaluators.extend(_custom_evaluators)
+
+    # Run all evaluators
+    dimensions: dict[str, DimensionScore] = {}
+    for evaluator in evaluators:
+        try:
+            result = evaluator.evaluate(skill_path)
+            dimensions[result.name] = result
+        except Exception as e:
+            # If evaluator fails, create a failure result
+            dimensions[evaluator.name] = DimensionScore(
+                name=evaluator.name,
+                score=0.0,
+                weight=evaluator.weight,
+                findings=[f"Evaluator failed: {e}"],
+                recommendations=[],
+            )
+
+    return dimensions
 
 
 def calculate_total_score(dimensions: dict[str, DimensionScore]) -> float:
     """Calculate total weighted score."""
     total = sum(d.weighted_score for d in dimensions.values())
     return round(total, 2)
+
+
+###############################################################################
+# REPORT FORMATTERS (Phase 3 - Task 0014)
+###############################################################################
+
+
+class ReportFormatter:
+    """Base class for report formatters."""
+
+    def format(self, result: EvaluationResult) -> str:
+        """Format evaluation result. Override in subclasses."""
+        raise NotImplementedError
+
+
+class TextFormatter(ReportFormatter):
+    """Plain text report formatter (default)."""
+
+    def format(self, result: EvaluationResult) -> str:
+        """Format as plain text with box drawing."""
+        lines = []
+        lines.append("=" * 70)
+        lines.append("SKILL EVALUATION REPORT")
+        lines.append(f"Path: {result.skill_path}")
+        lines.append("=" * 70)
+        lines.append("")
+
+        # Phase 1: Structural Validation
+        lines.append("## Phase 1: Structural Validation")
+        lines.append("-" * 70)
+        if result.validation_result == ValidationResult.PASS:
+            lines.append(f"✓ PASSED: {result.validation_message}")
+        else:
+            lines.append(f"✗ FAILED: {result.validation_message}")
+        lines.append("")
+
+        # Phase 2: Quality Assessment
+        lines.append("## Phase 2: Quality Assessment")
+        lines.append("-" * 70)
+        lines.append("")
+
+        for dim_name, dim_score in result.dimensions.items():
+            lines.append(f"### {dim_name.replace('_', ' ').title()}")
+            lines.append(
+                f"Score: {dim_score.score:.1f}/10 | "
+                f"Weight: {dim_score.weight*100:.0f}% | "
+                f"Weighted: {dim_score.weighted_score:.2f}"
+            )
+            lines.append("")
+
+            if dim_score.findings:
+                lines.append("Findings:")
+                for finding in dim_score.findings:
+                    lines.append(f"  • {finding}")
+                lines.append("")
+
+            if dim_score.recommendations:
+                lines.append("Recommendations:")
+                for rec in dim_score.recommendations:
+                    lines.append(f"  → {rec}")
+                lines.append("")
+
+        # Overall Score
+        lines.append("## Overall Score")
+        lines.append("-" * 70)
+        lines.append(f"Total Score: {result.total_score:.2f}/10")
+        lines.append(f"Grade: {result.grade.letter} - {result.grade.description}")
+        lines.append("")
+
+        # Grade scale reference
+        lines.append("### Grading Scale")
+        lines.append("A (9.0-10.0) | Production ready")
+        lines.append("B (7.0-8.9)  | Minor fixes needed")
+        lines.append("C (5.0-6.9)  | Moderate revision")
+        lines.append("D (3.0-4.9)  | Major revision")
+        lines.append("F (0.0-2.9)  | Rewrite needed")
+        lines.append("")
+
+        lines.append("=" * 70)
+
+        return "\n".join(lines)
+
+
+class JsonFormatter(ReportFormatter):
+    """JSON report formatter."""
+
+    def format(self, result: EvaluationResult) -> str:
+        """Format as JSON."""
+        return json.dumps(result.to_dict(), indent=2)
+
+
+class MarkdownFormatter(ReportFormatter):
+    """Markdown report formatter for documentation."""
+
+    def format(self, result: EvaluationResult) -> str:
+        """Format as GitHub-flavored Markdown."""
+        lines = []
+
+        # Header
+        lines.append("# Skill Evaluation Report")
+        lines.append("")
+        lines.append(f"**Path:** `{result.skill_path}`")
+        lines.append("")
+
+        # Validation
+        lines.append("## Phase 1: Structural Validation")
+        lines.append("")
+        if result.validation_result == ValidationResult.PASS:
+            lines.append(f"✅ **PASSED:** {result.validation_message}")
+        else:
+            lines.append(f"❌ **FAILED:** {result.validation_message}")
+        lines.append("")
+
+        # Summary table
+        lines.append("## Phase 2: Quality Assessment")
+        lines.append("")
+        lines.append("| Dimension | Score | Weight | Weighted |")
+        lines.append("|-----------|-------|--------|----------|")
+        for dim_name, dim_score in result.dimensions.items():
+            name = dim_name.replace("_", " ").title()
+            lines.append(
+                f"| {name} | {dim_score.score:.1f}/10 | "
+                f"{dim_score.weight*100:.0f}% | {dim_score.weighted_score:.2f} |"
+            )
+        lines.append("")
+
+        # Details for each dimension
+        for dim_name, dim_score in result.dimensions.items():
+            name = dim_name.replace("_", " ").title()
+            lines.append(f"### {name}")
+            lines.append("")
+
+            if dim_score.findings:
+                lines.append("**Findings:**")
+                for finding in dim_score.findings:
+                    lines.append(f"- {finding}")
+                lines.append("")
+
+            if dim_score.recommendations:
+                lines.append("**Recommendations:**")
+                for rec in dim_score.recommendations:
+                    lines.append(f"- {rec}")
+                lines.append("")
+
+        # Overall
+        lines.append("## Overall Score")
+        lines.append("")
+        lines.append(f"**Total Score:** {result.total_score:.2f}/10")
+        lines.append("")
+        lines.append(f"**Grade:** {result.grade.letter} - {result.grade.description}")
+        lines.append("")
+
+        # Grade scale
+        lines.append("### Grading Scale")
+        lines.append("")
+        lines.append("| Grade | Range | Description |")
+        lines.append("|-------|-------|-------------|")
+        lines.append("| A | 9.0-10.0 | Production ready |")
+        lines.append("| B | 7.0-8.9 | Minor fixes needed |")
+        lines.append("| C | 5.0-6.9 | Moderate revision |")
+        lines.append("| D | 3.0-4.9 | Major revision |")
+        lines.append("| F | 0.0-2.9 | Rewrite needed |")
+
+        return "\n".join(lines)
+
+
+# Formatter registry
+FORMATTERS: dict[str, type[ReportFormatter]] = {
+    "text": TextFormatter,
+    "json": JsonFormatter,
+    "markdown": MarkdownFormatter,
+    "md": MarkdownFormatter,  # Alias
+}
+
+
+def get_formatter(name: str) -> ReportFormatter:
+    """Get formatter by name."""
+    formatter_class = FORMATTERS.get(name.lower(), TextFormatter)
+    return formatter_class()
 
 
 def format_report(result: EvaluationResult) -> str:
@@ -1189,9 +2491,9 @@ def format_report(result: EvaluationResult) -> str:
 def cmd_init(args):
     """Handle init command."""
     if not args.skill_name or not args.path:
-        print("Usage: skills.py init <skill-name> --path <path>")
+        print("Usage: python3 scripts/skills.py init <skill-name> --path <path>")
         print("\nExample:")
-        print("  skills.py init my-skill --path ./skills")
+        print("  python3 scripts/skills.py init my-skill --path ./skills")
         return 1
 
     print(f"Initializing skill: {args.skill_name}")
@@ -1204,9 +2506,9 @@ def cmd_init(args):
 def cmd_validate(args):
     """Handle validate command."""
     if not args.skill_path:
-        print("Usage: skills.py validate <skill-path>")
+        print("Usage: python3 scripts/skills.py validate <skill-path>")
         print("\nExample:")
-        print("  skills.py validate ./skills/my-skill")
+        print("  python3 scripts/skills.py validate ./skills/my-skill")
         return 1
 
     print(f"Validating skill: {args.skill_path}\n")
@@ -1219,10 +2521,10 @@ def cmd_validate(args):
 def cmd_package(args):
     """Handle package command."""
     if not args.skill_path:
-        print("Usage: skills.py package <skill-path> [output-dir]")
+        print("Usage: python3 scripts/skills.py package <skill-path> [output-dir]")
         print("\nExample:")
-        print("  skills.py package ./skills/my-skill")
-        print("  skills.py package ./skills/my-skill ./dist")
+        print("  python3 scripts/skills.py package ./skills/my-skill")
+        print("  python3 scripts/skills.py package ./skills/my-skill ./dist")
         return 1
 
     print(f"Packaging skill: {args.skill_path}")
@@ -1237,10 +2539,11 @@ def cmd_package(args):
 def cmd_evaluate(args):
     """Handle evaluate command - two-phase skill evaluation."""
     if not args.skill_path:
-        print("Usage: skills.py evaluate <skill-path> [--json]")
+        print("Usage: python3 scripts/skills.py evaluate <skill-path> [--format text|json|markdown]")
         print("\nExample:")
-        print("  skills.py evaluate ./skills/my-skill")
-        print("  skills.py evaluate ./skills/my-skill --json")
+        print("  python3 scripts/skills.py evaluate ./skills/my-skill")
+        print("  python3 scripts/skills.py evaluate ./skills/my-skill --format json")
+        print("  python3 scripts/skills.py evaluate ./skills/my-skill --format markdown")
         return 1
 
     skill_path = Path(args.skill_path).resolve()
@@ -1253,42 +2556,42 @@ def cmd_evaluate(args):
         print(f"Error: Not a directory: {skill_path}", file=sys.stderr)
         return 1
 
+    # Determine output format (--json is shorthand for --format json)
+    output_format = "json" if args.json else getattr(args, "format", "text") or "text"
+
     # Initialize result
     result = EvaluationResult(skill_path=skill_path)
 
     # Phase 1: Structural Validation
-    print("Phase 1: Running structural validation...")
+    print("Phase 1: Running structural validation...", file=sys.stderr)
     valid, message = validate_skill(skill_path)
     result.validation_result = ValidationResult.PASS if valid else ValidationResult.FAIL
     result.validation_message = message
 
     if valid:
-        print(f"  ✓ PASSED: {message}")
+        print(f"  ✓ PASSED: {message}", file=sys.stderr)
     else:
-        print(f"  ✗ FAILED: {message}")
-        print("\nNote: Structural validation failed. Quality assessment will still run.")
-    print()
+        print(f"  ✗ FAILED: {message}", file=sys.stderr)
+        print("\nNote: Structural validation failed. Quality assessment will still run.", file=sys.stderr)
+    print(file=sys.stderr)
 
     # Phase 2: Quality Assessment
-    print("Phase 2: Running quality assessment...")
+    print("Phase 2: Running quality assessment...", file=sys.stderr)
     dimensions = run_quality_assessment(skill_path)
     result.dimensions = dimensions
     result.total_score = calculate_total_score(dimensions)
     result.grade = Grade.from_score(result.total_score)
 
     for dim_name, dim_score in dimensions.items():
-        print(f"  {dim_name}: {dim_score.score:.1f}/10")
+        print(f"  {dim_name}: {dim_score.score:.1f}/10", file=sys.stderr)
 
-    print(f"\n  Total Score: {result.total_score:.2f}/10")
-    print(f"  Grade: {result.grade.letter} - {result.grade.description}")
-    print()
+    print(f"\n  Total Score: {result.total_score:.2f}/10", file=sys.stderr)
+    print(f"  Grade: {result.grade.letter} - {result.grade.description}", file=sys.stderr)
+    print(file=sys.stderr)
 
-    # Output
-    if args.json:
-        print(json.dumps(result.to_dict(), indent=2))
-    else:
-        print()
-        print(format_report(result))
+    # Output using formatter
+    formatter = get_formatter(output_format)
+    print(formatter.format(result))
 
     # Return exit code based on validation
     return 0 if valid else 1
@@ -1307,11 +2610,11 @@ Commands:
   package   Package a skill for distribution
 
 Examples:
-  python3 skills.py init my-skill --path ./skills
-  python3 skills.py validate ./skills/my-skill
-  python3 skills.py evaluate ./skills/my-skill
-  python3 skills.py evaluate ./skills/my-skill --json
-  python3 skills.py package ./skills/my-skill ./dist
+  python3 scripts/skills.py init my-skill --path ./skills
+  python3 scripts/skills.py validate ./skills/my-skill
+  python3 scripts/skills.py evaluate ./skills/my-skill
+  python3 scripts/skills.py evaluate ./skills/my-skill --json
+  python3 scripts/skills.py package ./skills/my-skill ./dist
 """,
     )
 
@@ -1347,7 +2650,13 @@ Examples:
     )
     evaluate_parser.add_argument("skill_path", nargs="?", help="Path to skill directory")
     evaluate_parser.add_argument(
-        "--json", action="store_true", help="Output results as JSON"
+        "--json", action="store_true", help="Output results as JSON (shorthand for --format json)"
+    )
+    evaluate_parser.add_argument(
+        "--format", "-f",
+        choices=["text", "json", "markdown", "md"],
+        default="text",
+        help="Output format (default: text)"
     )
 
     args = parser.parse_args()

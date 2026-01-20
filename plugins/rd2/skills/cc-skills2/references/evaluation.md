@@ -165,3 +165,127 @@ Before shipping:
 - [ ] No content Claude already knows
 - [ ] Concrete examples over explanations
 - [ ] SKILL.md under 500 lines
+
+---
+
+## Automated Skill Evaluation
+
+The `skills.py evaluate` command provides automated quality assessment using AST-based analysis.
+
+### Running Evaluation
+
+```bash
+# Basic evaluation (text output)
+python3 scripts/skills.py evaluate /path/to/skill
+
+# JSON output for programmatic use
+python3 scripts/skills.py evaluate /path/to/skill --format json
+
+# Markdown output for documentation
+python3 scripts/skills.py evaluate /path/to/skill --format markdown
+```
+
+### Two-Phase Evaluation
+
+**Phase 1: Structural Validation**
+- Verifies SKILL.md exists
+- Validates YAML frontmatter syntax
+- Checks required fields (name, description)
+- Pass/Fail result
+
+**Phase 2: Quality Assessment**
+- Scores 7 dimensions (see below)
+- Weighted scoring for overall grade
+- Findings with specific file:line references
+- Actionable recommendations
+
+### Scoring Dimensions
+
+| Dimension | Weight | What It Measures |
+|-----------|--------|------------------|
+| **Frontmatter** | 10% | YAML validity, required fields, allowed-tools |
+| **Content** | 25% | Length, sections (Overview, Quick Start), examples |
+| **Security** | 20% | AST-based dangerous pattern detection |
+| **Structure** | 15% | Directory organization, progressive disclosure |
+| **Efficiency** | 10% | Token count, file sizes |
+| **Best Practices** | 10% | Naming conventions, when-to-use guidance |
+| **Code Quality** | 10% | Error handling, type hints, docstrings |
+
+### Grading Scale
+
+| Grade | Score Range | Meaning |
+|-------|-------------|---------|
+| **A** | 9.0 - 10.0 | Production ready |
+| **B** | 7.0 - 8.9 | Minor fixes needed |
+| **C** | 5.0 - 6.9 | Moderate revision |
+| **D** | 3.0 - 4.9 | Major revision |
+| **F** | 0.0 - 2.9 | Rewrite needed |
+
+### AST-Based Security Analysis
+
+The evaluator uses Abstract Syntax Tree (AST) parsing to detect dangerous patterns:
+
+**What It Detects:**
+- Dynamic code execution functions
+- Shell command execution with shell=True
+- Dangerous import patterns
+
+**Why AST Analysis?**
+- Parses actual code, not strings or comments
+- Distinguishes dangerous calls from documentation about them
+- No false positives from security documentation
+- Provides exact line numbers for findings
+
+**Finding Format:**
+```
+SECURITY in SKILL.md:45: Dangerous call detected
+scripts/helper.py:23: Dangerous call detected
+```
+
+### Example Output
+
+```
+======================================================================
+SKILL EVALUATION REPORT
+Path: /path/to/your-skill
+======================================================================
+
+## Phase 1: Structural Validation
+----------------------------------------------------------------------
+✓ PASSED: Skill is valid!
+
+## Phase 2: Quality Assessment
+----------------------------------------------------------------------
+
+### Security
+Score: 10.0/10 | Weight: 20% | Weighted: 2.00
+
+Findings:
+  • Mentions security considerations
+  • No obvious security issues detected
+
+### Code Quality
+Score: 10.0/10 | Weight: 10% | Weighted: 1.00
+
+Findings:
+  • scripts/main.py: Has error handling
+  • scripts/main.py: Uses type hints (95.2% coverage)
+  • scripts/main.py:45: Broad 'except Exception' - consider specific types
+
+## Overall Score
+----------------------------------------------------------------------
+Total Score: 9.43/10
+Grade: A - Production ready
+```
+
+### Interpreting Results
+
+**Findings** describe what was detected (informational).
+
+**Recommendations** suggest improvements (actionable).
+
+**Score deductions** occur for:
+- Missing required sections (-2.0 points)
+- Dangerous code patterns (-1.5 points per finding)
+- Missing error handling (-0.5 points per script)
+- Broad exception handlers (informational, no deduction)

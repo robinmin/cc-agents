@@ -536,6 +536,96 @@ Before publishing a skill:
 
 ---
 
+## Automated Security Analysis
+
+The skill evaluator uses AST (Abstract Syntax Tree) analysis to detect dangerous patterns.
+
+### Why AST-Based Analysis?
+
+Traditional string matching has a critical flaw: it can't distinguish between code and documentation.
+
+**AST Solution:**
+AST parsing analyzes actual code structure, not text. The analyzer:
+1. Extracts Python code blocks from markdown
+2. Parses them into syntax trees
+3. Finds actual function calls, not string mentions
+4. Reports exact line numbers
+
+### What Gets Analyzed
+
+| Content Type | Analysis Method |
+|--------------|-----------------|
+| SKILL.md | Extract Python code blocks, parse with AST |
+| scripts/*.py | Parse entire file with AST |
+| Documentation text | **Ignored** (not code) |
+| Comments in code | **Ignored** (not executable) |
+| String literals | **Ignored** (not calls) |
+
+### Detected Patterns
+
+The analyzer flags these dangerous patterns **only when they appear as actual function calls**:
+
+**Dynamic Code Execution:**
+- Functions that execute arbitrary code
+- Patterns that compile and run user-provided strings
+- Dynamic module imports from user input
+
+**Shell Commands:**
+- Subprocess calls with shell=True (injection risk)
+- System command execution
+- Unsafe command construction
+
+**Unsafe Deserialization:**
+- Pickle loading from untrusted sources
+- YAML unsafe loading
+
+### How to Handle Legitimate Use
+
+If your skill **must** use a flagged pattern, document the justification:
+
+```python
+# scripts/safe_parser.py
+
+# SECURITY NOTE: Uses ast.literal_parse which is SAFE
+# because it only parses Python literals, not arbitrary code.
+import ast
+
+def parse_config(config_string: str) -> dict:
+    """Parse configuration from a literal string.
+
+    Uses safe literal parsing for untrusted input.
+    Only parses: strings, bytes, numbers, tuples, lists, dicts,
+    sets, booleans, and None.
+    """
+    return ast.literal_eval(config_string)
+```
+
+The scanner may still report findings, but reviewers will see the justification.
+
+### False Positive Elimination
+
+The AST analyzer eliminates these false positive scenarios:
+
+| Scenario | Old (String Match) | New (AST) |
+|----------|-------------------|-----------|
+| Security advice in documentation | Flagged | Ignored |
+| Comments describing what not to do | Flagged | Ignored |
+| Error messages mentioning patterns | Flagged | Ignored |
+| Actual dangerous calls in code | Flagged | Flagged |
+
+### Finding Format
+
+Security findings include precise locations:
+
+```
+SECURITY in SKILL.md:45: Dangerous call detected in code block
+scripts/helper.py:23: Dangerous call detected
+```
+
+The format is: `file:line: description`
+
+---
+
 **See also:**
 
 - [best_practices.md](best_practices.md) for safe development patterns

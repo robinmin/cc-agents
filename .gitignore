@@ -45,6 +45,10 @@ jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
+__pycache__/
+.coverage
+.pytest_cache
+.venv
 
 # TypeScript cache
 *.tsbuildinfo

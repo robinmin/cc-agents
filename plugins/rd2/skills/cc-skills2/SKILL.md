@@ -1,11 +1,29 @@
 ---
 name: cc-skills2
-description: Guides creation of effective Claude Code skills, slash commands, and agents. Triggers when building plugins, writing SKILL.md files, designing workflow automation, packaging skills for distribution, or updating existing skills with specialized knowledge and tool integrations.
+description: Guides creation of effective Agent skills, slash commands, and agents. Triggers when building plugins, writing SKILL.md files, designing workflow automation, packaging skills for distribution, or updating existing skills with specialized knowledge and tool integrations.
 ---
 
 # cc-skills2: Claude Code Meta Skills V2
 
-This skill provides guidance for creating effective skills.
+## Overview
+
+Create Agent skills that extend AI capabilities with specialized knowledge, workflows, and tools. Use this skill when building new skills, writing SKILL.md files, or packaging skills for distribution.
+
+## Quick Start
+
+```bash
+# Initialize a new skill
+scripts/skills.py init my-skill --path ./plugins/my-plugin/skills
+
+# Edit the generated SKILL.md and add resources (scripts/, references/, assets/)
+
+# Package for distribution
+scripts/skills.py package ./plugins/my-plugin/skills/my-skill
+```
+
+Output: `my-skill.skill` file ready for installation.
+
+For detailed guidance, see [Skill Creation Process](#skill-creation-process) below.
 
 ## Architecture: Fat Skills, Thin Wrappers
 
