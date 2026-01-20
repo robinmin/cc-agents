@@ -12,13 +12,17 @@ This repository provides a unified development automation toolkit that officiall
 ## What's Included
 
 ### rd (Rapid Development)
+
 Production-ready automation for systematic test-driven development (TDD) and server management.
+
 - **10-Stage TDD Workflow**: A disciplined approach to building high-quality functions in any language (Python, JS/TS, Go, Rust, Java).
 - **Cloud Management**: Workflows for Dokploy and server orchestration.
 - **Skill Management**: Tools for creating, evaluating, and refining AI agent skills.
 
 ### wt (Workplace Tools)
+
 Content generation and translation utilities.
+
 - **Style Extractor/Applier**: Maintain consistent writing styles across projects.
 - **Professional Translation**: High-quality multi-lingual translation (EN, ZH, JA).
 
@@ -31,6 +35,7 @@ Content generation and translation utilities.
 Antigravity provides a rich, integrated experience for workflows and rules. You can install tools locally (for a specific project) or globally (for all projects).
 
 **Global Installation (All projects):**
+
 ```bash
 # 1. Clone this repository
 git clone https://github.com/robinmin/cc-agents.git
@@ -43,6 +48,7 @@ cd cc-agents
 ```
 
 **Local Installation (Current project):**
+
 ```bash
 # 1. Clone this repository into your project root
 # 2. Run the migration tool
@@ -52,6 +58,7 @@ cd cc-agents
 ```
 
 **Using Workflows:** start using slash commands directly:
+
 - `/rd_dev-apply function_name`
 
 ### For Claude Code
@@ -75,14 +82,23 @@ Claude Code uses a marketplace-based plugin system.
 /rd:help
 ```
 
+Or in terminal with:
+
+```bash
+claude plugin update rd@cc-agents &&  claude plugin update wt@cc-agents
+claude plugin list
+```
+
 ---
 
 ## Usage Examples
 
 ### 10-Stage Development Workflow
+
 The flagship feature of this toolkit. It guides you from specification to implementation with strict quality checks.
 
 Use the `rd:10-stages-developing` skill for systematic TDD workflow:
+
 ```
 Implement a validate_email function using the 10-stage TDD methodology
 ```
@@ -92,8 +108,8 @@ Implement a validate_email function using the 10-stage TDD methodology
 ## Project Structure
 
 - `plugins/`: Core logic and documentation for all tools.
-    - `rd/`: Rapid Development plugin.
-    - `wt/`: Workplace Tools plugin.
+  - `rd/`: Rapid Development plugin.
+  - `wt/`: Workplace Tools plugin.
 - `.agent/`: (Generated) Antigravity-specific workflows and rules.
 - `antigravity-install.sh`: The migration engine that keeps both platforms in sync.
 
@@ -102,5 +118,5 @@ Implement a validate_email function using the 10-stage TDD methodology
 Contributions are welcome! If you add a new command or skill, simply run `./antigravity-install.sh` to ensure it's available for Antigravity users.
 
 ## References
-- [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
 
+- [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
