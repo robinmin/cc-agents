@@ -9,9 +9,9 @@ from .base import DimensionScore, DIMENSION_WEIGHTS
 
 # Handle both package import and direct execution
 try:
-    from ..skills import analyze_markdown_security, find_dangerous_calls_ast
+    from ..skills import analyze_markdown_security, evaluate_rules, find_dangerous_calls_ast, RuleCategory
 except ImportError:
-    from skills import analyze_markdown_security, find_dangerous_calls_ast
+    from skills import analyze_markdown_security, evaluate_rules, find_dangerous_calls_ast, RuleCategory
 
 
 class SecurityEvaluator:
@@ -73,21 +73,52 @@ class SecurityEvaluator:
         else:
             recommendations.append("Consider adding references for security guidance")
 
-        # AST-based analysis of Python scripts
+        # AST-based analysis of Python scripts using new rules system
         scripts_dir = skill_path / "scripts"
         if scripts_dir.exists():
             for script_file in scripts_dir.glob("*.py"):
-                script_findings = find_dangerous_calls_ast(script_file)
-                for pattern, line_num, context in script_findings:
-                    findings.append(
-                        f"SECURITY in {script_file.name}:{line_num}: {context}"
-                    )
-                    recommendations.append(
-                        f"Review {pattern} at {script_file.name}:{line_num}"
-                    )
-                    score -= 1.0
+                # Skip the skills.py framework file itself
+                if script_file.name == "skills.py":
+                    continue
 
-        if not any("SECURITY in" in f for f in findings):
+                # Detect language from extension
+                lang = "python"  # Default for now, could be extended
+
+                # Use the new rules system for comprehensive security checking
+                try:
+                    rule_results = evaluate_rules(script_file, language=lang, category=RuleCategory.SECURITY)
+                    for rule_id, line_num, pattern, message, severity in rule_results:
+                        # Filter out false positives from rule definitions
+                        # Skip if line contains "id=" or "pattern=" (likely a rule definition)
+                        try:
+                            line_content = script_file.read_text().splitlines()[line_num - 1]
+                            if "id=" in line_content or 'id="' in line_content:
+                                continue
+                            if "pattern=" in line_content or 'pattern="' in line_content:
+                                continue
+                        except (IndexError, OSError):
+                            pass
+
+                        findings.append(
+                            f"SECURITY {rule_id} in {script_file.name}:{line_num}: {message}"
+                        )
+                        score -= 1.0
+                        recommendations.append(
+                            f"Review {rule_id} at {script_file.name}:{line_num}"
+                        )
+                except Exception as e:
+                    # If rules engine fails, fall back to old method
+                    script_findings = find_dangerous_calls_ast(script_file)
+                    for pattern, line_num, context in script_findings:
+                        findings.append(
+                            f"SECURITY in {script_file.name}:{line_num}: {context}"
+                        )
+                        recommendations.append(
+                            f"Review {pattern} at {script_file.name}:{line_num}"
+                        )
+                        score -= 1.0
+
+        if not any("SECURITY SEC" in f or "SECURITY in" in f for f in findings):
             findings.append("No obvious security issues detected")
 
         return DimensionScore(
