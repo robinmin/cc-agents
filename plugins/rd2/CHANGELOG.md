@@ -1,3 +1,85 @@
+## [0.0.3] - 2026-01-20
+
+### Summary
+
+**cc-agents Meta-Skill: Subagent Creation & Evaluation System**
+
+Introduces the cc-agents meta-skill for creating, evaluating, and refining Claude Code Agent subagents. Implements "Fat Skills, Thin Wrappers" architecture with comprehensive 8-section anatomy, quality assessment protocols, and visual identification through color coding.
+
+### Added
+
+- **cc-agents Meta-Skill** (`skills/cc-agents/`):
+  - **SKILL.md** (298 lines): Complete subagent creation workflow with 8-section anatomy
+  - **references/colors.md** (420 lines): Comprehensive color reference for subagent identification
+  - **references/agent-anatomy.md**: Detailed 8-section structure documentation
+  - **references/evaluation-criteria.md**: Quality assessment dimensions and scoring
+  - **assets/agent-template.md**: Production-ready agent template
+
+- **New Subagents** (`agents/`):
+  - **agent-doctor.md** (~120 lines, color: crimson): Evaluates agent quality against 8-section anatomy
+  - **agent-expert.md** (~142 lines, color: electric blue): Creates/refines production-ready agents
+
+- **New Slash Commands** (`commands/`):
+  - **agent-add.md**: Human-friendly wrapper for adding new subagents
+  - **agent-refine.md**: Human-friendly wrapper for refining existing subagents
+  - **agent-evaluate.md**: Human-friendly wrapper for evaluating agent quality
+
+- **Color Guidelines** (cc-agents/SKILL.md):
+  - Subagent-specific color suggestions for visual identification
+  - Reference to local colors.md (no network access required)
+
+### Changed
+
+- **Existing Subagents Refactored** (Fat Skills, Thin Wrappers):
+  - **skill-doctor.md**: 358 → 115 lines (-68%), color: lavender
+  - **skill-expert.md**: 382 → 122 lines (-68%), color: teal
+  - All detailed knowledge moved to cc-skills2 skill
+  - Agents now delegate to skills for domain knowledge
+
+- **cc-skills2/SKILL.md**:
+  - Removed "Color Selection for Subagents" section (moved to cc-agents)
+  - Colors are subagent-specific, not skill-specific
+
+### Architecture
+
+**Fat Skills, Thin Wrappers Pattern:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Skills (Fat)                         │
+│  - All domain knowledge, workflows, evaluation criteria    │
+│  - cc-skills2: Skill creation meta-skill                   │
+│  - cc-agents: Subagent creation meta-skill                 │
+└─────────────────────────────────────────────────────────────┘
+                            ↓ delegates to
+┌─────────────────────────────────────────────────────────────┐
+│                    Agents/Commands (Thin)                  │
+│  - ~50-150 lines each                                      │
+│  - Minimal wrappers that invoke skills                     │
+│  - skill-doctor/expert, agent-doctor/expert                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Token Efficiency Results:**
+| Agent | Before | After | Reduction |
+|-------|--------|-------|-----------|
+| skill-doctor | 358 lines | 115 lines | -68% |
+| skill-expert | 382 lines | 122 lines | -68% |
+
+### Quality Improvements
+
+- **Consistent Architecture**: All subagents follow same "Fat Skills, Thin Wrappers" pattern
+- **Visual Identification**: Unique colors for each subagent type
+- **Knowledge Centralization**: Domain knowledge lives in skills, not duplicated in agents
+- **Local References**: Color reference available offline (no network dependency)
+
+### References
+
+- Task: [0039_build_new_skills_cc-agents.md](docs/prompts/0039_build_new_skills_cc-agents.md)
+- Color Reference: [htmlcolorcodes.com](https://htmlcolorcodes.com/colors/)
+
+---
+
 ## [0.0.2] - 2026-01-20
 
 ### Summary
