@@ -6,7 +6,8 @@ A systematic, test-driven development workflow for building high-quality functio
 
 ## Overview
 
-This Claude Code skill provides a disciplined 10-stage workflow for function development with:
+This Agent Skills provides a disciplined 10-stage workflow for function development with:
+
 - ✅ Test-driven development (TDD) principles
 - ✅ Multi-language support (Python, JavaScript, TypeScript, Java, Go, Rust)
 - ✅ Soft contract build tool approach (flexible, maintainable)
@@ -19,6 +20,7 @@ This Claude Code skill provides a disciplined 10-stage workflow for function dev
 ### Using the Skill
 
 Activate the skill by:
+
 1. Mentioning "10-stage workflow" or "TDD workflow" in your request
 2. Asking Claude Code to implement a function with comprehensive testing
 3. The skill will guide you through all 10 stages systematically
@@ -79,12 +81,14 @@ Stage 9:  Report Completion         → Summarize results
 ### What's New in Stage 6b
 
 **Integration Testing** - Automatically suggested when:
+
 - Multiple related functions exist (e.g., `get_user_info` + `set_user_info`)
 - Functions form workflows (CRUD operations)
 - Functions share data models or state
 - Functions have input/output dependencies
 
 Example integration test scenarios:
+
 - **CRUD workflows**: Create → Read → Update → Delete
 - **Data pipelines**: Extract → Transform → Load
 - **Async operations**: Start → Check status → Get results
@@ -101,6 +105,7 @@ Example integration test scenarios:
 **Purpose**: Verify project preconditions before starting workflow
 
 **What it checks**:
+
 - ✅ Build tool presence (make, npm, mvn, cargo, go)
 - ✅ Standard tasks defined (test, lint, format)
 - ✅ Test framework configured
@@ -108,6 +113,7 @@ Example integration test scenarios:
 - ✅ Development tools available
 
 **Example output**:
+
 ```
 ✅ READY: Makefile with pytest, ruff, mypy
 ✅ READY: src/ and tests/ directories exist
@@ -120,6 +126,7 @@ STATUS: 90% Ready - Can proceed with workflow
 **Purpose**: Execute complete 10-stage workflow for a function
 
 **Usage**:
+
 ```bash
 # Basic usage
 /rd:10-dev-apply validate_email
@@ -132,6 +139,7 @@ STATUS: 90% Ready - Can proceed with workflow
 ```
 
 **Process**:
+
 1. Auto-detects project language and build tool
 2. Runs through all 10 stages systematically
 3. Uses your project's build tool (make, npm, mvn, etc.)
@@ -143,6 +151,7 @@ STATUS: 90% Ready - Can proceed with workflow
 **Purpose**: Initialize build tool configuration for your project
 
 **Usage**:
+
 ```bash
 # Auto-detect language
 /rd:10-dev-init
@@ -155,6 +164,7 @@ STATUS: 90% Ready - Can proceed with workflow
 ```
 
 **What it does**:
+
 1. Detects project language from files
 2. Copies appropriate template (Makefile, package.json, pom.xml)
 3. Customizes for your project structure
@@ -162,6 +172,7 @@ STATUS: 90% Ready - Can proceed with workflow
 5. Verifies setup with `/rd:10-dev-check`
 
 **Templates provided**:
+
 - **Python**: Makefile with uv, ruff, mypy, pytest
 - **JavaScript/TypeScript**: package.json with pnpm, Jest, ESLint, Prettier
 - **Java**: pom.xml with Maven, JUnit 5, Jacoco, Checkstyle
@@ -173,6 +184,7 @@ STATUS: 90% Ready - Can proceed with workflow
 **Purpose**: Create integration tests for related functions
 
 **Usage**:
+
 ```bash
 # Test two related functions
 /rd:10-dev-integrate get_user_info set_user_info
@@ -185,6 +197,7 @@ STATUS: 90% Ready - Can proceed with workflow
 ```
 
 **Process**:
+
 1. Analyzes function relationships and data flow
 2. Identifies integration scenarios (workflows, CRUD, pipelines)
 3. Creates `tests/integration/` test suite
@@ -199,22 +212,22 @@ Instead of maintaining universal scripts, we provide **standardized task names**
 
 ### Standard Task Names (All Languages)
 
-| Task | Purpose | Examples |
-|------|---------|----------|
-| `install` | Install dependencies | `make install`, `npm install`, `mvn install` |
-| `test` | Run all tests with coverage | `make test`, `npm test`, `mvn test` |
-| `test-unit` | Unit tests only | `make test-unit`, `npm run test:unit` |
-| `test-integration` | Integration tests | `make test-integration`, `npm run test:integration` |
-| `test-e2e` | End-to-end tests | `make test-e2e`, `npm run test:e2e` |
-| `test-file` | Single test file | `make test-file FILE=path/to/test.py` |
-| `test-function` | Single test function | `make test-function FUNC=test_name` |
-| `lint` | Code quality checks | `make lint`, `npm run lint` |
-| `format` | Code formatting | `make format`, `npm run format` |
-| `build` | Compile/package | `make build`, `npm run build` |
-| `clean` | Remove artifacts | `make clean`, `npm run clean` |
-| `notify-start` | Workflow start notification | `make notify-start TASK_NAME=func STAGE=0` |
-| `notify-end` | Workflow end notification | `make notify-end TASK_NAME=func` |
-| `stage-0` through `stage-9` | Stage-specific tasks | `make stage-3`, `npm run stage-8` |
+| Task                        | Purpose                     | Examples                                            |
+| --------------------------- | --------------------------- | --------------------------------------------------- |
+| `install`                   | Install dependencies        | `make install`, `npm install`, `mvn install`        |
+| `test`                      | Run all tests with coverage | `make test`, `npm test`, `mvn test`                 |
+| `test-unit`                 | Unit tests only             | `make test-unit`, `npm run test:unit`               |
+| `test-integration`          | Integration tests           | `make test-integration`, `npm run test:integration` |
+| `test-e2e`                  | End-to-end tests            | `make test-e2e`, `npm run test:e2e`                 |
+| `test-file`                 | Single test file            | `make test-file FILE=path/to/test.py`               |
+| `test-function`             | Single test function        | `make test-function FUNC=test_name`                 |
+| `lint`                      | Code quality checks         | `make lint`, `npm run lint`                         |
+| `format`                    | Code formatting             | `make format`, `npm run format`                     |
+| `build`                     | Compile/package             | `make build`, `npm run build`                       |
+| `clean`                     | Remove artifacts            | `make clean`, `npm run clean`                       |
+| `notify-start`              | Workflow start notification | `make notify-start TASK_NAME=func STAGE=0`          |
+| `notify-end`                | Workflow end notification   | `make notify-end TASK_NAME=func`                    |
+| `stage-0` through `stage-9` | Stage-specific tasks        | `make stage-3`, `npm run stage-8`                   |
 
 ### Benefits
 
@@ -356,6 +369,7 @@ Every build template includes `notify-start` and `notify-end` tasks that you can
 **Default behavior**: Print workflow information to console
 
 **Customization examples**:
+
 - Send Slack/Discord notifications
 - Update project dashboards
 - Log to metrics systems
@@ -380,6 +394,7 @@ notify-end:
 ## Modern Tooling Defaults
 
 ### Python
+
 - **Package Manager**: uv (fast, modern alternative to pip)
 - **Linter**: ruff (fast, comprehensive)
 - **Type Checker**: mypy
@@ -387,6 +402,7 @@ notify-end:
 - **Formatter**: ruff format
 
 ### JavaScript/TypeScript
+
 - **Package Manager**: pnpm (fast, disk-efficient)
 - **Test Runner**: Jest with coverage
 - **Linter**: ESLint with recommended rules
@@ -394,6 +410,7 @@ notify-end:
 - **TypeScript**: Strict mode enabled
 
 ### Java
+
 - **Build Tool**: Maven
 - **Test Framework**: JUnit 5
 - **Coverage**: Jacoco
@@ -401,12 +418,14 @@ notify-end:
 - **Test Profiles**: unit, integration, e2e
 
 ### Go
+
 - **Linter**: golangci-lint (comprehensive)
 - **Test Runner**: go test with race detection
 - **Coverage**: Built-in coverage reports
 - **Format**: gofmt
 
 ### Rust
+
 - **Build Tool**: cargo
 - **Linter**: clippy (comprehensive)
 - **Formatter**: rustfmt
@@ -431,12 +450,14 @@ cp templates/javascript/test-template.js tests/myFunction.test.js
 ### ~~With `/rd:10-dev-init` Command~~ (REMOVED)
 
 ~~Let Claude Code do it automatically:~~
+
 ```bash
 # Command removed - use skill directly instead
 /rd:10-dev-init
 ```
 
 This will:
+
 1. Detect your project language
 2. Copy appropriate templates
 3. Customize for your project structure
@@ -446,29 +467,32 @@ This will:
 ## Documentation
 
 ### Quick References
+
 - **`docs/quick-reference.md`**: One-page cheat sheet with all commands by language
 - **`docs/examples.md`**: Complete working examples in 5 languages
 - **`docs/troubleshooting.md`**: Stage-specific troubleshooting guide
 
 ### Templates
+
 - **`templates/README.md`**: Detailed template documentation and customization guide
 
 ## Features
 
 ### Multi-Language Support
 
-| Language | Build Tool | Test Framework | Coverage | Linting | Formatting |
-|----------|------------|----------------|----------|---------|------------|
-| Python | Make | pytest | ✅ | ruff | ruff |
-| JavaScript | npm/pnpm | Jest | ✅ | ESLint | Prettier |
-| TypeScript | npm/pnpm | Jest + ts-jest | ✅ | ESLint | Prettier |
-| Java | Maven | JUnit 5 | Jacoco | Checkstyle | Maven |
-| Go | Make | go test | ✅ | golangci-lint | gofmt |
-| Rust | Make + cargo | cargo test | ✅ | clippy | rustfmt |
+| Language   | Build Tool   | Test Framework | Coverage | Linting       | Formatting |
+| ---------- | ------------ | -------------- | -------- | ------------- | ---------- |
+| Python     | Make         | pytest         | ✅       | ruff          | ruff       |
+| JavaScript | npm/pnpm     | Jest           | ✅       | ESLint        | Prettier   |
+| TypeScript | npm/pnpm     | Jest + ts-jest | ✅       | ESLint        | Prettier   |
+| Java       | Maven        | JUnit 5        | Jacoco   | Checkstyle    | Maven      |
+| Go         | Make         | go test        | ✅       | golangci-lint | gofmt      |
+| Rust       | Make + cargo | cargo test     | ✅       | clippy        | rustfmt    |
 
 ### Quality Standards
 
 Every function must have:
+
 - ✅ Clear specification with types
 - ✅ Comprehensive documentation
 - ✅ Input validation
@@ -482,6 +506,7 @@ Every function must have:
 ## Best Practices
 
 ### Specification (Stage 1)
+
 - Be specific about types and constraints
 - Document all assumptions
 - Include realistic test data examples
@@ -489,6 +514,7 @@ Every function must have:
 - Plan for integration with related functions
 
 ### Testing (Stages 2, 4, 6, 6b, 8)
+
 - Write tests BEFORE implementation
 - Test one behavior per test
 - Use descriptive test names
@@ -497,6 +523,7 @@ Every function must have:
 - Keep unit and integration tests separated
 
 ### Implementation (Stage 5)
+
 - Follow specification exactly
 - Validate inputs explicitly
 - Handle errors gracefully
@@ -504,6 +531,7 @@ Every function must have:
 - Consider integration points
 
 ### Build Configuration
+
 - Customize templates for your project needs
 - Add project-specific tasks as needed
 - Maintain standard task names for consistency
@@ -524,6 +552,7 @@ This workflow transforms ad-hoc function development into a **predictable, high-
 ## When to Use
 
 ✅ **Use this workflow when:**
+
 - Adding new functions with quality requirements
 - Teaching/learning TDD best practices
 - Ensuring code consistency across teams
@@ -533,6 +562,7 @@ This workflow transforms ad-hoc function development into a **predictable, high-
 - Onboarding new team members
 
 ⚠️ **Skip or adapt when:**
+
 - Creating quick prototypes or spikes
 - Emergency bug fixes (though still valuable)
 - Simple variable changes or refactoring
@@ -543,12 +573,14 @@ This workflow transforms ad-hoc function development into a **predictable, high-
 > ⚠️ **Note**: The commands shown below have been removed. Use the skill directly by asking Claude to "use the 10-stage TDD workflow" for your function.
 
 ### For New Projects
+
 ```bash
 # Commands removed - use skill directly instead
 # Ask: "Initialize a Python project for 10-stage TDD workflow"
 ```
 
 ### For Existing Projects
+
 ```bash
 # Commands removed - use skill directly instead
 # Ask: "Check if my project is ready for the 10-stage workflow"
@@ -557,15 +589,19 @@ This workflow transforms ad-hoc function development into a **predictable, high-
 ## Troubleshooting
 
 ### "Build tool not found"
+
 **Solution**: Install required build tool or ask Claude to set up configuration
 
 ### "Tests fail to run"
+
 **Solution**: Check that test framework is installed (`make install` or `npm install`)
 
 ### "Different test framework"
+
 **Solution**: Customize build config to use your preferred framework while keeping standard task names
 
 ### "Need custom build tasks"
+
 **Solution**: Add your tasks to Makefile/package.json, standard tasks remain unchanged
 
 See `docs/troubleshooting.md` for comprehensive stage-specific guidance.
@@ -573,6 +609,7 @@ See `docs/troubleshooting.md` for comprehensive stage-specific guidance.
 ## Contributing
 
 Found an issue or have a suggestion?
+
 - File an issue in your project tracker
 - Propose improvements via pull request
 - Share your experience and use cases
@@ -589,18 +626,22 @@ Found an issue or have a suggestion?
 ## What Makes This Different
 
 ### vs. Traditional Scripts
+
 - ❌ **Scripts**: Hard-coded, language-specific, hard to maintain
 - ✅ **Soft Contracts**: Flexible, user-controlled, easy to customize
 
 ### vs. Manual TDD
+
 - ❌ **Manual**: Ad-hoc, inconsistent, easy to skip steps
 - ✅ **Systematic**: Structured, repeatable, comprehensive
 
 ### vs. Generic Testing
+
 - ❌ **Generic**: Unit tests only, no integration testing
 - ✅ **Comprehensive**: Unit + integration + workflows
 
 ### vs. Basic Automation
+
 - ❌ **Basic**: Run tests, no structure
 - ✅ **Complete**: Specification → Tests → Implementation → Verification
 
