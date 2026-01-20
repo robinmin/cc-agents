@@ -140,5 +140,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-/claude-code-subagents-collection
+/vendors
+
 /.claude/last-session.json
