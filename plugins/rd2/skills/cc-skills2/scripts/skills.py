@@ -1471,23 +1471,69 @@ def analyze_script(script_path: Path) -> dict[str, Any]:
 def parse_simple_yaml(text: str) -> dict[str, Any]:
     """
     Simple YAML frontmatter parser for when PyYAML is not available.
-    Handles basic key: value pairs only (no nested structures).
+    Handles basic key: value pairs and simple nested structures using indentation.
     """
     result: dict[str, Any] = {}
-    for line in text.strip().split("\n"):
-        line = line.strip()
-        if not line or line.startswith("#"):
+    stack: list[tuple[int, dict[str, Any]]] = [(-1, result)]  # (indent_level, dict)
+
+    for line in text.split("\n"):
+        # Skip empty lines and comments
+        if not line.strip() or line.strip().startswith("#"):
             continue
-        if ":" in line:
-            key, _, value = line.partition(":")
+
+        # Calculate indentation (spaces)
+        stripped = line.lstrip()
+        indent = len(line) - len(stripped)
+
+        # Pop stack to appropriate level
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+
+        # Parse key: value
+        if ":" in stripped:
+            key, _, value = stripped.partition(":")
             key = key.strip()
             value = value.strip()
+
+            # Strip inline comments (but not in quoted strings)
+            if "#" in value and not (value.startswith('"') or value.startswith("'")):
+                value = value.split("#")[0].strip()
+
             # Remove quotes if present
             if (value.startswith('"') and value.endswith('"')) or (
                 value.startswith("'") and value.endswith("'")
             ):
                 value = value[1:-1]
-            result[key] = value
+
+            # Get current dict from stack
+            current_dict = stack[-1][1]
+
+            # Handle different value types
+            if not value:  # Empty value, could be a nested dict or list item
+                # Check if next line is more indented (nested structure)
+                current_dict[key] = {}
+                stack.append((indent, current_dict[key]))
+            elif value == "[]" or value.startswith("["):
+                # List indicator
+                current_dict[key] = []
+            else:
+                # Try to convert to appropriate type
+                if value.lower() == "true":
+                    value = True
+                elif value.lower() == "false":
+                    value = False
+                elif value.lower() == "null" or value == "~":
+                    value = None
+                elif value.isdigit() or (value.startswith("-") and value[1:].isdigit()):
+                    value = int(value)
+                elif value.replace(".", "").replace("-", "").replace("e", "").replace("E", "").replace("+", "").isdigit():
+                    try:
+                        value = float(value)
+                    except ValueError:
+                        pass  # Keep as string
+
+                current_dict[key] = value
+
     return result
 
 
@@ -1561,7 +1607,11 @@ CONFIG_FILENAME = ".cc-skills2.yaml"
 def load_config(skill_path: Path) -> Config:
     """Load configuration from skill directory.
 
-    Looks for .cc-skills2.yaml in the skill directory and merges with defaults.
+    Configuration loading priority (highest to lowest):
+    1. CC_SKILLS_CONFIG environment variable (full path to config file)
+    2. .cc-skills.yaml in skill directory
+    3. .cc-skills2.yaml in skill directory
+    4. scripts/.cc-skills.yaml (default fallback)
 
     Args:
         skill_path: Path to the skill directory
@@ -1569,10 +1619,46 @@ def load_config(skill_path: Path) -> Config:
     Returns:
         Config with defaults merged with file contents
     """
-    config = Config()
+    import os
 
-    config_file = skill_path / CONFIG_FILENAME
-    if config_file.exists():
+    config = Config()
+    config_source = "default"
+    config_file = None
+
+    # Priority 1: Check CC_SKILLS_CONFIG environment variable
+    env_config = os.environ.get("CC_SKILLS_CONFIG")
+    if env_config:
+        config_file = Path(env_config)
+        if config_file.is_file():
+            config_source = "environment variable"
+        else:
+            print(f"WARNING: CC_SKILLS_CONFIG points to non-existent file: {env_config}")
+            print("WARNING: Falling back to default configuration")
+            config_file = None
+
+    # Priority 2 & 3: Check skill directory for config files
+    if not config_file:
+        for config_name in [".cc-skills.yaml", ".cc-skills2.yaml"]:
+            potential_file = skill_path / config_name
+            if potential_file.is_file():
+                config_file = potential_file
+                config_source = f"skill directory ({config_name})"
+                break
+
+    # Priority 4: Fall back to default config in scripts/
+    if not config_file:
+        # Try to load default config from scripts directory
+        scripts_dir = Path(__file__).parent
+        default_config = scripts_dir / ".cc-skills.yaml"
+        if default_config.is_file():
+            config_file = default_config
+            config_source = "default (scripts/.cc-skills.yaml)"
+            print("INFO: Using default configuration from scripts/.cc-skills.yaml")
+            print("      To customize, copy this file to your skill directory:")
+            print(f"      cp scripts/.cc-skills.yaml {skill_path / '.cc-skills.yaml'}")
+
+    # Load and parse config file
+    if config_file and config_file.is_file():
         try:
             # Parse YAML config
             if HAS_YAML and yaml is not None:
@@ -1605,8 +1691,8 @@ def load_config(skill_path: Path) -> Config:
 
         except Exception as e:
             # If config parsing fails, use defaults
-            # Log would go here: logging.warning(f"Config parsing failed: {e}")
-            pass
+            print(f"WARNING: Config parsing failed from {config_source}: {e}")
+            print("WARNING: Using default configuration")
 
     return config
 
@@ -2772,8 +2858,45 @@ def cmd_evaluate(args):
     return 0 if valid else 1
 
 
+def check_dependencies() -> None:
+    """Check external dependencies and display warnings if missing.
+
+    External dependencies:
+    - PyYAML: Optional, for parsing YAML config files (has built-in fallback)
+    - ast-grep: Optional, for structural code search in TS/JS/Go (Python AST used as fallback)
+    """
+    import sys
+
+    missing_optional = []
+
+    # Check PyYAML
+    if not HAS_YAML:
+        missing_optional.append("PyYAML (pip install pyyaml)")
+
+    # Check ast-grep
+    if not HAS_AST_GREP:
+        missing_optional.append("ast-grep (brew install ast-grep or visit https://ast-grep.github.io/)")
+
+    if missing_optional:
+        print("NOTE: The following optional dependencies are not installed:", file=sys.stderr)
+        for dep in missing_optional:
+            print(f"  - {dep}", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("The script will continue with reduced functionality:", file=sys.stderr)
+        if not HAS_YAML:
+            print("  - YAML parsing will use built-in simple parser (slower, less featureful)", file=sys.stderr)
+        if not HAS_AST_GREP:
+            print("  - TS/JS/Go security scanning will use basic patterns (Python unaffected)", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("For full functionality, install the optional dependencies.", file=sys.stderr)
+        print("", file=sys.stderr)
+
+
 def main():
     """Main entry point with argument parsing."""
+    # Check dependencies at startup
+    check_dependencies()
+
     parser = argparse.ArgumentParser(
         description="Skill Management Utility - Initialize, validate, evaluate, and package skills.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
