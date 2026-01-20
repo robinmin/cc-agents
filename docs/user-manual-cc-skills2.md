@@ -417,6 +417,40 @@ All built-in rules are **enabled by default**. The `disabled_checks` configurati
 | SEC011 | `exec.Command($$$)` | WARNING | Go | Command injection risk |
 | SEC012 | `os.Exec($$$)` | WARNING | Go | Command injection risk |
 
+#### Network Download Rules (SEC030-SEC035)
+
+| Rule ID | Pattern | Severity | Languages | Description |
+|---------|---------|----------|-----------|-------------|
+| SEC030 | `urllib.request.urlopen($$$)` | WARNING | Python | Downloading content from URL |
+| SEC031 | `requests.get($$$)` | WARNING | Python | Downloading content from URL |
+| SEC032 | `httpx.get($$$)` | WARNING | Python | Downloading content from URL |
+| SEC033 | `fetch($$$)` | WARNING | TS/JS | Downloading content from URL |
+| SEC034 | `axios.get($$$)` | WARNING | TS/JS | Downloading content from URL |
+| SEC035 | `http.Get($$$)` | WARNING | Go | Downloading content from URL |
+
+#### Download + Execute Rules (SEC036-SEC043)
+
+| Rule ID | Pattern | Severity | Languages | Description |
+|---------|---------|----------|-----------|-------------|
+| SEC036 | `curl.*\|.*sh` | ERROR | All | curl piped to shell |
+| SEC037 | `wget.*\|.*sh` | ERROR | All | wget piped to shell |
+| SEC038 | `curl.*\|.*bash` | ERROR | All | curl piped to bash |
+| SEC039 | `wget.*\|.*bash` | ERROR | All | wget piped to bash |
+| SEC040 | `exec(.*urlopen` | ERROR | Python | exec() with downloaded content |
+| SEC041 | `exec(.*requests\.get` | ERROR | Python | exec() with downloaded content |
+| SEC042 | `eval(.*urlopen` | ERROR | Python | eval() with downloaded content |
+| SEC043 | `eval(.*fetch\(` | ERROR | TS/JS | eval() with downloaded content |
+
+#### Package Installation Rules (SEC044-SEC048)
+
+| Rule ID | Pattern | Severity | Languages | Description |
+|---------|---------|----------|-----------|-------------|
+| SEC044 | `pip install.*http://` | ERROR | All | pip install from HTTP (insecure) |
+| SEC045 | `pip install.*https://` | WARNING | All | pip install from HTTPS URL |
+| SEC046 | `subprocess.*pip install.*http` | WARNING | Python | subprocess pip install from URL |
+| SEC047 | `npm install.*http://` | ERROR | All | npm install from HTTP (insecure) |
+| SEC048 | `npm install.*git+` | WARNING | All | npm install from git URL |
+
 #### File System Rules - Dangerous Removal Operations (SEC013-SEC019)
 
 | Rule ID | Pattern | Severity | Languages | Description |
@@ -464,6 +498,9 @@ disabled_checks:
 - Detect dangerous function calls (eval, exec, os.system, etc.)
 - Detect file system operations (file deletion, directory removal)
 - Detect sensitive file access patterns (.env, ~/.ssh/, ~/.aws/, /etc/passwd)
+- Detect web downloads (urllib, requests, fetch, axios, http.Get)
+- Detect download+execute patterns (curl|sh, wget|bash, exec(urlopen()))
+- Detect package installations from external URLs (pip install http://, npm install git+)
 - Validate YAML frontmatter syntax and required fields
 - Analyze skill structure and content quality
 - Check for best practices violations (naming, TODO placeholders)

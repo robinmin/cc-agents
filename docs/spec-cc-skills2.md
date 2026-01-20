@@ -197,7 +197,7 @@ has_evaluate = callable(getattr(item, "evaluate"))
 Location: scripts/skills.py (RuleCategory enum)
 
 Categories include:
-- SECURITY: Code injection and command patterns
+- SECURITY: Code injection, command execution, download patterns
 - CODE_QUALITY: Code quality issues
 - FILE_SYSTEM: File operations and sensitive access
 - STYLE: Style violations
@@ -209,6 +209,9 @@ Categories include:
 **SEC001-SEC012**: Security (injection, command execution)
 **SEC013-SEC019**: File system removal operations
 **SEC020-SEC029**: Sensitive file access patterns
+**SEC030-SEC035**: Network downloads (urllib, requests, fetch, etc.)
+**SEC036-SEC043**: Download + execute patterns (curl|sh, exec(urlopen()))
+**SEC044-SEC048**: Package installation from external URLs
 **Q001**: Code quality (bare except)
 
 ### Pattern Types
