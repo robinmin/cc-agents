@@ -1,0 +1,82 @@
+---
+description: Refine and improve an existing Claude Code Agent subagent
+skills: [cc-agents]
+argument-hint: <agent-file>
+---
+
+# Refine Agent
+
+Thin wrapper for cc-agents skill. Improves agent quality based on evaluation findings.
+
+## Quick Start
+
+```bash
+/rd2:agent-refine plugins/rd2/agents/my-agent.md
+```
+
+## Arguments
+
+| Argument    | Required | Description                                    |
+| ----------- | -------- | ---------------------------------------------- |
+| `agent-file` | Yes      | Path to agent definition file (relative or absolute) |
+
+## Workflow
+
+1. **Evaluate** - Assess current quality (if not already done)
+2. **Review Findings** - Check all dimensions, especially low scores
+3. **Determine Action**:
+   - Structure issues? → Add missing sections, adjust line counts
+   - Content gaps? → Expand competency lists, add workflows
+   - Verification weak? → Add red flags, source priority, fallbacks
+   - Rules incomplete? → Add DO and DON'T rules
+4. **Implement Fixes** - Edit agent file
+5. **Re-evaluate** - Run evaluation again
+6. **Repeat** - Continue until passing score achieved
+
+## Common Improvements by Dimension
+
+| Dimension | Typical Fixes |
+|-----------|---------------|
+| Structure (<20/20) | Add missing sections, adjust line counts to 400-600 |
+| Verification (<25/25) | Add red flags, source priority, confidence scoring |
+| Competencies (<20/20) | Add items to reach 50+, improve categorization |
+| Rules (<15/15) | Add DO and DON'T rules (8+ each) |
+| Auto-Routing (<10/10) | Add "Use PROACTIVELY for" with specific keywords |
+| Examples (<10/10) | Add 2-3 examples with commentary |
+
+## Example
+
+```bash
+# Refine agent
+/rd2:agent-refine plugins/rd2/agents/python-expert.md
+
+# The refinement will:
+# 1. Identify gaps in each dimension
+# 2. Apply fixes to improve score
+# 3. Ensure 8-section anatomy is complete
+# 4. Add missing competencies
+# 5. Strengthen verification protocol
+```
+
+## Grading Scale
+
+| Grade | Score | Action |
+|-------|-------|--------|
+| A | 90-100 | Production ready |
+| B | 80-89 | Minor polish recommended |
+| C | 70-79 | Refinement needed (use this command) |
+| D | 60-69 | Major revision needed |
+| F | <60 | Complete rewrite required |
+
+## After Refinement
+
+1. Re-evaluate: `/rd2:agent-evaluate <agent-file>`
+2. Verify score is >= 80/100
+3. Test agent with sample queries
+4. Deploy to production
+
+## See Also
+
+- `/rd2:agent-evaluate` - Assess agent quality before/after refinement
+- `/rd2:agent-add` - Create new agents
+- `cc-agents` - Refinement best practices
