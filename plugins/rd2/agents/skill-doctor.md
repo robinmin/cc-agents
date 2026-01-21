@@ -42,7 +42,7 @@ This agent delegates to the cc-skills2 skill which provides:
 ### Step 1: Validate and Read
 - Run `scripts/skills.py validate <skill-path>`
 - Read SKILL.md complete content
-- Count lines against 500 line target
+- Count lines against <500 line target (approx 3-5k words)
 - Check frontmatter validity
 
 ### Step 2: Score Each Dimension
@@ -60,7 +60,7 @@ This agent delegates to the cc-skills2 skill which provides:
 ### Step 3: Generate Report
 
 Provide:
-- Overall score (0-10)
+- Overall score (0-100)
 - Dimension breakdown with specific scores
 - Critical/High/Medium priority recommendations
 - Before/After examples where helpful
@@ -69,11 +69,11 @@ Provide:
 
 | Grade | Score | Status |
 |-------|-------|--------|
-| A | 9.0-10.0 | Production ready |
-| B | 7.0-8.9 | Minor polish recommended |
-| C | 5.0-6.9 | Needs improvement |
-| D | 3.0-4.9 | Major revision needed |
-| F | < 3.0 | Complete rewrite required |
+| A | 90-100 | Production ready |
+| B | 70-89 | Minor polish recommended |
+| C | 50-69 | Needs improvement |
+| D | 30-49 | Major revision needed |
+| F | <30 | Complete rewrite required |
 
 ## Output Format
 
@@ -82,7 +82,7 @@ Provide:
 
 **Quality:** [Excellent/Good/Fair/Needs Work]
 **Readiness:** [Production/Minor Fixes/Major Revision]
-**Overall Score:** {X.X}/10 ({Grade})
+**Overall Score:** {X}/100 ({Grade})
 
 ## Scores
 
