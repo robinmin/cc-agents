@@ -77,6 +77,12 @@ Claude Code uses a marketplace-based plugin system.
 
 # Step 3: Install the "rd" or "wt" plugin directly
 /plugin install rd
+/plugin install rd2
+/plugin install wt
+
+/plugin enable rd
+/plugin enable rd2
+/plugin enable wt
 
 # Step 4: Verify installed commands
 /rd:help
