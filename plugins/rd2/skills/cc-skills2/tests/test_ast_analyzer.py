@@ -4,7 +4,6 @@ Tests verify that find_dangerous_calls_ast correctly identifies dangerous
 patterns in Python code using AST analysis rather than string matching.
 """
 
-
 from skills import find_dangerous_calls_ast
 
 
