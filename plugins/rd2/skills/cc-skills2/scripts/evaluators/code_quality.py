@@ -9,7 +9,11 @@ from .base import DimensionScore, DIMENSION_WEIGHTS
 
 # Handle both package import and direct execution
 try:
-    from ..skills import get_file_content, analyze_type_hints, analyze_exception_handlers
+    from ..skills import (
+        get_file_content,
+        analyze_type_hints,
+        analyze_exception_handlers,
+    )
 except ImportError:
     from skills import get_file_content, analyze_type_hints, analyze_exception_handlers
 
@@ -35,7 +39,7 @@ class CodeQualityEvaluator:
         """Evaluate code quality in scripts directory."""
         findings = []
         recommendations = []
-        score = 10.0
+        score = 100.0  # 0-100 scale
 
         scripts_dir = skill_path / "scripts"
         if not scripts_dir.exists():
@@ -64,15 +68,17 @@ class CodeQualityEvaluator:
             if "try:" in script_content:
                 findings.append(f"{script_file.name}: Has error handling")
             else:
-                recommendations.append(f"{script_file.name}: Consider adding error handling")
-                score -= 0.5
+                recommendations.append(
+                    f"{script_file.name}: Consider adding error handling"
+                )
+                score -= 5.0  # 0-100 scale
 
             # Check for main guard
             if '__name__ == "__main__"' in script_content:
                 findings.append(f"{script_file.name}: Has main guard")
             else:
                 recommendations.append(f"{script_file.name}: Add main guard")
-                score -= 0.5
+                score -= 5.0  # 0-100 scale
 
             # Check for type hints using AST
             type_hint_analysis = analyze_type_hints(script_file)
@@ -82,23 +88,24 @@ class CodeQualityEvaluator:
                     f"({type_hint_analysis.coverage_pct}% coverage)"
                 )
             else:
-                recommendations.append(f"{script_file.name}: Consider adding type hints")
-                score -= 0.5
+                recommendations.append(
+                    f"{script_file.name}: Consider adding type hints"
+                )
+                score -= 5.0  # 0-100 scale
 
             # Check for docstrings
             if '"""' in script_content or "'''" in script_content:
                 findings.append(f"{script_file.name}: Has docstrings")
             else:
                 recommendations.append(f"{script_file.name}: Add docstrings")
-                score -= 0.5
+                score -= 5.0  # 0-100 scale
 
             # Check for bare except using AST
             exception_issues = analyze_exception_handlers(script_file)
             for issue in exception_issues:
                 if issue.issue_type == "bare_except":
                     findings.append(
-                        f"{script_file.name}:{issue.line}: "
-                        f"Bare except (anti-pattern)"
+                        f"{script_file.name}:{issue.line}: Bare except (anti-pattern)"
                     )
                     score -= 1.0
                 elif issue.issue_type == "broad_except":
@@ -110,7 +117,7 @@ class CodeQualityEvaluator:
 
         return DimensionScore(
             name=self.name,
-            score=max(0.0, min(10.0, score)),
+            score=max(0.0, min(100.0, score)),  # 0-100 scale
             weight=self.weight,
             findings=findings,
             recommendations=recommendations,
