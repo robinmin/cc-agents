@@ -27,7 +27,9 @@ def generate_evaluator_docs() -> str:
     lines = []
     lines.append("# Evaluator Dimensions")
     lines.append("")
-    lines.append("This document describes each evaluation dimension in the skill evaluation system.")
+    lines.append(
+        "This document describes each evaluation dimension in the skill evaluation system."
+    )
     lines.append("")
     lines.append("## Dimensions")
     lines.append("")
@@ -105,7 +107,7 @@ def generate_rule_docs() -> str:
 
     # Import rules
     sys.path.insert(0, str(Path(__file__).parent))
-    from skills import BUILTIN_RULES, RuleCategory, RuleSeverity, PatternType
+    from skills import BUILTIN_RULES
 
     # Group by category
     by_category: dict[str, list] = {}
@@ -140,7 +142,9 @@ def generate_api_docs() -> str:
     lines = []
     lines.append("# Skills API Documentation")
     lines.append("")
-    lines.append("This document describes the main API for the skills evaluation system.")
+    lines.append(
+        "This document describes the main API for the skills evaluation system."
+    )
     lines.append("")
     lines.append("## Core Functions")
     lines.append("")
@@ -175,6 +179,7 @@ def generate_api_docs() -> str:
 
             # Get function signature
             import inspect
+
             try:
                 sig = inspect.signature(func)
                 lines.append(f"**Signature:** `{func_name}{sig}`")
@@ -197,7 +202,6 @@ def check_freshness(docs_dir: Path) -> tuple[bool, list[str]]:
     Returns:
         Tuple of (is_fresh, list_of_stale_files)
     """
-    import subprocess
 
     stale_files = []
 
@@ -256,35 +260,29 @@ def write_docs(docs_dir: Path) -> None:
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Generate documentation from code"
-    )
+    parser = argparse.ArgumentParser(description="Generate documentation from code")
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Check if docs are up to date (exit code 1 if not)"
+        help="Check if docs are up to date (exit code 1 if not)",
     )
     parser.add_argument(
-        "--rules",
-        action="store_true",
-        help="Only generate rule documentation"
+        "--rules", action="store_true", help="Only generate rule documentation"
     )
     parser.add_argument(
         "--evaluators",
         action="store_true",
-        help="Only generate evaluator documentation"
+        help="Only generate evaluator documentation",
     )
     parser.add_argument(
-        "--api",
-        action="store_true",
-        help="Only generate API documentation"
+        "--api", action="store_true", help="Only generate API documentation"
     )
     parser.add_argument(
         "--output-dir",
         "-o",
         type=Path,
         default=Path(__file__).parent.parent / "docs" / "generated",
-        help="Output directory for generated docs"
+        help="Output directory for generated docs",
     )
 
     args = parser.parse_args()
