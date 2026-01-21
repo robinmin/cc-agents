@@ -1,3 +1,69 @@
+## [0.0.6] - 2026-01-21
+
+### Summary
+
+**Skill Naming Cleanup: Removed Version Suffixes**
+
+Renamed skills from `cc-skills2` and `anti-hallucination2` to `cc-skills` and `anti-hallucination` to eliminate unnecessary version suffixes. Added `rd2:` prefix to all skill references in commands and agents to prevent naming conflicts with other plugins. This cleanup aligns with Claude Code's plugin-based skill namespacing system.
+
+### Changed
+
+- **Skill Directory Renaming**:
+  - `plugins/rd2/skills/cc-skills2` → `plugins/rd2/skills/cc-skills`
+  - `plugins/rd2/skills/anti-hallucination2` → `plugins/rd2/skills/anti-hallucination`
+
+- **Plugin Configuration** (`plugins/rd2/.claude/plugin.json`):
+  - Updated skills array: `["cc-skills", "cc-agents", "anti-hallucination"]`
+  - Updated version: `0.0.5` → `0.0.6`
+  - Updated author field
+
+- **Hooks Configuration** (`plugins/rd2/hooks/hooks.json`):
+  - Updated Stop hook path: `skills/anti-hallucination/scripts/ah_guard.py`
+
+- **Documentation Files**:
+  - Renamed: `docs/spec-cc-skills2.md` → `docs/spec-cc-skills.md`
+  - Renamed: `docs/user-manual-cc-skills2.md` → `docs/user-manual-cc-skills.md`
+  - Updated all internal references to new skill names
+  - Updated all task files in `docs/prompts/*.md`
+
+- **Command Files with rd2: Prefix**:
+  - `plugins/rd2/commands/skill-add.md`: Skills reference → `[rd2:cc-skills]`
+  - `plugins/rd2/commands/skill-evaluate.md`: Skills reference → `[rd2:cc-skills]`
+  - `plugins/rd2/commands/skill-refine.md`: Skills reference → `[rd2:cc-skills]`
+  - Updated all script paths from `cc-skills2` to `cc-skills`
+  - Updated all skill name references to use `rd2:` prefix
+
+- **Agent Files with rd2: Prefix**:
+  - `plugins/rd2/agents/skill-doctor.md`: Skills reference → `[rd2:cc-skills]`
+  - `plugins/rd2/agents/skill-expert.md`: Skills reference → `[rd2:cc-skills]`
+  - Updated framework references to `rd2:cc-skills`
+  - Updated documentation paths to new skill locations
+
+- **Build Configuration** (`Makefile`):
+  - Updated all example paths from `cc-skills2` to `cc-skills`
+  - Example: `make test-one DIR=plugins/rd2/skills/cc-skills`
+
+### Benefits
+
+- **No Naming Conflicts**: Plugin-prefixed skills (`rd2:cc-skills`, `rd2:cc-agents`, `rd2:anti-hallucination`) prevent collisions with other plugins
+- **Cleaner Naming**: Removed unnecessary `2` suffix for better maintainability
+- **Consistent References**: All skill references now use the `rd2:` prefix for clarity
+- **Future-Proof**: Aligns with Claude Code's skill namespacing system
+
+### Files Modified
+
+| Category | Count | Changes |
+|----------|-------|---------|
+| Directories | 2 | Renamed skill directories |
+| Configuration | 2 | plugin.json, hooks.json |
+| Documentation | 20+ | Renamed files + content updates |
+| Commands | 3 | Added rd2: prefix, updated paths |
+| Agents | 2 | Added rd2: prefix, updated references |
+| Build | 1 | Makefile examples |
+| Internal | 30+ | Python/MD files within skills |
+
+---
+
 ## [0.0.5] - 2026-01-21
 
 ### Summary
