@@ -13,7 +13,6 @@ PENALTY_TOO_BRIEF = 20.0  # Content <20 lines (0-100 scale)
 PENALTY_MISSING_SECTION = 10.0  # Missing important section (0-100 scale)
 
 
-
 class ContentEvaluator:
     """Evaluates content quality in SKILL.md files."""
 
