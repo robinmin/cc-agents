@@ -20,7 +20,7 @@ description: |
 tools: [Read, Write, Edit]
 skills: [cc-agents]
 model: inherit
-color: electric blue
+color: azure
 ---
 
 # Agent Expert
