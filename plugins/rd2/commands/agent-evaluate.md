@@ -1,12 +1,12 @@
 ---
 description: Evaluate a Claude Code Agent subagent for quality and production readiness
-skills: [cc-agents]
+skills: [rd2:cc-agents, rd2:anti-hallucination]
 argument-hint: <agent-file>
 ---
 
 # Evaluate Agent
 
-Thin wrapper for cc-agents skill. Assesses agent quality across 6 dimensions with scoring.
+Thin wrapper for `rd2:cc-agents` skill. Assesses agent quality across 6 dimensions with scoring.
 
 ## Quick Start
 
@@ -109,4 +109,4 @@ Thin wrapper for cc-agents skill. Assesses agent quality across 6 dimensions wit
 
 - `/rd2:agent-refine` - Improve agents based on evaluation findings
 - `/rd2:agent-add` - Create new agents
-- `cc-agents` - Evaluation criteria reference
+- `rd2:cc-agents` - Evaluation criteria reference
