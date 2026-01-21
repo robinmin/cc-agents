@@ -4,7 +4,6 @@ Evaluates the structural organization of skills.
 """
 
 from pathlib import Path
-import re
 
 from .base import DimensionScore, DIMENSION_WEIGHTS
 
@@ -30,7 +29,7 @@ class StructureEvaluator:
         """Evaluate structural organization."""
         findings = []
         recommendations = []
-        score = 10.0
+        score = 100.0  # 0-100 scale
 
         # Check directory structure
         has_skill_md = (skill_path / "SKILL.md").exists()
@@ -42,7 +41,7 @@ class StructureEvaluator:
             findings.append("Has SKILL.md")
         else:
             recommendations.append("Add SKILL.md")
-            score -= 3.0
+            score -= 30.0  # 0-100 scale
 
         # Check for progressive disclosure
         skill_md = skill_path / "SKILL.md"
@@ -52,18 +51,17 @@ class StructureEvaluator:
             # Look for progressive disclosure patterns
             has_quick_start = "## Quick Start" in content or "# Quick Start" in content
             has_overview = "## Overview" in content
-            has_advanced = "## Advanced" in content or "###" in content
 
             if has_quick_start:
                 findings.append("Has Quick Start (progressive disclosure)")
             else:
                 recommendations.append("Add Quick Start for progressive disclosure")
-                score -= 1.0
+                score -= 10.0  # 0-100 scale
 
             if has_overview:
                 findings.append("Has Overview section")
             else:
-                score -= 1.0
+                score -= 10.0  # 0-100 scale
 
             # Check heading hierarchy
             heading_levels = []
@@ -77,7 +75,7 @@ class StructureEvaluator:
                 # Check for proper hierarchy (should start with # or ##)
                 if heading_levels[0] > 2:
                     findings.append("Content structure starts with deep heading")
-                    score -= 0.5
+                    score -= 5.0  # 0-100 scale
                 else:
                     findings.append("Good heading hierarchy")
             else:
@@ -93,7 +91,7 @@ class StructureEvaluator:
 
         return DimensionScore(
             name=self.name,
-            score=max(0.0, min(10.0, score)),
+            score=max(0.0, min(100.0, score)),  # 0-100 scale
             weight=self.weight,
             findings=findings,
             recommendations=recommendations,
