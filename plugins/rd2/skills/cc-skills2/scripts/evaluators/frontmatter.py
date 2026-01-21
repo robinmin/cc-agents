@@ -8,6 +8,9 @@ from pathlib import Path
 
 from .base import DimensionScore, DIMENSION_WEIGHTS
 
+# Score deduction constants (M4: Extract magic numbers)
+PENALTY_MISSING_REQUIRED = 20.0  # Missing required frontmatter field (0-100 scale)
+
 # Handle both package import and direct execution
 try:
     from ..skills import parse_frontmatter
@@ -43,7 +46,7 @@ class FrontmatterEvaluator:
         """
         findings = []
         recommendations = []
-        score = 10.0
+        score = 100.0  # 0-100 scale
 
         skill_md = skill_path / "SKILL.md"
         if not skill_md.exists():
@@ -73,7 +76,7 @@ class FrontmatterEvaluator:
             if field not in frontmatter:
                 findings.append(f"Missing required field: {field}")
                 recommendations.append(f"Add '{field}' to frontmatter")
-                score -= 2.0
+                score -= PENALTY_MISSING_REQUIRED
 
         # Check optional fields
         if "allowed-tools" in frontmatter:
@@ -108,7 +111,7 @@ class FrontmatterEvaluator:
 
         return DimensionScore(
             name=self.name,
-            score=max(0.0, min(10.0, score)),
+            score=max(0.0, min(100.0, score)),  # 0-100 scale
             weight=self.weight,
             findings=findings,
             recommendations=recommendations,
