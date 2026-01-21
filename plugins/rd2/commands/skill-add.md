@@ -1,12 +1,12 @@
 ---
 description: Create a new Claude Code Agent Skill with templates and best practices
-skills: [rd2:cc-skills]
+skills: [rd2:cc-skills, rd2:anti-hallucination]
 argument-hint: <plugin-name> <skill-name>
 ---
 
 # Add New Skill
 
-Thin wrapper for rd2:cc-skills. Creates skill directories with proper structure.
+Thin wrapper for `rd2:cc-skills` skill. Creates skill directories with proper structure.
 
 ## Quick Start
 
