@@ -46,10 +46,10 @@ test: notify-start
 	done
 	@$(MAKE) notify-end
 
-## test-one: Run tests for one script directory (usage: make test-one DIR=plugins/rd2/skills/cc-skills2)
+## test-one: Run tests for one script directory (usage: make test-one DIR=plugins/rd2/skills/cc-skills)
 test-one:
 	@if [ -z "$(DIR)" ]; then \
-		echo "❌ Error: DIR parameter required. Usage: make test-one DIR=plugins/rd2/skills/cc-skills2"; \
+		echo "❌ Error: DIR parameter required. Usage: make test-one DIR=plugins/rd2/skills/cc-skills"; \
 		echo "   Run 'make list-scripts' to see available directories"; \
 		exit 1; \
 	fi
@@ -72,10 +72,10 @@ lint:
 	done
 	@echo "✅ Linting complete"
 
-## lint-one: Lint one script directory (usage: make lint-one DIR=plugins/rd2/skills/cc-skills2)
+## lint-one: Lint one script directory (usage: make lint-one DIR=plugins/rd2/skills/cc-skills)
 lint-one:
 	@if [ -z "$(DIR)" ]; then \
-		echo "❌ Error: DIR parameter required. Usage: make lint-one DIR=plugins/rd2/skills/cc-skills2"; \
+		echo "❌ Error: DIR parameter required. Usage: make lint-one DIR=plugins/rd2/skills/cc-skills"; \
 		echo "   Run 'make list-scripts' to see available directories"; \
 		exit 1; \
 	fi
@@ -93,10 +93,10 @@ format:
 	done
 	@echo "✅ Formatting complete"
 
-## format-one: Format one script directory (usage: make format-one DIR=plugins/rd2/skills/cc-skills2)
+## format-one: Format one script directory (usage: make format-one DIR=plugins/rd2/skills/cc-skills)
 format-one:
 	@if [ -z "$(DIR)" ]; then \
-		echo "❌ Error: DIR parameter required. Usage: make format-one DIR=plugins/rd2/skills/cc-skills2"; \
+		echo "❌ Error: DIR parameter required. Usage: make format-one DIR=plugins/rd2/skills/cc-skills"; \
 		echo "   Run 'make list-scripts' to see available directories"; \
 		exit 1; \
 	fi
@@ -113,10 +113,10 @@ autofix:
 	done
 	@echo "✅ Auto-fix complete"
 
-## autofix-one: Auto-fix one script directory (usage: make autofix-one DIR=plugins/rd2/skills/cc-skills2)
+## autofix-one: Auto-fix one script directory (usage: make autofix-one DIR=plugins/rd2/skills/cc-skills)
 autofix-one:
 	@if [ -z "$(DIR)" ]; then \
-		echo "❌ Error: DIR parameter required. Usage: make autofix-one DIR=plugins/rd2/skills/cc-skills2"; \
+		echo "❌ Error: DIR parameter required. Usage: make autofix-one DIR=plugins/rd2/skills/cc-skills"; \
 		echo "   Run 'make list-scripts' to see available directories"; \
 		exit 1; \
 	fi
@@ -149,6 +149,6 @@ notify-end:
 ci: lint test
 	@echo "✅ CI pipeline complete"
 
-## ci-one: Run CI pipeline for one script directory (usage: make ci-one DIR=plugins/rd2/skills/cc-skills2)
+## ci-one: Run CI pipeline for one script directory (usage: make ci-one DIR=plugins/rd2/skills/cc-skills)
 ci-one: lint-one test-one
 	@echo "✅ CI pipeline complete for $(DIR)"
