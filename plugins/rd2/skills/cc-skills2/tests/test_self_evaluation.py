@@ -1,4 +1,10 @@
-"""Meta-test: cc-skills2 evaluates itself without false positives."""
+"""Self-evaluation tests: cc-skills2 evaluates itself.
+
+Meta-tests that verify cc-skills2 can evaluate itself without false positives
+and meets its own quality standards. Tests ensure the evaluation framework
+is working correctly and the cc-skills2 skill itself is production-ready.
+"""
+
 import pytest
 from pathlib import Path
 
@@ -24,21 +30,19 @@ class TestSelfEvaluation:
 
         # Filter for actual security findings (not positive observations)
         security_issues = [
-            f for f in result.findings
+            f
+            for f in result.findings
             if f.startswith("SECURITY:") or "SECURITY in" in f
         ]
 
-        assert len(security_issues) == 0, (
-            f"False positives detected: {security_issues}"
-        )
+        assert len(security_issues) == 0, f"False positives detected: {security_issues}"
 
     def test_security_score_high(self, skill_path):
-        """Security score should be >= 9.0."""
+        """Security score should be >= 90.0 (0-100 scale)."""
         result = evaluate_security(skill_path)
 
-        assert result.score >= 9.0, (
-            f"Security score {result.score} < 9.0. "
-            f"Findings: {result.findings}"
+        assert result.score >= 90.0, (
+            f"Security score {result.score} < 90.0/100. Findings: {result.findings}"
         )
 
     def test_security_has_positive_findings(self, skill_path):
@@ -47,14 +51,12 @@ class TestSelfEvaluation:
 
         # Should have positive findings like "Mentions security considerations"
         positive_findings = [
-            f for f in result.findings
-            if not f.startswith("SECURITY:")
-            and "SECURITY in" not in f
+            f
+            for f in result.findings
+            if not f.startswith("SECURITY:") and "SECURITY in" not in f
         ]
 
-        assert len(positive_findings) > 0, (
-            "Should have positive security findings"
-        )
+        assert len(positive_findings) > 0, "Should have positive security findings"
 
     def test_overall_grade_passing(self, skill_path):
         """Overall grade should be B or better."""
@@ -92,6 +94,5 @@ class TestSelfEvaluation:
 
         for name, dim in dimensions.items():
             assert dim.score > 0, (
-                f"Dimension {name} has zero score. "
-                f"Findings: {dim.findings}"
+                f"Dimension {name} has zero score. Findings: {dim.findings}"
             )
