@@ -36,7 +36,7 @@ class BestPracticesEvaluator:
         """Evaluate adherence to best practices."""
         findings = []
         recommendations = []
-        score = 10.0
+        score = 100.0  # 0-100 scale
 
         skill_md = skill_path / "SKILL.md"
         if not skill_md.exists():
@@ -59,14 +59,14 @@ class BestPracticesEvaluator:
                     findings.append("Follows hyphen-case naming convention")
                 else:
                     findings.append("Does not follow hyphen-case naming")
-                    score -= 1.5
+                    score -= 15.0  # 0-100 scale
 
         # Check for anti-patterns
         todo_count = content.count("TODO:")
         if todo_count > 0:
             findings.append(f"Contains {todo_count} TODO placeholders")
             recommendations.append("Resolve TODO placeholders before production")
-            score -= min(2.0, todo_count * 0.5)
+            score -= min(20.0, todo_count * 5.0)  # 0-100 scale
 
         # Check for clear activation
         if frontmatter:
@@ -76,7 +76,7 @@ class BestPracticesEvaluator:
                     findings.append("Description length is appropriate")
                 else:
                     recommendations.append("Improve description (20-1024 characters)")
-                    score -= 1.0
+                    score -= 10.0  # 0-100 scale
 
         # Check for when to use guidance
         if "when to use" in content.lower():
@@ -94,7 +94,9 @@ class BestPracticesEvaluator:
                 if script_content.startswith("#!/usr/bin/env python3"):
                     findings.append(f"{script_file.name}: Has proper shebang")
                 else:
-                    recommendations.append(f"{script_file.name}: Add #!/usr/bin/env python3 shebang")
+                    recommendations.append(
+                        f"{script_file.name}: Add #!/usr/bin/env python3 shebang"
+                    )
 
                 # Check for __future__ imports (Python best practice)
                 if "from __future__ import" in script_content:
@@ -106,7 +108,7 @@ class BestPracticesEvaluator:
 
         return DimensionScore(
             name=self.name,
-            score=max(0.0, min(10.0, score)),
+            score=max(0.0, min(100.0, score)),  # 0-100 scale
             weight=self.weight,
             findings=findings,
             recommendations=recommendations,
