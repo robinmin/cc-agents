@@ -29,7 +29,7 @@ class EfficiencyEvaluator:
         """Evaluate token efficiency."""
         findings = []
         recommendations = []
-        score = 10.0
+        score = 100.0  # 0-100 scale
 
         skill_md = skill_path / "SKILL.md"
         if not skill_md.exists():
@@ -54,15 +54,17 @@ class EfficiencyEvaluator:
         elif token_estimate < 3000:
             findings.append(f"Large skill (~{int(token_estimate)} tokens)")
             recommendations.append("Consider splitting into smaller skills")
-            score -= 1.0
+            score -= 10.0  # 0-100 scale
         else:
             findings.append(f"Very large skill (~{int(token_estimate)} tokens)")
-            recommendations.append("Strongly consider splitting into smaller, focused skills")
-            score -= 2.0
+            recommendations.append(
+                "Strongly consider splitting into smaller, focused skills"
+            )
+            score -= 20.0  # 0-100 scale
 
         # Check for redundant content
         lines = content.split("\n")
-        non_empty_lines = [l.strip() for l in lines if l.strip()]
+        non_empty_lines = [line.strip() for line in lines if line.strip()]
 
         # Look for repetitive patterns
         if len(non_empty_lines) > 50:
@@ -78,7 +80,7 @@ class EfficiencyEvaluator:
             if duplicates > 5:
                 findings.append(f"Found {duplicates} potentially duplicate lines")
                 recommendations.append("Review and consolidate duplicate content")
-                score -= 1.0
+                score -= 10.0  # 0-100 scale
 
         # Check for excessive verbosity
         word_counts = [len(line.split()) for line in non_empty_lines if line]
@@ -87,11 +89,11 @@ class EfficiencyEvaluator:
             if avg_words_per_line > 30:
                 findings.append("Lines tend to be verbose")
                 recommendations.append("Consider shorter, more concise lines")
-                score -= 0.5
+                score -= 5.0  # 0-100 scale
 
         return DimensionScore(
             name=self.name,
-            score=max(0.0, min(10.0, score)),
+            score=max(0.0, min(100.0, score)),  # 0-100 scale
             weight=self.weight,
             findings=findings,
             recommendations=recommendations,
