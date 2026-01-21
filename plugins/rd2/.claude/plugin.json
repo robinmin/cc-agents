@@ -1,8 +1,12 @@
 {
   "name": "rd2",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Next-generation Claude Code plugin with fat-skills/thin-wrappers architecture",
   "author": "cc-agents",
   "tags": ["agents", "skills", "commands", "plugin"],
-  "skills": ["cc-skills2"]
+  "skills": ["cc-skills2", "cc-agents"],
+  "requires": {
+    "claude-code": ">=1.0.0",
+    "python": ">=3.9"
+  }
 }
