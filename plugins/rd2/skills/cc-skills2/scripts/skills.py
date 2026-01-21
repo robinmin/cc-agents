@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import argparse
 import ast
-import importlib.util
 import json
 import re
 import shutil
@@ -34,7 +33,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Protocol, runtime_checkable
+from typing import Any, Callable, MutableMapping, Protocol, runtime_checkable
 
 try:
     import yaml  # type: ignore[import-not-found]
@@ -81,23 +80,29 @@ def find_dangerous_calls_ast(script_path: Path) -> list[tuple[str, int, str]]:
             if isinstance(node.func, ast.Name):
                 func_name = node.func.id
                 if func_name == "eval":
-                    dangerous_calls.append((
-                        "eval()",
-                        node.lineno,
-                        "Direct call to eval() - code injection risk"
-                    ))
+                    dangerous_calls.append(
+                        (
+                            "eval()",
+                            node.lineno,
+                            "Direct call to eval() - code injection risk",
+                        )
+                    )
                 elif func_name == "exec":
-                    dangerous_calls.append((
-                        "exec()",
-                        node.lineno,
-                        "Direct call to exec() - code injection risk"
-                    ))
+                    dangerous_calls.append(
+                        (
+                            "exec()",
+                            node.lineno,
+                            "Direct call to exec() - code injection risk",
+                        )
+                    )
                 elif func_name == "__import__":
-                    dangerous_calls.append((
-                        "__import__()",
-                        node.lineno,
-                        "Dynamic import with __import__() - code injection risk"
-                    ))
+                    dangerous_calls.append(
+                        (
+                            "__import__()",
+                            node.lineno,
+                            "Dynamic import with __import__() - code injection risk",
+                        )
+                    )
 
             # Check for attribute calls
             if isinstance(node.func, ast.Attribute):
@@ -106,31 +111,41 @@ def find_dangerous_calls_ast(script_path: Path) -> list[tuple[str, int, str]]:
                     obj_name = node.func.value.id
 
                     if obj_name == "os" and attr_name in ("system", "popen"):
-                        dangerous_calls.append((
-                            f"os.{attr_name}()",
-                            node.lineno,
-                            f"Call to os.{attr_name}() - command injection risk"
-                        ))
+                        dangerous_calls.append(
+                            (
+                                f"os.{attr_name}()",
+                                node.lineno,
+                                f"Call to os.{attr_name}() - command injection risk",
+                            )
+                        )
 
                     if obj_name == "pickle" and attr_name == "loads":
-                        dangerous_calls.append((
-                            "pickle.loads()",
-                            node.lineno,
-                            "Call to pickle.loads() - arbitrary code execution risk"
-                        ))
+                        dangerous_calls.append(
+                            (
+                                "pickle.loads()",
+                                node.lineno,
+                                "Call to pickle.loads() - arbitrary code execution risk",
+                            )
+                        )
 
                     if obj_name == "subprocess" and attr_name in (
-                        "call", "run", "Popen", "check_call", "check_output"
+                        "call",
+                        "run",
+                        "Popen",
+                        "check_call",
+                        "check_output",
                     ):
                         for keyword in node.keywords:
                             if keyword.arg == "shell":
                                 if isinstance(keyword.value, ast.Constant):
                                     if keyword.value.value is True:
-                                        dangerous_calls.append((
-                                            f"subprocess.{attr_name}(shell=True)",
-                                            node.lineno,
-                                            f"subprocess.{attr_name}() with shell=True - command injection risk"
-                                        ))
+                                        dangerous_calls.append(
+                                            (
+                                                f"subprocess.{attr_name}(shell=True)",
+                                                node.lineno,
+                                                f"subprocess.{attr_name}() with shell=True - command injection risk",
+                                            )
+                                        )
 
     return dangerous_calls
 
@@ -146,12 +161,12 @@ def extract_python_code_blocks(markdown_content: str) -> list[tuple[str, int]]:
         List of (code_content, start_line_number) tuples
     """
     code_blocks: list[tuple[str, int]] = []
-    pattern = r'```(?:python|py)\n(.*?)```'
+    pattern = r"```(?:python|py)\n(.*?)```"
 
     for match in re.finditer(pattern, markdown_content, re.DOTALL | re.IGNORECASE):
         code = match.group(1)
         start_pos = match.start()
-        line_num = markdown_content[:start_pos].count('\n') + 2
+        line_num = markdown_content[:start_pos].count("\n") + 2
         code_blocks.append((code, line_num))
 
     return code_blocks
@@ -190,23 +205,29 @@ def analyze_markdown_security(skill_md_path: Path) -> list[tuple[str, int, str]]
                 if isinstance(node.func, ast.Name):
                     func_name = node.func.id
                     if func_name == "eval":
-                        findings.append((
-                            "eval()",
-                            block_start_line + node.lineno - 1,
-                            "Code block contains eval() call"
-                        ))
+                        findings.append(
+                            (
+                                "eval()",
+                                block_start_line + node.lineno - 1,
+                                "Code block contains eval() call",
+                            )
+                        )
                     elif func_name == "exec":
-                        findings.append((
-                            "exec()",
-                            block_start_line + node.lineno - 1,
-                            "Code block contains exec() call"
-                        ))
+                        findings.append(
+                            (
+                                "exec()",
+                                block_start_line + node.lineno - 1,
+                                "Code block contains exec() call",
+                            )
+                        )
                     elif func_name == "__import__":
-                        findings.append((
-                            "__import__()",
-                            block_start_line + node.lineno - 1,
-                            "Code block contains __import__() call"
-                        ))
+                        findings.append(
+                            (
+                                "__import__()",
+                                block_start_line + node.lineno - 1,
+                                "Code block contains __import__() call",
+                            )
+                        )
 
                 if isinstance(node.func, ast.Attribute):
                     if isinstance(node.func.value, ast.Name):
@@ -214,29 +235,35 @@ def analyze_markdown_security(skill_md_path: Path) -> list[tuple[str, int, str]]
                         attr_name = node.func.attr
 
                         if obj_name == "os" and attr_name in ("system", "popen"):
-                            findings.append((
-                                f"os.{attr_name}()",
-                                block_start_line + node.lineno - 1,
-                                f"Code block contains os.{attr_name}() call"
-                            ))
+                            findings.append(
+                                (
+                                    f"os.{attr_name}()",
+                                    block_start_line + node.lineno - 1,
+                                    f"Code block contains os.{attr_name}() call",
+                                )
+                            )
 
                         if obj_name == "pickle" and attr_name == "loads":
-                            findings.append((
-                                "pickle.loads()",
-                                block_start_line + node.lineno - 1,
-                                "Code block contains pickle.loads() call"
-                            ))
+                            findings.append(
+                                (
+                                    "pickle.loads()",
+                                    block_start_line + node.lineno - 1,
+                                    "Code block contains pickle.loads() call",
+                                )
+                            )
 
                         if obj_name == "subprocess":
                             for keyword in node.keywords:
                                 if keyword.arg == "shell":
                                     if isinstance(keyword.value, ast.Constant):
                                         if keyword.value.value is True:
-                                            findings.append((
-                                                f"subprocess.{attr_name}(shell=True)",
-                                                block_start_line + node.lineno - 1,
-                                                "Code block contains subprocess with shell=True"
-                                            ))
+                                            findings.append(
+                                                (
+                                                    f"subprocess.{attr_name}(shell=True)",
+                                                    block_start_line + node.lineno - 1,
+                                                    "Code block contains subprocess with shell=True",
+                                                )
+                                            )
 
     return findings
 
@@ -316,7 +343,9 @@ class CacheManager:
 
     def _evict_if_needed(self) -> None:
         """Evict oldest entries if cache exceeds max size."""
-        caches = [self._file_cache, self._ast_cache, self._result_cache]
+        caches: list[MutableMapping[str, tuple[float, Any]]] = [
+            self._file_cache, self._ast_cache, self._result_cache
+        ]
         total_items = sum(len(c) for c in caches)
 
         if total_items > self._max_size:
@@ -424,7 +453,9 @@ class CacheManager:
         self.misses += 1
         return None
 
-    def set_evaluation(self, skill_path: Path, dimensions: list[str], result: dict) -> None:
+    def set_evaluation(
+        self, skill_path: Path, dimensions: list[str], result: dict
+    ) -> None:
         """Cache evaluation result.
 
         Args:
@@ -547,6 +578,7 @@ def clear_global_cache() -> None:
 
 class RuleCategory(Enum):
     """Rule categories."""
+
     SECURITY = "security"
     CODE_QUALITY = "code_quality"
     STYLE = "style"
@@ -557,6 +589,7 @@ class RuleCategory(Enum):
 
 class RuleSeverity(Enum):
     """Rule severity levels."""
+
     ERROR = "error"
     WARNING = "warning"
     INFO = "info"
@@ -564,6 +597,7 @@ class RuleSeverity(Enum):
 
 class PatternType(Enum):
     """Pattern types."""
+
     AST = "ast"
     REGEX = "regex"
     AST_GREP = "ast_grep"
@@ -572,6 +606,7 @@ class PatternType(Enum):
 @dataclass
 class Rule:
     """A rule for code analysis."""
+
     id: str  # Unique identifier (e.g., "SEC001")
     pattern: str  # AST pattern, regex, or ast-grep pattern
     message: str  # Human-readable description
@@ -1083,6 +1118,7 @@ HAS_AST_GREP = shutil.which("ast-grep") is not None
 @dataclass
 class AstGrepMatch:
     """Structured ast-grep match result."""
+
     file: str
     line: int
     column: int
@@ -1118,8 +1154,10 @@ def run_ast_grep(
         result = subprocess.run(
             [
                 "ast-grep",
-                "--pattern", pattern,
-                "--lang", language,
+                "--pattern",
+                pattern,
+                "--lang",
+                language,
                 "--json",
                 str(path),
             ],
@@ -1135,13 +1173,15 @@ def run_ast_grep(
         matches = []
 
         for match in matches_json:
-            matches.append(AstGrepMatch(
-                file=match.get("file", ""),
-                line=match.get("range", {}).get("start", {}).get("line", 0),
-                column=match.get("range", {}).get("start", {}).get("column", 0),
-                text=match.get("text", "")[:100],  # Truncate for readability
-                pattern=pattern,
-            ))
+            matches.append(
+                AstGrepMatch(
+                    file=match.get("file", ""),
+                    line=match.get("range", {}).get("start", {}).get("line", 0),
+                    column=match.get("range", {}).get("start", {}).get("column", 0),
+                    text=match.get("text", "")[:100],  # Truncate for readability
+                    pattern=pattern,
+                )
+            )
 
         return matches
 
@@ -1225,13 +1265,15 @@ def evaluate_rules(
         if rule.pattern_type == PatternType.AST_GREP and HAS_AST_GREP:
             matches = run_ast_grep(rule.pattern, path, language)
             for match in matches:
-                findings.append((
-                    rule.id,
-                    match.line,
-                    rule.pattern,
-                    rule.message,
-                    rule.severity,
-                ))
+                findings.append(
+                    (
+                        rule.id,
+                        match.line,
+                        rule.pattern,
+                        rule.message,
+                        rule.severity,
+                    )
+                )
         elif rule.pattern_type == PatternType.AST:
             # For AST-based rules, use existing Python AST analysis
             if language == "python" and path.is_file() and path.suffix == ".py":
@@ -1240,13 +1282,15 @@ def evaluate_rules(
                     for node in ast.walk(tree):
                         if isinstance(node, ast.ExceptHandler):
                             if rule.pattern == "except:" and node.type is None:
-                                findings.append((
-                                    rule.id,
-                                    node.lineno,
-                                    rule.pattern,
-                                    rule.message,
-                                    rule.severity,
-                                ))
+                                findings.append(
+                                    (
+                                        rule.id,
+                                        node.lineno,
+                                        rule.pattern,
+                                        rule.message,
+                                        rule.severity,
+                                    )
+                                )
         elif rule.pattern_type == PatternType.REGEX:
             # For regex-based rules, scan file content for string patterns
             if path.is_file():
@@ -1257,13 +1301,15 @@ def evaluate_rules(
                     # Search line by line to get line numbers
                     for line_num, line in enumerate(content.splitlines(), start=1):
                         if regex_pattern.search(line):
-                            findings.append((
-                                rule.id,
-                                line_num,
-                                rule.pattern,
-                                rule.message,
-                                rule.severity,
-                            ))
+                            findings.append(
+                                (
+                                    rule.id,
+                                    line_num,
+                                    rule.pattern,
+                                    rule.message,
+                                    rule.severity,
+                                )
+                            )
                 except (OSError, re.error):
                     # File not readable or invalid regex pattern
                     pass
@@ -1279,6 +1325,7 @@ def evaluate_rules(
 @dataclass
 class TypeHintAnalysis:
     """Result of type hint coverage analysis."""
+
     has_hints: bool
     coverage_pct: float
     annotated_count: int
@@ -1355,6 +1402,7 @@ def analyze_type_hints(script_path: Path) -> TypeHintAnalysis:
 @dataclass
 class ExceptionIssue:
     """An exception handling issue."""
+
     issue_type: str  # bare_except, broad_except
     line: int
     description: str
@@ -1384,18 +1432,22 @@ def analyze_exception_handlers(script_path: Path) -> list[ExceptionIssue]:
         if isinstance(node, ast.ExceptHandler):
             if node.type is None:
                 # Bare except: (catches everything including SystemExit)
-                issues.append(ExceptionIssue(
-                    issue_type="bare_except",
-                    line=node.lineno,
-                    description="Bare except catches all exceptions including SystemExit",
-                ))
+                issues.append(
+                    ExceptionIssue(
+                        issue_type="bare_except",
+                        line=node.lineno,
+                        description="Bare except catches all exceptions including SystemExit",
+                    )
+                )
             elif isinstance(node.type, ast.Name) and node.type.id == "Exception":
                 # except Exception: (very broad)
-                issues.append(ExceptionIssue(
-                    issue_type="broad_except",
-                    line=node.lineno,
-                    description="Broad 'except Exception' - consider more specific types",
-                ))
+                issues.append(
+                    ExceptionIssue(
+                        issue_type="broad_except",
+                        line=node.lineno,
+                        description="Broad 'except Exception' - consider more specific types",
+                    )
+                )
 
     return issues
 
@@ -1458,7 +1510,9 @@ def analyze_script(script_path: Path) -> dict[str, Any]:
 
     elif language == "bash":
         # Basic bash analysis (can be extended with shellcheck)
-        result["note"] = "Bash analysis is basic; consider shellcheck for thorough review"
+        result["note"] = (
+            "Bash analysis is basic; consider shellcheck for thorough review"
+        )
 
     return result
 
@@ -1518,21 +1572,31 @@ def parse_simple_yaml(text: str) -> dict[str, Any]:
                 current_dict[key] = []
             else:
                 # Try to convert to appropriate type
+                parsed_value: bool | None | int | float | str
                 if value.lower() == "true":
-                    value = True
+                    parsed_value = True
                 elif value.lower() == "false":
-                    value = False
+                    parsed_value = False
                 elif value.lower() == "null" or value == "~":
-                    value = None
+                    parsed_value = None
                 elif value.isdigit() or (value.startswith("-") and value[1:].isdigit()):
-                    value = int(value)
-                elif value.replace(".", "").replace("-", "").replace("e", "").replace("E", "").replace("+", "").isdigit():
+                    parsed_value = int(value)
+                elif (
+                    value.replace(".", "")
+                    .replace("-", "")
+                    .replace("e", "")
+                    .replace("E", "")
+                    .replace("+", "")
+                    .isdigit()
+                ):
                     try:
-                        value = float(value)
+                        parsed_value = float(value)
                     except ValueError:
-                        pass  # Keep as string
+                        parsed_value = value  # Keep as string
+                else:
+                    parsed_value = value
 
-                current_dict[key] = value
+                current_dict[key] = parsed_value
 
     return result
 
@@ -1551,6 +1615,17 @@ ASSETS_DIR = SKILL_ROOT / "assets"
 # CONFIGURATION FILE SUPPORT (Phase 3 - Task 0015)
 ###############################################################################
 
+# Scoring dimension weights (must sum to 1.0)
+DIMENSION_WEIGHTS: dict[str, float] = {
+    "frontmatter": 0.10,
+    "content": 0.25,
+    "security": 0.20,
+    "structure": 0.15,
+    "efficiency": 0.10,
+    "best_practices": 0.10,
+    "code_quality": 0.10,
+}
+
 
 @dataclass
 class Config:
@@ -1562,6 +1637,7 @@ class Config:
         thresholds: Quality thresholds
         languages: Languages to analyze
     """
+
     weights: dict[str, float] = field(default_factory=lambda: DIMENSION_WEIGHTS.copy())
     disabled_checks: list[str] = field(default_factory=list)
     thresholds: dict[str, int] = field(default_factory=dict)
@@ -1579,26 +1655,40 @@ class Config:
 
         # Validate disabled_checks is a list of strings
         if not isinstance(self.disabled_checks, list):
-            raise ValueError(f"disabled_checks must be a list, got {type(self.disabled_checks).__name__}")
+            raise ValueError(
+                f"disabled_checks must be a list, got {type(self.disabled_checks).__name__}"
+            )
         for check in self.disabled_checks:
             if not isinstance(check, str):
-                raise ValueError(f"Each disabled check must be a string, got {type(check).__name__}")
+                raise ValueError(
+                    f"Each disabled check must be a string, got {type(check).__name__}"
+                )
 
         # Validate thresholds is a dict with string keys and int values
         if not isinstance(self.thresholds, dict):
-            raise ValueError(f"thresholds must be a dict, got {type(self.thresholds).__name__}")
+            raise ValueError(
+                f"thresholds must be a dict, got {type(self.thresholds).__name__}"
+            )
         for key, value in self.thresholds.items():
             if not isinstance(key, str):
-                raise ValueError(f"Threshold keys must be strings, got {type(key).__name__}")
+                raise ValueError(
+                    f"Threshold keys must be strings, got {type(key).__name__}"
+                )
             if not isinstance(value, int):
-                raise ValueError(f"Threshold values must be integers, got {type(value).__name__}")
+                raise ValueError(
+                    f"Threshold values must be integers, got {type(value).__name__}"
+                )
 
         # Validate languages is a list of strings
         if not isinstance(self.languages, list):
-            raise ValueError(f"languages must be a list, got {type(self.languages).__name__}")
+            raise ValueError(
+                f"languages must be a list, got {type(self.languages).__name__}"
+            )
         for lang in self.languages:
             if not isinstance(lang, str):
-                raise ValueError(f"Each language must be a string, got {type(lang).__name__}")
+                raise ValueError(
+                    f"Each language must be a string, got {type(lang).__name__}"
+                )
 
 
 CONFIG_FILENAME = ".cc-skills2.yaml"
@@ -1632,7 +1722,9 @@ def load_config(skill_path: Path) -> Config:
         if config_file.is_file():
             config_source = "environment variable"
         else:
-            print(f"WARNING: CC_SKILLS_CONFIG points to non-existent file: {env_config}")
+            print(
+                f"WARNING: CC_SKILLS_CONFIG points to non-existent file: {env_config}"
+            )
             print("WARNING: Falling back to default configuration")
             config_file = None
 
@@ -1710,7 +1802,7 @@ def save_config(skill_path: Path, config: Config) -> bool:
     config_file = skill_path / CONFIG_FILENAME
 
     try:
-        data = {
+        data: dict[str, Any] = {
             "weights": config.weights,
             "disabled_checks": config.disabled_checks,
             "thresholds": config.thresholds,
@@ -1721,7 +1813,7 @@ def save_config(skill_path: Path, config: Config) -> bool:
             content = yaml.dump(data, default_flow_style=False)
         else:
             # Simple YAML output
-            lines = []
+            lines: list[str] = []
             lines.append("# cc-skills2 configuration")
             lines.append("weights:")
             for key, value in data["weights"].items():
@@ -1733,7 +1825,7 @@ def save_config(skill_path: Path, config: Config) -> bool:
 
         config_file.write_text(content)
         return True
-    except Exception as e:
+    except Exception:
         # Log would go here: logging.error(f"Config save failed: {e}")
         return False
 
@@ -1878,6 +1970,7 @@ def discover_evaluators(plugins_dir: Path | None = None) -> list[DimensionEvalua
 
     # Add parent directory to sys.path so evaluators can be imported as a package
     import sys
+
     parent_dir = str(plugins_dir.parent)
     if parent_dir not in sys.path:
         sys.path.insert(0, parent_dir)
@@ -1885,6 +1978,7 @@ def discover_evaluators(plugins_dir: Path | None = None) -> list[DimensionEvalua
     # Import evaluators package directly
     try:
         import evaluators as evals_module
+
         # Get all classes from the evaluators module
         for item_name in dir(evals_module):
             if item_name.startswith("_"):
@@ -1897,17 +1991,19 @@ def discover_evaluators(plugins_dir: Path | None = None) -> list[DimensionEvalua
                 # Properties use @property decorator (not callable), methods are callable
                 has_name = hasattr(item, "name")
                 has_weight = hasattr(item, "weight")
-                has_evaluate = hasattr(item, "evaluate") and callable(getattr(item, "evaluate"))
+                has_evaluate = hasattr(item, "evaluate") and callable(
+                    getattr(item, "evaluate")
+                )
                 if has_name and has_weight and has_evaluate:
                     # Instantiate and add to list
                     try:
                         instance = item()
                         evaluators.append(instance)
-                    except Exception as e:
+                    except Exception:
                         # Skip evaluators that fail to instantiate
                         # Log would go here: logging.warning(f"Evaluator instantiation failed: {e}")
                         pass
-    except ImportError as e:
+    except ImportError:
         # If evaluators package can't be imported, return empty list
         # Log would go here: logging.error(f"Failed to import evaluators package: {e}")
         pass
@@ -1969,8 +2065,7 @@ class HookManager:
         if hook_name not in self._hooks:
             valid_hooks = ", ".join(self._hooks.keys())
             raise ValueError(
-                f"Invalid hook '{hook_name}'. "
-                f"Valid hooks are: {valid_hooks}"
+                f"Invalid hook '{hook_name}'. Valid hooks are: {valid_hooks}"
             )
         self._hooks[hook_name].append(callback)
 
@@ -1990,7 +2085,7 @@ class HookManager:
             try:
                 result = callback(*args, **kwargs)
                 results.append(result)
-            except Exception as e:
+            except Exception:
                 # Don't let one failed hook break the entire evaluation
                 # Log would go here: logging.warning(f"Hook {hook_name} callback failed: {e}")
                 pass
@@ -2367,46 +2462,58 @@ def package_skill(
         return None
 
 
-
 ###############################################################################
 # EVALUATION
 ###############################################################################
 
-# Scoring weights
-DIMENSION_WEIGHTS = {
-    "frontmatter": 0.10,
-    "content": 0.25,
-    "security": 0.20,
-    "structure": 0.15,
-    "efficiency": 0.10,
-    "best_practices": 0.10,
-    "code_quality": 0.10,
-}
+# Re-export evaluate_security for backward compatibility
+try:
+    from evaluators.security import evaluate_security
+except ImportError:
+    # Fallback for direct script execution
+    try:
+        from scripts.evaluators.security import evaluate_security
+    except ImportError:
+        # Define stub if evaluators unavailable
+        def evaluate_security(skill_path: Path) -> "DimensionScore":  # type: ignore[misc]
+            """Stub when evaluators unavailable."""
+            raise ImportError("evaluators.security not available")
 
 
 class ValidationResult(Enum):
     """Result of structural validation."""
+
     PASS = "PASS"
     FAIL = "FAIL"
 
 
 class Grade(Enum):
-    """Letter grade for overall quality."""
-    A = ("A", 9.0, 10.0, "Production ready")
-    B = ("B", 7.0, 8.9, "Minor fixes needed")
-    C = ("C", 5.0, 6.9, "Moderate revision")
-    D = ("D", 3.0, 4.9, "Major revision")
-    F = ("F", 0.0, 2.9, "Rewrite needed")
+    """Letter grade for overall quality (0-100 scale)."""
+
+    A = ("A", 90.0, 100.0, "Production ready")
+    B = ("B", 70.0, 89.9, "Minor fixes needed")
+    C = ("C", 50.0, 69.9, "Moderate revision")
+    D = ("D", 30.0, 49.9, "Major revision")
+    F = ("F", 0.0, 29.9, "Rewrite needed")
 
     @classmethod
     def from_score(cls, score: float) -> "Grade":
-        """Get grade from numeric score."""
+        """Get grade from numeric score (0-100 scale)."""
+        # Handle edge case: perfect score
+        if score >= 100.0:
+            return cls.A
+
+        # Find appropriate grade with exclusive upper bound
         for grade in cls:
-            if grade.min_score <= score <= grade.max_score:
+            if grade.min_score <= score < grade.max_score:
                 return grade
+
+        # Scores below 0 get F
         return cls.F
 
-    def __init__(self, letter: str, min_score: float, max_score: float, description: str):
+    def __init__(
+        self, letter: str, min_score: float, max_score: float, description: str
+    ):
         self.letter = letter
         self.min_score = min_score
         self.max_score = max_score
@@ -2416,8 +2523,9 @@ class Grade(Enum):
 @dataclass
 class DimensionScore:
     """Score for a single dimension."""
+
     name: str
-    score: float  # 0-10
+    score: float  # 0-100 scale
     weight: float
     findings: list[str] = field(default_factory=list)
     recommendations: list[str] = field(default_factory=list)
@@ -2431,6 +2539,7 @@ class DimensionScore:
 @dataclass
 class EvaluationResult:
     """Complete evaluation result."""
+
     skill_path: Path
     validation_result: ValidationResult | None = None
     validation_message: str = ""
@@ -2443,7 +2552,9 @@ class EvaluationResult:
         return {
             "skill_path": str(self.skill_path),
             "validation": {
-                "result": self.validation_result.value if self.validation_result else None,
+                "result": self.validation_result.value
+                if self.validation_result
+                else None,
                 "message": self.validation_message,
             },
             "dimensions": {
@@ -2464,6 +2575,7 @@ class EvaluationResult:
 
 # Standalone evaluation functions removed - use evaluator modules instead
 # See scripts/evaluators/ for the actual evaluation implementations
+
 
 def run_quality_assessment(skill_path: Path) -> dict[str, DimensionScore]:
     """Run all quality assessment dimensions using evaluator modules.
@@ -2545,7 +2657,7 @@ class TextFormatter(ReportFormatter):
             lines.append(f"### {dim_name.replace('_', ' ').title()}")
             lines.append(
                 f"Score: {dim_score.score:.1f}/10 | "
-                f"Weight: {dim_score.weight*100:.0f}% | "
+                f"Weight: {dim_score.weight * 100:.0f}% | "
                 f"Weighted: {dim_score.weighted_score:.2f}"
             )
             lines.append("")
@@ -2622,7 +2734,7 @@ class MarkdownFormatter(ReportFormatter):
             name = dim_name.replace("_", " ").title()
             lines.append(
                 f"| {name} | {dim_score.score:.1f}/10 | "
-                f"{dim_score.weight*100:.0f}% | {dim_score.weighted_score:.2f} |"
+                f"{dim_score.weight * 100:.0f}% | {dim_score.weighted_score:.2f} |"
             )
         lines.append("")
 
@@ -2685,7 +2797,7 @@ def format_report(result: EvaluationResult) -> str:
     """Format evaluation result as human-readable report."""
     lines = []
     lines.append("=" * 70)
-    lines.append(f"SKILL EVALUATION REPORT")
+    lines.append("SKILL EVALUATION REPORT")
     lines.append(f"Path: {result.skill_path}")
     lines.append("=" * 70)
     lines.append("")
@@ -2706,8 +2818,10 @@ def format_report(result: EvaluationResult) -> str:
 
     for dim_name, dim_score in result.dimensions.items():
         lines.append(f"### {dim_name.replace('_', ' ').title()}")
-        lines.append(f"Score: {dim_score.score:.1f}/10 | Weight: {dim_score.weight*100:.0f}% | "
-                    f"Weighted: {dim_score.weighted_score:.2f}")
+        lines.append(
+            f"Score: {dim_score.score:.1f}/10 | Weight: {dim_score.weight * 100:.0f}% | "
+            f"Weighted: {dim_score.weighted_score:.2f}"
+        )
         lines.append("")
 
         if dim_score.findings:
@@ -2742,6 +2856,8 @@ def format_report(result: EvaluationResult) -> str:
 
     return "\n".join(lines)
 
+
+# Import backward compatibility wrapper functions for tests
 
 
 ###############################################################################
@@ -2800,11 +2916,15 @@ def cmd_package(args):
 def cmd_evaluate(args):
     """Handle evaluate command - two-phase skill evaluation."""
     if not args.skill_path:
-        print("Usage: python3 scripts/skills.py evaluate <skill-path> [--format text|json|markdown]")
+        print(
+            "Usage: python3 scripts/skills.py evaluate <skill-path> [--format text|json|markdown]"
+        )
         print("\nExample:")
         print("  python3 scripts/skills.py evaluate ./skills/my-skill")
         print("  python3 scripts/skills.py evaluate ./skills/my-skill --format json")
-        print("  python3 scripts/skills.py evaluate ./skills/my-skill --format markdown")
+        print(
+            "  python3 scripts/skills.py evaluate ./skills/my-skill --format markdown"
+        )
         return 1
 
     skill_path = Path(args.skill_path).resolve()
@@ -2833,7 +2953,10 @@ def cmd_evaluate(args):
         print(f"  ✓ PASSED: {message}", file=sys.stderr)
     else:
         print(f"  ✗ FAILED: {message}", file=sys.stderr)
-        print("\nNote: Structural validation failed. Quality assessment will still run.", file=sys.stderr)
+        print(
+            "\nNote: Structural validation failed. Quality assessment will still run.",
+            file=sys.stderr,
+        )
     print(file=sys.stderr)
 
     # Phase 2: Quality Assessment
@@ -2847,7 +2970,9 @@ def cmd_evaluate(args):
         print(f"  {dim_name}: {dim_score.score:.1f}/10", file=sys.stderr)
 
     print(f"\n  Total Score: {result.total_score:.2f}/10", file=sys.stderr)
-    print(f"  Grade: {result.grade.letter} - {result.grade.description}", file=sys.stderr)
+    print(
+        f"  Grade: {result.grade.letter} - {result.grade.description}", file=sys.stderr
+    )
     print(file=sys.stderr)
 
     # Output using formatter
@@ -2875,20 +3000,34 @@ def check_dependencies() -> None:
 
     # Check ast-grep
     if not HAS_AST_GREP:
-        missing_optional.append("ast-grep (brew install ast-grep or visit https://ast-grep.github.io/)")
+        missing_optional.append(
+            "ast-grep (brew install ast-grep or visit https://ast-grep.github.io/)"
+        )
 
     if missing_optional:
-        print("NOTE: The following optional dependencies are not installed:", file=sys.stderr)
+        print(
+            "NOTE: The following optional dependencies are not installed:",
+            file=sys.stderr,
+        )
         for dep in missing_optional:
             print(f"  - {dep}", file=sys.stderr)
         print("", file=sys.stderr)
         print("The script will continue with reduced functionality:", file=sys.stderr)
         if not HAS_YAML:
-            print("  - YAML parsing will use built-in simple parser (slower, less featureful)", file=sys.stderr)
+            print(
+                "  - YAML parsing will use built-in simple parser (slower, less featureful)",
+                file=sys.stderr,
+            )
         if not HAS_AST_GREP:
-            print("  - TS/JS/Go security scanning will use basic patterns (Python unaffected)", file=sys.stderr)
+            print(
+                "  - TS/JS/Go security scanning will use basic patterns (Python unaffected)",
+                file=sys.stderr,
+            )
         print("", file=sys.stderr)
-        print("For full functionality, install the optional dependencies.", file=sys.stderr)
+        print(
+            "For full functionality, install the optional dependencies.",
+            file=sys.stderr,
+        )
         print("", file=sys.stderr)
 
 
@@ -2946,15 +3085,20 @@ Examples:
     evaluate_parser = subparsers.add_parser(
         "evaluate", help="Evaluate skill quality (structural + quality assessment)"
     )
-    evaluate_parser.add_argument("skill_path", nargs="?", help="Path to skill directory")
     evaluate_parser.add_argument(
-        "--json", action="store_true", help="Output results as JSON (shorthand for --format json)"
+        "skill_path", nargs="?", help="Path to skill directory"
     )
     evaluate_parser.add_argument(
-        "--format", "-f",
+        "--json",
+        action="store_true",
+        help="Output results as JSON (shorthand for --format json)",
+    )
+    evaluate_parser.add_argument(
+        "--format",
+        "-f",
         choices=["text", "json", "markdown", "md"],
         default="text",
-        help="Output format (default: text)"
+        help="Output format (default: text)",
     )
 
     args = parser.parse_args()
