@@ -26,6 +26,13 @@ install:
 	uv pip install pytest pytest-cov ruff mypy
 	@echo "✅ Installation complete"
 
+## setup-cc: Setup Claude Code's plugins
+setup-cc:
+	@echo "🔧 Setting up Claude Code's plugins..."
+	claude plugin update rd@cc-agents &&  claude plugin update wt@cc-agents && claude plugin update rd2@cc-agents
+	@rm -rf ~/.claude/plugins/cache/cc-agents
+	@echo "✅ Setup complete"
+
 ## list-scripts: List all auto-discovered script directories
 list-scripts:
 	@echo "📋 Auto-discovered script directories (with tests/ and scripts/):"
