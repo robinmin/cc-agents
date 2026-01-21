@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Any, Callable, MutableMapping, Protocol, runtime_checkable
 
 try:
-    import yaml  # type: ignore[import-not-found]
+    import yaml  # type: ignore[import-not-found, import-untyped]
 
     HAS_YAML = True
 except ImportError:
@@ -344,7 +344,9 @@ class CacheManager:
     def _evict_if_needed(self) -> None:
         """Evict oldest entries if cache exceeds max size."""
         caches: list[MutableMapping[str, tuple[float, Any]]] = [
-            self._file_cache, self._ast_cache, self._result_cache
+            self._file_cache,
+            self._ast_cache,
+            self._result_cache,
         ]
         total_items = sum(len(c) for c in caches)
 
@@ -1977,7 +1979,7 @@ def discover_evaluators(plugins_dir: Path | None = None) -> list[DimensionEvalua
 
     # Import evaluators package directly
     try:
-        import evaluators as evals_module
+        import evaluators as evals_module  # type: ignore[import-not-found]
 
         # Get all classes from the evaluators module
         for item_name in dir(evals_module):
@@ -2468,11 +2470,11 @@ def package_skill(
 
 # Re-export evaluate_security for backward compatibility
 try:
-    from evaluators.security import evaluate_security
+    from evaluators.security import evaluate_security  # type: ignore[import-not-found]
 except ImportError:
     # Fallback for direct script execution
     try:
-        from scripts.evaluators.security import evaluate_security
+        from scripts.evaluators.security import evaluate_security  # type: ignore[import-not-found]
     except ImportError:
         # Define stub if evaluators unavailable
         def evaluate_security(skill_path: Path) -> "DimensionScore":  # type: ignore[misc]
