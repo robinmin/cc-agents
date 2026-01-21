@@ -1,9 +1,9 @@
 ---
-name: cc-skills2
+name: cc-skills
 description: Meta-skill for creating effective Agent skills. Use when: building new skills, writing SKILL.md files, designing workflow automation, packaging skills for distribution, or refining existing skills with specialized knowledge and tool integrations. Follows progressive disclosure, evaluation-first development, and plugin-based quality assessment.
 ---
 
-# cc-skills2: Claude Code Meta Skills V2
+# cc-skills: Claude Code Meta Skills V2
 
 ## Overview
 

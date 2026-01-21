@@ -29,7 +29,7 @@ The current security scanner in `scripts/skills.py` (lines 728-797) uses naive s
 - [ ] Parses all `.py` files in `scripts/` directory
 - [ ] Detects only actual dangerous function calls
 - [ ] Returns tuple of (function_name, line_number) for each finding
-- [ ] Zero false positives when run against cc-skills2 itself
+- [ ] Zero false positives when run against cc-skills itself
 - [ ] Handles malformed Python files without crashing
 
 ## Solution
@@ -55,7 +55,7 @@ This function will be called from `evaluate_security()` to replace the current s
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/scripts/skills.py`
+- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Lines to replace:** 778-786 (script scanning section)
 - **Python AST docs:** https://docs.python.org/3/library/ast.html
 
@@ -64,7 +64,7 @@ This function will be called from `evaluate_security()` to replace the current s
 1. Create test file with actual dangerous calls
 2. Create test file with string mentions of dangerous patterns
 3. Verify AST analyzer detects (1) but not (2)
-4. Run against cc-skills2 itself - should find 0 issues
+4. Run against cc-skills itself - should find 0 issues
 
 ## Deliverables
 

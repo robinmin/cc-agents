@@ -20,7 +20,7 @@ Phase 3 focused on architecture improvements. This task verifies all Phase 3 suc
 | Criterion | Target | Verification Method |
 |-----------|--------|---------------------|
 | Plugin architecture | Working | Add test plugin, verify loaded |
-| Configuration support | Working | Create .cc-skills2.yaml, verify applied |
+| Configuration support | Working | Create .cc-skills.yaml, verify applied |
 | Validation decoupled | Formatters work | Test text, JSON, markdown output |
 | Code coverage | >= 80% | Run coverage report |
 
@@ -35,7 +35,7 @@ Phase 3 focused on architecture improvements. This task verifies all Phase 3 suc
 
 ### Step 2: Test Configuration Support
 
-1. Create .cc-skills2.yaml with custom weights
+1. Create .cc-skills.yaml with custom weights
 2. Run evaluation
 3. Verify weights were applied
 

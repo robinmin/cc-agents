@@ -1,12 +1,12 @@
 ---
-description: Improve skill quality using cc-skills2 best practices
-skills: [cc-skills2]
+description: Improve skill quality using rd2:cc-skills best practices
+skills: [rd2:cc-skills]
 argument-hint: <skill-folder>
 ---
 
 # Refine Existing Skill
 
-Thin wrapper for cc-skills2. Improves skill quality with user approval.
+Thin wrapper for rd2:cc-skills. Improves skill quality with user approval.
 
 ## Quick Start
 
@@ -23,7 +23,7 @@ Thin wrapper for cc-skills2. Improves skill quality with user approval.
 
 ## Workflow
 
-1. **Load** - Read cc-skills2 best practices
+1. **Load** - Read rd2:cc-skills best practices
 2. **Analyze** - Check structure, content, patterns
 3. **Plan** - Generate prioritized improvements
 4. **Apply** - Make changes with user approval
@@ -84,4 +84,4 @@ The refinement may ask for approval:
 
 - `/rd2:skill-add` - Create new skills
 - `/rd2:skill-evaluate` - Assess quality
-- `cc-skills2` - Best practices reference
+- `rd2:cc-skills` - Best practices reference

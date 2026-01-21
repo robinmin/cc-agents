@@ -4,11 +4,11 @@
 
 **Anti-Hallucination Guard: Stop Hook Enforcement & Comprehensive Testing**
 
-Implemented production-ready Stop hook for anti-hallucination protocol enforcement with command-type execution (replacing unstable prompt-type). Added comprehensive test suite with 115 tests achieving 98% coverage. Improved mypy configuration with targeted type: ignore comments instead of global error suppression. Resolved naming conflicts by renaming skill to anti-hallucination2.
+Implemented production-ready Stop hook for anti-hallucination protocol enforcement with command-type execution (replacing unstable prompt-type). Added comprehensive test suite with 115 tests achieving 98% coverage. Improved mypy configuration with targeted type: ignore comments instead of global error suppression. Resolved naming conflicts by renaming skill to anti-hallucination.
 
 ### Added
 
-- **Anti-Hallucination Guard Script** (`skills/anti-hallucination2/scripts/ah_guard.py`, 277 lines):
+- **Anti-Hallucination Guard Script** (`skills/anti-hallucination/scripts/ah_guard.py`, 277 lines):
   - Command-type Stop hook (replacing prompt-type for reliability)
   - Extracts last assistant message from conversation context
   - Verifies protocol compliance: source citations, confidence levels, tool usage evidence
@@ -17,7 +17,7 @@ Implemented production-ready Stop hook for anti-hallucination protocol enforceme
   - JSON output format for hook integration
   - Exit codes: 0 = allow stop, 1 = deny stop with reason
 
-- **Comprehensive Test Suite** (`skills/anti-hallucination2/tests/test_ah_guard.py`, 848 lines):
+- **Comprehensive Test Suite** (`skills/anti-hallucination/tests/test_ah_guard.py`, 848 lines):
   - 115 tests with 98% coverage (109/110 statements)
   - Test classes for all verification functions
   - Parameterized tests for pattern variations
@@ -42,7 +42,7 @@ Implemented production-ready Stop hook for anti-hallucination protocol enforceme
     - `scripts/evaluators/{security,base,best_practices,code_quality,frontmatter}.py`: fallback imports
     - `scripts/generate_docs.py`: 8 evaluator imports + skills import
 
-- **Skill Renaming** (`skills/anti-hallucination` → `skills/anti-hallucination2`):
+- **Skill Renaming** (`skills/anti-hallucination` → `skills/anti-hallucination`):
   - Renamed directory to avoid naming conflicts
   - Updated `Makefile` SKILL_DIRS path
   - Updated `plugins/rd/hooks/hooks.json` Stop hook command path
@@ -100,12 +100,12 @@ from skills import X  # type: ignore[no-redef, import-not-found]
 
 | File | Changes | Impact |
 |------|---------|--------|
-| `skills/anti-hallucination2/scripts/ah_guard.py` | New file, 277 lines | Stop hook enforcement |
-| `skills/anti-hallucination2/tests/test_ah_guard.py` | New file, 848 lines | 115 tests, 98% coverage |
-| `skills/anti-hallucination2/tests/conftest.py` | New file | pytest configuration |
+| `skills/anti-hallucination/scripts/ah_guard.py` | New file, 277 lines | Stop hook enforcement |
+| `skills/anti-hallucination/tests/test_ah_guard.py` | New file, 848 lines | 115 tests, 98% coverage |
+| `skills/anti-hallucination/tests/conftest.py` | New file | pytest configuration |
 | `Makefile` | Lines 15, 62 | SKILL_DIRS, mypy config path |
 | `pyproject.toml` | Removed disable_error_code | Targeted type ignores |
-| `plugins/rd/hooks/hooks.json` | Line 44 | Updated path to anti-hallucination2 |
+| `plugins/rd/hooks/hooks.json` | Line 44 | Updated path to anti-hallucination |
 | `scripts/skills.py` | 3 type ignore comments | import-untyped, import-not-found |
 | `scripts/evaluators/*.py` | 6 files, type ignore comments | no-redef, import-not-found |
 | `scripts/generate_docs.py` | 9 type ignore comments | import-not-found |
@@ -136,7 +136,7 @@ from skills import X  # type: ignore[no-redef, import-not-found]
 
 **Test Execution:**
 ```bash
-make test-skill SKILL=plugins/rd2/skills/anti-hallucination2
+make test-skill SKILL=plugins/rd2/skills/anti-hallucination
 # Result: 115 passed in 0.10s
 ```
 

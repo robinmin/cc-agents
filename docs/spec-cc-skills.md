@@ -1,6 +1,6 @@
-# cc-skills2 Specification
+# cc-skills Specification
 
-Technical specification for the cc-skills2 meta-skill implementation, covering architecture, extension points, and maintenance guidelines.
+Technical specification for the cc-skills meta-skill implementation, covering architecture, extension points, and maintenance guidelines.
 
 ---
 

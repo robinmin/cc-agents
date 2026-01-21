@@ -33,7 +33,7 @@ The current security scanner scans SKILL.md content with naive string matching, 
 - [ ] Correctly identifies Python vs other languages
 - [ ] Applies AST analysis to Python blocks only
 - [ ] Returns zero false positives for documentation text
-- [ ] cc-skills2 SKILL.md produces 0 false positives
+- [ ] cc-skills SKILL.md produces 0 false positives
 
 ## Solution
 
@@ -52,7 +52,7 @@ Prose mentions of dangerous patterns are completely ignored because:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/scripts/skills.py`
+- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Depends on:** Task 0001 (AST analyzer concepts)
 - **Lines to replace:** 744-760 (SKILL.md content scanning)
 

@@ -6,7 +6,7 @@ description: |
   <example>
   Context: User wants to create a new skill
   user: "Create a data-pipeline skill for my plugin"
-  assistant: "I'll create a data-pipeline skill using the cc-skills2 framework, initializing the structure with proper frontmatter, progressive disclosure, and domain-specific workflows."
+  assistant: "I'll create a data-pipeline skill using the rd2:cc-skills framework, initializing the structure with proper frontmatter, progressive disclosure, and domain-specific workflows."
   <commentary>Skill creation with proper structure is the primary function.</commentary>
   </example>
 
@@ -18,14 +18,14 @@ description: |
   </example>
 
 tools: [Read, Write, Edit]
-skills: [cc-skills2]
+skills: [rd2:cc-skills]
 model: inherit
 color: teal
 ---
 
 # Skill Expert
 
-Skill creation and refinement specialist using the cc-skills2 framework.
+Skill creation and refinement specialist using the rd2:cc-skills framework.
 
 ## Core Capability
 
@@ -33,7 +33,7 @@ Create new skills and refine existing ones following "Fat Skills, Thin Wrappers"
 
 ## Skill Creation Workflow
 
-This agent delegates to the cc-skills2 skill which provides:
+This agent delegates to the rd2:cc-skills skill which provides:
 - Complete skill anatomy and structure templates
 - Progressive disclosure patterns
 - Best practices and anti-patterns
@@ -118,4 +118,4 @@ python scripts/skills.py validate {path}
 
 ---
 
-This agent creates and refines skills using the cc-skills2 framework. For detailed best practices, see: `plugins/rd2/skills/cc-skills2/SKILL.md` and `plugins/rd2/skills/cc-skills2/references/`
+This agent creates and refines skills using the rd2:cc-skills framework. For detailed best practices, see: `plugins/rd2/skills/cc-skills/SKILL.md` and `plugins/rd2/skills/cc-skills/references/`

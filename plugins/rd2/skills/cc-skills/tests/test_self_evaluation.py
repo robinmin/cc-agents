@@ -1,8 +1,8 @@
-"""Self-evaluation tests: cc-skills2 evaluates itself.
+"""Self-evaluation tests: cc-skills evaluates itself.
 
-Meta-tests that verify cc-skills2 can evaluate itself without false positives
+Meta-tests that verify cc-skills can evaluate itself without false positives
 and meets its own quality standards. Tests ensure the evaluation framework
-is working correctly and the cc-skills2 skill itself is production-ready.
+is working correctly and the cc-skills skill itself is production-ready.
 """
 
 import pytest
@@ -17,15 +17,15 @@ from skills import (
 
 
 class TestSelfEvaluation:
-    """Tests that cc-skills2 can evaluate itself without false positives."""
+    """Tests that cc-skills can evaluate itself without false positives."""
 
     @pytest.fixture
     def skill_path(self):
-        """Path to cc-skills2 skill root."""
+        """Path to cc-skills skill root."""
         return Path(__file__).parent.parent
 
     def test_security_no_false_positives(self, skill_path):
-        """Security scanner should find 0 security issues in cc-skills2."""
+        """Security scanner should find 0 security issues in cc-skills."""
         result = evaluate_security(skill_path)
 
         # Filter for actual security findings (not positive observations)

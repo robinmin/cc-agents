@@ -42,7 +42,7 @@ Define pattern library for each supported language with security-relevant patter
 ## References
 
 - **ast-grep docs:** https://ast-grep.github.io/
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/scripts/skills.py`
+- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
 
 ## Deliverables
 

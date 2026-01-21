@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/skills/anti-hallucination2/scripts/ah_guard.py",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/skills/anti-hallucination/scripts/ah_guard.py",
             "timeout": 30
           }
         ]

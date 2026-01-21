@@ -1,12 +1,12 @@
 ---
 description: Create a new Claude Code Agent Skill with templates and best practices
-skills: [cc-skills2]
+skills: [rd2:cc-skills]
 argument-hint: <plugin-name> <skill-name>
 ---
 
 # Add New Skill
 
-Thin wrapper for cc-skills. Creates skill directories with proper structure.
+Thin wrapper for rd2:cc-skills. Creates skill directories with proper structure.
 
 ## Quick Start
 
@@ -35,7 +35,7 @@ Thin wrapper for cc-skills. Creates skill directories with proper structure.
 /rd2:skill-add rd2 data-pipeline
 
 # This runs:
-python3 plugins/rd2/skills/cc-skills2/scripts/skills.py init data-pipeline --path plugins/rd2/skills
+python3 plugins/rd2/skills/cc-skills/scripts/skills.py init data-pipeline --path plugins/rd2/skills
 ```
 
 ## Next Steps
@@ -49,4 +49,4 @@ python3 plugins/rd2/skills/cc-skills2/scripts/skills.py init data-pipeline --pat
 
 - `/rd2:skill-evaluate` - Assess skill quality
 - `/rd2:skill-refine` - Improve existing skills
-- `cc-skills2` - Best practices reference
+- `rd2:cc-skills` - Best practices reference

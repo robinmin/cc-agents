@@ -40,7 +40,7 @@ We already have two subagents in plugin `rd` which located in files @plugins/rd/
 To ensure we can leverage these knowledge everywhere in the same way, we'd better to leverage the following new slash commands to extract these knowledge into a new Skills into folder `@plugins/rd2/skills/cc-agents/`.
 
 - `rd2:skill-evaluate`: Comprehensive security and quality assessment for Claude Code Agent Skill.
-- `rd2:skill-refine`: Improve skill quality using cc-skills2 best practices and relevant domain knowledge.
+- `rd2:skill-refine`: Improve skill quality using cc-skills best practices and relevant domain knowledge.
 - `rd2:skill-add`: Create a new Claude Code Agent Skill with templates and best practices
 
 ### Requirements / Objectives
@@ -50,7 +50,7 @@ To ensure we can leverage these knowledge everywhere in the same way, we'd bette
 To ensure we can leverage these knowledge everywhere in the same way, we'd better to leverage the following new slash commands to extract these knowledge into a new Skills into folder `@plugins/rd2/skills/cc-agents/`.
 
 - `rd2:skill-evaluate`: Comprehensive security and quality assessment for Claude Code Agent Skill.
-- `rd2:skill-refine`: Improve skill quality using cc-skills2 best practices and relevant domain knowledge.
+- `rd2:skill-refine`: Improve skill quality using cc-skills best practices and relevant domain knowledge.
 - `rd2:skill-add`: Create a new Claude Code Agent Skill with templates and best practices
 
 #### Add relevant subagents in `rd2`
@@ -87,9 +87,9 @@ Again, they also just another simple wrapper around the skill for humans.
 - [ ] Create references/ directory with documentation
 - [ ] Create assets/ directory with templates
 - [ ] Implement skill-evaluate capability (security and quality assessment)
-- [ ] Implement skill-refine capability (improve using cc-skills2 best practices)
+- [ ] Implement skill-refine capability (improve using cc-skills best practices)
 - [ ] Implement skill-add capability (create new skills with templates)
-- [ ] Follow cc-skills2 patterns for structure and evaluation
+- [ ] Follow cc-skills patterns for structure and evaluation
 
 #### Phase 002: Create rd2 subagents
 - [ ] Create `plugins/rd2/agents/agent-doctor.md` (thin wrapper around cc-agents skill)
@@ -116,4 +116,4 @@ Again, they also just another simple wrapper around the skill for humans.
 
 - Existing agents: `plugins/rd/agents/agent-doctor.md`, `plugins/rd/agents/agent-expert.md`
 - Existing rd2 agents: `plugins/rd2/agents/skill-doctor.md`, `plugins/rd2/agents/skill-expert.md`
-- cc-skills2 meta-skill: `plugins/rd2/skills/cc-skills2/SKILL.md`
+- cc-skills meta-skill: `plugins/rd2/skills/cc-skills/SKILL.md`

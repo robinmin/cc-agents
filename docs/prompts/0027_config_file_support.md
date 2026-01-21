@@ -22,7 +22,7 @@ Currently all settings are hardcoded. Configuration file support would enable:
 ### Functional Requirements
 1. Define configuration schema
 2. Support YAML configuration files
-3. Look for .cc-skills2.yaml in skill directory
+3. Look for .cc-skills.yaml in skill directory
 4. Merge with defaults
 5. CLI override support
 
@@ -38,7 +38,7 @@ Currently all settings are hardcoded. Configuration file support would enable:
 ### Configuration Schema
 
 ```yaml
-# .cc-skills2.yaml
+# .cc-skills.yaml
 version: 1
 
 # Dimension weights (must sum to 1.0)
@@ -80,7 +80,7 @@ class Config:
 
 def load_config(skill_path: Path) -> Config:
     """Load configuration from skill directory."""
-    config_file = skill_path / ".cc-skills2.yaml"
+    config_file = skill_path / ".cc-skills.yaml"
     if config_file.exists():
         # Load and merge with defaults
         ...
@@ -89,7 +89,7 @@ def load_config(skill_path: Path) -> Config:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/scripts/skills.py`
+- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
 
 ## Deliverables
 
@@ -97,4 +97,4 @@ def load_config(skill_path: Path) -> Config:
 - [ ] `load_config()` function
 - [ ] Integration with evaluation
 - [ ] Documentation of config options
-- [ ] Example .cc-skills2.yaml
+- [ ] Example .cc-skills.yaml

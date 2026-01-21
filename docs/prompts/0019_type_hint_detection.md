@@ -88,7 +88,7 @@ def analyze_type_hints(script_path: Path) -> dict:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/scripts/skills.py`
+- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Lines to replace:** 1072-1079 in `evaluate_code_quality()`
 
 ## Deliverables

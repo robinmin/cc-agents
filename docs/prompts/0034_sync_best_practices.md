@@ -68,7 +68,7 @@ For each evaluator dimension, ensure best_practices.md covers:
 
 ## References
 
-- **File to update:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/references/best_practices.md`
+- **File to update:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/references/best_practices.md`
 
 ## Deliverables
 

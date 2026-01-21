@@ -1,4 +1,4 @@
-# cc-skills2 User Manual
+# cc-skills User Manual
 
 Meta-skill for creating Agent skills with progressive disclosure, evaluation-first development, and plugin-based quality assessment.
 
@@ -22,16 +22,16 @@ Meta-skill for creating Agent skills with progressive disclosure, evaluation-fir
 
 ### Installation
 
-The cc-skills2 skill is located at:
+The cc-skills skill is located at:
 ```
-plugins/rd2/skills/cc-skills2/
+plugins/rd2/skills/cc-skills/
 ```
 
 ### Basic Usage
 
 ```bash
 # Change to the plugin directory
-cd plugins/rd2/skills/cc-skills2
+cd plugins/rd2/skills/cc-skills
 
 # Run commands
 python3 scripts/skills.py <command> [options]
@@ -54,7 +54,7 @@ python3 scripts/skills.py evaluate ./skills/my-awesome-skill
 
 ## Overview
 
-cc-skills2 is a **meta-skill** - a skill for creating skills. It provides:
+cc-skills is a **meta-skill** - a skill for creating skills. It provides:
 
 - **Skill Initialization**: Scaffold new skills with best-practice structure
 - **Validation**: Structural validation for required files and frontmatter
@@ -201,7 +201,7 @@ python3 scripts/skills.py package ./skills/my-skill ./dist
 
 ## Slash Commands
 
-cc-skills2 provides a skill for creating skills, which can be invoked via Claude Code's slash command system.
+cc-skills provides a skill for creating skills, which can be invoked via Claude Code's slash command system.
 
 ### /skill-add
 
@@ -248,7 +248,7 @@ Evaluate an existing skill's quality.
 
 ## Subagents
 
-cc-skills2 integrates with several specialized subagents for advanced workflows.
+cc-skills integrates with several specialized subagents for advanced workflows.
 
 ### task-decomposition-expert
 
@@ -384,7 +384,7 @@ languages:
 
 ### Supported Languages
 
-cc-skills2 supports security scanning and code quality analysis for the following programming languages:
+cc-skills supports security scanning and code quality analysis for the following programming languages:
 
 | Language | Support Level | Analysis Method |
 |----------|---------------|-----------------|
@@ -493,7 +493,7 @@ disabled_checks:
 
 ### Tool Boundaries
 
-**What cc-skills2 CAN do:**
+**What cc-skills CAN do:**
 - Scan Python, TypeScript, JavaScript, and Go code for security patterns
 - Detect dangerous function calls (eval, exec, os.system, etc.)
 - Detect file system operations (file deletion, directory removal)
@@ -506,7 +506,7 @@ disabled_checks:
 - Check for best practices violations (naming, TODO placeholders)
 - Assess code quality (error handling, type hints, docstrings)
 
-**What cc-skills2 CANNOT do:**
+**What cc-skills CANNOT do:**
 - Execute or test skill code dynamically
 - Validate that examples actually run correctly
 - Detect semantic bugs in skill scripts
@@ -516,7 +516,7 @@ disabled_checks:
 - Detect runtime issues (only static analysis)
 - Prevent actual file operations (only detects patterns)
 
-**For full quality assurance, combine cc-skills2 with:**
+**For full quality assurance, combine cc-skills with:**
 - Manual testing with actual Claude instances
 - Running skill scripts to verify they execute
 - Testing MCP tool integrations

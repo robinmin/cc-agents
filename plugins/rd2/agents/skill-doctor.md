@@ -6,7 +6,7 @@ description: |
   <example>
   Context: User has created a skill and wants to validate it
   user: "Check if my api-docs skill is production-ready"
-  assistant: "I'll evaluate your api-docs skill using the cc-skills2 evaluation framework, checking frontmatter, content quality, security, structure, efficiency, and best practices with a detailed score report."
+  assistant: "I'll evaluate your api-docs skill using the rd2:cc-skills evaluation framework, checking frontmatter, content quality, security, structure, efficiency, and best practices with a detailed score report."
   <commentary>Skill validation is the primary function - ensuring skills meet quality standards.</commentary>
   </example>
 
@@ -18,14 +18,14 @@ description: |
   </example>
 
 tools: [Read, Grep, Glob]
-skills: [cc-skills2]
+skills: [rd2:cc-skills]
 model: inherit
 color: lavender
 ---
 
 # Skill Doctor
 
-Skill quality evaluator using the cc-skills2 evaluation framework.
+Skill quality evaluator using the rd2:cc-skills evaluation framework.
 
 ## Core Capability
 
@@ -33,7 +33,7 @@ Evaluate skills against 7 dimensions (Frontmatter, Content, Security, Structure,
 
 ## Evaluation Workflow
 
-This agent delegates to the cc-skills2 skill which provides:
+This agent delegates to the rd2:cc-skills skill which provides:
 - Complete evaluation criteria and scoring framework
 - Security assessment patterns
 - Progressive disclosure requirements
@@ -111,4 +111,4 @@ Provide:
 
 ---
 
-This agent evaluates skill quality using the cc-skills2 framework. For detailed evaluation criteria, see: `plugins/rd2/skills/cc-skills2/SKILL.md` and `plugins/rd2/skills/cc-skills2/references/`
+This agent evaluates skill quality using the rd2:cc-skills framework. For detailed evaluation criteria, see: `plugins/rd2/skills/cc-skills/SKILL.md` and `plugins/rd2/skills/cc-skills/references/`

@@ -81,8 +81,8 @@ def discover_evaluators(plugins_dir: Path) -> list[DimensionEvaluator]:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/scripts/skills.py`
-- **New directory:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/scripts/evaluators/`
+- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **New directory:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/evaluators/`
 
 ## Deliverables
 

@@ -2,9 +2,9 @@
   "name": "rd2",
   "version": "0.0.5",
   "description": "Next-generation Claude Code plugin with fat-skills/thin-wrappers architecture",
-  "author": "cc-agents",
+  "author": "Robin Min",
   "tags": ["agents", "skills", "commands", "plugin"],
-  "skills": ["cc-skills2", "cc-agents"],
+  "skills": ["cc-skills", "cc-agents", "anti-hallucination"],
   "requires": {
     "claude-code": ">=1.0.0",
     "python": ">=3.9"

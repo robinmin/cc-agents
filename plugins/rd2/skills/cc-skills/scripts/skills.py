@@ -1693,7 +1693,7 @@ class Config:
                 )
 
 
-CONFIG_FILENAME = ".cc-skills2.yaml"
+CONFIG_FILENAME = ".cc-skills.yaml"
 
 
 def load_config(skill_path: Path) -> Config:
@@ -1702,7 +1702,7 @@ def load_config(skill_path: Path) -> Config:
     Configuration loading priority (highest to lowest):
     1. CC_SKILLS_CONFIG environment variable (full path to config file)
     2. .cc-skills.yaml in skill directory
-    3. .cc-skills2.yaml in skill directory
+    3. .cc-skills.yaml in skill directory
     4. scripts/.cc-skills.yaml (default fallback)
 
     Args:
@@ -1732,7 +1732,7 @@ def load_config(skill_path: Path) -> Config:
 
     # Priority 2 & 3: Check skill directory for config files
     if not config_file:
-        for config_name in [".cc-skills.yaml", ".cc-skills2.yaml"]:
+        for config_name in [".cc-skills.yaml", ".cc-skills.yaml"]:
             potential_file = skill_path / config_name
             if potential_file.is_file():
                 config_file = potential_file
@@ -1816,7 +1816,7 @@ def save_config(skill_path: Path, config: Config) -> bool:
         else:
             # Simple YAML output
             lines: list[str] = []
-            lines.append("# cc-skills2 configuration")
+            lines.append("# cc-skills configuration")
             lines.append("weights:")
             for key, value in data["weights"].items():
                 lines.append(f"  {key}: {value}")

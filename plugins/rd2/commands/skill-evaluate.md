@@ -1,12 +1,12 @@
 ---
 description: Comprehensive security and quality assessment for Claude Code Agent Skills
-skills: [cc-skills2]
+skills: [rd2:cc-skills]
 argument-hint: <skill-folder>
 ---
 
 # Evaluate Skill Quality
 
-Thin wrapper for cc-skills. Read-only evaluation against best practices.
+Thin wrapper for rd2:cc-skills. Read-only evaluation against best practices.
 
 ## Quick Start
 
@@ -16,8 +16,8 @@ Thin wrapper for cc-skills. Read-only evaluation against best practices.
 /rd2:skill-evaluate plugins/rd2/skills/code-review
 
 # Direct script execution (integrated in skills.py)
-python3 plugins/rd2/skills/cc-skills2/scripts/skills.py evaluate ./skills/my-skill
-python3 plugins/rd2/skills/cc-skills2/scripts/skills.py evaluate ./skills/my-skill --json
+python3 plugins/rd2/skills/cc-skills/scripts/skills.py evaluate ./skills/my-skill
+python3 plugins/rd2/skills/cc-skills/scripts/skills.py evaluate ./skills/my-skill --json
 ```
 
 ## Arguments
@@ -81,4 +81,4 @@ Use `/rd2:skill-refine` to apply improvements.
 
 - `/rd2:skill-add` - Create new skills
 - `/rd2:skill-refine` - Apply improvements
-- `cc-skills2` - Best practices reference
+- `rd2:cc-skills` - Best practices reference

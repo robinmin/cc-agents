@@ -34,8 +34,8 @@ The function uses string matching on lowercased content, which triggers on:
 5. Keep positive findings (e.g., "Mentions security considerations")
 
 ### Success Criteria
-- [ ] Zero false positives when evaluating cc-skills2 itself
-- [ ] Security score >= 9.0/10 for cc-skills2
+- [ ] Zero false positives when evaluating cc-skills itself
+- [ ] Security score >= 9.0/10 for cc-skills
 - [ ] All findings include file path and line number
 - [ ] Existing true positives still detected
 
@@ -58,13 +58,13 @@ Refactor the function to:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/scripts/skills.py`
+- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Lines to replace:** 728-797
 - **Depends on:** Tasks 0001 and 0002
 
 ## Testing
 
-1. Run evaluation on cc-skills2 itself
+1. Run evaluation on cc-skills itself
 2. Verify security score >= 9.0
 3. Verify no false positives in findings
 4. Test against skill with actual security issues (should still detect)

@@ -55,7 +55,7 @@ The `references/security.md` file should document the new AST-based security ana
 
 ## References
 
-- **File to update:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/references/security.md`
+- **File to update:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/references/security.md`
 
 ## Deliverables
 

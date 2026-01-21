@@ -11,7 +11,7 @@ sys.path.insert(0, str(scripts_dir))
 
 @pytest.fixture
 def skill_root():
-    """Return path to cc-skills2 root directory."""
+    """Return path to cc-skills root directory."""
     return Path(__file__).parent.parent
 
 

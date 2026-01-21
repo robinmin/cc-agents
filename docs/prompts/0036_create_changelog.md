@@ -36,7 +36,7 @@ Document all changes made during the refactoring for users upgrading from previo
 ```markdown
 # Changelog
 
-All notable changes to cc-skills2 are documented here.
+All notable changes to cc-skills are documented here.
 
 ## [2.0.0] - 2024-XX-XX
 
@@ -51,7 +51,7 @@ All notable changes to cc-skills2 are documented here.
 - Multi-language support (Python, TypeScript, Go)
 - Pattern-based rules system
 - Plugin architecture for custom evaluators
-- Configuration file support (.cc-skills2.yaml)
+- Configuration file support (.cc-skills.yaml)
 - Multiple output formatters (text, JSON, markdown)
 - AST caching for improved performance
 - Comprehensive test suite
@@ -64,7 +64,7 @@ All notable changes to cc-skills2 are documented here.
 
 ### Fixed
 - False positives when skill documents security patterns
-- False positives when evaluating cc-skills2 itself
+- False positives when evaluating cc-skills itself
 - Inaccurate line numbers in findings
 
 ### Removed
@@ -73,7 +73,7 @@ All notable changes to cc-skills2 are documented here.
 
 ## References
 
-- **New file:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/CHANGELOG.md`
+- **New file:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/CHANGELOG.md`
 
 ## Deliverables
 

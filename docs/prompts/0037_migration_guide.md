@@ -34,7 +34,7 @@ Users upgrading from previous versions need guidance on adapting to changes.
 ### Migration Guide Content
 
 ```markdown
-# Migration Guide: cc-skills2 2.0
+# Migration Guide: cc-skills 2.0
 
 ## Overview
 
@@ -46,7 +46,7 @@ when skills document security patterns.
 1. Update to version 2.0
 2. Re-run evaluation on existing skills
 3. Review any new findings (these are likely real issues)
-4. Update .cc-skills2.yaml if using custom configuration
+4. Update .cc-skills.yaml if using custom configuration
 
 ## Behavioral Changes
 
@@ -90,7 +90,7 @@ If you need to rollback:
 
 ## References
 
-- **New file:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills2/docs/MIGRATION.md`
+- **New file:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/docs/MIGRATION.md`
 
 ## Deliverables
 
