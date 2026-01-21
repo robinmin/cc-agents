@@ -14,7 +14,8 @@
       "Skill(cc-skills)",
       "Bash(source .venv/bin/activate)",
       "Bash(ast-grep:*)",
-      "Bash(tasks list:*)"
+      "Bash(tasks:*)",
+      "Bash(make:*)"
     ],
     "deny": [],
     "ask": []
