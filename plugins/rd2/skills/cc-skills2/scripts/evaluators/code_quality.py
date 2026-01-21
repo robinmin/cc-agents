@@ -15,7 +15,7 @@ try:
         analyze_exception_handlers,
     )
 except ImportError:
-    from skills import get_file_content, analyze_type_hints, analyze_exception_handlers
+    from skills import get_file_content, analyze_type_hints, analyze_exception_handlers  # type: ignore[no-redef, import-not-found]
 
 
 class CodeQualityEvaluator:
