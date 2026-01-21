@@ -1,12 +1,12 @@
 ---
 description: Comprehensive security and quality assessment for Claude Code Agent Skills
-skills: [rd2:cc-skills]
+skills: [rd2:cc-skills, rd2:anti-hallucination]
 argument-hint: <skill-folder>
 ---
 
 # Evaluate Skill Quality
 
-Thin wrapper for rd2:cc-skills. Read-only evaluation against best practices.
+Thin wrapper for `rd2:cc-skills` skill. Read-only evaluation against best practices.
 
 ## Quick Start
 
