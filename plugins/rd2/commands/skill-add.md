@@ -25,11 +25,9 @@ Thin wrapper for `rd2:cc-skills` skill. Creates skill directories with proper st
 ## Workflow
 
 1. **Validate** - Check name format and uniqueness
-   - Verify plugin exists at `plugins/<plugin-name>/.claude/plugin.json`
    - Check skill doesn't already exist at `plugins/<plugin-name>/skills/<skill-name>`
 2. **Initialize** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init` (see `rd2:cc-skills` for details)
-3. **Update plugin.json** - Add skill name into the attribute `skills` in `plugins/<plugin-name>/.claude/plugin.json`
-4. **Customize** - Edit SKILL.md with specific content
+3. **Customize** - Edit SKILL.md with specific content
 
 ## Example
 
