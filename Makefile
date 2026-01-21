@@ -29,8 +29,11 @@ install:
 ## setup-cc: Setup Claude Code's plugins
 setup-cc:
 	@echo "🔧 Setting up Claude Code's plugins..."
-	claude plugin update rd@cc-agents &&  claude plugin update wt@cc-agents && claude plugin update rd2@cc-agents
 	@rm -rf ~/.claude/plugins/cache/cc-agents
+	@git -C ~/.claude/plugins/marketplaces/cc-agents/ pull -a
+	claude plugin update rd@cc-agents &&  claude plugin update wt@cc-agents && claude plugin update rd2@cc-agents
+	claude plugin disable rd@cc-agents &&  claude plugin disable wt@cc-agents && claude plugin disable rd2@cc-agents
+	claude plugin enable rd@cc-agents &&  claude plugin enable wt@cc-agents && claude plugin enable rd2@cc-agents
 	@echo "✅ Setup complete"
 
 ## list-scripts: List all auto-discovered script directories
