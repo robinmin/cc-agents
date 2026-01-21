@@ -1,0 +1,17 @@
+{
+  "description": "Validation hooks for rd2 plugin - enforces anti-hallucination protocol",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/skills/anti-hallucination2/scripts/ah_guard.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
