@@ -48,7 +48,7 @@ This agent delegates to the `rd2:cc-skills` skill which provides:
 
 ### Step 2: Plan Structure
 
-- Run `scripts/skills.py init <name> --path <dir>`
+- Initialize skill structure (see `rd2:cc-skills` for script details)
 - Map workflows and decision points
 - Identify scripts/, references/, assets/ needed
 
@@ -61,7 +61,7 @@ This agent delegates to the `rd2:cc-skills` skill which provides:
 
 ### Step 4: Validate and Iterate
 
-- Run `scripts/skills.py validate <path>`
+- Validate skill structure (see `rd2:cc-skills` for script details)
 - Evaluate with skill-doctor
 - Address findings until Grade A/B achieved
 
@@ -109,11 +109,8 @@ This agent delegates to the `rd2:cc-skills` skill which provides:
 # Use the skill
 /{plugin}:{skill-name} <query>
 
-# Validate
-python scripts/skills.py validate {path}
-
-# Evaluate
-/rd2:skill-evaluate {path}
+# Validate and evaluate
+/rd2:skill-evaluate {skill-name}
 ````
 
 ## Next Steps
@@ -129,4 +126,3 @@ python scripts/skills.py validate {path}
 ---
 
 This agent creates and refines skills using the `rd2:cc-skills` framework. For detailed best practices, see: `plugins/rd2/skills/cc-skills/SKILL.md` and `plugins/rd2/skills/cc-skills/references/`
-```
