@@ -1,12 +1,12 @@
 ---
 description: Create a new Claude Code Agent subagent with 8-section anatomy and best practices
-skills: [cc-agents]
+skills: [rd2:cc-agents, rd2:anti-hallucination]
 argument-hint: <plugin-name> <agent-name>
 ---
 
 # Add New Agent
 
-Thin wrapper for cc-agents skill. Creates production-ready agent skeletons with 8-section anatomy.
+Thin wrapper for `rd2:cc-agents` skill. Creates production-ready agent skeletons with 8-section anatomy.
 
 ## Quick Start
 
@@ -77,4 +77,4 @@ Thin wrapper for cc-agents skill. Creates production-ready agent skeletons with 
 
 - `/rd2:agent-evaluate` - Assess agent quality
 - `/rd2:agent-refine` - Improve existing agents
-- `cc-agents` - Agent creation best practices
+- `rd2:cc-agents` - Agent creation best practices
