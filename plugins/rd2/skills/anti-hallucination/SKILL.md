@@ -1,7 +1,6 @@
 ---
 name: anti-hallucination
 description: Use for ANY task requiring external information (APIs, libraries, frameworks, facts, recent events). Zero-trust verification-before-generation with MCP tool priority.
-allowed-tools: Read, Grep, mcp__ref__ref_search_documentation, mcp__ref__ref_read_url, mcp__grep__searchCode, WebSearch, WebFetch
 ---
 
 # Anti-Hallucination Protocol
