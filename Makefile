@@ -34,6 +34,8 @@ setup-cc:
 	claude plugin update rd@cc-agents &&  claude plugin update wt@cc-agents && claude plugin update rd2@cc-agents
 	claude plugin disable rd@cc-agents &&  claude plugin disable wt@cc-agents && claude plugin disable rd2@cc-agents
 	claude plugin enable rd@cc-agents &&  claude plugin enable wt@cc-agents && claude plugin enable rd2@cc-agents
+
+	claude plugin list
 	@echo "✅ Setup complete"
 
 ## list-scripts: List all auto-discovered script directories
