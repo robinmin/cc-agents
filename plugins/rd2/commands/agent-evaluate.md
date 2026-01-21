@@ -16,20 +16,20 @@ Thin wrapper for cc-agents skill. Assesses agent quality across 6 dimensions wit
 
 ## Arguments
 
-| Argument    | Required | Description                                    |
-| ----------- | -------- | ---------------------------------------------- |
+| Argument     | Required | Description                                          |
+| ------------ | -------- | ---------------------------------------------------- |
 | `agent-file` | Yes      | Path to agent definition file (relative or absolute) |
 
 ## Evaluation Dimensions
 
-| Dimension | Weight | What I Check | Pass Criteria |
-|-----------|--------|--------------|---------------|
-| **Structure** | 20% | All 8 sections present, 400-600 lines | 8 sections + line count |
-| **Verification** | 25% | Red flags, sources, confidence, fallbacks | Complete protocol |
-| **Competencies** | 20% | 50+ items across categories | 50+ items total |
-| **Rules** | 15% | DO and DON'T lists | 8+ of each |
-| **Auto-Routing** | 10% | "Use PROACTIVELY for" + keywords | Phrase present |
-| **Examples** | 10% | 2-3 examples with commentary | Complete examples |
+| Dimension        | Weight | What I Check                              | Pass Criteria           |
+| ---------------- | ------ | ----------------------------------------- | ----------------------- |
+| **Structure**    | 20%    | All 8 sections present, 400-600 lines     | 8 sections + line count |
+| **Verification** | 25%    | Red flags, sources, confidence, fallbacks | Complete protocol       |
+| **Competencies** | 20%    | 50+ items across categories               | 50+ items total         |
+| **Rules**        | 15%    | DO and DON'T lists                        | 8+ of each              |
+| **Auto-Routing** | 10%    | "Use PROACTIVELY for" + keywords          | Phrase present          |
+| **Examples**     | 10%    | 2-3 examples with commentary              | Complete examples       |
 
 **Passing Score:** >= 80/100
 
@@ -40,48 +40,51 @@ Thin wrapper for cc-agents skill. Assesses agent quality across 6 dimensions wit
 
 ## Quick Stats
 
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| Total Lines | {X} | 400-600 | {check} |
-| Competency Items | {Y} | 50+ | {check} |
-| DO Rules | {Z} | 8+ | {check} |
-| DON'T Rules | {W} | 8+ | {check} |
+| Metric           | Value | Target  | Status  |
+| ---------------- | ----- | ------- | ------- |
+| Total Lines      | {X}   | 400-600 | {check} |
+| Competency Items | {Y}   | 50+     | {check} |
+| DO Rules         | {Z}   | 8+      | {check} |
+| DON'T Rules      | {W}   | 8+      | {check} |
 
 ## Overall Score: {S}/100 ({Grade})
 
 ### Dimension Breakdown
 
-| Dimension | Score | Weight | Points | Status |
-|-----------|-------|--------|--------|--------|
-| Structure | {X}/20 | 20% | {P} | {check} |
-| Verification | {X}/25 | 25% | {P} | {check} |
-| Competencies | {X}/20 | 20% | {P} | {check} |
-| Rules | {X}/15 | 15% | {P} | {check} |
-| Auto-Routing | {X}/10 | 10% | {P} | {check} |
-| Examples | {X}/10 | 10% | {P} | {check} |
+| Dimension    | Score  | Weight | Points | Status  |
+| ------------ | ------ | ------ | ------ | ------- |
+| Structure    | {X}/20 | 20%    | {P}    | {check} |
+| Verification | {X}/25 | 25%    | {P}    | {check} |
+| Competencies | {X}/20 | 20%    | {P}    | {check} |
+| Rules        | {X}/15 | 15%    | {P}    | {check} |
+| Auto-Routing | {X}/10 | 10%    | {P}    | {check} |
+| Examples     | {X}/10 | 10%    | {P}    | {check} |
 
 ## Recommendations
 
 ### High Priority (Required for Production)
+
 1. {Specific actionable recommendation}
 
 ### Medium Priority (Recommended)
+
 1. {Specific actionable recommendation}
 
 ## Next Steps
+
 - Use `/rd2:agent-refine <agent-file>` to implement recommendations
 - Re-evaluate to confirm improvements
 ```
 
 ## Grading Scale
 
-| Grade | Score | Status | Action |
-|-------|-------|--------|--------|
-| A | 90-100 | Excellent | Production ready |
-| B | 80-89 | Good | Minor polish recommended |
-| C | 70-79 | Fair | Improvement needed |
-| D | 60-69 | Poor | Major revision needed |
-| F | <60 | Fail | Complete rewrite required |
+| Grade | Score  | Status    | Action                    |
+| ----- | ------ | --------- | ------------------------- |
+| A     | 90-100 | Excellent | Production ready          |
+| B     | 80-89  | Good      | Minor polish recommended  |
+| C     | 70-79  | Fair      | Improvement needed        |
+| D     | 60-69  | Poor      | Major revision needed     |
+| F     | <60    | Fail      | Complete rewrite required |
 
 ## Example
 
