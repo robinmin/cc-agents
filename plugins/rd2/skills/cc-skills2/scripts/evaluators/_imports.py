@@ -21,7 +21,7 @@ try:
         analyze_exception_handlers,
     )
 except ImportError:
-    from skills import (
+    from skills import (  # type: ignore[no-redef, import-not-found]
         DIMENSION_WEIGHTS,
         get_ast,
         get_file_content,
