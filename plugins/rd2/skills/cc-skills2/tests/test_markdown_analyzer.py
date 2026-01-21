@@ -1,6 +1,5 @@
 """Tests for markdown security analyzer."""
 
-
 from skills import extract_python_code_blocks, analyze_markdown_security
 
 
