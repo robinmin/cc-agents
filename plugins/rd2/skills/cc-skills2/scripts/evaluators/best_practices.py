@@ -12,7 +12,7 @@ from .base import DimensionScore, DIMENSION_WEIGHTS
 try:
     from ..skills import parse_frontmatter
 except ImportError:
-    from skills import parse_frontmatter
+    from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
 
 
 class BestPracticesEvaluator:
