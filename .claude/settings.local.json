@@ -15,7 +15,12 @@
       "Bash(source .venv/bin/activate)",
       "Bash(ast-grep:*)",
       "Bash(tasks:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "mcp__huggingface__dataset_search",
+      "mcp__huggingface__paper_search",
+      "mcp__huggingface__model_search",
+      "WebFetch(domain:docs.ref.tools)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []
