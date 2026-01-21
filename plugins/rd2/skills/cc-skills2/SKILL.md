@@ -161,7 +161,8 @@ skill-name/
 | **references/** | Docs loaded as needed during work | Schemas, API docs, domain knowledge, detailed guides | [References Guide](references/anatomy.md#references) |
 | **assets/** | Files used in output, not context | Templates, images, boilerplate, sample documents | [Assets Guide](references/anatomy.md#assets) |
 
-**Important:** Do NOT include extraneous files (README.md, INSTALLATION_GUIDE.md, CHANGELOG.md, etc.). Skills should only contain essential information for AI agents to do their job.
+**Important:** Do NOT include extraneous files at the skill level (README.md, INSTALLATION_GUIDE.md).
+CHANGELOG.md files are acceptable at the plugin level but not within individual skill directories.
 
 For complete anatomy details, see [Skill Anatomy Reference](references/anatomy.md).
 
