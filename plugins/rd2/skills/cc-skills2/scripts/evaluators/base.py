@@ -9,35 +9,9 @@ from typing import Any
 
 # Handle both package import and direct execution
 try:
-    from ..skills import (
-        DIMENSION_WEIGHTS,
-        get_ast,
-        get_file_content,
-        parse_frontmatter,
-        RuleCategory,
-        RuleSeverity,
-        get_rules,
-        evaluate_rules,
-        find_dangerous_calls_ast,
-        analyze_markdown_security,
-        analyze_type_hints,
-        analyze_exception_handlers,
-    )
+    from ..skills import DIMENSION_WEIGHTS
 except ImportError:
-    from skills import (
-        DIMENSION_WEIGHTS,
-        get_ast,
-        get_file_content,
-        parse_frontmatter,
-        RuleCategory,
-        RuleSeverity,
-        get_rules,
-        evaluate_rules,
-        find_dangerous_calls_ast,
-        analyze_markdown_security,
-        analyze_type_hints,
-        analyze_exception_handlers,
-    )
+    from skills import DIMENSION_WEIGHTS
 
 
 # Re-export for convenience
@@ -52,27 +26,38 @@ __all__ = [
 
 class ValidationResult(Enum):
     """Result of structural validation."""
+
     PASS = "PASS"
     FAIL = "FAIL"
 
 
 class Grade(Enum):
-    """Letter grade for overall quality."""
-    A = ("A", 9.0, 10.0, "Production ready")
-    B = ("B", 7.0, 8.9, "Minor fixes needed")
-    C = ("C", 5.0, 6.9, "Moderate revision")
-    D = ("D", 3.0, 4.9, "Major revision")
-    F = ("F", 0.0, 2.9, "Rewrite needed")
+    """Letter grade for overall quality (0-100 scale)."""
+
+    A = ("A", 90.0, 100.0, "Production ready")
+    B = ("B", 70.0, 89.9, "Minor fixes needed")
+    C = ("C", 50.0, 69.9, "Moderate revision")
+    D = ("D", 30.0, 49.9, "Major revision")
+    F = ("F", 0.0, 29.9, "Rewrite needed")
 
     @classmethod
     def from_score(cls, score: float) -> "Grade":
-        """Get grade from numeric score."""
+        """Get grade from numeric score (0-100 scale)."""
+        # Handle edge case: perfect score
+        if score >= 100.0:
+            return cls.A
+
+        # Find appropriate grade with exclusive upper bound
         for grade in cls:
-            if grade.min_score <= score <= grade.max_score:
+            if grade.min_score <= score < grade.max_score:
                 return grade
+
+        # Scores below 0 get F
         return cls.F
 
-    def __init__(self, letter: str, min_score: float, max_score: float, description: str):
+    def __init__(
+        self, letter: str, min_score: float, max_score: float, description: str
+    ):
         self.letter = letter
         self.min_score = min_score
         self.max_score = max_score
@@ -82,8 +67,9 @@ class Grade(Enum):
 @dataclass
 class DimensionScore:
     """Score for a single dimension."""
+
     name: str
-    score: float  # 0-10
+    score: float  # 0-100 scale
     weight: float
     findings: list[str] = field(default_factory=list)
     recommendations: list[str] = field(default_factory=list)
@@ -97,6 +83,7 @@ class DimensionScore:
 @dataclass
 class EvaluationResult:
     """Complete evaluation result."""
+
     skill_path: Path
     validation_result: ValidationResult | None = None
     validation_message: str = ""
@@ -109,7 +96,9 @@ class EvaluationResult:
         return {
             "skill_path": str(self.skill_path),
             "validation": {
-                "result": self.validation_result.value if self.validation_result else None,
+                "result": self.validation_result.value
+                if self.validation_result
+                else None,
                 "message": self.validation_message,
             },
             "dimensions": {
