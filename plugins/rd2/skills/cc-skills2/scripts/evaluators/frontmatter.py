@@ -15,7 +15,7 @@ PENALTY_MISSING_REQUIRED = 20.0  # Missing required frontmatter field (0-100 sca
 try:
     from ..skills import parse_frontmatter
 except ImportError:
-    from skills import parse_frontmatter
+    from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
 
 
 class FrontmatterEvaluator:
