@@ -3,7 +3,7 @@
 Skill Management Utility - Initialize, validate, evaluate, and package skills.
 
 Usage:
-    python3 scripts/skills.py <command> [options]
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py <command> [options]
 
 Commands:
     init <skill-name> --path <path>    Initialize a new skill directory
@@ -12,11 +12,11 @@ Commands:
     package <skill-path> [output-dir]  Package a skill for distribution
 
 Examples:
-    python3 scripts/skills.py init my-skill --path ./skills
-    python3 scripts/skills.py validate ./skills/my-skill
-    python3 scripts/skills.py evaluate ./skills/my-skill
-    python3 scripts/skills.py evaluate ./skills/my-skill --json
-    python3 scripts/skills.py package ./skills/my-skill ./dist
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init my-skill --path ./skills
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py validate ./skills/my-skill
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ./skills/my-skill
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ./skills/my-skill --json
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ./skills/my-skill ./dist
 """
 
 from __future__ import annotations
@@ -2474,7 +2474,9 @@ try:
 except ImportError:
     # Fallback for direct script execution
     try:
-        from scripts.evaluators.security import evaluate_security  # type: ignore[import-not-found]
+        from scripts.evaluators.security import (
+            evaluate_security,  # type: ignore[import-not-found]
+        )
     except ImportError:
         # Define stub if evaluators unavailable
         def evaluate_security(skill_path: Path) -> "DimensionScore":  # type: ignore[misc]
@@ -2658,7 +2660,7 @@ class TextFormatter(ReportFormatter):
         for dim_name, dim_score in result.dimensions.items():
             lines.append(f"### {dim_name.replace('_', ' ').title()}")
             lines.append(
-                f"Score: {dim_score.score:.1f}/10 | "
+                f"Score: {dim_score.score:.1f}/100 | "
                 f"Weight: {dim_score.weight * 100:.0f}% | "
                 f"Weighted: {dim_score.weighted_score:.2f}"
             )
@@ -2679,17 +2681,17 @@ class TextFormatter(ReportFormatter):
         # Overall Score
         lines.append("## Overall Score")
         lines.append("-" * 70)
-        lines.append(f"Total Score: {result.total_score:.2f}/10")
+        lines.append(f"Total Score: {result.total_score:.2f}/100")
         lines.append(f"Grade: {result.grade.letter} - {result.grade.description}")
         lines.append("")
 
         # Grade scale reference
         lines.append("### Grading Scale")
-        lines.append("A (9.0-10.0) | Production ready")
-        lines.append("B (7.0-8.9)  | Minor fixes needed")
-        lines.append("C (5.0-6.9)  | Moderate revision")
-        lines.append("D (3.0-4.9)  | Major revision")
-        lines.append("F (0.0-2.9)  | Rewrite needed")
+        lines.append("A (90.0-100.0) | Production ready")
+        lines.append("B (70.0-89.9)  | Minor fixes needed")
+        lines.append("C (50.0-69.9)  | Moderate revision")
+        lines.append("D (30.0-49.9)  | Major revision")
+        lines.append("F (0.0-29.9)  | Rewrite needed")
         lines.append("")
 
         lines.append("=" * 70)
@@ -2735,7 +2737,7 @@ class MarkdownFormatter(ReportFormatter):
         for dim_name, dim_score in result.dimensions.items():
             name = dim_name.replace("_", " ").title()
             lines.append(
-                f"| {name} | {dim_score.score:.1f}/10 | "
+                f"| {name} | {dim_score.score:.1f}/100 | "
                 f"{dim_score.weight * 100:.0f}% | {dim_score.weighted_score:.2f} |"
             )
         lines.append("")
@@ -2761,7 +2763,7 @@ class MarkdownFormatter(ReportFormatter):
         # Overall
         lines.append("## Overall Score")
         lines.append("")
-        lines.append(f"**Total Score:** {result.total_score:.2f}/10")
+        lines.append(f"**Total Score:** {result.total_score:.2f}/100")
         lines.append("")
         lines.append(f"**Grade:** {result.grade.letter} - {result.grade.description}")
         lines.append("")
@@ -2771,11 +2773,11 @@ class MarkdownFormatter(ReportFormatter):
         lines.append("")
         lines.append("| Grade | Range | Description |")
         lines.append("|-------|-------|-------------|")
-        lines.append("| A | 9.0-10.0 | Production ready |")
-        lines.append("| B | 7.0-8.9 | Minor fixes needed |")
-        lines.append("| C | 5.0-6.9 | Moderate revision |")
-        lines.append("| D | 3.0-4.9 | Major revision |")
-        lines.append("| F | 0.0-2.9 | Rewrite needed |")
+        lines.append("| A | 90.0-100.0 | Production ready |")
+        lines.append("| B | 70.0-89.9 | Minor fixes needed |")
+        lines.append("| C | 50.0-69.9 | Moderate revision |")
+        lines.append("| D | 30.0-49.9 | Major revision |")
+        lines.append("| F | 0.0-29.9 | Rewrite needed |")
 
         return "\n".join(lines)
 
@@ -2821,7 +2823,7 @@ def format_report(result: EvaluationResult) -> str:
     for dim_name, dim_score in result.dimensions.items():
         lines.append(f"### {dim_name.replace('_', ' ').title()}")
         lines.append(
-            f"Score: {dim_score.score:.1f}/10 | Weight: {dim_score.weight * 100:.0f}% | "
+            f"Score: {dim_score.score:.1f}/100 | Weight: {dim_score.weight * 100:.0f}% | "
             f"Weighted: {dim_score.weighted_score:.2f}"
         )
         lines.append("")
@@ -2841,17 +2843,17 @@ def format_report(result: EvaluationResult) -> str:
     # Overall Score
     lines.append("## Overall Score")
     lines.append("-" * 70)
-    lines.append(f"Total Score: {result.total_score:.2f}/10")
+    lines.append(f"Total Score: {result.total_score:.2f}/100")
     lines.append(f"Grade: {result.grade.letter} - {result.grade.description}")
     lines.append("")
 
     # Grade scale reference
     lines.append("### Grading Scale")
-    lines.append("A (9.0-10.0) | Production ready")
-    lines.append("B (7.0-8.9)  | Minor fixes needed")
-    lines.append("C (5.0-6.9)  | Moderate revision")
-    lines.append("D (3.0-4.9)  | Major revision")
-    lines.append("F (0.0-2.9)  | Rewrite needed")
+    lines.append("A (90.0-100.0) | Production ready")
+    lines.append("B (70.0-89.9)  | Minor fixes needed")
+    lines.append("C (50.0-69.9)  | Moderate revision")
+    lines.append("D (30.0-49.9)  | Major revision")
+    lines.append("F (0.0-29.9)  | Rewrite needed")
     lines.append("")
 
     lines.append("=" * 70)
@@ -2969,9 +2971,9 @@ def cmd_evaluate(args):
     result.grade = Grade.from_score(result.total_score)
 
     for dim_name, dim_score in dimensions.items():
-        print(f"  {dim_name}: {dim_score.score:.1f}/10", file=sys.stderr)
+        print(f"  {dim_name}: {dim_score.score:.1f}/100", file=sys.stderr)
 
-    print(f"\n  Total Score: {result.total_score:.2f}/10", file=sys.stderr)
+    print(f"\n  Total Score: {result.total_score:.2f}/100", file=sys.stderr)
     print(
         f"  Grade: {result.grade.letter} - {result.grade.description}", file=sys.stderr
     )
