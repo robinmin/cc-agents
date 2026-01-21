@@ -35,18 +35,6 @@
         ]
       }
     ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Evaluate if Claude should stop. Context: $ARGUMENTS\n\nCheck if:\n1. The anti-hallucination protocol was followed\n2. Sources were cited for API claims\n3. All requested tasks are complete\n\nRespond with JSON: `{\"ok\": true, \"reason\": \"Task is complete\"}` to allow stopping, or `{\"ok\": false, \"reason\": \"Add verification for [specific uncited claims]\"}` to continue working.",
-            "timeout": 30
-          }
-        ]
-      }
-    ],
     "SessionEnd": [
       {
         "matcher": "*",
