@@ -7,7 +7,6 @@ pickle.loads(), and __import__(). Also verifies line number accuracy and
 false positive prevention.
 """
 
-
 from skills import find_dangerous_calls_ast
 
 
