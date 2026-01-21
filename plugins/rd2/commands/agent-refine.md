@@ -1,12 +1,12 @@
 ---
 description: Refine and improve an existing Claude Code Agent subagent
-skills: [cc-agents]
+skills: [rd2:cc-agents, rd2:anti-hallucination]
 argument-hint: <agent-file>
 ---
 
 # Refine Agent
 
-Thin wrapper for cc-agents skill. Improves agent quality based on evaluation findings.
+Thin wrapper for `rd2:cc-agents` skill. Improves agent quality based on evaluation findings.
 
 ## Quick Start
 
@@ -79,4 +79,4 @@ Thin wrapper for cc-agents skill. Improves agent quality based on evaluation fin
 
 - `/rd2:agent-evaluate` - Assess agent quality before/after refinement
 - `/rd2:agent-add` - Create new agents
-- `cc-agents` - Refinement best practices
+- `rd2:cc-agents` - Refinement best practices
