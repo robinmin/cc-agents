@@ -17,8 +17,8 @@ Thin wrapper for cc-skills2. Improves skill quality with user approval.
 
 ## Arguments
 
-| Argument         | Description                               |
-|------------------|-------------------------------------------|
+| Argument         | Description                                 |
+| ---------------- | ------------------------------------------- |
 | `<skill-folder>` | Path to skill (relative, absolute, or name) |
 
 ## Workflow
@@ -31,15 +31,16 @@ Thin wrapper for cc-skills2. Improves skill quality with user approval.
 
 ## Improvement Areas
 
-| Area | Checks |
-|------|--------|
-| Structure | Frontmatter valid, under 500 lines |
-| Content | Description clarity, examples, terminology |
-| Code | Error handling, no magic numbers |
+| Area      | Checks                                     |
+| --------- | ------------------------------------------ |
+| Structure | Frontmatter valid, under 500 lines         |
+| Content   | Description clarity, examples, terminology |
+| Code      | Error handling, no magic numbers           |
 
 ## Refinement Patterns
 
 **Reduce Verbosity:**
+
 ```diff
 - Python is a programming language. To read a file...
 + Read config files with strict validation:
@@ -48,6 +49,7 @@ Thin wrapper for cc-skills2. Improves skill quality with user approval.
 ```
 
 **Add Examples:**
+
 ```diff
 - Validate the input data before processing.
 + **Input Validation:**
@@ -56,6 +58,7 @@ Thin wrapper for cc-skills2. Improves skill quality with user approval.
 ```
 
 **Fix Terminology:**
+
 ```diff
 - Extract data from the API endpoint.
 - Pull the response from the URL.
@@ -65,6 +68,7 @@ Thin wrapper for cc-skills2. Improves skill quality with user approval.
 ## Interactive Mode
 
 The refinement may ask for approval:
+
 - "Move advanced topics to REFERENCE.md?"
 - "Standardize on 'endpoint' or 'URL'?"
 - "Ready to apply changes? [y/n]"
