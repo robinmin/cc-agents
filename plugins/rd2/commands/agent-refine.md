@@ -16,8 +16,8 @@ Thin wrapper for cc-agents skill. Improves agent quality based on evaluation fin
 
 ## Arguments
 
-| Argument    | Required | Description                                    |
-| ----------- | -------- | ---------------------------------------------- |
+| Argument     | Required | Description                                          |
+| ------------ | -------- | ---------------------------------------------------- |
 | `agent-file` | Yes      | Path to agent definition file (relative or absolute) |
 
 ## Workflow
@@ -35,14 +35,14 @@ Thin wrapper for cc-agents skill. Improves agent quality based on evaluation fin
 
 ## Common Improvements by Dimension
 
-| Dimension | Typical Fixes |
-|-----------|---------------|
-| Structure (<20/20) | Add missing sections, adjust line counts to 400-600 |
-| Verification (<25/25) | Add red flags, source priority, confidence scoring |
-| Competencies (<20/20) | Add items to reach 50+, improve categorization |
-| Rules (<15/15) | Add DO and DON'T rules (8+ each) |
-| Auto-Routing (<10/10) | Add "Use PROACTIVELY for" with specific keywords |
-| Examples (<10/10) | Add 2-3 examples with commentary |
+| Dimension             | Typical Fixes                                       |
+| --------------------- | --------------------------------------------------- |
+| Structure (<20/20)    | Add missing sections, adjust line counts to 400-600 |
+| Verification (<25/25) | Add red flags, source priority, confidence scoring  |
+| Competencies (<20/20) | Add items to reach 50+, improve categorization      |
+| Rules (<15/15)        | Add DO and DON'T rules (8+ each)                    |
+| Auto-Routing (<10/10) | Add "Use PROACTIVELY for" with specific keywords    |
+| Examples (<10/10)     | Add 2-3 examples with commentary                    |
 
 ## Example
 
@@ -60,13 +60,13 @@ Thin wrapper for cc-agents skill. Improves agent quality based on evaluation fin
 
 ## Grading Scale
 
-| Grade | Score | Action |
-|-------|-------|--------|
-| A | 90-100 | Production ready |
-| B | 80-89 | Minor polish recommended |
-| C | 70-79 | Refinement needed (use this command) |
-| D | 60-69 | Major revision needed |
-| F | <60 | Complete rewrite required |
+| Grade | Score  | Action                               |
+| ----- | ------ | ------------------------------------ |
+| A     | 90-100 | Production ready                     |
+| B     | 80-89  | Minor polish recommended             |
+| C     | 70-79  | Refinement needed (use this command) |
+| D     | 60-69  | Major revision needed                |
+| F     | <60    | Complete rewrite required            |
 
 ## After Refinement
 
