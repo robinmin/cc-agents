@@ -3,15 +3,101 @@
 Evaluates security considerations in SKILL.md and scripts.
 """
 
+import ast
 from pathlib import Path
 
 from .base import DimensionScore, DIMENSION_WEIGHTS
 
 # Handle both package import and direct execution
 try:
-    from ..skills import analyze_markdown_security, evaluate_rules, find_dangerous_calls_ast, RuleCategory
+    from ..skills import (
+        analyze_markdown_security,
+        evaluate_rules,
+        find_dangerous_calls_ast,
+        RuleCategory,
+    )
 except ImportError:
-    from skills import analyze_markdown_security, evaluate_rules, find_dangerous_calls_ast, RuleCategory
+    from skills import (
+        analyze_markdown_security,
+        evaluate_rules,
+        find_dangerous_calls_ast,
+        RuleCategory,
+    )
+
+
+# Score deduction constants (M4: Extract magic numbers)
+PENALTY_CRITICAL_SECURITY = 15.0  # For SKILL.md security issues (0-100 scale)
+PENALTY_HIGH_SECURITY = 10.0  # For script security issues (0-100 scale)
+
+
+def _is_within_rule_definition_context(script_file: Path, target_line: int) -> bool:
+    """Check if a line is within a rule definition context using AST analysis.
+
+    This prevents false positives when security patterns appear in:
+    - BUILTIN_RULES list definitions
+    - Rule dataclass instantiations
+    - @dataclass decorated classes
+
+    Args:
+        script_file: Path to the Python script
+        target_line: Line number to check (1-indexed)
+
+    Returns:
+        True if the line is within a rule definition context (false positive)
+    """
+    try:
+        source = script_file.read_text()
+        tree = ast.parse(source)
+    except (SyntaxError, OSError):
+        return False
+
+    # Walk the AST to find if target_line is within a rule definition context
+    for node in ast.walk(tree):
+        # Check for assignment to BUILTIN_RULES or similar rule lists
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and "RULES" in target.id.upper():
+                    # Check if target_line falls within this assignment
+                    if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
+                        if (
+                            node.lineno
+                            <= target_line
+                            <= (node.end_lineno or node.lineno + 100)
+                        ):
+                            return True
+
+        # Check for Rule() instantiations
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id == "Rule":
+                if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
+                    if (
+                        node.lineno
+                        <= target_line
+                        <= (node.end_lineno or node.lineno + 10)
+                    ):
+                        return True
+
+        # Check for @dataclass decorated class definitions containing rule-like fields
+        if isinstance(node, ast.ClassDef):
+            is_dataclass = any(
+                (isinstance(d, ast.Name) and d.id == "dataclass")
+                or (
+                    isinstance(d, ast.Call)
+                    and isinstance(d.func, ast.Name)
+                    and d.func.id == "dataclass"
+                )
+                for d in node.decorator_list
+            )
+            if is_dataclass and node.name == "Rule":
+                if hasattr(node, "lineno") and hasattr(node, "end_lineno"):
+                    if (
+                        node.lineno
+                        <= target_line
+                        <= (node.end_lineno or node.lineno + 50)
+                    ):
+                        return True
+
+    return False
 
 
 class SecurityEvaluator:
@@ -35,7 +121,7 @@ class SecurityEvaluator:
         """Evaluate security considerations using AST-based analysis."""
         findings = []
         recommendations = []
-        score = 10.0
+        score = 100.0  # 0-100 scale
 
         skill_md = skill_path / "SKILL.md"
         if not skill_md.exists():
@@ -54,12 +140,23 @@ class SecurityEvaluator:
         md_findings = analyze_markdown_security(skill_md)
         for pattern, line_num, context in md_findings:
             findings.append(f"SECURITY in SKILL.md:{line_num}: {context}")
-            recommendations.append(f"Review {pattern} usage in code block at line {line_num}")
-            score -= 1.5
+            recommendations.append(
+                f"Review {pattern} usage in code block at line {line_num}"
+            )
+            score -= PENALTY_CRITICAL_SECURITY
 
         # Check for security mentions (positive indicator)
-        security_keywords = ["security", "inject", "sanitize", "validate", "escape", "credential"]
-        has_security_discussion = any(keyword in content_lower for keyword in security_keywords)
+        security_keywords = [
+            "security",
+            "inject",
+            "sanitize",
+            "validate",
+            "escape",
+            "credential",
+        ]
+        has_security_discussion = any(
+            keyword in content_lower for keyword in security_keywords
+        )
 
         if has_security_discussion:
             findings.append("Mentions security considerations")
@@ -86,28 +183,30 @@ class SecurityEvaluator:
 
                 # Use the new rules system for comprehensive security checking
                 try:
-                    rule_results = evaluate_rules(script_file, language=lang, category=RuleCategory.SECURITY)
+                    rule_results = evaluate_rules(
+                        script_file, language=lang, category=RuleCategory.SECURITY
+                    )
                     for rule_id, line_num, pattern, message, severity in rule_results:
-                        # Filter out false positives from rule definitions
-                        # Skip if line contains "id=" or "pattern=" (likely a rule definition)
-                        try:
-                            line_content = script_file.read_text().splitlines()[line_num - 1]
-                            if "id=" in line_content or 'id="' in line_content:
-                                continue
-                            if "pattern=" in line_content or 'pattern="' in line_content:
-                                continue
-                        except (IndexError, OSError):
-                            pass
+                        # Filter out false positives using AST context analysis
+                        # Skip if the finding is within a rule definition context
+                        if _is_within_rule_definition_context(script_file, line_num):
+                            continue
 
                         findings.append(
-                            f"SECURITY {rule_id} in {script_file.name}:{line_num}: {message}"
+                            f"SECURITY {rule_id} in {script_file.name}:{line_num}: {message} [severity: {severity}]"
                         )
-                        score -= 1.0
+                        score -= PENALTY_HIGH_SECURITY
                         recommendations.append(
                             f"Review {rule_id} at {script_file.name}:{line_num}"
                         )
                 except Exception as e:
-                    # If rules engine fails, fall back to old method
+                    # If rules engine fails, log warning and fall back to old method
+                    import sys
+
+                    print(
+                        f"Warning: Rules engine failed for {script_file.name}: {e}",
+                        file=sys.stderr,
+                    )
                     script_findings = find_dangerous_calls_ast(script_file)
                     for pattern, line_num, context in script_findings:
                         findings.append(
@@ -123,7 +222,7 @@ class SecurityEvaluator:
 
         return DimensionScore(
             name=self.name,
-            score=max(0.0, min(10.0, score)),
+            score=max(0.0, min(100.0, score)),  # 0-100 scale
             weight=self.weight,
             findings=findings,
             recommendations=recommendations,
