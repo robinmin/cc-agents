@@ -3,27 +3,27 @@
 {{skill_title}} Utility - Helper script for {{skill_name}} skill.
 
 Usage:
-    python3 example.py <command> [options]
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/{{skill_name}}/scripts/example.py <command> [options]
 
 Commands:
     hello <name>       Say hello to someone
     process <file>     Process a file
 
 Examples:
-    python3 example.py hello World
-    python3 example.py process input.txt --output result.txt
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/{{skill_name}}/scripts/example.py hello World
+    python3 ${CLAUDE_PLUGIN_ROOT}/skills/{{skill_name}}/scripts/example.py process input.txt --output result.txt
 """
 
 from __future__ import annotations
 
-import sys
 import argparse
+import sys
 from pathlib import Path
-
 
 ###############################################################################
 # COMMANDS
 ###############################################################################
+
 
 def cmd_hello(args: argparse.Namespace) -> int:
     """Handle hello command."""
@@ -52,6 +52,7 @@ def cmd_process(args: argparse.Namespace) -> int:
 # CLI INTERFACE
 ###############################################################################
 
+
 def main() -> int:
     """Main entry point with argument parsing."""
     parser = argparse.ArgumentParser(
@@ -65,23 +66,17 @@ Commands:
 Examples:
   python3 example.py hello World
   python3 example.py process input.txt --output result.txt
-"""
+""",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # hello command
-    hello_parser = subparsers.add_parser(
-        "hello",
-        help="Say hello to someone"
-    )
+    hello_parser = subparsers.add_parser("hello", help="Say hello to someone")
     hello_parser.add_argument("name", help="Name to greet")
 
     # process command
-    process_parser = subparsers.add_parser(
-        "process",
-        help="Process a file"
-    )
+    process_parser = subparsers.add_parser("process", help="Process a file")
     process_parser.add_argument("file", help="Input file to process")
     process_parser.add_argument("--output", "-o", help="Output file (optional)")
 
