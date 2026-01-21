@@ -17,10 +17,10 @@ Thin wrapper for cc-agents skill. Creates production-ready agent skeletons with 
 
 ## Arguments
 
-| Argument      | Required | Description                              |
-| ------------- | -------- | ---------------------------------------- |
-| `plugin-name` | Yes      | Target plugin (e.g., "rd", "rd2")       |
-| `agent-name`  | Yes      | Agent name (lowercase-hyphens, max 64)   |
+| Argument      | Required | Description                            |
+| ------------- | -------- | -------------------------------------- |
+| `plugin-name` | Yes      | Target plugin (e.g., "rd", "rd2")      |
+| `agent-name`  | Yes      | Agent name (lowercase-hyphens, max 64) |
 
 ## Workflow
 
@@ -31,17 +31,17 @@ Thin wrapper for cc-agents skill. Creates production-ready agent skeletons with 
 
 ## Agent Structure (8-Section Anatomy)
 
-| Section | Target Lines | Purpose |
-|---------|--------------|---------|
-| 1. METADATA | ~15 | Agent identification |
-| 2. PERSONA | ~20 | Role definition |
-| 3. PHILOSOPHY | ~30 | Core principles |
-| 4. VERIFICATION | ~50 | Anti-hallucination |
-| 5. COMPETENCIES | ~150-200 | Structured memory |
-| 6. PROCESS | ~40 | Workflow phases |
-| 7. RULES | ~40 | Guardrails |
-| 8. OUTPUT | ~30 | Response formats |
-| **Total** | **400-600** | **Complete agent** |
+| Section         | Target Lines | Purpose              |
+| --------------- | ------------ | -------------------- |
+| 1. METADATA     | ~15          | Agent identification |
+| 2. PERSONA      | ~20          | Role definition      |
+| 3. PHILOSOPHY   | ~30          | Core principles      |
+| 4. VERIFICATION | ~50          | Anti-hallucination   |
+| 5. COMPETENCIES | ~150-200     | Structured memory    |
+| 6. PROCESS      | ~40          | Workflow phases      |
+| 7. RULES        | ~40          | Guardrails           |
+| 8. OUTPUT       | ~30          | Response formats     |
+| **Total**       | **400-600**  | **Complete agent**   |
 
 ## Example
 
@@ -58,13 +58,13 @@ Thin wrapper for cc-agents skill. Creates production-ready agent skeletons with 
 
 ## Color Guidelines
 
-| Category | Colors |
-|----------|--------|
-| Language experts | `blue`, `cyan` |
-| Framework experts | `green`, `teal` |
-| Domain experts | `magenta`, `purple` |
-| Task experts | `yellow`, `orange` |
-| Quality/Security | `red`, `crimson` |
+| Category          | Colors              |
+| ----------------- | ------------------- |
+| Language experts  | `blue`, `cyan`      |
+| Framework experts | `green`, `teal`     |
+| Domain experts    | `magenta`, `purple` |
+| Task experts      | `yellow`, `orange`  |
+| Quality/Security  | `red`, `crimson`    |
 
 ## Next Steps
 
