@@ -42,7 +42,7 @@ This agent delegates to the `rd2:cc-skills` skill which provides:
 
 ### Step 1: Validate and Read
 
-- Run `scripts/skills.py validate <skill-path>`
+- Validate skill structure with `${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py validate <skill-path>` (see `rd2:cc-skills` for script details)
 - Read SKILL.md complete content
 - Count lines against <500 line target (approx 3-5k words)
 - Check frontmatter validity
@@ -89,16 +89,16 @@ Provide:
 
 ## Scores
 
-| Category       | Score      | Notes   |
-| -------------- | ---------- | ------- |
-| Frontmatter    | X/10       | {notes} |
-| Content        | X/10       | {notes} |
-| Security       | X/10       | {notes} |
-| Structure      | X/10       | {notes} |
-| Efficiency     | X/10       | {notes} |
-| Best Practices | X/10       | {notes} |
-| Code Quality   | X/10       | {notes} |
-| **Overall**    | **X.X/10** |         |
+| Category       | Score       | Notes   |
+| -------------- | ----------- | ------- |
+| Frontmatter    | X/100       | {notes} |
+| Content        | X/100       | {notes} |
+| Security       | X/100       | {notes} |
+| Structure      | X/100       | {notes} |
+| Efficiency     | X/100       | {notes} |
+| Best Practices | X/100       | {notes} |
+| Code Quality   | X/100       | {notes} |
+| **Overall**    | **X.X/100** |         |
 
 ## Recommendations
 
