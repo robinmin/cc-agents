@@ -11,7 +11,7 @@ from typing import Any
 try:
     from ..skills import DIMENSION_WEIGHTS
 except ImportError:
-    from skills import DIMENSION_WEIGHTS
+    from skills import DIMENSION_WEIGHTS  # type: ignore[no-redef, import-not-found]
 
 
 # Re-export for convenience
