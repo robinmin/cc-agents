@@ -36,13 +36,13 @@ def generate_evaluator_docs() -> str:
 
     # Import evaluators
     sys.path.insert(0, str(Path(__file__).parent))
-    from evaluators.frontmatter import FrontmatterEvaluator
-    from evaluators.content import ContentEvaluator
-    from evaluators.security import SecurityEvaluator
-    from evaluators.structure import StructureEvaluator
-    from evaluators.efficiency import EfficiencyEvaluator
-    from evaluators.best_practices import BestPracticesEvaluator
-    from evaluators.code_quality import CodeQualityEvaluator
+    from evaluators.frontmatter import FrontmatterEvaluator  # type: ignore[import-not-found]
+    from evaluators.content import ContentEvaluator  # type: ignore[import-not-found]
+    from evaluators.security import SecurityEvaluator  # type: ignore[import-not-found]
+    from evaluators.structure import StructureEvaluator  # type: ignore[import-not-found]
+    from evaluators.efficiency import EfficiencyEvaluator  # type: ignore[import-not-found]
+    from evaluators.best_practices import BestPracticesEvaluator  # type: ignore[import-not-found]
+    from evaluators.code_quality import CodeQualityEvaluator  # type: ignore[import-not-found]
 
     evaluators = [
         FrontmatterEvaluator,
@@ -107,7 +107,7 @@ def generate_rule_docs() -> str:
 
     # Import rules
     sys.path.insert(0, str(Path(__file__).parent))
-    from skills import BUILTIN_RULES
+    from skills import BUILTIN_RULES  # type: ignore[import-not-found]
 
     # Group by category
     by_category: dict[str, list] = {}
