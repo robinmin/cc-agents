@@ -1,6 +1,9 @@
-"""Tests for AST-based security analyzer."""
-import pytest
-from pathlib import Path
+"""Tests for AST-based security analyzer.
+
+Tests verify that find_dangerous_calls_ast correctly identifies dangerous
+patterns in Python code using AST analysis rather than string matching.
+"""
+
 
 from skills import find_dangerous_calls_ast
 
@@ -23,7 +26,7 @@ class TestFindDangerousCallsAST:
 
     def test_ignores_pattern_in_comment(self, tmp_script):
         """Should NOT detect patterns in comments."""
-        script = tmp_script('# dangerous pattern warning\nx = 1\n')
+        script = tmp_script("# dangerous pattern warning\nx = 1\n")
         findings = find_dangerous_calls_ast(script)
         assert len(findings) == 0
 
