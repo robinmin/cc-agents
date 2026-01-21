@@ -12,16 +12,18 @@ Create Agent skills that extend AI capabilities with specialized knowledge, work
 ## Quick Start
 
 ```bash
-# Initialize a new skill
-scripts/skills.py init my-skill --path ./plugins/my-plugin/skills
+# Initialize a new skill (run from plugin root directory)
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init my-skill --path ${CLAUDE_PLUGIN_ROOT}/skills
 
 # Edit the generated SKILL.md and add resources (scripts/, references/, assets/)
 
 # Package for distribution
-scripts/skills.py package ./plugins/my-plugin/skills/my-skill
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ${CLAUDE_PLUGIN_ROOT}/skills/my-skill
 ```
 
 Output: `my-skill.skill` file ready for installation.
+
+**Note:** Commands assume working directory is plugin root (`plugins/rd2/`), which is Claude Code's default behavior.
 
 ## Workflows
 
@@ -32,12 +34,12 @@ Use this checklist workflow:
 **Task Progress:**
 - [ ] **Step 1: Gather requirements** - Collect concrete usage examples from user
 - [ ] **Step 2: Plan resources** - Identify scripts/references/assets needed
-- [ ] **Step 3: Initialize** - Run `scripts/skills.py init <name> --path <dir>`
+- [ ] **Step 3: Initialize** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init <name> --path ${CLAUDE_PLUGIN_ROOT}/skills`
 - [ ] **Step 4: Implement resources** - Create and test scripts, write SKILL.md
-- [ ] **Step 5: Validate** - Run `scripts/skills.py validate <skill-path>`
-- [ ] **Step 6: Evaluate** - Run `scripts/skills.py evaluate <skill-path>`
+- [ ] **Step 5: Validate** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py validate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
+- [ ] **Step 6: Evaluate** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
 - [ ] **Step 7: Iterate** - Address findings, re-evaluate until Grade A/B
-- [ ] **Step 8: Package** - Run `scripts/skills.py package <skill-path>`
+- [ ] **Step 8: Package** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
 
 **Step 4 Detail - Implement resources:**
 
@@ -71,7 +73,7 @@ Only proceed to Step 8 when evaluation shows Grade A or B.
 
 **Workflow:**
 
-1. **Evaluate current quality** - `scripts/skills.py evaluate <skill-path>`
+1. **Evaluate current quality** - `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
 2. **Review findings** - Check all dimensions, especially low scores
 3. **Determine action**:
    - **Content issues?** → Add/clarify workflows in SKILL.md
@@ -79,9 +81,9 @@ Only proceed to Step 8 when evaluation shows Grade A or B.
    - **Missing guidance?** → Add workflow steps for uncovered cases
    - **Security flags?** → Address dangerous patterns
 4. **Implement fixes** - Edit SKILL.md or add/modify resources
-5. **Re-evaluate** - `scripts/skills.py evaluate <skill-path>`
+5. **Re-evaluate** - `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
 6. **Repeat** - Continue until Grade A/B achieved
-7. **Re-package** - `scripts/skills.py package <skill-path>`
+7. **Re-package** - `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
 
 **Common refinements by dimension:**
 
@@ -103,6 +105,59 @@ Follow the **Fat Skills, Thin Wrappers** pattern:
 **Benefits:** Single source of truth, maintainable wrappers, automatic propagation of updates.
 
 See [Workflows & Architecture Patterns](references/workflows.md) for detailed architectural guidance.
+
+## Script Usage Reference
+
+The `skills.py` script provides skill management operations. All commands assume working directory is plugin root (`plugins/rd2/`).
+
+### Commands
+
+**Initialize new skill:**
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init <skill-name> --path ${CLAUDE_PLUGIN_ROOT}/skills
+```
+Creates skill directory with template SKILL.md, scripts/, references/, and assets/ directories.
+
+**Validate skill structure:**
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py validate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>
+```
+Checks frontmatter, directory structure, and file naming. Returns validation errors or success.
+
+**Evaluate skill quality:**
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>
+```
+Runs comprehensive quality assessment across 7 dimensions. Returns grade (A-F) and detailed findings.
+
+Options:
+- `--json` - Output as JSON for programmatic use
+
+**Package skill for distribution:**
+```bash
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>
+```
+Creates `.skill` archive file for installation.
+
+### Working Directory
+
+**Critical:** Commands must be run from plugin root directory (`plugins/rd2/`). This is Claude Code's default behavior for slash commands.
+
+**Why use `${CLAUDE_PLUGIN_ROOT}`:**
+- Explicit and unambiguous
+- Works from any subdirectory
+- Matches Claude Code conventions
+- Prevents "file not found" errors
+
+### Examples
+
+```bash
+# From plugin root (plugins/rd2/)
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init api-docs --path ${CLAUDE_PLUGIN_ROOT}/skills
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py validate ${CLAUDE_PLUGIN_ROOT}/skills/api-docs
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/api-docs
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ${CLAUDE_PLUGIN_ROOT}/skills/api-docs
+```
 
 ## Core Principles
 
@@ -180,7 +235,7 @@ Skills are evaluated across 7 dimensions:
 | Best Practices | 10% | Naming conventions, guidance |
 | Code Quality | 10% | Error handling, type hints |
 
-Run `scripts/skills.py evaluate <skill-path>` to assess quality.
+Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>` to assess quality.
 
 ## Best Practices
 
