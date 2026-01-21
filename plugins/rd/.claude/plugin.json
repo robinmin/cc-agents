@@ -3,25 +3,5 @@
   "version": "1.5.6",
   "description": "Rapid Development: TDD workflow, task management, skill development, and code quality tools",
   "author": "Robin Min",
-  "tags": ["agents", "skills", "commands", "plugin"],
-  "skills": [
-    "10-stages-developing",
-    "anti-hallucination",
-    "ast-grep",
-    "building-mcp-server-on-cloudflare",
-    "changelog-generator",
-    "dokploy",
-    "super-coder",
-    "agent-browser",
-    "article-extractor",
-    "building-ai-agent-on-cloudflare",
-    "cc-skills",
-    "code-patterns",
-    "lead-research-assistant",
-    "sys-debugging"
-  ],
-  "requires": {
-    "claude-code": ">=1.0.0",
-    "python": ">=3.9"
-  }
+  "keywords": ["agents", "skills", "commands", "plugin"]
 }
