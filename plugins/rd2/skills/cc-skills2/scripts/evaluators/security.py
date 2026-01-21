@@ -17,7 +17,7 @@ try:
         RuleCategory,
     )
 except ImportError:
-    from skills import (
+    from skills import (  # type: ignore[no-redef, import-not-found]
         analyze_markdown_security,
         evaluate_rules,
         find_dangerous_calls_ast,
