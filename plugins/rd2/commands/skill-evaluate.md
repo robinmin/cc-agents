@@ -14,11 +14,9 @@ Thin wrapper for `rd2:cc-skills` skill. Read-only evaluation against best practi
 # Via slash command (recommended)
 /rd2:skill-evaluate data-pipeline
 /rd2:skill-evaluate plugins/rd2/skills/code-review
-
-# Direct script execution (integrated in skills.py)
-python3 plugins/rd2/skills/cc-skills/scripts/skills.py evaluate ./skills/my-skill
-python3 plugins/rd2/skills/cc-skills/scripts/skills.py evaluate ./skills/my-skill --json
 ```
+
+See `rd2:cc-skills` skill for direct script usage details.
 
 ## Arguments
 
@@ -28,22 +26,10 @@ python3 plugins/rd2/skills/cc-skills/scripts/skills.py evaluate ./skills/my-skil
 
 ## Workflow
 
-1. **Validate** - Run `scripts/skills.py validate` for structural checks
+1. **Validate** - Structural checks (see `rd2:cc-skills` for script details)
 2. **Analyze** - Check frontmatter, content, structure, security
 3. **Score** - Rate each dimension (see below)
 4. **Report** - Generate findings with recommendations
-
-### Implementation
-
-The evaluation is implemented as the `evaluate` command in `scripts/skills.py`:
-
-```bash
-# Run evaluation with detailed report
-python3 scripts/skills.py evaluate <skill-path>
-
-# Run with JSON output for programmatic use
-python3 scripts/skills.py evaluate <skill-path> --json
-```
 
 ## Scoring Dimensions
 
@@ -59,13 +45,13 @@ python3 scripts/skills.py evaluate <skill-path> --json
 
 ## Grading Scale
 
-| Grade | Score    | Status             |
-| ----- | -------- | ------------------ |
-| A     | 9.0-10.0 | Production ready   |
-| B     | 7.0-8.9  | Minor fixes needed |
-| C     | 5.0-6.9  | Moderate revision  |
-| D     | 3.0-4.9  | Major revision     |
-| F     | 0.0-2.9  | Rewrite needed     |
+| Grade | Score      | Status             |
+| ----- | ---------- | ------------------ |
+| A     | 90.0-100.0 | Production ready   |
+| B     | 70.0-89.9  | Minor fixes needed |
+| C     | 50.0-69.9  | Moderate revision  |
+| D     | 30.0-49.9  | Major revision     |
+| F     | 0.0-29.9   | Rewrite needed     |
 
 ## Read-Only
 
