@@ -22,8 +22,8 @@ python3 plugins/rd2/skills/cc-skills2/scripts/skills.py evaluate ./skills/my-ski
 
 ## Arguments
 
-| Argument         | Description                               |
-|------------------|-------------------------------------------|
+| Argument         | Description                                 |
+| ---------------- | ------------------------------------------- |
 | `<skill-folder>` | Path to skill (relative, absolute, or name) |
 
 ## Workflow
@@ -47,29 +47,30 @@ python3 scripts/skills.py evaluate <skill-path> --json
 
 ## Scoring Dimensions
 
-| Category       | Weight | Key Criteria                    |
-|----------------|--------|---------------------------------|
-| Frontmatter    | 10%    | Name, description, activation   |
-| Content        | 25%    | Clarity, examples, workflows    |
-| Security       | 20%    | Injection, paths, credentials   |
-| Structure      | 15%    | Progressive disclosure          |
-| Efficiency     | 10%    | Token count, uniqueness         |
-| Best Practices | 10%    | Naming, anti-patterns           |
-| Code Quality   | 10%    | Error handling (if scripts)     |
+| Category       | Weight | Key Criteria                  |
+| -------------- | ------ | ----------------------------- |
+| Frontmatter    | 10%    | Name, description, activation |
+| Content        | 25%    | Clarity, examples, workflows  |
+| Security       | 20%    | Injection, paths, credentials |
+| Structure      | 15%    | Progressive disclosure        |
+| Efficiency     | 10%    | Token count, uniqueness       |
+| Best Practices | 10%    | Naming, anti-patterns         |
+| Code Quality   | 10%    | Error handling (if scripts)   |
 
 ## Grading Scale
 
-| Grade | Score    | Status              |
-|-------|----------|---------------------|
-| A     | 9.0-10.0 | Production ready    |
-| B     | 7.0-8.9  | Minor fixes needed  |
-| C     | 5.0-6.9  | Moderate revision   |
-| D     | 3.0-4.9  | Major revision      |
-| F     | 0.0-2.9  | Rewrite needed      |
+| Grade | Score    | Status             |
+| ----- | -------- | ------------------ |
+| A     | 9.0-10.0 | Production ready   |
+| B     | 7.0-8.9  | Minor fixes needed |
+| C     | 5.0-6.9  | Moderate revision  |
+| D     | 3.0-4.9  | Major revision     |
+| F     | 0.0-2.9  | Rewrite needed     |
 
 ## Read-Only
 
 This command makes NO changes:
+
 - Only reads files
 - Only analyzes content
 - Only generates report
