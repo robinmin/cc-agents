@@ -1,6 +1,6 @@
 {
   "name": "rd2",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Next-generation Claude Code plugin with fat-skills/thin-wrappers architecture",
   "author": "Robin Min",
   "keywords": ["agents", "skills", "commands", "plugin"]
