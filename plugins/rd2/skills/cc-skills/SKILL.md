@@ -1,6 +1,6 @@
 ---
 name: cc-skills
-description: Meta-skill for creating effective Agent skills. Use when: building new skills, writing SKILL.md files, designing workflow automation, packaging skills for distribution, or refining existing skills with specialized knowledge and tool integrations. Follows progressive disclosure, evaluation-first development, and plugin-based quality assessment.
+description: "Meta-skill for creating effective Agent skills. Use when: building new skills, writing SKILL.md files, designing workflow automation, packaging skills for distribution, or refining existing skills with specialized knowledge and tool integrations. Follows progressive disclosure, evaluation-first development, and plugin-based quality assessment."
 ---
 
 # cc-skills: Claude Code Meta Skills V2
@@ -32,6 +32,7 @@ Output: `my-skill.skill` file ready for installation.
 Use this checklist workflow:
 
 **Task Progress:**
+
 - [ ] **Step 1: Gather requirements** - Collect concrete usage examples from user
 - [ ] **Step 2: Plan resources** - Identify scripts/references/assets needed
 - [ ] **Step 3: Initialize** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init <name> --path ${CLAUDE_PLUGIN_ROOT}/skills`
@@ -44,25 +45,30 @@ Use this checklist workflow:
 **Step 4 Detail - Implement resources:**
 
 A. Create scripts/ if code is rewritten repeatedly
-   - Write and test each script
-   - Add error handling and documentation
+
+- Write and test each script
+- Add error handling and documentation
 
 B. Create references/ if info is re-discovered each time
-   - Document schemas, APIs, workflows
-   - Use web search tools to find out the relevant official website, workflows and best practices  if any. Use ref or Context7 tools to fetch relevant documents if necessary.
-   - Add TOC for files >100 lines
+
+- Document schemas, APIs, workflows
+- Use web search tools to find out the relevant official website, workflows and best practices if any. Use mcp ref or Context7 tools to fetch relevant documents if necessary.
+- Add TOC for files >100 lines
 
 C. Create assets/ if boilerplate is needed each time
-   - Gather templates, sample files
-   - Organize in subdirectories if numerous
+
+- Gather templates, sample files
+- Organize in subdirectories if numerous
 
 D. Write SKILL.md:
-   1. Frontmatter: name + description (include "when to use")
-   2. Overview + Quick Start
-   3. Workflows (this section!)
-   4. Links to detailed references
+
+1.  Frontmatter: name + description (include "when to use")
+2.  Overview + Quick Start
+3.  Workflows (this section!)
+4.  Links to detailed references
 
 **Feedback Loop (Steps 5-7):**
+
 ```
 evaluate → note findings → fix issues → re-evaluate → repeat until A/B
 ```
@@ -87,12 +93,12 @@ Only proceed to Step 8 when evaluation shows Grade A or B.
 
 **Common refinements by dimension:**
 
-| Dimension | Typical Fixes |
-|-----------|---------------|
-| Content (<9/10) | Add workflow guidance, examples, "when to use" info |
-| Efficiency (<9/10) | Move details to references/, use tables/lists |
-| Structure (<9/10) | Ensure SKILL.md + scripts/ + references/ present |
-| Best Practices (<9/10) | Use hyphen-case, remove TODOs, add description |
+| Dimension              | Typical Fixes                                       |
+| ---------------------- | --------------------------------------------------- |
+| Content (<9/10)        | Add workflow guidance, examples, "when to use" info |
+| Efficiency (<9/10)     | Move details to references/, use tables/lists       |
+| Structure (<9/10)      | Ensure SKILL.md + scripts/ + references/ present    |
+| Best Practices (<9/10) | Use hyphen-case, remove TODOs, add description      |
 
 ## Architecture: Fat Skills, Thin Wrappers
 
@@ -113,30 +119,39 @@ The `skills.py` script provides skill management operations. All commands assume
 ### Commands
 
 **Initialize new skill:**
+
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init <skill-name> --path ${CLAUDE_PLUGIN_ROOT}/skills
 ```
+
 Creates skill directory with template SKILL.md, scripts/, references/, and assets/ directories.
 
 **Validate skill structure:**
+
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py validate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>
 ```
+
 Checks frontmatter, directory structure, and file naming. Returns validation errors or success.
 
 **Evaluate skill quality:**
+
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>
 ```
+
 Runs comprehensive quality assessment across 7 dimensions. Returns grade (A-F) and detailed findings.
 
 Options:
+
 - `--json` - Output as JSON for programmatic use
 
 **Package skill for distribution:**
+
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>
 ```
+
 Creates `.skill` archive file for installation.
 
 ### Working Directory
@@ -144,6 +159,7 @@ Creates `.skill` archive file for installation.
 **Critical:** Commands must be run from plugin root directory (`plugins/rd2/`). This is Claude Code's default behavior for slash commands.
 
 **Why use `${CLAUDE_PLUGIN_ROOT}`:**
+
 - Explicit and unambiguous
 - Works from any subdirectory
 - Matches Claude Code conventions
@@ -168,6 +184,7 @@ The context window is a public good. Only add context Claude doesn't already hav
 ### Set Appropriate Degrees of Freedom
 
 Match specificity to task fragility:
+
 - **High freedom** (text instructions): Multiple valid approaches, context-dependent
 - **Medium freedom** (pseudocode/params): Preferred pattern exists, some variation OK
 - **Low freedom** (scripts/strict): Fragile operations, consistency critical
@@ -210,11 +227,11 @@ skill-name/
 
 ### Component Details
 
-| Component | Purpose | When to Include | Reference |
-|-----------|---------|-----------------|-----------|
-| **scripts/** | Executable code for fragile/repeated tasks | Code rewritten repeatedly, deterministic reliability needed | [Scripts Guide](references/anatomy.md#scripts) |
-| **references/** | Docs loaded as needed during work | Schemas, API docs, domain knowledge, detailed guides | [References Guide](references/anatomy.md#references) |
-| **assets/** | Files used in output, not context | Templates, images, boilerplate, sample documents | [Assets Guide](references/anatomy.md#assets) |
+| Component       | Purpose                                    | When to Include                                             | Reference                                            |
+| --------------- | ------------------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------- |
+| **scripts/**    | Executable code for fragile/repeated tasks | Code rewritten repeatedly, deterministic reliability needed | [Scripts Guide](references/anatomy.md#scripts)       |
+| **references/** | Docs loaded as needed during work          | Schemas, API docs, domain knowledge, detailed guides        | [References Guide](references/anatomy.md#references) |
+| **assets/**     | Files used in output, not context          | Templates, images, boilerplate, sample documents            | [Assets Guide](references/anatomy.md#assets)         |
 
 **Important:** Do NOT include extraneous files at the skill level (README.md, INSTALLATION_GUIDE.md).
 CHANGELOG.md files are acceptable at the plugin level but not within individual skill directories.
@@ -225,15 +242,15 @@ For complete anatomy details, see [Skill Anatomy Reference](references/anatomy.m
 
 Skills are evaluated across 7 dimensions:
 
-| Dimension | Weight | What It Measures |
-|-----------|--------|------------------|
-| Frontmatter | 10% | YAML validity, required fields |
-| Content | 25% | Length, sections, examples |
-| Security | 20% | AST-based dangerous pattern detection |
-| Structure | 15% | Directory organization, progressive disclosure |
-| Efficiency | 10% | Token count, file sizes |
-| Best Practices | 10% | Naming conventions, guidance |
-| Code Quality | 10% | Error handling, type hints |
+| Dimension      | Weight | What It Measures                               |
+| -------------- | ------ | ---------------------------------------------- |
+| Frontmatter    | 10%    | YAML validity, required fields                 |
+| Content        | 25%    | Length, sections, examples                     |
+| Security       | 20%    | AST-based dangerous pattern detection          |
+| Structure      | 15%    | Directory organization, progressive disclosure |
+| Efficiency     | 10%    | Token count, file sizes                        |
+| Best Practices | 10%    | Naming conventions, guidance                   |
+| Code Quality   | 10%    | Error handling, type hints                     |
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>` to assess quality.
 
@@ -267,7 +284,7 @@ weights:
 
 # Disable specific rules
 disabled_checks:
-  - "SEC003"  # Allow __import__ for dynamic loading
+  - "SEC003" # Allow __import__ for dynamic loading
 
 # Thresholds
 thresholds:
