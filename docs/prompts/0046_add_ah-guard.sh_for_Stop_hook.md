@@ -1,9 +1,9 @@
 ---
 name: add ah-guard.sh for Stop hook
 description: <prompt description>
-status: WIP
+status: Done
 created_at: 2026-01-21 00:01:28
-updated_at: 2026-01-21 00:01:28
+updated_at: 2026-01-22 10:21:39
 ---
 
 ## 0046. add ah-guard.sh for Stop hook
