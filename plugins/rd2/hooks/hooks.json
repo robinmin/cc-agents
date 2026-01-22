@@ -1,6 +1,18 @@
 {
-  "description": "Validation hooks for rd2 plugin - enforces anti-hallucination protocol",
+  "description": "Hooks for rd2 plugin - anti-hallucination protocol, TodoWrite synchronization, and tool usage tracking",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "TodoWrite",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/skills/tasks/scripts/tasks.py sync todowrite --data '${TOOL_INPUT}'",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "*",
