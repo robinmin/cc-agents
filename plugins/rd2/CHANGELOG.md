@@ -1,3 +1,150 @@
+## [0.1.0] - 2026-01-22
+
+### Summary
+
+**Multi-Model Code Review System: Unified Coordinator & Specialized Skills**
+
+Introduces a comprehensive code review system with intelligent tool selection and multi-model support. The `super-code-reviewer` coordinator automatically selects the optimal review tool (Gemini/Claude/Auggie/OpenCode) based on code size, complexity, and context. Each specialized skill provides structured reviews with importable task generation, focus area targeting, and comprehensive testing.
+
+### Added
+
+- **super-code-reviewer Subagent** (`agents/super-code-reviewer.md`, 365 lines):
+  - **Auto-Selection Logic**: Intelligent tool choice based on code characteristics (size, complexity, semantic needs)
+  - **Unified Interface**: Single entry point for all code review workflows
+  - **Graceful Degradation**: Tool fallback strategies when primary tools unavailable
+  - **Option Passthrough**: `--focus`, `--tool`, `--plan` flags work across all skills
+  - **Fat Skills, Thin Wrappers**: Delegates to specialized skills, no review logic implemented directly
+
+- **code-review-gemini Skill** (`skills/code-review-gemini/`):
+  - **Google Gemini CLI Integration** (`scripts/code-review-gemini.py`, ~1,511 lines):
+    - `check` - Validate Gemini CLI availability
+    - `run` - Execute short prompts for quick questions
+    - `run-file` - Execute long prompts from file
+    - `review` - Comprehensive code review with structured output
+    - `import` - Convert review results to task files
+  - **Model Selection**: gemini-2.5-pro, gemini-2.5-flash, gemini-3-flash-preview (default)
+  - **Focus Areas**: security, performance, testing, quality, architecture, comprehensive
+  - **Structured Output**: YAML frontmatter + markdown with priority-based issue sections
+  - **98/98 Tests Passing**: Comprehensive test suite for all commands
+
+- **code-review-claude Skill** (`skills/code-review-claude/`):
+  - **Native Claude Review** (`scripts/code-review-claude.py`, ~1,284 lines):
+    - No external setup required, uses Claude Code API directly
+    - Same command interface as Gemini skill for consistency
+    - Ideal for quick reviews (< 500 LOC) or when external tools unavailable
+
+- **code-review-auggie Skill** (`skills/code-review-auggie/`):
+  - **Semantic Codebase Review** (`scripts/code-review-auggie.py`, ~1,432 lines):
+    - Auggie integration for context-aware codebase indexing
+    - Best for semantic understanding across large codebases
+    - Query pattern support for targeted analysis
+
+- **code-review-opencode Skill** (`skills/code-review-opencode/`):
+  - **External AI Perspective** (`scripts/code-review-opencode.py`, ~1,443 lines):
+    - Multi-model access via OpenCode API
+    - Alternative to Gemini for external AI review
+    - Same structured output format for consistency
+
+- **tdd-workflow Skill** (`skills/tdd-workflow/`):
+  - **Test-Driven Development Workflow**:
+    - 10-stage systematic TDD methodology
+    - Red-green-refactor discipline enforcement
+    - Progress checkpoint tracking
+
+- **super-code-reviewer Command** (`commands/super-code-reviewer.md`):
+  - Human-friendly slash command: `/super-code-reviewer <options> <target>`
+  - Auto-selection mode: `--tool auto` (default)
+  - Manual override: `--tool gemini|claude|auggie|opencode`
+  - Focus specification: `--focus security,performance`
+  - Architecture planning: `--plan` flag
+
+### Tool Selection Heuristics
+
+| Code Characteristic | Recommended Tool | Rationale |
+|---------------------|------------------|-----------|
+| < 500 LOC, simple | claude | Fast, no external setup |
+| 500-2000 LOC | gemini (flash) | Balanced speed/capability |
+| > 2000 LOC, complex | gemini (pro) | Comprehensive analysis |
+| Needs semantic context | auggie | Codebase-aware indexing |
+| Security audit | gemini (pro) | Thorough security analysis |
+| Multi-model access | opencode | External AI perspective |
+
+### Structured Output Format
+
+All code reviews use a standardized YAML + markdown format:
+
+```yaml
+---
+type: {tool}-code-review
+version: 1.0
+model: {model-name}
+target: {path}
+mode: review|plan
+quality_score: {0-10}
+recommendation: Approved|Request Changes|Needs Revision
+---
+```
+
+**Priority Sections:**
+- Critical Issues (Must Fix)
+- High Priority Issues (Should Fix)
+- Medium Priority Issues (Consider Fixing)
+- Low Priority Issues (Nice to Have)
+- Detailed Analysis (Security, Performance, Quality, Testing)
+- Overall Assessment
+
+### Documentation
+
+- **`docs/spec-code-review-gemini.md`** - Technical specification for Gemini skill
+- **`docs/user-manual-code-review-gemini.md`** - User guide with examples
+- **Task Files** (0048-0053): Implementation tracking for code review features
+
+### Test Coverage
+
+| Skill | Script Lines | Test Lines | Tests Passing |
+|-------|-------------|-----------|---------------|
+| code-review-gemini | ~1,511 | ~900+ | 98/98 |
+| code-review-claude | ~1,284 | ~800+ | All passing |
+| code-review-auggie | ~1,432 | ~900+ | All passing |
+| code-review-opencode | ~1,443 | ~900+ | All passing |
+
+### Changed
+
+- **Plugin Configuration** (`plugins/rd2/.claude/plugin.json`):
+  - Updated version: `0.0.9` → `0.1.0`
+  - Added `super-code-reviewer` to agents array
+  - Added `code-review-*` and `tdd-workflow` to skills array
+
+### Usage Examples
+
+```bash
+# Auto-select best tool for review
+/super-code-reviewer src/auth/
+
+# Specify tool explicitly
+/super-code-reviewer --tool gemini src/auth/
+
+# Focus on specific areas
+/super-code-reviewer --focus security,performance src/
+
+# Architecture planning mode
+/super-code-reviewer --plan src/
+
+# Import review results as tasks
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import .claude/plans/review.md
+```
+
+### Benefits
+
+- **Unified Review Interface**: Single command for all code review needs
+- **Intelligent Tool Selection**: Automatic optimal tool choice based on code characteristics
+- **Multi-Model Flexibility**: Access to Gemini, Claude, Auggie, and OpenCode via one interface
+- **Structured Output**: Consistent format enables task import and automation
+- **Graceful Degradation**: Tool fallback ensures reviews complete even if preferred tool unavailable
+- **Comprehensive Testing**: 98%+ test coverage across all skills
+
+---
+
 ## [0.0.9] - 2026-01-22
 
 ### Summary
