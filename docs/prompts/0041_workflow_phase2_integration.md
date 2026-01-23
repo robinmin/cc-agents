@@ -1,6 +1,6 @@
 ---
 name: Phase 2 - Technique Integration
-status: WIP
+status: Done
 dependencies: [0001]
 priority: 2
 ---
