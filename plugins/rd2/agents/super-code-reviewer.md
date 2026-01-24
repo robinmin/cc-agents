@@ -19,13 +19,12 @@ description: |
 
 tools: [Read, Write, Edit, Grep, Glob]
 skills:
-  [
-    rd2:code-review-gemini,
-    rd2:code-review-claude,
-    rd2:code-review-auggie,
-    rd2:code-review-opencode,
-    rd2:cc-agents,
-  ]
+  - rd2:code-review-common
+  - rd2:code-review-gemini
+  - rd2:code-review-claude
+  - rd2:code-review-auggie
+  - rd2:code-review-opencode
+  - rd2:cc-agents
 model: inherit
 color: crimson
 ---
