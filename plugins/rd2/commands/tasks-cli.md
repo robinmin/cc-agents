@@ -36,16 +36,16 @@ This creates:
 
 ```bash
 # Create and manage tasks
-/tasks create "Implement OAuth2 authentication"
-/tasks list wip
-/tasks update 47 testing
-/tasks update 47 done
+/rd2:tasks-cli create "Implement OAuth2 authentication"
+/rd2:tasks-cli list wip
+/rd2:tasks-cli update 47 testing
+/rd2:tasks-cli update 47 done
 
 # Resume work across sessions
-/tasks sync restore
+/rd2:tasks-cli sync restore
 
 # View all commands
-/tasks help
+/rd2:tasks-cli help
 ```
 
 ## Execution
