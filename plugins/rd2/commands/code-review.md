@@ -1,6 +1,7 @@
 ---
 description: Unified code review with auto-selection of gemini/claude/auggie/opencode tools
 skills:
+  - rd2:code-review-common
   - rd2:code-review-gemini
   - rd2:code-review-claude
   - rd2:code-review-auggie
@@ -39,7 +40,7 @@ Unified code review coordinator that intelligently selects the optimal review to
 | Argument  | Required | Description                                                                                             |
 | --------- | -------- | ------------------------------------------------------------------------------------------------------- |
 | `target`  | Yes      | Path to code (file or directory)                                                                        |
-| `--tool`  | No       | Tool: `auto` (default), `gemini`, `claude`, `auggie`, `opencode`                                                    |
+| `--tool`  | No       | Tool: `auto` (default), `gemini`, `claude`, `auggie`, `opencode`                                        |
 | `--focus` | No       | Focus areas: `security`, `performance`, `testing`, `quality` (default), `architecture`, `comprehensive` |
 | `--plan`  | No       | Enable architecture planning mode                                                                       |
 
@@ -47,24 +48,24 @@ Unified code review coordinator that intelligently selects the optimal review to
 
 When `--tool auto` or not specified:
 
-| Characteristics    | Tool         | Best For                     | Speed    | Setup       |
-| ----------------- | ------------ | ---------------------------- | -------- | ----------- |
-| < 500 LOC         | `claude`     | Quick reviews                | Fast     | None        |
-| 500-2000 LOC      | `gemini-flash` | Balanced analysis          | Moderate | CLI install |
-| > 2000 LOC        | `gemini-pro` | Complex/Security analysis    | Moderate | CLI install |
-| Semantic context  | `auggie`     | Codebase-aware indexing      | Fast     | MCP server  |
-| Multi-model access | `opencode`  | External AI perspective      | Variable | CLI + auth  |
+| Characteristics    | Tool           | Best For                  | Speed    | Setup       |
+| ------------------ | -------------- | ------------------------- | -------- | ----------- |
+| < 500 LOC          | `claude`       | Quick reviews             | Fast     | None        |
+| 500-2000 LOC       | `gemini-flash` | Balanced analysis         | Moderate | CLI install |
+| > 2000 LOC         | `gemini-pro`   | Complex/Security analysis | Moderate | CLI install |
+| Semantic context   | `auggie`       | Codebase-aware indexing   | Fast     | MCP server  |
+| Multi-model access | `opencode`     | External AI perspective   | Variable | CLI + auth  |
 
 ## Focus Areas
 
-| Area            | What It Checks                                      |
-| --------------- | --------------------------------------------------- |
-| `security`      | Injection, auth flaws, data exposure                |
-| `performance`   | Algorithm complexity, N+1 queries, memory           |
-| `testing`       | Coverage gaps, edge cases                           |
-| `quality`       | Readability, maintainability, DRY                   |
-| `architecture`  | Coupling, cohesion, patterns                        |
-| `comprehensive` | ALL focus areas (may run all tools and synthesize)  |
+| Area            | What It Checks                                     |
+| --------------- | -------------------------------------------------- |
+| `security`      | Injection, auth flaws, data exposure               |
+| `performance`   | Algorithm complexity, N+1 queries, memory          |
+| `testing`       | Coverage gaps, edge cases                          |
+| `quality`       | Readability, maintainability, DRY                  |
+| `architecture`  | Coupling, cohesion, patterns                       |
+| `comprehensive` | ALL focus areas (may run all tools and synthesize) |
 
 Combine: `--focus security,performance,testing`
 
@@ -123,18 +124,19 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-{tool}/scripts/code-review-{too
 
 ## Error Handling
 
-| Error            | Resolution                                  |
-| ---------------- | ------------------------------------------- |
-| Tool unavailable | Suggests alternative, offers to switch      |
-| Invalid target   | Shows path error, suggests valid paths      |
-| Invalid option   | Displays valid options with examples        |
-| Timeout          | Suggests simpler query or different tool    |
+| Error            | Resolution                               |
+| ---------------- | ---------------------------------------- |
+| Tool unavailable | Suggests alternative, offers to switch   |
+| Invalid target   | Shows path error, suggests valid paths   |
+| Invalid option   | Displays valid options with examples     |
+| Timeout          | Suggests simpler query or different tool |
 
 ## Two-Level Review Process [Q4 FROM TASK 0061]
 
 ### Solution Review vs Code Review
 
 **Solution Review** (Architecture & Design Level - Step 3, Optional):
+
 - Validates the overall approach and architecture decisions
 - Checks if the solution addresses the actual requirements
 - Evaluates design patterns, system architecture, scalability
@@ -144,6 +146,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-{tool}/scripts/code-review-{too
 - **When**: During design phase (Step 3 in workflow)
 
 **Code Review** (Implementation Quality Level - Step 9-10, Mandatory):
+
 - Validates code quality, style, and best practices
 - Checks for bugs, edge cases, error handling
 - Reviews test coverage and test quality
@@ -171,6 +174,7 @@ Step 10: Mark as Done
 ### What This Command Validates
 
 **Code Review Scope (Step 9-10):**
+
 - Code quality and style
 - Best practices adherence
 - Bug detection and edge cases
@@ -181,6 +185,7 @@ Step 10: Mark as Done
 - Security vulnerabilities in implementation
 
 **NOT in Scope (handled by super-architect):**
+
 - Overall architecture decisions
 - Design pattern selection
 - System boundaries and integration
