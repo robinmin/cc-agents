@@ -1914,7 +1914,7 @@ Replace with actual reference content or delete if not needed.
 # VALIDATION
 ###############################################################################
 
-ALLOWED_PROPERTIES = {"name", "description", "license", "allowed-tools", "metadata"}
+ALLOWED_PROPERTIES = {"name", "description", "license", "allowed-tools", "metadata", "triggers"}
 
 
 ###############################################################################
