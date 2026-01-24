@@ -23,7 +23,11 @@
       "Bash(ast-grep:*)",
       "Bash(tasks:*)",
       "Bash(make:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Skill(superpowers:brainstorming)",
+      "Skill(rd2:skill-evaluate)",
+      "Skill(rd2:skill-refine)",
+      "Skill(rd2:skill-add)"
     ],
     "deny": [],
     "ask": []
