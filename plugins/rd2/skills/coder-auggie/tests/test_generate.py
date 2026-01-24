@@ -44,11 +44,8 @@ class TestBuildTaskPrompt:
         assert "Task Specification" in prompt
 
     def test_tdd_mode(self) -> None:
-        """Test TDD mode instructions."""
-        prompt = ca.build_task_prompt(
-            "Create a function",
-            tdd=True
-        )
+        """Test TDD mode instructions (TDD is enabled by default)."""
+        prompt = ca.build_task_prompt("Create a function")
         assert "Test-Driven Development" in prompt
         assert "test" in prompt.lower()
 
