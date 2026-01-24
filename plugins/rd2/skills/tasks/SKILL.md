@@ -59,59 +59,18 @@ tasks sync restore                               # Restore active tasks to TodoW
 
 ## TodoWrite Integration
 
-The tasks skill integrates with Claude Code's built-in TodoWrite tool for seamless task management across ephemeral and persistent layers.
+The tasks skill integrates with Claude Code's built-in TodoWrite tool for seamless task management.
 
-### How It Works
+**Auto-promotion:** TodoWrite items are automatically promoted to external tasks when they contain complex keywords (implement, refactor, design), are >50 characters, have status=in_progress, mention task tracking, or contain numbered lists.
 
-```
-TodoWrite Item Created (e.g., "Implement OAuth2 authentication")
-         ↓
-  PreToolUse Hook Fires (automatic)
-         ↓
-  Smart Promotion Engine Evaluates (5 signals)
-         ↓
-  If ANY signal → Auto-promote to external task
-         ↓
-  Create Task File (WBS assigned, status synced)
-         ↓
-  Session Map Updated (hash → WBS tracking)
-         ↓
-  Promotion Logged (.claude/tasks_sync/promotions.log)
-```
+**State mapping:** pending↔Todo, in_progress↔WIP/Testing, completed↔Done
 
-### Promotion Signals (OR Logic)
+**Session resume:** `tasks sync restore` restores active WIP/Testing tasks to TodoWrite
 
-TodoWrite items are **auto-promoted** to external tasks when **any** signal triggers:
-
-| Signal              | Description                                       | Example                                |
-| ------------------- | ------------------------------------------------- | -------------------------------------- |
-| **complex_keyword** | Contains: implement, refactor, design, etc.       | "Implement OAuth2" ✓                   |
-| **long_content**    | > 50 characters                                   | "Add comprehensive error handling..." ✓ |
-| **active_work**     | Status = in_progress                              | [in_progress] ✓                        |
-| **explicit_track**  | Mentions: wbs, task file, docs/prompts            | "Create task for this" ✓               |
-| **multi_step**      | Contains numbered/bulleted lists (1., 2., -, \*) | "1. Setup 2. Configure..." ✓           |
-
-### State Mapping
-
-| TodoWrite State | External Task Status |
-| --------------- | -------------------- |
-| pending         | Todo                 |
-| in_progress     | WIP                  |
-| completed       | Done                 |
-
-**Reverse mapping** (Tasks → TodoWrite): Backlog/Todo → pending, WIP/Testing → in_progress, Done → completed
-
-### Session Resume
-
-When resuming work across sessions:
-
-```bash
-# Restore active tasks to TodoWrite
-tasks sync restore
-
-# Output: TodoWrite items for all WIP/Testing tasks
-# Format: "Continue {task_name} (WBS {wbs})"
-```
+For detailed integration guides, see:
+- **[Quick Integration Guide](references/QUICK_INTEGRATION_GUIDE.md)** - 5-minute setup
+- **[TodoWrite Integration Overview](references/README_INTEGRATION.md)** - Master guide
+- **[Integration Plan](references/INTEGRATION_PLAN.md)** - Full architecture
 
 ## Multi-Agent Workflow
 
@@ -190,52 +149,6 @@ Monitoring / Review Phase
 **Scenario 1: Simple Task (No Promotion)**
 
 ```
-User adds TodoWrite: "Fix typo in README" [pending]
-  ↓
-Hook fires → Promotion check
-  ✗ Content too short (< 50 chars)
-  ✗ No complex keywords
-  ✗ Status is pending
-  ↓
-Result: Ephemeral only (correct behavior)
-```
-
-**Scenario 2: Complex Task (Auto-Promotion)**
-
-```
-User adds TodoWrite: "Implement OAuth2 authentication with Google provider" [in_progress]
-  ↓
-Hook fires → Promotion check
-  ✓ Contains "implement" keyword
-  ✓ Content > 50 chars
-  ✓ Status is in_progress
-  ↓
-Auto-promotion:
-  Create: docs/prompts/0048_implement_oauth2.md
-  Status: WIP
-  Session Map: {hash → "0048"}
-  Log: promotions.log
-  ↓
-Result: Persistent tracking across sessions
-```
-
-**Scenario 3: Session Resume**
-
-```
-Session 1 (Monday):
-  TodoWrite: "Refactor API layer" [in_progress]
-  → External Task: 0048_refactor_api.md [WIP]
-  ↓
-Session ends → TodoWrite cleared
-  ↓
-Session 2 (Tuesday):
-  tasks sync restore
-  ↓
-TodoWrite: "Continue refactor_api (WBS 0048)" [in_progress]
-  ↓
-Result: Work continues seamlessly
-```
-
 ### Listing Tasks
 
 ```bash
@@ -248,6 +161,12 @@ tasks list backlog
 ```
 
 Output uses `glow` for markdown rendering if available.
+
+**TodoWrite Integration Workflow:**
+
+Simple todos (ephemeral) → Complex tasks (auto-promoted) → Persistent tracking with session resume.
+
+See **[TodoWrite Integration Overview](references/README_INTEGRATION.md)** for detailed scenarios.
 
 ## Architecture
 
@@ -382,34 +301,21 @@ tasks update 12345 wip   # too many digits
 tasks list               # view all tasks
 ```
 
-### TodoWrite Integration Not Working
+### TodoWrite Integration Issues
 
-**Problem**: TodoWrite items not auto-promoting
-**Solutions**:
+**Auto-promotion not working?**
+1. Verify hooks: `plugins/rd2/hooks/hooks.json`
+2. Check logs: `tail -20 .claude/tasks_hook.log`
+3. Test manually: `tasks sync todowrite --data '{"todos": [{"body": "Test"}]}'`
 
-1. Check hooks configuration exists: `plugins/rd2/hooks/hooks.json`
-2. Verify PreToolUse hook for TodoWrite is configured
-3. Check Claude Code logs for hook errors
-4. Test manually: `tasks sync todowrite --data '{"todos": [...]}'`
-
-**Problem**: Duplicate tasks created
-**Solution**: Check session map integrity
-
+**Duplicate tasks or session issues?**
 ```bash
+# Check and reset session map
 cat .claude/tasks_sync/session_map.json
-# Clean up if corrupted:
-rm .claude/tasks_sync/session_map.json
-# Hook will regenerate on next TodoWrite event
+rm .claude/tasks_sync/session_map.json  # Will regenerate
 ```
 
-**Problem**: Session restore not working
-**Solution**: Verify active tasks exist
-
-```bash
-tasks list wip           # Check for WIP tasks
-tasks list testing       # Check for Testing tasks
-tasks sync restore       # Restore active tasks
-```
+See **[Hook Integration](references/hook-integration.md)** for detailed troubleshooting.
 
 ## Configuration
 
@@ -426,40 +332,23 @@ Edit `docs/prompts/.template.md` to customize new task format.
 
 ### TodoWrite Integration Settings
 
-Create `.claude/tasks_sync/config.json` to customize promotion behavior:
+Create `.claude/tasks_sync/config.json` to customize behavior:
 
 ```json
 {
   "auto_promotion": {
     "enabled": true,
     "min_content_length": 50,
-    "complex_keywords": [
-      "implement", "refactor", "design", "architecture",
-      "integrate", "migrate", "optimize", "feature"
-    ],
-    "always_promote_in_progress": true
+    "complex_keywords": ["implement", "refactor", "design", "architecture"]
   },
-  "state_sync": {
-    "enabled": true,
-    "sync_direction": "bidirectional"
-  },
-  "session_resume": {
-    "enabled": true,
-    "restore_wip_tasks": true,
-    "restore_testing_tasks": true
-  }
+  "state_sync": {"enabled": true},
+  "session_resume": {"enabled": true}
 }
 ```
 
-**Disable auto-promotion** (manual workflow only):
+To disable auto-promotion, set `"enabled": false`.
 
-```json
-{
-  "auto_promotion": {
-    "enabled": false
-  }
-}
-```
+See **[Integration Plan](references/INTEGRATION_PLAN.md)** for all configuration options.
 
 ### Optional: Glow
 
@@ -484,18 +373,11 @@ tail -20 .claude/logs/hook_event.log
 
 ### TodoWrite Integration Logs
 
-- **`.claude/tasks_sync/promotions.log`** - Auto-promotion events with signals
+- **`.claude/tasks_sync/promotions.log`** - Auto-promotion events
 - **`.claude/tasks_sync/session_map.json`** - TodoWrite hash → WBS mapping
 
 ```bash
-# View recent promotions
 tail -20 .claude/tasks_sync/promotions.log
-
-# Check session mapping
-cat .claude/tasks_sync/session_map.json
-
-# Promotion signal distribution
-grep -o '"signals":\[[^]]*\]' .claude/tasks_sync/promotions.log | sort | uniq -c
 ```
 
 ## Performance & Security
