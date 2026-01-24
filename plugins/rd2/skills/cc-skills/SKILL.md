@@ -256,6 +256,65 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate $
 
 ## Best Practices
 
+### Naming Conventions (CRITICAL)
+
+**Follow official Claude Code naming rules:**
+
+1. **ALWAYS use full namespace** for plugin skills: `plugin-name:skill-name`
+   - When referencing skills in documentation, use full namespace
+   - When invoking skills via slash commands, use full namespace
+   - In `agents.md` skills field, reference without prefix (internal reference only)
+   - Never omit the plugin prefix in user-facing documentation
+
+2. **NEVER reuse names** across components
+   - Slash commands, subagents, and skills must have UNIQUE names
+   - Skills take precedence over commands with same name (blocks user invocation)
+   - Use distinct naming patterns to avoid LLM confusion
+
+| Component | Naming Pattern | Example |
+|-----------|---------------|---------|
+| Slash Command | `verb-noun` | `code-review` |
+| Slash Command (grouped) | `noun-verb` | `agent-add`, `agent-evaluate`, `agent-refine` (groups related commands) |
+| Skill | `verb-ing-noun` | `reviewing-code` |
+| Subagent | `role-agent` | `code-reviewer-agent` |
+
+**Slash Command Grouping Rule:**
+- When multiple slash commands share the same domain, use `noun-verb` format (NOT `verb-noun`)
+- This groups related commands together alphabetically in listings
+- Examples:
+  - `agent-add.md`, `agent-evaluate.md`, `agent-refine.md` (all "agent" commands grouped)
+  - `code-generate.md`, `code-review.md` (all "code" commands grouped)
+  - `tasks-plan.md`, `tasks-cli.md` (all "tasks" commands grouped) |
+
+**Sources:**
+- [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
+- [GitHub Issue #14945](https://github.com/anthropics/claude-code/issues/14945) - Slash commands blocked by skill name collision
+- [GitHub Issue #15944](https://github.com/anthropics/claude-code/issues/15944) - Cross-plugin skill references
+
+### Skill Composition Rules
+
+**DO:**
+- Keep skills INDEPENDENT and self-contained
+- Let Claude discover and use skills based on task context
+- Use subagents to orchestrate multiple skills
+
+**DON'T:**
+- Make skills directly call other skills (not supported)
+- Add explicit dependencies in skill metadata (feature request only)
+- Assume cross-plugin skill references work (not implemented)
+
+**Example correct pattern:**
+```yaml
+# agents/orchestrator.md
+---
+name: orchestrator
+skills:
+  - research
+  - writing
+context: fork
+---
+```
+
 ### Writing Guidelines
 
 - **Use imperative/infinitive form** ("Create X", not "Creates X")
