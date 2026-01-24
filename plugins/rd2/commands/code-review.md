@@ -13,23 +13,25 @@ argument-hint: <target> [--tool auto|gemini|claude|auggie|opencode] [--focus sec
 
 Unified code review coordinator that intelligently selects the optimal review tool (gemini/claude/auggie/opencode) based on code characteristics, or uses explicit tool choice.
 
+**IMPORTANT** [Q4 FROM TASK 0061]: This handles **CODE REVIEW** (implementation quality at Step 9-10), not **SOLUTION REVIEW** (architecture/design at Step 3). Solution review is handled by `super-architect` when needed.
+
 ## Quick Start
 
 ```bash
 # Auto-select best tool (recommended)
-/rd2:super-code-reviewer src/auth/
+/rd2:code-review src/auth/
 
 # Specify tool explicitly
-/rd2:super-code-reviewer --tool gemini src/auth/
-/rd2:super-code-reviewer --tool claude src/utils/
-/rd2:super-code-reviewer --tool auggie src/payment/
-/rd2:super-code-reviewer --tool opencode src/api/
+/rd2:code-review --tool gemini src/auth/
+/rd2:code-review --tool claude src/utils/
+/rd2:code-review --tool auggie src/payment/
+/rd2:code-review --tool opencode src/api/
 
 # Focus on specific areas
-/rd2:super-code-reviewer --focus security,performance src/api/
+/rd2:code-review --focus security,performance src/api/
 
 # Architecture planning mode
-/rd2:super-code-reviewer --plan src/
+/rd2:code-review --plan src/
 ```
 
 ## Arguments
@@ -76,19 +78,19 @@ Combine: `--focus security,performance,testing`
 
 ```bash
 # Security-focused (auto-selects gemini-pro)
-/rd2:super-code-reviewer --focus security src/auth/
+/rd2:code-review --focus security src/auth/
 
 # Quick PR review (fast native)
-/rd2:super-code-reviewer --tool claude pr-1234/
+/rd2:code-review --tool claude pr-1234/
 
 # Semantic architecture review
-/rd2:super-code-reviewer --tool auggie --focus architecture src/
+/rd2:code-review --tool auggie --focus architecture src/
 
 # External AI review (multi-model)
-/rd2:super-code-reviewer --tool opencode src/payment/
+/rd2:code-review --tool opencode src/payment/
 
 # Architecture planning
-/rd2:super-code-reviewer --plan src/
+/rd2:code-review --plan src/
 ```
 
 ## Output Format
@@ -116,7 +118,7 @@ Followed by: Executive Summary, Critical/High/Medium/Low Issues, Detailed Analys
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-{tool}/scripts/code-review-{tool}.py import .claude/plans/review.md
 
 # Re-review with different tool/focus
-/rd2:super-code-reviewer --tool gemini --focus testing,quality src/
+/rd2:code-review --tool gemini --focus testing,quality src/
 ```
 
 ## Error Handling
@@ -127,6 +129,63 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-{tool}/scripts/code-review-{too
 | Invalid target   | Shows path error, suggests valid paths      |
 | Invalid option   | Displays valid options with examples        |
 | Timeout          | Suggests simpler query or different tool    |
+
+## Two-Level Review Process [Q4 FROM TASK 0061]
+
+### Solution Review vs Code Review
+
+**Solution Review** (Architecture & Design Level - Step 3, Optional):
+- Validates the overall approach and architecture decisions
+- Checks if the solution addresses the actual requirements
+- Evaluates design patterns, system architecture, scalability
+- Reviews integration points and system boundaries
+- Assesses security, performance, maintainability at design level
+- **Owner**: `super-planner` delegates to `super-architect` when needed
+- **When**: During design phase (Step 3 in workflow)
+
+**Code Review** (Implementation Quality Level - Step 9-10, Mandatory):
+- Validates code quality, style, and best practices
+- Checks for bugs, edge cases, error handling
+- Reviews test coverage and test quality
+- Verifies adherence to coding standards
+- Assesses documentation and code comments
+- **Owner**: `code-review` command (via rd2:code-review-common skill and super-code-reviewer agent)
+- **When**: After implementation complete (Step 9-10 in workflow)
+
+### Workflow Integration
+
+```
+Step 3: Solution Review (optional, if complex)
+        ↓
+super-architect validates architecture/design
+        ↓
+Step 7: Implementation (super-coder)
+        ↓
+Step 9-10: Code Review (mandatory) ← YOU ARE HERE
+        ↓
+code-review validates implementation
+        ↓
+Step 10: Mark as Done
+```
+
+### What This Command Validates
+
+**Code Review Scope (Step 9-10):**
+- Code quality and style
+- Best practices adherence
+- Bug detection and edge cases
+- Error handling completeness
+- Test coverage and test quality
+- Documentation quality
+- Performance issues
+- Security vulnerabilities in implementation
+
+**NOT in Scope (handled by super-architect):**
+- Overall architecture decisions
+- Design pattern selection
+- System boundaries and integration
+- High-level scalability
+- Technology stack choices
 
 ## Design Philosophy
 
