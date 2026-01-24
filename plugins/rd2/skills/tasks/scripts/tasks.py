@@ -1131,7 +1131,7 @@ updated_at: { { UPDATED_AT } }
         """Decompose a requirement into structured subtasks.
 
         This is a simplified decomposition that creates related task files.
-        For complex AI-powered decomposition, consider using super-planner.
+        For complex AI-powered decomposition, consider using rd2:super-planner.
 
         Args:
             requirement: High-level requirement to decompose
@@ -1246,7 +1246,7 @@ wbs: {wbs}
         """Analyze requirement and suggest subtasks.
 
         This is a simplified pattern-based decomposition.
-        For complex requirements, consider using super-planner which has
+        For complex requirements, consider using rd2:super-planner which has
         access to AI-powered analysis.
 
         Args:
