@@ -344,15 +344,15 @@ if "confidence" not in output.lower():
 
 - **`rd2:tdd-workflow`** - Test-driven development for implementation
 - **`rd2:task-decomposition`** - Task planning and breakdown
-- **`super-coder`** - Code implementation
+- **`rd2:super-coder`** - Code implementation
 
 ### Usage Pattern
 
 ```
-1. Use `knowledge-seeker` to research and validate information
+1. Use `rd2:knowledge-seeker` to research and validate information
 2. Use findings to inform task decomposition
 3. Use `super-coder` to implement based on verified knowledge
-4. Use `tdd-workflow` to test implementation
+4. Use `rd2:tdd-workflow` to test implementation
 ```
 
 ## Best Practices
