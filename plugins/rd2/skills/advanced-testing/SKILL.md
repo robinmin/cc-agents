@@ -259,7 +259,7 @@ winner = select_best(results, weights={
 
 ## Related Skills
 
-- `tdd-workflow` - Core TDD methodology
+- `rd2:tdd-workflow` - Core TDD methodology
 - `test-coverage` - Coverage requirements and measurement
 - `references/mutation-testing-guide.md` - Mutation testing complete guide
 - `references/property-based-testing.md` - Property-based testing complete guide
