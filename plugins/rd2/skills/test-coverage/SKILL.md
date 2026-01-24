@@ -227,7 +227,7 @@ See `references/coverage-guide.md` for detailed configuration.
 
 ## Related Skills
 
-- `tdd-workflow` - Core TDD methodology
+- `rd2:tdd-workflow` - Core TDD methodology
 - `advanced-testing` - Mutation testing, property-based testing
 - `references/coverage-guide.md` - Detailed analysis techniques
 
