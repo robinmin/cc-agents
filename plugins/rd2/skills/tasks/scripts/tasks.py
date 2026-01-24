@@ -28,6 +28,8 @@ Commands:
     update <WBS> <stage>     Update a task's stage
     open <WBS>               Open a task file in default editor
     refresh                  Refresh the kanban board
+    check                    Verify tasks CLI availability
+    decompose <requirement>  Break down requirement into subtasks
     hook <operation>         Handle TodoWrite hook events
     log <prefix> [--data]    Log developer events
     sync todowrite [--data]  Sync TodoWrite items to external tasks
@@ -40,6 +42,9 @@ Examples:
     tasks list wip
     tasks update 47 testing
     tasks open 0047
+    tasks check
+    tasks decompose "Build authentication system"
+    tasks decompose "Add OAuth" --wbs-prefix 50
     tasks hook add --data '{"items": [...]}'
     tasks log DEBUG --data '{"key": "value"}'
     tasks sync todowrite --data '{"todos": [...]}'
@@ -155,7 +160,7 @@ class TaskFile:
                         status_str = line.split(":", 1)[1].strip()
                         status = TaskStatus.from_alias(status_str)
                         return status or TaskStatus.BACKLOG
-        except Exception:
+        except OSError:
             pass
         return TaskStatus.BACKLOG
 
@@ -388,7 +393,7 @@ class SyncOrchestrator:
 
                 return wbs
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             print(
                 f"[ERROR] Failed to create external task: {e}", file=sys.stderr
             )
@@ -403,7 +408,7 @@ class SyncOrchestrator:
             )
             manager = TasksManager(self.config)
             manager.cmd_update(wbs, task_status.value.lower())
-        except Exception as e:
+        except (OSError, ValueError) as e:
             print(f"[WARN] Failed to sync to task {wbs}: {e}", file=sys.stderr)
 
     def restore_from_tasks(self) -> list[dict[str, str]]:
@@ -440,7 +445,7 @@ class SyncOrchestrator:
                     item_hash = hashlib.md5(content.encode()).hexdigest()[:8]
                     self.session_map[item_hash] = task.wbs
 
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 print(f"[WARN] Failed to restore from {task_file.name}: {e}", file=sys.stderr)
 
         # Save regenerated session map
@@ -527,7 +532,7 @@ class TasksManager:
             print("[INFO] You can now use 'tasks' command from anywhere")
         except PermissionError:
             print(f"[WARN] Permission denied creating symlink at {symlink_path}")
-        except Exception as e:
+        except OSError as e:
             print(f"[WARN] Failed to create symlink: {e}")
 
     def cmd_init(self) -> int:
@@ -800,7 +805,7 @@ class TasksManager:
                     checkbox = "x"
 
                 tasks_by_status[status.value].append(f"- [{checkbox}] {name_no_ext}")
-            except Exception as e:
+            except (OSError, ValueError) as e:
                 print(f"[WARN] Skipping {task_file.name}: {e}", file=sys.stderr)
 
         # Write kanban file
@@ -949,7 +954,7 @@ updated_at: { { UPDATED_AT } }
 
             return 0
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             print(f"[ERROR] Hook failed: {e}", file=sys.stderr)
             return 1
 
@@ -993,7 +998,7 @@ updated_at: { { UPDATED_AT } }
 
             return 0
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             print(f"[ERROR] Log failed: {e}", file=sys.stderr)
             return 1
 
@@ -1038,7 +1043,7 @@ updated_at: { { UPDATED_AT } }
         except json.JSONDecodeError as e:
             print(f"[ERROR] Invalid JSON data: {e}", file=sys.stderr)
             return 1
-        except Exception as e:
+        except (OSError, ValueError) as e:
             print(f"[ERROR] Sync failed: {e}", file=sys.stderr)
             return 1
 
@@ -1069,9 +1074,242 @@ updated_at: { { UPDATED_AT } }
 
             return 0
 
-        except Exception as e:
+        except (OSError, ValueError) as e:
             print(f"[ERROR] Session restore failed: {e}", file=sys.stderr)
             return 1
+
+    def cmd_check(self) -> int:
+        """Check if tasks CLI prerequisites are met.
+
+        Returns:
+            0 on success, 1 on failure
+        """
+        issues = []
+
+        # Check prompts directory
+        if not self.config.prompts_dir.exists():
+            issues.append(f"Prompts directory not found: {self.config.prompts_dir}")
+        else:
+            print(f"[OK] Prompts directory: {self.config.prompts_dir}")
+
+        # Check kanban file
+        if not self.config.kanban_file.exists():
+            issues.append(f"Kanban file not found: {self.config.kanban_file}")
+        else:
+            print(f"[OK] Kanban file: {self.config.kanban_file}")
+
+        # Check template file
+        if not self.config.template_file.exists():
+            issues.append(f"Template file not found: {self.config.template_file}")
+        else:
+            print(f"[OK] Template file: {self.config.template_file}")
+
+        # Check glow (optional)
+        glow_path = shutil.which("glow")
+        if glow_path:
+            print(f"[OK] Glow installed: {glow_path}")
+        else:
+            print("[INFO] Glow not installed (optional, install with 'brew install glow')")
+
+        if issues:
+            print("\n[ISSUES FOUND]", file=sys.stderr)
+            for issue in issues:
+                print(f"  - {issue}", file=sys.stderr)
+            print("\nRun 'tasks init' to set up the tasks CLI.", file=sys.stderr)
+            return 1
+
+        print("\n[SUCCESS] Tasks CLI is ready.")
+        return 0
+
+    def cmd_decompose(
+        self,
+        requirement: str,
+        wbs_prefix: str | None = None,
+        parent: str | None = None,
+        dry_run: bool = False,
+    ) -> int:
+        """Decompose a requirement into structured subtasks.
+
+        This is a simplified decomposition that creates related task files.
+        For complex AI-powered decomposition, consider using super-planner.
+
+        Args:
+            requirement: High-level requirement to decompose
+            wbs_prefix: WBS prefix to use (default: auto-generated)
+            parent: Parent task WBS for subtasks
+            dry_run: If True, preview without creating files
+
+        Returns:
+            0 on success, 1 on failure
+        """
+        if not requirement:
+            print("[ERROR] Please provide a requirement to decompose", file=sys.stderr)
+            return 1
+
+        self.config.validate()
+
+        # Determine starting WBS
+        if wbs_prefix:
+            try:
+                start_wbs = int(wbs_prefix)
+            except ValueError:
+                print(f"[ERROR] Invalid WBS prefix: {wbs_prefix}", file=sys.stderr)
+                return 1
+        else:
+            # Find next available WBS
+            existing_tasks = list(self.config.prompts_dir.glob("*.md"))
+            existing_tasks = [t for t in existing_tasks if not t.name.startswith(".")]
+            if existing_tasks:
+                max_wbs = 0
+                for task in existing_tasks:
+                    match = re.match(r"^(\d{4})", task.name)
+                    if match:
+                        max_wbs = max(max_wbs, int(match.group(1)))
+                start_wbs = max_wbs + 1
+            else:
+                start_wbs = 1
+
+        # Analyze requirement and suggest subtasks
+        subtasks = self._analyze_requirement(requirement)
+
+        # Create task files
+        created_files = []
+        for idx, subtask in enumerate(subtasks, start_wbs):
+            wbs = f"{idx:04d}"
+            safe_name = subtask["name"].lower().replace(" ", "_").replace("/", "_")
+            filename = f"{wbs}_{safe_name}.md"
+            filepath = self.config.prompts_dir / filename
+
+            # Build enhanced task file content
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            content = f"""---
+name: {subtask['name']}
+description: {subtask['description']}
+status: Backlog
+created_at: {now}
+updated_at: {now}
+wbs: {wbs}
+"""
+
+            # Add dependencies if specified
+            if idx > start_wbs:
+                content += f"dependencies: ['{idx-1:04d}']\n"
+            elif parent:
+                content += f"parent: {parent}\n"
+
+            content += f"""---
+
+## {wbs}. {subtask['name']}
+
+### Background
+
+{requirement}
+
+### Requirements / Objectives
+
+{subtask['description']}
+
+#### Q&A
+
+[Clarifications from user, decisions made during implementation]
+
+### Solutions / Goals
+
+[Technical approach, architecture decisions]
+
+#### Plan
+
+[Step-by-step implementation plan]
+
+### References
+
+[Documentation links, code examples, similar implementations]
+"""
+
+            if dry_run:
+                print(f"[DRY RUN] Would create: {filepath}")
+                created_files.append(filepath)
+            else:
+                filepath.write_text(content)
+                print(f"[INFO] Created: {filepath}")
+                created_files.append(filepath)
+
+        if dry_run:
+            print(f"\n[DRY RUN] Would create {len(created_files)} task files")
+        else:
+            print(f"\n[SUCCESS] Created {len(created_files)} task files")
+            self.cmd_refresh()
+
+        return 0
+
+    def _analyze_requirement(self, requirement: str) -> list[dict[str, str]]:
+        """Analyze requirement and suggest subtasks.
+
+        This is a simplified pattern-based decomposition.
+        For complex requirements, consider using super-planner which has
+        access to AI-powered analysis.
+
+        Args:
+            requirement: The requirement to analyze
+
+        Returns:
+            List of subtask definitions
+        """
+        requirement_lower = requirement.lower()
+
+        # Pattern matching for common task types
+        keywords = {
+            "authentication": [
+                {"name": "Design authentication architecture", "description": "Design the overall authentication system architecture"},
+                {"name": "Implement user model and database", "description": "Create user model with email/password fields"},
+                {"name": "Implement authentication service", "description": "Implement login, logout, and session management"},
+                {"name": "Add authentication endpoints", "description": "Create API endpoints for authentication"},
+                {"name": "Add authentication tests", "description": "Write tests for authentication functionality"},
+            ],
+            "oauth": [
+                {"name": "Design OAuth integration architecture", "description": "Design OAuth2 integration with providers"},
+                {"name": "Implement OAuth client", "description": "Implement OAuth client for provider integration"},
+                {"name": "Add OAuth endpoints", "description": "Create OAuth callback and redirect endpoints"},
+                {"name": "Add OAuth tests", "description": "Write tests for OAuth functionality"},
+            ],
+            "api": [
+                {"name": "Design API structure", "description": "Design RESTful API endpoints and structure"},
+                {"name": "Implement API endpoints", "description": "Implement the core API endpoints"},
+                {"name": "Add input validation", "description": "Add request validation and error handling"},
+                {"name": "Add API documentation", "description": "Document API endpoints with OpenAPI/Swagger"},
+                {"name": "Add API tests", "description": "Write tests for API endpoints"},
+            ],
+            "ui": [
+                {"name": "Design UI layout", "description": "Design the overall UI layout and components"},
+                {"name": "Implement UI components", "description": "Implement the UI components"},
+                {"name": "Add state management", "description": "Add state management for UI components"},
+                {"name": "Add UI tests", "description": "Write tests for UI components"},
+            ],
+            "dashboard": [
+                {"name": "Design dashboard layout", "description": "Design dashboard layout and navigation"},
+                {"name": "Implement dashboard components", "description": "Implement dashboard widgets and components"},
+                {"name": "Add data fetching", "description": "Implement data fetching and state management"},
+                {"name": "Add dashboard tests", "description": "Write tests for dashboard functionality"},
+            ],
+            "database": [
+                {"name": "Design database schema", "description": "Design database schema and relationships"},
+                {"name": "Implement migrations", "description": "Create database migration scripts"},
+                {"name": "Create repositories", "description": "Implement repository pattern for data access"},
+                {"name": "Add data tests", "description": "Write tests for data layer"},
+            ],
+        }
+
+        # Check for keyword matches
+        for keyword, subtasks in keywords.items():
+            if keyword in requirement_lower:
+                return subtasks
+
+        # Default generic decomposition
+        return [
+            {"name": "Design and planning", "description": f"Analyze requirements and create implementation plan for: {requirement}"},
+            {"name": "Implementation", "description": f"Implement the core functionality for: {requirement}"},
+            {"name": "Testing", "description": f"Add tests and verify correctness for: {requirement}"},
+        ]
 
 
 def main() -> int:
@@ -1109,6 +1347,8 @@ Examples:
             "update",
             "open",
             "refresh",
+            "check",
+            "decompose",
             "hook",
             "log",
             "sync",
@@ -1131,6 +1371,19 @@ Examples:
     parser.add_argument(
         "--data",
         help="JSON data for hook command (tool_input from PreToolUse event)",
+    )
+    parser.add_argument(
+        "--wbs-prefix",
+        help="WBS prefix for decompose command (default: auto-generated)",
+    )
+    parser.add_argument(
+        "--parent",
+        help="Parent task WBS for decompose command (for subtasks)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview decompose output without creating files",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 1.0.0")
 
@@ -1161,6 +1414,20 @@ Examples:
             return manager.cmd_open(args.wbs)
         elif args.command == "refresh":
             return manager.cmd_refresh()
+        elif args.command == "check":
+            return manager.cmd_check()
+        elif args.command == "decompose":
+            requirement = args.task_name or ""
+            if not requirement:
+                print("[ERROR] Usage: tasks decompose <requirement>", file=sys.stderr)
+                print(TASKS_USAGE, file=sys.stderr)
+                return 1
+            return manager.cmd_decompose(
+                requirement=requirement,
+                wbs_prefix=args.wbs_prefix,
+                parent=args.parent,
+                dry_run=args.dry_run,
+            )
         elif args.command == "hook":
             # For hook command, operation comes from task_name position
             operation = args.task_name or args.operation
@@ -1193,7 +1460,7 @@ Examples:
                 print("Valid subcommands: todowrite, restore", file=sys.stderr)
                 return 1
 
-    except Exception as e:
+    except (OSError, ValueError, RuntimeError) as e:
         print(f"[ERROR] {e}", file=sys.stderr)
         return 1
 
