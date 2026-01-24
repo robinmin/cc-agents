@@ -208,6 +208,66 @@ When creating subagents, select unique category colors for visual identification
 
 ## Best Practices
 
+### Naming Conventions (CRITICAL)
+
+**Follow official Claude Code naming rules:**
+
+1. **ALWAYS use full namespace** for plugin skills: `plugin-name:skill-name`
+   - When referencing skills in documentation, use full namespace
+   - When invoking skills via slash commands, use full namespace
+   - In `agents.md` skills field, reference without prefix (internal)
+   - Never omit the plugin prefix in user-facing documentation
+
+2. **NEVER reuse names** across components
+   - Slash commands, subagents, and skills must have UNIQUE names
+   - Skills take precedence over commands with same name (blocks invocation)
+   - Use distinct naming patterns to avoid confusion
+
+| Component | Naming Pattern | Example |
+|-----------|---------------|---------|
+| Slash Command | `verb-noun` | `test-code` |
+| Slash Command (grouped) | `noun-verb` | `agent-add`, `agent-evaluate`, `agent-refine` (groups related commands) |
+| Skill | `verb-ing-noun` | `reviewing-code` |
+| Subagent | `role-agent` | `code-reviewer-agent` |
+
+**Slash Command Grouping Rule:**
+- When multiple slash commands share the same domain, use `noun-verb` format (NOT `verb-noun`)
+- This groups related commands together alphabetically in listings
+- Examples:
+  - `agent-add.md`, `agent-evaluate.md`, `agent-refine.md` (all "agent" commands grouped)
+  - `code-generate.md`, `code-review.md` (all "code" commands grouped)
+  - `tasks-plan.md`, `tasks-cli.md` (all "tasks" commands grouped) |
+
+**Sources:**
+- [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
+- [GitHub Issue #14945](https://github.com/anthropics/claude-code/issues/14945) - Slash commands blocked by skill name collision
+- [GitHub Issue #15944](https://github.com/anthropics/claude-code/issues/15944) - Cross-plugin skill references
+
+### Skill Composition Rules
+
+**DO:**
+- Keep agents and skills INDEPENDENT
+- Use subagents to orchestrate multiple skills via the `skills` field
+- Leverage `context: fork` for skill isolation
+
+**DON'T:**
+- Make agents/skills directly call other agents/skills
+- Add explicit dependencies between skills (not supported)
+- Assume cross-plugin skill references work (feature request only)
+
+**Example correct pattern:**
+```yaml
+# agents/orchestrator.md
+---
+name: orchestrator
+skills:
+  - research
+  - writing
+  - review
+context: fork
+---
+```
+
 ### Writing Guidelines
 
 - **Use imperative/infinitive form** ("Create X", not "Creates X")
@@ -225,6 +285,8 @@ When creating subagents, select unique category colors for visual identification
 | Incomplete rules | Missing guardrails | Add 8+ DO and 8+ DON'T |
 | No auto-routing | Won't trigger automatically | Add "Use PROACTIVELY for" |
 | Too few examples | Users unclear when to use | Add 2-3 examples |
+| **Name reuse** | **Blocks invocation** | **Use distinct names** |
+| **Skill dependencies** | **Not supported** | **Use subagents** |
 
 ## Verification Protocol Template
 
