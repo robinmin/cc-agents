@@ -60,6 +60,111 @@ Auto-routing activates based on these keywords:
 
 ---
 
+## Hybrid Approach for Complex Commands
+
+### When to Use Pseudocode
+
+For complex slash commands and subagents that orchestrate workflows, use a **hybrid approach**:
+
+**Command Layer (.md files):**
+- Use **pseudocode with built-in tools** (Task, SlashCommand, AskUserQuestion)
+- Explicit workflow sequences: "Step 1 → Step 2 → Step 3"
+- Self-documenting: the pseudocode IS the specification
+- Focus on: "what to call" and "when to call it"
+
+**Agent Layer (.md agents):**
+- Use **flexible natural language** with conditional logic
+- Adaptive behavior based on task state, user responses, context
+- Error handling, retries, fallback strategies
+- Focus on: "how to adapt" and "decision-making"
+
+### Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Command Layer (.md files) - THIN WRAPPERS                   │
+│  - Pseudocode for tool invocation sequence                    │
+│  - Explicit "When to use" and "Examples" sections            │
+│  - Clear: "Calls: super-planner → refine → design → run"     │
+│  - Built-in tools: Task, SlashCommand, AskUserQuestion      │
+└─────────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Agent Layer (super-planner.md) - FAT SKILLS                │
+│  - Flexible logic, conditionals, error handling             │
+│  - Can adapt based on task state, user responses            │
+│  - NOT hardcoded pseudocode                                  │
+│  - Coordinates: rd2:tasks, rd2:task-decomposition, etc.    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Why This Hybrid Approach Works
+
+1. **Explicit workflows** - Claude knows exactly when to use tools
+2. **Self-documenting** - Pseudocode in commands doubles as spec
+3. **Flexible execution** - Agents can adapt to real-world complexity
+4. **Separation of concerns** - Commands = orchestration, Agents = adaptation
+5. **Easier debugging** - Can trace which step failed in the workflow
+6. **Testable components** - Commands and agents can be tested independently
+
+### Command Template Example
+
+```markdown
+---
+description: Task refinement via quality check
+argument-hint: "<task-file.md>" [--force-refine]
+---
+
+# Tasks Refine
+
+Refine task files by detecting gaps, suggesting improvements, and getting user approval.
+
+## When to Use
+- Task file has empty/missing sections
+- Requirements are unclear or incomplete
+- Need user clarification before proceeding
+
+## Workflow
+
+This command delegates to **super-planner** agent with refinement mode:
+
+Task(
+  subagent_type="super-planner",
+  prompt="""Refine task: {task_file}
+
+Mode: refinement-only
+Flags: {force_refine}
+
+Steps:
+1. Check task file quality (empty sections, content length)
+2. If red flags found OR --force-refine:
+   - Generate refinement draft
+   - Ask user for approval via AskUserQuestion
+3. Update task file with approved changes
+4. Report completion
+"""
+)
+```
+
+### Built-in Tools for Commands
+
+| Tool | Purpose | Example |
+|------|---------|----------|
+| `Task` | Delegate to subagent | `Task(subagent_type="super-planner", prompt="...")` |
+| `SlashCommand` | Call another command | `SlashCommand(skill="rd2:tasks-refine", args="...")` |
+| `AskUserQuestion` | Interactive user input | Ask clarifying questions with options |
+
+### Key Rules
+
+- **Commands are thin wrappers** - Use pseudocode for orchestration
+- **Agents are adaptive coordinators** - Use flexible language for decision-making
+- **Always document the workflow** - Include "When to Use" and "Examples"
+- **Use full namespace for resources** - e.g., `rd2:tasks`, `rd2:super-planner`
+- **Keep agents as skills-based** - Agents delegate to skills, don't implement directly
+
+---
+
 ## See Also
 
 - [Official Claude Code Documentation](https://code.claude.com/docs)
+- [Reference: rd:task-runner](../plugins/rd/commands/task-runner.md) - Example of pseudocode approach
