@@ -283,10 +283,10 @@ Both solution review and code review produce:
 
 ## Related Documentation
 
-- **super-planner**: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-planner.md`
-- **super-architect**: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-architect.md`
-- **super-designer**: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-designer.md`
-- **super-coder**: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-coder.md`
-- **super-code-reviewer**: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-code-reviewer.md`
-- **tasks**: `/Users/robin/projects/cc-agents/plugins/rd2/skills/tasks/SKILL.md`
-- **tdd-workflow**: `/Users/robin/projects/cc-agents/plugins/rd2/skills/tdd-workflow/skill.md`
+- **super-planner**: `plugins/rd2/agents/super-planner.md`
+- **super-architect**: `plugins/rd2/agents/super-architect.md`
+- **super-designer**: `plugins/rd2/agents/super-designer.md`
+- **super-coder**: `plugins/rd2/agents/super-coder.md`
+- **super-code-reviewer**: `plugins/rd2/agents/super-code-reviewer.md`
+- **tasks**: `plugins/rd2/skills/tasks/SKILL.md`
+- **tdd-workflow**: `plugins/rd2/skills/tdd-workflow/SKILL.md`
