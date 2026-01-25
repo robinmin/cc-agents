@@ -67,7 +67,7 @@ class MarkdownFormatter(ReportFormatter):
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **File to modify:** `plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Lines to refactor:** 1121-1180 (format_report function)
 
 ## Deliverables
