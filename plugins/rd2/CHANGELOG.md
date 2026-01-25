@@ -1,3 +1,49 @@
+## [0.3.0] - 2026-01-25
+
+### Summary
+
+**Plugin Hooks Skill & Subagents: Comprehensive Hook Development System**
+
+Added `rd2:cc-hooks` Agent Skill with complementary subagents for creating and evaluating Claude Code plugin hooks. Implemented progressive disclosure architecture following `rd2:cc-skills` methodology with Grade A production quality.
+
+### Added
+
+- **rd2:cc-hooks Skill** (`plugins/rd2/skills/cc-hooks/`):
+  - **SKILL.md** (542 lines, ~1,900 words): Meta-skill for creating Claude Code plugin hooks (PreToolUse/PostToolUse/Stop/SubagentStop)
+  - **references/patterns.md** (347 lines): 10+ common hook patterns (validation, context loading, blocking, security)
+  - **references/advanced.md** (480 lines): Advanced use cases and techniques
+  - **references/migration.md** (370 lines): Migration guidance for hook evolution
+  - **examples/**: Working hook scripts (validate-write.sh, validate-bash.sh, load-context.sh)
+  - **scripts/**: Utility tools (validate-hook-schema.sh, test-hook.sh, hook-linter.sh)
+
+- **New Subagents** (`plugins/rd2/agents/`):
+  - **hook-expert.md** (~500 lines, color: amber): Hook creation specialist following 8-section anatomy
+  - **hook-doctor.md** (~450 lines, color: crimson): Hook quality evaluator with comprehensive scoring framework
+
+### Agent Validation Results
+
+**cc-hooks Skill Quality Assessment (skill-doctor):**
+- Overall Score: 93.2/100 (Grade A)
+- Status: ✓ Production Ready
+- Frontmatter: 95/100, Content: 90/100, Security: 95/100, Structure: 95/100
+- Perfect progressive disclosure, comprehensive security practices
+
+**hook-expert & hook-doctor Quality:** Pending validation
+
+### Benefits
+
+- **Production-Ready Quality**: Grade A (93.2/100) with comprehensive security practices
+- **Progressive Disclosure**: SKILL.md is lean (1,900 words), detailed content properly separated to references/
+- **Complete Hook Development**: From creation (hook-expert) to evaluation (hook-doctor) workflow
+- **Utility Tools**: validate-hook-schema.sh, test-hook.sh, hook-linter.sh for development efficiency
+
+### References
+
+- Source: `vendors/claude-code/plugins/plugin-dev/skills/hook-development`
+- [Claude Code Hooks Documentation](https://docs.anthropic.com/en/docs/claude-code/hooks)
+
+---
+
 ## [0.2.2] - 2026-01-25
 
 ### Summary
