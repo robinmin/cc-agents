@@ -160,14 +160,14 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-augg
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py import \
-  .claude/plans/review-src.md
+  docs/plans/review-src.md
 ```
 
 ### Import Critical Only
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py import \
-  .claude/plans/review-src.md \
+  docs/plans/review-src.md \
   --priority critical
 ```
 
@@ -175,7 +175,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-augg
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py import \
-  .claude/plans/review-src.md \
+  docs/plans/review-src.md \
   --priority high
 ```
 
@@ -239,7 +239,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-augg
 
 # Import and fix critical issues
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py import \
-  .claude/plans/security-pass1.md \
+  docs/plans/security-pass1.md \
   --priority critical
 
 # After fixes, do full review
@@ -277,8 +277,8 @@ if [ -n "$files" ]; then
     --output pre-commit-review
 
   # Check for critical issues
-  if grep -q "## Critical Issues" .claude/plans/pre-commit-review.md; then
-    echo "Critical issues found. Review .claude/plans/pre-commit-review.md"
+  if grep -q "## Critical Issues" docs/plans/pre-commit-review.md; then
+    echo "Critical issues found. Review docs/plans/pre-commit-review.md"
     exit 1
   fi
 fi
@@ -308,7 +308,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: review-results
-          path: .claude/plans/ci-review.md
+          path: docs/plans/ci-review.md
 ```
 
 ### Compare Reviews
@@ -326,10 +326,10 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-augg
 
 # Compare results
 echo "=== Gemini Review ==="
-cat .claude/plans/gemini-review.md
+cat docs/plans/gemini-review.md
 
 echo "=== Auggie Review ==="
-cat .claude/plans/auggie-review.md
+cat docs/plans/auggie-review.md
 ```
 
 ---
@@ -346,7 +346,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-augg
   --output new-auth-plan
 
 # 2. Review plan
-cat .claude/plans/new-auth-plan.md
+cat docs/plans/new-auth-plan.md
 
 # 3. After implementation, review code
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py review \
@@ -356,7 +356,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-augg
 
 # 4. Import issues as tasks
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py import \
-  .claude/plans/new-auth-review.md
+  docs/plans/new-auth-review.md
 ```
 
 ### Security Audit Workflow
@@ -370,11 +370,11 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-augg
 
 # 2. Import only critical and high issues
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py import \
-  .claude/plans/security-audit.md \
+  docs/plans/security-audit.md \
   --priority critical
 
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py import \
-  .claude/plans/security-audit.md \
+  docs/plans/security-audit.md \
   --priority high
 
 # 3. Track progress
