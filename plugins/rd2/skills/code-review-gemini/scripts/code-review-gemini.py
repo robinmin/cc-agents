@@ -62,7 +62,7 @@ TIMEOUT_MODERATE = 600  # 10 minutes
 TIMEOUT_COMPLEX = 900  # 15 minutes
 
 # Plans output directory
-PLANS_DIR = Path(".claude/plans")
+PLANS_DIR = Path("docs/plans")
 
 
 ###############################################################################
