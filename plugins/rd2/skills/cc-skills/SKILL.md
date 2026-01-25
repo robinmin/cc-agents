@@ -29,18 +29,64 @@ Output: `my-skill.skill` file ready for installation.
 
 ### Creating a New Skill
 
-Use this checklist workflow:
+Use this checklist workflow based on the official 6-step skill creation process:
 
 **Task Progress:**
 
-- [ ] **Step 1: Gather requirements** - Collect concrete usage examples from user
-- [ ] **Step 2: Plan resources** - Identify scripts/references/assets needed
+- [ ] **Step 1: Understanding with Concrete Examples** - Collect concrete usage examples from user
+- [ ] **Step 2: Plan Reusable Contents** - Identify scripts/references/assets needed
 - [ ] **Step 3: Initialize** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init <name> --path ${CLAUDE_PLUGIN_ROOT}/skills`
 - [ ] **Step 4: Implement resources** - Create and test scripts, write SKILL.md
 - [ ] **Step 5: Validate** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py validate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
-- [ ] **Step 6: Evaluate** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
-- [ ] **Step 7: Iterate** - Address findings, re-evaluate until Grade A/B
-- [ ] **Step 8: Package** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>`
+- [ ] **Step 6: Iterate** - Address findings, re-evaluate until Grade A/B
+
+**Step 1 Detail - Understanding with Concrete Examples:**
+
+Skip this step only when the skill's usage patterns are already clearly understood. To create an effective skill, clearly understand concrete examples of how the skill will be used. This understanding can come from either direct user examples or generated examples that are validated with user feedback.
+
+For example, when building an image-editor skill, relevant questions include:
+- "What functionality should the image-editor skill support? Editing, rotating, anything else?"
+- "Can you give some examples of how this skill would be used?"
+- "I can imagine users asking for things like 'Remove the red-eye from this image' or 'Rotate this image'. Are there other ways you imagine this skill being used?"
+- "What would a user say that should trigger this skill?"
+
+To avoid overwhelming users, avoid asking too many questions in a single message. Start with the most important questions and follow up as needed for better effectiveness.
+
+Conclude this step when there is a clear sense of the functionality the skill should support.
+
+**Step 2 Detail - Plan Reusable Contents:**
+
+To turn concrete examples into an effective skill, analyze each example by:
+1. Considering how to execute on the example from scratch
+2. Identifying what scripts, references, and assets would be helpful when executing these workflows repeatedly
+
+Example analysis patterns:
+- **Repeated code** → Create `scripts/` utility
+- **Repeated discovery** → Create `references/` documentation
+- **Repeated boilerplate** → Create `assets/` templates
+
+For a `pdf-editor` skill ("Help me rotate this PDF"):
+1. Rotating a PDF requires re-writing the same code each time
+2. A `scripts/rotate_pdf.py` script would be helpful
+
+For a `frontend-webapp-builder` skill ("Build me a todo app"):
+1. Writing a frontend webapp requires the same boilerplate HTML/React each time
+2. An `assets/hello-world/` template would be helpful
+
+For a `big-query` skill ("How many users have logged in today?"):
+1. Querying BigQuery requires re-discovering the table schemas each time
+2. A `references/schema.md` file would be helpful
+
+**Step 3 Detail - Create Skill Structure:**
+
+For Claude Code plugins, the init script creates the skill directory structure:
+
+```bash
+mkdir -p plugin-name/skills/skill-name/{references,examples,scripts}
+touch plugin-name/skills/skill-name/SKILL.md
+```
+
+The init script automates this with proper template files.
 
 **Step 4 Detail - Implement resources:**
 
@@ -254,6 +300,44 @@ Skills are evaluated across 7 dimensions:
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>` to assess quality.
 
+## Validation Checklist
+
+Before finalizing a skill, use this comprehensive checklist:
+
+**Structure:**
+- [ ] SKILL.md file exists with valid YAML frontmatter
+- [ ] Frontmatter has `name` and `description` fields
+- [ ] Markdown body is present and substantial
+- [ ] Referenced files actually exist
+
+**Description Quality:**
+- [ ] Uses third person ("This skill should be used when...")
+- [ ] Includes specific trigger phrases users would say
+- [ ] Lists concrete scenarios ("create X", "configure Y")
+- [ ] Not vague or generic
+
+**Content Quality:**
+- [ ] SKILL.md body uses imperative/infinitive form
+- [ ] Body is focused and lean (1,500-2,000 words ideal, <5k max)
+- [ ] Detailed content moved to references/
+- [ ] Examples are complete and working
+- [ ] Scripts are executable and documented
+
+**Progressive Disclosure:**
+- [ ] Core concepts in SKILL.md
+- [ ] Detailed docs in references/
+- [ ] Working code in examples/
+- [ ] Utilities in scripts/
+- [ ] SKILL.md references these resources
+
+**Testing:**
+- [ ] Skill triggers on expected user queries
+- [ ] Content is helpful for intended tasks
+- [ ] No duplicated information across files
+- [ ] References load when needed
+
+For detailed validation criteria, see [Validation Checklist](references/validation-checklist.md).
+
 ## Best Practices
 
 ### Naming Conventions (CRITICAL)
@@ -321,6 +405,61 @@ context: fork
 - **Frontmatter description**: Include BOTH what the skill does AND when to use it. This is Claude's primary trigger mechanism.
 - **Body**: Focus on procedural instructions and workflow guidance. Move reference material to `references/` files.
 
+#### Writing Style Requirements
+
+**Imperative/Infinitive Form:**
+
+Write using verb-first instructions, not second person:
+
+**Correct (imperative):**
+```
+To create a hook, define the event type.
+Configure the MCP server with authentication.
+Validate settings before use.
+```
+
+**Incorrect (second person):**
+```
+You should create a hook by defining the event type.
+You need to configure the MCP server.
+You must validate settings before use.
+```
+
+**Third-Person in Description:**
+
+The frontmatter description must use third person:
+
+**Correct:**
+```yaml
+description: This skill should be used when the user asks to "create X", "configure Y"...
+```
+
+**Incorrect:**
+```yaml
+description: Use this skill when you want to create X...
+description: Load this skill when user asks...
+```
+
+**Objective, Instructional Language:**
+
+Focus on what to do, not who should do it:
+
+**Correct:**
+```
+Parse the frontmatter using sed.
+Extract fields with grep.
+Validate values before use.
+```
+
+**Incorrect:**
+```
+You can parse the frontmatter...
+Claude should extract fields...
+The user might validate values...
+```
+
+For detailed writing style examples and patterns, see [Writing Style Guide](references/writing-style.md).
+
 ### Common Patterns
 
 See detailed guides in `references/`:
@@ -330,6 +469,133 @@ See detailed guides in `references/`:
 - **Output formats**: [output-patterns.md](references/output-patterns.md)
 - **Security guidelines**: [security.md](references/security.md)
 - **Evaluation methodology**: [evaluation.md](references/evaluation.md)
+
+## Common Mistakes to Avoid
+
+### Mistake 1: Weak Trigger Description
+
+❌ **Bad:**
+```yaml
+description: Provides guidance for working with hooks.
+```
+**Why bad:** Vague, no specific trigger phrases, not third person
+
+✅ **Good:**
+```yaml
+description: This skill should be used when the user asks to "create a hook", "add a PreToolUse hook", "validate tool use", or mentions hook events. Provides comprehensive hooks API guidance.
+```
+**Why good:** Third person, specific phrases, concrete scenarios
+
+### Mistake 2: Too Much in SKILL.md
+
+❌ **Bad:**
+```
+skill-name/
+└── SKILL.md  (8,000 words - everything in one file)
+```
+**Why bad:** Bloats context when skill loads, detailed content always loaded
+
+✅ **Good:**
+```
+skill-name/
+├── SKILL.md  (1,800 words - core essentials)
+└── references/
+    ├── patterns.md (2,500 words)
+    └── advanced.md (3,700 words)
+```
+**Why good:** Progressive disclosure, detailed content loaded only when needed
+
+### Mistake 3: Second Person Writing
+
+❌ **Bad:**
+```markdown
+You should start by reading the configuration file.
+You need to validate the input.
+You can use the grep tool to search.
+```
+**Why bad:** Second person, not imperative form
+
+✅ **Good:**
+```markdown
+Start by reading the configuration file.
+Validate the input before processing.
+Use the grep tool to search for patterns.
+```
+**Why good:** Imperative form, direct instructions
+
+### Mistake 4: Missing Resource References
+
+❌ **Bad:**
+```markdown
+# SKILL.md
+
+[Core content]
+
+[No mention of references/ or examples/]
+```
+**Why bad:** Claude doesn't know references exist
+
+✅ **Good:**
+```markdown
+# SKILL.md
+
+[Core content]
+
+## Additional Resources
+
+### Reference Files
+- **`references/patterns.md`** - Detailed patterns
+- **`references/advanced.md`** - Advanced techniques
+
+### Examples
+- **`examples/script.sh`** - Working example
+```
+**Why good:** Claude knows where to find additional information
+
+For more common mistakes and solutions, see [Common Mistakes](references/common-mistakes.md).
+- **Output formats**: [output-patterns.md](references/output-patterns.md)
+- **Security guidelines**: [security.md](references/security.md)
+- **Evaluation methodology**: [evaluation.md](references/evaluation.md)
+
+## Quick Reference
+
+### Minimal Skill
+
+```
+skill-name/
+└── SKILL.md
+```
+Good for: Simple knowledge, no complex resources needed
+
+### Standard Skill (Recommended)
+
+```
+skill-name/
+├── SKILL.md
+├── references/
+│   └── detailed-guide.md
+└── examples/
+    └── working-example.sh
+```
+Good for: Most plugin skills with detailed documentation
+
+### Complete Skill
+
+```
+skill-name/
+├── SKILL.md
+├── references/
+│   ├── patterns.md
+│   └── advanced.md
+├── examples/
+│   ├── example1.sh
+│   └── example2.json
+└── scripts/
+    └── validate.sh
+```
+Good for: Complex domains with validation utilities
+
+For more detailed reference patterns, see [Quick Reference](references/quick-reference.md).
 
 ## Configuration
 
