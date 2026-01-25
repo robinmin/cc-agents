@@ -52,7 +52,7 @@ Prose mentions of dangerous patterns are completely ignored because:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **File to modify:** `plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Depends on:** Task 0001 (AST analyzer concepts)
 - **Lines to replace:** 744-760 (SKILL.md content scanning)
 
