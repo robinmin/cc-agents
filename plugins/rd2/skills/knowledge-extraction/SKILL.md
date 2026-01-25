@@ -1,5 +1,5 @@
 ---
-name: knowledge-seeker
+name: knowledge-extraction
 description: Extract, synthesize, and validate information from multiple sources with cross-verification, deduplication, and proper source attribution. Use when researching APIs, libraries, frameworks, verifying facts, or consolidating information from PDFs, web pages, and code files.
 triggers:
   - research
@@ -24,7 +24,8 @@ triggers:
 Systematic information extraction, synthesis, and validation skill that transforms raw data from multiple sources into verified, citable knowledge. Implements triangulation-based verification with confidence scoring and proper source attribution.
 
 **Key distinction:**
-- **`rd2:knowledge-seeker`** = Information extraction, verification, and synthesis (knowledge work)
+
+- **`rd2:knowledge-extraction`** = Information extraction, verification, and synthesis (knowledge work)
 - **Other tools** = Information access (WebSearch, WebFetch, grep, ref, etc.)
 
 ## Core Principles
@@ -46,12 +47,12 @@ EXTRACT → VERIFY → CONSOLIDATE → CITE
 
 Use multiple sources to enhance credibility:
 
-| Confidence Level | Requirement | Evidence |
-|-----------------|------------|----------|
-| **HIGH** (>90%) | Direct quotes from official docs (2024+) | Official docs, API references |
-| **MEDIUM** (70-90%) | Synthesized from 2+ sources | Cross-verified claims |
-| **LOW** (<70%) | Single source or outdated | Flag for manual review |
-| **UNVERIFIED** | No sources found | Do not present |
+| Confidence Level    | Requirement                              | Evidence                      |
+| ------------------- | ---------------------------------------- | ----------------------------- |
+| **HIGH** (>90%)     | Direct quotes from official docs (2024+) | Official docs, API references |
+| **MEDIUM** (70-90%) | Synthesized from 2+ sources              | Cross-verified claims         |
+| **LOW** (<70%)      | Single source or outdated                | Flag for manual review        |
+| **UNVERIFIED**      | No sources found                         | Do not present                |
 
 ### 3. Progressive Disclosure
 
@@ -80,20 +81,24 @@ Aspect: "authentication mechanisms"
 ```
 
 **Step 1: EXTRACT** - Identify relevant information
+
 - Scan source for aspect-related content
 - Extract key facts, patterns, relationships
 
 **Step 2: VERIFY** - Cross-check with other sources
+
 - Use `ref` for official documentation
 - Use `WebSearch` for recent validation
 - Use `mcp__grep__searchGitHub` for code examples
 
 **Step 3: CONSOLIDATE** - Merge and deduplicate
+
 - Combine verified information
 - Remove duplicates
 - Resolve conflicts
 
 **Step 4: CITE** - Add source attribution
+
 - Format: **Source**: [Title](URL) | **Verified**: YYYY-MM-DD
 - Include confidence level and reasoning
 
@@ -152,6 +157,7 @@ Aspect: "authentication mechanisms"
 ## Tool Selection Summary
 
 ### Priority Order
+
 1. **MCP Tools** (ref, searchGitHub, brave-search) - Fast, credible, specialized
 2. **rd:agent-browser** - JS-rendered content, screenshots, forms
 3. **WebFetch** - Static content, specific URLs
@@ -160,13 +166,13 @@ Aspect: "authentication mechanisms"
 
 ### Quick Reference
 
-| Information Type | Primary Tool | Fallback |
-|-----------------|--------------|----------|
-| **API/Library Docs** | `ref` (MCP) | WebFetch → WebSearch |
-| **GitHub Code** | `mcp__grep__searchGitHub` | WebFetch → WebSearch |
-| **Recent Facts (<6mo)** | `WebSearch` | `ref` → WebFetch |
-| **Local Codebase** | `Read` / `Grep` | - |
-| **Specific URL** | `ref_read_url` (MCP) | WebFetch |
+| Information Type        | Primary Tool              | Fallback             |
+| ----------------------- | ------------------------- | -------------------- |
+| **API/Library Docs**    | `ref` (MCP)               | WebFetch → WebSearch |
+| **GitHub Code**         | `mcp__grep__searchGitHub` | WebFetch → WebSearch |
+| **Recent Facts (<6mo)** | `WebSearch`               | `ref` → WebFetch     |
+| **Local Codebase**      | `Read` / `Grep`           | -                    |
+| **Specific URL**        | `ref_read_url` (MCP)      | WebFetch             |
 
 **For detailed tool selection guidance:** `references/tool-selection.md`
 
@@ -222,13 +228,16 @@ See Core Principles for confidence scoring framework (HIGH/MEDIUM/LOW/UNVERIFIED
 ### Citation Format
 
 **Inline citations:**
+
 ```markdown
 **Source**: [React Server Components](https://react.dev/reference/react/18/server-components) | **Verified**: 2025-01-15
 ```
 
 **Multiple sources:**
+
 ```markdown
 **Sources**:
+
 - [Source 1](URL1) (verified: 2025-01-15)
 - [Source 2](URL2) (verified: 2025-01-16)
 ```
@@ -237,12 +246,12 @@ See Core Principles for confidence scoring framework (HIGH/MEDIUM/LOW/UNVERIFIED
 
 ### Disagreement Types
 
-| Type | Description | Resolution |
-|------|-------------|------------|
-| **Factual** | Different dates, versions, numbers | Prioritize most recent, check official |
-| **Interpretive** | Different approaches, recommendations | Present multiple viewpoints |
-| **Temporal** | Information changed over time | Note temporal context, provide latest |
-| **Scope** | Different contexts/environments | Clarify applicability context |
+| Type             | Description                           | Resolution                             |
+| ---------------- | ------------------------------------- | -------------------------------------- |
+| **Factual**      | Different dates, versions, numbers    | Prioritize most recent, check official |
+| **Interpretive** | Different approaches, recommendations | Present multiple viewpoints            |
+| **Temporal**     | Information changed over time         | Note temporal context, provide latest  |
+| **Scope**        | Different contexts/environments       | Clarify applicability context          |
 
 **Resolution Protocol:** Identify → Assess → Check → Present → Flag
 
@@ -252,11 +261,11 @@ See Core Principles for confidence scoring framework (HIGH/MEDIUM/LOW/UNVERIFIED
 
 ### Content Matching
 
-| Type | Handling |
-|------|----------|
-| **Exact duplicates** | Remove entirely, keep single instance |
-| **Near duplicates** | Merge overlapping, keep most comprehensive |
-| **Semantic duplicates** | Consolidate, note source variations |
+| Type                    | Handling                                   |
+| ----------------------- | ------------------------------------------ |
+| **Exact duplicates**    | Remove entirely, keep single instance      |
+| **Near duplicates**     | Merge overlapping, keep most comprehensive |
+| **Semantic duplicates** | Consolidate, note source variations        |
 
 ### Information Merging
 
@@ -273,6 +282,7 @@ See Core Principles for confidence scoring framework (HIGH/MEDIUM/LOW/UNVERIFIED
 **Problem:** Presenting information from only one source
 
 **Gate function:**
+
 ```python
 # HIGH importance requires 2+ sources
 # CRITICAL claims require 3+ sources
@@ -289,6 +299,7 @@ if claim_importance == "CRITICAL" and sources_count < 3:
 **Problem:** Presenting consensus without noting conflicts
 
 **Gate function:**
+
 ```python
 # Conflicts must be resolved or explicitly noted
 if conflicts and resolution_status == "IGNORED":
@@ -302,6 +313,7 @@ if conflicts and resolution_status == "IGNORED":
 **Problem:** Using outdated information without verification
 
 **Gate function:**
+
 ```python
 # Sources older than threshold_months require verification
 age_months = months_since(source_date)
@@ -316,6 +328,7 @@ if age_months > threshold_months:
 **Problem:** Citing sources that quote each other as independent
 
 **Gate function:**
+
 ```python
 # Trace quotations to original sources
 primary_sources = find_originals(source_chain)
@@ -330,6 +343,7 @@ if len(primary_sources) < 2:
 **Problem:** Presenting information without confidence assessment
 
 **Gate function:**
+
 ```python
 # All outputs must include confidence level
 if "confidence" not in output.lower():
@@ -349,7 +363,7 @@ if "confidence" not in output.lower():
 ### Usage Pattern
 
 ```
-1. Use `rd2:knowledge-seeker` to research and validate information
+1. Use `rd2:knowledge-extraction` to research and validate information
 2. Use findings to inform task decomposition
 3. Use `super-coder` to implement based on verified knowledge
 4. Use `rd2:tdd-workflow` to test implementation
@@ -400,21 +414,25 @@ Before presenting extracted information:
 ## Common Use Cases
 
 ### API Research
+
 - Extract API endpoints from documentation
 - Verify with code examples
 - Cross-check multiple API versions
 
 ### Framework Comparison
+
 - Extract features from each framework
 - Synthesize comparison table
 - Verify with official sources
 
 ### Best Practices Research
+
 - Extract patterns from multiple guides
 - Identify consensus approaches
 - Flag outliers for manual review
 
 ### Code Pattern Research
+
 - Find implementation patterns via GitHub
 - Verify with official documentation
 - Synthesize best practice recommendations
