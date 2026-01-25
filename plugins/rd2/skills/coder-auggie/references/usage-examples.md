@@ -89,5 +89,5 @@ python3 coder-auggie.py generate "Implement order processing service" \
   --output order-service
 
 # 4. Review output
-cat .claude/plans/order-service.md
+cat docs/plans/order-service.md
 ```
