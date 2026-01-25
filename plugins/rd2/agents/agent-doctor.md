@@ -18,7 +18,9 @@ description: |
   </example>
 
 tools: [Read, Grep, Glob]
-skills: [rd2:cc-agents, rd2:anti-hallucination]
+skills:
+  - rd2:cc-agents
+  - rd2:anti-hallucination
 model: inherit
 color: crimson
 ---
