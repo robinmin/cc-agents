@@ -428,8 +428,8 @@ tasks decompose "Break down feature X"
 # 3. Start first task
 tasks update 47 todo
 
-# 4. Delegate to super-coder
-/rd2:super-coder --task 0047
+# 4. Delegate to code-generate (which invokes super-coder)
+/rd2:code-generate --task 0047
 ```
 
 ### Monitoring Progress
