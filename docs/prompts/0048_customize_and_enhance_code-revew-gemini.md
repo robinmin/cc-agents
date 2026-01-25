@@ -60,7 +60,7 @@ gemini \
 - `-o text`: Plain text output (use `json` if user requests structured output)
 - `2>/dev/null`: Suppresses error messages and stderr noise
 
-Both of above two commands will be implemented with the same output format and mechanism (saved to '.claude/plans/[plan-name].md' insstead of `~/.claude/plans/[plan-name].md`).
+Both of above two commands will be implemented with the same output format and mechanism (saved to 'docs/plans/[plan-name].md' insstead of `docs/plans/[plan-name].md`).
 
 - 4, Fine tune the prompts for both "Planning prompt" and "Review prompt" and stored them into `plugins/rd2/skills/code-review-gemini/assets`. You need to use mcp ref, brave-search, huggingface and other tools to fine the best practices of code review with Gemini CLI and code review itself. Then fine tune the prompts for both "Planning prompt" and "Review prompt" and stored them.
 
@@ -88,9 +88,10 @@ Implemented all four commands:
 - **`review`**: Comprehensive code review with planning/review modes
 
 Features:
+
 - Model selection (gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite, gemini-3-pro-preview, gemini-3-flash-preview)
 - Timeout configuration based on complexity
-- Output saved to `.claude/plans/[name].md`
+- Output saved to `docs/plans/[name].md`
 - Focus areas support (security, performance, testing, quality, architecture)
 - Proper error handling and user feedback
 
@@ -104,6 +105,7 @@ Created fine-tuned prompt templates based on best practices research:
 #### 3. SKILL.md Update
 
 Streamlined to focus on:
+
 - Usage patterns and workflows
 - Model selection guidance
 - Best practices for effective reviews
@@ -112,6 +114,7 @@ Streamlined to focus on:
 #### 4. References Update (`references/gemini-flags.md`)
 
 Updated with:
+
 - Latest Gemini 3 models (preview)
 - Model comparison and recommendations
 - Timeout guidelines
