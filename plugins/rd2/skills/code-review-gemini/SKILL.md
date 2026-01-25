@@ -28,7 +28,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemi
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py run "Explain the trade-offs of using Redis vs Memcached"
 
 # Import review results as tasks
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import .claude/plans/review-src.md
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import docs/plans/review-src.md
 ```
 
 ## Available Commands
@@ -96,7 +96,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemi
 
 ### 4. Present Results
 
-Review output is automatically saved to `.claude/plans/[name].md` in a structured format using the code-review-result template. The output includes:
+Review output is automatically saved to `docs/plans/[name].md` in a structured format using the code-review-result template. The output includes:
 
 - **YAML frontmatter** with metadata (model, target, quality score, recommendation)
 - **Structured sections** (Critical/High/Medium/Low priority issues)
@@ -108,7 +108,7 @@ Present findings with clear attribution:
 ```markdown
 ## Gemini Analysis
 
-[Review content from .claude/plans/...]
+[Review content from docs/plans/...]
 
 ---
 
@@ -124,7 +124,7 @@ After presenting Gemini's analysis:
 1. **Identify critical issues** requiring immediate attention
 2. **Summarize key recommendations** in order of priority
 3. **If multiple approaches exist**, use `AskUserQuestion` to clarify preference
-4. **Write action plan** to `~/.claude/plans/[plan-name].md`
+4. **Write action plan** to `~/docs/plans/[plan-name].md`
 5. **Call `ExitPlanMode`** to present for user approval
 
 ## Focus Areas
@@ -174,7 +174,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemi
 
 **Import Critical Issues as Tasks:**
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import .claude/plans/review-auth.md \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import docs/plans/review-auth.md \
   --priority critical
 ```
 
