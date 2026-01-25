@@ -1,6 +1,6 @@
 {
   "name": "rd",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "description": "Rapid Development: TDD workflow, task management, skill development, and code quality tools",
   "author": "Robin Min",
   "keywords": ["agents", "skills", "commands", "plugin"]
