@@ -62,7 +62,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py review src/ --plan
 
 # Import results as tasks
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import .claude/plans/review-src.md
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import docs/plans/review-src.md
 ```
 
 ## Available Commands
@@ -104,7 +104,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 
 ### 4. Present Results
 
-Output saves to `.claude/plans/[name].md` with:
+Output saves to `docs/plans/[name].md` with:
 - YAML frontmatter (metadata, quality score)
 - Priority-based issue sections (Critical/High/Medium/Low)
 - Detailed analysis by category
@@ -113,7 +113,7 @@ Output saves to `.claude/plans/[name].md` with:
 ### 5. Import as Tasks (Optional)
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import .claude/plans/review.md
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import docs/plans/review.md
 ```
 
 ## Focus Areas
