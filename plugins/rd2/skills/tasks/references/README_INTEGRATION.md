@@ -127,7 +127,7 @@ Layer 3: Project Kanban (Board View)
 
 ### 1. Enable Hook Integration
 
-Edit `/Users/robin/projects/cc-agents/plugins/rd2/hooks/hooks.json`:
+Edit `plugins/rd2/hooks/hooks.json` (from project root):
 
 ```json
 {
@@ -356,8 +356,7 @@ tail -1 .claude/tasks_sync/promotions.log
 ### Automated Test
 
 ```bash
-# Run integration tests
-cd /Users/robin/projects/cc-agents
+# Run integration tests (from project root)
 uv run pytest plugins/rd2/skills/tasks/tests/test_integration.py -v
 ```
 
