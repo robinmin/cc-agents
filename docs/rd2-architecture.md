@@ -443,6 +443,6 @@ Claude Code Features:
 
 ## Related Documentation
 
-- **Workflow**: `/docs/rd2-workflow.md`
-- **Task CLI**: `/docs/task-cli-integration.md`
-- **Migration Guide**: `/docs/migration-0.0-to-0.1.md`
+- **Workflow**: `docs/rd2-workflow.md`
+- **Task CLI**: `docs/task-cli-integration.md`
+- **Migration Guide**: `docs/migration-0.0-to-0.1.md`
