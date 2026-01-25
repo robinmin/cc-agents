@@ -289,6 +289,6 @@ This skill implements the comprehensive review coordination logic:
 
 ## See Also
 
-- **code-review agent**: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-code-reviewer.md`
-- **code-review command**: `/Users/robin/projects/cc-agents/plugins/rd2/commands/code-review.md`
+- **code-review agent**: `../../../agents/super-code-reviewer.md`
+- **code-review command**: `../../../commands/code-review.md`
 - **Task 0061 findings**: Two-level review process clarification
