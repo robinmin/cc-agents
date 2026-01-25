@@ -71,7 +71,7 @@ python3 scripts/skills.py docs check  # Verify docs are fresh
 
 ## References
 
-- **New file:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/generate_docs.py`
+- **New file:** `plugins/rd2/skills/cc-skills/scripts/generate_docs.py`
 
 ## Deliverables
 
