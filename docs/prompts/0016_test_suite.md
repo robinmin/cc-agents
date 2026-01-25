@@ -77,14 +77,14 @@ tests/
 
 ## References
 
-- **Test directory:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/tests/`
+- **Test directory:** `plugins/rd2/skills/cc-skills/tests/`
 - **Depends on:** Tasks 0001, 0002, 0003
 
 ## Testing
 
 Run tests with:
 ```bash
-cd /Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills
+cd plugins/rd2/skills/cc-skills
 pytest tests/ -v
 ```
 
