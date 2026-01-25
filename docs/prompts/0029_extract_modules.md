@@ -80,8 +80,8 @@ __all__ = [
 
 ## References
 
-- **Files to create:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/evaluators/`
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **Files to create:** `plugins/rd2/skills/cc-skills/scripts/evaluators/`
+- **File to modify:** `plugins/rd2/skills/cc-skills/scripts/skills.py`
 
 ## Deliverables
 
