@@ -603,10 +603,10 @@ def cmd_sync_restore(self) -> int:
 
 ```bash
 # Promotion rate
-grep -c "promoted to WBS" .claude/tasks_sync/promotions.log
+grep -c "promoted to WBS" docs/tasks_sync/promotions.log
 
 # Signal distribution
-grep -o "signal:[^\"]*" .claude/tasks_sync/promotions.log | sort | uniq -c
+grep -o "signal:[^\"]*" docs/tasks_sync/promotions.log | sort | uniq -c
 
 # Session resume usage
 grep -c "session_restore" .claude/tasks_sync/events.log
@@ -619,7 +619,7 @@ grep -c "ERROR" .claude/tasks_sync/errors.log
 
 ```bash
 # Verify session map integrity
-python3 -m json.tool .claude/tasks_sync/session_map.json
+python3 -m json.tool docs/tasks_sync/session_map.json
 
 # Check for orphaned mappings (WBS no longer exists)
 tasks sync verify-mappings
