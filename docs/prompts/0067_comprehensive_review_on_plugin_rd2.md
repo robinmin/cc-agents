@@ -215,7 +215,7 @@ None identified - plugin is functional
 ## Fixes Implemented
 
 ### Fix 1: IC-003 - Color reference path (COMPLETED)
-**File:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-agents/SKILL.md`
+**File:** `plugins/rd2/skills/cc-agents/SKILL.md`
 **Change:** Fixed `[@references/colors.md](@references/colors.md)` to `[references/colors.md](references/colors.md)`
 **Status:** FIXED
 
@@ -230,17 +230,17 @@ Same as SC-008 - the code handles both formats defensively, not inconsistently.
 
 ### Fix 4: NC-001, NC-002, IC-001 - Agent invocation format inconsistency (COMPLETED)
 **Files updated:**
-- `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-planner.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-coder.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-architect.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-designer.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/backend-architect/SKILL.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/frontend-architect/SKILL.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/cloud-architect/SKILL.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/frontend-design/SKILL.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/ui-ux-design/SKILL.md`
-- `/Users/robin/projects/cc-agents/docs/task-cli-integration.md`
-- `/Users/robin/projects/cc-agents/docs/migration-0.0-to-0.1.md`
+- `plugins/rd2/agents/super-planner.md`
+- `plugins/rd2/agents/super-coder.md`
+- `plugins/rd2/agents/super-architect.md`
+- `plugins/rd2/agents/super-designer.md`
+- `plugins/rd2/skills/backend-architect/SKILL.md`
+- `plugins/rd2/skills/frontend-architect/SKILL.md`
+- `plugins/rd2/skills/cloud-architect/SKILL.md`
+- `plugins/rd2/skills/frontend-design/SKILL.md`
+- `plugins/rd2/skills/ui-ux-design/SKILL.md`
+- `docs/task-cli-integration.md`
+- `docs/migration-0.0-to-0.1.md`
 
 **Changes:**
 - Updated `/rd2:super-coder` → `/rd2:code-generate` (command that delegates to super-coder)
@@ -253,12 +253,12 @@ Same as SC-008 - the code handles both formats defensively, not inconsistently.
 **Status:** FIXED - All documentation now correctly shows that users invoke commands (e.g., `/rd2:code-generate`, `/rd2:tasks-plan`), which then delegate to agents internally.
 
 ### Fix 5: DQ-006 - Year references update to 2025-2026 (COMPLETED)
-**File:** `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-designer.md`
+**File:** `plugins/rd2/agents/super-designer.md`
 **Change:** Updated all year references from `2024-2025` to `2025-2026`
 **Status:** FIXED
 
 ### Fix 6: SC-007 - Add log rotation for promotion and hook logs (COMPLETED)
-**File:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/tasks/scripts/tasks.py`
+**File:** `plugins/rd2/skills/tasks/scripts/tasks.py`
 **Changes:**
 - Added `rotate_log_file()` function that rotates logs when they exceed 1MB
 - Added `_cleanup_old_logs()` function that keeps only the 5 most recent rotated logs
@@ -267,12 +267,12 @@ Same as SC-008 - the code handles both formats defensively, not inconsistently.
 - Updated `cmd_log()` method to call rotation before writing
 - Added `MAX_LOG_SIZE` constant (1MB) for rotation threshold
 
-**Tests added:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/tasks/tests/test_tasks.py`
+**Tests added:** `plugins/rd2/skills/tasks/tests/test_tasks.py`
 - `TestLogRotation` class with 6 tests for rotation functionality
 **Status:** FIXED
 
 ### Fix 7: MC-004 - Add unit tests for Python scripts (ENHANCED)
-**File:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/tasks/tests/test_tasks.py`
+**File:** `plugins/rd2/skills/tasks/tests/test_tasks.py`
 **Changes:**
 - Added `TestLogRotation` class with 6 new tests
 - Tests cover: rotation triggers, small file handling, non-existent files, cleanup, integration
@@ -287,7 +287,7 @@ Same as SC-008 - the code handles both formats defensively, not inconsistently.
 **Status:** ENHANCED - Added new tests for log rotation functionality; existing test coverage is comprehensive
 
 ### Fix 8: DQ-005 - Line count guideline for super-coder (VERIFIED)
-**File:** `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-coder.md`
+**File:** `plugins/rd2/agents/super-coder.md`
 **Finding:** super-coder.md is 576 lines, which is within the 400-600 line guideline specified in cc-agents/SKILL.md
 **Status:** NO ACTION NEEDED - Already within guideline
 
@@ -317,6 +317,6 @@ Same as SC-008 - the code handles both formats defensively, not inconsistently.
 
 ### References
 
-- Plugin location: `/Users/robin/projects/cc-agents/plugins/rd2/`
+- Plugin location: `plugins/rd2/`
 - Reference docs: `docs/rd2-architecture.md`, `docs/rd2-workflow.md`
-- Naming conventions: `/Users/robin/projects/cc-agents/.claude/CLAUDE.md`
+- Naming conventions: `.claude/CLAUDE.md`
