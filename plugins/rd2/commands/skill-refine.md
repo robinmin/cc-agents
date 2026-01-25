@@ -1,12 +1,12 @@
 ---
-description: Improve skill quality using rd2:cc-skills best practices
+description: Skill creation and refinement specialist. Use PROACTIVELY for refining existing skills, improving skill descriptions, organizing skill content, or applying best practices from official plugin-dev.
 skills: [rd2:cc-skills, rd2:anti-hallucination]
 argument-hint: <skill-folder>
 ---
 
 # Refine Existing Skill
 
-Thin wrapper for `rd2:cc-skills` skill. Improves skill quality with user approval.
+Thin wrapper command for `rd2:skill-expert` agent. Improves skill quality following "Fat Skills, Thin Wrappers" architecture with progressive disclosure and evaluation-first development.
 
 ## Quick Start
 
@@ -23,65 +23,106 @@ Thin wrapper for `rd2:cc-skills` skill. Improves skill quality with user approva
 
 ## Workflow
 
-1. **Load** - Read `rd2:cc-skills` best practices
-2. **Analyze** - Check structure, content, patterns
-3. **Plan** - Generate prioritized improvements
-4. **Apply** - Make changes with user approval
-5. **Validate** - Verify changes meet standards
+This command follows the refinement process with evaluation-first development:
+
+1. **Evaluate current quality** - Use skill-doctor for comprehensive assessment
+2. **Review findings** - Check all dimensions, especially low scores
+3. **Determine action**:
+   - **Content issues?** → Add/clarify workflows in SKILL.md
+   - **Token inefficient?** → Move details to references/, tighten language
+   - **Missing guidance?** → Add workflow steps for uncovered cases
+   - **Security flags?** → Address dangerous patterns
+   - **Weak triggers?** → Strengthen description with specific phrases
+4. **Implement fixes** - Edit SKILL.md or modify resources
+5. **Re-evaluate** - Continue until Grade A/B achieved
 
 ## Improvement Areas
 
-| Area      | Checks                                     |
-| --------- | ------------------------------------------ |
-| Structure | Frontmatter valid, under 500 lines         |
-| Content   | Description clarity, examples, terminology |
-| Code      | Error handling, no magic numbers           |
+| Dimension         | Typical Fixes                                       |
+| ----------------- | --------------------------------------------------- |
+| Content (<9/10)   | Add workflow guidance, examples, "when to use" info |
+| Efficiency (<9/10) | Move details to references/, use tables/lists       |
+| Structure (<9/10)  | Ensure SKILL.md + scripts/ + references/ present    |
+| Best Practices (<9/10) | Use hyphen-case, remove TODOs, add description    |
+| Description        | Add specific trigger phrases, use third person       |
 
-## Refinement Patterns
+## Common Refinements
 
-**Reduce Verbosity:**
+**Strengthen Trigger Description:**
 
 ```diff
-- Python is a programming language. To read a file...
-+ Read config files with strict validation:
-+ - Use ConfigParser for .ini
-+ - Validate required sections
+- description: Provides PDF processing guidance.
++ description: This skill should be used when the user asks to "rotate a PDF", "merge PDFs", "extract text from PDF", or mentions PDF operations.
 ```
 
-**Add Examples:**
+**Reduce Verbosity (Progressive Disclosure):**
 
 ```diff
-- Validate the input data before processing.
-+ **Input Validation:**
-+ if not all(k in data for k in ['name', 'email']):
-+     raise ValidationError("Missing fields")
+- [Everything in SKILL.md - 8,000 words]
++ SKILL.md: Core essentials only (~1,800 words)
++ references/patterns.md: Detailed patterns (2,500 words)
++ references/advanced.md: Advanced techniques (3,700 words)
 ```
 
-**Fix Terminology:**
+**Fix Writing Style (Imperative Form):**
 
 ```diff
-- Extract data from the API endpoint.
-- Pull the response from the URL.
-+ Extract data from the endpoint. (consistent)
+- You should validate the input before processing.
+- You need to check for errors.
++ Validate the input before processing.
++ Check for errors.
+```
+
+**Add Missing Resource References:**
+
+```diff
++ ## Additional Resources
++
++ ### Reference Files
++ - **`references/patterns.md`** - Common design patterns
++ - **`references/advanced.md`** - Advanced techniques
 ```
 
 ## Interactive Mode
 
 The refinement may ask for approval:
+- "Move advanced topics to references/advanced.md?"
+- "Strengthen trigger description with these phrases?"
+- "Apply writing style fixes? [y/n]"
 
-- "Move advanced topics to REFERENCE.md?"
-- "Standardize on 'endpoint' or 'URL'?"
-- "Ready to apply changes? [y/n]"
+## Output Format
+
+```markdown
+# Refined Skill: {skill-name}
+
+## Location
+`{path-to-skill}`
+
+## Structure
+[some-structure/]
+
+## Changes Made
+- {Structure changes}
+- {Content changes}
+- {References reorganized}
+
+## Next Steps
+1. Customize SKILL.md with domain-specific content
+2. Add references/ for detailed documentation
+3. Test with sample queries
+4. Validate with `/rd2:skill-evaluate`
+```
 
 ## Post-Refinement
 
-1. Restart Claude Code to load changes
-2. Test activation keywords
-3. Verify improved guidance
-4. Run `/rd2:skill-evaluate` to confirm
+1. **Restart Claude Code** - Load updated skill
+2. **Test activation keywords** - Verify skill triggers properly
+3. **Verify improved guidance** - Confirm enhancements work
+4. **Re-evaluate** - Run `/rd2:skill-evaluate` to confirm Grade A/B
 
 ## See Also
 
+- `rd2:skill-expert` - Agent that handles skill creation and refinement
 - `/rd2:skill-add` - Create new skills
-- `/rd2:skill-evaluate` - Assess quality
-- `rd2:cc-skills` - Best practices reference
+- `/rd2:skill-evaluate` - Assess quality (delegates to skill-doctor)
+- `rd2:cc-skills` - Best practices reference with detailed guides
