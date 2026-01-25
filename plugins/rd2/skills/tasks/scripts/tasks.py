@@ -1377,157 +1377,99 @@ wbs: {wbs}
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Tasks CLI Tool - Manage task files with kanban synchronization.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Commands:
-  init                     Initialize the tasks management tool
-  create <task name>       Create a new task
-  list [stage]             List tasks (optionally filter by stage)
-  update <WBS> <stage>     Update a task's stage
-  open <WBS>               Open a task file in default editor
-  refresh                  Refresh the kanban board
-  hook <operation>         Handle TodoWrite PreToolUse hook events
-  help                     Show this help message
+    # First parse: get the command and global options only
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("command", nargs="?")
+    pre_parser.add_argument("--data", help="JSON data for commands")
+    pre_parser.add_argument("--wbs-prefix", help="WBS prefix for decompose")
+    pre_parser.add_argument("--parent", help="Parent task WBS for decompose")
+    pre_parser.add_argument("--dry-run", action="store_true", help="Preview decompose")
+    pre_args, remaining = pre_parser.parse_known_args()
 
-Examples:
-  %(prog)s create "Implement feature X"
-  %(prog)s list wip
-  %(prog)s update 47 testing
-  %(prog)s open 47
-  %(prog)s hook add --data '{"tool_input":{"items":[...]}}'
-""",
-    )
-
-    parser.add_argument(
-        "command",
-        nargs="?",
-        choices=[
-            "init",
-            "create",
-            "list",
-            "update",
-            "open",
-            "refresh",
-            "check",
-            "decompose",
-            "hook",
-            "log",
-            "sync",
-            "help",
-        ],
-        help="Command to execute",
-    )
-
-    # Sub-commands - wbs must come before task_name for 'update' command to work
-    parser.add_argument(
-        "wbs", nargs="?", help="WBS number (for 'update', 'open' commands)"
-    )
-    parser.add_argument("stage", nargs="?", help="Stage (for 'update' command)")
-    parser.add_argument("task_name", nargs="?", help="Task name (for 'create' command)")
-    parser.add_argument(
-        "operation",
-        nargs="?",
-        help="Operation for hook command (add/update/remove)",
-    )
-    parser.add_argument(
-        "--data",
-        help="JSON data for hook command (tool_input from PreToolUse event)",
-    )
-    parser.add_argument(
-        "--wbs-prefix",
-        help="WBS prefix for decompose command (default: auto-generated)",
-    )
-    parser.add_argument(
-        "--parent",
-        help="Parent task WBS for decompose command (for subtasks)",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Preview decompose output without creating files",
-    )
-    parser.add_argument("--version", action="version", version="%(prog)s 1.0.0")
-
-    args = parser.parse_args()
-
-    if not args.command or args.command == "help":
+    if not pre_args.command or pre_args.command == "help":
         print(TASKS_USAGE)
         return 0
 
     try:
         manager = TasksManager()
 
-        if args.command == "init":
+        # Route based on command, with custom argument handling
+        if pre_args.command == "init":
             return manager.cmd_init()
-        elif args.command == "create":
-            return manager.cmd_create(args.task_name or "")
-        elif args.command == "list":
-            return manager.cmd_list(args.stage)
-        elif args.command == "update":
-            if not args.wbs or not args.stage:
+        elif pre_args.command == "refresh":
+            return manager.cmd_refresh()
+        elif pre_args.command == "check":
+            return manager.cmd_check()
+        elif pre_args.command == "create":
+            # create takes: <task name> (all remaining args joined)
+            task_name = " ".join(remaining) if remaining else ""
+            return manager.cmd_create(task_name)
+        elif pre_args.command == "list":
+            # list takes: [stage] (optional, first remaining arg)
+            stage = remaining[0] if remaining else None
+            return manager.cmd_list(stage)
+        elif pre_args.command == "update":
+            # update takes: <WBS> <stage> (two positional args)
+            if len(remaining) < 2:
                 print("[ERROR] Usage: tasks update <WBS> <stage>", file=sys.stderr)
                 return 1
-            return manager.cmd_update(args.wbs, args.stage)
-        elif args.command == "open":
-            if not args.wbs:
+            wbs, stage = remaining[0], remaining[1]
+            return manager.cmd_update(wbs, stage)
+        elif pre_args.command == "open":
+            # open takes: <WBS> (one positional arg)
+            if not remaining:
                 print("[ERROR] Usage: tasks open <WBS>", file=sys.stderr)
                 return 1
-            return manager.cmd_open(args.wbs)
-        elif args.command == "refresh":
-            return manager.cmd_refresh()
-        elif args.command == "check":
-            return manager.cmd_check()
-        elif args.command == "decompose":
-            requirement = args.task_name or ""
+            wbs = remaining[0]
+            return manager.cmd_open(wbs)
+        elif pre_args.command == "decompose":
+            # decompose takes: <requirement> (all remaining args joined)
+            requirement = " ".join(remaining) if remaining else ""
             if not requirement:
                 print("[ERROR] Usage: tasks decompose <requirement>", file=sys.stderr)
-                print(TASKS_USAGE, file=sys.stderr)
                 return 1
             return manager.cmd_decompose(
                 requirement=requirement,
-                wbs_prefix=args.wbs_prefix,
-                parent=args.parent,
-                dry_run=args.dry_run,
+                wbs_prefix=pre_args.wbs_prefix,
+                parent=pre_args.parent,
+                dry_run=pre_args.dry_run,
             )
-        elif args.command == "hook":
-            # For hook command, operation comes from task_name position
-            operation = args.task_name or args.operation
-            if not operation:
-                print("[ERROR] Please provide an operation (add/update/remove)", file=sys.stderr)
-                print(TASKS_USAGE, file=sys.stderr)
+        elif pre_args.command == "hook":
+            # hook takes: <operation> (first remaining arg)
+            if not remaining:
+                print("[ERROR] Usage: tasks hook <operation>", file=sys.stderr)
                 return 1
-            return manager.cmd_hook(operation, args.data)
-        elif args.command == "log":
-            # For log command, prefix comes from task_name position
-            prefix = args.task_name
-            if not prefix:
-                print("[ERROR] Please provide a prefix for the log entry", file=sys.stderr)
-                print(TASKS_USAGE, file=sys.stderr)
+            operation = remaining[0]
+            return manager.cmd_hook(operation, pre_args.data)
+        elif pre_args.command == "log":
+            # log takes: <prefix> (first remaining arg)
+            if not remaining:
+                print("[ERROR] Usage: tasks log <prefix>", file=sys.stderr)
                 return 1
-            return manager.cmd_log(prefix, args.data)
-        elif args.command == "sync":
-            # For sync command, subcommand comes from task_name position
-            subcommand = args.task_name
-            if not subcommand:
+            prefix = remaining[0]
+            return manager.cmd_log(prefix, pre_args.data)
+        elif pre_args.command == "sync":
+            # sync takes: <subcommand> (first remaining arg)
+            if not remaining:
                 print("[ERROR] Usage: tasks sync <todowrite|restore>", file=sys.stderr)
-                print(TASKS_USAGE, file=sys.stderr)
                 return 1
+            subcommand = remaining[0]
             if subcommand == "todowrite":
-                return manager.cmd_sync_todowrite(args.data)
+                return manager.cmd_sync_todowrite(pre_args.data)
             elif subcommand == "restore":
                 return manager.cmd_sync_restore()
             else:
                 print(f"[ERROR] Unknown sync subcommand: {subcommand}", file=sys.stderr)
                 print("Valid subcommands: todowrite, restore", file=sys.stderr)
                 return 1
+        else:
+            print(f"[ERROR] Unknown command: {pre_args.command}", file=sys.stderr)
+            print(TASKS_USAGE, file=sys.stderr)
+            return 1
 
     except (OSError, ValueError, RuntimeError) as e:
         print(f"[ERROR] {e}", file=sys.stderr)
         return 1
-
-    return 0
 
 
 if __name__ == "__main__":
