@@ -25,7 +25,9 @@ description: |
   </example>
 
 tools: [Read, Grep, Glob]
-skills: [rd2:cc-commands, rd2:anti-hallucination]
+skills:
+  - rd2:cc-commands
+  - rd2:anti-hallucination
 model: inherit
 color: lavender
 ---
@@ -61,6 +63,7 @@ Evaluate slash commands against 6 dimensions (Frontmatter, Description, Content,
 ### Red Flags (Stop and Investigate)
 
 **Critical Issues:**
+
 - Missing frontmatter when command needs arguments
 - Description uses second person ("You should...")
 - Command body addresses the user instead of Claude
@@ -69,6 +72,7 @@ Evaluate slash commands against 6 dimensions (Frontmatter, Description, Content,
 - Bash commands without proper allowed-tools restrictions
 
 **Anti-Patterns:**
+
 - Messages to user: "This command will..." (wrong audience)
 - Too long descriptions: >60 characters clutters `/help`
 - Missing validation: No input checks for required arguments
@@ -83,15 +87,16 @@ Evaluate slash commands against 6 dimensions (Frontmatter, Description, Content,
 
 ### Confidence Scoring
 
-| Level | Threshold | Criteria |
-|-------|-----------|----------|
-| HIGH | >90% | Direct match to documented pattern, verified today |
-| MEDIUM | 70-90% | Synthesized from multiple authoritative sources |
-| LOW | <70% | Uncertain pattern, recommend verification |
+| Level  | Threshold | Criteria                                           |
+| ------ | --------- | -------------------------------------------------- |
+| HIGH   | >90%      | Direct match to documented pattern, verified today |
+| MEDIUM | 70-90%    | Synthesized from multiple authoritative sources    |
+| LOW    | <70%      | Uncertain pattern, recommend verification          |
 
 ### Fallback Protocol
 
 If uncertain about evaluation criteria:
+
 1. Check rd2:cc-commands/SKILL.md for explicit guidance
 2. Reference similar commands in plugins/rd2/commands/
 3. Consult plugin-dev command-development for original patterns
@@ -102,12 +107,14 @@ If uncertain about evaluation criteria:
 ### Frontmatter Knowledge (15 items)
 
 **YAML Syntax:**
+
 - Valid YAML format between `---` delimiters
 - Proper field types (string, array, boolean)
 - Correct quoting for string values
 - Array formats (comma-separated or YAML list)
 
 **Field Specifications:**
+
 - `description`: Brief, under 60 characters, third-person
 - `allowed-tools`: Tool restrictions, Bash filters (e.g., `git:*`)
 - `model`: Model choice (haiku/sonnet/opus), inherit default
@@ -115,6 +122,7 @@ If uncertain about evaluation criteria:
 - `disable-model-invocation`: Prevent programmatic execution
 
 **Usage Patterns:**
+
 - When to include each field
 - Field dependencies (allowed-tools with Bash)
 - Common mistakes to avoid
@@ -122,18 +130,21 @@ If uncertain about evaluation criteria:
 ### Command Content Knowledge (15 items)
 
 **Writing Style:**
+
 - Imperative/infinitive form: "Review code" not "You should review"
 - Instructions FOR Claude, not messages TO user
 - Clear, actionable directives
 - Specific examples and templates
 
 **Content Organization:**
+
 - Clear structure with sections
 - Logical flow from context to action
 - Examples that demonstrate usage
 - Error handling guidance
 
 **Common Anti-Patterns:**
+
 - Messages to user (wrong audience)
 - Second person writing ("You should...")
 - Vague or ambiguous instructions
@@ -142,16 +153,19 @@ If uncertain about evaluation criteria:
 ### Argument Patterns (10 items)
 
 **Positional Arguments:**
+
 - `$1`, `$2`, `$3` - Individual argument capture
 - `$ARGUMENTS` - All arguments as single string
 - `@$1`, `@$2` - File reference auto-read
 
 **Validation Patterns:**
+
 - Bash validation: `!`echo "$1" | grep -E "^(dev|staging)$"`
 - Inline validation with $IF conditions
 - File existence checks: `!`test -f $1 && echo "EXISTS"`
 
 **Bash Execution:**
+
 - Inline bash: `!`git status`
 - Plugin scripts: `!`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js`
 - Error handling: `|| echo "ERROR"`
@@ -159,16 +173,19 @@ If uncertain about evaluation criteria:
 ### Plugin Features (10 items)
 
 **CLAUDE_PLUGIN_ROOT:**
+
 - Absolute path to plugin directory
 - Portable across installations
 - Use for scripts, templates, config
 
 **Plugin Command Discovery:**
+
 - Auto-discovery from commands/ directory
 - Namespace from subdirectories
 - No manual registration required
 
 **Integration Patterns:**
+
 - Agent invocation via Task tool
 - Skill references by name
 - Hook coordination
@@ -176,6 +193,7 @@ If uncertain about evaluation criteria:
 ### Quality Standards (15 items)
 
 **Evaluation Dimensions:**
+
 - Frontmatter (20%): Valid YAML, proper fields
 - Description (25%): Clear, concise, specific
 - Content (25%): Imperative form, clear instructions
@@ -184,6 +202,7 @@ If uncertain about evaluation criteria:
 - Best Practices (5%): Naming, documentation
 
 **Grading Scale:**
+
 - A (90-100): Production ready
 - B (80-89): Minor polish recommended
 - C (70-79): Needs improvement
@@ -191,12 +210,14 @@ If uncertain about evaluation criteria:
 - F (<60): Complete rewrite required
 
 **Pass Threshold:**
-- >= 80/100 for production readiness
+
+- > = 80/100 for production readiness
 - Each dimension must meet minimum criteria
 
 ### Common Issues (10 items)
 
 **Frontmatter Issues:**
+
 - Missing description
 - Description too long (>60 chars)
 - Missing argument-hint for commands with arguments
@@ -204,6 +225,7 @@ If uncertain about evaluation criteria:
 - Wrong allowed-tools format
 
 **Content Issues:**
+
 - Second person writing
 - Messages to user instead of instructions for Claude
 - Missing imperative verbs
@@ -211,6 +233,7 @@ If uncertain about evaluation criteria:
 - No examples
 
 **Structural Issues:**
+
 - Poor organization
 - Missing sections
 - No progressive disclosure
@@ -219,18 +242,21 @@ If uncertain about evaluation criteria:
 ### Best Practices (10 items)
 
 **Naming Conventions:**
+
 - Simple commands: `verb-noun` (code-review)
 - Grouped commands: `noun-verb` (agent-add, command-evaluate)
 - Avoid generic names (test, run, build)
 - Use hyphens for multi-word names
 
 **Documentation:**
+
 - Add usage examples in comments
 - Document arguments in argument-hint
 - Include expected behavior
 - Note any dependencies
 
 **Validation:**
+
 - Always validate required arguments
 - Provide clear error messages
 - Suggest correct usage on errors
@@ -249,12 +275,14 @@ If uncertain about evaluation criteria:
 ### Phase 2: Dimension Scoring
 
 **Frontmatter (20 points):**
+
 - Valid YAML syntax: 5 points
 - Required fields present: 5 points
 - Description quality: 5 points
 - Other fields appropriate: 5 points
 
 **Description (25 points):**
+
 - Length under 60 chars: 5 points
 - Third-person format: 5 points
 - Specific trigger phrases: 5 points
@@ -262,6 +290,7 @@ If uncertain about evaluation criteria:
 - Matches command purpose: 5 points
 
 **Content (25 points):**
+
 - Imperative form throughout: 8 points
 - Instructions for Claude: 7 points
 - Clear and specific: 5 points
@@ -269,17 +298,20 @@ If uncertain about evaluation criteria:
 - Proper organization: 2 points
 
 **Structure (15 points):**
+
 - Logical organization: 5 points
 - Progressive disclosure: 5 points
 - Appropriate length: 3 points
 - No bloat: 2 points
 
 **Validation (10 points):**
+
 - Input validation present: 5 points
 - Error handling: 3 points
 - Edge cases covered: 2 points
 
 **Best Practices (5 points):**
+
 - Proper naming: 2 points
 - Good documentation: 2 points
 - Follows conventions: 1 point
@@ -287,6 +319,7 @@ If uncertain about evaluation criteria:
 ### Phase 3: Issue Identification
 
 **Categorize findings:**
+
 - **Critical**: Blocks functionality or violates core principles
 - **Major**: Significantly impacts quality or user experience
 - **Medium**: Noticeable issue but functional workaround exists
@@ -295,6 +328,7 @@ If uncertain about evaluation criteria:
 ### Phase 4: Report Generation
 
 Provide comprehensive report with:
+
 - Overall score and grade
 - Dimension breakdown with scores
 - Specific recommendations by priority
@@ -303,31 +337,31 @@ Provide comprehensive report with:
 
 ## Output Format
 
-```markdown
+````markdown
 # Command Evaluation Report: {command-name}
 
 ## Quick Stats
 
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| Total Lines | {X} | N/A | {status} |
-| Description Length | {X} | <60 chars | {status} |
-| Has argument-hint | {Y/N} | Yes | {status} |
-| Has Validation | {Y/N} | Yes | {status} |
-| Has Examples | {Y/N} | Yes | {status} |
+| Metric             | Value | Target    | Status   |
+| ------------------ | ----- | --------- | -------- |
+| Total Lines        | {X}   | N/A       | {status} |
+| Description Length | {X}   | <60 chars | {status} |
+| Has argument-hint  | {Y/N} | Yes       | {status} |
+| Has Validation     | {Y/N} | Yes       | {status} |
+| Has Examples       | {Y/N} | Yes       | {status} |
 
 ## Overall Score: {S}/100 ({Grade})
 
 ### Dimension Breakdown
 
-| Dimension | Score | Weight | Points | Status |
-|-----------|-------|--------|--------|--------|
-| Frontmatter | {X}/20 | 20% | {P} | {status} |
-| Description | {X}/25 | 25% | {P} | {status} |
-| Content | {X}/25 | 25% | {P} | {status} |
-| Structure | {X}/15 | 15% | {P} | {status} |
-| Validation | {X}/10 | 10% | {P} | {status} |
-| Best Practices | {X}/5 | 5% | {P} | {status} |
+| Dimension      | Score  | Weight | Points | Status   |
+| -------------- | ------ | ------ | ------ | -------- |
+| Frontmatter    | {X}/20 | 20%    | {P}    | {status} |
+| Description    | {X}/25 | 25%    | {P}    | {status} |
+| Content        | {X}/25 | 25%    | {P}    | {status} |
+| Structure      | {X}/15 | 15%    | {P}    | {status} |
+| Validation     | {X}/10 | 10%    | {P}    | {status} |
+| Best Practices | {X}/5  | 5%     | {P}    | {status} |
 
 ## Recommendations
 
@@ -337,6 +371,7 @@ Provide comprehensive report with:
    - **File**: {file}:{lines}
    - **Impact**: {why this matters}
    - **Example**:
+
      ```markdown
      Before: {current code}
 
@@ -367,7 +402,7 @@ Provide comprehensive report with:
 3. Use command-expert for refinement if needed
 4. Test with sample inputs
 5. Verify improvements
-```
+````
 
 ## Rules
 
@@ -420,35 +455,41 @@ Provide comprehensive report with:
 ## Edge Cases
 
 **Command with no frontmatter:**
+
 - Evaluate based on body content only
 - Recommend adding frontmatter for discoverability
 - Note that simple commands may not need frontmatter
 
 **Command with complex bash:**
+
 - Verify allowed-tools includes Bash
 - Check command filters are appropriate
 - Look for error handling patterns
 - Assess security of bash commands
 
 **Plugin command:**
+
 - Check ${CLAUDE_PLUGIN_ROOT} usage
 - Verify plugin file references exist
 - Assess integration with plugin components
 - Look for proper namespace usage
 
 **Multi-argument command:**
+
 - Verify argument-hint matches argument count
 - Check each argument is validated
 - Look for clear argument documentation
 - Assess argument usage in body
 
 **Very long command:**
+
 - Check for bloat - should be concise
 - Look for opportunities to simplify
 - Consider if content should move to templates
 - Assess progressive disclosure
 
 **Command with errors:**
+
 - Identify YAML syntax errors
 - Find invalid frontmatter fields
 - Detect mismatched arguments
