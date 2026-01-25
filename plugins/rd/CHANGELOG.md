@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## [1.5.8] - 2026-01-25
+
+### Summary
+
+**Plugin Hooks Skill & Subagents**
+
+Added comprehensive `rd2:cc-hooks` Agent Skill with complementary subagents for creating and evaluating Claude Code plugin hooks, following the methodology of `rd2:cc-skills` and `rd2:cc-agents`.
+
+### Added
+
+- **New Skill: `rd2:cc-hooks` (`plugins/rd2/skills/cc-hooks/`)**:
+  - Meta-skill for creating Claude Code plugin hooks (PreToolUse/PostToolUse/Stop/SubagentStop)
+  - Progressive disclosure structure: SKILL.md (1,900 words), references/, examples/, scripts/
+  - **references/patterns.md**: 10+ common hook patterns (validation, context loading, blocking)
+  - **references/advanced.md**: Advanced use cases and techniques
+  - **references/migration.md**: Migration guidance for hook evolution
+  - **examples/**: Working hook scripts (validate-write.sh, validate-bash.sh, load-context.sh)
+  - **scripts/**: Utility tools (validate-hook-schema.sh, test-hook.sh, hook-linter.sh)
+
+- **New Subagents (`plugins/rd2/agents/`)**:
+  - **`hook-expert.md`**: Hook creation specialist following 8-section anatomy
+  - **`hook-doctor.md`**: Hook quality evaluator with comprehensive scoring framework
+
+### Agent Validation Results
+
+**cc-hooks Skill Quality Assessment (skill-doctor):**
+- Overall Score: 93.2/100 (Grade A)
+- Status: ✓ Production Ready
+- Frontmatter: 95/100, Content: 90/100, Security: 95/100, Structure: 95/100
+- Perfect progressive disclosure, comprehensive security practices
+
+**hook-expert & hook-doctor Quality:** Pending validation
+
+### References
+
+- Source: `vendors/claude-code/plugins/plugin-dev/skills/hook-development`
+- [Claude Code Hooks Documentation](https://docs.anthropic.com/en/docs/claude-code/hooks)
+
 ## [1.5.5] - 2026-01-17
 
 ### Summary
