@@ -27,13 +27,13 @@ Implement all recommendations from Task 0061:
 
 **Changes Made**:
 
-1. **Updated super-coder agent** (`/Users/robin/projects/cc-agents/plugins/rd2/agents/super-coder.md`):
+1. **Updated super-coder agent** (`plugins/rd2/agents/super-coder.md`):
    - Added 17-step implementation workflow (Steps 1-6: Understand & Clarify, Steps 7-10: Design & Plan, Step 11: Mark as WIP, Steps 12-17: Execute & Verify)
    - Enhanced task file structure with Q&A subsection, Plan subsection, References
    - Added workflow progress reporting in output format
    - Updated verification protocol for task-driven mode
 
-2. **Updated super-coder command** (`/Users/robin/projects/cc-agents/plugins/rd2/commands/super-coder.md`):
+2. **Updated super-coder command** (`plugins/rd2/commands/super-coder.md`):
    - Documented 17-step implementation workflow
    - Added enhanced task file structure with example
    - Updated workflow steps documentation
@@ -44,7 +44,7 @@ Implement all recommendations from Task 0061:
 
 **A. Enhanced rd2:tdd-workflow skill** (Q3 from Task 0061):
 
-**File**: `/Users/robin/projects/cc-agents/plugins/rd2/skills/tdd-workflow/skill.md`
+**File**: `plugins/rd2/skills/tdd-workflow/SKILL.md`
 
 **Enhancements Added**:
 - Test generation strategies (unit, integration, e2e)
@@ -58,8 +58,8 @@ Implement all recommendations from Task 0061:
 **B. Updated super-code-reviewer agent/command** (Q4 from Task 0061):
 
 **Files**:
-- `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-code-reviewer.md`
-- `/Users/robin/projects/cc-agents/plugins/rd2/commands/super-code-reviewer.md`
+- `plugins/rd2/agents/super-code-reviewer.md`
+- `plugins/rd2/commands/super-code-reviewer.md`
 
 **Clarifications Added**:
 - Two-level review process (Solution Review vs Code Review)
@@ -74,7 +74,7 @@ Implement all recommendations from Task 0061:
 
 **A. rd2:task-decomposition skill** (NEW - Q1 from Task 0061) ✅
 
-**File Created:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/task-decomposition/SKILL.md`
+**File Created:** `plugins/rd2/skills/task-decomposition/SKILL.md`
 
 **Purpose**: Break down tasks into WBS-structured subtasks
 
@@ -88,7 +88,7 @@ Implement all recommendations from Task 0061:
 
 **B. super-planner agent** (NEW) ✅
 
-**File Created:** `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-planner.md`
+**File Created:** `plugins/rd2/agents/super-planner.md`
 
 **Purpose**: Coordinate task decomposition, planning, and orchestration
 
@@ -103,7 +103,7 @@ Implement all recommendations from Task 0061:
 
 **C. super-planner command** (NEW) ✅
 
-**File Created:** `/Users/robin/projects/cc-agents/plugins/rd2/commands/super-planner.md`
+**File Created:** `plugins/rd2/commands/super-planner.md`
 
 **Purpose**: CLI entry point for super-planner agent
 
@@ -117,7 +117,7 @@ Implement all recommendations from Task 0061:
 
 **D. super-architect agent** (NEW) ✅
 
-**File Created:** `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-architect.md`
+**File Created:** `plugins/rd2/agents/super-architect.md`
 
 **Purpose**: Handle solution architecture and design
 
@@ -137,7 +137,7 @@ Implement all recommendations from Task 0061:
 
 **E. super-designer agent** (NEW) ✅
 
-**File Created:** `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-designer.md`
+**File Created:** `plugins/rd2/agents/super-designer.md`
 
 **Purpose**: Handle UI/UX design and frontend design
 
@@ -197,10 +197,10 @@ Implement all recommendations from Task 0061:
 
 ### References
 
-- Task 0061 findings: `/Users/robin/projects/cc-agents/docs/prompts/0061_fine_tune_process_for_super-coder.md`
-- super-coder implementation: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-coder.md`
-- tdd-workflow skill: `/Users/robin/projects/cc-agents/plugins/rd2/skills/tdd-workflow/skill.md`
-- super-code-reviewer: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-code-reviewer.md`
+- Task 0061 findings: `docs/prompts/0061_fine_tune_process_for_super-coder.md`
+- super-coder implementation: `plugins/rd2/agents/super-coder.md`
+- tdd-workflow skill: `plugins/rd2/skills/tdd-workflow/SKILL.md`
+- super-code-reviewer: `plugins/rd2/agents/super-code-reviewer.md`
 
 ### Q&A
 
