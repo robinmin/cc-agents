@@ -122,7 +122,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/coder-opencode/scripts/coder-opencode.py ge
 
 ### 4. Present Results
 
-Output saves to `.claude/plans/[name].md` with:
+Output saves to `docs/plans/[name].md` with:
 - YAML frontmatter (metadata, model used)
 - Implementation sections
 - Tests (if TDD mode)
