@@ -13,6 +13,56 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
+# Constants for log rotation
+MAX_LOG_SIZE = 1024 * 1024  # 1MB max log file size before rotation
+
+
+def rotate_log_file(log_path: Path) -> None:
+    """Rotate log file if it exceeds MAX_LOG_SIZE.
+
+    Args:
+        log_path: Path to the log file to potentially rotate
+    """
+    if not log_path.exists():
+        return
+
+    try:
+        if log_path.stat().st_size >= MAX_LOG_SIZE:
+            # Create rotated filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            rotated_path = log_path.parent / f"{log_path.stem}.{timestamp}{log_path.suffix}"
+            # Rename current log to rotated name
+            log_path.rename(rotated_path)
+            # Keep only last 5 rotated logs
+            _cleanup_old_logs(log_path, keep_count=5)
+    except (OSError, ValueError):
+        # Silently fail rotation to avoid breaking core functionality
+        pass
+
+
+def _cleanup_old_logs(log_path: Path, keep_count: int = 5) -> None:
+    """Remove old rotated log files beyond keep_count.
+
+    Args:
+        log_path: Original log file path (without timestamp suffix)
+        keep_count: Number of rotated logs to keep (default: 5)
+    """
+    try:
+        # Find all rotated logs for this file
+        pattern = f"{log_path.stem}.*{log_path.suffix}"
+        rotated_logs = sorted(
+            log_path.parent.glob(pattern),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        # Remove logs beyond keep_count
+        for old_log in rotated_logs[keep_count:]:
+            old_log.unlink()
+    except (OSError, ValueError):
+        # Silently fail cleanup to avoid breaking core functionality
+        pass
+
+
 TASKS_USAGE = """
 Tasks CLI Tool - Python implementation
 Manages task files in docs/prompts/ with kanban board synchronization.
@@ -312,6 +362,9 @@ class SyncOrchestrator:
     ) -> None:
         """Log task promotion event."""
         self.promotions_log.parent.mkdir(parents=True, exist_ok=True)
+
+        # Rotate log if needed before writing
+        rotate_log_file(self.promotions_log)
 
         timestamp = datetime.now().isoformat()
         log_entry = {
@@ -934,6 +987,9 @@ updated_at: { { UPDATED_AT } }
             log_file = self.config.project_root / ".claude" / "tasks_hook.log"
             log_file.parent.mkdir(parents=True, exist_ok=True)
 
+            # Rotate log if needed before writing
+            rotate_log_file(log_file)
+
             timestamp = datetime.now().isoformat()
             log_entry = {
                 "timestamp": timestamp,
@@ -976,6 +1032,9 @@ updated_at: { { UPDATED_AT } }
             log_dir = self.config.project_root / ".claude" / "logs"
             log_file = log_dir / "hook_event.log"
             log_dir.mkdir(parents=True, exist_ok=True)
+
+            # Rotate log if needed before writing
+            rotate_log_file(log_file)
 
             timestamp = datetime.now().isoformat()
 
