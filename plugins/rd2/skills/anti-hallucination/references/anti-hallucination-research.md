@@ -248,9 +248,9 @@ Query → CoVe Verification → Confidence Score → Source Attribution
 
 ## Related Task Files
 
-- `/docs/prompts/0004_validation_report.md` - Complete validation workflow
-- `/docs/prompts/0005_technique_extraction.md` - 20 techniques with citations
-- `/docs/prompts/0006_workflow_completion_report.md` - Summary of integration
+- `docs/prompts/0004_validation_report.md` - Complete validation workflow
+- `docs/prompts/0005_technique_extraction.md` - 20 techniques with citations
+- `docs/prompts/0006_workflow_completion_report.md` - Summary of integration
 
 ## Citation Summary
 
