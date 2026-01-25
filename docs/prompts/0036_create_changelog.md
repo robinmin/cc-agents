@@ -73,7 +73,7 @@ All notable changes to cc-skills are documented here.
 
 ## References
 
-- **New file:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/CHANGELOG.md`
+- **New file:** `plugins/rd2/skills/cc-skills/CHANGELOG.md`
 
 ## Deliverables
 
