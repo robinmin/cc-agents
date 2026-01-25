@@ -186,7 +186,7 @@ methodology: super-coder
 
 ## See Also
 
-- **super-coder agent**: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-coder.md` - Complete implementation logic
+- **super-coder agent**: `../agents/super-coder.md` - Complete implementation logic
 - `rd2:coder-gemini` - Gemini-based code generation (skill)
 - `rd2:coder-claude` - Claude native code generation (skill)
 - `rd2:coder-auggie` - Auggie semantic code generation (skill)
