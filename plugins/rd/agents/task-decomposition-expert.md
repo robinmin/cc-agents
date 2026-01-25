@@ -321,13 +321,13 @@ Backlog → Todo → WIP → Testing → Done
 
 **Types of References:**
 
-| Type          | Example Format                             |
-| ------------- | ------------------------------------------ |
-| Source files  | `- Code: \`src/auth/login.py\``            |
-| Documentation | `- Docs: \`docs/api/auth.md\``             |
-| Tests         | `- Tests: \`tests/test_auth.py\``          |
-| Config        | `- Config: \`config/auth.yaml\``           |
-| Dependencies  | `- Depends on: \`0002_database_setup.md\`` |
+| Type          | Example Format                                       |
+| ------------- | ---------------------------------------------------- |
+| Source files  | `- Code: \`src/auth/login.py\` [example]`            |
+| Documentation | `- Docs: \`docs/api/auth.md\` [example]`             |
+| Tests         | `- Tests: \`tests/test_auth.py\` [example]`          |
+| Config        | `- Config: \`config/auth.yaml\` [example]`           |
+| Dependencies  | `- Depends on: \`0002_database_setup.md\` [example]` |
 
 **Gathering Strategy:**
 
@@ -543,11 +543,11 @@ updated_at: 2026-01-15 10:30:00
 4. Build password reset flow
 
 ### References
-- Code: `/Users/robin/projects/cc-agents/src/auth/login.py`
-- Code: `/Users/robin/projects/cc-agents/src/models/user.py`
-- Docs: `/Users/robin/projects/cc-agents/docs/api/auth.md`
-- Tests: `/Users/robin/projects/cc-agents/tests/test_auth.py`
-- Dependencies: `0002_database_setup.md`
+- Code: `src/auth/login.py` [example]
+- Code: `src/models/user.py` [example]
+- Docs: `docs/api/auth.md` [example]
+- Tests: `tests/test_auth.py` [example]
+- Dependencies: `0002_database_setup.md` [example]
 ```
 
 ## Error Response Format
