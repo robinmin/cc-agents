@@ -256,12 +256,12 @@ POST /api/auth/reset
 
 | Type | Format | Example |
 |------|--------|---------|
-| Source files | `- Code: \`path/to/file.py\`` | `- Code: \`src/auth/reset.py\`` |
-| Documentation | `- Docs: \`path/to/docs.md\`` | `- Docs: \`docs/api/auth.md\`` |
-| Tests | `- Tests: \`path/to/test.py\`` | `- Tests: \`tests/test_reset.py\`` |
-| Configuration | `- Config: \`path/to/config.yaml\`` | `- Config: \`config/auth.yaml\`` |
-| Dependencies | `- Depends on: \`WBS_ID\`` | `- Depends on: \`0001\`` |
-| External | `- External: \`https://...\`` | `- External: \`https://owasp.org\`` |
+| Source files | `- Code: \`path/to/file.py\`` | `- Code: \`src/auth/reset.py\` [example]` |
+| Documentation | `- Docs: \`path/to/docs.md\`` | `- Docs: \`docs/api/auth.md\` [example]` |
+| Tests | `- Tests: \`path/to/test.py\`` | `- Tests: \`tests/test_reset.py\` [example]` |
+| Configuration | `- Config: \`path/to/config.yaml\`` | `- Config: \`config/auth.yaml\` [example]` |
+| Dependencies | `- Depends on: \`WBS_ID\`` | `- Depends on: \`0001\` [example]` |
+| External | `- External: \`https://...\`` | `- External: \`https://owasp.org\` [example]` |
 
 **Example References Section:**
 
@@ -269,18 +269,17 @@ POST /api/auth/reset
 ### References
 
 **Code Files:**
-- Code: `/src/auth/tokens.py` (token generation)
-- Code: `/src/models/user.py` (user model)
-- Code: `/src/api/endpoints/auth.py` (API endpoints)
-- Code: `/src/services/email.py` (email service)
+- Code: `src/auth/tokens.py` [example] (token generation)
+- Code: `src/models/user.py` [example] (user model)
+- Code: `src/api/endpoints/auth.py` [example] (API endpoints)
+- Code: `src/services/email.py` [example] (email service)
 
 **Tests:**
-- Tests: `/tests/auth/test_tokens.py`
-- Tests: `/tests/api/test_reset_endpoint.py`
+- Tests: `tests/auth/test_tokens.py` [example]
+- Tests: `tests/api/test_reset_endpoint.py` [example]
 
 **Documentation:**
-- Docs: `/docs/api/authentication.md`
-- Docs: `/docs/security/token-storage.md`
+- Docs: `docs/api/authentication.md` [example]
 
 **Configuration:**
 - Config: `/config/auth.yaml`
