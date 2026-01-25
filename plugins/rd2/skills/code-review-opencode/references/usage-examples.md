@@ -40,7 +40,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 
 # Review with custom output
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py review src/ \
-  --output .claude/plans/auth-review.md
+  --output docs/plans/auth-review.md
 
 # Architecture planning mode
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py review src/ \
@@ -126,7 +126,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 
 ```bash
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import \
-  .claude/plans/review-src.md
+  docs/plans/review-src.md
 ```
 
 ### Filter by Priority
@@ -134,12 +134,12 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 ```bash
 # Only import critical issues
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import \
-  .claude/plans/review-src.md \
+  docs/plans/review-src.md \
   --priority critical
 
 # Only import high priority issues
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import \
-  .claude/plans/review-src.md \
+  docs/plans/review-src.md \
   --priority high
 ```
 
@@ -184,11 +184,11 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 # 2. Review changed files
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py review src/auth/ \
   --focus "security,testing" \
-  --output .claude/plans/pre-pr-review.md
+  --output docs/plans/pre-pr-review.md
 
 # 3. Import critical issues as tasks
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import \
-  .claude/plans/pre-pr-review.md \
+  docs/plans/pre-pr-review.md \
   --priority critical
 ```
 
@@ -199,14 +199,14 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py review src/old/ \
   --plan \
   --focus architecture \
-  --output .claude/plans/migration-plan.md
+  --output docs/plans/migration-plan.md
 
 # 2. Review the plan
-cat .claude/plans/migration-plan.md
+cat docs/plans/migration-plan.md
 
 # 3. Create tasks for implementation steps
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import \
-  .claude/plans/migration-plan.md
+  docs/plans/migration-plan.md
 ```
 
 ### Workflow 3: Security Audit
@@ -216,11 +216,11 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py review src/ \
   --focus security \
   --timeout 900 \
-  --output .claude/plans/security-audit.md
+  --output docs/plans/security-audit.md
 
 # Import all security issues
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import \
-  .claude/plans/security-audit.md
+  docs/plans/security-audit.md
 ```
 
 ## Troubleshooting Examples
