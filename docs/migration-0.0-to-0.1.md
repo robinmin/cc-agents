@@ -469,9 +469,9 @@ status_map = {
 For migration issues:
 
 1. Check this guide's Known Issues section
-2. Review `/docs/rd2-workflow.md` for workflow changes
-3. Review `/docs/task-cli-integration.md` for task CLI changes
-4. Check task file format in `/plugins/rd2/skills/task-decomposition/SKILL.md`
+2. Review `docs/rd2-workflow.md` for workflow changes
+3. Review `docs/task-cli-integration.md` for task CLI changes
+4. Check task file format in `plugins/rd2/skills/task-decomposition/SKILL.md`
 
 ## Version History
 
