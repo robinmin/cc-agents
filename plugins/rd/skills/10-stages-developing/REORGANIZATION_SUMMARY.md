@@ -237,8 +237,8 @@ development best practices.
 
 ### For Installation
 ```bash
-# Already in correct location
-cd /Users/robin/projects/cc-agents/skills/
+# Navigate to the skills directory (from project root)
+cd skills/  # or cd plugins/rd/skills/10-stages-developing
 
 # Verify structure
 tree 10-stages-developing
