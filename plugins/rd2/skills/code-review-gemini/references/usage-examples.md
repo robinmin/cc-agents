@@ -27,7 +27,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemi
 **What it does:**
 - Runs comprehensive security analysis on authentication code
 - Checks for common vulnerabilities (injection, XSS, auth bypasses)
-- Generates structured review in `.claude/plans/auth-security-review.md`
+- Generates structured review in `docs/plans/auth-security-review.md`
 - Focuses specifically on security concerns
 
 **Expected output format:**
@@ -138,7 +138,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemi
 ### Import All Issues
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import .claude/plans/review-auth.md
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import docs/plans/review-auth.md
 ```
 
 **What it does:**
@@ -151,7 +151,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemi
 ### Import Critical Issues Only
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import .claude/plans/review-auth.md \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import docs/plans/review-auth.md \
   --priority critical
 ```
 
@@ -163,7 +163,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemi
 ### Import High Priority Issues
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import .claude/plans/review-auth.md \
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import docs/plans/review-auth.md \
   --priority high
 ```
 
@@ -216,14 +216,14 @@ Typical workflow:
 python3 code-review-gemini.py review src/auth/ --output auth-review
 
 # Step 2: Import critical issues as tasks
-python3 code-review-gemini.py import .claude/plans/auth-review.md --priority critical
+python3 code-review-gemini.py import docs/plans/auth-review.md --priority critical
 
 # Step 3: Track with tasks CLI
 tasks list wip
 tasks update 0001 done
 
 # Step 4: Import high priority after critical issues fixed
-python3 code-review-gemini.py import .claude/plans/auth-review.md --priority high
+python3 code-review-gemini.py import docs/plans/auth-review.md --priority high
 ```
 
 ---
@@ -341,8 +341,8 @@ Instead of generic review, target specific concerns:
 python3 code-review-gemini.py review src/ --output my-review
 
 # Import critical and high priority
-python3 code-review-gemini.py import .claude/plans/my-review.md --priority critical
-python3 code-review-gemini.py import .claude/plans/my-review.md --priority high
+python3 code-review-gemini.py import docs/plans/my-review.md --priority critical
+python3 code-review-gemini.py import docs/plans/my-review.md --priority high
 
 # Track with tasks
 tasks list
@@ -362,8 +362,8 @@ python3 code-review-gemini.py review src/ --focus security --output pre-merge-se
 python3 code-review-gemini.py review src/ --focus performance --output pre-merge-performance
 
 # 3. Import critical issues
-python3 code-review-gemini.py import .claude/plans/pre-merge-security.md --priority critical
-python3 code-review-gemini.py import .claude/plans/pre-merge-performance.md --priority critical
+python3 code-review-gemini.py import docs/plans/pre-merge-security.md --priority critical
+python3 code-review-gemini.py import docs/plans/pre-merge-performance.md --priority critical
 
 # 4. Verify all tasks resolved
 tasks list wip
@@ -439,10 +439,10 @@ python3 code-review-gemini.py review /full/path/to/src/
 **Solution:**
 ```bash
 # Verify review file exists and has correct format
-cat .claude/plans/review-file.md
+cat docs/plans/review-file.md
 
 # Check YAML frontmatter is present
-head -10 .claude/plans/review-file.md
+head -10 docs/plans/review-file.md
 ```
 
 ---
