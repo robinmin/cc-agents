@@ -1,3 +1,58 @@
+## [0.2.0] - 2026-01-24
+
+### Summary
+
+**Developer Experience Improvements: Simplified Documentation & Agent Routing**
+
+Enhanced developer experience with streamlined documentation, color reference organization, and comprehensive agent routing guide for all rd2 subagents.
+
+### Added
+
+- **Agent Routing Section** (`.claude/CLAUDE.md`):
+  - Comprehensive table of all 9 rd2 subagents with auto-routing triggers
+  - Color-coded quick reference for visual identification
+  - Keywords extracted from agent frontmatter for intelligent routing
+
+- **Refined Color Reference** (`plugins/rd2/skills/cc-agents/references/colors.md`):
+  - Reorganized from 420 to 340 lines (19% reduction)
+  - Aligned with functional categories from `agent-colors.md`
+  - Added decision tree for color selection
+  - Machine-readable YAML format for programmatic access
+
+### Changed
+
+- **Simplified CLAUDE.md** (`.claude/CLAUDE.md`):
+  - Reduced from ~180 to 68 lines (62% reduction)
+  - Merged redundant sections into single quick reference
+  - Focused on essential best practices and common mistakes
+
+- **Updated Color Guidelines** (`plugins/rd2/skills/cc-agents/SKILL.md`):
+  - Aligned color categories with functional meanings
+  - Added quick reference card with emoji indicators
+  - Simplified subagent color suggestions
+
+### Agent Routing Table
+
+| Agent | Color | Role | Auto-routing Keywords |
+|-------|-------|------|------------------------|
+| super-coder | 🟩 teal | Code implementation |
+| super-planner | 🟪 purple | Orchestration |
+| super-code-reviewer | 🟥 crimson | Code review |
+| super-architect | 🟦 blue | Solution architecture |
+| super-designer | 🩷 pink | UI/UX design |
+| skill-doctor | 💜 lavender | Skill evaluation |
+| agent-doctor | 🟥 crimson | Agent evaluation |
+| skill-expert | 🟩 teal | Skill creation |
+| agent-expert | 🌊 azure | Agent creation |
+
+### Benefits
+
+- **Faster agent discovery** - Single reference for all rd2 subagents
+- **Better visual organization** - Color-coded agents by functional category
+- **Improved documentation** - Streamlined, scannable, and actionable
+
+---
+
 ## [0.1.0] - 2026-01-22
 
 ### Summary
