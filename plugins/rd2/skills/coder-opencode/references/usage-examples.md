@@ -107,7 +107,7 @@ python3 coder-opencode.py generate "Implement order processing service" \
   --output order-service
 
 # 3. Review output
-cat .claude/plans/order-service.md
+cat docs/plans/order-service.md
 ```
 
 ### Multi-Model Comparison
@@ -123,5 +123,5 @@ python3 coder-opencode.py generate "Implement caching layer" \
   --output cache-claude
 
 # Compare the outputs
-diff .claude/plans/cache-gpt4o.md .claude/plans/cache-claude.md
+diff docs/plans/cache-gpt4o.md docs/plans/cache-claude.md
 ```
