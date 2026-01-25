@@ -151,11 +151,11 @@ python3 coder-gemini.py generate "Implement order processing service" \
   --output order-service
 
 # 3. Review output
-cat .claude/plans/order-service.md
+cat docs/plans/order-service.md
 
 # 4. Iterate if needed
 python3 coder-gemini.py generate "Add cancellation support to order service" \
-  --context .claude/plans/order-service.md \
+  --context docs/plans/order-service.md \
   --output order-service-v2
 ```
 
@@ -168,12 +168,12 @@ python3 coder-gemini.py generate "Create basic file upload handler" \
 
 # Add validation
 python3 coder-gemini.py generate "Add file type and size validation to file upload" \
-  --context .claude/plans/file-upload-v1.md \
+  --context docs/plans/file-upload-v1.md \
   --output file-upload-v2
 
 # Add async processing
 python3 coder-gemini.py generate "Convert file upload to async with progress tracking" \
-  --context .claude/plans/file-upload-v2.md \
+  --context docs/plans/file-upload-v2.md \
   --output file-upload-v3
 ```
 
@@ -198,6 +198,6 @@ python3 coder-gemini.py generate "Requirements from step 1" \
 
 # Step 4: Refactor (if needed)
 python3 coder-gemini.py generate "Refactor to improve X" \
-  --context .claude/plans/feature-name.md \
+  --context docs/plans/feature-name.md \
   --focus "simplicity,maintainability"
 ```
