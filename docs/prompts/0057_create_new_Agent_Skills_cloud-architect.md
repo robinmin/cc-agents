@@ -1,7 +1,7 @@
 ---
 name: create new Agent Skills cloud-architect
 description: <prompt description>
-status: Backlog
+status: Done
 created_at: 2026-01-22 21:51:36
 updated_at: 2026-01-22 21:51:36
 ---
