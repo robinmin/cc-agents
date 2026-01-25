@@ -540,7 +540,7 @@ Backlog → Todo → WIP → Testing → Done
 
 ## Related Documentation
 
-- **Workflow**: `/docs/rd2-workflow.md`
-- **Architecture**: `/docs/rd2-architecture.md`
-- **Migration**: `/docs/migration-0.0-to-0.1.md`
-- **tasks skill**: `/plugins/rd2/skills/tasks/SKILL.md`
+- **Workflow**: `docs/rd2-workflow.md`
+- **Architecture**: `docs/rd2-architecture.md`
+- **Migration**: `docs/migration-0.0-to-0.1.md`
+- **tasks skill**: `plugins/rd2/skills/tasks/SKILL.md`
