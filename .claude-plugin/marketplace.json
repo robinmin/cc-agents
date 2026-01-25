@@ -18,7 +18,7 @@
       "description": "Rapid Development: TDD workflow, task management, skill development, and code quality tools"
     },
     {
-      "version": "0.2.1",
+      "version": "0.2.2",
       "name": "rd2",
       "source": "./plugins/rd2",
       "description": "Next generation tools for Rapid Development"
