@@ -45,7 +45,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-op
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py review src/ --plan --focus architecture
 
 # 3. Import results as tasks
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import .claude/plans/review.md
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-opencode/scripts/code-review-opencode.py import docs/plans/review.md
 ```
 
 ## Review Workflow
