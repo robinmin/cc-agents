@@ -11,7 +11,7 @@ Frontend system architecture and scalability patterns for building large-scale, 
 
 This skill provides architectural guidance for frontend systems design, covering rendering strategies, application structure (monolith vs microfrontends), build/deployment architecture, security, observability, and multi-team coordination patterns. It complements `frontend-design` (implementation patterns) and `ui-ux-design` (visual/UX patterns).
 
-**For comprehensive architecture analysis**, use `/rd2:super-architect` agent which provides detailed system design with ADRs, complete verification with benchmarks, and migration strategies.
+**For comprehensive architecture analysis**, use `/rd2:tasks-plan --architect` command which invokes the super-architect agent to provide detailed system design with ADRs, complete verification with benchmarks, and migration strategies.
 
 ## Quick Start
 
@@ -946,7 +946,7 @@ This SKILL.md provides architectural guidance for frontend system design.
 - Use `/rd2:ui-ux-design` for accessibility, design tokens, visual design
 
 **For comprehensive architecture analysis:**
-- Use `/rd2:super-architect` agent for detailed system design with ADRs and migration strategies
+- Use `/rd2:tasks-plan --architect` to invoke super-architect for detailed system design with ADRs and migration strategies
 
 **For backend patterns:**
 - Use `/rd2:backend-architect` for APIs, databases, distributed systems
