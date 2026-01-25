@@ -19,8 +19,8 @@ demo/
 ## 🚀 Quick Start (30 seconds)
 
 ```bash
-# 1. Navigate to demo directory
-cd /Users/robin/projects/cc-agents/plugins/rd/skills/ast-grep/demo
+# 1. Navigate to demo directory (from project root)
+cd plugins/rd/skills/ast-grep/demo
 
 # 2. Run a simple search
 ast-grep run --pattern 'console.log($$$)' --lang javascript sample-code.js
