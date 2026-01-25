@@ -136,7 +136,7 @@ When `--task <wbs_number_or_path>` is specified, super-coder follows:
 
 ## Output Format
 
-Results saved to `.claude/plans/[name].md` with YAML frontmatter:
+Results saved to `docs/plans/[name].md` with YAML frontmatter:
 
 **Task-driven mode (`--task`):**
 ```yaml
