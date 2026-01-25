@@ -162,10 +162,10 @@ tasks list
 
 ```bash
 # View promotion log
-cat .claude/tasks_sync/promotions.log
+cat docs/tasks_sync/promotions.log
 
 # View session mapping
-cat .claude/tasks_sync/session_map.json
+cat docs/tasks_sync/session_map.json
 ```
 
 ## 💡 How It Works
@@ -347,7 +347,7 @@ User: "Implement comprehensive logging system with rotation"
 tasks list | grep logging
 
 # Check promotion log
-tail -1 .claude/tasks_sync/promotions.log
+tail -1 docs/tasks_sync/promotions.log
 
 # Expected output:
 # {"timestamp": "...", "wbs": "0048", "content": "Implement comprehensive...", "reason": "complex_keyword:implement"}
@@ -381,11 +381,11 @@ Track integration health:
 
 ```bash
 # Promotion rate
-echo "Promotions: $(grep -c 'promoted' .claude/tasks_sync/promotions.log)"
+echo "Promotions: $(grep -c 'promoted' docs/tasks_sync/promotions.log)"
 
 # Signal distribution
 echo "Top signals:"
-grep -o 'signal:[^"]*' .claude/tasks_sync/promotions.log | sort | uniq -c | sort -rn
+grep -o 'signal:[^"]*' docs/tasks_sync/promotions.log | sort | uniq -c | sort -rn
 
 # Session restores
 echo "Session restores: $(grep -c 'session_restore' .claude/tasks_sync/events.log)"
