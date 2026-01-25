@@ -8,7 +8,7 @@ Enable automatic synchronization between Claude Code's TodoWrite (ephemeral sess
 
 ### Step 1: Update hooks.json
 
-Create or update `/Users/robin/projects/cc-agents/plugins/rd2/hooks/hooks.json`:
+Create or update `plugins/rd2/hooks/hooks.json` (from project root):
 
 ```json
 {
@@ -197,7 +197,7 @@ Result: External task 0048 marked as Done
 
 **Problem**: TodoWrite items not auto-promoting
 **Solutions**:
-1. Check hooks.json exists: `/Users/robin/projects/cc-agents/plugins/rd2/hooks/hooks.json`
+1. Check hooks.json exists: `plugins/rd2/hooks/hooks.json` (from project root)
 2. Verify hook syntax (valid JSON)
 3. Check Claude Code logs for hook errors
 4. Test manually: `tasks sync todowrite --data '{"todos": [...]}'`
