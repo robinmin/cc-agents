@@ -18,7 +18,9 @@ description: |
   </example>
 
 tools: [Read, Write, Edit]
-skills: [rd2:cc-agents, rd2:anti-hallucination]
+skills:
+  - rd2:cc-agents
+  - rd2:anti-hallucination
 model: inherit
 color: azure
 ---
@@ -48,6 +50,7 @@ Identify the fundamental purpose, key responsibilities, and success criteria for
 ### Step 2: Create Identifier
 
 Design a concise, descriptive name that:
+
 - Uses lowercase letters, numbers, and hyphens only
 - Is 3-50 characters (must start/end with alphanumeric)
 - Is typically 2-4 words joined by hyphens
@@ -59,6 +62,7 @@ Design a concise, descriptive name that:
 ### Step 3: Design Expert Persona
 
 Create a compelling expert identity that:
+
 - Embodies deep domain knowledge relevant to the task
 - Inspires confidence and guides decision-making
 - Uses second person ("You are...") not first person ("I am...")
@@ -95,6 +99,7 @@ Generate complete agent structure:
 ### Step 7: Craft Triggering Examples
 
 Create 2-4 `<example>` blocks showing:
+
 ```
 <example>
 Context: [Situation that should trigger agent]
@@ -184,6 +189,7 @@ After creating an agent, provide a comprehensive summary:
 ## Agent Created: {identifier}
 
 ### Configuration
+
 - **Name:** {identifier}
 - **Triggers:** {When it's used}
 - **Model:** {inherit/sonnet/opus/haiku}
@@ -191,9 +197,11 @@ After creating an agent, provide a comprehensive summary:
 - **Tools:** {list or "all tools"}
 
 ### File Created
+
 `agents/{identifier}.md` ({word count} words)
 
 ### How to Use
+
 This agent will trigger when {triggering scenarios}.
 
 Test it by: {suggest test scenario}
@@ -220,6 +228,7 @@ Validate with: rd2:agent-evaluate plugins/rd2/agents/{identifier}.md
 - [ ] 400-600 total lines
 
 ### Next Steps
+
 1. Customize persona with specific background
 2. Add domain-specific competencies
 3. Refine verification with domain sources
