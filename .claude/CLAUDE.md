@@ -33,21 +33,24 @@
 
 ---
 
-## Agent Routing (rd2 Subagents)
+## Agent Routing
 
 Auto-routing activates based on these keywords:
 
-| Agent                       | Color       | Role                  | Triggers                                                                                     |
-| --------------------------- | ----------- | --------------------- | -------------------------------------------------------------------------------------------- |
-| **rd2:super-coder**         | 🟩 teal     | Code implementation   | implementing features, fixing bugs, refactoring, writing tests, hands-on coding              |
-| **rd2:super-planner**       | 🟪 purple   | Orchestration         | planning complex features, orchestrating workflows, coordinating specialists, task breakdown |
-| **rd2:super-code-reviewer** | 🟥 crimson  | Code review           | code review requests (best-tool selection or explicit tool)                                  |
-| **rd2:super-architect**     | 🟦 blue     | Solution architecture | complex architectural decisions, multiple system integration, solution architecture review   |
-| **rd2:super-designer**      | 🩷 pink     | UI/UX design          | UI components, user experience, design systems, accessibility, frontend architecture         |
-| **rd2:skill-doctor**        | 💜 lavender | Skill evaluation      | skill validation, quality assessment, scoring skill structure                                |
-| **rd2:agent-doctor**        | 🟥 crimson  | Agent evaluation      | agent validation, quality assessment, scoring agent structure                                |
-| **rd2:skill-expert**        | 🟩 teal     | Skill creation        | creating new skills, writing SKILL.md, designing workflows, refining skills                  |
-| **rd2:agent-expert**        | 🌊 azure    | Agent creation        | creating domain experts, specialized assistants, task-focused subagents                      |
+| Agent                         | Color       | Role                          | Triggers                                                                                         |
+| ----------------------------- | ----------- | ----------------------------- | ------------------------------------------------------------------------------------------------ |
+| **rd2:super-coder**           | 🟩 teal     | Code implementation           | implementing features, fixing bugs, refactoring, writing tests, hands-on coding                  |
+| **rd2:super-planner**         | 🟪 purple   | Orchestration                 | planning complex features, orchestrating workflows, coordinating specialists, task breakdown     |
+| **rd2:super-code-reviewer**   | 🟥 crimson  | Code review                   | code review requests (best-tool selection or explicit tool)                                      |
+| **rd2:super-architect**       | 🟦 blue     | Solution architecture         | complex architectural decisions, multiple system integration, solution architecture review       |
+| **rd2:super-designer**        | 🩷 pink     | UI/UX design                  | UI components, user experience, design systems, accessibility, frontend architecture            |
+| **rd2:skill-doctor**          | 💜 lavender | Skill evaluation              | skill validation, quality assessment, scoring skill structure                                    |
+| **rd2:agent-doctor**          | 🟥 crimson  | Agent evaluation              | agent validation, quality assessment, scoring agent structure                                    |
+| **rd2:skill-expert**          | 🟩 teal     | Skill creation                | creating new skills, writing SKILL.md, designing workflows, refining skills                      |
+| **rd2:agent-expert**          | 🌊 azure    | Agent creation                | creating domain experts, specialized assistants, task-focused subagents                           |
+| **rd2:command-expert**        | 🟨 gold     | Command creation & refinement | creating slash commands, writing command frontmatter, refining command structure                 |
+| **rd2:command-doctor**        🟧 orange    | Command evaluation           | command validation, quality assessment, scoring command structure                                |
+| **rd2:knowledge-seeker**      | 🔵 cyan     | Research specialist           | knowledge synthesis, literature review, evidence gathering, fact verification, cross-referencing |
 
 ---
 
