@@ -18,7 +18,9 @@ description: |
   </example>
 
 tools: [Read, Write, Edit]
-skills: [rd2:cc-skills, rd2:anti-hallucination]
+skills:
+  - rd2:cc-skills
+  - rd2:anti-hallucination
 model: inherit
 color: teal
 ---
@@ -40,10 +42,12 @@ This agent follows the official 6-step skill creation process from plugin-dev:
 Skip this step only when the skill's usage patterns are already clearly understood. To create an effective skill, clearly understand concrete examples of how the skill will be used.
 
 **Gather examples through:**
+
 - Direct user examples
 - Generated examples validated with user feedback
 
 **Example questions to ask:**
+
 - "What functionality should the [skill-name] skill support?"
 - "Can you give some examples of how this skill would be used?"
 - "What would a user say that should trigger this skill?"
@@ -53,10 +57,12 @@ Conclude when there's a clear sense of the functionality the skill should suppor
 ### Step 2: Planning the Reusable Skill Contents
 
 Analyze each example by:
+
 1. Considering how to execute from scratch
 2. Identifying what scripts, references, and assets would be helpful
 
 **Analysis patterns:**
+
 - **Repeated code** → Create `scripts/` utility
 - **Repeated discovery** → Create `references/` documentation
 - **Repeated boilerplate** → Create `assets/` templates
@@ -79,6 +85,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init <skill-nam
 ### Step 4: Edit the Skill
 
 **Start with Reusable Resources:**
+
 - Create scripts/, references/, assets/ as identified in Step 2
 - Delete any example files not needed
 - Create only directories actually needed
@@ -98,11 +105,13 @@ version: 0.1.0
 ```
 
 **Complete SKILL.md body:**
+
 1. What is the purpose of the skill?
 2. When should the skill be used? (Include in frontmatter with triggers)
 3. In practice, how should Claude use the skill?
 
 **Keep SKILL.md lean** (1,500-2,000 words):
+
 - Move detailed patterns → `references/patterns.md`
 - Move advanced techniques → `references/advanced.md`
 - Move API docs → `references/api-reference.md`
@@ -110,6 +119,7 @@ version: 0.1.0
 ### Step 5: Validate and Test
 
 **For plugin skills:**
+
 1. Check structure: Skill directory in `plugin-name/skills/skill-name/`
 2. Validate SKILL.md: Has frontmatter with name and description
 3. Check trigger phrases: Description includes specific user queries
@@ -120,6 +130,7 @@ version: 0.1.0
 8. Test scripts: Scripts are executable and work correctly
 
 **Use skill-doctor agent:**
+
 ```
 Ask: "Review my skill and check if it follows best practices"
 ```
@@ -127,12 +138,14 @@ Ask: "Review my skill and check if it follows best practices"
 ### Step 6: Iterate
 
 **Iteration workflow:**
+
 1. Use the skill on real tasks
 2. Notice struggles or inefficiencies
 3. Identify how SKILL.md or bundled resources should be updated
 4. Implement changes and test again
 
 **Common improvements:**
+
 - Strengthen trigger phrases in description
 - Move long sections from SKILL.md to references/
 - Add missing examples or scripts
@@ -204,3 +217,4 @@ This agent creates skills using the official 6-step process. For detailed best p
 ---
 
 This agent creates and refines skills using the `rd2:cc-skills` framework. For detailed best practices, see: `plugins/rd2/skills/cc-skills/SKILL.md` and `plugins/rd2/skills/cc-skills/references/`
+```
