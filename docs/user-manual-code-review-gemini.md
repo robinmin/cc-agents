@@ -25,12 +25,14 @@
 Code Review Gemini is a Claude Code skill that lets you get a **second opinion** from Google's Gemini AI on your code. Think of it as having a senior developer review your work before you commit it.
 
 **What it can do:**
+
 - 🔍 **Review your code** for bugs, security issues, and performance problems
 - 🏗️ **Plan architecture** for new features before you start coding
 - 💡 **Answer technical questions** about design patterns and best practices
 - ✅ **Create task files** from review results for tracking fixes
 
 **What it cannot do:**
+
 - ❌ Write or implement code for you (it only reviews and advises)
 - ❌ Modify your files directly (it's read-only and safe)
 - ❌ Replace human code review (it's a helpful second opinion)
@@ -78,6 +80,7 @@ You: "Have Gemini review my authentication code in src/auth/ for security issues
 ```
 
 **Step 2: Claude will:**
+
 - Activate the Gemini skill automatically
 - Send your code to Gemini for analysis
 - Present the results to you with findings organized by priority
@@ -85,6 +88,7 @@ You: "Have Gemini review my authentication code in src/auth/ for security issues
 **Step 3: Review the results**
 
 You'll get a structured report with:
+
 - **Critical Issues** - Must fix before deploying
 - **High Priority Issues** - Should fix soon
 - **Medium Priority Issues** - Consider fixing
@@ -124,7 +128,7 @@ None found.
 **Overall Quality Score: 7/10**
 Recommendation: Request Changes
 
-The review has been saved to .claude/plans/review-utils-py.md
+The review has been saved to docs/plans/review-utils-py.md
 ```
 
 ---
@@ -136,16 +140,19 @@ The review has been saved to .claude/plans/review-utils-py.md
 **When to use:** First time setup, troubleshooting
 
 **How to ask Claude:**
+
 - "Check if Gemini is available"
 - "Verify Gemini setup"
 - "Is Gemini working?"
 
 **What it does:**
+
 - Checks if Gemini CLI is installed
 - Verifies it's working correctly
 - Shows version information
 
 **Example:**
+
 ```
 You: "Check if Gemini is available"
 
@@ -161,11 +168,13 @@ Ready to use!
 **When to use:** Quick technical consultations, architecture questions
 
 **How to ask Claude:**
+
 - "Ask Gemini: [your question]"
 - "Get Gemini's opinion on [topic]"
 - "Gemini, what's the difference between [A] and [B]?"
 
 **What it does:**
+
 - Sends your question to Gemini
 - Gets back a focused answer
 - Great for design decisions
@@ -191,27 +200,29 @@ Claude: [Gets comprehensive comparison from Gemini]
 **When to use:** Before commits, pre-release checks, security audits
 
 **How to ask Claude:**
+
 - "Have Gemini review [path/to/code]"
 - "Gemini code review on [directory]"
 - "Review [file] for [security/performance/quality]"
 
 **What it does:**
+
 - Analyzes your code files
 - Looks for bugs, security issues, performance problems
 - Provides structured feedback with severity ratings
-- Saves detailed report to `.claude/plans/`
+- Saves detailed report to `docs/plans/`
 
 **Focus Areas:**
 
 You can ask Gemini to focus on specific aspects:
 
-| Focus Area | What It Checks |
-|------------|----------------|
-| **security** | Vulnerabilities, SQL injection, XSS, authentication flaws |
-| **performance** | Slow algorithms, memory leaks, N+1 queries |
-| **testing** | Missing tests, edge cases, coverage gaps |
-| **quality** | Readability, maintainability, code smells |
-| **architecture** | Design patterns, coupling, cohesion |
+| Focus Area       | What It Checks                                            |
+| ---------------- | --------------------------------------------------------- |
+| **security**     | Vulnerabilities, SQL injection, XSS, authentication flaws |
+| **performance**  | Slow algorithms, memory leaks, N+1 queries                |
+| **testing**      | Missing tests, edge cases, coverage gaps                  |
+| **quality**      | Readability, maintainability, code smells                 |
+| **architecture** | Design patterns, coupling, cohesion                       |
 
 **Examples:**
 
@@ -219,7 +230,7 @@ You can ask Gemini to focus on specific aspects:
 You: "Have Gemini review src/auth/ for security issues"
 
 Claude: [Reviews authentication code with security focus]
-Result saved to: .claude/plans/review-auth-security.md
+Result saved to: docs/plans/review-auth-security.md
 ```
 
 ```
@@ -242,11 +253,13 @@ Warning: This may take 10-15 minutes for large codebases
 **When to use:** Before implementing new features, refactoring planning
 
 **How to ask Claude:**
+
 - "Ask Gemini to plan how to implement [feature]"
 - "Get an implementation plan for [task]"
 - "Gemini, how should I architect [component]?"
 
 **What it does:**
+
 - Analyzes your existing code structure
 - Suggests implementation steps
 - Highlights architectural decisions
@@ -281,11 +294,13 @@ Claude: [Detailed architecture plan for WebSocket integration]
 **When to use:** After getting review results, to track fixes
 
 **How to ask Claude:**
+
 - "Import the critical issues from the review as tasks"
 - "Create task files for the high priority issues"
 - "Convert review results to tasks"
 
 **What it does:**
+
 - Reads a Gemini review file
 - Extracts individual issues
 - Creates separate task files in `docs/prompts/`
@@ -479,12 +494,14 @@ Ready for deployment.
 ### 1. Be Specific with Your Requests
 
 **Good:**
+
 ```
 "Have Gemini review src/auth/ for security vulnerabilities,
 specifically SQL injection, XSS, and authentication bypass"
 ```
 
 **Less Effective:**
+
 ```
 "Review my code"
 ```
@@ -497,14 +514,15 @@ specifically SQL injection, XSS, and authentication bypass"
 
 Gemini has different models for different needs:
 
-| Situation | Ask Claude To Use |
-|-----------|-------------------|
+| Situation                | Ask Claude To Use                                   |
+| ------------------------ | --------------------------------------------------- |
 | **Default (most cases)** | Nothing - uses gemini-3-flash-preview automatically |
-| **Quick question** | "Use Gemini flash model" |
-| **Deep analysis** | "Use Gemini pro model" |
-| **Complex architecture** | "Use Gemini 3 pro model" |
+| **Quick question**       | "Use Gemini flash model"                            |
+| **Deep analysis**        | "Use Gemini pro model"                              |
+| **Complex architecture** | "Use Gemini 3 pro model"                            |
 
 **Example:**
+
 ```
 You: "Use Gemini pro to review this complex authentication system"
 ```
@@ -514,6 +532,7 @@ You: "Use Gemini pro to review this complex authentication system"
 ### 3. Review Small Chunks
 
 **Good Approach:**
+
 ```
 Day 1: "Review src/auth/"
 Day 2: "Review src/api/"
@@ -521,6 +540,7 @@ Day 3: "Review src/database/"
 ```
 
 **Less Effective:**
+
 ```
 "Review entire codebase" (may timeout or be overwhelming)
 ```
@@ -532,6 +552,7 @@ Day 3: "Review src/database/"
 ### 4. Combine Review + Import
 
 **Efficient Workflow:**
+
 ```
 1. "Review src/auth/ for security"
 2. "Import critical issues as tasks"
@@ -544,6 +565,7 @@ Day 3: "Review src/database/"
 ### 5. Use Focus Areas
 
 **For Targeted Reviews:**
+
 ```
 "Review src/api/ focusing on performance and testing"
 "Review src/ for security and code quality"
@@ -554,13 +576,14 @@ Day 3: "Review src/database/"
 
 ### 6. Save Important Reviews
 
-Claude automatically saves reviews to `.claude/plans/`, but you can specify names:
+Claude automatically saves reviews to `docs/plans/`, but you can specify names:
 
 ```
 "Review src/auth/ and save as 'pre-release-security-audit'"
 ```
 
 Later:
+
 ```
 "Show me the pre-release-security-audit review"
 "Import issues from pre-release-security-audit"
@@ -575,6 +598,7 @@ Later:
 **Problem:** Gemini CLI is not installed or not in PATH
 
 **Solution:**
+
 ```bash
 # Install Gemini CLI
 npm install -g @google/gemini-cli
@@ -598,12 +622,14 @@ gemini --version
 **Solutions:**
 
 1. **Review smaller chunks:**
+
    ```
    Instead of: "Review src/"
    Try: "Review src/auth/" then "Review src/api/"
    ```
 
 2. **Use faster model:**
+
    ```
    "Use Gemini flash model to quickly review src/utils/"
    ```
@@ -620,11 +646,13 @@ gemini --version
 **Problem:** Import command can't find issues in the review
 
 **Check:**
-1. Review file exists in `.claude/plans/`
+
+1. Review file exists in `docs/plans/`
 2. Review has priority sections (Critical, High, Medium, Low)
 3. Sections have actual issues listed
 
 **Solution:**
+
 ```
 # Ask Claude to show the review first
 "Show me the contents of the last review"
@@ -640,11 +668,13 @@ gemini --version
 **Problem:** Import command can't create task files
 
 **Check:**
+
 1. `tasks` CLI is installed
 2. `docs/prompts/` directory exists
 3. You have write permissions
 
 **Solution:**
+
 ```bash
 # Verify tasks CLI
 which tasks
@@ -682,6 +712,7 @@ mkdir -p docs/prompts
 ### Q: Is my code sent to Google?
 
 **A:** Yes, when you use Gemini for review, your code is sent to Google's Gemini API for analysis. The code is processed according to Google's privacy policy. If you have sensitive code, consider:
+
 - Reviewing only non-sensitive portions
 - Using Gemini for architecture planning instead of code review
 - Asking Claude (not Gemini) to review sensitive code
@@ -691,6 +722,7 @@ mkdir -p docs/prompts
 ### Q: Can Gemini modify my files?
 
 **A:** No. Gemini runs in `--sandbox` mode, which means:
+
 - ✓ It can read your code
 - ✓ It can analyze and suggest improvements
 - ✗ It cannot modify your files
@@ -705,12 +737,12 @@ Your code is safe.
 
 **A:** Typical times:
 
-| Code Size | Timeout | Typical Time |
-|-----------|---------|--------------|
-| Single file | 5 min | 30-60 seconds |
-| Small project (1-3 files) | 5 min | 1-2 minutes |
-| Medium project (4-10 files) | 10 min | 2-5 minutes |
-| Large project (10+ files) | 15 min | 5-10 minutes |
+| Code Size                   | Timeout | Typical Time  |
+| --------------------------- | ------- | ------------- |
+| Single file                 | 5 min   | 30-60 seconds |
+| Small project (1-3 files)   | 5 min   | 1-2 minutes   |
+| Medium project (4-10 files) | 10 min  | 2-5 minutes   |
+| Large project (10+ files)   | 15 min  | 5-10 minutes  |
 
 For very large codebases, consider reviewing in chunks.
 
@@ -721,21 +753,25 @@ For very large codebases, consider reviewing in chunks.
 **A:**
 
 **Default (gemini-3-flash-preview):** Use for most reviews
+
 - Fast and capable
 - Good balance of speed and quality
 - Best for daily code reviews
 
 **Gemini Flash (gemini-2.5-flash):** Use for quick checks
+
 - Fastest option
 - Good for single files
 - Lower cost
 
 **Gemini Pro (gemini-2.5-pro):** Use for deep analysis
+
 - Most thorough
 - Best for security audits
 - Best for complex architecture
 
 **Gemini 3 Pro (gemini-3-pro-preview):** Use for cutting-edge
+
 - Latest and most capable
 - Best for complex reasoning
 - Slower but highest quality
@@ -745,6 +781,7 @@ For very large codebases, consider reviewing in chunks.
 ### Q: Can I review code in any language?
 
 **A:** Yes! Gemini supports:
+
 - Python, JavaScript, TypeScript, Java, C++, C#, Go, Rust, PHP, Ruby, Swift, Kotlin
 - HTML, CSS, SQL
 - And many more
@@ -758,12 +795,14 @@ Just ask Claude to review your file, regardless of language.
 **A:**
 
 **Review mode (default):**
+
 - Analyzes existing code
 - Finds bugs and issues
 - Gives feedback on what's already written
 - Example: "Review src/auth/ for bugs"
 
 **Planning mode:**
+
 - Helps design new features
 - Suggests implementation approach
 - Doesn't review existing code
@@ -812,6 +851,7 @@ Check [Google AI pricing](https://ai.google.dev/pricing) for Gemini costs.
 ### Q: Can I use this offline?
 
 **A:** No, both Claude and Gemini require internet connections:
+
 - Claude needs to communicate with Anthropic's servers
 - Gemini needs to communicate with Google's servers
 
@@ -820,12 +860,14 @@ Check [Google AI pricing](https://ai.google.dev/pricing) for Gemini costs.
 ### Q: What if I disagree with Gemini's suggestions?
 
 **A:** Gemini provides recommendations, not requirements:
+
 - ✓ Use it as a second opinion
 - ✓ Apply your judgment and context
 - ✓ Ignore suggestions that don't fit your situation
 - ✓ Ask Claude for clarification if something seems off
 
 **Example:**
+
 ```
 "Gemini suggested using microservices, but that seems overkill for my small project. What do you think, Claude?"
 ```
@@ -905,11 +947,13 @@ Check [Google AI pricing](https://ai.google.dev/pricing) for Gemini costs.
 ### Example 1: Security Review
 
 **Request:**
+
 ```
 "Have Gemini review src/auth/ for security vulnerabilities"
 ```
 
 **Gemini's Response:**
+
 ```
 Security Review: src/auth/
 
@@ -938,6 +982,7 @@ Recommendation: Address critical issues before deployment.
 ```
 
 **Next Steps:**
+
 ```
 "Import critical and high priority issues as tasks"
 ```
@@ -947,11 +992,13 @@ Recommendation: Address critical issues before deployment.
 ### Example 2: Architecture Planning
 
 **Request:**
+
 ```
 "Ask Gemini to plan how to add real-time chat to this app"
 ```
 
 **Gemini's Response:**
+
 ```
 Implementation Plan: Real-time Chat
 
