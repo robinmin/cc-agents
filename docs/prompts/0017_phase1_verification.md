@@ -30,7 +30,7 @@ Phase 1 focused on fixing the security scanner false positives. This task verifi
 ### Step 1: Run Full Evaluation
 
 ```bash
-cd /Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills
+cd plugins/rd2/skills/cc-skills
 python3 scripts/skills.py evaluate .
 ```
 
