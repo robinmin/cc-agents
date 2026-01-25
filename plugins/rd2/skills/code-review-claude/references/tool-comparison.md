@@ -206,19 +206,19 @@ This allows seamless switching between tools.
 # Step 1: Use auggie for broad discovery
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-auggie/scripts/code-review-auggie.py review \
   "security vulnerabilities in auth" \
-  --output .claude/plans/discovery.md
+  --output docs/plans/discovery.md
 
 # Step 2: Use claude for detailed review of found files
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-claude/scripts/code-review-claude.py review \
   src/auth/login.py src/auth/middleware.py \
   --focus security \
-  --output .claude/plans/detailed.md
+  --output docs/plans/detailed.md
 
 # Step 3: Use gemini for external validation
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py review \
   --files src/auth/ \
   --focus security \
-  --output .claude/plans/validation.md
+  --output docs/plans/validation.md
 ```
 
 ### Cost-Benefit Analysis
