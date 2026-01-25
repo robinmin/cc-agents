@@ -316,7 +316,7 @@ Models change frequently. Review this guide quarterly to:
 
 ## Related Documentation
 
-- **Workflow**: `/docs/rd2-workflow.md`
-- **Architecture**: `/docs/rd2-architecture.md`
-- **coder-gemini skill**: `/plugins/rd2/skills/coder-gemini/SKILL.md`
-- **code-review-gemini skill**: `/plugins/rd2/skills/code-review-gemini/SKILL.md`
+- **Workflow**: `docs/rd2-workflow.md`
+- **Architecture**: `docs/rd2-architecture.md`
+- **coder-gemini skill**: `plugins/rd2/skills/coder-gemini/SKILL.md`
+- **code-review-gemini skill**: `plugins/rd2/skills/code-review-gemini/SKILL.md`
