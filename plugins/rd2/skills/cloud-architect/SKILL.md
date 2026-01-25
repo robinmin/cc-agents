@@ -11,7 +11,7 @@ Cloud architecture patterns and infrastructure design for building scalable, cos
 
 This skill provides architectural guidance for cloud infrastructure design, covering provider selection, multi-cloud strategies, serverless vs container architecture, Kubernetes orchestration, edge computing, cost optimization (FinOps), security architecture, disaster recovery, and Infrastructure as Code patterns. It complements `backend-architect` (backend-specific patterns) and `frontend-architect` (frontend-specific patterns).
 
-**For comprehensive architecture analysis**, use `/rd2:super-architect` agent which provides detailed system design with ADRs, complete verification with benchmarks, and migration strategies.
+**For comprehensive architecture analysis**, use `/rd2:tasks-plan --architect` command which invokes the super-architect agent to provide detailed system design with ADRs, complete verification with benchmarks, and migration strategies.
 
 ## Quick Start
 
@@ -753,7 +753,7 @@ This SKILL.md provides architectural guidance for cloud infrastructure design.
 - Use `/rd2:frontend-architect` for rendering strategies, CDN, deployment
 
 **For comprehensive architecture analysis:**
-- Use `/rd2:super-architect` agent for detailed system design with ADRs and migration strategies
+- Use `/rd2:tasks-plan --architect` to invoke super-architect for detailed system design with ADRs and migration strategies
 
 ## Sources
 
