@@ -407,24 +407,24 @@ Updated tasks:
 
 ## Quick Reference
 
+**Note:** super-architect is an agent invoked by super-planner. Use `/rd2:tasks-plan --architect` to trigger architecture review.
+
 ```bash
-# Backend architecture
-/rd2:super-architect "Design microservices event bus for order processing"
+# Trigger architecture review via tasks-plan command
+/rd2:tasks-plan --architect "Design microservices event bus for order processing"
 
-# Frontend architecture
-/rd2:super-architect "Design SPA architecture with state management for dashboard"
+# Or specify complexity high to auto-invoke architect
+/rd2:tasks-plan --complexity high "Design SPA architecture with state management for dashboard"
+```
 
-# Cloud architecture
-/rd2:super-architect "Design multi-region deployment strategy"
-
-# Database migration
-/rd2:super-architect "Plan SQL to NoSQL migration for user analytics"
-
-# API design
-/rd2:super-architect "Design REST API for user management"
-
-# System integration
-/rd2:super-architect "Design integration between frontend, backend, and cloud services"
+**Direct agent delegation (for reference):**
+When invoked by super-planner, this agent handles:
+- Backend architecture (microservices, APIs, databases)
+- Frontend architecture (SPA, state management, component design)
+- Cloud architecture (deployment, multi-region, infrastructure)
+- Database migration (SQL to NoSQL, schema changes)
+- System integration (frontend-backend-cloud integration)
+- API design (REST, GraphQL, gRPC)
 ```
 
 ## Architecture Review Capabilities
@@ -649,7 +649,7 @@ This agent provides solution architecture coordination across backend, frontend,
 - Use `/rd2:cloud-architect` for provider selection, infrastructure, FinOps
 
 **For implementation:**
-- Use `/rd2:super-coder` for code implementation
+- Use `/rd2:code-generate` for code implementation
 
 **For code review:**
 - Use `/rd2:code-review` for code quality review
