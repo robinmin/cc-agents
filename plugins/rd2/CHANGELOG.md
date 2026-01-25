@@ -186,7 +186,7 @@ recommendation: Approved|Request Changes|Needs Revision
 /super-code-reviewer --plan src/
 
 # Import review results as tasks
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import .claude/plans/review.md
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemini.py import docs/plans/review.md
 ```
 
 ### Benefits
