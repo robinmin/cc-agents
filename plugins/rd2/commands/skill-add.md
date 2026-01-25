@@ -1,12 +1,12 @@
 ---
-description: Create a new Claude Code Agent Skill with templates and best practices
+description: Create a new Claude Code Agent Skill using the official 6-step skill creation process. Use PROACTIVELY when building new skills, writing SKILL.md files, designing skill workflows, or packaging skills for distribution.
 skills: [rd2:cc-skills, rd2:anti-hallucination]
 argument-hint: <plugin-name> <skill-name>
 ---
 
 # Add New Skill
 
-Thin wrapper for `rd2:cc-skills` skill. Creates skill directories with proper structure.
+Thin wrapper command for `rd2:skill-expert` agent. Creates skill directories with proper structure following the official 6-step skill creation process from plugin-dev.
 
 ## Quick Start
 
@@ -24,10 +24,14 @@ Thin wrapper for `rd2:cc-skills` skill. Creates skill directories with proper st
 
 ## Workflow
 
-1. **Validate** - Check name format and uniqueness
-   - Check skill doesn't already exist at `plugins/<plugin-name>/skills/<skill-name>`
-2. **Initialize** - Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init` (see `rd2:cc-skills` for details)
-3. **Customize** - Edit SKILL.md with specific content
+This command follows the official 6-step skill creation process:
+
+1. **Understanding with Concrete Examples** - Gather usage examples from user
+2. **Plan Reusable Contents** - Identify scripts/references/assets needed
+3. **Create Skill Structure** - Initialize directory with init script
+4. **Edit the Skill** - Write SKILL.md and create resources
+5. **Validate and Test** - Check structure, triggers, writing style
+6. **Iterate** - Improve based on evaluation feedback
 
 ## Example
 
@@ -36,15 +40,28 @@ Thin wrapper for `rd2:cc-skills` skill. Creates skill directories with proper st
 /rd2:skill-add rd2 data-pipeline
 ```
 
+## What Gets Created
+
+```
+plugin-name/skills/skill-name/
+├── SKILL.md              # Main skill file (frontmatter + content)
+├── references/           # Detailed documentation (optional)
+├── examples/             # Working code examples (optional)
+└── scripts/              # Executable utilities (optional)
+```
+
 ## Next Steps
 
-1. Edit SKILL.md - complete TODO items
-2. Delete unused example files
-3. Validate: `/rd2:skill-evaluate <skill-name>`
-4. Refine: `/rd2:skill-refine <skill-name>`
+1. **Edit SKILL.md** - Add domain-specific content and workflows
+2. **Add resources** - Create references/, examples/, scripts/ as needed
+3. **Validate** - Run `/rd2:skill-evaluate <skill-name>` to check quality
+4. **Iterate** - Address findings until Grade A/B achieved
+5. **Test** - Verify skill triggers on expected queries
 
 ## See Also
 
-- `/rd2:skill-evaluate` - Assess skill quality
+- `rd2:skill-expert` - Agent that handles skill creation
+- `/rd2:skill-evaluate` - Assess skill quality (delegates to skill-doctor)
 - `/rd2:skill-refine` - Improve existing skills
-- `rd2:cc-skills` - Best practices reference
+- `rd2:cc-skills` - Best practices reference with detailed guides
+- `rd2:skill-doctor` - Quality evaluator agent
