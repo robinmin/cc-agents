@@ -107,7 +107,7 @@ class SyncOrchestrator:
     def __init__(self, config: TasksConfig):
         self.config = config
         self.state_mapper = StateMapper()
-        self.session_map_file = config.project_root / ".claude/tasks_sync/session_map.json"
+        self.session_map_file = config.project_root / "docs/tasks_sync/session_map.json"
         self.session_map: dict[str, str] = self._load_session_map()
 
     def _load_session_map(self) -> dict[str, str]:
@@ -180,7 +180,7 @@ class SyncOrchestrator:
 
     def _log_promotion(self, todo_item: dict, wbs: str, reason: str) -> None:
         """Log task promotion event."""
-        log_file = self.config.project_root / ".claude/tasks_sync/promotions.log"
+        log_file = self.config.project_root / "docs/tasks_sync/promotions.log"
         log_file.parent.mkdir(parents=True, exist_ok=True)
 
         timestamp = datetime.now().isoformat()
