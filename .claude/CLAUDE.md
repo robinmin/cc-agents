@@ -60,19 +60,21 @@ Auto-routing activates based on these keywords:
 
 ---
 
-## Hybrid Approach for Complex Commands
+## Hybrid Approach for Complex Commands / Subagents
 
 ### When to Use Pseudocode
 
 For complex slash commands and subagents that orchestrate workflows, use a **hybrid approach**:
 
 **Command Layer (.md files):**
+
 - Use **pseudocode with built-in tools** (Task, SlashCommand, AskUserQuestion)
 - Explicit workflow sequences: "Step 1 → Step 2 → Step 3"
 - Self-documenting: the pseudocode IS the specification
 - Focus on: "what to call" and "when to call it"
 
 **Agent Layer (.md agents):**
+
 - Use **flexible natural language** with conditional logic
 - Adaptive behavior based on task state, user responses, context
 - Error handling, retries, fallback strategies
@@ -120,6 +122,7 @@ argument-hint: "<task-file.md>" [--force-refine]
 Refine task files by detecting gaps, suggesting improvements, and getting user approval.
 
 ## When to Use
+
 - Task file has empty/missing sections
 - Requirements are unclear or incomplete
 - Need user clarification before proceeding
@@ -129,30 +132,31 @@ Refine task files by detecting gaps, suggesting improvements, and getting user a
 This command delegates to **super-planner** agent with refinement mode:
 
 Task(
-  subagent_type="super-planner",
-  prompt="""Refine task: {task_file}
+subagent_type="super-planner",
+prompt="""Refine task: {task_file}
 
 Mode: refinement-only
 Flags: {force_refine}
 
 Steps:
+
 1. Check task file quality (empty sections, content length)
 2. If red flags found OR --force-refine:
    - Generate refinement draft
    - Ask user for approval via AskUserQuestion
 3. Update task file with approved changes
 4. Report completion
-"""
-)
+   """
+   )
 ```
 
 ### Built-in Tools for Commands
 
-| Tool | Purpose | Example |
-|------|---------|----------|
-| `Task` | Delegate to subagent | `Task(subagent_type="super-planner", prompt="...")` |
-| `SlashCommand` | Call another command | `SlashCommand(skill="rd2:tasks-refine", args="...")` |
-| `AskUserQuestion` | Interactive user input | Ask clarifying questions with options |
+| Tool              | Purpose                | Example                                              |
+| ----------------- | ---------------------- | ---------------------------------------------------- |
+| `Task`            | Delegate to subagent   | `Task(subagent_type="super-planner", prompt="...")`  |
+| `SlashCommand`    | Call another command   | `SlashCommand(skill="rd2:tasks-refine", args="...")` |
+| `AskUserQuestion` | Interactive user input | Ask clarifying questions with options                |
 
 ### Key Rules
 
