@@ -100,7 +100,7 @@ Update all functions that parse files to use the cache:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **File to modify:** `plugins/rd2/skills/cc-skills/scripts/skills.py`
 
 ## Testing
 
