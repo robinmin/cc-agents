@@ -185,8 +185,8 @@ See **[TodoWrite Integration Overview](references/README_INTEGRATION.md)** for d
 - Task files: `docs/prompts/0047_task_name.md` (markdown + YAML frontmatter)
 - Kanban board: `docs/prompts/.kanban.md` (Obsidian Kanban format)
 - Default templates: `docs/prompts/.template.md` (Customizable per project)
-- Session map: `.claude/tasks_sync/session_map.json` (TodoWrite hash → WBS)
-- Promotion log: `.claude/tasks_sync/promotions.log` (Audit trail)
+- Session map: `docs/tasks_sync/session_map.json` (TodoWrite hash → WBS)
+- Promotion log: `docs/tasks_sync/promotions.log` (Audit trail)
 
 **References:**
 
@@ -238,7 +238,7 @@ Follow natural progression: create → todo → wip → testing → done
 **Review promotion logs** - Monitor what's being promoted
 
 ```bash
-tail -20 .claude/tasks_sync/promotions.log
+tail -20 docs/tasks_sync/promotions.log
 ```
 
 **Use session restore** - When resuming work on a project
@@ -311,8 +311,8 @@ tasks list               # view all tasks
 **Duplicate tasks or session issues?**
 ```bash
 # Check and reset session map
-cat .claude/tasks_sync/session_map.json
-rm .claude/tasks_sync/session_map.json  # Will regenerate
+cat docs/tasks_sync/session_map.json
+rm docs/tasks_sync/session_map.json  # Will regenerate
 ```
 
 See **[Hook Integration](references/hook-integration.md)** for detailed troubleshooting.
@@ -373,11 +373,11 @@ tail -20 .claude/logs/hook_event.log
 
 ### TodoWrite Integration Logs
 
-- **`.claude/tasks_sync/promotions.log`** - Auto-promotion events
-- **`.claude/tasks_sync/session_map.json`** - TodoWrite hash → WBS mapping
+- **`docs/tasks_sync/promotions.log`** - Auto-promotion events
+- **`docs/tasks_sync/session_map.json`** - TodoWrite hash → WBS mapping
 
 ```bash
-tail -20 .claude/tasks_sync/promotions.log
+tail -20 docs/tasks_sync/promotions.log
 ```
 
 ## Performance & Security
