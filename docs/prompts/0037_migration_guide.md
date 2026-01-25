@@ -90,7 +90,7 @@ If you need to rollback:
 
 ## References
 
-- **New file:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/docs/MIGRATION.md`
+- **New file:** `plugins/rd2/skills/cc-skills/docs/MIGRATION.md`
 
 ## Deliverables
 
