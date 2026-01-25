@@ -13,8 +13,8 @@ npm install -g @ast-grep/cli
 ### Quick Test (30 seconds)
 
 ```bash
-# Navigate to demo folder
-cd /Users/robin/projects/cc-agents/plugins/rd/skills/ast-grep/demo
+# Navigate to demo folder (from project root)
+cd plugins/rd/skills/ast-grep/demo
 
 # 1. Find all console.log statements
 ast-grep run --pattern 'console.log($$$)' --lang javascript sample-code.js
