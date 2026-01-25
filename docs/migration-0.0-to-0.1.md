@@ -389,14 +389,14 @@ tasks refresh
 # Check task files
 tasks list
 
-# Verify new agents work
-/rd2:super-planner "test"
+# Verify new agents work (via commands)
+/rd2:tasks-plan "test"
 
-# Verify super-coder workflow
-/rd2:super-coder --task 0047
+# Verify super-coder workflow (via code-generate command)
+/rd2:code-generate --task 0047
 
-# Verify code review
-/rd2:super-code-reviewer src/
+# Verify code review (via code-review command)
+/rd2:code-review src/
 ```
 
 ## Rollback Procedure
