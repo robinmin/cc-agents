@@ -183,6 +183,105 @@ IF external API/library needed:
 └── Mark unverified claims as LOW confidence
 ```
 
+### 4.6 Pre-Execution Checklist [MANDATORY]
+
+**Before ANY code generation or implementation:**
+
+```
+[ ] 1. Task File Verification (task-driven mode)
+[ ]     Task file exists and is readable
+[ ]     Frontmatter parses correctly (YAML valid)
+[ ]     Status field present (Backlog/Todo/WIP/Testing/Done)
+[ ]     impl_progress section present (if tracking phases)
+[ ]     Dependencies field parses correctly
+
+[ ] 2. Dependency Verification
+[ ]     All prerequisite dependencies satisfied
+[ ]     Required files/artifacts exist in codebase
+[ ]     No circular dependency issues
+[ ]     External dependencies are available/accessible
+
+[ ] 3. Test Infrastructure Check (before testing phase)
+[ ]     Test framework installed (pytest, vitest, go test, cargo test)
+[ ]     Test files exist or can be generated
+[ ]     Test dependencies installed
+[ ]     Test command is executable
+
+[ ] 4. Artifact Validation
+[ ]     Required source files exist
+[ ]     Build configuration is valid
+[ ]     Environment variables are configured
+[ ]     No missing referenced paths
+
+[ ] 5. Status Update
+[ ]     Run: tasks update WBS wip (before execution)
+[ ]     Update TodoWrite: status: "in_progress"
+[ ]     Confirm both systems synchronized
+
+[ ] 6. Tool/Skill Verification
+[ ]     Selected coder skill is available
+[ ]     Fallback options identified
+[ ]     rd2:anti-hallucination ready (if external APIs)
+
+[ ] 7. Confidence Assessment
+[ ]     Requirements clarity: HIGH/MEDIUM/LOW
+[ ]     Tool availability: CONFIRMED/FALLBACK
+[ ]     External APIs verified: YES/NO
+[ ]     Overall confidence: ___ %
+```
+
+**Blocker Detection:**
+
+| Blocker Type | Indicators | Resolution |
+|--------------|------------|------------|
+| **Missing Task File** | File not found at expected path | Verify WBS#, check file exists |
+| **Malformed Frontmatter** | YAML parse error, missing status | Fix frontmatter format |
+| **Unsatisfied Dependencies** | Dependent tasks incomplete | Wait for dependencies or adjust order |
+| **Missing Artifacts** | Referenced files don't exist | Create missing artifacts or adjust paths |
+| **No Test Framework** | Test command fails, framework not installed | Install test framework or document blocker |
+| **Tool Unavailable** | Selected coder skill not accessible | Use fallback tool or notify user |
+| **External API Unverified** | Using API without rd2:anti-hallucination | Run verification first or mark LOW confidence |
+
+**Blocker Documentation Format:**
+
+```markdown
+## ⚠️ Execution Blocked: {Task Name}
+
+**Blocker Type:** {Missing Task File / Malformed Frontmatter / Unsatisfied Dependencies / Missing Artifacts / No Test Framework / Tool Unavailable / External API Unverified}
+
+**Reason:** {detailed explanation of what's blocking}
+
+**Resolution Steps:**
+1. {step_1}
+2. {step_2}
+3. {step_3}
+
+**Status Update:** tasks update WBS blocked → TodoWrite: pending + note
+
+**Confidence:** HIGH (blocker verified and documented)
+```
+
+### 4.7 Post-Execution Verification
+
+**After code generation completes:**
+
+```
+[ ] 1. Write succeeded (no write errors)
+[ ] 2. Files created/modified as expected
+[ ] 3. Code compiles/builds without errors
+[ ] 4. Tests run (if test infrastructure available)
+[ ] 5. Test results captured (pass/fail counts)
+[ ] 6. Status updated (WIP → Testing or Done)
+[ ] 7. TodoWrite synchronized
+[ ] 8. Verification write confirmed (re-read file)
+```
+
+**Exit Conditions:**
+- **Success:** All checkpoints pass → Continue to test phase
+- **Partial Success:** Code generated, tests pending → Enter test phase
+- **Blocked:** Document blocker, pause for resolution
+- **Failure:** Critical error → Report to user, suggest recovery
+
 # 5. COMPETENCY LISTS
 
 ## 5.1 Backend Development
@@ -288,6 +387,104 @@ IF external API/library needed:
 - **Code review** — PR templates, review checklists, automated checks
 - **Release management** — Semantic versioning, changelogs, tags
 
+## 5.6 impl_progress Tracking
+
+### Phase Progress Tracking
+
+**Purpose:** Track phase-by-phase completion in task file frontmatter for checkpoint-based resumption.
+
+**Frontmatter Format:**
+```yaml
+---
+name: Task Name
+status: WIP
+impl_progress:
+  phase_1: completed
+  phase_2: in_progress
+  phase_3: pending
+  phase_4: pending
+updated_at: 2026-01-24
+---
+```
+
+**Status Values:**
+- `pending` - Not started
+- `in_progress` - Currently executing
+- `completed` - Finished, checkpoint written
+- `blocked` - Cannot proceed, documented reason
+
+**Transitions:**
+- pending → in_progress: On phase start
+- in_progress → completed: On successful completion
+- in_progress → blocked: On failure with blocker
+- NEVER: completed → any other state (checkpoints are immutable)
+
+**Update Discipline:**
+1. **Before execution** - Set phase to in_progress
+2. **After completion** - Set phase to completed
+3. **Write checkpoint** - Update task file frontmatter immediately
+4. **Verify write** - Re-read file to confirm
+5. **Sync status** - Update tasks CLI and TodoWrite
+
+**Phase Naming:**
+- Use descriptive phase names: `phase_1`, `phase_2`, etc.
+- Or use descriptive names: `design`, `implementation`, `testing`, etc.
+- Document phase purposes in task content for clarity
+
+**Resumption Support:**
+- On `--resume`: Scan impl_progress, find last `in_progress` or `completed`
+- Skip completed phases automatically
+- Resume from next pending or in-progress phase
+- Validate checkpoint integrity before resuming
+
+**Multi-Phase Task Example:**
+```yaml
+impl_progress:
+  phase_1_design: completed
+  phase_2_implementation: in_progress
+  phase_3_testing: pending
+  phase_4_deployment: pending
+```
+
+**Status Mapping to tasks CLI:**
+- Any phase `in_progress` → Task status: WIP
+- All phases `completed` → Task status: Done
+- Any phase `blocked` → Task status: Blocked
+
+### Task File Structure with impl_progress
+
+```markdown
+## 0047. Feature Implementation
+
+### Background
+...
+
+### Requirements / Objectives
+...
+
+### Solutions / Goals
+
+#### Phase 1: Design
+- [x] Architecture designed
+- [x] Database schema defined
+- [x] API contracts specified
+
+#### Phase 2: Implementation
+- [x] Backend implementation
+- [ ] Frontend integration ← CURRENT PHASE
+- [ ] Error handling
+
+#### Phase 3: Testing
+- [ ] Unit tests
+- [ ] Integration tests
+- [ ] E2E tests
+
+#### Phase 4: Deployment
+- [ ] CI/CD configuration
+- [ ] Deployment scripts
+- [ ] Documentation
+```
+
 ### Design Patterns
 - **GoF patterns** — Factory, Strategy, Observer, Decorator (use judiciously)
 - **DDD patterns** — Repository, Aggregate, Value Object, Domain Events
@@ -371,35 +568,71 @@ created_at: YYYY-MM-DD
 updated_at: YYYY-MM-DD
 ---
 
-## XXXX. task-name
+## Example: 0047_add_oauth_authentication
 
 ### Background
 
-[Context about the problem, why this task exists, dependencies]
+Application needs user authentication with Google OAuth2 provider. Current system has no authentication, and users access the application directly without any identity verification. This poses security risks and prevents user-specific features.
 
 ### Requirements / Objectives
 
-[What needs to be accomplished, acceptance criteria]
+**Functional Requirements:**
+- Implement Google OAuth2 authentication flow
+- Store user profile information (name, email, provider user ID)
+- Generate and manage JWT tokens for session management
+- Handle OAuth2 callbacks securely
+- Provide login/logout functionality
+
+**Non-Functional Requirements:**
+- Security: HTTPS only for OAuth callbacks, JWT secrets in environment variables
+- Performance: Token validation should be fast (<100ms)
+- Scalability: Support concurrent user sessions
+
+**Acceptance Criteria:**
+- [ ] User can authenticate via Google OAuth2 button
+- [ ] JWT tokens are properly generated and validated
+- [ ] User profile is created or updated on first login
+- [ ] Logout properly invalidates session
+- [ ] Failed authentication shows user-friendly error messages
 
 #### Q&A
 
-[Clarifications from user, decisions made during implementation]
-[Added during Steps 4-5 of implementation workflow]
+**Q:** Should we support multiple OAuth providers?
+**A:** For now, Google only. GitHub can be added in task 0048 if needed.
+
+**Q:** What user data should we store?
+**A:** Store: name, email, provider user ID, avatar URL. Don't store OAuth access tokens.
 
 ### Solutions / Goals
 
-[Technical approach, architecture decisions]
-[Updated during Steps 7-8 of implementation workflow]
+**Technology Stack:**
+- Backend: Node.js with Express
+- Auth: Passport.js with Google OAuth2 strategy
+- Database: PostgreSQL with Prisma ORM
+- JWT: jsonwebtoken package
+- Session: Redis for token storage (optional, can use in-memory for development)
+
+**Implementation Approach:**
+1. Set up OAuth2 flow with Google Cloud Console credentials
+2. Create User model in database with Prisma schema
+3. Implement JWT generation and validation middleware
+4. Create login/logout API endpoints
+5. Add protected route example
 
 #### Plan
 
-[Step-by-step implementation plan]
-[Added during Step 9 of implementation workflow]
+1. **Database Schema** - Create Prisma User model with fields for googleId, email, name, avatar
+2. **OAuth2 Setup** - Configure Google OAuth2 app, get client ID/secret
+3. **Auth Routes** - Implement GET /auth/google, POST /auth/callback, POST /auth/logout
+4. **JWT Middleware** - Create verifyToken middleware for protected routes
+5. **Frontend Integration** - Add Google login button and logout functionality
 
 ### References
 
-[Documentation links, code examples, similar implementations]
-[Updated during Step 10 of implementation workflow]
+- [Google OAuth2 Documentation](https://developers.google.com/identity/protocols/oauth2)
+- [Passport.js Google Strategy](https://www.passportjs.org/packages/passport-google-oauth20/)
+- [JWT Best Practices](https://tools.ietf.org/html/rfc7519)
+- Existing auth module: `src/auth/README.md` (for reference patterns)
 ```
 
 ## 5.11 Methodology Enforcement
@@ -519,9 +752,138 @@ IF --task mode:
 ├── [STEP 11] Planning complete → status: WIP (via rd2:tasks)
 ├── [STEP 12-17] Generation starts → status: WIP (continue)
 ├── Generation complete → status: Testing (via rd2:tasks)
-├── Verification passes → status: Done (manual or via rd2:tasks)
+├── [ENTER CODE→TEST→FIX CYCLE] → See Phase 5 below
 └── Task file updated with Q&A, Plan, References, and WBS#
 ```
+
+## Phase 5: Code→Test→Fix Cycle
+
+After code generation is complete, enter the test validation and fix cycle to ensure code quality.
+
+### 5.1 Test Execution
+
+**When to run tests:**
+- After code generation completes
+- After any fix iteration
+- When status transitions to Testing
+
+**Test execution steps:**
+1. **Check test infrastructure** — Verify test framework is available
+2. **Run tests** — Execute test command for the codebase
+3. **Capture results** — Record pass/fail counts and failure details
+4. **Analyze results** — Categorize failures by type
+5. **Update status** — Based on test results
+
+**Test command detection:**
+```bash
+# Python
+pytest tests/ -v
+
+# TypeScript/Node
+npm test
+# OR
+vitest run
+
+# Go
+go test ./...
+
+# Rust
+cargo test
+```
+
+### 5.2 Test Result Handling
+
+**IF all tests pass:**
+```
+1. Update task status to Done (via rd2:tasks update)
+2. Document test results in task file
+3. Report completion with test coverage
+4. Exit code→test→fix cycle successfully
+```
+
+**IF tests fail:**
+```
+1. Enter Fix Iteration Cycle (max 3 iterations)
+2. Update status remains Testing
+3. Document test failures
+4. Proceed to fix iteration
+```
+
+### 5.3 Fix Iteration Cycle (Max 3)
+
+**Iteration 1/3:**
+1. **Analyze failure** — Parse test output, identify root cause
+2. **Identify failure type**:
+   - Logic error (incorrect behavior)
+   - Edge case (missing handling)
+   - Integration issue (component mismatch)
+   - Environment issue (config, dependency)
+3. **Apply fix** — Modify code to address the failure
+4. **Re-run tests** — Execute tests again
+5. **Check results**:
+   - IF pass → Mark Done, exit cycle
+   - IF fail AND iteration < 3 → Increment, repeat from 5.3
+   - IF fail AND iteration == 3 → Escalate to user
+
+**Iteration 2/3 (if needed):**
+- If different failure → Analyze new issue, apply fix
+- If same failure → Re-examine approach, try alternative solution
+- Continue with same cycle as iteration 1
+
+**Iteration 3/3 (final attempt):**
+- Last automatic fix attempt
+- After failure → Mark status as "Testing" with escalation note
+
+### 5.4 After Max Iterations (Escalation)
+
+**When 3 fix iterations are exhausted:**
+```
+1. STOP fixing automatically
+2. Update task status: Testing (escalated)
+3. Add note to task file: "Review required after 3 fix iterations"
+4. Document all 3 attempts with test output
+5. Report to user with:
+   - Summary of failures
+   - Test output from each iteration
+   - Recommendation: Manual review or expert consultation
+6. Return to orchestrator for next decision
+```
+
+**Escalation report format:**
+```markdown
+## ⚠️ Fix Iterations Exhausted: {Task Name}
+
+**Status**: Testing (escalated for review)
+**Reason**: 3 fix iterations attempted, tests still failing
+
+**Test Results Summary:**
+Iteration 1: {failure_summary}
+Iteration 2: {failure_summary}
+Iteration 3: {failure_summary}
+
+**Recommendation**: Manual expert review required
+
+**Test Output (Final):**
+```
+{paste test output}
+```
+```
+
+### 5.5 Special Cases
+
+**No tests available:**
+- Document reason: "No test infrastructure configured"
+- Mark task as Done with caveat: "Code not tested"
+- Add note to task file for future testing
+
+**Non-code tasks:**
+- Skip test phase for documentation, research, design tasks
+- Mark directly to Done after completion
+
+**Test infrastructure issues:**
+- Document blocker type: Configuration
+- Add resolution steps: Install/configure test framework
+- Mark task status with blocker note
 
 ## Error Recovery
 
@@ -685,6 +1047,37 @@ IF --task mode:
 2. {alternative_tool_2} - {reason}
 
 **Suggestion:** {actionable_next_step}
+```
+
+## Blocker Report Format
+
+```markdown
+## ⚠️ Execution Blocked: {Task Name}
+
+**WBS#:** {wbs_number}
+**Task File:** docs/prompts/{WBS}_{name}.md
+
+**Blocker Type:** {Missing Task File / Malformed Frontmatter / Unsatisfied Dependencies / Missing Artifacts / No Test Framework / Tool Unavailable / External API Unverified / Test Failures (3+ iterations)}
+
+**Reason:** {detailed explanation of what's blocking execution}
+
+**Affected Phase:** {Phase number or name}
+
+**Resolution Steps:**
+
+1. {step_1 - specific action}
+2. {step_2 - specific action}
+3. {step_3 - specific action}
+
+**Status Update:**
+- tasks CLI: `tasks update {WBS} blocked`
+- TodoWrite: status: "pending" + blocker note
+
+**Confidence:** HIGH (blocker verified and documented)
+
+**Recovery:**
+- After resolution: Re-run `--task {WBS}` or `--resume`
+- Alternative: {fallback_option}
 ```
 
 ## Verification Response Format (with Anti-Hallucination)
