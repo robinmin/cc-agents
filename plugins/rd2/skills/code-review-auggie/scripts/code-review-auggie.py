@@ -43,7 +43,7 @@ TIMEOUT_MODERATE = 600  # 10 minutes
 TIMEOUT_COMPLEX = 900  # 15 minutes
 
 # Plans output directory
-PLANS_DIR = Path(".claude/plans")
+PLANS_DIR = Path("docs/plans")
 
 # MCP server name for Auggie
 AUGGIE_MCP_SERVER_NAME = "auggie-mcp"
@@ -1338,7 +1338,7 @@ Examples:
   python3 code-review-auggie.py run-file prompt.txt -o output.txt
   python3 code-review-auggie.py review src/auth/ --plan --output auth-plan
   python3 code-review-auggie.py review main.py --focus "security,performance"
-  python3 code-review-auggie.py import .claude/plans/review-src.md
+  python3 code-review-auggie.py import docs/plans/review-src.md
 """,
     )
 
