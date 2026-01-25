@@ -119,12 +119,12 @@ Updated with:
 
 ### Files Modified
 
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/code-review-gemini/scripts/code-review-gemini.py` - Complete rewrite with all commands
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/code-review-gemini/scripts/check-gemini.sh` - Deprecated, now wrapper for Python
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/code-review-gemini/SKILL.md` - Streamlined and updated
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/code-review-gemini/references/gemini-flags.md` - Updated with latest models
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/code-review-gemini/assets/planning_prompt.md` - NEW
-- `/Users/robin/projects/cc-agents/plugins/rd2/skills/code-review-gemini/assets/review_prompt.md` - NEW
+- `plugins/rd2/skills/code-review-gemini/scripts/code-review-gemini.py` - Complete rewrite with all commands
+- `plugins/rd2/skills/code-review-gemini/scripts/check-gemini.sh` - Deprecated, now wrapper for Python
+- `plugins/rd2/skills/code-review-gemini/SKILL.md` - Streamlined and updated
+- `plugins/rd2/skills/code-review-gemini/references/gemini-flags.md` - Updated with latest models
+- `plugins/rd2/skills/code-review-gemini/assets/planning_prompt.md` - NEW
+- `plugins/rd2/skills/code-review-gemini/assets/review_prompt.md` - NEW
 
 ### References
 
