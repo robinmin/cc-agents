@@ -187,24 +187,33 @@ Include templates with confidence scoring.
 
 ## Color Guidelines
 
-When creating subagents, select unique category colors for visual identification. See [references/colors.md](references/colors.md) for a comprehensive list of available colors.
+When creating subagents, select colors by functional category. See [references/colors.md](references/colors.md) for complete palette and selection guide.
 
-| Category | Colors |
-|----------|--------|
-| Language experts | `blue`, `cyan` |
-| Framework experts | `green`, `teal` |
-| Domain experts | `magenta`, `purple` |
-| Task experts | `yellow`, `orange` |
-| Quality/Security | `red`, `crimson` |
+| Functional Category | Standard Colors |
+|---------------------|----------------|
+| **Code Generation** | `blue`, `cyan`, `navy`, `skyblue` |
+| **Planning & Coordination** | `purple`, `violet`, `orchid`, `magenta` |
+| **Review & Validation** | `crimson`, `red`, `coral`, `tomato` |
+| **Architecture** | `orange`, `gold`, `amber` |
+| **Design** | `teal`, `turquoise`, `green`, `emerald` |
+| **Documentation** | `gray`, `silver`, `slate` |
+| **Testing** | `yellow`, `khaki`, `lemon` |
 
-**Subagent-Specific Color Suggestions:**
+**Quick Reference:**
 
-| Subagent Type | Suggested Colors |
-|---------------|------------------|
-| Skill evaluators (skill-doctor) | `lavender`, `plum` |
-| Skill creators (skill-expert) | `teal`, `turquoise` |
-| Agent evaluators (agent-doctor) | `crimson`, `rose` |
-| Agent creators (agent-expert) | `electric blue`, `azure` |
+```
+🟦 blue  = Code gen    🟪 purple = Planning    🟥 crimson = Review
+🟧 orange = Architect  🟩 teal   = Design      ⚫ gray    = Docs
+```
+
+**Common Subagent Colors:**
+
+| Subagent Type | Color | Category |
+|---------------|-------|----------|
+| Agent evaluators | `crimson` | Review |
+| Agent creators | `blue` | Code Generation |
+| Skill evaluators | `coral` | Review |
+| Skill creators | `teal` | Design |
 
 ## Best Practices
 
