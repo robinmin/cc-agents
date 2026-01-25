@@ -77,7 +77,7 @@ class CacheManager:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **File to modify:** `plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Depends on:** Task 0011 (AST caching)
 
 ## Deliverables
