@@ -516,7 +516,7 @@ def sync_with_retry(order, max_retries=3):
 - Code: `/src/crm/client.py`
 - Code: `/src/orders/sync.py`
 - Code: `/src/models/mapping.py`
-- Docs: `/docs/crm-api.md`
+- Docs: `docs/crm-api.md`
 - Tests: `/tests/integration/test_crm_sync.py`
 
 ---
