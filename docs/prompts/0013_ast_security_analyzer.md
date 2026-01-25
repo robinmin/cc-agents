@@ -55,7 +55,7 @@ This function will be called from `evaluate_security()` to replace the current s
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **File to modify:** `plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Lines to replace:** 778-786 (script scanning section)
 - **Python AST docs:** https://docs.python.org/3/library/ast.html
 
