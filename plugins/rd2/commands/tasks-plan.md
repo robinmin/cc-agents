@@ -247,7 +247,7 @@ Followed by: Scale Assessment Report, Specialist Review Results, Task Hierarchy,
 
 ## See Also
 
-- **super-planner agent**: `/Users/robin/projects/cc-agents/plugins/rd2/agents/super-planner.md` - Complete orchestration logic
+- **super-planner agent**: `../agents/super-planner.md` - Complete orchestration logic
 - `rd2:task-decomposition` - Task decomposition knowledge and patterns (skill)
 - `rd2:tasks` - Task file operations and WBS management (skill)
 - `super-architect` - Solution architecture agent
