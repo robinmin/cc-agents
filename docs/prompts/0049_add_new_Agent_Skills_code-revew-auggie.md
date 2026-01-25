@@ -55,7 +55,7 @@ python3 plugins/rd2/skills/code-review-auggie/scripts/code-review-auggie.py revi
 python3 plugins/rd2/skills/code-review-auggie/scripts/code-review-auggie.py review src/ --plan
 
 # Import review results as tasks
-python3 plugins/rd2/skills/code-review-auggie/scripts/code-review-auggie.py import .claude/plans/review.md
+python3 plugins/rd2/skills/code-review-auggie/scripts/code-review-auggie.py import docs/plans//review.md
 ```
 
 ## 0049. add new Agent Skills code-revew-auggie
