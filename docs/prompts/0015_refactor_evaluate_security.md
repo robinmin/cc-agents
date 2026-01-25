@@ -58,7 +58,7 @@ Refactor the function to:
 
 ## References
 
-- **File to modify:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **File to modify:** `plugins/rd2/skills/cc-skills/scripts/skills.py`
 - **Lines to replace:** 728-797
 - **Depends on:** Tasks 0001 and 0002
 
