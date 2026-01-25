@@ -144,7 +144,7 @@ cmd_review(args)
      │       └─ Extract sections, fill template
      │
      └─ save_to_plan(formatted_output, plan_name)
-             └─ Write to .claude/plans/
+             └─ Write to docs/plans/
 ```
 
 #### Import Command Flow
@@ -191,6 +191,7 @@ class CheckResult(NamedTuple):
 ```
 
 **Usage:**
+
 ```python
 result = check_gemini_availability()
 if not result.available:
@@ -210,6 +211,7 @@ class RunResult(NamedTuple):
 ```
 
 **Usage:**
+
 ```python
 result = run_gemini_prompt(
     prompt="Analyze this code",
@@ -236,6 +238,7 @@ class ReviewIssue(NamedTuple):
 ```
 
 **Usage:**
+
 ```python
 issue = ReviewIssue(
     priority="critical",
@@ -287,6 +290,7 @@ PLANS_DIR = Path(".claude/plans")
 **Output:** List of `ReviewIssue` objects
 
 **Algorithm:**
+
 ```python
 def extract_issues_from_section(section_content: str, priority: str) -> list[ReviewIssue]:
     """
@@ -353,6 +357,7 @@ def extract_issues_from_section(section_content: str, priority: str) -> list[Rev
 **Output:** Formatted markdown with frontmatter
 
 **Algorithm:**
+
 ```python
 def format_review_with_template(
     content: str,
@@ -399,18 +404,22 @@ def format_review_with_template(
 Validate Gemini CLI availability.
 
 **Syntax:**
+
 ```bash
 python3 code-review-gemini.py check [--verbose]
 ```
 
 **Options:**
+
 - `--verbose`, `-v`: Show version information
 
 **Exit Codes:**
+
 - `0`: Gemini CLI is available
 - `1`: Gemini CLI not found or not responding
 
 **Example:**
+
 ```bash
 $ python3 code-review-gemini.py check
 gemini ready
@@ -425,24 +434,29 @@ Version: 0.2.5
 Execute a short prompt via Gemini CLI.
 
 **Syntax:**
+
 ```bash
 python3 code-review-gemini.py run PROMPT [OPTIONS]
 ```
 
 **Arguments:**
+
 - `PROMPT`: The prompt text to send to Gemini
 
 **Options:**
+
 - `-m, --model MODEL`: Model to use (default: gemini-3-flash-preview)
 - `-o, --output-format FORMAT`: Output format: text|json (default: text)
 - `-t, --timeout SECONDS`: Timeout in seconds (default: 300)
 - `-s, --save NAME`: Save output to plan file
 
 **Exit Codes:**
+
 - `0`: Success
 - `1`: Gemini CLI error or timeout
 
 **Example:**
+
 ```bash
 python3 code-review-gemini.py run \
   "Explain OAuth2 vs JWT for authentication" \
@@ -455,24 +469,29 @@ python3 code-review-gemini.py run \
 Execute a long prompt from a file.
 
 **Syntax:**
+
 ```bash
 python3 code-review-gemini.py run-file PROMPT_FILE [OPTIONS]
 ```
 
 **Arguments:**
+
 - `PROMPT_FILE`: Path to file containing the prompt
 
 **Options:**
+
 - `-m, --model MODEL`: Model to use (default: gemini-3-flash-preview)
 - `-o, --output FILE`: Output file path
 - `-f, --output-format FORMAT`: Output format: text|json (default: text)
 - `-t, --timeout SECONDS`: Timeout in seconds (default: 600)
 
 **Exit Codes:**
+
 - `0`: Success
 - `1`: File not found or Gemini error
 
 **Example:**
+
 ```bash
 python3 code-review-gemini.py run-file architecture-prompt.txt \
   --model gemini-2.5-pro \
@@ -485,14 +504,17 @@ python3 code-review-gemini.py run-file architecture-prompt.txt \
 Comprehensive code review or architecture planning.
 
 **Syntax:**
+
 ```bash
 python3 code-review-gemini.py review TARGET [OPTIONS]
 ```
 
 **Arguments:**
+
 - `TARGET`: File, directory, or glob pattern to review
 
 **Options:**
+
 - `-m, --model MODEL`: Model to use (default: gemini-3-flash-preview)
 - `-p, --plan`: Planning mode (architecture/implementation plan)
 - `-o, --output NAME`: Output plan file name
@@ -500,6 +522,7 @@ python3 code-review-gemini.py review TARGET [OPTIONS]
 - `-t, --timeout SECONDS`: Timeout in seconds
 
 **Focus Areas:**
+
 - `security`: Vulnerabilities, auth, data exposure
 - `performance`: Algorithm complexity, memory, N+1 queries
 - `testing`: Coverage gaps, edge cases
@@ -507,10 +530,12 @@ python3 code-review-gemini.py review TARGET [OPTIONS]
 - `architecture`: Coupling, cohesion, patterns
 
 **Exit Codes:**
+
 - `0`: Success
 - `1`: No files found or Gemini error
 
 **Example:**
+
 ```bash
 python3 code-review-gemini.py review src/auth/ \
   --focus "security,performance" \
@@ -527,30 +552,36 @@ python3 code-review-gemini.py review . \
 Convert review results to task files.
 
 **Syntax:**
+
 ```bash
 python3 code-review-gemini.py import REVIEW_FILE [OPTIONS]
 ```
 
 **Arguments:**
+
 - `REVIEW_FILE`: Path to code review result file
 
 **Options:**
+
 - `-p, --priority LEVEL`: Filter by priority: critical|high|medium|low
 
 **Exit Codes:**
+
 - `0`: All tasks created successfully
 - `1`: File not found, parsing error, or task creation failed
 
 **Example:**
+
 ```bash
 # Import all issues
-python3 code-review-gemini.py import .claude/plans/review-auth.md
+python3 code-review-gemini.py import docs/plans/review-auth.md
 
 # Import only critical issues
-python3 code-review-gemini.py import .claude/plans/review-auth.md --priority critical
+python3 code-review-gemini.py import docs/plans/review-auth.md --priority critical
 ```
 
 **Output:**
+
 - Creates task files in `docs/prompts/`
 - Task files named: `{WBS}_{identifier}_{title}.md`
 - Updates TodoWrite for tracking
@@ -838,6 +869,7 @@ git push origin feature/my-feature
 **Format:** Auto-formatted with ruff
 
 **Key Conventions:**
+
 - Type hints for all function signatures
 - Docstrings for all public functions
 - NamedTuple for structured return values
@@ -845,6 +877,7 @@ git push origin feature/my-feature
 - Maximum line length: 100 characters
 
 **Example:**
+
 ```python
 def process_review(
     target: str,
@@ -871,6 +904,7 @@ def process_review(
 ### Adding New Commands
 
 1. **Define Command Function**
+
 ```python
 def cmd_my_command(args: argparse.Namespace) -> int:
     """Handle my-command."""
@@ -879,6 +913,7 @@ def cmd_my_command(args: argparse.Namespace) -> int:
 ```
 
 2. **Add Argument Parser**
+
 ```python
 # In main()
 my_parser = subparsers.add_parser("my-command", help="My command description")
@@ -886,12 +921,14 @@ my_parser.add_argument("--option", help="Option description")
 ```
 
 3. **Add to main() Router**
+
 ```python
 if args.command == "my-command":
     return cmd_my_command(args)
 ```
 
 4. **Add Tests**
+
 ```python
 # tests/test_my_command.py
 def test_my_command_success():
@@ -900,6 +937,7 @@ def test_my_command_success():
 ```
 
 5. **Update Documentation**
+
 - Add to SKILL.md command table
 - Add example to references/usage-examples.md
 - Update this spec document
@@ -911,28 +949,33 @@ def test_my_command_success():
 ### Pull Request Process
 
 1. **Fork and Clone**
+
 ```bash
 git clone https://github.com/your-username/cc-agents.git
 cd cc-agents
 ```
 
 2. **Create Feature Branch**
+
 ```bash
 git checkout -b feature/my-contribution
 ```
 
 3. **Make Changes**
+
 - Follow code style guidelines
 - Add tests for new functionality
 - Update documentation
 
 4. **Verify Quality**
+
 ```bash
 make lint-one DIR=plugins/rd2/skills/code-review-gemini
 make test-one DIR=plugins/rd2/skills/code-review-gemini
 ```
 
 5. **Commit with Conventional Commits**
+
 ```bash
 git commit -m "feat: add import priority filtering"
 git commit -m "fix: handle malformed YAML frontmatter"
@@ -940,6 +983,7 @@ git commit -m "docs: update usage examples"
 ```
 
 6. **Push and Create PR**
+
 ```bash
 git push origin feature/my-contribution
 # Open PR on GitHub
@@ -956,6 +1000,7 @@ git push origin feature/my-contribution
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation only
@@ -965,6 +1010,7 @@ git push origin feature/my-contribution
 - `chore`: Maintenance tasks
 
 **Examples:**
+
 ```
 feat(import): add priority filtering for import command
 
@@ -1039,6 +1085,7 @@ git push origin main --tags
 **Location:** `plugins/rd2/skills/code-review-gemini/`
 
 **Deployment:**
+
 ```bash
 # Plugin is loaded from repository
 # No separate deployment needed
@@ -1050,6 +1097,7 @@ git push origin main --tags
 **Location:** `scripts/code-review-gemini.py`
 
 **Deployment:**
+
 ```bash
 # Can be used standalone
 cp plugins/rd2/skills/code-review-gemini/scripts/code-review-gemini.py ~/bin/
@@ -1062,20 +1110,20 @@ chmod +x ~/bin/code-review-gemini.py
 
 ### A. Model Comparison
 
-| Model | Context | Speed | Cost | Best For |
-|-------|---------|-------|------|----------|
-| gemini-3-flash-preview | 1M | Fast | Moderate | Default (balanced) |
-| gemini-3-pro-preview | 1M | Slower | Highest | Complex reasoning |
-| gemini-2.5-pro | 1M | Moderate | Higher | Multi-file, architecture |
-| gemini-2.5-flash | 1M | Fast | Lower | Single files, quick checks |
-| gemini-2.5-flash-lite | 1M | Fastest | Lowest | Batch processing |
+| Model                  | Context | Speed    | Cost     | Best For                   |
+| ---------------------- | ------- | -------- | -------- | -------------------------- |
+| gemini-3-flash-preview | 1M      | Fast     | Moderate | Default (balanced)         |
+| gemini-3-pro-preview   | 1M      | Slower   | Highest  | Complex reasoning          |
+| gemini-2.5-pro         | 1M      | Moderate | Higher   | Multi-file, architecture   |
+| gemini-2.5-flash       | 1M      | Fast     | Lower    | Single files, quick checks |
+| gemini-2.5-flash-lite  | 1M      | Fastest  | Lowest   | Batch processing           |
 
 ### B. Error Codes
 
-| Code | Meaning | Common Causes |
-|------|---------|---------------|
-| 0 | Success | Command completed successfully |
-| 1 | General Error | Gemini CLI not found, timeout, invalid input |
+| Code | Meaning       | Common Causes                                |
+| ---- | ------------- | -------------------------------------------- |
+| 0    | Success       | Command completed successfully               |
+| 1    | General Error | Gemini CLI not found, timeout, invalid input |
 
 ### C. Environment Variables
 
@@ -1088,30 +1136,33 @@ export GEMINI_DEFAULT_MODEL="gemini-2.5-pro" # Override default model
 ### D. Performance Metrics
 
 **Benchmark Environment:**
+
 - MacBook Pro M1, 16GB RAM
 - Python 3.11
 - Gemini CLI 0.2.5
 
 **Typical Execution Times:**
 
-| Operation | File Count | Timeout | Actual Time |
-|-----------|------------|---------|-------------|
-| check | - | 5s | ~1s |
-| run (simple) | - | 300s | 10-30s |
-| run-file | - | 600s | 30-90s |
-| review (small) | 1-3 | 300s | 45-120s |
-| review (medium) | 4-10 | 600s | 120-300s |
-| review (large) | 10+ | 900s | 300-600s |
-| import | - | - | 1-3s per issue |
+| Operation       | File Count | Timeout | Actual Time    |
+| --------------- | ---------- | ------- | -------------- |
+| check           | -          | 5s      | ~1s            |
+| run (simple)    | -          | 300s    | 10-30s         |
+| run-file        | -          | 600s    | 30-90s         |
+| review (small)  | 1-3        | 300s    | 45-120s        |
+| review (medium) | 4-10       | 600s    | 120-300s       |
+| review (large)  | 10+        | 900s    | 300-600s       |
+| import          | -          | -       | 1-3s per issue |
 
 ### E. Security Considerations
 
 **Subprocess Execution:**
+
 - Always use `--sandbox` flag with Gemini CLI
 - Timeout all subprocess calls
 - Sanitize file paths before processing
 
 **Path Sanitization:**
+
 ```python
 # Good
 safe_name = "".join(c if c.isalnum() or c in "-_" else "-" for c in plan_name)
@@ -1121,6 +1172,7 @@ unsafe_name = user_input  # Direct use without sanitization
 ```
 
 **YAML Frontmatter:**
+
 - Parse YAML safely
 - Handle malformed input gracefully
 - Don't execute code from YAML
@@ -1130,6 +1182,7 @@ unsafe_name = user_input  # Direct use without sanitization
 **Common Issues:**
 
 1. **Gemini CLI Not Found**
+
    ```bash
    # Install Gemini CLI
    npm install -g @google/gemini-cli
@@ -1138,6 +1191,7 @@ unsafe_name = user_input  # Direct use without sanitization
    ```
 
 2. **Timeout Errors**
+
    ```bash
    # Increase timeout
    python3 code-review-gemini.py review src/ --timeout 1200
@@ -1147,12 +1201,13 @@ unsafe_name = user_input  # Direct use without sanitization
    ```
 
 3. **Import Parse Errors**
+
    ```bash
    # Verify YAML frontmatter
-   head -10 .claude/plans/review.md
+   head -10 docs/plans/review.md
 
    # Check section headers
-   grep "##" .claude/plans/review.md
+   grep "##" docs/plans/review.md
    ```
 
 ### G. References
