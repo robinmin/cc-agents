@@ -29,11 +29,11 @@ And, I also found another implementation in folder `vendors/superpowers/skills/t
 
 ### References
 
-- Sample implementation: `/Users/robin/projects/cc-agents/plugins/rd2/skills/tdd-workflow/SKILL.md`
-- Reference implementation: `/Users/robin/projects/cc-agents/vendors/superpowers/skills/test-driven-development/SKILL.md`
-- Anti-patterns reference: `/Users/robin/projects/cc-agents/vendors/superpowers/skills/test-driven-development/testing-anti-patterns.md`
-- skill-expert: `/Users/robin/projects/cc-agents/plugins/rd2/agents/skill-expert.md`
-- skill-doctor: `/Users/robin/projects/cc-agents/plugins/rd2/agents/skill-doctor.md`
+- Sample implementation: `plugins/rd2/skills/tdd-workflow/SKILL.md`
+- Reference implementation: `vendors/superpowers/skills/test-driven-development/SKILL.md`
+- Anti-patterns reference: `vendors/superpowers/skills/test-driven-development/testing-anti-patterns.md`
+- skill-expert: `plugins/rd2/agents/skill-expert.md`
+- skill-doctor: `plugins/rd2/agents/skill-doctor.md`
 
 ---
 
@@ -58,7 +58,7 @@ And, I also found another implementation in folder `vendors/superpowers/skills/t
 - [x] Create consolidated TDD workflow guide
 
 **Consolidated Document Created:**
-`/Users/robin/projects/cc-agents/plugins/rd2/skills/tdd-workflow/references/research-consolidation-2025.md`
+`plugins/rd2/skills/tdd-workflow/references/research-consolidation-2025.md`
 
 ##### Phase 3: Enhance TDD Workflow Skill
 
@@ -91,7 +91,7 @@ And, I also found another implementation in folder `vendors/superpowers/skills/t
 ## Orchestration Notes
 
 **Subagents Status**:
-- `rd2:skill-expert` - Already exists at `/Users/robin/projects/cc-agents/plugins/rd2/agents/skill-expert.md`
-- `rd2:skill-doctor` - Already exists at `/Users/robin/projects/cc-agents/plugins/rd2/agents/skill-doctor.md`
+- `rd2:skill-expert` - Already exists at `plugins/rd2/agents/skill-expert.md`
+- `rd2:skill-doctor` - Already exists at `plugins/rd2/agents/skill-doctor.md`
 
 **Delegation**: Task execution delegated to `rd:task-runner`
