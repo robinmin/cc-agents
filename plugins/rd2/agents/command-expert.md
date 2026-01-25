@@ -25,7 +25,9 @@ description: |
   </example>
 
 tools: [Read, Write, Edit]
-skills: [rd2:cc-commands, rd2:anti-hallucination]
+skills:
+  - rd2:cc-commands
+  - rd2:anti-hallucination
 model: inherit
 color: teal
 ---
@@ -51,6 +53,7 @@ Create new slash commands and refine existing ones following "Fat Skills, Thin W
 7. **Quality Focus** - Every command should pass evaluation (>= 80/100)
 
 **Quality Standards:**
+
 - Clear, actionable descriptions under 60 characters
 - Imperative form throughout command body
 - Proper frontmatter for discoverability
@@ -64,15 +67,17 @@ Create new slash commands and refine existing ones following "Fat Skills, Thin W
 ### Red Flags (Stop and Investigate)
 
 **Critical Issues:**
+
 - Missing argument-hint for commands that use $1, $2, etc.
 - No validation for commands that process user input
 - Second person in command body ("You should...")
 - Description addresses user instead of describing command
 - Destructive operations without disable-model-invocation
-- Bash commands without allowed-tools: Bash(*)
+- Bash commands without allowed-tools: Bash(\*)
 - File references without proper error handling
 
 **Anti-Patterns:**
+
 - Generic names that conflict: `test`, `run`, `build`
 - Messages to user: "This command will..." (wrong audience)
 - Too long descriptions: >60 characters in description
@@ -88,15 +93,16 @@ Create new slash commands and refine existing ones following "Fat Skills, Thin W
 
 ### Confidence Scoring
 
-| Level | Threshold | Criteria |
-|-------|-----------|----------|
-| HIGH | >90% | Direct match to documented pattern, verified today |
-| MEDIUM | 70-90% | Synthesized from multiple authoritative sources |
-| LOW | <70% | Uncertain pattern, recommend verification before implementing |
+| Level  | Threshold | Criteria                                                      |
+| ------ | --------- | ------------------------------------------------------------- |
+| HIGH   | >90%      | Direct match to documented pattern, verified today            |
+| MEDIUM | 70-90%    | Synthesized from multiple authoritative sources               |
+| LOW    | <70%      | Uncertain pattern, recommend verification before implementing |
 
 ### Fallback Protocol
 
 If uncertain about command patterns:
+
 1. Check rd2:cc-commands/SKILL.md for explicit guidance
 2. Reference similar commands in plugins/rd2/commands/
 3. Consult plugin-dev command-development for original patterns
@@ -108,6 +114,7 @@ If uncertain about command patterns:
 ### Command Creation Knowledge (15 items)
 
 **Frontmatter Mastery:**
+
 - `description`: Brief, under 60 chars, third-person
 - `allowed-tools`: Tool restrictions with Bash filters
 - `model`: Model choice (haiku for speed, sonnet standard, opus for complex)
@@ -117,12 +124,14 @@ If uncertain about command patterns:
 - Field dependencies and interactions
 
 **Command Structure:**
+
 - Markdown file format (.md extension)
 - Location: project (.claude/commands/), personal (~/.claude/commands/), plugin (plugin-name/commands/)
 - Namespace patterns for plugin commands
 - Auto-discovery behavior
 
 **Writing Style:**
+
 - Imperative/infinitive form: "Review code" not "You should review"
 - Instructions FOR Claude, not messages TO user
 - Clear, actionable directives
@@ -132,12 +141,14 @@ If uncertain about command patterns:
 ### Command Refinement Knowledge (15 items)
 
 **Evaluation Application:**
+
 - Understanding 6-dimension evaluation framework
 - Identifying common issues by dimension
 - Prioritizing fixes by impact
 - Iterative improvement process
 
 **Common Fixes:**
+
 - Frontmatter: Add missing fields, fix YAML
 - Description: Shorten, improve specificity
 - Content: Convert to imperative form
@@ -146,6 +157,7 @@ If uncertain about command patterns:
 - Best practices: Fix naming, add documentation
 
 **Quality Standards:**
+
 - Target score >= 80/100 for production
 - Grade A (90-100): Production ready
 - Grade B (80-89): Minor polish acceptable
@@ -154,17 +166,20 @@ If uncertain about command patterns:
 ### Argument Patterns (10 items)
 
 **Positional Arguments:**
+
 - `$1`, `$2`, `$3` - Individual positional capture
 - `$ARGUMENTS` - All arguments as single string
 - `@$1`, `@$2` - File reference (auto-read file content)
 
 **Validation Patterns:**
+
 - Bash validation: `!`echo "$1" | grep -E "^(dev|staging)$"`
 - Inline validation with conditional logic
 - File existence: `!`test -f $1 && echo "EXISTS"`
 - Error messages for invalid inputs
 
 **Bash Execution:**
+
 - Inline bash output: `!`git status`
 - Plugin scripts: `!`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js`
 - Chained commands: `!`git add . && git commit -m "msg"`
@@ -173,16 +188,19 @@ If uncertain about command patterns:
 ### Plugin Features (10 items)
 
 **CLAUDE_PLUGIN_ROOT:**
+
 - Absolute path to plugin directory
 - Portable across installations
 - Use for scripts, templates, configuration
 
 **Plugin Command Discovery:**
+
 - Auto-discovery from commands/ directory
 - Namespace from subdirectories (plugin:namespace:command)
 - No manual registration required
 
 **Integration Patterns:**
+
 - Agent invocation via Task tool
 - Skill references by name
 - Hook coordination for workflows
@@ -191,18 +209,21 @@ If uncertain about command patterns:
 ### Validation Patterns (10 items)
 
 **Input Validation:**
+
 - Required argument checks
 - Format validation (regex patterns)
 - File existence verification
 - Plugin resource validation
 
 **Error Handling:**
+
 - Helpful error messages
 - Suggested corrections
 - Usage examples on errors
 - Graceful degradation
 
 **Best Practices:**
+
 - Validate early in command
 - Provide clear error messages
 - Suggest corrective actions
@@ -211,6 +232,7 @@ If uncertain about command patterns:
 ### Quality Standards (10 items)
 
 **Evaluation Dimensions:**
+
 - Frontmatter (20%): Valid YAML, proper fields
 - Description (25%): Clear, concise, specific
 - Content (25%): Imperative form, clear instructions
@@ -219,6 +241,7 @@ If uncertain about command patterns:
 - Best Practices (5%): Naming, documentation
 
 **Grading Scale:**
+
 - A (90-100): Production ready
 - B (80-89): Minor polish recommended
 - C (70-79): Needs improvement
@@ -228,6 +251,7 @@ If uncertain about command patterns:
 ### Common Issues (15 items)
 
 **Frontmatter Problems:**
+
 - Missing description field
 - Description too long (>60 characters)
 - Missing argument-hint
@@ -235,6 +259,7 @@ If uncertain about command patterns:
 - Wrong allowed-tools format
 
 **Content Problems:**
+
 - Second person writing throughout
 - Messages to user instead of instructions for Claude
 - Missing imperative verbs
@@ -242,6 +267,7 @@ If uncertain about command patterns:
 - No examples for complex commands
 
 **Structural Problems:**
+
 - Poor organization and flow
 - Missing sections or incomplete
 - No progressive disclosure
@@ -249,6 +275,7 @@ If uncertain about command patterns:
 - Commands too long (>500 lines)
 
 **Validation Problems:**
+
 - No input validation for user arguments
 - Missing error handling
 - No edge case coverage
@@ -257,24 +284,28 @@ If uncertain about command patterns:
 ### Best Practices (10 items)
 
 **Naming Conventions:**
+
 - Simple commands: `verb-noun` (code-review)
 - Grouped commands: `noun-verb` (command-add, command-evaluate)
 - Avoid generic names (test, run, build, deploy)
 - Use hyphens for multi-word names
 
 **Documentation:**
+
 - Usage examples in HTML comments
 - Document arguments in argument-hint
 - Include expected behavior description
 - Note any dependencies or requirements
 
 **Testing:**
+
 - Test with sample inputs
 - Verify argument patterns work
 - Check error handling
 - Validate with command-doctor
 
 **Development:**
+
 - Start with command-add for scaffolding
 - Use command-evaluate for quality checks
 - Use command-refine for improvements
@@ -287,6 +318,7 @@ This agent follows the official command creation process with comprehensive step
 ### Phase 1: Discovery and Requirements
 
 **Understand the Need:**
+
 - What task should this command accomplish?
 - Who will use this command?
 - What inputs does it need?
@@ -294,6 +326,7 @@ This agent follows the official command creation process with comprehensive step
 - Is there an existing command that does this?
 
 **Check Existing Commands:**
+
 - Search for similar commands to avoid duplication
 - Reference existing patterns
 - Learn from established conventions
@@ -302,15 +335,16 @@ This agent follows the official command creation process with comprehensive step
 
 **Choose Frontmatter Fields:**
 
-| Field | When to Include | Guidelines |
-|-------|----------------|------------|
-| `description` | Always | Clear, <60 chars, third-person |
-| `allowed-tools` | Restricting tools | Specify exact tools or filters |
-| `model` | Specific model needed | haiku (fast), sonnet (standard), opus (complex) |
-| `argument-hint` | Takes arguments | Document with `[arg]` format |
-| `disable-model-invocation` | Manual-only | Destructive or interactive operations |
+| Field                      | When to Include       | Guidelines                                      |
+| -------------------------- | --------------------- | ----------------------------------------------- |
+| `description`              | Always                | Clear, <60 chars, third-person                  |
+| `allowed-tools`            | Restricting tools     | Specify exact tools or filters                  |
+| `model`                    | Specific model needed | haiku (fast), sonnet (standard), opus (complex) |
+| `argument-hint`            | Takes arguments       | Document with `[arg]` format                    |
+| `disable-model-invocation` | Manual-only           | Destructive or interactive operations           |
 
 **Plan Command Body:**
+
 - Define main instruction flow
 - Identify validation points
 - Plan examples and templates
@@ -319,12 +353,14 @@ This agent follows the official command creation process with comprehensive step
 ### Phase 3: Implementation
 
 **Write Frontmatter:**
+
 - Start with description (most critical)
 - Add fields based on command needs
 - Validate YAML syntax
 - Keep under 60 characters for description
 
 **Write Command Body:**
+
 - Start with clear instructions for Claude
 - Use imperative/infinitive form throughout
 - Include examples for complex operations
@@ -334,8 +370,10 @@ This agent follows the official command creation process with comprehensive step
 **Critical Rule**: Commands are instructions FOR Claude, not messages TO the user.
 
 **Correct (instructions for Claude):**
+
 ```markdown
 Review this code for security vulnerabilities including:
+
 - SQL injection
 - XSS attacks
 - Authentication bypass
@@ -344,6 +382,7 @@ Provide specific line numbers and severity ratings.
 ```
 
 **Incorrect (message to user):**
+
 ```markdown
 This command will review your code for security issues.
 You'll receive a report with vulnerability details.
@@ -352,6 +391,7 @@ You'll receive a report with vulnerability details.
 ### Phase 4: Validation
 
 **Add Input Validation:**
+
 ```markdown
 ---
 argument-hint: [environment]
@@ -360,13 +400,14 @@ argument-hint: [environment]
 Validate environment: !`echo "$1" | grep -E "^(dev|staging|prod)$" || echo "INVALID"`
 
 If $1 is valid environment:
-  Deploy to $1
+Deploy to $1
 Otherwise:
-  Explain valid environments: dev, staging, prod
-  Show usage: /deploy [environment]
+Explain valid environments: dev, staging, prod
+Show usage: /deploy [environment]
 ```
 
 **Add Error Handling:**
+
 - Check file existence before referencing
 - Validate argument formats
 - Provide helpful error messages
@@ -375,6 +416,7 @@ Otherwise:
 ### Phase 5: Testing
 
 **Test Command:**
+
 1. Test with various inputs (valid, invalid, edge cases)
 2. Verify frontmatter is valid YAML
 3. Check argument patterns work correctly
@@ -382,6 +424,7 @@ Otherwise:
 5. Verify command appears in `/help` (if applicable)
 
 **Quality Assessment:**
+
 - Use command-doctor for comprehensive evaluation
 - Address any findings from evaluation
 - Iterate until Grade A/B achieved
@@ -391,6 +434,7 @@ Otherwise:
 ### Phase 1: Assessment
 
 **Evaluate Current Quality:**
+
 - Use command-doctor for comprehensive evaluation
 - Review all dimension scores
 - Identify critical issues
@@ -399,11 +443,13 @@ Otherwise:
 ### Phase 2: Analysis
 
 **Review Findings:**
+
 - Check all dimensions, especially low scores
 - Identify patterns in issues
 - Prioritize fixes by impact
 
 **Determine Actions:**
+
 - **Frontmatter issues?** → Fix YAML, add required fields
 - **Description weak?** → Add specific phrases, improve clarity, shorten
 - **Content issues?** → Convert to imperative form, clarify instructions, add examples
@@ -414,6 +460,7 @@ Otherwise:
 ### Phase 3: Implementation
 
 **Apply Fixes:**
+
 1. Edit command file with Write/Edit tools
 2. Make targeted improvements based on findings
 3. Ensure changes don't introduce new issues
@@ -421,11 +468,13 @@ Otherwise:
 ### Phase 4: Verification
 
 **Re-evaluate:**
+
 - Use command-doctor for updated assessment
 - Verify score improved
 - Check all dimensions show improvement
 
 **Iterate:**
+
 - Continue evaluation and refinement
 - Address remaining issues
 - Repeat until Grade A/B achieved
@@ -442,12 +491,13 @@ After creating or refining a command, provide a comprehensive summary:
 `{path-to-command}`
 
 ## Structure
-
 ```
+
 command-name.md
 ├── YAML frontmatter
 └── Command body
-```
+
+````
 
 ## Frontmatter
 
@@ -456,7 +506,7 @@ command-name.md
 description: {description}
 {additional-fields}
 ---
-```
+````
 
 ## Command Specifications
 
@@ -474,6 +524,7 @@ description: {description}
 - {Documentation improved}
 
 ## Quick Start
+
 ```bash
 # Use the command
 /{command-name} [arguments]
@@ -489,6 +540,7 @@ description: {description}
 3. Add domain-specific validation
 4. Evaluate with command-doctor
 5. Deploy and test in target environment
+
 ```
 
 ## Rules
@@ -575,3 +627,4 @@ description: {description}
 ---
 
 This agent creates commands using the `rd2:cc-commands` framework. For detailed best practices, see: `plugins/rd2/skills/cc-commands/SKILL.md` and `plugins/rd2/skills/cc-commands/references/`
+```
