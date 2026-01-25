@@ -43,7 +43,7 @@ tasks list
 
 ```bash
 # Check promotion log
-cat .claude/tasks_sync/promotions.log
+cat docs/tasks_sync/promotions.log
 
 # Expected output:
 # {"timestamp": "2026-01-21T...", "wbs": "0048", "content": "Implement user...", "reason": "Complex keyword: implement"}
@@ -127,10 +127,10 @@ Create `.claude/tasks_sync/config.json`:
 tasks sync todowrite --data '{"todos": [...]}'
 
 # View session mapping
-cat .claude/tasks_sync/session_map.json
+cat docs/tasks_sync/session_map.json
 
 # View promotion log
-cat .claude/tasks_sync/promotions.log
+cat docs/tasks_sync/promotions.log
 ```
 
 ### Resume Session from External Tasks
@@ -208,7 +208,7 @@ Result: External task 0048 marked as Done
 **Solution**: Delete and regenerate
 
 ```bash
-rm .claude/tasks_sync/session_map.json
+rm docs/tasks_sync/session_map.json
 # Hook will regenerate on next TodoWrite event
 ```
 
@@ -219,7 +219,7 @@ rm .claude/tasks_sync/session_map.json
 
 ```bash
 # View current mappings
-cat .claude/tasks_sync/session_map.json
+cat docs/tasks_sync/session_map.json
 
 # Clean up duplicates manually
 tasks list
@@ -243,7 +243,7 @@ Don't manually create external tasks for TodoWrite items - let the hook handle i
 
 ```bash
 # Check what's being promoted
-tail -20 .claude/tasks_sync/promotions.log
+tail -20 docs/tasks_sync/promotions.log
 ```
 
 ### 4. Adjust Promotion Rules
