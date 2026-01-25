@@ -47,7 +47,7 @@ This skill provides architectural guidance for backend development, covering API
 - Designing observability and monitoring
 - Planning cloud-native deployment
 
-**For comprehensive architecture analysis**, use `/rd2:super-architect` agent which provides:
+**For comprehensive architecture analysis**, use `/rd2:tasks-plan --architect` command which invokes the super-architect agent to provide:
 - Detailed system design with ADRs
 - Complete verification with benchmarks
 - Migration strategies
@@ -851,7 +851,7 @@ Accepted
 This SKILL.md provides quick reference patterns for backend architecture.
 
 **For comprehensive architecture analysis**:
-- Use `/rd2:super-architect` agent for detailed system design with ADRs
+- Use `/rd2:tasks-plan --architect` to invoke super-architect for detailed system design with ADRs
 
 **For implementation**:
 - Use `/rd2:code-generate` to implement backend code
