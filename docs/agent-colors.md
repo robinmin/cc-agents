@@ -314,6 +314,6 @@ DESIGN:
 
 ## Related Documentation
 
-- **Architecture**: `/docs/rd2-architecture.md`
-- **Workflow**: `/docs/rd2-workflow.md`
-- **Agent Creation**: `/plugins/rd2/agents/agent-expert.md`
+- **Architecture**: `docs/rd2-architecture.md`
+- **Workflow**: `docs/rd2-workflow.md`
+- **Agent Creation**: `plugins/rd2/agents/agent-expert.md`
