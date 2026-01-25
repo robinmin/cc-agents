@@ -53,7 +53,7 @@ This skill provides architectural guidance for frontend development, covering co
 
 **For visual/UX design**, use `rd2:ui-ux-design` skill.
 
-**For comprehensive design specifications**, use `/rd2:super-designer` agent.
+**For comprehensive design specifications**, use `/rd2:tasks-plan --design` command which invokes the super-designer agent.
 
 ## Core Principles (2024-2025)
 
@@ -684,7 +684,7 @@ export const streamResponse = experimental_streamAction(
 This SKILL.md provides quick reference patterns for frontend architecture grounded in 2024-2025 best practices.
 
 **For detailed workflows**:
-- Use `/rd2:super-designer` for comprehensive UI/UX specifications
+- Use `/rd2:tasks-plan --design` to invoke super-designer for comprehensive UI/UX specifications
 - Use `rd2:ui-ux-design` for visual/UX design patterns
 
 **For implementation**:
