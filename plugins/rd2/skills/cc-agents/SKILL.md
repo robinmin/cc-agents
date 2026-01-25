@@ -187,7 +187,7 @@ Include templates with confidence scoring.
 
 ## Color Guidelines
 
-When creating subagents, select unique category colors for visual identification. See [@references/colors.md](@references/colors.md) for a comprehensive list of available colors.
+When creating subagents, select unique category colors for visual identification. See [references/colors.md](references/colors.md) for a comprehensive list of available colors.
 
 | Category | Colors |
 |----------|--------|
