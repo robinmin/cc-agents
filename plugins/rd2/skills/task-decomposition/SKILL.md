@@ -147,11 +147,11 @@ updated_at: 2026-01-15 10:30:00
 
 | Type | Example Format |
 |------|----------------|
-| Source files | `- Code: \`src/auth/login.py\`` |
-| Documentation | `- Docs: \`docs/api/auth.md\`` |
-| Tests | `- Tests: \`tests/test_auth.py\`` |
-| Config | `- Config: \`config/auth.yaml\`` |
-| Dependencies | `- Depends on: \`0002_database_setup.md\`` |
+| Source files | `- Code: \`src/auth/login.py\` [example]` |
+| Documentation | `- Docs: \`docs/api/auth.md\` [example]` |
+| Tests | `- Tests: \`tests/test_auth.py\` [example]` |
+| Config | `- Config: \`config/auth.yaml\` [example]` |
+| Dependencies | `- Depends on: \`0002_database_setup.md\` [example]` |
 
 **Gathering Strategy:**
 1. Use Grep to find related code files
