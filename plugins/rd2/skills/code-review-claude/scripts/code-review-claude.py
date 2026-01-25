@@ -42,7 +42,7 @@ TIMEOUT_MODERATE = 600  # 10 minutes
 TIMEOUT_COMPLEX = 900  # 15 minutes
 
 # Plans output directory
-PLANS_DIR = Path(".claude/plans")
+PLANS_DIR = Path("docs/plans")
 
 # Claude Code CLI path
 CLAUDE_CLI = "claude"
@@ -1273,7 +1273,7 @@ Examples:
   python3 code-review-claude.py run-file prompt.txt -o output.txt
   python3 code-review-claude.py review src/auth/ --plan --output auth-plan
   python3 code-review-claude.py review main.py --focus "security,performance"
-  python3 code-review-claude.py import .claude/plans/review-src.md
+  python3 code-review-claude.py import docs/plans/review-src.md
 """,
     )
 
