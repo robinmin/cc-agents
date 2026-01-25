@@ -113,7 +113,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/coder-gemini/scripts/coder-gemini.py genera
 
 ### 4. Present Results
 
-Generation output is automatically saved to `.claude/plans/[name].md` in a structured format:
+Generation output is automatically saved to `docs/plans/[name].md` in a structured format:
 
 - **YAML frontmatter** with metadata (model, target, methodology adherence)
 - **Implementation sections** (code, tests, documentation)
@@ -125,7 +125,7 @@ Present findings with clear attribution:
 ```markdown
 ## Gemini Generation
 
-[Generated content from .claude/plans/...]
+[Generated content from docs/plans/...]
 
 ---
 
