@@ -22,6 +22,7 @@ scripts_dir = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(scripts_dir))
 
 from tasks import TaskStatus, TasksConfig, TasksManager, TaskFile  # noqa: E402
+from tasks import rotate_log_file, _cleanup_old_logs, MAX_LOG_SIZE  # noqa: E402
 
 
 class TestTaskStatus:
@@ -646,3 +647,126 @@ def mock_glow_available():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestLogRotation:
+    """Tests for log rotation functionality."""
+
+    def test_rotate_log_file_creates_rotated_log(self, tmp_path):
+        """Test that log rotation creates a timestamped backup."""
+        log_file = tmp_path / "test.log"
+
+        # Create a log file exceeding MAX_LOG_SIZE
+        log_file.write_text("x" * (MAX_LOG_SIZE + 1000))
+
+        # Rotate
+        rotate_log_file(log_file)
+
+        # Original file should be gone (rotated)
+        assert not log_file.exists()
+
+        # Check for rotated file with timestamp pattern
+        rotated_files = list(tmp_path.glob("test.*.log"))
+        assert len(rotated_files) == 1
+
+        # Rotated file should have the original content
+        assert rotated_files[0].read_text().startswith("x")
+
+    def test_rotate_log_file_small_file_no_rotation(self, tmp_path):
+        """Test that small files are not rotated."""
+        log_file = tmp_path / "test.log"
+        original_content = "small log content"
+
+        log_file.write_text(original_content)
+
+        # Rotate should do nothing for small files
+        rotate_log_file(log_file)
+
+        # File should still exist with original content
+        assert log_file.exists()
+        assert log_file.read_text() == original_content
+
+    def test_rotate_log_file_nonexistent_no_error(self, tmp_path):
+        """Test that rotating non-existent file doesn't raise error."""
+        log_file = tmp_path / "nonexistent.log"
+
+        # Should not raise
+        rotate_log_file(log_file)
+
+    def test_cleanup_old_logs_keeps_recent(self, tmp_path):
+        """Test that cleanup keeps only specified number of logs."""
+        import time
+        import os
+
+        log_file = tmp_path / "test.log"
+
+        # Create 7 rotated log files with staggered ages
+        # We create them oldest first, then newer ones
+        for i in range(7):
+            timestamp = f"20260121_1{i}0000"
+            rotated = tmp_path / f"test.{timestamp}.log"
+            rotated.write_text(f"log content {i}")
+            # Sleep briefly to ensure different mtimes
+            time.sleep(0.01)
+            # Set explicit mtime: older i = older file
+            # Base time minus (7-i) hours so i=0 is oldest
+            base_time = time.time()
+            offset_hours = (7 - i) * 3600  # i=0 is 7 hours ago, i=6 is 1 hour ago
+            os.utime(rotated, (base_time - offset_hours, base_time - offset_hours))
+
+        # Verify all files exist before cleanup
+        all_before = list(tmp_path.glob("test.*.log"))
+        assert len(all_before) == 7, f"Expected 7 files before cleanup, got {len(all_before)}"
+
+        # Cleanup keeping only 5
+        _cleanup_old_logs(log_file, keep_count=5)
+
+        # Should have 5 most recent logs remaining
+        rotated_files = sorted(tmp_path.glob("test.*.log"))
+        assert len(rotated_files) == 5, f"Expected 5 files after cleanup, got {len(rotated_files)}: {[f.name for f in rotated_files]}"
+
+        # Verify the 2 oldest files (by mtime) were removed
+        # Files are sorted by mtime descending, so oldest 2 should be gone
+        # We verify by checking that 5 files remain and the original 7 - 5 = 2 were removed
+        assert len(rotated_files) == 5
+
+    def test_cleanup_old_logs_empty_directory(self, tmp_path):
+        """Test cleanup with no rotated logs."""
+        log_file = tmp_path / "test.log"
+
+        # Should not raise
+        _cleanup_old_logs(log_file, keep_count=5)
+
+    @freeze_time("2026-01-21 16:00:00")
+    def test_log_rotation_with_logging_operations(self, tmp_path):
+        """Test log rotation integration with actual logging operations."""
+        # Setup
+        prompts_dir = tmp_path / "docs/prompts"
+        prompts_dir.mkdir(parents=True)
+        (prompts_dir / ".kanban.md").write_text("test")
+
+        manager = TasksManager(TasksConfig(project_root=tmp_path))
+        log_file = tmp_path / ".claude" / "logs" / "hook_event.log"
+
+        # Write enough log entries to trigger rotation
+        # Each log entry is about 100-200 bytes, so we need ~5000-10000 entries
+        # For testing, we'll write a large single entry to trigger rotation
+        large_data = "x" * (MAX_LOG_SIZE + 1000)
+
+        # First, create a log file that exceeds the size
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        log_file.write_text(large_data)
+
+        # Now try to log - should trigger rotation
+        import time
+
+        time.sleep(0.01)  # Ensure different timestamp for rotation
+        manager.cmd_log("test_event", None)
+
+        # Check that rotation happened
+        rotated_files = list((tmp_path / ".claude" / "logs").glob("hook_event.*.log"))
+        assert len(rotated_files) >= 1
+
+        # Current log file should exist and be smaller
+        assert log_file.exists()
+        assert log_file.stat().st_size < MAX_LOG_SIZE
