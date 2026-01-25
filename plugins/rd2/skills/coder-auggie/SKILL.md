@@ -98,7 +98,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/coder-auggie/scripts/coder-auggie.py genera
 
 ### 4. Present Results
 
-Output saves to `.claude/plans/[name].md` with:
+Output saves to `docs/plans/[name].md` with:
 - YAML frontmatter (metadata, semantic context used)
 - Implementation matching existing patterns
 - Tests following project conventions
