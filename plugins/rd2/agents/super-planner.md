@@ -405,9 +405,9 @@ for task in tasks:
     # Update to Todo
     tasks update task.wbs todo
 
-    # Delegate to super-coder
+    # Delegate to code-generate command (which delegates to super-coder agent)
     # Note: coder-claude runs in subprocess via coder-claude.py
-    /rd2:super-coder --task task.wbs
+    /rd2:code-generate --task task.wbs
 
     # Wait for completion (manual or automated)
 
@@ -536,7 +536,7 @@ When super-coder delegates to coder-claude:
 ### Next Steps
 
 1. Review tasks: `tasks list`
-2. Start implementation: `/rd2:super-coder --task {first_wbs}`
+2. Start implementation: `/rd2:code-generate --task {first_wbs}`
 3. Monitor progress: `tasks refresh`
 4. View kanban: `tasks list wip`
 
@@ -617,28 +617,28 @@ When super-coder delegates to coder-claude:
 
 ```bash
 # Auto-scale assessment and full planning
-/rd2:super-planner "Implement OAuth2 authentication"
+/rd2:tasks-plan "Implement OAuth2 authentication"
 
 # Force architect involvement
-/rd2:super-planner --architect "Design microservices architecture"
+/rd2:tasks-plan --architect "Design microservices architecture"
 
 # Force designer involvement
-/rd2:super-planner --design "Build admin dashboard UI"
+/rd2:tasks-plan --design "Build admin dashboard UI"
 
 # Specify complexity
-/rd2:super-planner --complexity high "Add payment processing"
+/rd2:tasks-plan --complexity high "Add payment processing"
 
 # Decomposition only (no orchestration)
-/rd2:super-planner "Add user profile feature"
+/rd2:tasks-plan "Add user profile feature"
 
 # Full orchestration mode
-/rd2:super-planner --orchestrate "Implement feature set"
+/rd2:tasks-plan --orchestrate "Implement feature set"
 
 # Orchestrate existing task by WBS
-/rd2:super-planner --task 0047
+/rd2:tasks-plan --task 0047
 
 # Orchestrate by file path
-/rd2:super-planner --task docs/prompts/0047_feature.md
+/rd2:tasks-plan --task docs/prompts/0047_feature.md
 ```
 
 ---
