@@ -200,6 +200,54 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-gemini/scripts/code-review-gemi
 
 ---
 
+## [0.2.1] - 2026-01-25
+
+### Summary
+
+**Skill Development System: Official plugin-dev Integration & Progressive Disclosure Enhancement**
+
+Integrated official `plugin-dev` skill development best practices into `cc-skills`, `skill-doctor`, and `skill-expert`. Added comprehensive reference documentation for writing style, validation, common mistakes, and quick reference patterns. Updated skill commands to properly delegate to improved agents.
+
+### Added
+
+- **Reference Documentation** (`plugins/rd2/skills/cc-skills/references/`):
+  - **writing-style.md** (360 lines): Detailed writing style guide with imperative/infinitive form, third-person descriptions, and before/after examples
+  - **validation-checklist.md** (380 lines): Comprehensive validation checklist organized by category (structure, description, content, progressive disclosure, testing, security)
+  - **common-mistakes.md** (290 lines): 4 common mistakes with before/after examples and explanations (weak triggers, too much content, second person, missing references)
+  - **quick-reference.md** (240 lines): Quick reference patterns for minimal/standard/complete skill structures
+
+### Changed
+
+- **cc-skills SKILL.md** (`plugins/rd2/skills/cc-skills/SKILL.md`):
+  - Updated workflow steps to match official 6-step process
+  - Added detailed sections: Step 1-3 with concrete examples, Writing Style Requirements, Validation Checklist, Common Mistakes, Quick Reference
+  - All section references now point to new reference files for detailed content
+
+- **skill-doctor Agent** (`plugins/rd2/agents/skill-doctor.md`):
+  - Added comprehensive 8-step review process from official skill-reviewer
+  - Added Quality Standards section with specific criteria
+  - Added detailed output format with summary, scores, recommendations, and priority rankings
+
+- **skill-expert Agent** (`plugins/rd2/agents/skill-expert.md`):
+  - Updated Skill Creation Workflow to match official 6-step process
+  - Added detailed step-by-step guidance for each phase
+  - Added concrete example gathering methodology and planning methodology
+
+- **Command Updates** (`plugins/rd2/commands/`):
+  - **skill-add.md**: Now delegates to skill-expert, updated with 6-step process
+  - **skill-evaluate.md**: Now delegates to skill-doctor, added comprehensive review process details
+  - **skill-refine.md**: Now delegates to skill-expert, added evaluation-first development approach
+
+### Benefits
+
+- **Aligned with Official Standards**: Skills follow official plugin-dev best practices
+- **Better Skill Quality**: Comprehensive validation and evaluation prevents common mistakes
+- **Progressive Disclosure**: Detailed content properly separated from core SKILL.md
+- **Improved Agents**: skill-doctor and skill-expert have detailed workflows from official sources
+- **Better Commands**: Commands properly delegate to agents with clear documentation
+
+---
+
 ## [0.0.9] - 2026-01-22
 
 ### Summary
