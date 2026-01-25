@@ -4,7 +4,7 @@ Visual architecture diagram and component interaction patterns for the rd2 plugi
 
 ## Overview
 
-The rd2 plugin implements a "super-*" agent ecosystem with "fat skills, thin wrappers" architecture pattern. This document provides a visual representation of agent interactions and component relationships.
+The rd2 plugin implements a "super-\*" agent ecosystem with "fat skills, thin wrappers" architecture pattern. This document provides a visual representation of agent interactions and component relationships.
 
 ## Architecture Diagram
 
@@ -116,18 +116,18 @@ Commands are **slash commands** that users invoke directly. Commands are thin wr
 
 **Invocation syntax:** `/rd2:command-name`
 
-| Command | Purpose | Delegates To |
-|---------|---------|--------------|
-| `/rd2:code-generate` | Code generation and implementation | `super-coder` agent |
-| `/rd2:tasks-plan` | Task decomposition and planning | `super-planner` agent |
-| `/rd2:code-review` | Code review coordination | `super-code-reviewer` agent |
-| `/rd2:tasks-cli` | Task file management | `rd2:tasks` skill |
-| `/rd2:agent-add` | Create new agent | `agent-expert` agent |
-| `/rd2:agent-evaluate` | Evaluate agent quality | `agent-doctor` agent |
-| `/rd2:agent-refine` | Improve existing agent | `agent-expert` agent |
-| `/rd2:skill-add` | Create new skill | `skill-expert` agent |
-| `/rd2:skill-evaluate` | Evaluate skill quality | `skill-doctor` agent |
-| `/rd2:skill-refine` | Improve existing skill | `skill-expert` agent |
+| Command               | Purpose                            | Delegates To                |
+| --------------------- | ---------------------------------- | --------------------------- |
+| `/rd2:code-generate`  | Code generation and implementation | `super-coder` agent         |
+| `/rd2:tasks-plan`     | Task decomposition and planning    | `super-planner` agent       |
+| `/rd2:code-review`    | Code review coordination           | `super-code-reviewer` agent |
+| `/rd2:tasks-cli`      | Task file management               | `rd2:tasks` skill           |
+| `/rd2:agent-add`      | Create new agent                   | `agent-expert` agent        |
+| `/rd2:agent-evaluate` | Evaluate agent quality             | `agent-doctor` agent        |
+| `/rd2:agent-refine`   | Improve existing agent             | `agent-expert` agent        |
+| `/rd2:skill-add`      | Create new skill                   | `skill-expert` agent        |
+| `/rd2:skill-evaluate` | Evaluate skill quality             | `skill-doctor` agent        |
+| `/rd2:skill-refine`   | Improve existing skill             | `skill-expert` agent        |
 
 ### Agents (Coordinator Layer)
 
@@ -142,6 +142,7 @@ Agents are **lightweight coordinators** that delegate to skills. Agents are NOT 
 - `super-designer` - Coordinates UI/UX design
 
 **How agents are invoked:**
+
 1. Via commands: `/rd2:code-generate` delegates to `super-coder` agent
 2. Via other agents: `super-planner` delegates to `super-architect` for complex tasks
 3. Via Task tool: Claude Code's Task tool invokes agent prompts directly
@@ -314,15 +315,16 @@ Import as Tasks (optional)
 
 **Important:** Each component type has a specific invocation pattern. Using the wrong pattern will fail.
 
-| Component Type | Invocation Syntax | Example | How It Works |
-|----------------|-------------------|---------|--------------|
-| **Command** | `/rd2:command-name` | `/rd2:code-generate "..."` | User invokes directly via slash command |
-| **Agent** | Task tool delegation | `super-coder` | Commands or other agents delegate via Task tool |
-| **Skill** | `rd2:skill-name` | `rd2:tdd-workflow` | Agents invoke skills by reference in their prompt |
+| Component Type | Invocation Syntax    | Example                    | How It Works                                      |
+| -------------- | -------------------- | -------------------------- | ------------------------------------------------- |
+| **Command**    | `/rd2:command-name`  | `/rd2:code-generate "..."` | User invokes directly via slash command           |
+| **Agent**      | Task tool delegation | `super-coder`              | Commands or other agents delegate via Task tool   |
+| **Skill**      | `rd2:skill-name`     | `rd2:tdd-workflow`         | Agents invoke skills by reference in their prompt |
 
 ### Commands (Entry Points)
 
 Commands are what users invoke directly:
+
 ```bash
 /rd2:code-generate "Implement feature X"    # Delegates to super-coder agent
 /rd2:code-review src/                       # Delegates to super-code-reviewer agent
@@ -333,6 +335,7 @@ Commands are what users invoke directly:
 ### Agents (Coordinators)
 
 Agents are NOT invoked directly by users. They are:
+
 1. **Delegated to by commands** - The command parses input and invokes the agent
 2. **Delegated to by other agents** - e.g., super-planner delegates to super-architect
 3. **Invoked via Task tool** - Claude Code's internal delegation mechanism
@@ -340,8 +343,10 @@ Agents are NOT invoked directly by users. They are:
 ### Skills (Implementation)
 
 Skills are invoked by agents within their prompts:
+
 ```markdown
 # In an agent's prompt
+
 Use `rd2:tdd-workflow` for test-driven development.
 Delegate code generation to `rd2:coder-gemini`.
 ```
@@ -350,75 +355,75 @@ Delegate code generation to `rd2:coder-gemini`.
 
 ### Agents (9 total)
 
-| Agent | Purpose | Delegates To |
-|-------|---------|--------------|
-| super-coder | Code generation coordination | coder-* skills, tdd-workflow |
-| super-planner | Task decomposition and planning | task-decomposition, tasks, super-architect, super-designer |
-| super-code-reviewer | Code review coordination | code-review-* skills |
-| super-architect | Solution architecture review | backend-architect, frontend-architect, cloud-architect skills |
-| super-designer | UI/UX design | ui-ux-design, frontend-design skills |
-| agent-doctor | Agent quality evaluation | cc-agents skill |
-| agent-expert | Agent generation and refinement | cc-agents skill |
-| skill-doctor | Skill quality evaluation | cc-skills skill |
-| skill-expert | Skill generation and refinement | cc-skills skill |
+| Agent               | Purpose                         | Delegates To                                                  |
+| ------------------- | ------------------------------- | ------------------------------------------------------------- |
+| super-coder         | Code generation coordination    | coder-\* skills, tdd-workflow                                 |
+| super-planner       | Task decomposition and planning | task-decomposition, tasks, super-architect, super-designer    |
+| super-code-reviewer | Code review coordination        | code-review-\* skills                                         |
+| super-architect     | Solution architecture review    | backend-architect, frontend-architect, cloud-architect skills |
+| super-designer      | UI/UX design                    | ui-ux-design, frontend-design skills                          |
+| agent-doctor        | Agent quality evaluation        | cc-agents skill                                               |
+| agent-expert        | Agent generation and refinement | cc-agents skill                                               |
+| skill-doctor        | Skill quality evaluation        | cc-skills skill                                               |
+| skill-expert        | Skill generation and refinement | cc-skills skill                                               |
 
 ### Code Generation Skills (4 total)
 
-| Skill | Purpose | External Dependency |
-|-------|---------|---------------------|
-| coder-gemini | Gemini-based code generation | Gemini CLI |
-| coder-claude | Claude native code generation | Claude CLI (built-in) |
-| coder-auggie | Semantic codebase-aware generation | Auggie MCP |
-| coder-opencode | Multi-model external generation | OpenCode CLI |
+| Skill          | Purpose                            | External Dependency   |
+| -------------- | ---------------------------------- | --------------------- |
+| coder-gemini   | Gemini-based code generation       | Gemini CLI            |
+| coder-claude   | Claude native code generation      | Claude CLI (built-in) |
+| coder-auggie   | Semantic codebase-aware generation | Auggie MCP            |
+| coder-opencode | Multi-model external generation    | OpenCode CLI          |
 
 ### Code Review Skills (5 total)
 
-| Skill | Purpose | External Dependency |
-|-------|---------|---------------------|
-| code-review-gemini | Gemini-based code review | Gemini CLI |
-| code-review-claude | Claude native code review | Claude CLI (built-in) |
-| code-review-auggie | Semantic codebase-aware review | Auggie MCP |
-| code-review-opencode | Multi-model external review | OpenCode CLI |
-| code-review-common | Shared review patterns and checklists | None (knowledge-only) |
+| Skill                | Purpose                               | External Dependency   |
+| -------------------- | ------------------------------------- | --------------------- |
+| code-review-gemini   | Gemini-based code review              | Gemini CLI            |
+| code-review-claude   | Claude native code review             | Claude CLI (built-in) |
+| code-review-auggie   | Semantic codebase-aware review        | Auggie MCP            |
+| code-review-opencode | Multi-model external review           | OpenCode CLI          |
+| code-review-common   | Shared review patterns and checklists | None (knowledge-only) |
 
 ### Architecture Skills (3 total)
 
-| Skill | Purpose | External Dependency |
-|-------|---------|---------------------|
-| backend-architect | Backend architecture patterns | None (knowledge-only) |
+| Skill              | Purpose                        | External Dependency   |
+| ------------------ | ------------------------------ | --------------------- |
+| backend-architect  | Backend architecture patterns  | None (knowledge-only) |
 | frontend-architect | Frontend architecture patterns | None (knowledge-only) |
-| cloud-architect | Cloud infrastructure patterns | None (knowledge-only) |
+| cloud-architect    | Cloud infrastructure patterns  | None (knowledge-only) |
 
 ### Design Skills (2 total)
 
-| Skill | Purpose | External Dependency |
-|-------|---------|---------------------|
-| ui-ux-design | UI/UX design patterns and accessibility | None (knowledge-only) |
-| frontend-design | Frontend component design patterns | None (knowledge-only) |
+| Skill           | Purpose                                 | External Dependency   |
+| --------------- | --------------------------------------- | --------------------- |
+| ui-ux-design    | UI/UX design patterns and accessibility | None (knowledge-only) |
+| frontend-design | Frontend component design patterns      | None (knowledge-only) |
 
 ### Workflow & Management Skills (6 total)
 
-| Skill | Purpose | External Dependency |
-|-------|---------|---------------------|
-| tasks | Task file and Kanban management with decompose | TodoWrite |
-| task-decomposition | Decomposition patterns and heuristics | None (knowledge-only) |
-| tdd-workflow | Test-driven development workflow | Testing frameworks |
-| advanced-testing | Advanced testing patterns | Testing frameworks |
-| test-coverage | Test coverage analysis | Testing frameworks |
-| anti-hallucination | Verification-first protocol | Web search tools |
+| Skill              | Purpose                                        | External Dependency   |
+| ------------------ | ---------------------------------------------- | --------------------- |
+| tasks              | Task file and Kanban management with decompose | TodoWrite             |
+| task-decomposition | Decomposition patterns and heuristics          | None (knowledge-only) |
+| tdd-workflow       | Test-driven development workflow               | Testing frameworks    |
+| advanced-testing   | Advanced testing patterns                      | Testing frameworks    |
+| test-coverage      | Test coverage analysis                         | Testing frameworks    |
+| anti-hallucination | Verification-first protocol                    | Web search tools      |
 
 ### Agent/Skill Management Skills (2 total)
 
-| Skill | Purpose | External Dependency |
-|-------|---------|---------------------|
+| Skill     | Purpose                             | External Dependency   |
+| --------- | ----------------------------------- | --------------------- |
 | cc-agents | Agent anatomy, creation, evaluation | None (knowledge-only) |
 | cc-skills | Skill anatomy, creation, evaluation | None (knowledge-only) |
 
 ### Knowledge Skills (1 total)
 
-| Skill | Purpose | External Dependency |
-|-------|---------|---------------------|
-| knowledge-seeker | Research and information synthesis | Web search tools |
+| Skill                | Purpose                            | External Dependency |
+| -------------------- | ---------------------------------- | ------------------- |
+| knowledge-extraction | Research and information synthesis | Web search tools    |
 
 ## External Dependencies
 
