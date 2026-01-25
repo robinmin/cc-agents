@@ -93,7 +93,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/coder-claude/scripts/coder-claude.py genera
 
 ### 4. Present Results
 
-Output saves to `.claude/plans/[name].md` with:
+Output saves to `docs/plans/[name].md` with:
 - YAML frontmatter (metadata, methodology adherence)
 - Implementation sections (code, tests, documentation)
 - Verification steps
