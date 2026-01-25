@@ -2,7 +2,10 @@
 description: Lightweight coordinator for task decomposition, planning, and orchestration with scale assessment and specialist delegation
 skills:
   - rd2:cc-agents
-argument-hint: "<requirements>" [--complexity low|medium|high] [--architect] [--design] [--skip-decomposition] [--orchestrate]
+  - rd2:task-decomposition
+  - rd2:tasks
+  - rd2:anti-hallucination
+argument-hint: "<requirements|task-file.md>" [--complexity low|medium|high] [--architect] [--design] [--skip-refinement] [--skip-decomposition] [--skip-implementation] [--task <WBS|path>]
 ---
 
 # Tasks Plan
@@ -14,8 +17,18 @@ Lightweight coordinator for task decomposition, planning, and orchestration. Ass
 ## Quick Start
 
 ```bash
-# Auto-scale assessment and full planning
+# Plan from description (full workflow: refine → design → decompose → orchestrate)
 /rd2:tasks-plan "Implement OAuth2 authentication with Google and GitHub"
+
+# Orchestrate existing task file (full workflow)
+/rd2:tasks-plan docs/prompts/0047_oauth_feature.md
+/rd2:tasks-plan --task 0047
+
+# Skip refinement if task is already clear
+/rd2:tasks-plan --task 0047 --skip-refinement
+
+# Plan and orchestrate in one command
+/rd2:tasks-plan "Add user profile and settings feature"
 
 # Force architect involvement for complex architecture
 /rd2:tasks-plan --architect "Design microservices event bus architecture"
@@ -26,23 +39,30 @@ Lightweight coordinator for task decomposition, planning, and orchestration. Ass
 # Specify complexity level
 /rd2:tasks-plan --complexity high "Add multi-region deployment support"
 
-# Task decomposition only (no orchestration)
-/rd2:tasks-plan "Add user profile and settings feature"
+# Decomposition only (no implementation, no refinement)
+/rd2:tasks-plan --skip-implementation --skip-refinement "Break down migration strategy"
 
-# Full orchestration mode (implements all tasks)
-/rd2:tasks-plan --orchestrate "Implement authentication and authorization"
+# Standalone refinement only
+/rd2:tasks-refine docs/prompts/0047_feature.md
+
+# Standalone design phase only
+/rd2:tasks-design --task 0047
 ```
 
 ## Arguments
 
-| Argument            | Required | Description                                                                 |
-| ------------------- | -------- | -------------------------------------------------------------------------------------------------------- |
-| `requirements`       | Yes      | High-level description of what needs to be implemented                                                   |
-| `--complexity`        | No       | Override auto-complexity: `low`, `medium`, `high`                                                         |
-| `--architect`         | No       | Force architecture review involvement                                                                     |
-| `--design`            | No       | Force UI/UX design specialist involvement                                                                 |
-| `--skip-decomposition` | No       | Skip task decomposition (use existing tasks)                                                              |
-| `--orchestrate`       | No       | Enable orchestration loop to delegate tasks to super-coder automatically                                   |
+| Argument                | Required | Description                                                                                   |
+| ----------------------- | -------- | --------------------------------------------------------------------------------------------- |
+| `requirements`          | No\*     | High-level description of what needs to be implemented (creates task file automatically)      |
+| `--task`                | No       | Orchestrate existing task by WBS (e.g., `0047`) or file path (e.g., `docs/prompts/0047_*.md`) |
+| `--complexity`          | No       | Override auto-complexity: `low`, `medium`, `high`                                             |
+| `--architect`           | No       | Force architecture review involvement                                                         |
+| `--design`              | No       | Force UI/UX design specialist involvement                                                     |
+| `--skip-refinement`     | No       | Skip task refinement step (assumes task is already refined)                                   |
+| `--skip-decomposition`  | No       | Skip task decomposition (use existing tasks)                                                  |
+| `--skip-implementation` | No       | Skip implementation phase (decomposition only, implementation is enabled by default)          |
+
+**Note:** Either `requirements` or `--task` must be provided. If `requirements` is provided, a task file is created automatically via `rd2:tasks create`.
 
 ## Scale Assessment
 
@@ -71,29 +91,106 @@ Super-planner automatically assesses task complexity and determines when special
 
 ## Workflow
 
-This command delegates to the **super-planner agent** which implements the complete orchestration workflow. The command handles:
-- Argument parsing and validation
-- Agent invocation with appropriate parameters
-- Result presentation to user
+This command delegates to the **super-planner** agent using the Task tool and uses **SlashCommand chaining** to coordinate the complete planning workflow.
+
+```python
+Task(
+  subagent_type="super-planner",
+  prompt="""Plan and orchestrate: {requirements_or_task}
+
+Mode: orchestration-only
+Flags: {complexity}, {architect}, {design}, {skip_refinement}, {skip_decomposition}, {skip_implementation}
+
+Steps:
+1. Load or create task file
+   - IF requirements provided → Create via rd2:tasks create
+   - IF --task provided → Load existing task file
+2. Scale assessment (unless --complexity specified):
+   - Analyze task name and description
+   - Determine complexity level (Low/Medium/High)
+   - Identify specialist needs (architect/designer)
+3. Refinement phase (unless --skip-refinement):
+   - Quality check for red flags
+   - Generate refinement suggestions if needed
+   - Apply user-approved changes
+4. Design phase (scale assessment → specialist delegation):
+   - IF architect needed OR --architect → Delegate to super-architect
+   - IF designer needed OR --design → Delegate to super-designer
+   - Update Solutions section with outputs
+5. Decomposition phase (unless --skip-decomposition):
+   - Break down into subtasks via rd2:tasks decompose
+   - Generate WBS-numbered task files
+6. Orchestration phase (unless --skip-implementation):
+   - For each task in dependency order:
+     - Update status to Todo
+     - Delegate to /rd2:code-generate
+     - Update status to Testing
+     - Delegate to /rd2:code-review
+     - Update status to Done
+7. Report completion with summary
+""",
+  description="Plan and orchestrate workflow"
+)
+```
 
 **For detailed workflow documentation**, see: `plugins/rd2/agents/super-planner.md`
 
-### Full Planning Workflow
+### Full Planning Workflow (SlashCommand Chain)
 
 ```
-1. Receive Requirements
+1. [INPUT] Load or create task file
         ↓
-2. Scale Assessment
+2. [REFINE] SlashCommand → /rd2:tasks-refine
+   (unless --skip-refinement OR task already refined)
         ↓
-3. [IF Complex/Forced] → Super-Architect (Solution Architecture)
+3. [DESIGN] SlashCommand → /rd2:tasks-design
+   (scale assessment → architect/designer delegation)
         ↓
-4. [IF UI-Heavy/Forced] → Super-Designer (UI/UX Design)
+4. [DECOMPOSE] rd2:tasks decompose
+   (break down into subtasks with WBS numbers)
         ↓
-5. rd2:task-decomposition (Knowledge) + rd2:tasks decompose (Task Breakdown)
+5. [ORCHESTRATE] Default unless --skip-implementation
+   (delegates to /rd2:code-generate for implementation)
         ↓
-6. [IF orchestrate] → Orchestration Loop (delegate to super-coder)
+6. Report Completion
+```
+
+### Standalone Command Usage
+
+Each phase can also be used independently:
+
+```bash
+# Refinement only
+/rd2:tasks-refine docs/prompts/0047.md
+
+# Design only
+/rd2:tasks-design --task 0047
+
+# Decomposition only (via tasks skill)
+rd2:tasks decompose "Feature description"
+
+# Orchestration only (via code-generate)
+/rd2:code-generate --task 0047
+```
+
+### Task File Workflow (Existing Task)
+
+```
+1. Load task file from docs/prompts/{WBS}_*.md
         ↓
-7. Report Completion
+2. Check task status and dependencies
+        ↓
+3. [OPTIONAL] /rd2:tasks-refine
+        ↓
+4. [OPTIONAL] /rd2:tasks-design
+        ↓
+5. [IF needed] rd2:tasks decompose
+        ↓
+6. Orchestrate implementation (via super-coder)
+        ↓
+7. Update task status via rd2:tasks update
+        ↓
+8. Report Completion
 ```
 
 ### Decomposition-Only Workflow
@@ -101,20 +198,36 @@ This command delegates to the **super-planner agent** which implements the compl
 ```
 1. Receive Requirements
         ↓
-2. Scale Assessment
+2. [OPTIONAL] /rd2:tasks-refine
         ↓
-3. [IF Complex] → Super-Architect (Optional)
+3. [OPTIONAL] /rd2:tasks-design
         ↓
-4. [IF UI-Heavy] → Super-Designer (Optional)
+4. rd2:task-decomposition (Knowledge) + rd2:tasks decompose (Create Task Files)
         ↓
-5. rd2:task-decomposition (Knowledge) + rd2:tasks decompose (Create Task Files)
-        ↓
-6. Present Tasks & Next Steps
+5. Present Tasks & Next Steps
 ```
 
-## Orchestration Mode
+### Task File Workflow (Existing Task)
 
-When `--orchestrate` flag is specified, super-planner automatically delegates tasks to `super-coder`:
+```
+1. Load task file from docs/prompts/{WBS}_*.md
+        ↓
+2. Check task status and dependencies
+        ↓
+3. [IF needs breakdown] → rd2:tasks decompose
+        ↓
+4. Orchestrate implementation (default)
+        ↓
+5. Update task status via rd2:tasks update
+        ↓
+6. Report Completion
+```
+
+## Orchestration Mode (Default)
+
+**Implementation is enabled by default.** Use `--skip-implementation` for decomposition-only mode.
+
+When orchestration is enabled, super-planner automatically delegates tasks to `super-coder`:
 
 ```
 For each task in dependency order:
@@ -129,129 +242,192 @@ For each task in dependency order:
 
 ## Examples
 
-### Example 1: Simple Feature (Low Complexity)
+### Example 1: Simple Feature from Description
 
 ```bash
 /rd2:tasks-plan "Add password reset feature"
 
 # Output:
+# → Creating task file via rd2:tasks create...
+# ✓ Task 0047 created: docs/prompts/0047_add_password_reset_feature.md
+# → Invoking /rd2:tasks-refine...
+# ✓ Task quality check passed (no red flags)
+# → Invoking /rd2:tasks-design...
 # → Scale Assessment: Low
 # → No architect needed
 # → No designer needed
-# → Invoking rd2:tasks decompose to create task files...
-# ✓ 2 tasks created (0047, 0048)
-#
-# Tasks:
-# 0047: Implement password reset backend
-# 0048: Add password reset UI
-#
-# Next: /rd2:code-generate --task 0047
-```
-
-### Example 2: Architecture-Heavy (High Complexity)
-
-```bash
-/rd2:tasks-plan "Design microservices architecture for order processing"
-
-# Output:
-# → Scale Assessment: High
-# → Invoking super-architect for solution architecture...
-# ✓ Architecture decisions documented
-# → Invoking rd2:tasks decompose to create task files...
-# ✓ 8 tasks created (0047-0054)
-#
-# Tasks:
-# 0047: Design order service architecture
-# 0048: Implement order service
-# ...
-#
-# Next: /rd2:code-generate --task 0047
-```
-
-### Example 3: UI-Heavy Feature
-
-```bash
-/rd2:tasks-plan --design "Build admin dashboard with user management"
-
-# Output:
-# → Scale Assessment: Medium
-# → Invoking super-designer for UI/UX design...
-# ✓ Design specifications documented
-# → Invoking rd2:tasks decompose to create task files...
-# ✓ 6 tasks created (0047-0052)
-#
-# Next: /rd2:code-generate --task 0047
-```
-
-### Example 4: Full Orchestration
-
-```bash
-/rd2:tasks-plan --orchestrate "Add user profile and settings"
-
-# Output:
-# → Scale Assessment: Medium
-# → Invoking rd2:tasks decompose to create task files...
-# ✓ 4 tasks created (0047-0050)
+# → Invoking rd2:tasks decompose...
+# ✓ 2 subtasks created (0048, 0049)
 # → Orchestration starting...
 #
-# [0047] Implement user profile model
-# → Delegating to code-generate...
+# [0048] Implement password reset backend
+# → Delegating to /rd2:code-generate...
 # ✓ Complete
 #
-# [0048] Create profile UI
-# → Delegating to code-generate...
-# ✓ Complete
-#
-# [0049] Add settings page
-# → Delegating to code-generate...
+# [0049] Add password reset UI
+# → Delegating to /rd2:code-generate...
 # ✓ Complete
 #
 # ✓ All tasks complete
 ```
 
-## Output Format
+### Example 2: Architecture-Heavy (High Complexity)
 
-Results saved to `.claude/plans/[name].md` with YAML frontmatter:
+```bash
+/rd2:tasks-plan --complexity high "Design microservices architecture for order processing"
 
-```yaml
----
-type: super-planner-output
-complexity: low|medium|high
-architect_involved: true|false
-designer_involved: true|false
-tasks_created: N
-wbs_range: XXXX-YYYY
----
+# Output:
+# → Task 0047 created via rd2:tasks create
+# → Invoking /rd2:tasks-refine...
+# ✓ Task refined (added acceptance criteria)
+# → Invoking /rd2:tasks-design...
+# → Scale Assessment: High
+# → Delegating to super-architect...
+# ✓ Architecture decisions added to task file
+# → Invoking rd2:tasks decompose...
+# ✓ 8 subtasks created (0048-0055)
+# → Orchestration starting...
+# (proceeds with implementation)
 ```
 
-Followed by: Scale Assessment Report, Specialist Review Results, Task Hierarchy, Next Steps.
+### Example 3: Orchestrate Existing Task File
+
+```bash
+/rd2:tasks-plan --task 0047
+# OR
+/rd2:tasks-plan docs/prompts/0047_feature.md
+
+# Output:
+# → Loading task 0047...
+# ✓ Task status: Todo, Dependencies: None
+# → Invoking /rd2:tasks-refine (--skip-refinement if already refined)
+# → Invoking /rd2:tasks-design...
+# → Scale Assessment: Medium
+# → Orchestration starting...
+# (proceeds with implementation)
+```
+
+### Example 4: Decomposition Only (No Orchestration)
+
+```bash
+/rd2:tasks-plan --skip-implementation "Break down authentication system"
+
+# Output:
+# → Task 0047 created via rd2:tasks create
+# → Invoking /rd2:tasks-refine...
+# ✓ Task refined
+# → Invoking /rd2:tasks-design...
+# → Scale Assessment: High
+# → Delegating to super-architect...
+# ✓ Architecture documented
+# → Invoking rd2:tasks decompose...
+# ✓ 5 subtasks created (0048-0052)
+#
+# → Implementation skipped (--skip-implementation)
+# → Review tasks: tasks list
+# → Start implementation: /rd2:code-generate --task 0048
+```
+
+### Example 5: Skip Refinement for Already-Clear Tasks
+
+```bash
+/rd2:tasks-plan --skip-refinement --task 0047
+
+# Output:
+# → Loading task 0047...
+# → Skipping refinement (--skip-refinement)
+# → Invoking /rd2:tasks-design...
+# → Scale Assessment: Medium
+# → Orchestration starting...
+```
+
+### Example 6: Standalone Phase Usage
+
+```bash
+# Refinement only
+/rd2:tasks-refine docs/prompts/0047_unclear_task.md
+
+# Design only (with forced architect)
+/rd2:tasks-design --architect --task 0047
+
+# Orchestration only (task already refined and designed)
+/rd2:code-generate --task 0048
+```
+
+## Output Format
+
+**Task File Management:** All outputs are managed through task files in `docs/prompts/` via the `rd2:tasks` skill.
+
+When providing a description:
+
+- A task file is created automatically via `rd2:tasks create`
+- All specialist work (architecture, design) is linked in the task file's Solutions section
+- Subtasks are created via `rd2:tasks decompose` with proper WBS numbering
+
+When providing an existing task file:
+
+- Task status is tracked in the frontmatter
+- Specialist outputs are appended to the Solutions section
+- Progress is managed via `rd2:tasks update`
+
+**Task Status Flow:** Backlog → Todo → WIP → Testing → Done
+
+**No custom output format** - All output goes to task files managed by `rd2:tasks`.
 
 ## Error Handling
 
-| Error                   | Resolution                                             |
-| ---------------------- | ---------------------------------------------------- |
-| Requirements unclear    | Ask for clarification                              |
-| tasks skill unavailable | Ask for manual task breakdown or retry             |
-| Architect unavailable   | Continue without architect, note in output            |
-| Designer unavailable    | Continue without designer, note in output             |
-| Task creation failed    | Check error, suggest manual task creation              |
+| Error                   | Resolution                                 |
+| ----------------------- | ------------------------------------------ |
+| Requirements unclear    | Ask for clarification                      |
+| tasks skill unavailable | Ask for manual task breakdown or retry     |
+| Architect unavailable   | Continue without architect, note in output |
+| Designer unavailable    | Continue without designer, note in output  |
+| Task creation failed    | Check error, suggest manual task creation  |
 
 ## Design Philosophy
 
-**Fat Skills, Thin Wrappers** - This command is a thin wrapper (~100 lines); all planning logic, scale assessment, orchestration workflows, and specialist coordination live in the **super-planner agent** (`plugins/rd2/agents/super-planner.md`). This ensures:
-- Single source of truth for orchestration logic
-- Easy maintenance (update agent, not command)
-- Consistent behavior across all entry points
+**Fat Skills, Thin Wrappers** - This command is a thin wrapper (~100 lines) that uses **SlashCommand chaining** to delegate to specialized commands. Each phase is handled by a separate command:
 
-**Orchestrator Role** - The agent NEVER implements code directly. It coordinates: planning → decomposition → orchestration → review.
+- `/rd2:tasks-refine` - Task refinement and quality improvement
+- `/rd2:tasks-design` - Architecture and design phase with specialist delegation
+- `rd2:tasks decompose` - Task breakdown into subtasks
+- `/rd2:code-generate` - Implementation orchestration
+
+This architecture ensures:
+
+- Single source of truth for each phase
+- Easy maintenance (update individual commands/agents)
+- Consistent behavior across all entry points
+- Reusable standalone commands
+
+**Task File Centric** - The command follows "Task file in, Task file out" principle:
+
+- Accepts both task files and descriptions as input
+- Creates task files automatically from descriptions via `rd2:tasks create`
+- All specialist work links back to task files
+- No custom output formats - everything in task files
+
+**Orchestrator Role** - This command NEVER implements code directly. It coordinates: refinement → design → decomposition → orchestration. Orchestration is enabled by default.
+
+**Anti-Hallucination Integration** - The super-planner agent automatically uses `rd2:anti-hallucination` when tasks involve external technologies:
+
+- **Triggered by**: API/library mentions, framework decisions, integration patterns
+- **Automatic verification**: Documentation is checked via ref_search_documentation before recommendations
+- **Source citations**: All external technology claims include verified sources with dates
+- **Confidence scoring**: Each claim is scored HIGH/MEDIUM/LOW based on verification quality
+
+This ensures planning decisions are grounded in current, verified documentation rather than LLM memory.
 
 ## See Also
 
 - **super-planner agent**: `../agents/super-planner.md` - Complete orchestration logic
+- **/rd2:tasks-refine**: `tasks-refine.md` - Task refinement command (Step 2)
+- **/rd2:tasks-design**: `tasks-design.md` - Architecture and design command (Step 3)
+- **rd:task-runner**: `../../rd/commands/task-runner.md` - Reference task orchestration command (old rd plugin)
 - `rd2:task-decomposition` - Task decomposition knowledge and patterns (skill)
 - `rd2:tasks` - Task file operations and WBS management (skill)
 - `super-architect` - Solution architecture agent
 - `super-designer` - UI/UX design agent
 - `super-coder` - Implementation agent
-- `/rd2:code-generate` - Code generation command (Step 7)
-- `/rd2:code-review` - Code review command (Step 9-10)
+- `/rd2:code-generate` - Code generation command (Step 5)
+- `/rd2:code-review` - Code review command
