@@ -49,8 +49,8 @@ Phase 4 ensures documentation matches implementation. The `references/evaluation
 
 ## References
 
-- **File to update:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/references/evaluation.md`
-- **Implementation:** `/Users/robin/projects/cc-agents/plugins/rd2/skills/cc-skills/scripts/skills.py`
+- **File to update:** `plugins/rd2/skills/cc-skills/references/evaluation.md`
+- **Implementation:** `plugins/rd2/skills/cc-skills/scripts/skills.py`
 
 ## Deliverables
 
