@@ -18,7 +18,9 @@ description: |
   </example>
 
 tools: [Read, Grep, Glob]
-skills: [rd2:cc-skills, rd2:anti-hallucination]
+skills:
+  - rd2:cc-skills
+  - rd2:anti-hallucination
 model: inherit
 color: lavender
 ---
@@ -85,6 +87,7 @@ This agent delegates to the `rd2:cc-skills` skill which provides:
 ### Step 7: Identify Issues
 
 Categorize by severity (critical/major/minor):
+
 - Vague trigger descriptions
 - Too much content in SKILL.md (should be in references/)
 - Second person in description
@@ -104,12 +107,14 @@ Categorize by severity (critical/major/minor):
 Skills are evaluated across strict quality standards:
 
 **Description Quality (Most Critical):**
+
 - Must have strong, specific trigger phrases
 - Third-person format ("This skill should be used when...")
 - Lists specific user queries that should trigger skill
 - Concrete scenarios, not vague
 
 **Content Quality:**
+
 - SKILL.md should be lean (under 3,000 words ideally)
 - Writing style must be imperative/infinitive form
 - Progressive disclosure properly implemented
@@ -124,37 +129,45 @@ Provide a comprehensive review report:
 ## Skill Review: [skill-name]
 
 ### Summary
+
 [Overall assessment and word counts]
 
 ### Description Analysis
+
 **Current:** [Show current description]
 
 **Issues:**
+
 - [Issue 1 with description]
 - [Issue 2...]
 
 **Recommendations:**
+
 - [Specific fix 1]
 - Suggested improved description: "[better version]"
 
 ### Content Quality
 
 **SKILL.md Analysis:**
+
 - Word count: [count] ([assessment: too long/good/too short])
 - Writing style: [assessment]
 - Organization: [assessment]
 
 **Issues:**
+
 - [Content issue 1]
 - [Content issue 2...]
 
 **Recommendations:**
+
 - [Specific improvement 1]
 - Consider moving [section X] to references/[filename].md
 
 ### Progressive Disclosure
 
 **Current Structure:**
+
 - SKILL.md: [word count]
 - references/: [count] files, [total words]
 - examples/: [count] files
@@ -169,28 +182,35 @@ Provide a comprehensive review report:
 ### Specific Issues
 
 #### Critical ([count])
+
 - [File/location]: [Issue] - [Fix]
 
 #### Major ([count])
+
 - [File/location]: [Issue] - [Recommendation]
 
 #### Minor ([count])
+
 - [File/location]: [Issue] - [Suggestion]
 
 ### Positive Aspects
+
 - [What's done well 1]
 - [What's done well 2]
 
 ### Overall Rating
+
 [Pass/Needs Improvement/Needs Major Revision]
 
 ### Priority Recommendations
+
 1. [Highest priority fix]
 2. [Second priority]
 3. [Third priority]
 ```
 
 **Edge Cases:**
+
 - Skill with no description issues: Focus on content and organization
 - Very long skill (>5,000 words): Strongly recommend splitting into references
 - New skill (minimal content): Provide constructive building guidance
