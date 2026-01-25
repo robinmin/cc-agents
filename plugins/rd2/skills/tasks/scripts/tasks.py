@@ -337,9 +337,13 @@ class SyncOrchestrator:
     def __init__(self, config: TasksConfig):
         self.config = config
         self.state_mapper = StateMapper()
-        self.sync_dir = config.project_root / ".claude/tasks_sync"
-        self.session_map_file = self.sync_dir / "session_map.json"
-        self.promotions_log = self.sync_dir / "promotions.log"
+        # Session data (mapping, logs) goes to docs/tasks_sync/
+        self.sync_data_dir = config.project_root / "docs/tasks_sync"
+        # Configuration stays in .claude/tasks_sync/
+        self.sync_config_dir = config.project_root / ".claude/tasks_sync"
+        self.session_map_file = self.sync_data_dir / "session_map.json"
+        self.promotions_log = self.sync_data_dir / "promotions.log"
+        self.config_file = self.sync_config_dir / "config.json"
         self.session_map: dict[str, str] = self._load_session_map()
 
     def _load_session_map(self) -> dict[str, str]:
