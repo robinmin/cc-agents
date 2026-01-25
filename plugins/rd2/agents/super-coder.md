@@ -461,22 +461,22 @@ IF --task <wbs_number_or_path>:
 **Examples:**
 ```bash
 # By WBS# (auto-search in docs/prompts/)
-/rd2:super-coder --task 0047
+/rd2:code-generate --task 0047
 
 # By file path (reads directly, extracts WBS# from filename)
-/rd2:super-coder --task docs/prompts/0047_add_auth.md
+/rd2:code-generate --task docs/prompts/0047_add_auth.md
 
 # Task-driven with TDD (default behavior)
-/rd2:super-coder --task 0047
+/rd2:code-generate --task 0047
 
 # Task-driven WITHOUT TDD (explicit opt-out)
-/rd2:super-coder --task 0047 --no-tdd
+/rd2:code-generate --task 0047 --no-tdd
 
 # Relative path
-/rd2:super-coder --task ../tasks/0047_feature.md
+/rd2:code-generate --task ../tasks/0047_feature.md
 
 # Absolute path
-/rd2:super-coder --task /home/user/tasks/0047.md
+/rd2:code-generate --task /home/user/tasks/0047.md
 ```
 
 **WBS# Extraction:**
@@ -647,7 +647,7 @@ IF --task mode:
 - Run verification: {test_commands}
 - Integrate: {integration_notes}
 - Review: /rd2:code-review {target}
-- Re-generate with different tool: `/rd2:super-coder --task {wbs} --tool {other_tool}`
+- Re-generate with different tool: `/rd2:code-generate --task {wbs} --tool {other_tool}`
 ```
 
 ## Tool Selection Report
@@ -712,25 +712,25 @@ IF --task mode:
 
 ```bash
 # Auto-select best tool
-/rd2:super-coder "Implement user authentication"
+/rd2:code-generate "Implement user authentication"
 
 # Task-driven mode (by WBS#) - TDD enabled by default
-/rd2:super-coder --task 0047
+/rd2:code-generate --task 0047
 
 # Task-driven mode (by file path) - extracts WBS# from filename
-/rd2:super-coder --task docs/prompts/0047_add_auth.md
+/rd2:code-generate --task docs/prompts/0047_add_auth.md
 
 # Task-driven WITHOUT TDD (explicit opt-out)
-/rd2:super-coder --task 0047 --no-tdd
+/rd2:code-generate --task 0047 --no-tdd
 
 # Task-driven with explicit tool
-/rd2:super-coder --task 0047 --tool gemini
+/rd2:code-generate --task 0047 --tool gemini
 
 # Specify tool explicitly
-/rd2:super-coder --tool gemini "Design microservices event bus"
+/rd2:code-generate --tool gemini "Design microservices event bus"
 
 # Codebase-aware generation
-/rd2:super-coder --tool auggie "Add password reset feature"
+/rd2:code-generate --tool auggie "Add password reset feature"
 ```
 
 ---
