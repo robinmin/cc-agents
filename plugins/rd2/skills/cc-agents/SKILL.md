@@ -1,6 +1,6 @@
 ---
 name: cc-agents
-description: Meta-skill for creating, evaluating, and refining Claude Code Agent subagents. Use when: building new subagents, writing agent definition files, evaluating agent quality, or refining existing agents with best practices. Follows 8-section anatomy, verification-first development, and agent-specific quality assessment.
+description: Meta-skill for creating, evaluating, and refining Claude Code Agent subagents. Use when: building new subagents, writing agent definition files, evaluating agent quality, or refining existing agents. Follows 8-section anatomy, verification-first development, and agent-specific quality assessment.
 ---
 
 # cc-agents: Claude Code Agent Subagents
@@ -12,19 +12,22 @@ Create, evaluate, and refine Claude Code Agent subagents that extend AI capabili
 ## Quick Start
 
 ```bash
-# Evaluate an existing agent
-rd2:agent-evaluate plugins/rd2/agents/my-agent.md
+# Evaluate an existing agent (comprehensive quality assessment)
+python3 /Users/robin/.claude/plugins/cache/cc-agents/rd2/0.2.1/skills/cc-skills/scripts/skills.py evaluate /path/to/plugin/agents/my-agent.md
 
 # Create a new agent from template
 rd2:agent-add my-domain-expert
 
 # Refine an existing agent
-rd2:agent-refine plugins/rd2/agents/my-agent.md
+rd2:agent-refine /path/to/plugin/agents/my-agent.md
+
+# List all agents in a plugin
+rd2:agent-list
 ```
 
 ## Workflows
 
-### Creating a New Agent
+### Creating an Agent
 
 **Task Progress:**
 - [ ] **Step 1: Define Domain** - Identify expertise area, scope boundaries, target users
@@ -53,7 +56,7 @@ rd2:agent-refine plugins/rd2/agents/my-agent.md
 
 ### Refining an Agent
 
-**Workflow:**
+**Use this workflow:**
 
 1. **Evaluate current quality** - Identify gaps and issues
 2. **Review findings** - Check all dimensions, especially low scores
@@ -66,147 +69,125 @@ rd2:agent-refine plugins/rd2/agents/my-agent.md
 5. **Re-evaluate** - Run evaluation again
 6. **Repeat** - Continue until passing score achieved
 
-## Architecture: Fat Skills, Thin Wrappers
+### Example: Creating a Python Expert Agent
 
-Follow the **Fat Skills, Thin Wrappers** pattern:
+**Step 1 - Define Domain:**
+- Expertise: Python programming, testing, async, decorators
+- Scope: Code generation, debugging, best practices
+- Target: Developers working on Python projects
 
-- **Skills** contain all core logic, workflows, and domain knowledge (this file)
-- **Commands** are minimal wrappers (~50 lines) that invoke skills for human users
-- **Agents** are minimal wrappers (~100 lines) that invoke skills for AI workflows
-
-## Agent Structure (8-Section Anatomy)
-
-### Section 1: METADATA (~5-15 lines)
-
+**Step 2-3 - Generate Skeleton:**
 ```yaml
 ---
-name: domain-expert
+name: python-expert
 description: |
-  Senior {Domain} expert. Use PROACTIVELY for {trigger keywords}.
+  Senior Python expert. Use PROACTIVELY for python, pytest, async, decorator, generator, type hint.
 
   <example>
-  Context: {Situation}
-  user: "{Request}"
-  assistant: "{Response with verification}"
-  <commentary>{Explanation}</commentary>
+  Context: User asks about implementing async functionality
+  user: "How do I make this function async?"
+  assistant: "I'll help you convert this to async. Let me first check the current implementation..."
+  <commentary>User needs async Python guidance - this agent specializes in Python patterns</commentary>
   </example>
 
 tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch]
 model: inherit
-color: {category-color}
+color: blue
 ---
 ```
 
-### Section 2: PERSONA (~20 lines)
-
+**Step 4 - Enumerate Competencies (excerpt):**
 ```markdown
-# 1. METADATA
+### Core Python
+- async/await patterns
+- Type hints (PEP 484, 585, 612)
+- Decorators (@property, @staticmethod, @lru_cache)
+- Context managers (with statements)
+- Generators and yield expressions
 
-**Name:** domain-expert
-**Role:** Senior {Domain} Engineer & Verification Specialist
-**Purpose:** {One sentence with verification focus}
-
-# 2. PERSONA
-
-You are a **Senior {Domain} Expert** with {X}+ years experience.
-
-Your expertise spans:
-
-- {Core competency 1}
-- {Core competency 2}
-- **Verification methodology** — you never guess, you verify first
+### Testing
+- pytest fixtures and parametrization
+- unittest.mock for mocking
+- pytest-asyncio for async tests
+- coverage.py integration
 ```
 
-### Section 3: PHILOSOPHY (~30 lines)
+**Step 5-6 - Complete agent and validate.**
 
-```markdown
-# 3. PHILOSOPHY
+## Architecture: Fat Skills, Thin Wrappers
 
-## Core Principles
+Follow the **Fat Skills, Thin Wrappers** pattern:
 
-1. **Verification Before Generation** [CRITICAL]
-2. **{Domain Principle 1}**
-3. **{Domain Principle 2}**
-4. **Graceful Degradation**
+- **Skills** contain all core logic, workflows, and domain knowledge
+- **Commands** are minimal wrappers (~50 lines) that invoke skills for human users
+- **Agents** are minimal wrappers (~100 lines) that invoke skills for AI workflows
+
+### Hybrid Approach for Complex Orchestration
+
+**Command Layer (.md files)** - Use pseudocode with built-in tools (Task, SlashCommand, AskUserQuestion), explicit workflow sequences, self-documenting specifications
+
+**Agent Layer (.md agents)** - Use flexible natural language with conditional logic, adaptive behavior, error handling and retries
+
+### Built-in Tools for Orchestration
+
+| Tool              | Purpose                | Example                                              |
+| ----------------- | ---------------------- | ---------------------------------------------------- |
+| `Task`            | Delegate to subagent   | `Task(subagent_type="super-planner", prompt="...")`  |
+| `SlashCommand`    | Call another command   | `SlashCommand(skill="rd2:tasks-refine", args="...")` |
+| `AskUserQuestion` | Interactive user input | Ask clarifying questions with options                |
+
+## Agent Structure (8-Section Anatomy)
+
+### Summary
+
+Every Claude Code Agent subagent follows the 8-section anatomy. For detailed specifications, see **[`references/agent-anatomy.md`](references/agent-anatomy.md)**.
+
+| Section | Lines | Purpose | Key Elements |
+|---------|-------|---------|--------------|
+| 1. METADATA | ~15 | Agent identification | name, description, tools, model, color |
+| 2. PERSONA | ~20 | Role definition | Background, expertise, approach |
+| 3. PHILOSOPHY | ~30 | Core principles | 4-6 principles, design values |
+| 4. VERIFICATION | ~50 | Anti-hallucination | Red flags, sources, confidence, fallbacks |
+| 5. COMPETENCIES | ~150-200 | Structured memory | 50+ items across 4-5 categories |
+| 6. PROCESS | ~40 | Workflow phases | Diagnose, Solve, Verify |
+| 7. RULES | ~40 | Guardrails | DO and DON'T lists |
+| 8. OUTPUT | ~30 | Response formats | Templates with confidence |
+
+**Total: 400-600 lines**
+
+### Metadata Requirements
+
+**Frontmatter fields:**
+
+- `name` (required): lowercase-hyphens, 3-50 chars, alphanumeric start/end
+- `description` (required): Include "Use PROACTIVELY for" + 2-3 `<example>` blocks with commentary
+- `model` (required): `inherit` (recommended), `sonnet`, `opus`, `haiku`
+- `color` (required): See [Color Guidelines](#color-guidelines)
+- `tools` (optional): Restrict agent to specific tools (default: all tools)
+
+**Description format:**
+```yaml
+description: |
+  Senior {Domain} expert. Use PROACTIVELY for {trigger-keywords}.
+
+  <example>
+  Context: {situation}
+  user: "{request}"
+  assistant: "{response}"
+  <commentary>{why-agent-triggers}</commentary>
+  </example>
 ```
 
-### Section 4: VERIFICATION PROTOCOL (~50 lines)
+### Color Guidelines
 
-Include: Red Flags, Source Priority, Citation Format, Confidence Scoring, Fallback Protocol
-
-### Section 5: COMPETENCY LISTS (~150-200 lines)
-
-**Minimum Requirements:**
-- Total items: 50+ across all categories
-- Each category: At least 10 items
-- Include "When NOT to use"
-
-### Section 6: ANALYSIS PROCESS (~40 lines)
-
-```markdown
-# 6. ANALYSIS PROCESS
-
-## Phase 1: Diagnose
-
-## Phase 2: Solve
-
-## Phase 3: Verify
-```
-
-### Section 7: ABSOLUTE RULES (~40 lines)
-
-```markdown
-# 7. ABSOLUTE RULES
-
-## What I Always Do ✓
-
-- [ ] {8-12 positive behaviors}
-
-## What I Never Do ✗
-
-- [ ] {8-12 prohibited behaviors}
-```
-
-### Section 8: OUTPUT FORMAT (~30 lines)
-
-Include templates with confidence scoring.
-
-## Line Count Guidelines
-
-| Section | Target Lines |
-|---------|--------------|
-| Metadata | ~15 |
-| Persona | ~20 |
-| Philosophy | ~30 |
-| Verification | ~50 |
-| Competencies | ~150-200 |
-| Process | ~40 |
-| Rules | ~40 |
-| Output | ~30 |
-| **Total** | **400-600** |
-
-## Color Guidelines
-
-When creating subagents, select colors by functional category. See [references/colors.md](references/colors.md) for complete palette and selection guide.
-
-| Functional Category | Standard Colors |
-|---------------------|----------------|
-| **Code Generation** | `blue`, `cyan`, `navy`, `skyblue` |
-| **Planning & Coordination** | `purple`, `violet`, `orchid`, `magenta` |
-| **Review & Validation** | `crimson`, `red`, `coral`, `tomato` |
-| **Architecture** | `orange`, `gold`, `amber` |
-| **Design** | `teal`, `turquoise`, `green`, `emerald` |
-| **Documentation** | `gray`, `silver`, `slate` |
-| **Testing** | `yellow`, `khaki`, `lemon` |
-
-**Quick Reference:**
+Select colors by functional category. For complete palette, see **[`references/colors.md`](references/colors.md)**.
 
 ```
-🟦 blue  = Code gen    🟪 purple = Planning    🟥 crimson = Review
-🟧 orange = Architect  🟩 teal   = Design      ⚫ gray    = Docs
+blue   = Code gen    purple = Planning    crimson = Review
+orange = Architect   teal   = Design      gray    = Docs
 ```
 
-**Common Subagent Colors:**
+**Quick Assignments:**
 
 | Subagent Type | Color | Category |
 |---------------|-------|----------|
@@ -219,38 +200,24 @@ When creating subagents, select colors by functional category. See [references/c
 
 ### Naming Conventions (CRITICAL)
 
-**Follow official Claude Code naming rules:**
-
 1. **ALWAYS use full namespace** for plugin skills: `plugin-name:skill-name`
-   - When referencing skills in documentation, use full namespace
-   - When invoking skills via slash commands, use full namespace
-   - In `agents.md` skills field, reference without prefix (internal)
-   - Never omit the plugin prefix in user-facing documentation
+   - In user-facing documentation: `rd2:my-skill`
+   - In `agents.md` skills field: `my-skill` (internal reference only)
 
 2. **NEVER reuse names** across components
-   - Slash commands, subagents, and skills must have UNIQUE names
-   - Skills take precedence over commands with same name (blocks invocation)
+   - Skills take precedence over commands with same name (blocks user invocation)
    - Use distinct naming patterns to avoid confusion
 
 | Component | Naming Pattern | Example |
 |-----------|---------------|---------|
 | Slash Command | `verb-noun` | `test-code` |
-| Slash Command (grouped) | `noun-verb` | `agent-add`, `agent-evaluate`, `agent-refine` (groups related commands) |
+| Slash Command (grouped) | `noun-verb` | `agent-add`, `agent-evaluate` |
 | Skill | `verb-ing-noun` | `reviewing-code` |
 | Subagent | `role-agent` | `code-reviewer-agent` |
 
 **Slash Command Grouping Rule:**
-- When multiple slash commands share the same domain, use `noun-verb` format (NOT `verb-noun`)
-- This groups related commands together alphabetically in listings
-- Examples:
-  - `agent-add.md`, `agent-evaluate.md`, `agent-refine.md` (all "agent" commands grouped)
-  - `code-generate.md`, `code-review.md` (all "code" commands grouped)
-  - `tasks-plan.md`, `tasks-cli.md` (all "tasks" commands grouped) |
-
-**Sources:**
-- [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
-- [GitHub Issue #14945](https://github.com/anthropics/claude-code/issues/14945) - Slash commands blocked by skill name collision
-- [GitHub Issue #15944](https://github.com/anthropics/claude-code/issues/15944) - Cross-plugin skill references
+- When multiple slash commands share the same domain, use `noun-verb` format
+- This groups related commands together alphabetically: `agent-add.md`, `agent-evaluate.md`, `agent-refine.md`
 
 ### Skill Composition Rules
 
@@ -263,19 +230,6 @@ When creating subagents, select colors by functional category. See [references/c
 - Make agents/skills directly call other agents/skills
 - Add explicit dependencies between skills (not supported)
 - Assume cross-plugin skill references work (feature request only)
-
-**Example correct pattern:**
-```yaml
-# agents/orchestrator.md
----
-name: orchestrator
-skills:
-  - research
-  - writing
-  - review
-context: fork
----
-```
 
 ### Writing Guidelines
 
@@ -295,74 +249,6 @@ context: fork
 | No auto-routing | Won't trigger automatically | Add "Use PROACTIVELY for" |
 | Too few examples | Users unclear when to use | Add 2-3 examples |
 | **Name reuse** | **Blocks invocation** | **Use distinct names** |
-| **Skill dependencies** | **Not supported** | **Use subagents** |
-
-## Verification Protocol Template
-
-Every agent MUST include:
-
-```markdown
-## Verification Protocol [MANDATORY]
-
-### Before Answering ANY Technical Question
-
-1. **Search First**: Use ref/WebSearch to verify current information
-2. **Check Recency**: Look for updates in last 6 months
-3. **Cite Sources**: Every technical claim must reference documentation
-4. **Acknowledge Uncertainty**: If unsure, say "I need to verify this"
-5. **Version Awareness**: Always note version numbers
-
-### Red Flags — STOP and verify
-
-- API endpoints or method signatures from memory
-- Configuration options without documentation backing
-- Version-specific features without version check
-- Performance claims without benchmark citations
-
-### Confidence Scoring (REQUIRED)
-
-| Level | Threshold | Criteria |
-|-------|-----------|----------|
-| HIGH | >90% | Direct quote from official docs |
-| MEDIUM | 70-90% | Synthesized from multiple sources |
-| LOW | <70% | FLAG FOR USER REVIEW |
-```
-
-## Output Templates
-
-### Standard Evaluation Report
-
-```markdown
-# Agent Evaluation Report: {agent-name}
-
-## Quick Stats
-
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| Total Lines | {X} | 400-600 | ✓/✗ |
-| Competency Items | {Y} | 50+ | ✓/✗ |
-| DO ✓ Rules | {Z} | 8+ | ✓/✗ |
-| DON'T ✗ Rules | {W} | 8+ | ✓/✗ |
-
-## Overall Score: {S}/100
-
-### Dimension Breakdown
-
-| Dimension | Score | Weight | Points | Status |
-|-----------|-------|--------|--------|--------|
-| Structure | {X}/20 | 20% | {P} | ✓/✗ |
-| Verification | {X}/25 | 25% | {P} | ✓/✗ |
-| Competencies | {X}/20 | 20% | {P} | ✓/✗ |
-| Rules | {X}/15 | 15% | {P} | ✓/✗ |
-| Auto-Routing | {X}/10 | 10% | {P} | ✓/✗ |
-| Examples | {X}/10 | 10% | {P} | ✓/✗ |
-
-## Recommendations
-
-### High Priority
-1. {Specific actionable recommendation}
-2. {Specific actionable recommendation}
-```
 
 ## Quality Checklist
 
@@ -377,3 +263,33 @@ Before completing an agent:
 - [ ] 2-3 examples with commentary
 - [ ] Output format with confidence scoring
 - [ ] Evaluation score >= 80/100
+
+## References
+
+### Bundled Resources
+
+- **[`references/agent-anatomy.md`](references/agent-anatomy.md)** - Complete 8-section anatomy with templates and examples
+- **[`references/colors.md`](references/colors.md)** - Full color palette with category assignments
+- **[`references/ClaudeCodeBuilt-inTools.md`](references/ClaudeCodeBuilt-inTools.md)** - Built-in tools reference (Task, SlashCommand, AskUserQuestion)
+- **[`assets/agent-template.md`](assets/agent-template.md)** - Ready-to-use agent template
+
+### Agent Organization
+
+```
+plugin-name/
+└── agents/
+    ├── analyzer.md
+    ├── reviewer.md
+    └── generator.md
+```
+
+All `.md` files in `agents/` are auto-discovered. Namespacing is automatic:
+- Single plugin: `agent-name`
+- With subdirectories: `plugin:subdir:agent-name`
+
+### External References
+
+- [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
+- [Claude Code Agent Documentation](https://code.claude.com/docs/en/agents)
+- [GitHub Issue #14945](https://github.com/anthropics/claude-code/issues/14945) - Slash commands blocked by skill name collision
+- [GitHub Issue #15944](https://github.com/anthropics/claude-code/issues/15944) - Cross-plugin skill references
