@@ -203,38 +203,38 @@ User Requirements
 ### Example 1: Simple Feature (No Solution Review)
 
 ```
-User: "Add user profile page"
+User: /rd2:tasks-plan "Add user profile page"
 
-→ super-planner: Scale=low, no architect needed
-→ rd2:tasks decompose: Creates 3 tasks
-→ super-coder: Implements with TDD workflow
-→ super-code-reviewer: Auto-selects claude for quick review
+→ super-planner agent: Scale=low, no architect needed
+→ rd2:tasks skill (decompose): Creates 3 tasks
+→ super-coder agent: Implements with TDD workflow (via /rd2:code-generate --task XXXX)
+→ super-code-reviewer agent: Auto-selects claude for quick review (via /rd2:code-review)
 → Task: Done
 ```
 
 ### Example 2: Complex Feature (With Solution Review)
 
 ```
-User: "Build payment processing system with Stripe"
+User: /rd2:tasks-plan "Build payment processing system with Stripe"
 
-→ super-planner: Scale=high, architect needed
-→ rd2:tasks decompose: Creates 8 tasks
-→ super-architect: Solution review (security, architecture)
-→ super-coder: Implements with TDD workflow
-→ super-code-reviewer: Auto-selects gemini-pro for security audit
+→ super-planner agent: Scale=high, architect needed
+→ rd2:tasks skill (decompose): Creates 8 tasks
+→ super-architect agent: Solution review (security, architecture)
+→ super-coder agent: Implements with TDD workflow
+→ super-code-reviewer agent: Auto-selects gemini-pro for security audit
 → Task: Done
 ```
 
 ### Example 3: Full-Stack Feature (With Design)
 
 ```
-User: "Build admin dashboard with user management"
+User: /rd2:tasks-plan "Build admin dashboard with user management"
 
-→ super-planner: Scale=medium, designer needed
-→ rd2:tasks decompose: Creates 10 tasks
-→ super-designer: UI/UX specifications
-→ super-coder: Implements frontend + backend
-→ super-code-reviewer: Auto-selects gemini-flash for comprehensive review
+→ super-planner agent: Scale=medium, designer needed
+→ rd2:tasks skill (decompose): Creates 10 tasks
+→ super-designer agent: UI/UX specifications
+→ super-coder agent: Implements frontend + backend
+→ super-code-reviewer agent: Auto-selects gemini-flash for comprehensive review
 → Task: Done
 ```
 
@@ -242,24 +242,26 @@ User: "Build admin dashboard with user management"
 
 ### Command Invocation
 
+**Note:** Commands (entry points) use `/rd2:command-name` syntax. Agents are delegated to by commands, not invoked directly.
+
 ```bash
-# Start workflow (auto-scales)
-/rd2:super-planner "Build user authentication system"
+# Start workflow (auto-scales) - delegates to super-planner agent
+/rd2:tasks-plan "Build user authentication system"
 
 # Force solution review
-/rd2:super-planner "Build payment system" --architect
+/rd2:tasks-plan "Build payment system" --architect
 
 # Force design review
-/rd2:super-planner "Build admin dashboard" --design
+/rd2:tasks-plan "Build admin dashboard" --design
 
-# Task-driven implementation
-/rd2:super-coder --task 0047
+# Task-driven implementation - delegates to super-coder agent
+/rd2:code-generate --task 0047
 
-# Code review with auto-selection
-/rd2:super-code-reviewer src/auth/
+# Code review with auto-selection - delegates to super-code-reviewer agent
+/rd2:code-review src/auth/
 
 # Code review with explicit tool
-/rd2:super-code-reviewer --tool gemini --focus security src/
+/rd2:code-review --tool gemini --focus security src/
 ```
 
 ### Task File Status Flow
