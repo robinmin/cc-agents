@@ -471,6 +471,6 @@ def test_super_coder_tool_selection(loc, expected_tool):
 
 ## Related Documentation
 
-- **TDD Workflow**: `/plugins/rd2/skills/tdd-workflow/skill.md`
-- **Workflow**: `/docs/rd2-workflow.md`
-- **Architecture**: `/docs/rd2-architecture.md`
+- **TDD Workflow**: `plugins/rd2/skills/tdd-workflow/SKILL.md`
+- **Workflow**: `docs/rd2-workflow.md`
+- **Architecture**: `docs/rd2-architecture.md`
