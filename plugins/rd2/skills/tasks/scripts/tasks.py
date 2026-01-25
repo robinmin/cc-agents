@@ -1420,12 +1420,12 @@ Examples:
         help="Command to execute",
     )
 
-    # Sub-commands
-    parser.add_argument("task_name", nargs="?", help="Task name (for 'create' command)")
+    # Sub-commands - wbs must come before task_name for 'update' command to work
     parser.add_argument(
         "wbs", nargs="?", help="WBS number (for 'update', 'open' commands)"
     )
     parser.add_argument("stage", nargs="?", help="Stage (for 'update' command)")
+    parser.add_argument("task_name", nargs="?", help="Task name (for 'create' command)")
     parser.add_argument(
         "operation",
         nargs="?",
