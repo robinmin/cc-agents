@@ -93,5 +93,5 @@ python3 coder-claude.py generate "Implement order processing service" \
   --output order-service
 
 # 3. Review output
-cat .claude/plans/order-service.md
+cat docs/plans/order-service.md
 ```
