@@ -96,7 +96,7 @@ Combine: `--focus security,performance,testing`
 
 ## Output Format
 
-Results saved to `.claude/plans/[name].md` with YAML frontmatter:
+Results saved to `docs/plans/[name].md` with YAML frontmatter:
 
 ```yaml
 ---
@@ -116,7 +116,7 @@ Followed by: Executive Summary, Critical/High/Medium/Low Issues, Detailed Analys
 
 ```bash
 # Import issues as tasks
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-{tool}/scripts/code-review-{tool}.py import .claude/plans/review.md
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/code-review-{tool}/scripts/code-review-{tool}.py import docs/plans/review.md
 
 # Re-review with different tool/focus
 /rd2:code-review --tool gemini --focus testing,quality src/
