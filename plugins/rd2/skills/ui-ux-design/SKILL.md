@@ -17,7 +17,7 @@ UI/UX design patterns and principles for user-centered interfaces with accessibi
 
 This skill provides quick reference patterns and principles for UI/UX design, grounded in current 2024-2025 best practices. It covers component design, accessibility (WCAG 2.1 AA), responsive layouts, design tokens, and common UI patterns.
 
-**For comprehensive design work** with user research, detailed documentation, and implementation specifications, use the `rd2:super-designer` agent.
+**For comprehensive design work** with user research, detailed documentation, and implementation specifications, use `/rd2:tasks-plan --design` which invokes the `rd2:super-designer` agent.
 
 ## Quick Start
 
@@ -51,7 +51,7 @@ This skill provides quick reference patterns and principles for UI/UX design, gr
 - Need visual design guidance (color, typography, spacing)
 - Implementing design tokens as single source of truth
 
-**For comprehensive design work**, use `/rd2:super-designer` agent which provides:
+**For comprehensive design work**, use `/rd2:tasks-plan --design` command which invokes the super-designer agent to provide:
 - Detailed analysis process with user research
 - Complete design documentation
 - Implementation specifications
@@ -495,7 +495,7 @@ design-tokens/
 This SKILL.md provides quick reference patterns grounded in 2024-2025 best practices.
 
 **For detailed workflows**:
-- Use `/rd2:super-designer` agent for comprehensive design analysis
+- Use `/rd2:tasks-plan --design` to invoke super-designer for comprehensive design analysis
 - See `references/` for detailed documentation on specific topics
 
 **For implementation**:
