@@ -1,10 +1,14 @@
 {
+  "env": {
+    "ENABLE_SECURITY_REMINDER": "0"
+  },
   "permissions": {
     "allow": [
       "Skill(superpowers:using-superpowers)",
       "Skill(rd2:anti-hallucination)",
       "Skill(rd2:cc-skills)",
       "Skill(rd2:cc-agents)",
+      "Skill(superpowers:brainstorming)",
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -17,18 +21,8 @@
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
-      "Bash(source .venv/bin/activate)",
       "Bash(ast-grep run:*)",
-      "Bash(ast-grep scan:*)",
-      "Bash(ast-grep:*)",
-      "Bash(tasks:*)",
-      "Bash(make:*)",
-      "Bash(grep:*)",
-      "Skill(superpowers:brainstorming)",
-      "Skill(rd2:skill-evaluate)",
-      "Skill(rd2:skill-refine)",
-      "Skill(rd2:skill-add)",
-      "Bash(python3:*)"
+      "Bash(ast-grep scan:*)"
     ],
     "deny": [],
     "ask": []
