@@ -16,8 +16,8 @@ The rd2 plugin implements a "super-\*" agent ecosystem with "fat skills, thin wr
 ┌───────────────────────────────────────────────────────────────────────────────────┐
 │                         USER ENTRY POINTS (COMMANDS)                              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
-│  │/rd2:code-    │  │/rd2:tasks-   │  │/rd2:code-    │  │/rd2:tasks-cli│         │
-│  │  generate    │  │   plan       │  │   review     │  │   command    │         │
+│  │/rd2:tasks-   │  │/rd2:tasks-   │  │/rd2:tasks-   │  │/rd2:tasks-cli│         │
+│  │     run      │  │   plan       │  │   review     │  │   command    │         │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
 │         │                 │                 │                 │                  │
 └─────────┼─────────────────┼─────────────────┼─────────────────┼──────────────────┘
@@ -118,9 +118,11 @@ Commands are **slash commands** that users invoke directly. Commands are thin wr
 
 | Command               | Purpose                            | Delegates To                |
 | --------------------- | ---------------------------------- | --------------------------- |
-| `/rd2:code-generate`  | Code generation and implementation | `super-coder` agent         |
-| `/rd2:tasks-plan`     | Task decomposition and planning    | `super-planner` agent       |
-| `/rd2:code-review`    | Code review coordination           | `super-code-reviewer` agent |
+| `/rd2:tasks-plan`     | Full workflow orchestration        | `super-planner` agent       |
+| `/rd2:tasks-run`      | Single task implementation         | `super-coder` agent         |
+| `/rd2:tasks-review`   | Single task code review            | `super-code-reviewer` agent |
+| `/rd2:tasks-refine`   | Task refinement                    | `super-planner` agent       |
+| `/rd2:tasks-design`   | Design phase coordination          | `super-planner` agent       |
 | `/rd2:tasks-cli`      | Task file management               | `rd2:tasks` skill           |
 | `/rd2:agent-add`      | Create new agent                   | `agent-expert` agent        |
 | `/rd2:agent-evaluate` | Evaluate agent quality             | `agent-doctor` agent        |
@@ -128,6 +130,8 @@ Commands are **slash commands** that users invoke directly. Commands are thin wr
 | `/rd2:skill-add`      | Create new skill                   | `skill-expert` agent        |
 | `/rd2:skill-evaluate` | Evaluate skill quality             | `skill-doctor` agent        |
 | `/rd2:skill-refine`   | Improve existing skill             | `skill-expert` agent        |
+
+**Note:** As of v2.0 (2026-01-26), `/rd2:code-generate` and `/rd2:code-review` have been renamed to `/rd2:tasks-run` and `/rd2:tasks-review` respectively for namespace consistency.
 
 ### Agents (Coordinator Layer)
 
@@ -326,10 +330,11 @@ Import as Tasks (optional)
 Commands are what users invoke directly:
 
 ```bash
-/rd2:code-generate "Implement feature X"    # Delegates to super-coder agent
-/rd2:code-review src/                       # Delegates to super-code-reviewer agent
-/rd2:tasks-plan "Build auth system"         # Delegates to super-planner agent
-/rd2:tasks-cli list wip                     # Delegates to rd2:tasks skill
+/rd2:tasks-plan "Build auth system"         # Full workflow orchestration
+/rd2:tasks-plan "Build auth" --execute      # Plan and implement in one go
+/rd2:tasks-run 0047                         # Implement single task
+/rd2:tasks-review 0047                      # Review single task
+/rd2:tasks-cli list wip                     # List WIP tasks
 ```
 
 ### Agents (Coordinators)
