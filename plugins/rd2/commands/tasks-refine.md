@@ -78,7 +78,7 @@ This command delegates to the **super-planner** agent using the Task tool:
 
 ```python
 Task(
-  subagent_type="super-planner",
+  subagent_type="rd2:super-planner",
   prompt="""Refine task file: {task_file}
 
 Mode: refinement-only
