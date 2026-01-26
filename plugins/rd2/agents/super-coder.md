@@ -416,20 +416,31 @@ IF external API/library needed:
 
 **Purpose:** Track phase-by-phase completion in task file frontmatter for checkpoint-based resumption.
 
-**Frontmatter Format:**
+**Frontmatter Format (5 Standard Phases):**
 
 ```yaml
 ---
 name: Task Name
 status: WIP
 impl_progress:
-  phase_1: completed
-  phase_2: in_progress
-  phase_3: pending
-  phase_4: pending
+  planning: completed
+  design: completed
+  implementation: in_progress
+  review: pending
+  testing: pending
 updated_at: 2026-01-24
 ---
 ```
+
+**Standard Phases:**
+
+| Phase | Owner | Description |
+|-------|-------|-------------|
+| `planning` | super-planner | Requirements gathering, clarification |
+| `design` | super-architect/designer | Architecture, UI/UX design |
+| `implementation` | super-coder | Code generation, writing |
+| `review` | super-code-reviewer | Code review, quality check |
+| `testing` | super-coder | Test execution, verification |
 
 **Status Values:**
 
@@ -453,28 +464,12 @@ updated_at: 2026-01-24
 4. **Verify write** - Re-read file to confirm
 5. **Sync status** - Update tasks CLI and TodoWrite
 
-**Phase Naming:**
-
-- Use descriptive phase names: `phase_1`, `phase_2`, etc.
-- Or use descriptive names: `design`, `implementation`, `testing`, etc.
-- Document phase purposes in task content for clarity
-
 **Resumption Support:**
 
 - On `--resume`: Scan impl_progress, find last `in_progress` or `completed`
 - Skip completed phases automatically
 - Resume from next pending or in-progress phase
 - Validate checkpoint integrity before resuming
-
-**Multi-Phase Task Example:**
-
-```yaml
-impl_progress:
-  phase_1_design: completed
-  phase_2_implementation: in_progress
-  phase_3_testing: pending
-  phase_4_deployment: pending
-```
 
 **Status Mapping to tasks CLI:**
 
@@ -695,7 +690,7 @@ Application needs user authentication with Google OAuth2 provider. Current syste
 
 ## 5.12 When NOT to Use
 
-- **Code review tasks** — Use /rd2:code-review instead
+- **Code review tasks** — Use /rd2:tasks-review instead
 - **Single-tool preference** — User wants specific tool, use that skill directly
 - **Non-generation tasks** — Use appropriate expert for other work
 - **Tool debugging** — Use skill-specific debugging for tool issues
@@ -744,22 +739,22 @@ IF --task <wbs_number_or_path>:
 
 ```bash
 # By WBS# (auto-search in docs/prompts/)
-/rd2:code-generate --task 0047
+/rd2:tasks-run --task 0047
 
 # By file path (reads directly, extracts WBS# from filename)
-/rd2:code-generate --task docs/prompts/0047_add_auth.md
+/rd2:tasks-run --task docs/prompts/0047_add_auth.md
 
 # Task-driven with TDD (default behavior)
-/rd2:code-generate --task 0047
+/rd2:tasks-run --task 0047
 
 # Task-driven WITHOUT TDD (explicit opt-out)
-/rd2:code-generate --task 0047 --no-tdd
+/rd2:tasks-run --task 0047 --no-tdd
 
 # Relative path
-/rd2:code-generate --task ../tasks/0047_feature.md
+/rd2:tasks-run --task ../tasks/0047_feature.md
 
 # Absolute path
-/rd2:code-generate --task /home/user/tasks/0047.md
+/rd2:tasks-run --task /home/user/tasks/0047.md
 ```
 
 **WBS# Extraction:**
@@ -1081,8 +1076,8 @@ Iteration 3: {failure_summary}
 
 - Run verification: {test_commands}
 - Integrate: {integration_notes}
-- Review: /rd2:code-review {target}
-- Re-generate with different tool: `/rd2:code-generate --task {wbs} --tool {other_tool}`
+- Review: /rd2:tasks-review {target}
+- Re-generate with different tool: `/rd2:tasks-run --task {wbs} --tool {other_tool}`
 ```
 
 ## Tool Selection Report
@@ -1183,25 +1178,22 @@ Iteration 3: {failure_summary}
 
 ```bash
 # Auto-select best tool
-/rd2:code-generate "Implement user authentication"
+/rd2:tasks-run 0047
 
 # Task-driven mode (by WBS#) - TDD enabled by default
-/rd2:code-generate --task 0047
-
-# Task-driven mode (by file path) - extracts WBS# from filename
-/rd2:code-generate --task docs/prompts/0047_add_auth.md
+/rd2:tasks-run 0047
 
 # Task-driven WITHOUT TDD (explicit opt-out)
-/rd2:code-generate --task 0047 --no-tdd
+/rd2:tasks-run 0047 --no-tdd
 
 # Task-driven with explicit tool
-/rd2:code-generate --task 0047 --tool gemini
+/rd2:tasks-run 0047 --tool gemini
 
 # Specify tool explicitly
-/rd2:code-generate --tool gemini "Design microservices event bus"
+/rd2:tasks-run 0047 --tool auggie
 
-# Codebase-aware generation
-/rd2:code-generate --tool auggie "Add password reset feature"
+# After implementation, run review
+/rd2:tasks-review 0047
 ```
 
 ---
