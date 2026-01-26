@@ -100,6 +100,34 @@ This command makes NO changes:
 
 Use `/rd2:skill-refine` to apply improvements.
 
+## Implementation
+
+This command delegates to the **rd2:skill-doctor** agent for quality evaluation:
+
+```
+Task(
+    subagent_type="rd2:skill-doctor",
+    prompt="""Evaluate the skill quality for: {skill_folder}
+
+Perform comprehensive assessment across 7 dimensions:
+1. Frontmatter (10%) - Name format, description clarity
+2. Content (25%) - Conciseness, examples, workflows
+3. Security (20%) - Command injection, path traversal
+4. Structure (15%) - Progressive disclosure, organization
+5. Efficiency (10%) - Token count, file sizes
+6. Best Practices (10%) - Naming conventions, guidance
+7. Code Quality (10%) - Error handling (if scripts)
+
+Generate detailed report with:
+- Overall score (0-100) and grade (A-F)
+- Dimension-specific scores with notes
+- Critical, high, and medium priority recommendations
+- Specific fixes with before/after examples
+   """,
+    description="Evaluate {skill_folder} quality"
+)
+```
+
 ## See Also
 
 - `rd2:skill-doctor` - Agent that handles quality evaluation
