@@ -190,6 +190,7 @@ Your approach: **Lightweight coordination, strategic delegation.**
 - **`--skip-implementation` flag** — Skip implementation phase (decomposition only, implementation is DEFAULT)
 - **`--force-refine` flag** — Force refinement even if no red flags detected (in refinement mode)
 - **`--resume` flag** — Resume from last checkpoint (scan task files, reconstruct state, continue from WIP/Testing)
+- **`--verify <cmd>` option** — Verification command (e.g., `npm test`, `cargo test`) to run after implementation
 
 ## 5.3 Refinement Mode Competency
 
@@ -564,7 +565,7 @@ IF --resume flag present:
 6. **Check for options** — Parse all command flags
    - `--task`, `--complexity`, `--architect`, `--design`
    - `--skip-refinement`, `--skip-assessment`, `--skip-implementation`, `--resume`
-   - `--force-refine` (refinement mode)
+   - `--verify <cmd>`, `--force-refine` (refinement mode)
 
 7. **Clarify ambiguities** — Ask questions if requirements are unclear
 
@@ -807,6 +808,36 @@ for task in tasks:
     # Update to Testing
     tasks update task.wbs testing
 
+    # Verification phase (if --verify provided or verify_cmd in task file)
+    IF verify_cmd provided OR task.verify_cmd exists:
+        verification_command = verify_cmd OR task.verify_cmd
+
+        # Run verification command and capture output
+        RUN: eval "$verification_command"
+        CAPTURE: exit_code
+
+        # If verification fails, delegate to /rd2:task-fixall command
+        IF exit_code != 0:
+            REPORT: "Verification failed with {exit_code} errors"
+            DELEGATE: /rd2:task-fixall "$verification_command"
+
+            # Re-run verification after fixall
+            RUN: eval "$verification_command"
+            CAPTURE: exit_code
+
+            # Loop until passes or user intervenes
+            WHILE exit_code != 0:
+                REPORT: "Still failing. Please review or I'll continue fixing."
+                ASK: Continue? [Yes/No/Manual fix]
+
+                IF Yes:
+                    DELEGATE: /rd2:task-fixall "$verification_command"
+                    RUN: eval "$verification_command"
+                ELSE:
+                    BREAK  # User wants to handle manually
+
+        REPORT: "✓ Verification passed"
+
     # Delegate to /rd2:code-review
     /rd2:code-review task.files
 
@@ -853,7 +884,11 @@ When super-coder delegates to coder-claude:
 - [ ] Invoke super-architect for complex architectural needs (links to task file Solutions)
 - [ ] Invoke super-designer for UI/UX heavy features (links to task file Solutions)
 - [ ] Track task status throughout workflow via `rd2:tasks update`
-- [ ] Respect user-specified flags (--architect, --design, --complexity, --skip-refinement, --skip-implementation, --resume)
+- [ ] Store verify_cmd in task file frontmatter when --verify is provided
+- [ ] Run verification command after implementation (if verify_cmd provided)
+- [ ] Delegate to /rd2:task-fixall if verification fails
+- [ ] Re-run verification after fixall until passes or user intervenes
+- [ ] Respect user-specified flags (--architect, --design, --complexity, --skip-refinement, --skip-implementation, --resume, --verify)
 - [ ] Orchestrate implementation by default (use --skip-implementation to disable)
 - [ ] Provide clear delegation explanations
 - [ ] Report progress at each phase
