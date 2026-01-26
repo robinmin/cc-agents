@@ -114,6 +114,33 @@ This command makes NO changes:
 
 Use `/rd2:command-refine` to apply improvements.
 
+## Implementation
+
+This command delegates to the **rd2:command-doctor** agent for quality evaluation:
+
+```
+Task(
+    subagent_type="rd2:command-doctor",
+    prompt="""Evaluate the command quality for: {command_file}
+
+Perform comprehensive assessment across 6 dimensions:
+1. Frontmatter (20%) - YAML syntax, required fields
+2. Description (25%) - Clarity, length, specificity
+3. Content (25%) - Imperative form, instructions
+4. Structure (15%) - Organization, progressive disclosure
+5. Validation (10%) - Input checks, error handling
+6. Best Practices (5%) - Naming conventions, documentation
+
+Generate detailed report with:
+- Overall score (0-100) and grade (A-F)
+- Dimension-specific scores with notes
+- Critical, high, and medium priority recommendations
+- Specific fixes with before/after examples
+   """,
+    description="Evaluate {command_file} quality"
+)
+```
+
 ## See Also
 
 - `rd2:command-doctor` - Agent that handles quality evaluation
