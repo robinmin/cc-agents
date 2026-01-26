@@ -181,7 +181,7 @@ If uncertain about command patterns:
 **Bash Execution:**
 
 - Inline bash output: `!`git status`
-- Plugin scripts: `!`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js`
+- Plugin scripts: `!`node ${CLAUDE_PLUGIN_ROOT}/scripts/script.js` (if present)
 - Chained commands: `!`git add . && git commit -m "msg"`
 - Error handling: `|| echo "ERROR"`
 
