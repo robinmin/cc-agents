@@ -167,7 +167,7 @@ If uncertain about evaluation criteria:
 **Bash Execution:**
 
 - Inline bash: `!`git status`
-- Plugin scripts: `!`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js`
+- Plugin scripts: `!`node ${CLAUDE_PLUGIN_ROOT}/scripts/script.js` (if present)
 - Error handling: `|| echo "ERROR"`
 
 ### Plugin Features (10 items)
