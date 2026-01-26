@@ -1,0 +1,67 @@
+# Python Application Project Structure
+# Modern src-layout with layer separation
+
+myapp/
+├── src/
+│   └── myapp/
+│       ├── __init__.py
+│       ├── main.py                  # Application entry point
+│       │
+│       ├── config/                  # Configuration
+│       │   ├── __init__.py
+│       │   └── settings.py          # Environment-based settings
+│       │
+│       ├── domain/                  # Business logic (no external deps)
+│       │   ├── __init__.py
+│       │   ├── models.py            # Domain models
+│       │   ├── services.py          # Domain services
+│       │   └── exceptions.py        # Domain-specific exceptions
+│       │
+│       ├── infrastructure/          # External dependencies
+│       │   ├── __init__.py
+│       │   ├── database.py          # DB connections
+│       │   ├── repositories.py      # Data access implementations
+│       │   └── external_api.py      # Third-party API clients
+│       │
+│       ├── api/                     # Interfaces (HTTP, CLI, etc.)
+│       │   ├── __init__.py
+│       │   ├── routes.py            # HTTP endpoints
+│       │   ├── schemas.py           # Request/response models
+│       │   └── dependencies.py      # FastAPI dependencies
+│       │
+│       └── utils/                   # Shared utilities
+│           ├── __init__.py
+│           ├── helpers.py
+│           └── validators.py
+│
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py                  # Shared fixtures
+│   │
+│   ├── unit/                        # Fast, isolated tests
+│   │   ├── __init__.py
+│   │   ├── test_models.py
+│   │   ├── test_services.py
+│   │   └── test_utils.py
+│   │
+│   ├── integration/                 # Slower, external deps
+│   │   ├── __init__.py
+│   │   ├── test_api.py
+│   │   └── test_database.py
+│   │
+│   └── fixtures/                    # Test data
+│       ├── __init__.py
+│       └── sample_data.json
+│
+├── pyproject.toml                   # Modern packaging config
+├── .env.example                     # Environment template
+├── .gitignore
+├── README.md
+└── LICENSE
+
+# Key Principles:
+# - src/ layout for import isolation
+# - Domain layer has ZERO external dependencies
+# - Dependencies flow INWARD (api -> domain <- infrastructure)
+# - Tests mirror source structure
+# - Configuration via environment variables
