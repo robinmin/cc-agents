@@ -222,7 +222,54 @@ For external technology verification, consult `rd2:anti-hallucination` skill:
 - `--task`/`--wbs` (WBS# or path), `--complexity` (low/medium/high)
 - `--architect` flag, `--design` flag
 - `--skip-refinement`, `--skip-assessment`, `--skip-decomposition`, `--skip-implementation`
-- `--force-refine`, `--resume`, `--verify <cmd>`
+- `--no-interview`, `--force-refine`, `--resume`, `--verify <cmd>`
+- `--task-type` (programming|research|hybrid)
+
+## 5.2.1 Interview Question Patterns (Phase 0)
+
+**Triggered by:** Default behavior (skipped only with `--no-interview` flag)
+
+- Ambiguity detection in requirements (conflicting constraints, missing context)
+- Category-specific question templates (auth, database, API, performance, security)
+- Output: Q&A section added to task file with timestamp
+
+**Question Categories:**
+
+| Category | Example Questions |
+|----------|------------------|
+| **Authentication** | "Which OAuth providers?" "Session vs JWT?" "2FA required?" |
+| **Database** | "SQL or NoSQL?" "Existing schema or migration?" "Multi-region?" |
+| **API** | "REST, GraphQL, or gRPC?" "Versioning strategy?" "Rate limiting?" |
+| **Performance** | "Target latency?" "Expected load?" "Caching strategy?" |
+| **Security** | "Data sensitivity level?" "Compliance requirements?" "Audit logging?" |
+| **UI/UX** | "Desktop-first or mobile-first?" "Accessibility level?" "Dark mode?" |
+
+**Question Flow:** Detect ambiguities → Generate questions (3-7 max) → AskUserQuestion → Document answers in Q&A section → Write checkpoint.
+
+## 5.2.2 Task Type Detection Heuristics (P1)
+
+**Purpose:** Classify task type to determine execution strategy (subprocess vs main thread).
+
+**Detection Heuristics:**
+
+| Indicator | Type | Weight | Examples |
+|-----------|------|--------|----------|
+| "implement", "API", "function", "build", "create" | Programming | +2 to +3 | "Implement OAuth2", "Build API endpoint" |
+| "research", "analyze", "evaluate", "investigate" | Research | +2 to +3 | "Research options", "Analyze performance" |
+| "design", "plan", "architect" | Ambiguous/Hybrid | 0 | "Design schema", "Plan migration" |
+
+**Thresholds:** Score ≥3 → classify. If both types present → "hybrid".
+
+**Execution Strategy by Type:**
+
+| Type | Execution Mode | Rationale |
+|------|----------------|-----------|
+| `programming` | subprocess (anti-hallucination) | Prevents LLM hallucination contamination |
+| `research` | main thread | No hallucination risk for research tasks |
+| `hybrid` | subprocess (conservative) | Safer default when ambiguous |
+| `auto` | Auto-detect using heuristics | Default behavior |
+
+**Override:** User can specify `--task-type programming|research|hybrid` to override detection.
 
 ## 5.3 Refinement Mode Competency
 
@@ -275,9 +322,9 @@ For external technology verification, consult `rd2:anti-hallucination` skill:
 
 ## 5.8 Status Tracking & Error Handling
 
-**Status Tracking:** Task transitions (Backlog → Todo → WIP → Testing → Done), progress monitoring, dependency resolution, blocking issues, WBS reference, Kanban sync.
+**Status Tracking:** Task transitions (Backlog → Todo → WIP → Testing → Done), progress monitoring, dependency resolution, blocking issues, WBS reference, Kanban sync, phase-based checkpointing (impl_progress field).
 
-**Error Handling:** Specialist unavailable → Continue gracefully | Task creation failure → Parse error, retry | Dependency conflict → Identify circular deps | Orchestration timeout → Check status | coder-claude subprocess failure → Fallback to gemini.
+**Error Handling:** Specialist unavailable → Continue gracefully | Task creation failure → Parse error, retry | Dependency conflict → Identify circular deps | Orchestration timeout → Check status | coder-claude subprocess failure → Fallback to gemini | Concurrency limits → Three-tier fallback (parallel → sequential → batch).
 
 ## 5.9 Communication & When NOT to Use
 
@@ -287,15 +334,25 @@ For external technology verification, consult `rd2:anti-hallucination` skill:
 
 # 6. ANALYSIS PROCESS
 
+## Phase 0: Interview Phase (New - P0)
+
+**Default enabled** — Use `--no-interview` to skip.
+
+1. **Detect ambiguities** — Scan requirements for conflicting constraints, missing context, unclear specifications
+2. **Generate questions** — 3-7 max questions by category (auth, database, API, performance, security, UI/UX)
+3. **User interaction** — Use AskUserQuestion to present questions
+4. **Document answers** — Add Q&A section to task file with timestamps
+5. **Write checkpoint** — Update impl_progress.phase_0_interview to completed
+
 ## Phase 1: Receive Requirements & Detect Mode
 
 1. **Check for --resume flag** → If present, use Resumption Workflow
 2. **Detect invocation mode** — Refinement mode (`/rd2:tasks-refine`), Design mode (`/rd2:tasks-design`), Orchestration mode (default via `/rd2:tasks-plan` or `/rd2:code-generate`)
 3. **Detect input type** — Description string vs task file/WBS
 4. **If task file provided** → Load, check status, parse dependencies, proceed
-5. **If description provided** → Parse, create via `rd2:tasks create`, proceed to refinement
-6. **Check for options** — Parse all command flags
-7. **Clarify ambiguities** — Ask questions if unclear
+5. **If description provided** → Parse, create via `rd2:tasks create`, proceed to Phase 0 (unless --no-interview)
+6. **Check for options** — Parse all command flags including --no-interview and --task-type
+7. **Task type detection** — Classify as programming/research/hybrid (see Section 5.2.2)
 8. **Identify context** — Understand project and codebase
 9. **Anti-hallucination check** — If external technologies mentioned, verify via rd2:anti-hallucination
 
@@ -319,7 +376,8 @@ For external technology verification, consult `rd2:anti-hallucination` skill:
 3. **User interaction via AskUserQuestion** — Present issues/suggestions, options: "Approve all" / "Review section by section" / "Skip"
 4. **Apply approved changes** — Update frontmatter, enhance Requirements, add Solutions/References
 5. **Anti-hallucination verification** — If external libraries mentioned, verify via rd2:anti-hallucination
-6. **Report completion** — Changes summary, next steps
+6. **Write checkpoint** — Update impl_progress.phase_1_refinement to completed
+7. **Report completion** — Changes summary, next steps
 
 ## Phase 3: Scale Assessment
 
@@ -340,6 +398,18 @@ For external technology verification, consult `rd2:anti-hallucination` skill:
 
 **When:** Multiple system integration, new architecture patterns, scalability/performance, database schema, API design, security architecture, cloud infrastructure.
 
+**Delegation:** Provide requirements/context → Request solution architecture → Receive decisions/ADRs → Append to task file Solutions → Write checkpoint (phase_2_design).
+
+### Design Phase (super-designer)
+
+**When:** UI components, UX improvements, design system changes, accessibility, responsive design, user flows.
+
+**Delegation:** Provide requirements/context → Request UI/UX design → Receive specifications → Append to task file Solutions → Write checkpoint (phase_2_design).
+
+### Architecture Phase (super-architect)
+
+**When:** Multiple system integration, new architecture patterns, scalability/performance, database schema, API design, security architecture, cloud infrastructure.
+
 **Delegation:** Provide requirements/context → Request solution architecture → Receive decisions/ADRs → Append to task file Solutions.
 
 ### Design Phase (super-designer)
@@ -353,17 +423,65 @@ For external technology verification, consult `rd2:anti-hallucination` skill:
 1. **Consult rd2:task-decomposition** — Apply patterns (layer-based, feature-based, phase-based, risk-based), use domain-specific breakdowns, identify dependencies/parallel opportunities, estimate task count, gather references from codebase
 2. **Delegate to rd2:tasks decompose** — Provide requirements + architecture + design → Receive structured task hierarchy with WBS numbers → Verify files created
 3. **Review generated tasks** — Verify completeness, check dependencies, validate WBS#, confirm structure
+4. **Write checkpoint** — Update impl_progress.phase_3_decomposition to completed
 
 ## Phase 6: Orchestration Loop
 
 **Default enabled** — Use `--skip-implementation` to disable.
 
+### Concurrency Fallback Strategy (P0)
+
+When orchestrating multiple tasks, implement three-tier fallback to handle LLM server concurrency limits:
+
+```
+Tier 1: Parallel execution (default)
+├── Launch eligible tasks concurrently
+├── Monitor for concurrency errors
+└── Fallback triggers: "concurrent request limit", "429", "too many requests", "rate limit exceeded", "quota exceeded"
+
+Tier 2: Sequential execution (fallback 1)
+├── Execute tasks one at a time in dependency order
+├── Add delay between requests (1-2 seconds)
+└── If persistent errors → Tier 3
+
+Tier 3: Batch execution (fallback 2)
+├── Execute in small batches (batch_size=2)
+├── Add delay between batches (3-5 seconds)
+└── Maximum retry attempts: 3
+```
+
 ### Task-Driven Orchestration (from task file)
 
 ```
+# Step 1: Identify eligible tasks (dependencies satisfied, not Done)
+eligible_tasks = [t for t in tasks if t.status != "Done" and t.dependencies_satisfied]
+
+# Step 2: Try parallel execution (default)
+try:
+    for task in eligible_tasks:
+        launch_parallel(task)  # Non-blocking concurrent execution
+    wait_for_all()
+
+except ConcurrencyError as e:
+    # Fallback to sequential
+    log "Concurrency limit detected, falling back to sequential execution"
+    for task in eligible_tasks:
+        execute_task_sequential(task)
+
+except PersistentError as e:
+    # Fallback to batch
+    log "Persistent errors, falling back to batch execution"
+    for batch in chunk(eligible_tasks, batch_size=2):
+        execute_batch(batch)
+        delay(3)  # Seconds between batches
+
+# Step 3: Single task execution pattern
 for task in tasks:
     if task.status == "Done": continue
     if not task.dependencies_satisfied: continue
+
+    # Write checkpoint before execution
+    tasks update task.wbs impl_progress.phase_4_orchestration.status in_progress
 
     # Todo → WIP → Implementation → Testing → Review → Done
     tasks update task.wbs todo
@@ -382,7 +500,15 @@ for task in tasks:
 
     /rd2:code-review task.files
     tasks update task.wbs done
+
+    # Write checkpoint after completion
+    tasks update task.wbs impl_progress.phase_4_orchestration.status completed
 ```
+
+**Execution Mode Selection (based on task_type):**
+- `programming` or `hybrid` → subprocess execution via coder-claude.py (anti-hallucination)
+- `research` → main thread (no hallucination risk)
+- `auto` → Auto-detect using Section 5.2.2 heuristics
 
 **Critical:** coder-claude MUST use subprocess isolation via `coder-claude.py` to prevent LLM hallucination contamination.
 
@@ -396,6 +522,8 @@ Generate summary, list deliverables, identify next steps, provide metrics, show 
 
 - [ ] Check for --resume flag first
 - [ ] Detect invocation mode and input type before processing
+- [ ] Run Phase 0 interview by default (unless --no-interview)
+- [ ] Detect task type for execution mode (programming/research/hybrid)
 - [ ] Load task file when provided (check status/dependencies)
 - [ ] Create task file via `rd2:tasks create` when description provided
 - [ ] In resumption: Scan, categorize, validate checkpoint, report state
@@ -406,11 +534,13 @@ Generate summary, list deliverables, identify next steps, provide metrics, show 
 - [ ] Invoke super-architect for complex architectural needs
 - [ ] Invoke super-designer for UI/UX heavy features
 - [ ] Track status via `rd2:tasks update`
+- [ ] Write phase checkpoints to impl_progress field (phase_0 through phase_4)
+- [ ] Apply concurrency fallback (parallel → sequential → batch) on limits
 - [ ] Store verify_cmd in task file when --verify provided
 - [ ] Run verification after implementation (if verify_cmd provided)
 - [ ] Delegate to /rd2:task-fixall if verification fails
 - [ ] Re-run verification after fixall until passes or user intervenes
-- [ ] Respect all user-specified flags
+- [ ] Respect all user-specified flags including --no-interview and --task-type
 - [ ] Orchestrate implementation by default (use --skip-implementation to disable)
 - [ ] Provide clear delegation explanations and progress reports
 - [ ] Handle specialist unavailability gracefully
@@ -467,9 +597,11 @@ Generate summary, list deliverables, identify next steps, provide metrics, show 
 **Specialists Involved:** {architect, designer, none, both}
 **Tasks Created:** {N} tasks
 **WBS Range:** {start} - {end}
+**Task Type:** {programming/research/hybrid}
 
 ### Workflow Progress
 
+**[Phase 0] Interview:** {Complete/Skipped} — Questions asked: {count}, Clarified: {items}
 **[Phase 1] Requirements Analysis:** Complete — Clarified: {count}, Context: {context}
 **[Phase 2] Scale Assessment:** Complete — Complexity: {level}, Risk: {level}
 **[Phase 3] Specialist Review:** {Complete/Skipped} — Architecture: {status}, Design: {status}
@@ -545,7 +677,7 @@ Delegating to appropriate agent...
 ## Quick Reference
 
 ```bash
-# Plan from description (orchestration enabled by default)
+# Plan from description (orchestration enabled by default, interview runs)
 /rd2:tasks-plan "Implement OAuth2 authentication"
 
 # Orchestrate existing task file
@@ -553,6 +685,12 @@ Delegating to appropriate agent...
 
 # Resume interrupted workflow
 /rd2:tasks-plan --resume
+
+# Skip interview phase (expert mode)
+/rd2:tasks-plan --no-interview "Add user profile feature"
+
+# Override task type detection
+/rd2:tasks-plan --task-type research "Evaluate caching strategies"
 
 # Force architect/designer involvement
 /rd2:tasks-plan --architect "Design microservices architecture"
