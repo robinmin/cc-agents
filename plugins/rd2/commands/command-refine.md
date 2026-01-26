@@ -133,6 +133,34 @@ This command MODIFIES files:
 
 Use `/rd2:command-evaluate` first to assess quality without modifying.
 
+## Implementation
+
+This command delegates to the **rd2:command-expert** agent for command refinement:
+
+```
+Task(
+    subagent_type="rd2:command-expert",
+    prompt="""Refine and improve the command at: {command_file}
+
+Steps:
+1. Evaluate current quality across all dimensions
+2. Identify gaps and issues (especially low-scoring areas)
+3. Apply fixes by dimension:
+   - Frontmatter: Fix YAML, add required fields
+   - Description: Improve clarity, add specificity
+   - Content: Use imperative form, clarify instructions
+   - Structure: Improve organization
+   - Validation: Add input checks, error handling
+   - Best Practices: Fix naming, add documentation
+4. Edit command file to apply improvements
+5. Re-evaluate to confirm Grade A/B achieved
+
+Follow rd2:cc-commands best practices throughout.
+   """,
+    description="Refine {command_file} command"
+)
+```
+
 ## See Also
 
 - `rd2:command-expert` - Agent that handles command refinement
