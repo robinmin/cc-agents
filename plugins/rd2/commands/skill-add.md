@@ -58,6 +58,37 @@ plugin-name/skills/skill-name/
 4. **Iterate** - Address findings until Grade A/B achieved
 5. **Test** - Verify skill triggers on expected queries
 
+## Implementation
+
+This command delegates to the **rd2:skill-expert** agent for skill creation:
+
+```
+Task(
+    subagent_type="rd2:skill-expert",
+    prompt="""Create a new skill in plugin '{plugin_name}':
+
+Skill name: {skill_name}
+
+Follow the official 6-step skill creation process:
+1. Understanding with Concrete Examples
+2. Plan Reusable Contents
+3. Create Skill Structure
+4. Edit the Skill
+5. Validate and Test
+6. Iterate
+
+Initialize skill directory with:
+- SKILL.md with proper frontmatter
+- references/ (optional)
+- examples/ (optional)
+- scripts/ (optional)
+
+Follow rd2:cc-skills best practices.
+   """,
+    description="Create {skill_name} skill in {plugin_name}"
+)
+```
+
 ## See Also
 
 - `rd2:skill-expert` - Agent that handles skill creation
