@@ -73,8 +73,36 @@ Thin wrapper for `rd2:cc-agents` skill. Creates production-ready agent skeletons
 3. Validate: `/rd2:agent-evaluate <agent-file>`
 4. Refine: `/rd2:agent-refine <agent-file>`
 
+## Implementation
+
+This command delegates to **rd2:agent-expert** for agent creation:
+
+```python
+Task(
+    subagent_type="rd2:agent-expert",
+    prompt="""Create a new agent following the rd2:agent-expert methodology:
+
+Agent Specifications:
+- Plugin: {plugin_name}
+- Agent name: {agent_name}
+- Domain: {user_description or 'General expertise'}
+
+Generate complete agent file with:
+- All 8 sections (METADATA, PERSONA, PHILOSOPHY, VERIFICATION, COMPETENCIES, PROCESS, RULES, OUTPUT)
+- 50+ competency items organized by category
+- Verification protocol with tool selection decision tree
+- Domain-specific rules and guardrails
+
+Output: plugins/{plugin_name}/agents/{agent_name}.md""",
+    description="Create {agent_name} agent"
+)
+```
+
+**Note:** `rd2:agent-expert` internally uses `rd2:cc-agents` skill for domain knowledge.
+
 ## See Also
 
-- `/rd2:agent-evaluate` - Assess agent quality
-- `/rd2:agent-refine` - Improve existing agents
-- `rd2:cc-agents` - Agent creation best practices
+- `/rd2:agent-evaluate` - Assess agent quality (delegates to rd2:agent-doctor)
+- `/rd2:agent-refine` - Improve existing agents (delegates to rd2:agent-expert)
+- `rd2:agent-expert` - Agent creation specialist
+- `rd2:cc-agents` - Agent creation best practices (skill)
