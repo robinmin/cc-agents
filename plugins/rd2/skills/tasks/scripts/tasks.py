@@ -110,6 +110,7 @@ class TaskStatus(Enum):
     WIP = "WIP"
     TESTING = "Testing"
     DONE = "Done"
+    BLOCKED = "Blocked"
 
     @classmethod
     def from_alias(cls, alias: str) -> "TaskStatus | None":
@@ -133,6 +134,10 @@ class TaskStatus(Enum):
             "complete": cls.DONE,
             "finished": cls.DONE,
             "closed": cls.DONE,
+            "blocked": cls.BLOCKED,
+            "failed": cls.BLOCKED,
+            "stuck": cls.BLOCKED,
+            "error": cls.BLOCKED,
         }
 
         return aliases.get(alias_lower)
@@ -249,6 +254,7 @@ class StateMapper:
         TaskStatus.WIP: "in_progress",
         TaskStatus.TESTING: "in_progress",
         TaskStatus.DONE: "completed",
+        TaskStatus.BLOCKED: "pending",  # Blocked tasks appear as pending for retry
     }
 
     @staticmethod
@@ -687,13 +693,18 @@ class TasksManager:
             content = self.config.template_file.read_text()
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             content = content.replace("{ { PROMPT_NAME } }", task_name)
+            content = content.replace("{{ PROMPT_NAME }}", task_name)
             content = content.replace("{{PROMPT_NAME}}", task_name)
             content = content.replace("{ { WBS } }", wbs)
+            content = content.replace("{{ WBS }}", wbs)
             content = content.replace("{{WBS}}", wbs)
             content = content.replace("{ { CREATED_AT } }", now)
+            content = content.replace("{{ CREATED_AT }}", now)
             content = content.replace("{{CREATED_AT}}", now)
             content = content.replace("{ { UPDATED_AT } }", now)
+            content = content.replace("{{ UPDATED_AT }}", now)
             content = content.replace("{{UPDATED_AT}}", now)
+            content = content.replace("{{ DESCRIPTION }}", f"Task: {task_name}")
             content = content.replace("<prompt description>", f"Task: {task_name}")
 
             filepath.write_text(content)
@@ -885,6 +896,9 @@ class TasksManager:
         content += "## WIP\n\n" + "\n".join(tasks_by_status.get("WIP", [])) + "\n\n"
         content += (
             "## Testing\n\n" + "\n".join(tasks_by_status.get("Testing", [])) + "\n\n"
+        )
+        content += (
+            "## Blocked\n\n" + "\n".join(tasks_by_status.get("Blocked", [])) + "\n\n"
         )
         content += "## Done\n\n" + "\n".join(tasks_by_status.get("Done", [])) + "\n\n"
         path.write_text(content)
