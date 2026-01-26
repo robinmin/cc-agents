@@ -111,6 +111,28 @@ You'll receive a report with vulnerability details.
 4. Validate: `/rd2:command-evaluate <command-file>`
 5. Iterate: Address findings until Grade A/B
 
+## Implementation
+
+This command delegates to the **rd2:command-expert** agent for command creation:
+
+```
+Task(
+    subagent_type="rd2:command-expert",
+    prompt="""Create a new slash command in plugin '{plugin_name}':
+
+Command name: {command_name}
+
+Steps:
+1. Validate plugin exists in plugins/{plugin_name}/
+2. Validate command name format (lowercase-hyphens)
+3. Check for existing command conflicts
+4. Create command with proper frontmatter and structure
+5. Follow rd2:cc-commands best practices
+   """,
+    description="Create {command_name} command in {plugin_name}"
+)
+```
+
 ## See Also
 
 - `rd2:command-expert` - Agent that handles command creation
