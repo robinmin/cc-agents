@@ -147,7 +147,7 @@ description: Run plugin script
 allowed-tools: Bash(node:*)
 ---
 
-Run analysis: !`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js`
+# Run analysis: !`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js (NOTE: script not included in rd2)`
 
 Template: @${CLAUDE_PLUGIN_ROOT}/templates/report.md
 ```
