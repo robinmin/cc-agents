@@ -7,7 +7,7 @@
 3. **WebSearch** - Recent facts, announcements (< 6 months)
 4. **WebFetch** - Fetch and process specific URLs
 5. **rd:agent-browser** - Browser automation, JS-rendered content, screenshots, form testing
-6. **tasks CLI** - `tasks create/list/update/refresh` - External task management for three-agent workflow
+6. **rd2:tasks CLI** - `rd2:tasks create/list/update/refresh` - External task management for rd2 workflow
 7. **Local text utilities** - `grep`, `awk`, `sed`, `wc` (native bash tools)
 8. **ast-grep (skill)** - `rd:ast-grep` - Structural code search
 9. **Read/Grep/Glob** - Project file operations (Claude's built-in tools)
@@ -86,20 +86,14 @@ Auto-routing activates based on these keywords:
 | typescript, generics, utility types, discriminated union                 | `rd:typescript-expert`         |
 | go, golang, goroutines, channels, concurrency, defer, go modules         | `rd:golang-expert`             |
 | mcp, model context protocol, server integration                          | `rd:mcp-expert`                |
-| break down task, decompose, task planning, project breakdown             | `rd:task-decomposition-expert` |
-| execute task file, code test fix, checkpoint, phase execution             | `rd:task-runner`               |
-| coordinate workflow, multi-agent orchestration, manage execution         | `rd:orchestrator-expert`       |
 | browser automation, screenshot, form fill, web scraping, JS-rendered      | `rd:agent-browser`             |
-| API design, microservices, distributed systems, database schema          | `rd:backend-architect`         |
-| React, Next.js, Server Components, Tailwind, shadcn/ui, Vitest           | `rd:frontend-expert`           |
 | iOS, Swift, SwiftUI, UIKit, Xcode, Core Data, App Store                  | `rd:ios-expert`                |
 | React Native, Flutter, Expo, mobile app, cross-platform, Detox           | `rd:mobile-expert`             |
 | ML, PyTorch, TensorFlow, model training, MLOps, model serving            | `rd:ml-expert`                 |
 | prompt engineering, system prompt, few-shot, chain-of-thought            | `rd:prompt-expert`             |
 | SEO, keyword research, Core Web Vitals, schema markup, meta tags         | `rd:seo-expert`                |
 | literature review, meta-analysis, evidence synthesis, fact-checking      | `rd:super-researcher`          |
-| UI design, UX research, accessibility, WCAG, wireframes, Figma          | `rd:uiux-expert`               |
-| test design, TDD, BDD, flaky tests, mocking, coverage, CI/CD tests       | `rd:test-expert`               |
+| codebase analysis, high-level design generation                           | `rd:super-reve`                |
 | **rd2 Plugin Agents**                                                   |                                |
 | implementing features, fixing bugs, refactoring, hands-on coding         | `rd2:super-coder`              |
 | planning complex features, orchestrating workflows, task breakdown       | `rd2:super-planner`            |
@@ -115,44 +109,6 @@ Auto-routing activates based on these keywords:
 | creating hooks, writing hook validators, hook patterns                   | `rd2:hook-expert`              |
 | hook validation, quality assessment, scoring hook structure             | `rd2:hook-doctor`              |
 | knowledge synthesis, literature review, evidence gathering, cross-ref    | `rd2:knowledge-seeker`         |
-
-### Three-Agent Workflow Architecture
-
-For complex multi-phase projects, use the three-agent workflow:
-
-```
-User Request
-     ↓
-orchestrator-expert (Meta-Coordinator)
-     ├─→ task-decomposition-expert (Planning)
-     │        ↓
-     │   Task Files (docs/prompts/XXXX_name.md)
-     │   + TodoWrite Sync
-     │        ↓
-     └─→ task-runner (Execution)
-              ↓
-         Code→Test→Fix→Done
-              ↓
-      orchestrator-expert (continues loop)
-```
-
-**Agent Responsibilities:**
-
-| Agent | Phase | Responsibility | Keywords |
-|-------|-------|----------------|----------|
-| **orchestrator-expert** | ORCHESTRATION | Coordinate workflow, monitor progress, handle resumption | coordinate workflow, multi-agent orchestration, manage execution |
-| **task-decomposition-expert** | PLANNING | Break down goals, create task files, sync TodoWrite | break down task, decompose, task planning |
-| **task-runner** | EXECUTION | Execute task files, code→test→fix workflow, status sync | execute task file, code test fix, checkpoint |
-
-**Tasks CLI Integration:**
-
-All three agents use the `tasks` command for external task management:
-- `tasks create <name>` - Create task file (task-decomposition-expert)
-- `tasks list [stage]` - View kanban board (orchestrator-expert)
-- `tasks update <WBS> <stage>` - Update status (task-runner)
-- `tasks refresh` - Sync kanban view (all agents)
-
-**Status Flow:** Backlog → Todo → WIP → Testing → Done
 
 ---
 
@@ -427,27 +383,27 @@ rd:agent-browser: "open https://spa.example.com, snapshot, screenshot"
 # Convert web page to clean markdown
 rd:agent-browser + markitdown: "curl -s <url> | markitdown"
 
-# Tasks CLI (three-agent workflow)
-tasks create "Implement feature"        # Create task file
-tasks list wip                          # View WIP tasks
-tasks update 0001 done                  # Mark task as done
-tasks refresh                           # Sync kanban board
+# Tasks CLI (rd2:tasks workflow)
+rd2:tasks create "Implement feature"        # Create task file
+rd2:tasks list wip                            # View WIP tasks
+rd2:tasks update 0001 done                    # Mark task as done
+rd2:tasks refresh                             # Sync kanban board
 ```
 
-### Three-Agent Workflow Quick Reference
+### rd2:tasks Workflow Quick Reference
 
 ```bash
-# For complex multi-phase projects, use orchestrator-expert
-# It will coordinate task-decomposition-expert and task-runner
+# For complex multi-phase projects, use rd2:super-planner
+# It coordinates task decomposition and implementation
 
-# Orchestration happens automatically:
-# 1. orchestrator-expert receives request
-# 2. task-decomposition-expert creates task files
-# 3. task-runner executes with code→test→fix workflow
-# 4. orchestrator-expert monitors and continues loop
+# Planning workflow:
+# 1. rd2:super-planner assesses scale
+# 2. Delegates to rd2:tasks decompose for task files
+# 3. Delegates to rd2:super-coder for implementation
+# 4. Delegates to rd2:super-code-reviewer for review
 
 # Direct task management:
-tasks list                    # View all tasks
-tasks update <WBS> <stage>     # Update task status
-tasks create <name>            # Create new task
+rd2:tasks list                    # View all tasks
+rd2:tasks update <WBS> <stage>     # Update task status
+rd2:tasks create <name>            # Create new task
 ```
