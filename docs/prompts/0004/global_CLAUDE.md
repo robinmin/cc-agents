@@ -80,28 +80,41 @@ Use `rd:ast-grep` for structural code search when:
 
 Auto-routing activates based on these keywords:
 
-| Keywords                                                             | Agent                          |
-| -------------------------------------------------------------------- | ------------------------------ |
-| python, pytest, async, decorator, generator, type hint               | `rd:python-expert`             |
-| typescript, generics, utility types, discriminated union             | `rd:typescript-expert`         |
-| go, golang, goroutines, channels, concurrency, defer, go modules     | `rd:golang-expert`             |
-| mcp, model context protocol, server integration                      | `rd:mcp-expert`                |
-| break down task, decompose, task planning, project breakdown         | `rd:task-decomposition-expert` |
-| execute task file, code test fix, checkpoint, phase execution         | `rd:task-runner`               |
-| coordinate workflow, multi-agent orchestration, manage execution     | `rd:orchestrator-expert`       |
-| create agent, generate expert                                        | `rd:agent-expert`              |
-| validate agent, evaluate agent                                       | `rd:agent-doctor`              |
-| browser automation, screenshot, form fill, web scraping, JS-rendered | `rd:agent-browser`             |
-| API design, microservices, distributed systems, database schema      | `rd:backend-architect`         |
-| React, Next.js, Server Components, Tailwind, shadcn/ui, Vitest       | `rd:frontend-expert`           |
-| iOS, Swift, SwiftUI, UIKit, Xcode, Core Data, App Store              | `rd:ios-expert`                |
-| React Native, Flutter, Expo, mobile app, cross-platform, Detox       | `rd:mobile-expert`             |
-| ML, PyTorch, TensorFlow, model training, MLOps, model serving        | `rd:ml-expert`                 |
-| prompt engineering, system prompt, few-shot, chain-of-thought        | `rd:prompt-expert`             |
-| SEO, keyword research, Core Web Vitals, schema markup, meta tags     | `rd:seo-expert`                |
-| literature review, meta-analysis, evidence synthesis, fact-checking  | `rd:super-researcher`          |
-| UI design, UX research, accessibility, WCAG, wireframes, Figma       | `rd:uiux-expert`               |
-| test design, TDD, BDD, flaky tests, mocking, coverage, CI/CD tests   | `rd:test-expert`               |
+| Keywords                                                                 | Agent                          |
+| ------------------------------------------------------------------------ | ------------------------------ |
+| python, pytest, async, decorator, generator, type hint                   | `rd:python-expert`             |
+| typescript, generics, utility types, discriminated union                 | `rd:typescript-expert`         |
+| go, golang, goroutines, channels, concurrency, defer, go modules         | `rd:golang-expert`             |
+| mcp, model context protocol, server integration                          | `rd:mcp-expert`                |
+| break down task, decompose, task planning, project breakdown             | `rd:task-decomposition-expert` |
+| execute task file, code test fix, checkpoint, phase execution             | `rd:task-runner`               |
+| coordinate workflow, multi-agent orchestration, manage execution         | `rd:orchestrator-expert`       |
+| browser automation, screenshot, form fill, web scraping, JS-rendered      | `rd:agent-browser`             |
+| API design, microservices, distributed systems, database schema          | `rd:backend-architect`         |
+| React, Next.js, Server Components, Tailwind, shadcn/ui, Vitest           | `rd:frontend-expert`           |
+| iOS, Swift, SwiftUI, UIKit, Xcode, Core Data, App Store                  | `rd:ios-expert`                |
+| React Native, Flutter, Expo, mobile app, cross-platform, Detox           | `rd:mobile-expert`             |
+| ML, PyTorch, TensorFlow, model training, MLOps, model serving            | `rd:ml-expert`                 |
+| prompt engineering, system prompt, few-shot, chain-of-thought            | `rd:prompt-expert`             |
+| SEO, keyword research, Core Web Vitals, schema markup, meta tags         | `rd:seo-expert`                |
+| literature review, meta-analysis, evidence synthesis, fact-checking      | `rd:super-researcher`          |
+| UI design, UX research, accessibility, WCAG, wireframes, Figma          | `rd:uiux-expert`               |
+| test design, TDD, BDD, flaky tests, mocking, coverage, CI/CD tests       | `rd:test-expert`               |
+| **rd2 Plugin Agents**                                                   |                                |
+| implementing features, fixing bugs, refactoring, hands-on coding         | `rd2:super-coder`              |
+| planning complex features, orchestrating workflows, task breakdown       | `rd2:super-planner`            |
+| code review requests, best-tool selection                                | `rd2:super-code-reviewer`      |
+| complex architectural decisions, multiple system integration             | `rd2:super-architect`          |
+| UI components, user experience, design systems, accessibility            | `rd2:super-designer`           |
+| creating slash commands, writing command frontmatter, command structure  | `rd2:command-expert`           |
+| command validation, quality assessment, scoring command structure        | `rd2:command-doctor`           |
+| creating new skills, writing SKILL.md, designing skill workflows         | `rd2:skill-expert`             |
+| skill validation, quality assessment, scoring skill structure           | `rd2:skill-doctor`             |
+| creating domain experts, specialized assistants, task-focused subagents  | `rd2:agent-expert`             |
+| agent validation, quality assessment, scoring agent structure           | `rd2:agent-doctor`             |
+| creating hooks, writing hook validators, hook patterns                   | `rd2:hook-expert`              |
+| hook validation, quality assessment, scoring hook structure             | `rd2:hook-doctor`              |
+| knowledge synthesis, literature review, evidence gathering, cross-ref    | `rd2:knowledge-seeker`         |
 
 ### Three-Agent Workflow Architecture
 
