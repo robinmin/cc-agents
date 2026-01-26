@@ -5,7 +5,7 @@ skills:
   - rd2:task-decomposition
   - rd2:tasks
   - rd2:anti-hallucination
-argument-hint: "<requirements|task-file.md>" [--complexity low|medium|high] [--architect] [--design] [--skip-refinement] [--skip-decomposition] [--skip-implementation] [--verify <cmd>] [--task <WBS|path>]
+argument-hint: "<requirements|task-file.md>" [--complexity low|medium|high] [--architect] [--design] [--skip-refinement] [--no-interview] [--skip-decomposition] [--skip-implementation] [--verify <cmd>] [--task <WBS|path>] [--task-type <programming|research|hybrid>]
 ---
 
 # Tasks Plan
@@ -59,9 +59,11 @@ Lightweight coordinator for task decomposition, planning, and orchestration. Ass
 | `--architect`           | No       | Force architecture review involvement                                                         |
 | `--design`              | No       | Force UI/UX design specialist involvement                                                     |
 | `--skip-refinement`     | No       | Skip task refinement step (assumes task is already refined)                                   |
+| `--no-interview`        | No       | Skip Phase 0 interview (default: interview runs for clarification)                           |
 | `--skip-decomposition`  | No       | Skip task decomposition (use existing tasks)                                                  |
 | `--skip-implementation` | No       | Skip implementation phase (decomposition only, implementation is enabled by default)          |
 | `--verify`              | No       | Verification command (e.g., `npm test`, `cargo test`) - run after implementation and auto-fix  |
+| `--task-type`           | No       | Override task type: `programming`, `research`, or `hybrid` (default: auto-detect)             |
 
 **Note:** Either `requirements` or `--task` must be provided. If `requirements` is provided, a task file is created automatically via `rd2:tasks create`.
 
@@ -96,7 +98,7 @@ This command delegates to the **super-planner** agent using the Task tool and us
 
 ```python
 Task(
-  subagent_type="super-planner",
+  subagent_type="rd2:super-planner",
   prompt="""Plan and orchestrate: {requirements_or_task}
 
 Mode: orchestration-only
@@ -104,6 +106,12 @@ Flags: {complexity}, {architect}, {design}, {skip_refinement}, {skip_decompositi
 Verify Command: {verify_cmd}
 
 Steps:
+0. Interview phase (unless --no-interview):
+   - Detect ambiguities and missing context
+   - Generate clarifying questions (3-7 max)
+   - Ask user via AskUserQuestion
+   - Document answers in Q&A section
+   - Write phase_0_interview checkpoint
 1. Load or create task file
    - IF requirements provided → Create via rd2:tasks create
    - IF --task provided → Load existing task file
@@ -115,13 +123,16 @@ Steps:
    - Quality check for red flags
    - Generate refinement suggestions if needed
    - Apply user-approved changes
+   - Write phase_1_refinement checkpoint
 4. Design phase (scale assessment → specialist delegation):
    - IF architect needed OR --architect → Delegate to super-architect
    - IF designer needed OR --design → Delegate to super-designer
    - Update Solutions section with outputs
+   - Write phase_2_design checkpoint
 5. Decomposition phase (unless --skip-decomposition):
    - Break down into subtasks via rd2:tasks decompose
    - Generate WBS-numbered task files
+   - Write phase_3_decomposition checkpoint
 6. Orchestration phase (unless --skip-implementation):
    - For each task in dependency order:
      - Update status to Todo
@@ -133,6 +144,7 @@ Steps:
        - Loop until passes
      - Delegate to /rd2:code-review
      - Update status to Done
+   - Write phase_4_orchestration checkpoint
 7. Report completion with summary
 """,
   description="Plan and orchestrate workflow"
@@ -144,6 +156,9 @@ Steps:
 ### Full Planning Workflow (SlashCommand Chain)
 
 ```
+0. [INTERVIEW] Phase 0: Interview Phase
+   (unless --no-interview - ask clarifying questions)
+        ↓
 1. [INPUT] Load or create task file
         ↓
 2. [REFINE] SlashCommand → /rd2:tasks-refine
