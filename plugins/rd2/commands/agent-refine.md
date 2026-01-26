@@ -75,8 +75,35 @@ Thin wrapper for `rd2:cc-agents` skill. Improves agent quality based on evaluati
 3. Test agent with sample queries
 4. Deploy to production
 
+## Implementation
+
+This command delegates to **rd2:agent-expert** for agent refinement:
+
+```python
+Task(
+    subagent_type="rd2:agent-expert",
+    prompt="""Refine and improve the agent at: {agent_file}
+
+Based on evaluation findings or user requirements:
+1. Analyze current agent structure and content
+2. Identify gaps in each dimension (Structure, Verification, Competencies, Rules, Auto-Routing, Examples)
+3. Apply fixes to improve score to >= 80/100
+4. Ensure 8-section anatomy is complete
+5. Add missing competencies to reach 50+ items
+6. Strengthen verification protocol with red flags and sources
+7. Add/expand DO and DON'T rules (8+ each)
+
+Edit the agent file directly with improvements.
+Provide summary of changes made and recommendations for further improvements.""",
+    description="Refine {agent_name} agent"
+)
+```
+
+**Note:** `rd2:agent-expert` internally uses `rd2:cc-agents` skill for best practices.
+
 ## See Also
 
-- `/rd2:agent-evaluate` - Assess agent quality before/after refinement
-- `/rd2:agent-add` - Create new agents
-- `rd2:cc-agents` - Refinement best practices
+- `/rd2:agent-evaluate` - Assess agent quality before/after refinement (delegates to rd2:agent-doctor)
+- `/rd2:agent-add` - Create new agents (delegates to rd2:agent-expert)
+- `rd2:agent-expert` - Agent creation and refinement specialist
+- `rd2:cc-agents` - Refinement best practices (skill)
