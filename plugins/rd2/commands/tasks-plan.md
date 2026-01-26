@@ -5,7 +5,7 @@ skills:
   - rd2:task-decomposition
   - rd2:tasks
   - rd2:anti-hallucination
-argument-hint: "<requirements|task-file.md>" [--complexity low|medium|high] [--architect] [--design] [--skip-refinement] [--skip-decomposition] [--skip-implementation] [--task <WBS|path>]
+argument-hint: "<requirements|task-file.md>" [--complexity low|medium|high] [--architect] [--design] [--skip-refinement] [--skip-decomposition] [--skip-implementation] [--verify <cmd>] [--task <WBS|path>]
 ---
 
 # Tasks Plan
@@ -61,6 +61,7 @@ Lightweight coordinator for task decomposition, planning, and orchestration. Ass
 | `--skip-refinement`     | No       | Skip task refinement step (assumes task is already refined)                                   |
 | `--skip-decomposition`  | No       | Skip task decomposition (use existing tasks)                                                  |
 | `--skip-implementation` | No       | Skip implementation phase (decomposition only, implementation is enabled by default)          |
+| `--verify`              | No       | Verification command (e.g., `npm test`, `cargo test`) - run after implementation and auto-fix  |
 
 **Note:** Either `requirements` or `--task` must be provided. If `requirements` is provided, a task file is created automatically via `rd2:tasks create`.
 
@@ -100,6 +101,7 @@ Task(
 
 Mode: orchestration-only
 Flags: {complexity}, {architect}, {design}, {skip_refinement}, {skip_decomposition}, {skip_implementation}
+Verify Command: {verify_cmd}
 
 Steps:
 1. Load or create task file
@@ -125,6 +127,10 @@ Steps:
      - Update status to Todo
      - Delegate to /rd2:code-generate
      - Update status to Testing
+     - IF --verify provided:
+       - Run verification command
+       - IF fails → Delegate to /rd2:task-fixall
+       - Loop until passes
      - Delegate to /rd2:code-review
      - Update status to Done
 7. Report completion with summary
@@ -242,7 +248,42 @@ For each task in dependency order:
 
 ## Examples
 
-### Example 1: Simple Feature from Description
+### Example 1: Simple Feature with Verification
+
+```bash
+/rd2:tasks-plan "Add password reset feature" --verify "npm test"
+
+# Output:
+# → Creating task file via rd2:tasks create...
+# ✓ Task 0047 created: docs/prompts/0047_add_password_reset_feature.md
+# → Invoking /rd2:tasks-refine...
+# ✓ Task quality check passed (no red flags)
+# → Invoking /rd2:tasks-design...
+# → Scale Assessment: Low
+# → No architect needed
+# → No designer needed
+# → Invoking rd2:tasks decompose...
+# ✓ 2 subtasks created (0048, 0049)
+# → Orchestration starting...
+#
+# [0048] Implement password reset backend
+# → Delegating to /rd2:code-generate...
+# → Running verification: npm test
+# → 3 failures detected
+# → Delegating to /rd2:task-fixall...
+# ✓ All tests passing
+# ✓ Complete
+#
+# [0049] Add password reset UI
+# → Delegating to /rd2:code-generate...
+# → Running verification: npm test
+# ✓ All tests passing
+# ✓ Complete
+#
+# ✓ All tasks complete
+```
+
+### Example 2: Simple Feature from Description
 
 ```bash
 /rd2:tasks-plan "Add password reset feature"
@@ -307,6 +348,20 @@ For each task in dependency order:
 # (proceeds with implementation)
 ```
 
+```bash
+# With verification
+/rd2:tasks-plan --task 0047 --verify "cargo test"
+
+# Output:
+# → Loading task 0047...
+# → Orchestration starting...
+# → Implementation complete
+# → Running verification: cargo test
+# ✓ All tests passing
+# → Code review...
+# ✓ Task complete
+```
+
 ### Example 4: Decomposition Only (No Orchestration)
 
 ```bash
@@ -363,14 +418,24 @@ When providing a description:
 - A task file is created automatically via `rd2:tasks create`
 - All specialist work (architecture, design) is linked in the task file's Solutions section
 - Subtasks are created via `rd2:tasks decompose` with proper WBS numbering
+- If `--verify` is provided, `verify_cmd` is stored in task file frontmatter
 
 When providing an existing task file:
 
 - Task status is tracked in the frontmatter
 - Specialist outputs are appended to the Solutions section
 - Progress is managed via `rd2:tasks update`
+- `verify_cmd` from frontmatter is used for post-implementation verification
 
 **Task Status Flow:** Backlog → Todo → WIP → Testing → Done
+
+**Frontmatter fields:**
+```yaml
+---
+name: Feature Name
+status: WIP
+verify_cmd: npm test  # From --verify flag
+---
 
 **No custom output format** - All output goes to task files managed by `rd2:tasks`.
 
