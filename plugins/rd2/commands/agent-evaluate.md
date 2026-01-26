@@ -105,8 +105,39 @@ Thin wrapper for `rd2:cc-agents` skill. Assesses agent quality across 6 dimensio
 - If score < 80: Use `/rd2:agent-refine` to implement recommendations
 - Always re-evaluate after refinement
 
+## Implementation
+
+This command delegates to **rd2:agent-doctor** for quality evaluation:
+
+```python
+Task(
+    subagent_type="rd2:agent-doctor",
+    prompt="""Evaluate the agent quality for: {agent_file}
+
+Please perform a comprehensive quality assessment across all 6 dimensions:
+1. Structure (20%) - All 8 sections present, 400-600 lines
+2. Verification (25%) - Red flags, sources, confidence, fallbacks
+3. Competencies (20%) - 50+ items across categories
+4. Rules (15%) - DO and DON'T lists
+5. Auto-Routing (10%) - "Use PROACTIVELY for" + keywords
+6. Examples (10%) - 2-3 examples with commentary
+
+Provide:
+- Overall score and grade (A-F)
+- Dimension breakdown with scores
+- Critical issues (fix immediately)
+- High priority improvements
+- Medium priority suggestions
+- Specific before/after examples where applicable""",
+    description="Evaluate {agent_name} agent quality"
+)
+```
+
+**Note:** `rd2:agent-doctor` internally uses `rd2:cc-agents` skill for evaluation criteria.
+
 ## See Also
 
 - `/rd2:agent-refine` - Improve agents based on evaluation findings
 - `/rd2:agent-add` - Create new agents
-- `rd2:cc-agents` - Evaluation criteria reference
+- `rd2:agent-doctor` - Agent quality evaluation specialist
+- `rd2:cc-agents` - Evaluation criteria reference (skill)
