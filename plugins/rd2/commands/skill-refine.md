@@ -120,6 +120,33 @@ The refinement may ask for approval:
 3. **Verify improved guidance** - Confirm enhancements work
 4. **Re-evaluate** - Run `/rd2:skill-evaluate` to confirm Grade A/B
 
+## Implementation
+
+This command delegates to the **rd2:skill-expert** agent for skill refinement:
+
+```
+Task(
+    subagent_type="rd2:skill-expert",
+    prompt="""Refine and improve the skill at: {skill_folder}
+
+Follow the refinement process with evaluation-first development:
+1. Evaluate current quality across all dimensions
+2. Review findings, especially low-scoring areas
+3. Apply fixes by dimension:
+   - Content: Add workflow guidance, examples
+   - Efficiency: Move details to references/, tighten language
+   - Structure: Ensure SKILL.md + scripts/ + references/ present
+   - Best Practices: Use hyphen-case, remove TODOs
+   - Description: Add specific trigger phrases
+4. Edit SKILL.md or modify resources
+5. Re-evaluate until Grade A/B achieved
+
+Follow rd2:cc-skills best practices with progressive disclosure.
+   """,
+    description="Refine {skill_folder} skill"
+)
+```
+
 ## See Also
 
 - `rd2:skill-expert` - Agent that handles skill creation and refinement
