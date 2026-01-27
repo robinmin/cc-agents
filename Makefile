@@ -30,12 +30,14 @@ install:
 setup-cc:
 	@echo "🔧 Setting up Claude Code's plugins..."
 	@rm -rf ~/.claude/plugins/cache/cc-agents
+	@rm -rf ~/.claude/plugins/cache/cc-agents.bak
 	@git -C ~/.claude/plugins/marketplaces/cc-agents/ pull -a
 	claude plugin uninstall rd@cc-agents wt@cc-agents rd2@cc-agents
 	claude plugin install rd@cc-agents wt@cc-agents rd2@cc-agents
 
 	# claude plugin list
 	@echo "✅ Setup complete"
+	@echo "⚠️  Please restart Claude Code to clear internal cache"
 
 ## list-scripts: List all auto-discovered script directories
 list-scripts:
