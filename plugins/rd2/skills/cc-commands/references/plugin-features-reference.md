@@ -422,7 +422,7 @@ File to review: @$1
 Execute comprehensive review:
 
 1. **Static Analysis** (via plugin scripts)
-   !`node ${CLAUDE_PLUGIN_ROOT}/scripts/lint.js $1`
+   \!`node ${CLAUDE_PLUGIN_ROOT}/scripts/lint.js $1`
 
 2. **Deep Review** (via plugin agent)
    Launch the code-reviewer agent for detailed analysis.
