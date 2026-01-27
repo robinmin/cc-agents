@@ -46,17 +46,17 @@ Conduct comprehensive, systematic research on any topic using evidence-based met
 
 ### Error Handling
 
-| Error                          | Behavior                                                                         |
-| ------------------------------ | ------------------------------------------------------------------------------ |
-| Missing `<topic>`              | Prompt user for research topic before proceeding                              |
-| Invalid `--type`               | Default to `systematic` with warning message                                     |
-| Invalid `--years`              | Default to `5` with warning message                                                |
-| Invalid `--format`             | Default to `markdown` with warning message                                          |
-| Invalid `--depth`              | Default to `standard` with warning message                                          |
-| `<topic>` too short (<5 chars) | Request more specific research topic                                           |
-| `<topic>` contains only stop words | Request more specific research topic                                           |
-| `<topic>` is a URL without context | Extract the topic/research question from URL, validate is meaningful topic      |
-| `<topic>` too long (>500 chars)  | Truncate to first 500 chars with warning, request clarification if needed          |
+| Error                              | Behavior                                                                   |
+| ---------------------------------- | -------------------------------------------------------------------------- |
+| Missing `<topic>`                  | Prompt user for research topic before proceeding                           |
+| Invalid `--type`                   | Default to `systematic` with warning message                               |
+| Invalid `--years`                  | Default to `5` with warning message                                        |
+| Invalid `--format`                 | Default to `markdown` with warning message                                 |
+| Invalid `--depth`                  | Default to `standard` with warning message                                 |
+| `<topic>` too short (<5 chars)     | Request more specific research topic                                       |
+| `<topic>` contains only stop words | Request more specific research topic                                       |
+| `<topic>` is a URL without context | Extract the topic/research question from URL, validate is meaningful topic |
+| `<topic>` too long (>500 chars)    | Truncate to first 500 chars with warning, request clarification if needed  |
 
 ## Research Types
 
