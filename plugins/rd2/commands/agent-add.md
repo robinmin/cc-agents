@@ -12,7 +12,7 @@ Thin wrapper for `rd2:cc-agents` skill. Creates production-ready agent skeletons
 
 ```bash
 /rd2:agent-add rd2 rust-expert        # Create agent in rd2 plugin
-/rd2:agent-add rd ml-architect         # Create agent in rd plugin
+/rd2:agent-add rd2 ml-architect        # Create agent in rd2 plugin
 ```
 
 ## Arguments
