@@ -1,0 +1,7 @@
+{
+  "version": "1.5.7",
+  "name": "wt",
+  "description": "Writing Tools: Style extraction, application, and professional translation",
+  "author": "Robin Min",
+  "keywords": ["agents", "skills", "commands", "plugin"]
+}
