@@ -32,8 +32,8 @@ setup-cc:
 	@rm -rf ~/.claude/plugins/cache/cc-agents
 	@rm -rf ~/.claude/plugins/cache/cc-agents.bak
 	@git -C ~/.claude/plugins/marketplaces/cc-agents/ pull -a
-	claude plugin uninstall rd@cc-agents wt@cc-agents rd2@cc-agents
-	claude plugin install rd@cc-agents wt@cc-agents rd2@cc-agents
+	claude plugin uninstall wt@cc-agents rd2@cc-agents
+	claude plugin install wt@cc-agents rd2@cc-agents
 
 	# claude plugin list
 	@echo "✅ Setup complete"
