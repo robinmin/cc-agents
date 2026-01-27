@@ -13,7 +13,7 @@ Thin wrapper command for `rd2:skill-expert` agent. Creates skill directories wit
 ## Quick Start
 
 ```bash
-/rd2:skill-add rd api-docs           # Create skill in rd plugin
+/rd2:skill-add rd2 api-docs          # Create skill in rd2 plugin
 /rd2:skill-add rd2 code-review       # Create skill in rd2 plugin
 ```
 
