@@ -2,8 +2,6 @@
 allowed-tools:
   - Bash
 description: This command should be used when the user asks to "generate changelog", "create release notes", or "write changelog from git commits". Analyzes git history, categorizes changes by type, and translates technical commits into user-friendly release notes.
-skills:
-  - rd:changelog-generator
 argument-hint: [output-file] [--since <tag|commit>] [--until <tag|commit>] [--version <version>]
 version: 1.0.0
 model: inherit
@@ -43,7 +41,7 @@ Generate concise, user-friendly changelogs from git commits. Translates technica
 
 ## Workflow
 
-This command follows the changelog-generator skill methodology:
+This command analyzes git history and generates user-friendly changelogs using the following methodology:
 
 ### Phase 1: Gather Context
 
@@ -176,15 +174,15 @@ style: format code with prettier
 
 ## Implementation
 
-This command uses the `rd:changelog-generator` skill internally:
+This command implements the changelog generation methodology directly:
 
-```python
-# Delegates to changelog-generator skill
-Skill(
-    skill="rd:changelog-generator",
-    args="--since {since} --until {until} --version {version} --output {output_file}"
-)
-```
+1. **Gather git history** using `git log --oneline` with date filters
+2. **Parse conventional commits** to categorize changes automatically
+3. **Filter internal noise** (chore, test, style, refactor commits)
+4. **Generate user-friendly descriptions** from technical commit messages
+5. **Format structured output** with emoji categories and proper markdown
+
+The command is self-contained and does not depend on external skills.
 
 ## Tips
 
@@ -197,7 +195,6 @@ Skill(
 
 ## See Also
 
-- **rd:changelog-generator**: Underlying skill with full methodology
 - **/rd2:task-gitmsg**: Generate conventional commit messages
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Keep a Changelog](https://keepachangelog.com/)
