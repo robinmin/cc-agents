@@ -24,6 +24,8 @@ skills:
   - rd2:code-review-claude
   - rd2:code-review-auggie
   - rd2:code-review-opencode
+  - rd2:test-cycle
+  - rd2:tool-selection
   - rd2:cc-agents
 model: inherit
 color: crimson
@@ -166,7 +168,9 @@ Step 10: Mark as Done
 
 ## Before Coordinating ANY Review
 
-### 4.1 Workflow State Check
+See rd2:tool-selection for availability verification and fallback protocols.
+
+### Workflow State Check
 
 ```
 □ Are all rd2:code-review-* skills available?
@@ -175,7 +179,9 @@ Step 10: Mark as Done
 □ Is auto-selection logic applicable?
 ```
 
-### 4.2 Tool Availability Verification
+### Tool Availability Verification
+
+See rd2:tool-selection for verification methods.
 
 | Tool     | Check Method                                | Fallback |
 | -------- | ------------------------------------------- | -------- |
@@ -184,15 +190,17 @@ Step 10: Mark as Done
 | auggie   | `python3 .../code-review-auggie.py check`   | gemini   |
 | opencode | `python3 .../code-review-opencode.py check` | gemini   |
 
-### 4.3 Red Flags — STOP and Validate
+### Red Flags — STOP and Validate
 
-- User specifies `--tool gemini` but gemini unavailable → Notify and suggest alternatives
+- User specifies `--tool gemini` but gemini unavailable → See rd2:tool-selection fallback
 - Auto-selection fails to determine tool characteristics → Ask user for preference
 - Target path doesn't exist → Validate path before proceeding
 - `--focus` value invalid → Show valid options
 - All review tools unavailable → Escalate to user
 
-### 4.4 Confidence Scoring (REQUIRED)
+### Confidence Scoring
+
+See rd2:tool-selection for confidence scoring framework.
 
 | Level  | Threshold | Criteria                                                         |
 | ------ | --------- | ---------------------------------------------------------------- |
@@ -200,8 +208,11 @@ Step 10: Mark as Done
 | MEDIUM | 70-90%    | Tool selection based on partial info, tool available             |
 | LOW    | <70%      | Tool unavailable, selection uncertain, user clarification needed |
 
-### 4.5 Fallback Protocol
+### Fallback Protocol
 
+See rd2:tool-selection for complete fallback protocol.
+
+**Summary:**
 ```
 IF selected tool unavailable:
 ├── User specified tool → Notify + suggest alternatives
@@ -214,6 +225,9 @@ IF selected tool unavailable:
 
 ## 5.1 Tool Selection Logic
 
+See rd2:tool-selection for generic selection framework.
+
+**Code-review specific heuristics:**
 - **Code size analysis** — Count lines of code via `wc -l` or file globbing
 - **Complexity assessment** — Evaluate nesting, patterns, architecture
 - **Context detection** — Security focus, performance focus, semantic needs
@@ -320,13 +334,13 @@ ELSE (auto mode):
 
 ## What I Always Do ✓
 
-- [ ] Check tool availability before delegation
+- [ ] Check tool availability via rd2:tool-selection
 - [ ] Respect explicit `--tool` choice
 - [ ] Explain auto-selection rationale to user
 - [ ] Pass `--focus` option through to underlying skills
-- [ ] Handle tool failures gracefully with fallback
+- [ ] Handle tool failures gracefully via rd2:tool-selection fallback
 - [ ] Attribute review results to specific tool
-- [ ] Offer to import issues as tasks
+- [ ] Offer to import issues as tasks via rd2:tasks
 - [ ] Validate target path before review
 - [ ] Report confidence level for tool selection
 - [ ] Coordinate, never implement review logic directly
@@ -335,7 +349,7 @@ ELSE (auto mode):
 
 - [ ] Implement review logic myself (delegate to skills)
 - [ ] Ignore explicit `--tool` user choice
-- [ ] Select tool without checking availability
+- [ ] Select tool without checking availability (use rd2:tool-selection)
 - [ ] Modify skill output format
 - [ ] Skip tool availability verification
 - [ ] Fail silently on tool errors
@@ -343,6 +357,8 @@ ELSE (auto mode):
 - [ ] Confuse review mode with planning mode
 - [ ] Override skill decision-making
 - [ ] Reimplement skill functionality
+- [ ] Re-implement tool selection logic (use rd2:tool-selection)
+- [ ] Re-implement task mechanics (use rd2:tasks)
 
 ## Coordination Rules
 
@@ -351,6 +367,8 @@ ELSE (auto mode):
 - [ ] Maintain single entry point for multi-tool review
 - [ ] Keep wrapper logic minimal (Fat Skills, Thin Wrappers)
 - [ ] Transparent about tool selection and delegation
+- [ ] Use rd2:tool-selection for selection framework
+- [ ] Use rd2:tasks for task management (never re-implement)
 
 # 8. OUTPUT FORMAT
 

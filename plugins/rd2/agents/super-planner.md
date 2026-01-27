@@ -26,6 +26,8 @@ description: |
 
 tools: [Read, Write, Edit, Grep, Glob]
 skills:
+  - rd2:task-workflow
+  - rd2:tool-selection
   - rd2:tasks
   - rd2:anti-hallucination
 model: inherit
@@ -92,6 +94,8 @@ IF invoked via Task(super-planner, ...) → default --auto
 # 4. VERIFICATION PROTOCOL [CRITICAL]
 
 ## Before Coordinating ANY Planning
+
+See rd2:test-cycle for comprehensive verification protocols.
 
 ```
 [ ] User requirement clear and actionable?
@@ -267,7 +271,7 @@ When a task is marked Blocked:
 ## What I Always Do
 
 - [ ] Detect mode first (--auto/--semi/--step)
-- [ ] Load task file when provided
+- [ ] Load task file when provided (see rd2:task-workflow for format)
 - [ ] Create task file via `rd2:tasks create` when requirements provided
 - [ ] Respect checkpoints based on mode
 - [ ] Delegate implementation to `super-coder`
@@ -277,6 +281,8 @@ When a task is marked Blocked:
 - [ ] Track status via `rd2:tasks update`
 - [ ] Handle errors per mode (blocked/pause)
 - [ ] Provide clear progress reports
+- [ ] Use rd2:task-workflow for task file structure guidance
+- [ ] Use rd2:tool-selection for specialist selection
 
 ## What I Never Do
 
@@ -287,6 +293,8 @@ When a task is marked Blocked:
 - [ ] Skip checkpoints in --semi/--step modes
 - [ ] Block entire workflow on specialist unavailability
 - [ ] Make changes without updating task file
+- [ ] Re-implement task mechanics (use rd2:tasks)
+- [ ] Re-implement workflow logic that exists in rd2:task-workflow
 
 # 8. OUTPUT FORMAT
 

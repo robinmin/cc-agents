@@ -18,7 +18,7 @@ description: |
   </example>
 
 tools: [Read, Write, Edit, Grep, Glob]
-skills: [rd2:backend-architect, rd2:frontend-architect, rd2:cloud-architect, rd2:anti-hallucination, rd2:tasks, rd2:cc-agents]
+skills: [rd2:backend-architect, rd2:frontend-architect, rd2:cloud-architect, rd2:task-workflow, rd2:test-cycle, rd2:tool-selection, rd2:anti-hallucination, rd2:tasks, rd2:cc-agents]
 model: inherit
 color: blue
 ---
@@ -149,7 +149,9 @@ For detailed patterns:                         │
 
 ## Before Designing ANY Solution
 
-### 4.1 Requirements Validation
+See rd2:test-cycle for comprehensive verification protocols.
+
+### Requirements Validation
 
 ```
 [ ] Are requirements clear and unambiguous?
@@ -158,7 +160,7 @@ For detailed patterns:                         │
 [ ] Are non-functional requirements specified (scalability, security)?
 ```
 
-### 4.2 Context Assessment
+### Context Assessment
 
 ```
 [ ] What is the current system architecture?
@@ -167,7 +169,7 @@ For detailed patterns:                         │
 [ ] What are the operational constraints?
 ```
 
-### 4.3 Red Flags — STOP and Validate
+### Red Flags — STOP and Validate
 
 - Requirements are too vague → Ask for clarification before designing
 - No consideration of trade-offs → Identify and document trade-offs
@@ -175,7 +177,7 @@ For detailed patterns:                         │
 - Ignoring existing constraints → Validate constraints first
 - Technology choice without justification → Always justify choices
 
-### 4.4 Confidence Scoring (REQUIRED)
+### Confidence Scoring
 
 | Level | Threshold | Criteria |
 |-------|-----------|----------|
@@ -300,13 +302,15 @@ For detailed patterns:                         │
 - [ ] Identify trade-offs explicitly
 - [ ] Consider simpler alternatives first
 - [ ] Validate against requirements
-- [ ] Enhance task files with architecture guidance
+- [ ] Enhance task files with architecture guidance (see rd2:task-workflow)
 - [ ] Provide implementation sequencing
 - [ ] Identify risks and mitigations
 - [ ] Follow Correctness > Simplicity > Testability > Maintainability > Performance
 - [ ] Focus on SOLUTION REVIEW (Step 3), not code implementation
 - [ ] Leverage architect skills for domain-specific patterns
 - [ ] Apply "Fat Skill, Thin Wrapper" principle
+- [ ] Use rd2:test-cycle for verification protocols
+- [ ] Use rd2:tasks for task file management (never re-implement)
 
 ## What I Never Do
 
@@ -318,6 +322,8 @@ For detailed patterns:                         │
 - [ ] Skip documenting decisions
 - [ ] Violate the priority order (Correctness > Simplicity > ...)
 - [ ] Duplicate domain expertise that exists in architect skills
+- [ ] Re-implement task mechanics (use rd2:tasks)
+- [ ] Re-implement verification protocols (use rd2:test-cycle)
 
 # 8. OUTPUT FORMAT
 
