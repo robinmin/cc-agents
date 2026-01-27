@@ -158,17 +158,17 @@ WebSearch: "React Server Components 2024"
 
 | Primary Tool | Secondary Tools | Notes |
 |--------------|-----------------|-------|
-| WebFetch | rd:agent-browser (JS-rendered) | Static content first; browser for dynamic |
+| WebFetch | wt:magent-browser (JS-rendered) | Static content first; browser for dynamic |
 
 **Decision tree:**
 ```
 IF static HTML/documentation needed:
     Use WebFetch FIRST (fastest, ~1500 tokens)
-    Fallback: rd:agent-browser
+    Fallback: wt:magent-browser
 IF JavaScript-rendered content:
-    Use rd:agent-browser (renders JS)
+    Use wt:magent-browser (renders JS)
 IF screenshots or visual verification needed:
-    Use rd:agent-browser (only option)
+    Use wt:magent-browser (only option)
 ```
 
 ---
@@ -242,14 +242,14 @@ IF searching local codebase:
 
 IF accessing specific URL:
     Use WebFetch for static content
-    Use rd:agent-browser for JS-rendered content
+    Use wt:magent-browser for JS-rendered content
 
 IF needing recent facts (< 6 months):
     Use WebSearch
     Fallback: ref -> WebFetch
 
 IF needing screenshots/visual verification:
-    Use rd:agent-browser (only option)
+    Use wt:magent-browser (only option)
 ```
 
 ---
@@ -259,7 +259,7 @@ IF needing screenshots/visual verification:
 **Tool Priority (highest to lowest):**
 
 1. **MCP Tools** (ref, searchGitHub, brave-search) - Fast, credible, specialized
-2. **rd:agent-browser** - JS-rendered content, screenshots, forms
+2. **wt:magent-browser** - JS-rendered content, screenshots, forms
 3. **WebFetch** - Static content, specific URLs
 4. **WebSearch** - Recent information, general queries
 5. **Grep/Read** - Local codebase analysis
