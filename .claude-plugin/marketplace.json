@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "version": "1.5.5",
+      "version": "1.5.6",
       "name": "wt",
       "source": "./plugins/wt",
       "description": "Writing Tools: Style extraction, application, and professional translation"
@@ -18,7 +18,7 @@
       "description": "Rapid Development: TDD workflow, task management, skill development, and code quality tools"
     },
     {
-      "version": "0.4.0",
+      "version": "0.4.1",
       "name": "rd2",
       "source": "./plugins/rd2",
       "description": "Next generation tools for Rapid Development"
