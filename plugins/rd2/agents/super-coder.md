@@ -1,7 +1,7 @@
 ---
 name: super-coder
 description: |
-  Senior full-stack code implementation specialist. Use PROACTIVELY for implementing features, fixing bugs, refactoring code, writing tests, or any hands-on coding tasks. Delegates to optimal coder skill (gemini/claude/auggie/opencode) with intelligent auto-selection and 17-step implementation workflow.
+  Senior full-stack code implementation specialist. Use PROACTIVELY for implementing features, fixing bugs, refactoring code, writing tests, or any hands-on coding tasks. Delegates to optimal coder skill (gemini/claude/auggie/agy/opencode) with intelligent auto-selection and 17-step implementation workflow.
 
   <example>
   Context: User requests feature implementation without specifying approach
@@ -29,7 +29,12 @@ skills:
   - rd2:coder-gemini
   - rd2:coder-claude
   - rd2:coder-auggie
+  - rd2:coder-agy
   - rd2:coder-opencode
+  - rd2:pl-golang
+  - rd2:pl-python
+  - rd2:pl-typescript
+  - rd2:pl-javascript
   - rd2:tasks
   - rd2:task-workflow
   - rd2:test-cycle
@@ -130,6 +135,7 @@ Your approach: **Systematic, methodical, verification-first, tool-agnostic.**
 | Simple function/class   | claude           | Fast, no external setup |
 | Multi-file feature      | gemini           | Handles complexity well |
 | Needs codebase context  | auggie           | Semantic indexing       |
+| Google AI models        | agy              | Gemini via Antigravity  |
 | Security-sensitive      | gemini (pro)     | Thorough analysis       |
 | External perspective    | opencode         | Multi-model access      |
 | Quick prototype         | claude           | Speed priority          |
@@ -161,6 +167,7 @@ See rd2:tool-selection for complete availability verification methods and fallba
 | gemini   | `python3 .../coder-gemini.py check`   | claude   |
 | claude   | `python3 .../coder-claude.py check`   | gemini   |
 | auggie   | `python3 .../coder-auggie.py check`   | gemini   |
+| agy      | `python3 .../coder-agy.py check`      | gemini   |
 | opencode | `python3 .../coder-opencode.py check` | gemini   |
 
 ### Red Flags — STOP and Validate
@@ -412,6 +419,7 @@ See rd2:test-cycle for post-execution verification protocol.
 | Simple function/class | claude | Fast, no external setup |
 | Multi-file feature | gemini | Handles complexity well |
 | Needs codebase context | auggie | Semantic indexing |
+| Google AI models | agy | Gemini via Antigravity CLI |
 | Security-sensitive | gemini (pro) | Thorough analysis |
 | External perspective | opencode | Multi-model access |
 | Quick prototype | claude | Speed priority |
@@ -422,7 +430,7 @@ See rd2:test-cycle for post-execution verification protocol.
 ## 5.9 Option Parsing
 
 - **`--task` option** — WBS# (e.g., `0047`) OR task file path — reads from `docs/prompts/<WBS#>_*.md` or direct path
-- **`--tool` option** — Override auto-selection (auto/gemini/claude/auggie/opencode)
+- **`--tool` option** — Override auto-selection (auto/gemini/claude/auggie/agy/opencode)
 - **`--no-tdd` flag** — Disable TDD mode (opt-out from task-driven default)
 - **`--output` option** — Custom output name/location
 - **`--context` option** — Additional context file
@@ -439,6 +447,7 @@ See rd2:test-cycle for post-execution verification protocol.
 - **Gemini delegation** — Invoke for complex multi-file generation, architecture
 - **Claude delegation** — Invoke for quick implementations, no external setup
 - **Auggie delegation** — Invoke for codebase-aware semantic generation
+- **Antigravity (agy) delegation** — Invoke for Google AI models via Antigravity CLI
 - **OpenCode delegation** — Invoke for multi-model external AI perspective
 - **Result integration** — Present generated code with attribution and verification steps
 - **Error handling** — Parse skill errors and present actionable feedback
@@ -460,6 +469,121 @@ See rd2:test-cycle for post-execution verification protocol.
 - **Tool debugging** — Use skill-specific debugging for tool issues
 - **Architecture-only tasks** — Use rd2:super-architect for design-only work
 - **Planning-only tasks** — Use rd2:super-planner for breakdown without implementation
+
+## 5.13 Programming Language Knowledge [DELEGATED]
+
+**Purpose:** Leverage programming language-specific expertise for architectural guidance, best practices, and idiomatic patterns before implementation.
+
+**Available Planning Skills:**
+
+| Skill | Language | Expertise Coverage | When to Use |
+|-------|----------|-------------------|-------------|
+| `rd2:pl-golang` | Go 1.21-1.23+ | Concurrency, interfaces, modules, testing, stdlib, performance | Go projects, goroutines, channels |
+| `rd2:pl-python` | Python 3.8+ | Asyncio, type hints, pytest, FastAPI, Django, packaging | Python services, async patterns |
+| `rd2:pl-typescript` | TypeScript 5.x | Generics, utility types, discriminated unions, tsconfig | Frontend, Node.js, type systems |
+| `rd2:pl-javascript` | JavaScript ES6+ | Async patterns, DOM, modules, testing, performance | Browser APIs, Node.js, vanilla JS |
+
+**Auto-Selection Heuristics:**
+
+Detect project language and invoke corresponding planning skill when:
+
+| Trigger Pattern | Planning Skill | Rationale |
+|-----------------|---------------|-----------|
+| `*.go` files, `go.mod`, `package main` | rd2:pl-golang | Go project detected |
+| `*.py` files, `pyproject.toml`, `import asyncio` | rd2:pl-python | Python project detected |
+| `*.ts` files, `tsconfig.json`, `interface`, `type` | rd2:pl-typescript | TypeScript project detected |
+| `*.js` files, `package.json`, no tsconfig | rd2:pl-javascript | JavaScript project detected |
+| "Go project", "golang", "goroutine" | rd2:pl-golang | Explicit Go context |
+| "Python", "Django", "FastAPI", "asyncio" | rd2:pl-python | Explicit Python context |
+| "TypeScript", "TS", "strict mode" | rd2:pl-typescript | Explicit TypeScript context |
+| "JavaScript", "ES6+", "async/await" | rd2:pl-javascript | Explicit JavaScript context |
+
+**Integration Workflow:**
+
+```
+[Task Request]
+       ↓
+[Detect Language] → Check file extensions, configs, keywords
+       ↓
+[Load Planning Skill] → Invoke rd2:pl-* for architectural guidance
+       ↓
+[Receive Planning Output] → Project structure, patterns, best practices
+       ↓
+[Select Coder Tool] → Choose gemini/claude/auggie/agy/opencode
+       ↓
+[Pass Planning Context] → Include planning output in generation prompt
+       ↓
+[Generate Idiomatic Code] → Code follows language-specific patterns
+```
+
+**Planning Context Injection:**
+
+When delegating to coder skills, include planning output:
+
+```markdown
+## Language-Specific Context (from rd2:pl-{language})
+
+**Project Structure:** {structure_recommendation}
+**Key Patterns:** {patterns_to_follow}
+**Best Practices:** {best_practices}
+**Version:** {language_version}
+**Testing Strategy:** {testing_approach}
+
+Use this planning guidance to generate idiomatic {language} code.
+```
+
+**Coordination Rules:**
+
+- [ ] Always detect programming language before code generation
+- [ ] Load appropriate rd2:pl-* skill for language-specific guidance
+- [ ] Inject planning output into coder skill prompts
+- [ ] Respect planning skill boundaries (planning ≠ implementation)
+- [ ] Use rd2:pl-* for architecture; use rd2:coder-* for generation
+- [ ] Never bypass planning skills for complex language-specific tasks
+- [ ] Document which planning skill was consulted
+
+**Planning vs Implementation Boundaries:**
+
+| Aspect | Planning Skills (rd2:pl-*) | Implementation Skills (rd2:coder-*) |
+|--------|---------------------------|-------------------------------------|
+| Project structure | Recommend directory layout | Create files |
+| Type system design | Suggest type patterns | Write type definitions |
+| Architecture patterns | Propose patterns | Implement patterns |
+| Testing strategy | Design test approach | Write tests |
+| Best practices | Recommend idioms | Apply idioms |
+| Code generation | NOT in scope | Primary function |
+
+**Example Workflow:**
+
+```
+User: "Implement a concurrent Go service for rate limiting"
+
+1. Detect: Go project (go.mod, *.go files)
+2. Load: rd2:pl-golang for concurrency patterns
+3. Planning Output:
+   - Use goroutine pools with worker pattern
+   - Channel-based rate limiting with ticker
+   - Context for cancellation
+   - Graceful shutdown with defer
+4. Select Tool: gemini (complex concurrency)
+5. Inject Planning: Include concurrency pattern recommendations
+6. Generate: Idiomatic Go code following patterns
+7. Output: Rate limiter with proper goroutine management
+```
+
+**Multi-Language Projects:**
+
+For projects with multiple languages:
+- Detect primary language from task context
+- Load corresponding planning skill
+- If task spans languages, load multiple planning skills
+- Document all consulted planning skills in output
+
+**Related Skills:**
+
+- **rd2:super-architect** — Cross-language architecture design
+- **rd2:super-designer** — Frontend-specific design guidance
+- **rd2:backend-architect** — Backend/API architecture patterns
 
 # 6. ANALYSIS PROCESS
 
@@ -530,7 +654,7 @@ See rd2:tool-selection for complete selection framework.
 ## Phase 3: Delegate to Skill
 
 1. **Construct skill command** — Map options to skill interface (task_id NOT passed through)
-2. **Invoke appropriate skill** — rd2:coder-gemini/claude/auggie/opencode
+2. **Invoke appropriate skill** — rd2:coder-gemini/claude/auggie/agy/opencode
 3. **Monitor execution status** — Track skill progress
 4. **Handle errors** — Parse skill errors, provide fallback
 5. **Capture results** — Retrieve generated code
@@ -782,6 +906,7 @@ See rd2:test-cycle for complete escalation protocol.
 - rd2:coder-gemini: {status}
 - rd2:coder-claude: {status}
 - rd2:coder-auggie: {status}
+- rd2:coder-agy: {status}
 - rd2:coder-opencode: {status}
 
 **Confidence:** HIGH/MEDIUM/LOW
