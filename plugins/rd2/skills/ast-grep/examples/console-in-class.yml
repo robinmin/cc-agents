@@ -1,0 +1,13 @@
+# Example: Find console.log inside class methods
+
+# Rule to find console.log calls within class method definitions
+id: console-in-class
+language: javascript
+rule:
+  pattern: console.log($$$)
+  inside:
+    kind: method_definition
+    stopBy: end
+
+# Test with:
+# ast-grep scan --rule examples/console-in-class.yml /path/to/project

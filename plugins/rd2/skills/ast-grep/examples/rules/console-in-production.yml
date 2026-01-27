@@ -1,0 +1,20 @@
+id: console-in-production
+language: javascript
+message: "Console statement found (should be removed for production)"
+severity: warning
+
+rule:
+  any:
+    - pattern: console.log($$$)
+    - pattern: console.warn($$$)
+    - pattern: console.error($$$)
+    - pattern: console.debug($$$)
+    - pattern: console.info($$$)
+  not:
+    inside:
+      any:
+        # Allow console in test files
+        - kind: comment
+          regex: "@jest"
+        # Allow console in error handlers
+        - pattern: catch ($E) { $$$ }

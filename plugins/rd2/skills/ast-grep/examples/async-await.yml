@@ -1,0 +1,13 @@
+# Example: Find async functions with await
+
+# Rule to find async functions that use await expressions
+id: async-with-await
+language: javascript
+rule:
+  kind: function_declaration
+  has:
+    pattern: await $EXPR
+    stopBy: end
+
+# Test with:
+# ast-grep scan --rule examples/async-await.yml /path/to/project
