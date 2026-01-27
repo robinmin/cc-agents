@@ -1,3 +1,87 @@
+## [0.5.0] - 2026-01-27
+
+### Summary
+
+**Plugin Independence: Complete Migration from rd to rd2/wt Architecture**
+
+Eliminated all dependencies on the deprecated `rd` plugin by creating native rd2/wt replacements. Created `rd2:super-reve` agent for codebase analysis, made `task-changelog` independent, updated all cross-references throughout the codebase, and fixed naming inconsistencies. The plugin is now fully self-contained with no external dependencies.
+
+### Added
+
+- **rd2:super-reve Agent** (`agents/super-reve.md`, 850+ lines):
+  - Complete replacement for `rd:super-reve`
+  - 4-phase codebase analysis workflow: Reconnaissance, Component Mapping, Quality Audit, Synthesis
+  - High-Level Design (HLD) document generation with critical issue audits
+  - Dependency graph analysis and architectural pattern detection
+  - Grade A production quality with comprehensive methodology
+
+### Changed
+
+- **task-changelog Command** (`commands/task-changelog.md`):
+  - Made independent by removing `rd:changelog-generator` skill dependency
+  - Inlined changelog generation methodology (30+ lines of git commit analysis patterns)
+  - Self-contained with direct git log parsing
+  - No external skill dependencies
+
+- **knowledge-extraction Skill** (`skills/knowledge-extraction/`):
+  - Updated tool selection priority: `rd:agent-browser` → `wt:magent-browser`
+  - Updated fallback chains and decision trees
+  - Updated references/tool-selection.md with wt plugin alternatives
+
+- **ast-grep Examples** (`skills/ast-grep/examples/`):
+  - Fixed outdated paths: `plugins/rd/skills/ast-grep/` → `plugins/rd2/skills/ast-grep/`
+  - Updated QUICKSTART.md and README.md examples
+
+- **Cross-Plugin References**:
+  - `wt:commands/info-reve.md`: Updated `rd:super-reve` → `rd2:super-reve`
+  - `wt:commands/info-reve.md`: Updated `rd:sys-debugging` → `rd2:sys-debugging`
+  - `wt:agents/super-researcher.md`: Fixed internal naming inconsistencies (`super-research` → `super-researcher`)
+  - `wt:agents/magent-browser.md`: Removed outdated `rd:agent-browser` conflict note
+  - `wt:skills/markitdown-browser/SKILL.md`: Removed `rd:agent-browser` from See Also section
+
+- **Global Documentation** (`docs/prompts/0004/global_CLAUDE.md`):
+  - Updated 23 occurrences: `rd:agent-browser` → `wt:magent-browser`
+  - Updated 6 occurrences: `rd:ast-grep` → `rd2:ast-grep`
+  - Updated `rd:super-reve` → `rd2:super-reve`
+  - Added `wt:super-researcher` to Agent Routing table
+  - Removed all 10 `rd:` expert agents from routing table
+
+- **Command Examples** (`commands/agent-add.md`, `commands/skill-add.md`):
+  - Updated examples to use rd2 plugin consistently
+
+### Fixed
+
+- **Super-Researcher Naming**:
+  - Fixed `plugins/wt/agents/super-researcher.md` internal name consistency
+  - Line 50: `**Name:** super-research` → `**Name:** super-researcher`
+  - Line 850: `You are the super-research:` → `You are the super-researcher:`
+
+### Verification
+
+**Dependency Scan Results:**
+- `rd:` references in rd2: 0 occurrences (down from 6)
+- `rd:` references in wt: 0 occurrences (down from 3)
+- `plugins/rd` path references: 0 occurrences
+
+**Files Modified Summary:**
+| Category | Files Changed | Nature of Changes |
+|----------|---------------|-------------------|
+| Agents | 3 | Created super-reve, fixed super-researcher, updated magent-browser |
+| Commands | 3 | Made task-changelog independent, updated examples |
+| Skills | 3 | Updated knowledge-extraction, ast-grep examples, markitdown-browser |
+| Documentation | 2 | Updated global CLAUDE.md and cross-references |
+| Total | 11 | Complete migration from rd plugin |
+
+### Benefits
+
+- **Zero External Dependencies**: rd2 is now fully self-contained
+- **Consistent Architecture**: All functionality migrated to rd2/wt plugins
+- **Better Organization**: Clear separation between rd2 (Rapid Development) and wt (Writing Tools)
+- **Improved Documentation**: Updated global references reflect new plugin architecture
+- **Future-Proof**: Can safely uninstall `rd` plugin without breaking functionality
+
+---
+
 ## [0.4.1] - 2026-01-27
 
 ### Summary
