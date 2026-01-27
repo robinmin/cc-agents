@@ -6,10 +6,10 @@
 2. **mcp\_\_grep\_\_searchGitHub** - GitHub code search (fast, for github.com URLs)
 3. **WebSearch** - Recent facts, announcements (< 6 months)
 4. **WebFetch** - Fetch and process specific URLs
-5. **rd:agent-browser** - Browser automation, JS-rendered content, screenshots, form testing
+5. **wt:magent-browser** - Browser automation, JS-rendered content, screenshots, form testing
 6. **rd2:tasks CLI** - `rd2:tasks create/list/update/refresh` - External task management for rd2 workflow
 7. **Local text utilities** - `grep`, `awk`, `sed`, `wc` (native bash tools)
-8. **ast-grep (skill)** - `rd:ast-grep` - Structural code search
+8. **ast-grep (skill)** - `rd2:ast-grep` - Structural code search
 9. **Read/Grep/Glob** - Project file operations (Claude's built-in tools)
 10. **LSP** - Syntax validation, type checking
 11. **Jupyter** - Code execution, runtime verification
@@ -23,17 +23,17 @@
 IF fetching web content:
 ├── IF static HTML/documentation needed:
 │   ├── Use WebFetch FIRST (fastest, ~1500 tokens)
-│   └── Fallback: rd:agent-browser
+│   └── Fallback: wt:magent-browser
 ├── IF JavaScript-rendered content (SPA, dynamic):
-│   └── Use rd:agent-browser (renders JS)
+│   └── Use wt:magent-browser (renders JS)
 ├── IF screenshots or visual verification needed:
-│   └── Use rd:agent-browser (only option)
+│   └── Use wt:magent-browser (only option)
 ├── IF form interaction or testing needed:
-│   └── Use rd:agent-browser (only option)
+│   └── Use wt:magent-browser (only option)
 ├── IF clean markdown output needed:
-│   └── Use rd:agent-browser + markitdown
+│   └── Use wt:magent-browser + markitdown
 └── IF WebFetch fails/unavailable:
-    └── Fallback: rd:agent-browser
+    └── Fallback: wt:magent-browser
 ```
 
 ---
@@ -49,7 +49,7 @@ IF searching local codebase:
 ├── IF exact string/identifier match:
 │   └── Use Grep tool
 ├── IF structural pattern (AST-based):
-│   └── Use rd:ast-grep skill
+│   └── Use rd2:ast-grep skill
 └── IF file discovery:
     └── Use Glob tool
 
@@ -68,7 +68,7 @@ Prefer native bash tools for project-local operations:
 
 ### ast-grep Skill
 
-Use `rd:ast-grep` for structural code search when:
+Use `rd2:ast-grep` for structural code search when:
 
 - Searching for code patterns (e.g., "useState(", "async function")
 - Finding class definitions, function signatures
@@ -82,18 +82,9 @@ Auto-routing activates based on these keywords:
 
 | Keywords                                                                 | Agent                          |
 | ------------------------------------------------------------------------ | ------------------------------ |
-| python, pytest, async, decorator, generator, type hint                   | `rd:python-expert`             |
-| typescript, generics, utility types, discriminated union                 | `rd:typescript-expert`         |
-| go, golang, goroutines, channels, concurrency, defer, go modules         | `rd:golang-expert`             |
-| mcp, model context protocol, server integration                          | `rd:mcp-expert`                |
-| browser automation, screenshot, form fill, web scraping, JS-rendered      | `rd:agent-browser`             |
-| iOS, Swift, SwiftUI, UIKit, Xcode, Core Data, App Store                  | `rd:ios-expert`                |
-| React Native, Flutter, Expo, mobile app, cross-platform, Detox           | `rd:mobile-expert`             |
-| ML, PyTorch, TensorFlow, model training, MLOps, model serving            | `rd:ml-expert`                 |
-| prompt engineering, system prompt, few-shot, chain-of-thought            | `rd:prompt-expert`             |
-| SEO, keyword research, Core Web Vitals, schema markup, meta tags         | `rd:seo-expert`                |
-| literature review, meta-analysis, evidence synthesis, fact-checking      | `rd:super-researcher`          |
-| codebase analysis, high-level design generation                           | `rd:super-reve`                |
+| browser automation, screenshot, form fill, web scraping, JS-rendered      | `wt:magent-browser`            |
+| codebase analysis, high-level design generation                           | `rd2:super-reve`               |
+| literature review, meta-analysis, evidence synthesis, fact-checking      | `wt:super-researcher`          |
 | **rd2 Plugin Agents**                                                   |                                |
 | implementing features, fixing bugs, refactoring, hands-on coding         | `rd2:super-coder`              |
 | planning complex features, orchestrating workflows, task breakdown       | `rd2:super-planner`            |
@@ -112,9 +103,9 @@ Auto-routing activates based on these keywords:
 
 ---
 
-### rd:agent-browser Activation Triggers
+### wt:magent-browser Activation Triggers
 
-Use `rd:agent-browser` subagent when user needs:
+Use `wt:magent-browser` agent when user needs:
 
 - **Browser automation** - Navigate, click, fill forms, interact with elements
 - **Screenshots** - Capture viewport, full-page, or element screenshots
@@ -146,15 +137,15 @@ BEFORE generating ANY answer, you MUST:
 
 | Question Type               | Primary Verification Tool        | Fallback Chain                          |
 | --------------------------- | -------------------------------- | --------------------------------------- |
-| **API/Library usage**       | ref (`ref_search_documentation`) | WebSearch → WebFetch → rd:agent-browser |
+| **API/Library usage**       | ref (`ref_search_documentation`) | WebSearch → WebFetch → wt:magent-browser |
 | **GitHub code patterns**    | `mcp__grep__searchGitHub`        | ast-grep → WebSearch                    |
 | **Recent facts/SOTA**       | WebSearch (last 6 months)        | ref → ArXiv search                      |
 | **File content**            | Read with Filesystem             | Grep → Glob                             |
 | **Model comparison**        | HuggingFace MCP                  | WebSearch → Papers                      |
 | **Code verification**       | LSP                              | Jupyter execution → Manual review       |
 | **Version-specific**        | ref + version filter             | GitHub changelog → Release notes        |
-| **JS-rendered web content** | rd:agent-browser                 | WebFetch (limited)                      |
-| **Web UI verification**     | rd:agent-browser                 | N/A (only option)                       |
+| **JS-rendered web content** | wt:magent-browser                | WebFetch (limited)                      |
+| **Web UI verification**     | wt:magent-browser                | N/A (only option)                       |
 
 ### Confidence Scoring (REQUIRED)
 
@@ -246,14 +237,14 @@ Use inline citations with date:
 | Code behavior verification | Jupyter                   | Real execution           |
 | API/library questions      | ref                       | Official docs            |
 | GitHub code search         | `mcp__grep__searchGitHub` | Fast GitHub search       |
-| Structural code patterns   | ast-grep (`rd:ast-grep`)  | AST-based matching       |
+| Structural code patterns   | ast-grep (`rd2:ast-grep`) | AST-based matching       |
 | Model information          | HuggingFace MCP           | Authoritative model data |
 | Recent changes (<6 months) | WebSearch                 | Catch recent updates     |
 | Local project files        | Read/Grep/Glob            | Project-specific content |
 | Text processing            | grep/awk/sed              | Native bash tools        |
 | Static web content         | WebFetch                  | Fast, low token cost     |
-| Dynamic web content        | rd:agent-browser          | JS rendering required    |
-| Visual web verification    | rd:agent-browser          | Screenshots, UI state    |
+| Dynamic web content        | wt:magent-browser         | JS rendering required    |
+| Visual web verification    | wt:magent-browser         | Screenshots, UI state    |
 
 ---
 
@@ -263,12 +254,12 @@ Use inline citations with date:
 
 | Tool                                | Unavailable Fallback                           | Confidence Adjustment        |
 | ----------------------------------- | ---------------------------------------------- | ---------------------------- |
-| **ref**                             | WebSearch → WebFetch → rd:agent-browser        | Reduce to MEDIUM             |
+| **ref**                             | WebSearch → WebFetch → wt:magent-browser       | Reduce to MEDIUM             |
 | **mcp\_\_grep\_\_searchGitHub**     | ast-grep → WebSearch                           | Reduce to MEDIUM             |
 | **ast-grep (skill)**                | Grep tool → WebSearch                          | Reduce to MEDIUM             |
-| **WebSearch**                       | WebFetch → rd:agent-browser → cached knowledge | Reduce to LOW if critical    |
-| **WebFetch**                        | rd:agent-browser                               | Same confidence              |
-| **rd:agent-browser**                | WebFetch (limited for static only)             | Reduce to MEDIUM for dynamic |
+| **WebSearch**                       | WebFetch → wt:magent-browser → cached knowledge | Reduce to LOW if critical    |
+| **WebFetch**                        | wt:magent-browser                              | Same confidence              |
+| **wt:magent-browser**                | WebFetch (limited for static only)             | Reduce to MEDIUM for dynamic |
 | **Jupyter**                         | Static analysis → LSP                          | Note as "untested"           |
 | **LSP**                             | Manual review                                  | Note as "unchecked"          |
 | **Local text tools (grep/awk/sed)** | Claude's Read/Grep                             | Same confidence              |
@@ -332,10 +323,10 @@ All expert agent responses should include:
 - [x] State uncertainty explicitly
 - [x] Use ref for documentation
 - [x] Use `mcp__grep__searchGitHub` for GitHub content
-- [x] Use ast-grep (`rd:ast-grep`) for structural code search
+- [x] Use ast-grep (`rd2:ast-grep`) for structural code search
 - [x] Use native bash tools (grep, awk, sed, wc) for text processing
 - [x] Use WebFetch for static web content (token-efficient)
-- [x] Use rd:agent-browser for JS-rendered content, screenshots, forms
+- [x] Use wt:magent-browser for JS-rendered content, screenshots, forms
 - [x] Follow multi-layer fallback chain
 - [x] Check version information
 - [x] Note deprecation warnings
@@ -351,7 +342,7 @@ All expert agent responses should include:
 - [ ] Use outdated information
 - [ ] Assume API behavior
 - [ ] Recommend deprecated tools without checking
-- [ ] Use rd:agent-browser for simple static pages (wasteful)
+- [ ] Use wt:magent-browser for simple static pages (wasteful)
 - [ ] Assume web page structure without fetching
 
 ---
@@ -366,7 +357,7 @@ ref: "Python requests library post method 2024"
 mcp__grep__searchGitHub: "useState React hook"
 
 # Structural code search
-rd:ast-grep "async function"
+rd2:ast-grep "async function"
 
 # Native bash text processing
 grep "pattern" file.txt | awk '{print $1}'
@@ -378,10 +369,10 @@ WebSearch: "TypeScript 5.3 new features 2024"
 WebFetch: "https://docs.example.com/api"
 
 # Fetch JS-rendered content or take screenshots
-rd:agent-browser: "open https://spa.example.com, snapshot, screenshot"
+wt:magent-browser: "open https://spa.example.com, snapshot, screenshot"
 
 # Convert web page to clean markdown
-rd:agent-browser + markitdown: "curl -s <url> | markitdown"
+wt:magent-browser + markitdown: "curl -s <url> | markitdown"
 
 # Tasks CLI (rd2:tasks workflow)
 rd2:tasks create "Implement feature"        # Create task file
