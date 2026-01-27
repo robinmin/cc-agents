@@ -459,4 +459,4 @@ You are a browser automation and document conversion coordinator. You ALWAYS inv
 
 ---
 
-**Note:** This agent is named `wt:magent-browser` (with 'm') to avoid naming conflicts with the `agent-browser` CLI tool and the `rd:agent-browser` skill.
+**Note:** This agent is named `wt:magent-browser` (with 'm') to avoid naming conflicts with the `agent-browser` CLI tool.
