@@ -1,3 +1,71 @@
+## [0.4.0] - 2026-01-26
+
+### Summary
+
+**Super-Coder Enhancement: Google AI Integration & Programming Language Planning Skills**
+
+Integrated Google Antigravity CLI (`coder-agy`) into the super-coder multi-tool code generation system. Added dynamic programming language planning skill loading for language-specific architectural guidance (Go, Python, TypeScript, JavaScript). Enhanced super-coder with intelligent language detection and planning context injection.
+
+### Added
+
+- **coder-agy Skill Integration** (`plugins/rd2/agents/super-coder.md`):
+  - Added `rd2:coder-agy` to skills list and tool selection heuristics
+  - Google AI models → agy (Gemini via Antigravity) auto-selection trigger
+  - Tool availability verification with fallback to gemini
+  - Delegation pattern for Antigravity CLI integration
+
+- **Programming Language Planning Skills** (`plugins/rd2/agents/super-coder.md`):
+  - Added `rd2:pl-golang`, `rd2:pl-python`, `rd2:pl-typescript`, `rd2:pl-javascript` to skills list
+  - **New Section 5.13: Programming Language Knowledge [DELEGATED]** (100+ lines)
+  - Auto-selection heuristics for language detection (file extensions, configs, keywords)
+  - Integration workflow: [Task Request] → [Detect Language] → [Load Planning Skill] → [Select Coder Tool] → [Pass Planning Context] → [Generate Idiomatic Code]
+  - Planning context injection template for coder skill prompts
+  - Planning vs Implementation boundaries table
+
+### Changed
+
+- **super-coder.md** (1,012 lines):
+  - Updated skills list to include 4 programming language planning skills
+  - Updated description to include agy in tool list
+  - Updated tool selection heuristics tables with Google AI models row
+  - Updated tool availability verification table with agy check method
+  - Updated coder-specific heuristics with agy delegation
+  - Updated delegation patterns section with Antigravity entry
+  - Updated option parsing to include agy in --tool options
+  - Updated Phase 3: Delegate to Skill to include agy
+  - Updated tool availability check output format to include agy status
+
+### Language Detection Triggers
+
+| Trigger Pattern | Planning Skill |
+|-----------------|---------------|
+| `*.go`, `go.mod`, `package main` | rd2:pl-golang |
+| `*.py`, `pyproject.toml`, `import asyncio` | rd2:pl-python |
+| `*.ts`, `tsconfig.json`, `interface`, `type` | rd2:pl-typescript |
+| `*.js`, `package.json`, no tsconfig | rd2:pl-javascript |
+| "Go project", "golang", "goroutine" | rd2:pl-golang |
+| "Python", "Django", "FastAPI", "asyncio" | rd2:pl-python |
+| "TypeScript", "TS", "strict mode" | rd2:pl-typescript |
+| "JavaScript", "ES6+", "async/await" | rd2:pl-javascript |
+
+### Benefits
+
+- **Google AI Access**: Direct integration with Google's latest Gemini models via Antigravity CLI
+- **Language-Specific Guidance**: Dynamic loading of planning skills provides idiomatic patterns for each language
+- **Intelligent Detection**: File extension, config, and keyword-based auto-selection
+- **Planning Context Injection**: Architectural guidance from planning skills flows into code generation
+- **Unified Interface**: Single super-coder coordinator handles all tools and languages
+
+### References
+
+- coder-agy skill evaluation: Grade A (92/100), production-ready
+- pl-golang skill evaluation: Grade A (95.5/100), production-ready
+- pl-python skill: Comprehensive Python 3.8+ coverage
+- pl-typescript skill: Grade B (85/100), production-ready with minor polish
+- pl-javascript skill: Grade A (91/100), production-ready
+
+---
+
 ## [0.3.0] - 2026-01-25
 
 ### Summary
