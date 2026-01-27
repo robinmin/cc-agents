@@ -52,7 +52,7 @@ Choose based on project type and scale:
 | **Frontend Application** | `src/` with components, services, hooks, utils | `references/project-structures.md` |
 | **Node.js Service** | `src/` with routes, controllers, models, services | `references/project-structures.md` |
 | **Full-Stack App** | `packages/` for frontend, backend, shared types | `references/project-structures.md` |
-| **Monorepo** | Multiple packages with workspace | `references/modules.md` |
+| **Monorepo** | `packages/` with project references, workspaces | `references/monorepo-patterns.md` |
 
 ### 2. Type System Pattern Selection
 
@@ -82,7 +82,17 @@ Choose based on project type and scale:
 | Variadic Tuple Types | 4.0+ | Flexible tuple manipulation |
 | Template Literal Types | 4.1+ | String type transformations |
 
-**Recommendation:** Use 5.0+ as baseline for new projects. See `references/ts5-features.md` for complete version feature matrix.
+**Version Decision Matrix:**
+
+| Scenario | Recommended Version | Key Features |
+|----------|-------------------|--------------|
+| **New frontend project (Vite)** | 5.3+ | Decorators, const params, using, import attributes |
+| **New Node.js service** | 5.2+ | Resource management (using/await using) |
+| **Library with broad compatibility** | 4.9+ | satisfies, noUncheckedIndexedAccess |
+| **Legacy monorepo migration** | 5.0+ | Standard decorators, improved resolution |
+| **Maximum type safety** | 5.4+ | NoInfer, closure narrowing, regex checking |
+
+**Recommendation:** Use 5.3+ as baseline for new projects (latest stable). See `references/ts5-features.md` for complete version feature matrix.
 
 ### 4. Module System Planning
 
@@ -105,7 +115,7 @@ Choose based on project type and scale:
 | **Application** | Strict | `strict: true`, `noUncheckedIndexedAccess: true` | `references/tsconfig-guide.md` |
 | **Library** | Very Strict | All strict options + `declaration: true` | `references/tsconfig-guide.md` |
 | **Legacy Migration** | Medium | Incremental strictness, `allowJs: true` | `references/tsconfig-guide.md` |
-| **Monorepo** | Composite | `composite: true`, project references | `references/tsconfig-guide.md` |
+| **Monorepo** | Composite | `composite: true`, project references, workspaces | `references/monorepo-patterns.md` |
 
 **Recommended Base Configuration:**
 ```json
@@ -406,6 +416,13 @@ import { format } from '@/utils/format';
 
 **Backward Compatibility**: {considerations}
 
+**See `references/migration-guide.md`** for comprehensive migration patterns including:
+- JavaScript to TypeScript migration
+- TypeScript version upgrades (4.x → 5.x)
+- Incremental migration strategies
+- Monorepo migration
+- Common migration patterns and troubleshooting
+
 ## Next Steps
 
 1. Review and approve architecture
@@ -466,7 +483,17 @@ import { format } from '@/utils/format';
 - **`references/ts5-features.md`** - TypeScript 5.x features (decorators, const type parameters, using/await using)
 - **`references/api-design.md`** - Type-safe API design patterns
 - **`references/modules.md`** - ESM, CommonJS, dual packages
+- **`references/migration-guide.md`** - JavaScript to TypeScript migration and version upgrade patterns
+- **`references/monorepo-patterns.md`** - Monorepo setup with project references, workspaces, and composite builds
 - **`references/project-structures.md`** - Project layout patterns
+- **`references/async-patterns.md`** - Async/await patterns, Promises, event handling
+- **`references/architecture-patterns.md`** - Layered, hexagonal, clean architecture for TypeScript
+- **`references/framework-patterns.md`** - React, Vue, Angular patterns and best practices
+- **`references/backend-patterns.md`** - Node.js, Express, NestJS server-side patterns
+- **`references/testing-strategy.md`** - Vitest-focused testing with examples
+- **`references/tooling.md`** - Vite, webpack, esbuild, package managers
+- **`references/vite-config-patterns.md`** - Comprehensive Vite configuration patterns
+- **`references/security-patterns.md`** - TypeScript security best practices
 
 ### Example Files
 
@@ -474,6 +501,10 @@ import { format } from '@/utils/format';
 - **`examples/discriminated-unions.ts`** - Discriminated union patterns
 - **`examples/type-guards.ts`** - Type guard implementations
 - **`examples/tsconfig.json`** - Recommended tsconfig configuration
+- **`examples/async-pipeline.ts`** - Async/await pipeline examples
+- **`examples/project-layout.txt`** - Sample project directory structures
+- **`examples/vitest-config.ts`** - Vitest configuration examples
+- **`examples/vite-config.ts`** - Vite configuration examples
 
 ## Related Skills
 

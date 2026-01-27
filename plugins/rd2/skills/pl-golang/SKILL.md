@@ -8,11 +8,42 @@ version: 0.1.0
 
 ## Overview
 
-Comprehensive Go planning skill for designing project structures, planning feature implementation, and selecting appropriate architecture patterns. This skill provides planning guidance while actual implementation is delegated to appropriate coding agents or the user.
+Comprehensive Go planning skill for designing project structures, planning feature implementation, and selecting appropriate architecture patterns.
 
-**Key distinction:**
-- **`rd2:pl-golang`** = Planning and architectural guidance (knowledge/decisions)
-- **`rd2:super-coder`** / **user** = Actual implementation and code writing
+### Planning vs Implementation
+
+**CRITICAL DISTINCTION** - This skill provides PLANNING only:
+
+| This Skill (`rd2:pl-golang`) | Implementation |
+|------------------------------|----------------|
+| Architectural decisions | Writing actual code |
+| Project structure design | Creating files |
+| Interface design | Running commands |
+| Technology selection | Debugging issues |
+| Risk assessment | Writing tests |
+
+**Planning Workflow:**
+```
+rd2:pl-golang (planning/architecture)
+    ↓
+rd2:super-coder (implementation/coding)
+    ↓
+rd2:super-code-reviewer (code review)
+```
+
+**This skill DOES:**
+- Design project structures and layouts
+- Recommend concurrency patterns
+- Plan interfaces and abstractions
+- Select technology stack
+- Identify best practices
+- Assess risks and mitigations
+
+**This skill DOES NOT:**
+- Write implementation code
+- Create files directly
+- Execute commands
+- Debug implementation issues
 
 ## Persona
 
@@ -194,108 +225,52 @@ project/
 
 ### Go Project Plan Output
 
-When providing Go project planning guidance, use this format:
+Use the project plan template in **`references/project-plan-template.md`** for consistent output formatting.
 
+The template includes:
+- Overview with project type, scale, and Go version requirements
+- Project structure with rationale
+- Architecture pattern and module organization
+- Interface design examples
+- Phased implementation plan
+- Technology stack recommendations
+- Testing strategy and coverage targets
+- Concurrency model and goroutine management
+- Risk assessment and mitigations
+
+**Quick reference summary:**
 ```markdown
 # Go Project Plan: {Project Name}
 
 ## Overview
-
-**Goal**: {What we're building}
-**Project Type**: {Service/Library/CLI/Microservice}
-**Scale**: {Small/Medium/Large}
-**Estimated Phases**: {count}
-**Go Version**: {1.21+ recommended}
+Goal, Project Type, Scale, Go Version
 
 ## Project Structure
-
-**Layout**: {standard / microservice / workspace}
-```
-{directory structure}
-```
-
-**Rationale**: {Why this structure}
+Layout + directory tree + rationale
 
 ## Architecture Pattern
-
-**Pattern**: {Layered/Event-Driven/Microservices}
-
-**Module Structure**:
-- `cmd/server/` - {application entry point}
-- `pkg/api/` - {public API}
-- `internal/service/` - {business logic}
-- `internal/domain/` - {domain models}
+Pattern (Layered/Microservices/etc.) + module breakdown
 
 ## Interface Design
-
-**Key Abstractions**:
-```go
-// In consumer package
-type Database interface {
-    SaveUser(ctx context.Context, user User) error
-    FindUser(ctx context.Context, id string) (User, error)
-}
-```
+Key abstractions with Go code examples
 
 ## Implementation Plan
-
-### Phase 1: Foundation (Week 1)
-- [ ] {Task 1}
-- [ ] {Task 2}
-- [ ] {Task 3}
-
-### Phase 2: Core Features (Week 2-3)
-- [ ] {Task 1}
-- [ ] {Task 2}
-
-### Phase 3: Integration & Testing (Week 4)
-- [ ] {Task 1}
-- [ ] {Task 2}
+Phase 1: Foundation → Phase 2: Core → Phase 3: Testing
 
 ## Technology Stack
-
-| Purpose | Package | Version | Reason |
-|---------|---------|---------|--------|
-| Web Framework | net/http | stdlib | Native, simple, performant |
-| Router | gin | latest | Fast, feature-rich (optional) |
-| ORM | gorm | latest | Feature-rich ORM (optional) |
-| Logging | log/slog | 1.21+ | Structured logging, stdlib |
-| Context | context | stdlib | Cancellation, deadlines |
-| Error Wrapping | errors | stdlib | Error chain support |
+Purpose | Package | Version | Reason
 
 ## Testing Strategy
-
-**Target Coverage**: 85%+
-
-**Test Layers**:
-- Table-driven tests for business logic
-- Subtests for test organization
-- Benchmark tests for critical paths
-- Race detection (`go test -race`)
+Coverage target + test types + race detection
 
 ## Concurrency Model
-
-**Pattern**: {Worker Pool / Pipeline / Fan-out}
-
-**Goroutine Management**:
-- Use `sync.WaitGroup` for waiting
-- Use `context.Context` for cancellation
-- Use buffered channels for flow control
+Pattern (Worker Pool/Pipeline) + goroutine management
 
 ## Risk Assessment
-
-| Risk | Level | Mitigation |
-|------|-------|------------|
-| {Risk 1} | High/Low | {Mitigation strategy} |
-| {Risk 2} | High/Low | {Mitigation strategy} |
-
-## Next Steps
-
-1. Review and approve architecture
-2. Initialize module with `go mod init`
-3. Set up project structure
-4. Begin Phase 1 implementation
+Risk | Level | Mitigation
 ```
+
+See **`references/project-plan-template.md`** for the complete template with field descriptions and usage notes.
 
 ## Best Practices
 
@@ -329,18 +304,30 @@ type Database interface {
 
 ### Reference Files
 
-- **`references/fundamentals.md`** - Go syntax, types, variables, constants
+**Planning & Architecture:**
+- **`references/project-plan-template.md`** - Project plan output template with field guide
+- **`references/project-structures.md`** - Project layout patterns (standard, microservice, workspace)
+- **`references/concurrency.md`** - Goroutines, channels, select, sync patterns
+
+**Language Fundamentals:**
+- **`references/fundamentals.md`** - Go syntax, types, variables, constants, control flow
 - **`references/functions-methods.md`** - Functions, methods, closures, defer
 - **`references/interfaces.md`** - Interface design, composition, embedding
-- **`references/concurrency.md`** - Goroutines, channels, select, sync patterns
+
+**Patterns & Practices:**
 - **`references/error-handling.md`** - Error patterns, wrapping, sentinel errors
-- **`references/testing.md`** - Table-driven tests, benchmarks, fuzzing
-- **`references/modules.md`** - go.mod, go.work, dependency management
 - **`references/patterns.md`** - Defer, panic/recover, context, idiomatic patterns
-- **`references/stdlib.md`** - Common standard library packages
-- **`references/performance.md`** - Profiling, optimization, pprof
-- **`references/generics.md`** - Go 1.18+ generics syntax and patterns
 - **`references/best-practices.md`** - Idiomatic Go, common pitfalls
+
+**Testing & Performance:**
+- **`references/testing.md`** - Table-driven tests, benchmarks, fuzzing
+- **`references/performance.md`** - Profiling, optimization, pprof
+
+**Ecosystem:**
+- **`references/modules.md`** - go.mod, go.work, dependency management
+- **`references/stdlib.md`** - Common standard library packages
+- **`references/generics.md`** - Go 1.18+ generics syntax and patterns
+- **`references/version-features.md`** - Go version feature matrix
 
 ### Example Files
 
@@ -352,23 +339,20 @@ type Database interface {
 ## Related Skills
 
 - **`rd2:tdd-workflow`** - Test-driven development implementation
-- **`rd2:super-coder`** - Code implementation agent
-- **`rd2:super-architect`** - Complex system architecture
+- **`rd2:super-coder`** - Code implementation agent (delegated to after planning)
+- **`rd2:super-code-reviewer`** - Code quality validation (after implementation)
+- **`rd2:super-architect`** - Complex multi-system architecture planning
 
-## Integration with Implementation
+## Implementation Workflow
 
-This skill provides the **planning and architectural decisions**, while implementation is delegated to:
+After planning with this skill, delegate implementation following this sequence:
 
 ```
-rd2:pl-golang (planning)
-    ↓
-rd2:super-coder (implementation)
-    ↓
-rd2:super-code-reviewer (review)
+rd2:pl-golang (planning/architecture)
+    ↓ (review and approve plan)
+rd2:super-coder (implementation/coding)
+    ↓ (implement features)
+rd2:super-code-reviewer (code review/validation)
+    ↓ (validate quality)
+rd2:pl-golang (optional: refine architecture based on implementation)
 ```
-
-**Workflow:**
-1. Use `rd2:pl-golang` to create project plan
-2. Review and approve architecture decisions
-3. Delegate to `rd2:super-coder` for implementation
-4. Use `rd2:super-code-reviewer` for code quality validation
