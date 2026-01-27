@@ -75,7 +75,7 @@ This command delegates to the **super-reve** agent for comprehensive codebase an
 
 ```
 Step 1: Analyze project structure
-→ Task(subagent_type="rd:super-reve",
+→ Task(subagent_type="rd2:super-reve",
     prompt="Analyze codebase at: {codebase_path}
      Scope: {scope}
      Format: {format}
@@ -91,7 +91,7 @@ Step 1: Analyze project structure
 
 ```
 Step 2: Map components and data flow
-→ Task(subagent_type="rd:super-reve",
+→ Task(subagent_type="rd2:super-reve",
     prompt="Continue analysis:
 
      Component Mapping:
@@ -105,7 +105,7 @@ Step 2: Map components and data flow
 
 ```
 Step 3: Perform quality audit
-→ Task(subagent_type="rd:super-reve",
+→ Task(subagent_type="rd2:super-reve",
     prompt="Execute quality audit for scope: {scope}
 
      Security Audit (if applicable):
@@ -136,7 +136,7 @@ Step 3: Perform quality audit
 
 ```
 Step 4: Generate HLD document
-→ Task(subagent_type="rd:super-reve",
+→ Task(subagent_type="rd2:super-reve",
     prompt="Generate HLD document:
 
      Include:
@@ -289,7 +289,7 @@ erDiagram
 
 | Resource | Role | When Used |
 |----------|------|-----------|
-| `rd:super-reve` | Core analysis agent | Always (primary) |
+| `rd2:super-reve` | Core analysis agent | Always (primary) |
 | `mcp__auggie-mcp__codebase-retrieval` | Semantic code search | Phase 1-2 (exploration) |
 | `Grep` | Pattern searching | Phase 3 (audit) |
 | `Glob` | File discovery | Phase 1 (reconnaissance) |
@@ -310,7 +310,7 @@ This command uses a thin wrapper approach:
 
 **Command Layer (this file)**: Pseudocode for orchestration
 
-**Agent Layer**: Delegates to `rd:super-reve` for:
+**Agent Layer**: Delegates to `rd2:super-reve` for:
 - Project reconnaissance
 - Component mapping
 - Quality audit
@@ -346,6 +346,6 @@ This command uses a thin wrapper approach:
 
 ## See Also
 
-- `rd:super-reve` - Core codebase analysis agent
+- `rd2:super-reve` - Core codebase analysis agent
 - `/info-researcher` - Deep research command for literature reviews
-- `rd:sys-debugging` - Four-phase debugging methodology
+- `rd2:sys-debugging` - Four-phase debugging methodology
