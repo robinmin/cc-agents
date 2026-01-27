@@ -20,7 +20,7 @@ demo/
 
 ```bash
 # 1. Navigate to demo directory (from project root)
-cd plugins/rd/skills/ast-grep/demo
+cd plugins/rd2/skills/ast-grep/demo
 
 # 2. Run a simple search
 ast-grep run --pattern 'console.log($$$)' --lang javascript sample-code.js
