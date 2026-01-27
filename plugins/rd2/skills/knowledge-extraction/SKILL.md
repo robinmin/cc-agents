@@ -159,7 +159,7 @@ Aspect: "authentication mechanisms"
 ### Priority Order
 
 1. **MCP Tools** (ref, searchGitHub, brave-search) - Fast, credible, specialized
-2. **rd:agent-browser** - JS-rendered content, screenshots, forms
+2. **wt:magent-browser** - JS-rendered content, screenshots, forms
 3. **WebFetch** - Static content, specific URLs
 4. **WebSearch** - Recent information, general queries
 5. **Grep/Read** - Local codebase analysis
