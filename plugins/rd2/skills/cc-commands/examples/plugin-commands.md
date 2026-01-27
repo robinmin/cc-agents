@@ -304,7 +304,8 @@ Target file: @$1
 Execute comprehensive review workflow:
 
 **Phase 1: Automated Analysis**
-# Run plugin analyzer: !`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js $1` (NOTE: example only - scripts are optional)
+<!-- Run plugin analyzer (example): -->
+<!-- !`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js $1` -->
 
 **Phase 2: Deep Review (Agent)**
 Launch the code-quality-reviewer agent for detailed analysis.
