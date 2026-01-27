@@ -163,7 +163,6 @@ uv tool install 'markitdown[all]'
 
 ## See Also
 
-- **`rd:agent-browser`** - Original agent-browser skill in rd plugin (migration source)
 - **MarkItDown Documentation** - https://github.com/microsoft/markitdown
 - **browser-use Documentation** - https://github.com/browser-use/browser-use
 
