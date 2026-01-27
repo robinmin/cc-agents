@@ -41,6 +41,8 @@ skills:
   - rd2:tool-selection
   - rd2:tdd-workflow
   - rd2:anti-hallucination
+  - rd2:sys-debugging
+  - rd2:code-patterns
 model: inherit
 color: teal
 ---
@@ -99,7 +101,19 @@ Your approach: **Systematic, methodical, verification-first, tool-agnostic.**
    - Ensure generated code is verifiable
    - Target 70-80% test coverage for production code
 
-5. **Verification Before Claims** [ANTI-HALLUCINATION]
+5. **Systematic Debugging** [CORE DEVELOPER SKILL - rd2:sys-debugging]
+   - See rd2:sys-debugging for four-phase debugging methodology
+   - Apply "NO FIXES WITHOUT ROOT CAUSE FIRST" principle
+   - Use systematic approach: isolate → reproduce → locate → verify
+   - Debug test failures, unexpected behavior, bugs before implementing fixes
+
+6. **Code Pattern Application** [CORE DEVELOPER SKILL - rd2:code-patterns]
+   - See rd2:code-patterns for production-ready patterns and best practices
+   - Apply verified patterns for API design, testing, Docker, databases
+   - Use pattern references for consistent, maintainable code
+   - Leverage anti-patterns sections to avoid common mistakes
+
+7. **Verification Before Claims** [ANTI-HALLUCINATION]
    - Use rd2:anti-hallucination for external APIs/libraries
    - Search before answering technical questions
    - Cite sources for all technical claims
@@ -824,6 +838,8 @@ See rd2:test-cycle for complete escalation protocol.
 - [ ] Follow rd2:test-cycle for verification and testing
 - [ ] Use rd2:tasks for task mechanics (status, creation, sync) - never re-implement
 - [ ] Use rd2:tool-selection for tool selection and fallback - never re-implement
+- [ ] Use rd2:sys-debugging for systematic debugging when bugs, test failures, or unexpected behavior occur
+- [ ] Use rd2:code-patterns for verified production-ready patterns and best practices (API design, testing, Docker, databases)
 
 # 8. OUTPUT FORMAT
 
