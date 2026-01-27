@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Recommended TypeScript Configuration",
+
+  "compilerOptions": {
+    /**
+     * Language and Environment
+     */
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "jsx": "react-jsx",
+
+    /**
+     * Modules
+     */
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+
+    /**
+     * Type Checking
+     */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    /**
+     * Additional Type Checking
+     */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+
+    /**
+     * Completeness
+     */
+    "skipLibCheck": true,
+
+    /**
+     * Interop Constraints
+     */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+
+    /**
+     * Emit
+     */
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "removeComments": false,
+    "noEmit": false,
+    "importHelpers": true,
+    "newLine": "lf",
+
+    /**
+     * Output
+     */
+    "outDir": "./dist",
+    "rootDir": "./src",
+
+    /**
+     * Advanced
+     */
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo"
+  },
+
+  /**
+   * Include
+   */
+  "include": [
+    "src/**/*",
+    "examples/**/*"
+  ],
+
+  /**
+   * Exclude
+   */
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+
+  /**
+   * References
+   */
+  "references": [
+    { "path": "../typescript" }
+  ]
+}
