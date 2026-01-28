@@ -150,3 +150,10 @@ vite.config.ts.timestamp-*
 /vendors
 
 /.claude/last-session.json
+
+/GEMINI.md
+/AGENTS.md
+/.agent/
+/.gemini/
+/.opencode/
+/.rulesync/
