@@ -30,10 +30,11 @@ install:
 setup-cc:
 	@echo "🔧 Setting up Claude Code's plugins..."
 	@rm -rf ~/.claude/plugins/cache/cc-agents
-	@rm -rf ~/.claude/plugins/cache/cc-agents.bak
 	@git -C ~/.claude/plugins/marketplaces/cc-agents/ pull -a
-	claude plugin uninstall wt@cc-agents rd2@cc-agents
-	claude plugin install wt@cc-agents rd2@cc-agents
+	@claude plugin uninstall wt@cc-agents
+	@claude plugin uninstall rd2@cc-agents
+	claude plugin install wt@cc-agents
+	claude plugin install rd2@cc-agents
 
 	# claude plugin list
 	@echo "✅ Setup complete"
