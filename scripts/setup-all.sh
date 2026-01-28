@@ -117,7 +117,7 @@ parse_args() {
 # Print header
 print_header() {
     printf "${MAGENTA}╔════════════════════════════════════════════════════════════╗${NC}\n"
-    printf "${MAGENTA}║${NC}    ${CYAN}setup-all.sh${NC} - Sync rd2 plugins to vibe tools     ${MAGENTA}║${NC}\n"
+    printf "${MAGENTA}║${NC}    ${CYAN}setup-all.sh${NC} - Sync cc-agents plugins to vibe tools     ${MAGENTA}║${NC}\n"
     printf "${MAGENTA}╚════════════════════════════════════════════════════════════╝${NC}\n\n"
 }
 

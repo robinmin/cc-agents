@@ -5,14 +5,17 @@ This document contains tool-specific notes and considerations for syncing rd2 pl
 ## Google Antigravity
 
 ### Overview
+
 Google Antigravity is the CLI for Gemini Code Assist, providing advanced code generation and refactoring capabilities.
 
 ### Configuration
+
 - **Target Name**: `antigravity`
 - **Supported Features**: rules, commands, skills
 - **Config Location**: `.agent/` directory
 
 ### Output Structure
+
 ```
 .agent/
 ├── ANTIGRAVITY.md          # Main rules file
@@ -60,6 +63,7 @@ cat .agent/ANTIGRAVITY.md
 **Issue**: Workflows not appearing in Antigravity
 
 **Solution**:
+
 1. Ensure `.agent/workflows/` directory exists
 2. Check file permissions
 3. Restart Antigravity CLI
@@ -67,6 +71,7 @@ cat .agent/ANTIGRAVITY.md
 **Issue**: Rules not being applied
 
 **Solution**:
+
 1. Verify `.agent/ANTIGRAVITY.md` exists
 2. Check for YAML syntax errors in frontmatter
 3. Ensure `antigravity_discovery:` field is present
@@ -76,14 +81,17 @@ cat .agent/ANTIGRAVITY.md
 ## Gemini CLI
 
 ### Overview
+
 Google Gemini CLI is a command-line interface for Google's Gemini AI model, supporting code generation and natural language processing.
 
 ### Configuration
+
 - **Target Name**: `geminicli`
 - **Supported Features**: rules, ignore, mcp, commands, skills
 - **Config Location**: `.gemini/` directory
 
 ### Output Structure
+
 ```
 .gemini/
 ├── settings.json          # Main settings file
@@ -135,6 +143,7 @@ find .gemini/skills -name "SKILL.md"
 **Issue**: Settings not being loaded
 
 **Solution**:
+
 1. Verify `.gemini/settings.json` is valid JSON
 2. Check for syntax errors with `jq . < .gemini/settings.json`
 3. Restart Gemini CLI
@@ -142,6 +151,7 @@ find .gemini/skills -name "SKILL.md"
 **Issue**: MCP servers not connecting
 
 **Solution**:
+
 1. Verify `.gemini/mcp.json` configuration
 2. Check MCP server is running
 3. Review MCP server logs
@@ -151,9 +161,11 @@ find .gemini/skills -name "SKILL.md"
 ## Auggie (Augment Code)
 
 ### Overview
+
 Auggie is Augment Code's CLI tool - a context-aware AI coding agent with semantic code understanding and the Augment Context Engine.
 
 ### Configuration
+
 - **Target Name**: `augmentcode` (this IS the correct target for Auggie)
 - **Supported Features**: rules, ignore ⚠️ **skills/commands/subagents NOT supported**
 - **Output Location**: `.augment/` directory
@@ -162,16 +174,17 @@ Auggie is Augment Code's CLI tool - a context-aware AI coding agent with semanti
 
 **rulesync's `augmentcode` target has limited support:**
 
-| Feature | Supported | Notes |
-|---------|-----------|-------|
-| rules | ✅ Partial | Only non-root rules (`root: false`); root rules are NOT generated |
-| ignore | ✅ Yes | Generates `.augmentignore` |
-| skills | ❌ No | Not implemented in rulesync |
-| commands | ❌ No | Not implemented in rulesync |
-| subagents | ❌ No | Not implemented in rulesync |
-| mcp | ❌ No | Not implemented in rulesync |
+| Feature   | Supported  | Notes                                                             |
+| --------- | ---------- | ----------------------------------------------------------------- |
+| rules     | ✅ Partial | Only non-root rules (`root: false`); root rules are NOT generated |
+| ignore    | ✅ Yes     | Generates `.augmentignore`                                        |
+| skills    | ❌ No      | Not implemented in rulesync                                       |
+| commands  | ❌ No      | Not implemented in rulesync                                       |
+| subagents | ❌ No      | Not implemented in rulesync                                       |
+| mcp       | ❌ No      | Not implemented in rulesync                                       |
 
 ### Output Structure
+
 ```
 .augment/
 ├── rules/                 # Non-root AI coding rules (if any)
@@ -225,6 +238,7 @@ find .augment/rules -name "*.md" 2>/dev/null || echo "No rules generated"
 **Cause**: Most rulesync rules use `root: true`, which augmentcode doesn't support.
 
 **Solution**: Create non-root rules in `.rulesync/rules/`:
+
 ```markdown
 ---
 root: false
@@ -232,6 +246,7 @@ targets: ["augmentcode"]
 description: "My custom rule"
 globs: ["src/**/*"]
 ---
+
 # Rule content here
 ```
 
@@ -244,6 +259,7 @@ globs: ["src/**/*"]
 **Issue**: Auggie not finding synced content
 
 **Solution**:
+
 1. Re-index the codebase: `auggie reindex`
 2. Verify `.augmentignore` exists
 3. Check that non-root rules exist in `.augment/rules/`
@@ -253,14 +269,17 @@ globs: ["src/**/*"]
 ## OpenCode
 
 ### Overview
+
 OpenCode is a multi-model code generation CLI that supports multiple AI providers (OpenAI, Anthropic, local models).
 
 ### Configuration
+
 - **Target Name**: `opencode`
 - **Supported Features**: rules, mcp, commands, subagents, skills
 - **Config Location**: Project root (`opencode.json`)
 
 ### Output Structure
+
 ```
 opencode.json                 # Main configuration file
 opencode.md                   # AI coding rules
@@ -318,6 +337,7 @@ find opencode.skills -name "SKILL.md"
 **Issue**: OpenCode not loading config
 
 **Solution**:
+
 1. Verify `opencode.json` is in project root
 2. Check JSON syntax: `jq . < opencode.json`
 3. Restart OpenCode CLI
@@ -325,6 +345,7 @@ find opencode.skills -name "SKILL.md"
 **Issue**: Subagents not available
 
 **Solution**:
+
 1. Verify `opencode.subagents/` directory exists
 2. Check subagent files have proper frontmatter
 3. Review OpenCode documentation for subagent format
@@ -332,6 +353,7 @@ find opencode.skills -name "SKILL.md"
 **Issue**: Skills not being recognized
 
 **Solution**:
+
 1. Ensure `opencode.skills/` directory structure is correct
 2. Verify each skill has `SKILL.md` file
 3. Check skill frontmatter is valid
@@ -345,6 +367,7 @@ find opencode.skills -name "SKILL.md"
 **Issue**: Generated files not readable by tools
 
 **Solution**:
+
 ```bash
 # Fix permissions
 chmod -R 755 .agent/
@@ -358,6 +381,7 @@ chmod 644 opencode.json
 **Issue**: Tools cannot find generated files
 
 **Solution**:
+
 1. Ensure you're in the project root directory
 2. Verify paths are relative to project root
 3. Use absolute paths if needed
@@ -367,6 +391,7 @@ chmod 644 opencode.json
 **Issue**: rulesync fails to generate files
 
 **Solution**:
+
 1. Check `.rulesync/` directory exists
 2. Verify source files exist in `.rulesync/rules/`, `.rulesync/commands/`, etc.
 3. Run with `--verbose` for detailed output
@@ -377,6 +402,7 @@ chmod 644 opencode.json
 **Issue**: Manual edits overwritten by sync
 
 **Solution**:
+
 1. Edit source files in `.rulesync/` directory
 2. Re-run sync to propagate changes
 3. Use version control to track manual changes
@@ -386,18 +412,21 @@ chmod 644 opencode.json
 ## Best Practices
 
 1. **Version Control**: Commit generated configs to git
+
    ```bash
    git add .agent/ .gemini/ .augment/ opencode.json
-   git commit -m "Sync rd2 plugins to vibe tools"
+   git commit -m "Sync cc-agents plugins to vibe tools"
    ```
 
 2. **Regular Syncs**: Sync after plugin changes
+
    ```bash
    # Add to post-commit hook
    ./scripts/setup-all.sh
    ```
 
 3. **Dry Run First**: Preview changes before applying
+
    ```bash
    ./scripts/setup-all.sh --dry-run
    ```

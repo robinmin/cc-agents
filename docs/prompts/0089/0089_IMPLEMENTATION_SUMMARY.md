@@ -267,7 +267,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .agent/ .gemini/ .auggie/ opencode.*
-          git diff --quiet && git diff --staged --quiet || git commit -m "chore: sync rd2 plugins to vibe tools [skip ci]"
+          git diff --quiet && git diff --staged --quiet || git commit -m "chore: sync cc-agents plugins to vibe tools [skip ci]"
           git push
 ```
 
