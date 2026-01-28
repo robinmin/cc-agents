@@ -15,6 +15,7 @@
       "Bash(git grep*)",
       "Bash(git branch --list*)",
       "Bash(git branch -l*)",
+      "Bash(git branch --show-current)",
       "Bash(git tag --list*)",
       "Bash(git tag -l*)",
       "Bash(git remote -v*)",

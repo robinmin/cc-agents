@@ -1,14 +1,14 @@
 ---
-allowed-tools: Bash(git:*)
-description: This command should be used when the user asks to "generate a commit message", "write git commit", "create conventional commit", or mentions committing changes. Follows Conventional Commits 1.0.0 specification for semantic versioning.
+allowed-tools: Bash(git status|git diff|git log|git branch --show-current)
+description: Generate conventional commit messages from staged changes. Read-only analysis of git context - does NOT execute commits.
 argument-hint: [--amend] [--breaking]
 version: 1.0.0
 model: inherit
 ---
 
-# Smart Git Commit
+# Conventional Commit Message Generator
 
-Generate semantic commit messages that enable automated versioning, changelog generation, and clear communication of changes.
+Generate semantic commit messages from staged changes for automated versioning, changelog generation, and clear communication of changes.
 
 ## Context Analysis
 
@@ -49,21 +49,21 @@ Generate a commit message following [Conventional Commits 1.0.0](https://www.con
 
 ## Commit Types (SemVer Mapping)
 
-| Type | Description | SemVer Impact |
-|------|-------------|---------------|
-| `feat` | New feature or capability | MINOR |
-| `fix` | Bug fix | PATCH |
-| `docs` | Documentation only | PATCH |
-| `style` | Formatting, whitespace (no logic change) | PATCH |
-| `refactor` | Code restructuring (no behavior change) | PATCH |
-| `perf` | Performance improvement | PATCH |
-| `test` | Adding or updating tests | PATCH |
-| `build` | Build system or dependencies | PATCH |
-| `ci` | CI/CD configuration | PATCH |
-| `chore` | Maintenance tasks | PATCH |
-| `revert` | Reverting a previous commit | PATCH |
+| Type       | Description                              | SemVer Impact |
+| ---------- | ---------------------------------------- | ------------- |
+| `feat`     | New feature or capability                | MINOR         |
+| `fix`      | Bug fix                                  | PATCH         |
+| `docs`     | Documentation only                       | PATCH         |
+| `style`    | Formatting, whitespace (no logic change) | PATCH         |
+| `refactor` | Code restructuring (no behavior change)  | PATCH         |
+| `perf`     | Performance improvement                  | PATCH         |
+| `test`     | Adding or updating tests                 | PATCH         |
+| `build`    | Build system or dependencies             | PATCH         |
+| `ci`       | CI/CD configuration                      | PATCH         |
+| `chore`    | Maintenance tasks                        | PATCH         |
+| `revert`   | Reverting a previous commit              | PATCH         |
 
-**Breaking Changes:** Add `!` after type/scope OR include `BREAKING CHANGE:` footer → triggers MAJOR bump
+**Breaking Changes:** Add '!' after type/scope or include 'BREAKING CHANGE:' footer → triggers MAJOR bump
 
 ## Message Guidelines
 
@@ -73,7 +73,7 @@ Generate a commit message following [Conventional Commits 1.0.0](https://www.con
 - **No capitalization**: Start lowercase
 - **No period**: Omit trailing punctuation
 - **Max 50 characters**: Be concise (72 char hard limit)
-- **Complete the sentence**: "If applied, this commit will _____"
+- **Complete the sentence**: "If applied, this commit will **\_**"
 
 ### Scope (Recommended)
 
@@ -84,11 +84,13 @@ Generate a commit message following [Conventional Commits 1.0.0](https://www.con
 ### Body (When Needed)
 
 Include body when:
+
 - Change requires explanation of "why" not just "what"
 - Multiple related changes in one commit
 - Non-obvious implementation decisions
 
 Format:
+
 - Blank line after subject
 - Wrap at 72 characters
 - Explain motivation and contrast with previous behavior
@@ -104,6 +106,7 @@ Co-authored-by: Name <email>
 ## Examples
 
 ### Simple Fix
+
 ```
 fix(auth): prevent session timeout on idle
 
@@ -114,6 +117,7 @@ Refs: #234
 ```
 
 ### New Feature
+
 ```
 feat(api): add batch processing endpoint
 
@@ -123,6 +127,7 @@ feat(api): add batch processing endpoint
 ```
 
 ### Breaking Change
+
 ```
 feat(config)!: migrate to YAML configuration format
 
@@ -133,6 +138,7 @@ Migration guide: docs/migration/v3-config.md
 ```
 
 ### Dependency Update
+
 ```
 build(deps): bump fastify from 4.26.0 to 4.28.1
 
@@ -141,13 +147,13 @@ Security fix for CVE-2024-XXXX (request smuggling).
 
 ## Anti-Patterns to Avoid
 
-| ❌ Bad | ✅ Good | Why |
-|--------|---------|-----|
-| `fix: fixed bug` | `fix(parser): handle empty input arrays` | Be specific |
-| `update stuff` | `refactor(auth): extract token validation` | Use proper type |
-| `WIP` | `feat(draft): add user preferences skeleton` | No WIP commits |
-| `Fix #123` | `fix(api): validate request body\n\nRefs: #123` | Describe the change |
-| `misc changes` | Split into multiple focused commits | Atomic commits |
+| ❌ Bad           | ✅ Good                                         | Why                 |
+| ---------------- | ----------------------------------------------- | ------------------- |
+| `fix: fixed bug` | `fix(parser): handle empty input arrays`        | Be specific         |
+| `update stuff`   | `refactor(auth): extract token validation`      | Use proper type     |
+| `WIP`            | `feat(draft): add user preferences skeleton`    | No WIP commits      |
+| `Fix #123`       | `fix(api): validate request body\n\nRefs: #123` | Describe the change |
+| `misc changes`   | Split into multiple focused commits             | Atomic commits      |
 
 ## Output Format
 
@@ -157,7 +163,7 @@ Present the generated message in a code block for easy copying:
 <generated message>
 ```
 
-Then ask: "Ready to commit with this message? [y/n/edit]"
+**Note:** This command only generates the commit message. User must manually run `git commit` with the message.
 
 ## References
 
@@ -171,9 +177,15 @@ Then ask: "Ready to commit with this message? [y/n/edit]"
 # Generate commit message for staged changes
 /rd2:task-gitmsg
 
-# Amend most recent commit with new message
+# Generate message for amending most recent commit
 /rd2:task-gitmsg --amend
 
-# Generate breaking change commit (MAJOR version)
+# Generate breaking change message (MAJOR version)
 /rd2:task-gitmsg --breaking
+```
+
+**After generating**, manually commit with:
+
+```bash
+git commit -m "<generated message>"
 ```
