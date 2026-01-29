@@ -19,6 +19,36 @@ Universal task file content structure and 17-step implementation workflow for rd
 
 ## Enhanced Task File Structure
 
+### File Organization Pattern
+
+**Main Task File:**
+```
+docs/prompts/<WBS>_<task_name>.md
+```
+Example: `docs/prompts/0089_customize_rulesync_to_sync_plugins.md`
+
+**Additional Files (Implementation Artifacts):**
+```
+docs/prompts/<WBS>/
+├── <WBS>_IMPLEMENTATION_SUMMARY.md
+├── <WBS>_DESIGN.md
+├── <WBS>_NOTES.md
+└── ... (other implementation-related files)
+```
+Example: `docs/prompts/0089/0089_IMPLEMENTATION_SUMMARY.md`
+
+**Key Rules:**
+1. **Main task file** stays in `docs/prompts/` with pattern `<WBS>_<name>.md`
+2. **Additional files** go into subfolder `docs/prompts/<WBS>/`
+3. **Only create subfolder** when additional files are needed (avoid empty folders)
+4. **Prefix additional files** with WBS number for consistency
+
+**Rationale:**
+- Prevents multiple files with same WBS prefix from cluttering `docs/prompts/`
+- Keeps main task files discoverable by the `tasks` CLI
+- Groups related implementation artifacts together
+- Maintains clear separation between task definition and implementation details
+
 ### Frontmatter Format
 
 ```yaml
@@ -322,6 +352,25 @@ pending → in_progress → completed
                     ↓
                   blocked
 ```
+
+### File Organization Pattern
+
+**Main Task File:**
+```
+docs/prompts/<WBS>_<task_name>.md
+```
+Example: `docs/prompts/0089_customize_rulesync.md`
+
+**Additional Implementation Artifacts:**
+```
+docs/prompts/<WBS>/
+├── <WBS>_IMPLEMENTATION_SUMMARY.md
+├── <WBS>_DESIGN.md
+└── ... (other files)
+```
+Example: `docs/prompts/0089/0089_IMPLEMENTATION_SUMMARY.md`
+
+**Key Rule:** Create subfolder `docs/prompts/<WBS>/` only when additional files are needed during implementation.
 
 ### Example Commands
 
