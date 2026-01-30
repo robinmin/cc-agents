@@ -7,7 +7,7 @@ version: 1.0.0
 model: inherit
 ---
 
-# Task Changelog
+# Tasks Changelog
 
 Generate concise, user-friendly changelogs from git commits. Translates technical commits into customer-facing release notes.
 
@@ -15,19 +15,19 @@ Generate concise, user-friendly changelogs from git commits. Translates technica
 
 ```bash
 # Generate changelog for commits since last tag
-/rd2:task-changelog
+/rd2:tasks-changelog
 
 # Generate for specific version
-/rd2:task-changelog --version 2.5.0
+/rd2:tasks-changelog --version 2.5.0
 
 # Generate for date range (since last release tag)
-/rd2:task-changelog --since v2.4.0
+/rd2:tasks-changelog --since v2.4.0
 
 # Write to custom output file
-/rd2:task-changelog RELEASE_NOTES.md
+/rd2:tasks-changelog RELEASE_NOTES.md
 
 # Full specification
-/rd2:task-changelog CHANGELOG.md --since v2.4.0 --until v2.5.0 --version 2.5.0
+/rd2:tasks-changelog CHANGELOG.md --since v2.4.0 --until v2.5.0 --version 2.5.0
 ```
 
 ## Arguments
@@ -109,7 +109,7 @@ Write to specified output file (append to CHANGELOG.md by default).
 ### Basic Usage
 
 ```bash
-/rd2:task-changelog
+/rd2:tasks-changelog
 
 # Analyzes commits since last tag, generates:
 # - Auto-detects version from git describe
@@ -120,7 +120,7 @@ Write to specified output file (append to CHANGELOG.md by default).
 ### Specific Version
 
 ```bash
-/rd2:task-changelog --version 2.5.0
+/rd2:tasks-changelog --version 2.5.0
 
 # Output:
 ## [2.5.0] - 2024-03-15
@@ -132,7 +132,7 @@ Write to specified output file (append to CHANGELOG.md by default).
 ### Date Range
 
 ```bash
-/rd2:task-changelog --since v2.4.0 --until v2.5.0
+/rd2:tasks-changelog --since v2.4.0 --until v2.5.0
 
 # Only includes commits between v2.4.0 and v2.5.0
 ```
@@ -140,7 +140,7 @@ Write to specified output file (append to CHANGELOG.md by default).
 ### Custom Output File
 
 ```bash
-/rd2:task-changelog RELEASE_NOTES.md
+/rd2:tasks-changelog RELEASE_NOTES.md
 
 # Writes to RELEASE_NOTES.md instead of CHANGELOG.md
 # Creates file if it doesn't exist
@@ -195,6 +195,6 @@ The command is self-contained and does not depend on external skills.
 
 ## See Also
 
-- **/rd2:task-gitmsg**: Generate conventional commit messages
+- **/rd2:tasks-gitmsg**: Generate conventional commit messages
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Keep a Changelog](https://keepachangelog.com/)

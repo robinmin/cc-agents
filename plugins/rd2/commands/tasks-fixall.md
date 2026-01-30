@@ -2,10 +2,11 @@
 description: Fix all lint, type, and test errors using deterministic single-pass workflow with sys-debugging methodology
 skills:
   - rd2:sys-debugging
-argument-hint: "[<validation-command>]"
+  - rd2:anti-hallucination
+argument-hint: "[<validation-command>] [--max-retry=5]"
 ---
 
-# Task Fixall
+# Tasks Fixall
 
 Systematically resolve all validation errors (lint, typecheck, tests) using a deterministic workflow that maximizes auto-fix and applies sys-debugging methodology for root cause analysis.
 
@@ -15,11 +16,49 @@ Systematically resolve all validation errors (lint, typecheck, tests) using a de
 
 ```bash
 # With explicit validation command
-/rd2:task-fixall "biome check --write . && tsc --noEmit && vitest run"
+/rd2:tasks-fixall "biome check --write . && tsc --noEmit && vitest run"
 
 # Auto-detect from config files
-/rd2:task-fixall
+/rd2:tasks-fixall
+
+# With custom retry limit
+/rd2:tasks-fixall "pytest" --max-retry=10
 ```
+
+## MANDATORY EXIT CONDITION (Non-Negotiable)
+
+**The ONLY way to complete this command successfully is:**
+
+1. Run the validation command: `eval "$VALIDATION_CMD"`
+2. Capture the exit code: `EXIT_CODE=$?`
+3. Output the exit code: `echo "EXIT_CODE=$EXIT_CODE"`
+4. **EXIT_CODE must equal 0**
+
+**If EXIT_CODE ≠ 0:**
+
+- You have NOT completed the task
+- You MUST continue fixing
+- Do NOT write a summary report
+- Do NOT claim success
+- Do NOT say "most tests pass" or "looks good"
+
+**Proof of Completion Required:**
+
+Before claiming success, you MUST show terminal output containing the literal text:
+```
+EXIT_CODE=0
+```
+
+If you cannot show this exact output from the validation command, you have NOT succeeded. This is non-negotiable.
+
+**Hallucination Red Flags — STOP if you think:**
+
+- ❌ "The errors look fixed" → Check exit code, not appearance
+- ❌ "Most tests pass" → Partial success = FAILURE
+- ❌ "Good enough for now" → 0 is the ONLY acceptable exit code
+- ❌ "I've done several iterations" → Iteration count is irrelevant; only EXIT_CODE=0 matters
+- ❌ "The output looks cleaner" → Cleaner ≠ passing; check EXIT_CODE
+- ❌ "Let me summarize what was fixed" → NO summaries until EXIT_CODE=0
 
 ## When to Use
 
@@ -40,9 +79,10 @@ Systematically resolve all validation errors (lint, typecheck, tests) using a de
 
 ## Arguments
 
-| Argument              | Required | Description                                                    |
-| --------------------- | -------- | -------------------------------------------------------------- |
-| `validation-command`  | No       | Command to validate (e.g., `npm test`, `cargo test`, `make check`) |
+| Argument              | Required | Default | Description                                                    |
+| --------------------- | -------- | ------- | -------------------------------------------------------------- |
+| `validation-command`  | No       | auto    | Command to validate (e.g., `npm test`, `cargo test`, `make check`) |
+| `--max-retry`         | No       | 5       | Maximum fix iterations before asking user to continue/escalate/stop |
 
 **Validation Behavior:**
 - If command provided but fails to run → Error with command output
@@ -53,17 +93,36 @@ If no command provided, auto-detect from project config files.
 
 ## Workflow
 
-This command implements a self-contained 6-phase workflow:
+This command implements a self-contained 7-phase workflow with mandatory retry loop:
 
 1. **Detect** validation command (from args or auto-detect from config files)
-2. **Capture** output to temp file using `tee`
-3. **Parse** errors using grep/awk for categorization
-4. **Auto-fix** using language-specific tools (biome/eslint/ruff/cargo)
+2. **Capture** initial output to temp file using `tee`
+3. **Auto-fix** using language-specific tools (biome/eslint/ruff/cargo)
+4. **Parse** errors using grep/awk for categorization
 5. **Diagnose** root causes using `rd2:sys-debugging` skill
 6. **Fix** systematically by error type group
-7. **Validate** until all tests pass or user intervenes
+7. **Validate & Loop** until EXIT_CODE=0 or max retries reached
 
-**No agent delegation** — All logic implemented directly in this command following rd2 "self-contained" pattern.
+```
+┌─────────────────────────────────────────────────┐
+│ RETRY LOOP (max --max-retry iterations)         │
+│                                                 │
+│  → Phase 5: Diagnose root cause                 │
+│  → Phase 6: Fix by error type group             │
+│  → Phase 7: Validate (check EXIT_CODE)          │
+│                                                 │
+│  If EXIT_CODE = 0: SUCCESS, exit loop           │
+│  If EXIT_CODE ≠ 0: INCREMENT counter, continue  │
+│                                                 │
+│  If counter >= MAX_RETRY:                       │
+│    Ask user: [Continue / Escalate / Stop]       │
+│    - Continue: RESET counter, resume loop       │
+│    - Escalate: Delegate to super-planner        │
+│    - Stop: Show errors, exit                    │
+└─────────────────────────────────────────────────┘
+```
+
+**No agent delegation** — All logic implemented directly in this command following rd2 "self-contained" pattern. Escalation to super-planner is optional user choice at retry limit.
 
 ## Auto-Detection
 
@@ -76,9 +135,13 @@ This command implements a self-contained 6-phase workflow:
 | `Cargo.toml`      | `"Cargo.toml"` in filename  | `cargo fmt && cargo clippy && cargo test`    |
 | `go.mod`          | `"go.mod"` in filename      | `gofmt -w . && go vet ./... && go test ./...` |
 
-## 6-Phase Workflow
+## 7-Phase Workflow
 
-### Phase 1: Capture Validation Output
+### Phase 1: Detect Validation Command
+
+Detect from arguments or auto-detect from config files (see Auto-Detection table above).
+
+### Phase 2: Capture Validation Output
 
 Create temp file and capture all output:
 
@@ -94,27 +157,6 @@ EXIT_CODE=${PIPESTATUS[0]}
 
 echo "Validation output saved to: $FIXALL_LOG"
 echo "Exit code: $EXIT_CODE"
-```
-
-### Phase 2: Parse and Categorize Errors
-
-Count issues by type using grep:
-
-```bash
-# TypeScript errors
-grep -c "error TS[0-9]*:" "$FIXALL_LOG" || echo "0 TS errors"
-
-# ESLint/Biome errors
-grep -c "error\|✖" "$FIXALL_LOG" || echo "0 lint errors"
-
-# Test failures
-grep -c "FAIL\|✗\|FAILED" "$FIXALL_LOG" || echo "0 test failures"
-
-# Python (mypy)
-grep -c "error:" "$FIXALL_LOG" || echo "0 Python errors"
-
-# Rust (cargo)
-grep -c "^error\[E[0-9]*\]:" "$FIXALL_LOG" || echo "0 Rust errors"
 ```
 
 ### Phase 3: Auto-Fix First
@@ -146,7 +188,28 @@ fi
 eval "$VALIDATION_CMD" 2>&1 | tee "$FIXALL_LOG"
 ```
 
-### Phase 4: Root Cause Diagnosis (sys-debugging)
+### Phase 4: Parse and Categorize Errors
+
+Count issues by type using grep:
+
+```bash
+# TypeScript errors
+grep -c "error TS[0-9]*:" "$FIXALL_LOG" || echo "0 TS errors"
+
+# ESLint/Biome errors
+grep -c "error\|✖" "$FIXALL_LOG" || echo "0 lint errors"
+
+# Test failures
+grep -c "FAIL\|✗\|FAILED" "$FIXALL_LOG" || echo "0 test failures"
+
+# Python (mypy)
+grep -c "error:" "$FIXALL_LOG" || echo "0 Python errors"
+
+# Rust (cargo)
+grep -c "^error\[E[0-9]*\]:" "$FIXALL_LOG" || echo "0 Rust errors"
+```
+
+### Phase 5: Root Cause Diagnosis (sys-debugging)
 
 **STOP. Before touching code, apply sys-debugging four-phase framework.**
 
@@ -174,7 +237,7 @@ Origin: `get_user()` returns None for expired tokens
 Root cause: Silent failure in JWT validation (no exception raised)
 ```
 
-### Phase 5: Systematic Fix Implementation
+### Phase 6: Systematic Fix Implementation
 
 **Fix by error type group** — fix all instances of same error together:
 
@@ -204,30 +267,72 @@ grep -c "error TS2345" "$FIXALL_LOG" || echo "0 remaining"
 
 **Critical Rule**: If THREE fixes fail consecutively, STOP. This signals architectural problems.
 
-### Phase 6: Final Validation
+### Phase 7: Validate & Loop Control
+
+**CRITICAL: This phase determines task completion. Follow exactly.**
 
 ```bash
-# Final validation
+# Run validation and capture EXIT CODE (not grep!)
 eval "$VALIDATION_CMD" 2>&1 | tee "$FIXALL_LOG"
+EXIT_CODE=$?
 
-# Verify zero errors
-ERROR_COUNT=$(grep -c "error" "$FIXALL_LOG" 2>/dev/null || echo "0")
-if [ "$ERROR_COUNT" -eq 0 ]; then
-  echo "✅ All validations pass"
+# OUTPUT THE EXIT CODE - This is your proof of completion
+echo "EXIT_CODE=$EXIT_CODE"
+
+if [ "$EXIT_CODE" -eq 0 ]; then
+  echo "✅ VALIDATION PASSED - EXIT_CODE=0"
+  echo "Task completed successfully."
 else
-  echo "❌ $ERROR_COUNT errors remaining"
-  grep "error" "$FIXALL_LOG" | head -10
+  echo "❌ VALIDATION FAILED - EXIT_CODE=$EXIT_CODE"
+  echo "You MUST continue fixing. Do NOT claim success."
+
+  # Show error summary for next iteration
+  echo "--- Error Summary ---"
+  grep -E "error|FAIL|Error" "$FIXALL_LOG" | head -10
 fi
 ```
 
-### Error Handling
+**Retry Loop Logic:**
 
-If validation still fails after fixall:
-- Report remaining error count
-- Show first 10 errors for review
-- Ask user: "Continue fixing? [Yes/No/Manual]"
-- If Yes: Repeat Phase 4-5
-- If No: Exit with manual fix instructions
+```
+RETRY_COUNT=0
+MAX_RETRY=${max_retry:-5}
+
+LOOP_START:
+  if EXIT_CODE = 0:
+    → SUCCESS - Task complete
+    → You may now write summary
+    → Exit
+
+  RETRY_COUNT = RETRY_COUNT + 1
+
+  if RETRY_COUNT > MAX_RETRY:
+    → Ask user via AskUserQuestion:
+      Option A: "Continue fixing"
+        → Reset RETRY_COUNT to 0
+        → Jump to Phase 5 (Diagnose)
+      Option B: "Escalate to super-planner"
+        → Report: "Escalation requested. Future enhancement."
+        → Show remaining errors
+        → Exit
+      Option C: "Stop and show errors"
+        → Show remaining errors from $FIXALL_LOG
+        → Exit with failure status
+
+  → Jump to Phase 5 (Diagnose)
+```
+
+### Exit Criteria Checklist
+
+Before claiming completion, verify ALL of these:
+
+- [ ] Ran `eval "$VALIDATION_CMD"`
+- [ ] Captured exit code with `EXIT_CODE=$?`
+- [ ] Printed `echo "EXIT_CODE=$EXIT_CODE"`
+- [ ] Confirmed EXIT_CODE equals exactly 0
+- [ ] Showed the literal output `EXIT_CODE=0` in terminal
+
+**If ANY checkbox is unchecked, you have NOT completed the task.**
 
 ## Red Flags - Process Violations
 
@@ -248,45 +353,57 @@ If validation still fails after fixall:
 ### TypeScript Project
 
 ```bash
-/rd2:task-fixall "biome check --write . && tsc --noEmit && vitest run"
+/rd2:tasks-fixall "biome check --write . && tsc --noEmit && vitest run"
 
 # Output:
 # → Creating temp log: /tmp/fixall-abc123.log
 # → Running validation...
+# → EXIT_CODE=1 (FAILED)
 # → Found 23 errors
-# → Phase 2: Parse and categorize...
+# → Phase 4: Parse and categorize...
 #   - Type errors: 15
 #   - Test failures: 5
 #   - Lint errors: 3
 # → Phase 3: Auto-fix...
 # → Running: biome check --write .
-# → Re-validating... 15 errors remaining
-# → Phase 4: Root cause analysis...
+# → Re-validating...
+# → EXIT_CODE=1 (FAILED - 15 errors remaining)
+#
+# --- Iteration 1 of 5 ---
+# → Phase 5: Root cause analysis...
 # → Analyzing error TS2345 (12 occurrences)
 # → Root cause: API response type changed in v2.0
-# → Phase 5: Fix by error type group...
+# → Phase 6: Fix by error type group...
 # → Fixing TS2345: Updated types/api.d.ts
-# → Re-validating... 3 errors remaining
-# → Phase 6: Final validation...
-# ✅ All validations pass
+# → Phase 7: Validate...
+# → EXIT_CODE=1 (FAILED - 3 errors remaining)
+#
+# --- Iteration 2 of 5 ---
+# → Phase 5: Root cause analysis...
+# → Analyzing remaining 3 type errors
+# → Phase 6: Fixing...
+# → Phase 7: Validate...
+# → EXIT_CODE=0
+# ✅ VALIDATION PASSED - EXIT_CODE=0
+# Task completed successfully.
 ```
 
 ### Python Project
 
 ```bash
-/rd2:task-fixall "ruff check . --fix && mypy . && pytest"
+/rd2:tasks-fixall "ruff check . --fix && mypy . && pytest"
 ```
 
 ### Rust Project
 
 ```bash
-/rd2:task-fixall "cargo fmt && cargo clippy && cargo test"
+/rd2:tasks-fixall "cargo fmt && cargo clippy && cargo test"
 ```
 
 ### Auto-Detect
 
 ```bash
-/rd2:task-fixall
+/rd2:tasks-fixall
 
 # Output:
 # → Detecting project configuration...
@@ -297,7 +414,7 @@ If validation still fails after fixall:
 
 ## Design Philosophy
 
-**Self-Contained Workflow** — This command implements the complete 6-phase fixing workflow directly:
+**Self-Contained Workflow** — This command implements the complete 7-phase fixing workflow directly:
 - Uses bash tools (grep, awk, sed) for parsing
 - Applies sys-debugging methodology via `rd2:sys-debugging` skill
 - No separate agent needed — all logic in this command
@@ -346,11 +463,19 @@ If validation still fails after fixall:
 
 ## Completion Criteria
 
-Done when:
-- ✅ All validation commands pass (zero errors)
+**MANDATORY — All must be true:**
+
+- ✅ Validation command exited with `EXIT_CODE=0` (not just "looks clean")
+- ✅ You showed the literal terminal output `EXIT_CODE=0`
 - ✅ Each fix has documented root cause
-- ✅ No regressions (tests pass)
-- ✅ No "quick fix" rationalization used
+- ✅ No regressions introduced
+
+**NOT acceptable as completion:**
+
+- ❌ "Errors appear fixed" without EXIT_CODE=0
+- ❌ "Most tests pass" (partial = failure)
+- ❌ "Output looks cleaner" (cleaner ≠ passing)
+- ❌ Any summary before EXIT_CODE=0 is confirmed
 
 ## See Also
 

@@ -175,13 +175,13 @@ Present the generated message in a code block for easy copying:
 
 ```bash
 # Generate commit message for staged changes
-/rd2:task-gitmsg
+/rd2:tasks-gitmsg
 
 # Generate message for amending most recent commit
-/rd2:task-gitmsg --amend
+/rd2:tasks-gitmsg --amend
 
 # Generate breaking change message (MAJOR version)
-/rd2:task-gitmsg --breaking
+/rd2:tasks-gitmsg --breaking
 ```
 
 **After generating**, manually commit with:
