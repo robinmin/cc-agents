@@ -1,0 +1,103 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-29T12:45:00Z",
+  "article": "/path/to/articles/microservices-guide.md",
+  "article_word_count": 2500,
+  "images_generated": 5,
+  "positions_detected": 7,
+  "positions_selected": 5,
+  "generation_summary": {
+    "abstract_concept": 2,
+    "information_dense": 2,
+    "emotional_transition": 1
+  },
+  "images": [
+    {
+      "id": "img-001",
+      "position": "line 45",
+      "position_type": "abstract_concept",
+      "prompt": "Microservices architecture diagram showing API gateway routing requests to multiple independent services, clean technical illustration, precise lines, professional diagram style",
+      "file": "images/microservices-architecture.png",
+      "alt_text": "Diagram showing microservices architecture with API gateway, independent services with databases, and message queue communication",
+      "reason": "Complex technical concept (microservices architecture) requires visual explanation for clarity",
+      "style": "technical-diagram",
+      "resolution": "800x600",
+      "created_at": "2026-01-29T12:30:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "11.8s"
+    },
+    {
+      "id": "img-002",
+      "position": "line 80",
+      "position_type": "information_dense",
+      "prompt": "API endpoints reference table visualization, showing GET /users, POST /users, PUT /users/{id}, DELETE /users/{id} with organized layout, technical diagram style",
+      "file": "images/api-endpoints-reference.png",
+      "alt_text": "Visual reference diagram showing API endpoints for user management with methods and descriptions",
+      "reason": "7-column API reference table needs visual organization for better readability",
+      "style": "technical-diagram",
+      "resolution": "1024x768",
+      "created_at": "2026-01-29T12:32:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "13.2s"
+    },
+    {
+      "id": "img-003",
+      "position": "line 120",
+      "position_type": "abstract_concept",
+      "prompt": "Service discovery mechanism diagram showing services registering with discovery service and clients querying for service instances, technical illustration with clear flow",
+      "file": "images/service-discovery.png",
+      "alt_text": "Diagram showing service discovery mechanism with registration and query flows",
+      "reason": "Abstract concept (service discovery) requires visual explanation of the dynamic registration and lookup process",
+      "style": "technical-diagram",
+      "resolution": "800x600",
+      "created_at": "2026-01-29T12:34:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "12.5s"
+    },
+    {
+      "id": "img-004",
+      "position": "line 150",
+      "position_type": "emotional_transition",
+      "prompt": "Visual transition image for Best Practices section, minimalist design with clean lines, professional aesthetic, subtle geometric elements",
+      "file": "images/best-practices-transition.png",
+      "alt_text": "Minimalist transition image marking the Best Practices section",
+      "reason": "Major section break (## Best Practices) benefits from visual transition to improve narrative flow",
+      "style": "minimalist",
+      "resolution": "800x400",
+      "created_at": "2026-01-29T12:36:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "10.1s"
+    },
+    {
+      "id": "img-005",
+      "position": "line 180",
+      "position_type": "information_dense",
+      "prompt": "Configuration options organized visualization, showing timeout, retry_max, backoff_factor, circuit_breaker, cache_ttl settings in structured layout, sketch style",
+      "file": "images/configuration-options.png",
+      "alt_text": "Organized visualization of microservices configuration options with clear grouping",
+      "reason": "12-item configuration options list needs visual organization for quick reference",
+      "style": "sketch",
+      "resolution": "1024x768",
+      "created_at": "2026-01-29T12:38:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "14.7s"
+    }
+  ],
+  "generation_stats": {
+    "total_generation_time": "62.3s",
+    "average_generation_time": "12.46s",
+    "total_file_size": "8.9 MB",
+    "styles_used": {
+      "technical-diagram": 3,
+      "minimalist": 1,
+      "sketch": 1
+    },
+    "resolutions_used": {
+      "800x600": 2,
+      "800x400": 1,
+      "1024x768": 2
+    }
+  },
+  "article_output": "/path/to/articles/microservices-guide-illustrated.md",
+  "backup_path": "/path/to/articles/microservices-guide.md.backup"
+}

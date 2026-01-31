@@ -1,0 +1,113 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-30T10:00:00Z",
+  "research_type": "systematic",
+  "time_range": "2024-2026",
+  "sources": [
+    {
+      "id": "src-001",
+      "title": "Documentation Best Practices",
+      "type": "industry-guide",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-30T10:00:00Z",
+      "confidence": "HIGH",
+      "key_findings": [
+        "Clarity, accuracy, completeness, examples as core principles",
+        "Audience-aware writing is essential"
+      ]
+    },
+    {
+      "id": "src-002",
+      "title": "The Cost of Poor Documentation",
+      "type": "research-study",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-30T10:00:00Z",
+      "confidence": "HIGH",
+      "key_findings": [
+        "30% of development time spent understanding code",
+        "2-3x longer onboarding without good docs"
+      ]
+    },
+    {
+      "id": "src-003",
+      "title": "Documentation as Code",
+      "type": "methodology",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-30T10:00:00Z",
+      "confidence": "HIGH",
+      "key_findings": [
+        "Version control for documentation",
+        "Automated generation",
+        "CI/CD integration"
+      ]
+    },
+    {
+      "id": "src-004",
+      "title": "Types of Documentation",
+      "type": "taxonomy",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-30T10:00:00Z",
+      "confidence": "HIGH",
+      "key_findings": [
+        "API, architecture, inline, README, tutorials",
+        "Different types serve different purposes"
+      ]
+    },
+    {
+      "id": "src-005",
+      "title": "Documentation Tools",
+      "type": "tool-survey",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-30T10:00:00Z",
+      "confidence": "HIGH",
+      "key_findings": [
+        "Static site generators",
+        "API documentation tools",
+        "Diagramming tools"
+      ]
+    },
+    {
+      "id": "src-006",
+      "title": "Measuring Documentation Quality",
+      "type": "metrics-framework",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-30T10:00:00Z",
+      "confidence": "MEDIUM",
+      "key_findings": [
+        "Coverage, readability, currency, usage metrics",
+        "Industry standardization still evolving"
+      ]
+    },
+    {
+      "id": "src-007",
+      "title": "Building a Documentation Culture",
+      "type": "organizational-research",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-30T10:00:00Z",
+      "confidence": "HIGH",
+      "key_findings": [
+        "Leadership modeling",
+        "Process integration",
+        "Training and recognition"
+      ]
+    },
+    {
+      "id": "src-008",
+      "title": "Future Trends in Documentation",
+      "type": "trend-analysis",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-30T10:00:00Z",
+      "confidence": "MEDIUM",
+      "key_findings": [
+        "AI-assisted documentation",
+        "Interactive documentation",
+        "Real-time updates"
+      ]
+    }
+  ],
+  "confidence_distribution": {
+    "HIGH": 6,
+    "MEDIUM": 2,
+    "LOW": 0
+  }
+}

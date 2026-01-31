@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-28T00:00:00Z",
+  "collections": [
+    {
+      "id": "technical-tutorials",
+      "name": "Technical Tutorials",
+      "description": "Step-by-step technical tutorials for developers",
+      "path": "repository/collections/technical-tutorials",
+      "created_at": "2026-01-28",
+      "updated_at": "2026-01-28",
+      "topic_count": 0,
+      "published_count": 0,
+      "tags": ["tutorial", "technical", "developer"]
+    },
+    {
+      "id": "architecture-guides",
+      "name": "Architecture Guides",
+      "description": "System architecture and design pattern guides",
+      "path": "repository/collections/architecture-guides",
+      "created_at": "2026-01-28",
+      "updated_at": "2026-01-28",
+      "topic_count": 0,
+      "published_count": 0,
+      "tags": ["architecture", "design", "patterns"]
+    }
+  ],
+  "templates": [
+    {
+      "id": "default",
+      "name": "Default Template",
+      "description": "Standard technical content template",
+      "path": "repository/collections/template"
+    }
+  ]
+}

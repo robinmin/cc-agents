@@ -1,0 +1,64 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-01-30T10:00:00Z",
+  "generator": "scripts/outline-generator.py",
+  "source_research": "1-research/research-brief.md",
+  "parameters": {
+    "num_options": 3,
+    "length": "long",
+    "styles": [
+      "traditional-structured",
+      "narrative-story-driven",
+      "technical-deep-dive"
+    ],
+    "target_word_counts": {
+      "option-a": 2000,
+      "option-b": 1800,
+      "option-c": 2500
+    }
+  },
+  "options": [
+    {
+      "id": "a",
+      "style": "traditional-structured",
+      "file": "outline-option-a.md",
+      "estimated_sections": 11,
+      "estimated_word_count": 2000,
+      "focus": "hierarchical organization, comprehensive reference"
+    },
+    {
+      "id": "b",
+      "style": "narrative-story-driven",
+      "file": "outline-option-b.md",
+      "estimated_sections": 11,
+      "estimated_word_count": 1800,
+      "focus": "engaging storytelling, real-world examples"
+    },
+    {
+      "id": "c",
+      "style": "technical-deep-dive",
+      "file": "outline-option-c.md",
+      "estimated_sections": 12,
+      "estimated_word_count": 2500,
+      "focus": "comprehensive technical depth, implementation"
+    }
+  ],
+  "selection": {
+    "selected_option": "b",
+    "approved_at": "2026-01-30T10:30:00Z",
+    "approved_by": "Content Creator",
+    "reason": "Engaging, relatable approach that resonates with developer experiences"
+  },
+  "output_files": {
+    "options": [
+      "outline-option-a.md",
+      "outline-option-b.md",
+      "outline-option-c.md"
+    ],
+    "approved": "outline-approved.md",
+    "materials": [
+      "materials/prompts-used.md",
+      "materials/generation-params.json"
+    ]
+  }
+}

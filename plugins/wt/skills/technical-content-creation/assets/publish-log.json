@@ -1,0 +1,57 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-28T00:00:00Z",
+  "description": "Publication history and tracking for technical content",
+  "publications": [
+    {
+      "id": "pub-001",
+      "platform": "blog",
+      "url": "https://example.com/blog/article-slug",
+      "published_at": "2026-01-28T00:00:00Z",
+      "status": "draft | published | scheduled",
+      "version": "1.0.0",
+      "notes": "Initial publication"
+    }
+  ],
+  "adaptations": [
+    {
+      "platform": "twitter",
+      "created_at": "2026-01-28T00:00:00Z",
+      "file": "5-adaptation/article-twitter.md",
+      "status": "draft | completed"
+    },
+    {
+      "platform": "linkedin",
+      "created_at": "2026-01-28T00:00:00Z",
+      "file": "5-adaptation/article-linkedin.md",
+      "status": "draft | completed"
+    },
+    {
+      "platform": "devto",
+      "created_at": "2026-01-28T00:00:00Z",
+      "file": "5-adaptation/article-devto.md",
+      "status": "draft | completed"
+    }
+  ],
+  "images": [
+    {
+      "id": "img-001",
+      "prompt": "Image generation prompt for AI image generators",
+      "file": "4-illustration/images/featured-image.png",
+      "alt_text": "Alternative text for accessibility",
+      "caption": "Image caption",
+      "created_at": "2026-01-28T00:00:00Z",
+      "resolution": "1920x1080",
+      "status": "draft | generated | approved"
+    }
+  ],
+  "updates": [
+    {
+      "id": "update-001",
+      "type": "correction | enhancement | formatting",
+      "description": "Description of the update",
+      "date": "2026-01-28T00:00:00Z",
+      "version": "1.0.1"
+    }
+  ]
+}

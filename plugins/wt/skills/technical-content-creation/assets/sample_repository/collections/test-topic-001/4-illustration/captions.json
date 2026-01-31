@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-28T10:00:00Z",
+  "captions": [
+    {
+      "id": "cap-001",
+      "image": "images/ai-coding-workflow.png",
+      "caption": "AI Coding Best Practices Workflow",
+      "alt_text": "Diagram showing the workflow for using AI coding assistants effectively",
+      "created_at": "2026-01-28T10:00:00Z"
+    }
+  ]
+}

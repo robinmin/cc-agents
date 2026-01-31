@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-30T10:00:00Z",
+  "topic": "effective-code-documentation",
+  "materials": [
+    {
+      "id": "mat-001",
+      "file": "materials-extracted.md",
+      "source": "source.md",
+      "source_type": "file",
+      "extracted_at": "2026-01-30T10:00:00Z",
+      "word_count": 1250,
+      "confidence": "HIGH",
+      "aspects": [
+        "best-practices",
+        "costs-benefits",
+        "tools-techniques",
+        "culture-process",
+        "future-trends"
+      ]
+    }
+  ],
+  "total_sources": 8,
+  "total_word_count": 1250,
+  "average_confidence": "HIGH"
+}

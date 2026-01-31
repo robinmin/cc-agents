@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-28T10:00:00Z",
+  "materials": [
+    {
+      "id": "mat-001",
+      "file": "materials-extracted.md",
+      "source": "sample-source.md",
+      "source_type": "file",
+      "aspect": null,
+      "extracted_at": "2026-01-28T10:00:00Z",
+      "word_count": 250,
+      "confidence": "HIGH"
+    }
+  ]
+}

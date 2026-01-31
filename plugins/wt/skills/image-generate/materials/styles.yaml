@@ -1,0 +1,22 @@
+# Style Modifiers Configuration
+# This file maps style names to their prompt modifiers for image generation.
+# Users can add custom styles by adding entries to this file.
+#
+# Format:
+#   style-name: "comma-separated prompt modifiers"
+#
+# To add a custom style:
+# 1. Add a new entry below with your style name and modifiers
+# 2. Use the style name in your template frontmatter
+
+styles:
+  technical-diagram: "clean technical illustration, precise lines, professional diagram style"
+  minimalist: "minimalist design, clean lines, simple aesthetic, plenty of whitespace"
+  vibrant: "bold colors, high contrast, vibrant and energetic, eye-catching"
+  sketch: "hand-drawn sketch style, artistic, pencil drawing feel, organic lines"
+  photorealistic: "photorealistic, highly detailed, realistic lighting, professional photography"
+
+# Example custom styles (commented out):
+#   cyberpunk: "neon lights, cybernetic elements, futuristic cityscape, high tech aesthetic"
+#   watercolor: "soft watercolor painting, artistic brush strokes, pastel colors, dreamy atmosphere"
+#   pixel-art: "retro pixel art style, 8-bit aesthetic, blocky shapes, limited color palette"

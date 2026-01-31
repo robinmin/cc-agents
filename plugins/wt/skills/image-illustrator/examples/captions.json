@@ -1,0 +1,116 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-30T10:00:00Z",
+  "article": "/Users/robin/projects/cc-agents/plugins/wt/skills/image-illustrator/examples/article-before.md",
+  "article_output": "/Users/robin/projects/cc-agents/plugins/wt/skills/image-illustrator/examples/article-after.md",
+  "article_word_count": 1850,
+  "images_generated": 5,
+  "positions_detected": 8,
+  "positions_selected": 5,
+  "generation_summary": {
+    "abstract_concept": 2,
+    "information_dense": 2,
+    "emotional_transition": 1
+  },
+  "images": [
+    {
+      "id": "img-001",
+      "position": "line 23",
+      "position_type": "abstract_concept",
+      "prompt": "Microservices architecture diagram showing API gateway routing requests to multiple independent services, each service owning its database, and services communicating through message queues, clean technical illustration, precise lines, professional diagram style",
+      "file": "images/microservices-architecture.png",
+      "alt_text": "Diagram showing microservices architecture with API gateway, independent services with databases, and message queue communication",
+      "reason": "Complex technical concept (microservices architecture) requires visual explanation for clarity",
+      "style": "technical-diagram",
+      "resolution": "800x600",
+      "created_at": "2026-01-30T10:00:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "11.8s"
+    },
+    {
+      "id": "img-002",
+      "position": "line 45",
+      "position_type": "abstract_concept",
+      "prompt": "Service discovery mechanism diagram showing both client-side and server-side discovery patterns, with service registry, load balancer, and service instances clearly labeled, technical illustration with clear flow",
+      "file": "images/service-discovery.png",
+      "alt_text": "Diagram showing service discovery mechanism with client-side and server-side patterns, service registry, and load balancer",
+      "reason": "Abstract concept (service discovery) requires visual explanation of the dynamic registration and lookup process",
+      "style": "technical-diagram",
+      "resolution": "800x600",
+      "created_at": "2026-01-30T10:02:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "12.5s"
+    },
+    {
+      "id": "img-003",
+      "position": "line 62",
+      "position_type": "information_dense",
+      "prompt": "Visual reference diagram showing API endpoints for user management, organized by HTTP method with clear visual hierarchy and color coding, GET, POST, PUT, DELETE operations with endpoints and descriptions",
+      "file": "images/api-endpoints-reference.png",
+      "alt_text": "Visual reference diagram showing API endpoints for user management with HTTP methods and descriptions",
+      "reason": "7-column API reference table needs visual organization for better readability",
+      "style": "technical-diagram",
+      "resolution": "1024x768",
+      "created_at": "2026-01-30T10:04:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "13.2s"
+    },
+    {
+      "id": "img-004",
+      "position": "line 79",
+      "position_type": "abstract_concept",
+      "prompt": "Communication patterns diagram showing synchronous REST calls, asynchronous message passing, event-driven architecture with event emitters and consumers, and gRPC streaming, organized layout showing all patterns",
+      "file": "images/communication-patterns.png",
+      "alt_text": "Diagram showing various microservices communication patterns including REST, messaging, events, and gRPC",
+      "reason": "Multiple communication patterns listed require visual comparison and understanding",
+      "style": "technical-diagram",
+      "resolution": "800x600",
+      "created_at": "2026-01-30T10:06:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "14.1s"
+    },
+    {
+      "id": "img-005",
+      "position": "line 92",
+      "position_type": "information_dense",
+      "prompt": "Configuration options organized visualization showing timeout settings, retry configuration, circuit breaker settings, cache settings, health check parameters, and connection pool options in structured layout with clear grouping",
+      "file": "images/configuration-options.png",
+      "alt_text": "Organized visualization of microservices configuration options with clear grouping by category",
+      "reason": "12-item configuration options list needs visual organization for quick reference",
+      "style": "sketch",
+      "resolution": "1024x768",
+      "created_at": "2026-01-30T10:08:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "14.7s"
+    },
+    {
+      "id": "img-006",
+      "position": "line 112",
+      "position_type": "emotional_transition",
+      "prompt": "Minimalist transition image marking the Best Practices section with clean lines, professional aesthetic, subtle geometric elements, 800x400 wide banner style",
+      "file": "images/best-practices-transition.png",
+      "alt_text": "Minimalist transition image marking the Best Practices section",
+      "reason": "Major section break (## Best Practices) benefits from visual transition to improve narrative flow",
+      "style": "minimalist",
+      "resolution": "800x400",
+      "created_at": "2026-01-30T10:10:00Z",
+      "generation_method": "mcp_huggingface",
+      "generation_time": "10.1s"
+    }
+  ],
+  "generation_stats": {
+    "total_generation_time": "76.4s",
+    "average_generation_time": "12.73s",
+    "total_file_size": "10.2 MB",
+    "styles_used": {
+      "technical-diagram": 4,
+      "sketch": 1,
+      "minimalist": 1
+    },
+    "resolutions_used": {
+      "800x600": 3,
+      "800x400": 1,
+      "1024x768": 2
+    }
+  }
+}

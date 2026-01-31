@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-28T10:00:00Z",
+  "sources": [
+    {
+      "id": "src-001",
+      "title": "AI Coding Best Practices - Source Material",
+      "url": "file://sample-source.md",
+      "type": "documentation",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-28T10:00:00Z"
+    }
+  ],
+  "research_type": "systematic",
+  "time_range": "2024-2026",
+  "confidence": "HIGH"
+}

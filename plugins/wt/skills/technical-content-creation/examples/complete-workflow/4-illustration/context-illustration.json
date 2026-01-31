@@ -1,0 +1,37 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-01-30T12:00:00Z",
+  "article": "3-draft/draft-article.md",
+  "positions": [
+    {
+      "line": 45,
+      "section": "The Documentation Crisis",
+      "type": "abstract_concept",
+      "description": "Visual metaphor for the gap between code and documentation",
+      "prompt": "Conceptual illustration showing the gap between undocumented code and understanding, visual metaphor for technical debt in software development, clean minimalist style with blue and gray color scheme",
+      "reason": "Abstract concept of 'documentation crisis' needs visual representation"
+    },
+    {
+      "line": 120,
+      "section": "Real-World Examples",
+      "type": "information_dense",
+      "description": "Comparison infographic showing good vs. bad API documentation",
+      "prompt": "Infographic comparison showing bad API documentation vs good API documentation, side-by-side comparison with clear visual distinction, professional technical diagram style, includes code snippet examples",
+      "reason": "Information-dense section benefits from visual comparison"
+    },
+    {
+      "line": 180,
+      "section": "Building a Culture of Documentation",
+      "type": "emotional_transition",
+      "description": "Team collaboration around documentation",
+      "prompt": "Diverse team of developers collaborating on documentation together, positive workplace culture, modern office setting with people working at computers and discussing documentation, warm and inclusive atmosphere",
+      "reason": "Emotional transition to human/cultural aspect of documentation"
+    }
+  ],
+  "total_positions": 3,
+  "distribution": {
+    "abstract_concept": 1,
+    "information_dense": 1,
+    "emotional_transition": 1
+  }
+}

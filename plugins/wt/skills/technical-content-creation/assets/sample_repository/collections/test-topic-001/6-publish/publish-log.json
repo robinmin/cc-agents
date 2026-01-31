@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-28T10:00:00Z",
+  "publications": [
+    {
+      "id": "pub-001",
+      "platform": "blog",
+      "url": "article.md",
+      "published_at": "2026-01-28T10:00:00Z",
+      "status": "published",
+      "version": "1.0.0",
+      "notes": "Initial publication"
+    }
+  ]
+}

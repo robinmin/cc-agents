@@ -1,0 +1,57 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-30T12:00:00Z",
+  "article": "3-draft/draft-article.md",
+  "cover": {
+    "file": "cover.png",
+    "prompt": "Professional code documentation workspace with clean interface, showing code alongside documentation, modern tech aesthetic with subtle blue accent colors",
+    "style": "technical",
+    "aspect_ratio": "2.35:1",
+    "dimensions": "1920x817",
+    "generated_by": "wt:image-cover",
+    "alt_text": "Professional workspace showing code editor with documentation panel, demonstrating effective code documentation setup"
+  },
+  "images": [
+    {
+      "id": "img-001",
+      "position": "line 45",
+      "section": "The Documentation Crisis",
+      "type": "abstract_concept",
+      "prompt": "Conceptual illustration showing the gap between undocumented code and understanding, visual metaphor for technical debt in software development",
+      "file": "images/documentation-gap.png",
+      "alt_text": "Visual metaphor representing the gap between undocumented code and developer understanding, illustrating the documentation crisis",
+      "generated_by": "wt:image-illustrator",
+      "created_at": "2026-01-30T12:00:00Z",
+      "dimensions": "1024x768"
+    },
+    {
+      "id": "img-002",
+      "position": "line 120",
+      "section": "Real-World Examples",
+      "type": "information_dense",
+      "prompt": "Infographic comparison showing bad API documentation vs good API documentation, side-by-side comparison with clear visual distinction",
+      "file": "images/good-vs-bad-docs.png",
+      "alt_text": "Infographic comparing bad API documentation with good API documentation, showing clear visual distinction and best practices",
+      "generated_by": "wt:image-illustrator",
+      "created_at": "2026-01-30T12:00:00Z",
+      "dimensions": "1200x800"
+    },
+    {
+      "id": "img-003",
+      "position": "line 180",
+      "section": "Building a Culture of Documentation",
+      "type": "emotional_transition",
+      "prompt": "Diverse team of developers collaborating on documentation together, positive workplace culture",
+      "file": "images/doc-culture.png",
+      "alt_text": "Illustration of diverse team of developers collaborating on documentation, showing positive workplace culture and teamwork",
+      "generated_by": "wt:image-illustrator",
+      "created_at": "2026-01-30T12:00:00Z",
+      "dimensions": "1024x768"
+    }
+  ],
+  "total_images": 4,
+  "image_skills_used": [
+    "wt:image-cover",
+    "wt:image-illustrator"
+  ]
+}

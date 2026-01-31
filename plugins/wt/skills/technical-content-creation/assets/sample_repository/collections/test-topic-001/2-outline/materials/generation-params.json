@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-01-28T10:00:00Z",
+  "research_brief": "1-research/research-brief.md",
+  "length": "long",
+  "options_requested": 3,
+  "options": [
+    {
+      "option": "a",
+      "style": "traditional-structured",
+      "description": "Hierarchical, logical progression",
+      "file": "outline-option-a.md",
+      "status": "generated"
+    },
+    {
+      "option": "b",
+      "style": "narrative-story-driven",
+      "description": "Storytelling, engaging flow",
+      "file": "outline-option-b.md",
+      "status": "generated"
+    },
+    {
+      "option": "c",
+      "style": "technical-deep-dive",
+      "description": "Comprehensive, detail-oriented",
+      "file": "outline-option-c.md",
+      "status": "generated"
+    }
+  ],
+  "selected_option": "a",
+  "approved_at": "2026-01-28T10:05:00Z",
+  "approved_by": "Test User"
+}

@@ -1,0 +1,152 @@
+---
+name: create-backward-compatibility-aliases
+description: Create backward compatibility aliases for all renamed wt plugin commands
+status: Done
+created_at: 2026-01-30
+updated_at: 2026-01-30
+impl_progress:
+  planning: completed
+  design: completed
+  implementation: completed
+  review: completed
+  testing: completed
+dependencies: [0126, 0127, 0128, 0129, 0130]
+tags: [wt, commands, aliases, backward-compatibility]
+---
+
+## 0131. Create Backward Compatibility Aliases
+
+### Background
+
+The wt plugin is renaming commands for consistency with the new `topic-*` namespace. To avoid breaking existing workflows and user habits, backward compatibility aliases must be created for all renamed commands.
+
+This task ensures users can continue using old command names (`/wt:doc-outline`, `/wt:doc-style`, `/wt:doc-adapt`, `/wt:doc-publish`, `/wt:image-gen`, `/wt:image-generate`) while the system redirects to the new names.
+
+This task implements the design from `/Users/robin/projects/cc-agents/docs/plans/2026-01-30-it-writer-agent-redesign.md` which specifies creating aliases for backward compatibility.
+
+### Requirements
+
+**Functional Requirements:**
+- Create alias files for all renamed commands
+- Each alias should redirect to the new command name
+- Include deprecation notice in alias files
+- Preserve all argument passing functionality
+
+**Non-Functional Requirements:**
+- Aliases should be transparent to users (same behavior as new commands)
+- Clear migration path documented in each alias
+- No performance overhead for alias resolution
+
+**Acceptance Criteria:**
+- [ ] Alias file created: `plugins/wt/commands/doc-outline.md` → redirects to `topic-outline`
+- [ ] Alias file created: `plugins/wt/commands/doc-style.md` → redirects to `topic-draft`
+- [ ] Alias file created: `plugins/wt/commands/doc-adapt.md` → redirects to `topic-adapt`
+- [ ] Alias file created: `plugins/wt/commands/doc-publish.md` → redirects to `topic-publish`
+- [ ] Alias file created: `plugins/wt/commands/image-gen.md` → redirects to `topic-illustrate`
+- [ ] Alias file created: `plugins/wt/commands/image-generate.md` → redirects to `topic-illustrate`
+- [ ] All alias files include deprecation notice
+- [ ] All alias files include migration path documentation
+- [ ] All aliases pass through arguments correctly
+
+### Q&A
+
+**Q:** Should aliases use redirects or duplicated content?
+**A:** Aliases should be minimal wrapper files with clear deprecation notices and redirection to the new command. The actual content should not be duplicated.
+
+**Q:** How should the deprecation notice be formatted?
+**A:** Use a clear, visible deprecation warning at the top of the file with the new command name and migration instructions.
+
+### Design
+
+**Technology Stack:**
+- Markdown alias files with frontmatter
+- Content pattern: deprecation notice + redirect instruction
+
+**Implementation Approach:**
+1. Create alias file for each renamed command
+2. Include frontmatter pointing to new command
+3. Include deprecation notice with migration instructions
+4. Include brief usage example showing new command
+
+**Alias File Template:**
+```yaml
+---
+description: [DEPRECATED] Use /wt:{new-command} instead. Redirects to {new-command}.
+argument-hint: [DEPRECATED] See /wt:{new-command} for arguments
+---
+
+# {Old Command Name}
+
+**DEPRECATED:** This command has been renamed to `/wt:{new-command}`.
+
+## Migration
+
+Replace `/wt:{old-command}` with `/wt:{new-command}` in your workflows.
+
+**Example:**
+```bash
+# Old (deprecated)
+/wt:{old-command} <args>
+
+# New (use this instead)
+/wt:{new-command} <args>
+```
+
+---
+
+This command now redirects to `/wt:{new-command}`. Please update your workflows to use the new command name.
+```
+
+### Plan
+
+1. **Create doc-outline Alias**
+   - [ ] Create `plugins/wt/commands/doc-outline.md` alias file
+   - [ ] Add deprecation notice
+   - [ ] Add redirect to `topic-outline`
+   - [ ] Add migration examples
+
+2. **Create doc-style Alias**
+   - [ ] Create `plugins/wt/commands/doc-style.md` alias file
+   - [ ] Add deprecation notice
+   - [ ] Add redirect to `topic-draft`
+   - [ ] Add migration examples
+
+3. **Create doc-adapt Alias**
+   - [ ] Create `plugins/wt/commands/doc-adapt.md` alias file
+   - [ ] Add deprecation notice
+   - [ ] Add redirect to `topic-adapt`
+   - [ ] Add migration examples
+
+4. **Create doc-publish Alias**
+   - [ ] Create `plugins/wt/commands/doc-publish.md` alias file
+   - [ ] Add deprecation notice
+   - [ ] Add redirect to `topic-publish`
+   - [ ] Add migration examples
+
+5. **Create image-gen Alias**
+   - [ ] Create `plugins/wt/commands/image-gen.md` alias file
+   - [ ] Add deprecation notice
+   - [ ] Add redirect to `topic-illustrate`
+   - [ ] Add migration examples
+
+6. **Create image-generate Alias**
+   - [ ] Create `plugins/wt/commands/image-generate.md` alias file
+   - [ ] Add deprecation notice
+   - [ ] Add redirect to `topic-illustrate`
+   - [ ] Add migration examples
+
+### Artifacts
+
+| Type | Path | Generated By | Date |
+|------|------|--------------|------|
+| Alias | `/Users/robin/projects/cc-agents/plugins/wt/commands/doc-outline.md` | super-planner | 2026-01-30 |
+| Alias | `/Users/robin/projects/cc-agents/plugins/wt/commands/doc-style.md` | super-planner | 2026-01-30 |
+| Alias | `/Users/robin/projects/cc-agents/plugins/wt/commands/doc-adapt.md` | super-planner | 2026-01-30 |
+| Alias | `/Users/robin/projects/cc-agents/plugins/wt/commands/doc-publish.md` | super-planner | 2026-01-30 |
+| Alias | `/Users/robin/projects/cc-agents/plugins/wt/commands/image-gen.md` | super-planner | 2026-01-30 |
+| Alias | `/Users/robin/projects/cc-agents/plugins/wt/commands/image-generate.md` | super-planner | 2026-01-30 |
+
+### References
+
+- Design document: `/Users/robin/projects/cc-agents/docs/plans/2026-01-30-it-writer-agent-redesign.md`
+- Related tasks: 0126, 0127, 0128, 0129, 0130

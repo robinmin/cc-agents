@@ -1,0 +1,14 @@
+# Technical Content Creation - Python Dependencies
+#
+# Note: Dependencies are managed in the centralized pyproject.toml at the project root.
+# Install with uv from the project root:
+#   uv sync
+#
+# Or install directly:
+#   uv pip install jsoncomment>=0.4.0
+
+# Required dependency:
+jsoncomment>=0.4.0  # JSONC (JSON with Comments) parsing for config files
+
+# Note: pathlib, json, re, datetime are all standard library modules
+# and do not require external installation.

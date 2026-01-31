@@ -1,0 +1,53 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-30T10:00:00Z",
+  "topic": "effective-code-documentation",
+  "publications": [
+    {
+      "id": "pub-001",
+      "platform": "blog",
+      "url": "https://example.com/blog/effective-code-documentation",
+      "published_at": "2026-01-30T10:00:00Z",
+      "status": "published",
+      "version": "1.0.0",
+      "word_count": 1850,
+      "reading_time": 8,
+      "images_included": true,
+      "image_count": 4,
+      "notes": "Initial publication with cover image and 3 inline illustrations"
+    }
+  ],
+  "adaptations": [
+    {
+      "platform": "twitter",
+      "file": "5-adaptation/article-twitter.md",
+      "published_at": "2026-01-30T11:00:00Z",
+      "status": "published",
+      "thread_length": 5,
+      "character_count": 715,
+      "includes_images": true
+    },
+    {
+      "platform": "linkedin",
+      "file": "5-adaptation/article-linkedin.md",
+      "published_at": "2026-01-30T12:00:00Z",
+      "status": "published",
+      "includes_images": true
+    },
+    {
+      "platform": "devto",
+      "file": "5-adaptation/article-devto.md",
+      "published_at": "2026-01-30T12:30:00Z",
+      "status": "published",
+      "tags": ["documentation", "bestpractices", "developerexperience", "softwaredevelopment"]
+    }
+  ],
+  "statistics": {
+    "total_publications": 4,
+    "total_reach_estimated": 5000,
+    "images_generated": 4,
+    "word_count": 1850
+  },
+  "workflow_complete": true,
+  "all_stages_completed": true
+}

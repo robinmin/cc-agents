@@ -1,0 +1,38 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-01-30T12:00:00Z",
+  "article": "3-draft/draft-article.md",
+  "title": "Effective Code Documentation",
+  "content_analysis": {
+    "themes": [
+      "documentation",
+      "code quality",
+      "developer experience",
+      "team collaboration",
+      "best practices"
+    ],
+    "tone": "professional yet approachable",
+    "style": "technical",
+    "target_audience": "software developers"
+  },
+  "cover_prompt": {
+    "primary": "Professional code documentation workspace with clean interface, showing code alongside documentation, modern tech aesthetic with subtle blue accent colors",
+    "elements": [
+      "Code editor with well-documented function",
+      "Documentation preview panel",
+      "Clean, minimalist workspace",
+      "Modern technology aesthetic"
+    ],
+    "style": "technical",
+    "aspect_ratio": "2.35:1",
+    "mood": "professional, clear, organized"
+  },
+  "detected_style": "technical",
+  "generation_params": {
+    "width": 1920,
+    "height": 817,
+    "backend": "huggingface",
+    "steps": 50,
+    "style": "technical-diagram"
+  }
+}
