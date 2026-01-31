@@ -8,6 +8,11 @@ dependencies = [
     "pytest>=9.0.2",
     "pytest-cov>=6.0.0",
     "freezegun>=1.5.1",
+    "requests>=2.32.5",
+    "pillow>=12.1.0",
+    "google-genai>=1.60.0",
+    "pyyaml>=6.0.3",
+    "jsoncomment>=0.4.0",
 ]
 
 [tool.mypy]
