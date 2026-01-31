@@ -1,13 +1,7 @@
 ---
 name: frontend-design
-description: Frontend architecture patterns and implementation guidance for 2024-2025. Use when designing frontend component structure, state management, data fetching, routing, performance optimization (Core Web Vitals), or testing strategies for web applications. Use when frontend architecture decisions are needed.
-
-**Sources:**
-- [React & Next.js in 2025 - Modern Best Practices (Strapi, 2025)](https://strapi.io/blog/react-and-nextjs-in-2025-modern-best-practices)
-- [Next.js 16: An Engineer's Perspective on Frontend Architecture (Medium, 2025)](https://medium.com/@narayanansundar02/next-js-16-a-engineers-perspective-on-the-future-of-frontend-architecture-5de0ac17f6fb)
-- [Mastering the Most Useful Next.js and React Features for 2025 (Dev.to, 2024)](https://dev.to/golsaesk/mastering-the-most-useful-nextjs-and-react-features-for-2025-4g60)
-- [React Tech Stack [2025] (Robin Wieruch, 2024)](https://www.robinwieruch.de/react-tech-stack/)
-- [Frontend Tech Stack Evolution 2024-2025 (LinkedIn)](https://www.linkedin.com/posts/sanchit0496_reactjs-nextjs-javascript-activity-7320785137766424576-H715)
+description: This skill should be used when the user asks to "design component architecture", "plan state management", "optimize Core Web Vitals", "implement Server Components", "configure data fetching", "design routing structure", "plan testing strategy", "choose component library", or mentions React Query, Zustand, Next.js App Router, Server Actions, shadcn/ui, or frontend performance optimization.
+version: 1.1.0
 ---
 
 # Frontend Design
@@ -16,7 +10,16 @@ Frontend architecture patterns and implementation guidance for building scalable
 
 ## Overview
 
-This skill provides architectural guidance for frontend development, covering component design, state management, data fetching, performance (Core Web Vitals), and testing. It complements `ui-ux-design` (visual/UX patterns) and `super-designer` (comprehensive design specs).
+This skill provides architectural guidance for frontend development, covering component design, state management, data fetching, performance (Core Web Vitals), and testing.
+
+**Layered Architecture:**
+- **Layer 1 (Quick Reference)** - Decision matrices and cheat sheets for rapid lookup
+- **Layer 2 (Workflows)** - Step-by-step architectural design processes
+- **Layer 3 (Deep Dives)** - Comprehensive documentation in `references/`
+
+**For visual/UX design**, use `rd2:ui-ux-design` skill.
+
+**For comprehensive design specifications**, use `/rd2:tasks-plan --design` command which invokes the super-designer agent.
 
 ## Quick Start
 
@@ -51,685 +54,319 @@ This skill provides architectural guidance for frontend development, covering co
 - Implementing Server Components vs Client Components
 - Planning Server Actions and mutations
 
-**For visual/UX design**, use `rd2:ui-ux-design` skill.
+## Workflows
 
-**For comprehensive design specifications**, use `/rd2:tasks-plan --design` command which invokes the super-designer agent.
+### Design Component Architecture
 
-## Core Principles (2024-2025)
+Follow this workflow when designing component architecture:
 
-### Component-First Architecture
+```
+1. ANALYZE requirements
+   - List all UI components needed
+   - Identify shared vs feature-specific components
+   - Note interactivity requirements (state, events)
 
-- Design components as reusable, composable units
-- Separate presentation from business logic
-- Prefer composition over inheritance
-- Design for unidirectional data flow
-- **Server Components by default, Client Components when needed** [React & Next.js in 2025](https://strapi.io/blog/react-and-nextjs-in-2025-modern-best-practices)
+2. CHOOSE component types
+   - Server Component: Data fetching, no interactivity
+   - Client Component: State, events, browser APIs
 
-### Performance by Default
+3. ORGANIZE directory structure
+   - components/ui/ for shared basic components
+   - components/layout/ for layout components
+   - components/features/ for feature-specific
 
-- Core Web Vitals first-class (LCP < 2.5s, INP < 100ms, CLS < 0.1)
-- **Server Components reduce client bundle** [Next.js 16: Engineer's Perspective](https://medium.com/@narayanansundar02/next-js-16-a-engineers-perspective-on-the-future-of-frontend-architecture-5de0ac17f6fb)
-- Code splitting by route and feature
-- Lazy load non-critical resources
-- Measure before optimizing
+4. DEFINE component interfaces
+   - TypeScript props for all components
+   - Separate presentational from container components
+   - Extract reusable hooks
 
-### Developer Experience
+5. PLAN composition
+   - Use compound components for related pieces
+   - Implement render props for shared behavior
+   - Create custom hooks for reusable stateful logic
 
-- Type safety with TypeScript strict mode
-- Clear project structure
-- Consistent naming conventions
-- Comprehensive testing (unit, integration, E2E)
-
-### Progressive Enhancement
-
-- Core functionality works without JavaScript
-- Layer enhancements on top
-- Graceful degradation for older browsers
-- Accessibility built-in from start
-
-## Component Architecture
-
-### Component Design Patterns (2024-2025)
-
-**Server Components (Default)**:
-- No client-side JavaScript
-- Direct database access
-- Secure server-side logic
-- Better performance
-
-**Client Components (When Needed)**:
-- State management (useState, useReducer)
-- Browser APIs (window, localStorage)
-- Event handlers (onClick, onChange)
-- React hooks and lifecycle
-
-```tsx
-// Server Component (default in Next.js App Router)
-async function UserProfile({ userId }: { userId: string }) {
-  const user = await db.user.findUnique({ where: { id: userId } });
-  return <ProfileCard user={user} />;
-}
-
-// Client Component (for interactivity)
-'use client';
-import { useState } from 'react';
-
-export function LikeButton() {
-  const [likes, setLikes] = useState(0);
-  return <button onClick={() => setLikes(l + 1)}>{likes} Likes</button>;
-}
+6. VALIDATE architecture
+   - [ ] Each component has single responsibility
+   - [ ] Props interface is clear and minimal
+   - [ ] State is at appropriate level
+   - [ ] Components are reusable and testable
 ```
 
-### Presentational vs Container Components
+### Plan State Management Strategy
 
-**Presentational Components** (aka "dumb" components):
-- Receive data via props
-- Emit events via callbacks
-- No business logic
-- Highly reusable
+Follow this workflow when planning state management:
 
-```tsx
-// Example: Presentational component
-interface ButtonProps {
-  label: string;
-  onClick: () => void;
-  variant?: 'primary' | 'secondary';
-  disabled?: boolean;
-}
+```
+1. CATEGORIZE state types
+   - Local UI state: Component-level (useState, useReducer)
+   - Server state: API data (React Query, SWR)
+   - Global state: Cross-component (Zustand, Jotai)
+   - Form state: User input (React Hook Form + Zod)
+   - URL state: Search params, filters (URLSearchParams)
+   - Mutations: Server updates (Server Actions)
 
-export function Button({ label, onClick, variant = 'primary', disabled = false }: ButtonProps) {
-  return (
-    <button
-      className={`btn btn-${variant}`}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {label}
-    </button>
-  );
-}
+2. MAP state to solutions
+   For each state type, select the appropriate solution:
+   - Local UI: useState/useReducer in Client Components
+   - Server state: React Query with cache invalidation
+   - Global: Zustand store with actions/selectors
+   - Forms: React Hook Form with Zod validation
+   - Mutations: Server Actions with revalidatePath
+
+3. DEFINE data flow
+   - Identify data sources (API, database, user input)
+   - Plan caching strategy (staleTime, revalidation)
+   - Design optimistic updates for mutations
+   - Handle error and loading states
+
+4. MINIMIZE state
+   - Keep state as local as possible
+   - Derive values instead of storing (useMemo)
+   - Use URL for shareable state
+   - Avoid prop drilling with Context or Zustand
+
+5. VALIDATE strategy
+   - [ ] State is at lowest possible level
+   - [ ] Server state uses React Query
+   - [ ] Forms are type-safe with Zod
+   - [ ] Mutations use Server Actions
+   - [ ] No unnecessary global state
 ```
 
-**Container Components** (aka "smart" components):
-- Manage state and side effects
-- Fetch data (in Client Components) or receive data (Server Components)
-- Pass data to presentational components
-- Less reusable
+### Design Data Fetching Strategy
 
-```tsx
-// Example: Container component (Client Component)
-'use client';
-import { useState, useEffect } from 'react';
+Follow this workflow when designing data fetching:
 
-export function UserProfileContainer({ userId }: { userId: string }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchUser(userId).then(data => {
-      setUser(data);
-      setLoading(false);
-    });
-  }, [userId]);
-
-  if (loading) return <LoadingSpinner />;
-  if (!user) return <ErrorMessage />;
-
-  return <UserProfileCard user={user} />;
-}
 ```
+1. IDENTIFY data requirements
+   - Initial page load data (Server Components)
+   - User-triggered data (Client Components + React Query)
+   - Real-time updates (polling, SSE, WebSockets)
+   - Mutations with cache invalidation
+
+2. CHOOSE fetching approach
+   - Server Component: async/await with fetch (automatic caching)
+   - Client Component: React Query with query keys
+   - Real-time: SSE or WebSockets for live data
+   - Mutations: Server Actions with revalidatePath
+
+3. PLAN caching strategy
+   - Static data: revalidate: 3600 (1 hour)
+   - Dynamic data: cache: 'no-store'
+   - Tag-based: revalidateTag for bulk invalidation
+   - On-demand: revalidatePath after mutations
+
+4. DESIGN loading states
+   - Server: Suspense with loading.tsx fallbacks
+   - Client: React Query isLoading, isError states
+   - Skeletons for better perceived performance
+   - Parallel fetching with Promise.all
+
+5. HANDLE errors gracefully
+   - Error boundaries for Server Components
+   - React Query error states for client
+   - Retry logic with exponential backoff
+   - User-friendly error messages
+
+6. VALIDATE strategy
+   - [ ] Server Components used where possible
+   - [ ] React Query for client data fetching
+   - [ ] Appropriate cache duration per data type
+   - [ ] Loading states for all async operations
+   - [ ] Error handling for all failures
+```
+
+### Optimize Performance
+
+Follow this workflow when optimizing frontend performance:
+
+```
+1. MEASURE baseline
+   - Run Lighthouse audit
+   - Check Core Web Vitals (LCP, INP, CLS)
+   - Analyze bundle size with bundle analyzer
+   - Identify performance bottlenecks
+
+2. OPTIMIZE loading
+   - Use Server Components by default
+   - Lazy load below-fold components (React.lazy, dynamic)
+   - Priority load above-fold images (priority prop)
+   - Code split by route (automatic in Next.js)
+
+3. OPTIMIZE assets
+   - Use next/image for automatic optimization
+   - Enable WebP/AVIF formats
+   - Set appropriate cache headers
+   - Use CDN for static assets
+
+4. OPTIMIZE rendering
+   - Memoize expensive calculations (useMemo)
+   - Prevent unnecessary re-renders (React.memo)
+   - Virtualize large lists (@tanstack/react-virtual)
+   - Debounce/throttle event handlers
+
+5. VALIDATE improvements
+   - [ ] LCP < 2.5s (Largest Contentful Paint)
+   - [ ] INP < 200ms (Interaction to Next Paint)
+   - [ ] CLS < 0.1 (Cumulative Layout Shift)
+   - [ ] Bundle size reduced by 20%+
+   - [ ] Lighthouse score improved
+```
+
+### Plan Testing Strategy
+
+Follow this workflow when planning testing:
+
+```
+1. DEFINE testing scope
+   - Unit tests: 70% - Functions, hooks, utilities
+   - Integration tests: 20% - Component interactions
+   - E2E tests: 10% - Critical user flows
+
+2. SELECT testing tools
+   - Unit: Vitest (fast, Vite-native)
+   - Component: React Testing Library
+   - E2E: Playwright (cross-browser)
+   - Mocking: MSW (API mocking)
+
+3. PLAN test coverage
+   - Test user interactions, not implementation
+   - Cover happy path and error cases
+   - Test loading and error states
+   - Verify accessibility (a11y)
+
+4. WRITE effective tests
+   - Arrange-Act-Assert pattern
+   - Test behavior, not details
+   - Use descriptive test names
+   - Mock external dependencies
+
+5. VALIDATE strategy
+   - [ ] Unit tests for pure functions
+   - [ ] Integration tests for components
+   - [ ] E2E tests for critical flows
+   - [ ] Tests run in CI/CD pipeline
+   - [ ] Coverage threshold enforced
+```
+
+## Quick Reference Tables
+
+### Server vs Client Components
+
+| Aspect | Server Component | Client Component |
+|--------|-----------------|------------------|
+| Data fetching | Direct async/await | useEffect, React Query |
+| State | Not supported | useState, useReducer |
+| Event handlers | Not supported | onClick, onChange |
+| Browser APIs | Not supported | window, localStorage |
+| Bundle size | Zero JS | Adds to bundle |
+
+### State Management Selection
+
+| State Type | Solution | Notes |
+|------------|----------|-------|
+| **Local UI state** | useState, useReducer | Client Components only |
+| **Server state** | React Query, SWR | Replaces Redux for server data |
+| **Global state** | Zustand, Jotai | Simpler than Redux |
+| **Form state** | React Hook Form + Zod | Type-safe validation |
+| **URL state** | URLSearchParams | Native browser API |
+| **Mutations** | Server Actions | Next.js 14+ |
+
+### Core Web Vitals Targets
+
+| Metric | Good | Needs Improvement | Poor |
+|--------|------|-------------------|------|
+| **LCP** (Loading) | < 2.5s | < 4s | > 4s |
+| **INP** (Interactivity) | < 200ms | < 500ms | > 500ms |
+| **CLS** (Stability) | < 0.1 | < 0.25 | > 0.25 |
+
+### Testing Pyramid
+
+| Level | Coverage | Tools | Focus |
+|-------|----------|-------|-------|
+| **Unit** | 70% | Vitest, Jest | Functions, hooks |
+| **Integration** | 20% | Testing Library | Component interactions |
+| **E2E** | 10% | Playwright | Critical user flows |
+
+### Framework Selection
+
+| Framework | Best For | Trade-offs |
+|-----------|----------|------------|
+| **Next.js 14+** | SEO-critical, SaaS | SSR complexity |
+| **Vite + React** | SPAs, dashboards | No SSR |
+| **Remix** | Nested routes, data-heavy | Opinionated |
+
+### Component Library Selection
+
+| Library | Best For | Trade-offs |
+|---------|----------|------------|
+| **shadcn/ui** | Full customization | Manual updates |
+| **MUI** | Enterprise, rapid dev | Heavy bundle |
+| **Chakra UI** | Accessibility | Medium bundle |
+| **Headless UI** | Tailwind projects | Unstyled |
+
+## Common Patterns Summary
 
 ### Component Organization
 
 ```
 src/
 ├── components/           # Shared components
-│   ├── ui/              # Basic UI components (Button, Input)
-│   ├── layout/          # Layout components (Header, Sidebar)
-│   └── features/        # Feature-specific components
-├── app/                 # Next.js App Router (Server Components)
-│   ├── (routes)/       # File-based routing
-│   ├── layout.tsx      # Root layout
-│   └── page.tsx        # Home page
+│   ├── ui/              # Basic UI (Button, Input)
+│   ├── layout/          # Layout (Header, Sidebar)
+│   └── features/        # Feature-specific
+├── app/                 # Next.js App Router
 ├── hooks/               # Custom React hooks
-├── services/            # API and external services
+├── services/            # API services
 ├── stores/              # State management
-├── utils/               # Utility functions
 └── types/               # TypeScript types
 ```
-
-## State Management (2024-2025 Trends)
-
-### State Management Strategy
-
-Based on [Frontend Tech Stack Evolution 2024-2025](https://www.linkedin.com/posts/sanchit0496_reactjs-nextjs-javascript-activity-7320785137766424576-H715):
-
-| State Type | Solution | Example | Notes |
-|------------|----------|---------|-------|
-| **Local UI state** | useState, useReducer | Form inputs, toggles | Client Components |
-| **Server state** | React Query, SWR | API data, caching | Replaces Redux |
-| **Global state** | Zustand, Jotai | User session, theme | Simpler than Redux |
-| **Form state** | React Hook Form, Zod | Complex forms | Type-safe validation |
-| **URL state** | URLSearchParams | Search params, filters | Native browser API |
-| **Server state** | Server Actions | Mutations, revalidation | Next.js 14+ |
-
-### React Query for Server State (Recommended)
-
-```tsx
-// Fetch with caching and invalidation
-const { data, isLoading, error } = useQuery({
-  queryKey: ['user', userId],
-  queryFn: () => fetchUser(userId),
-  staleTime: 5 * 60 * 1000, // 5 minutes
-});
-
-// Mutation with invalidation
-const mutation = useMutation({
-  mutationFn: updateUser,
-  onSuccess: () => {
-    queryClient.invalidateQueries({ queryKey: ['user'] });
-  },
-});
-```
-
-### Zustand for Global State (Recommended)
-
-```ts
-// Simple store with TypeScript
-interface UserStore {
-  user: User | null;
-  setUser: (user: User) => void;
-  clearUser: () => void;
-}
-
-export const useUserStore = create<UserStore>((set) => ({
-  user: null,
-  setUser: (user) => set({ user }),
-  clearUser: () => set({ user: null }),
-}));
-```
-
-### Server Actions (Next.js 14+)
-
-Based on [Mastering Next.js and React Features for 2025](https://dev.to/golsaesk/mastering-the-most-useful-nextjs-and-react-features-for-2025-4g60):
-
-```tsx
-// Server Action (runs on server)
-'use server';
-export async function updateUser(userId: string, data: FormData) {
-  const updated = await db.user.update({ where: { id: userId }, data });
-  revalidatePath('/users');
-  return updated;
-}
-
-// Client Component usage
-'use client';
-import { updateUser } from './actions';
-
-export function UserForm({ userId }: { userId: string }) {
-  const handleUpdate = async (formData: FormData) => {
-    await updateUser(userId, formData);
-  };
-  return <form action={handleUpdate}>{/* ... */}</form>;
-}
-```
-
-## Data Fetching (2024-2025)
-
-### Fetching Strategies
-
-**Server Components (Recommended)**:
-- Use `async/await` directly in Server Components
-- No need for useEffect or loading states
-- Automatic caching with Next.js `fetch()`
-
-```tsx
-// Server Component with data fetching
-async function DashboardPage() {
-  const data = await fetch('https://api.example.com/data', {
-    next: { revalidate: 3600 }, // Cache for 1 hour
-  }).then(r => r.json());
-
-  return <Dashboard data={data} />;
-}
-```
-
-**Client Components (When needed)**:
-- Use fetch or axios directly
-- useState for loading/error states
-- useEffect for side effects
-
-**Complex fetching** (high complexity):
-- React Query for caching, invalidation, retries
-- SWR as alternative
-- GraphQL clients (Apollo, urql)
-
-### Next.js Caching Strategies
-
-```tsx
-// Static data (long cache)
-const data = await fetch('https://api.example.com/data', {
-  next: { revalidate: 3600 },
-});
-
-// Dynamic data (no cache)
-const data = await fetch('https://api.example.com/live', {
-  cache: 'no-store',
-});
-
-// On-demand revalidation
-import { revalidatePath } from 'next/cache';
-revalidatePath('/dashboard');
-```
-
-### Real-Time Data
-
-| Approach | Best For | Tools |
-|----------|----------|-------|
-| Polling | Simple updates | setInterval, React Query refetchInterval |
-| Server-Sent Events | Server push | EventSource |
-| WebSockets | Bidirectional | Socket.io, WebSocket API |
-| Server Actions | Mutations | Next.js 14+ |
-
-## Routing (Next.js 2024-2025)
-
-### File-Based Routing (App Router)
-
-```
-app/
-├── (marketing)/         # Route group (no URL prefix)
-│   ├── about/
-│   │   └── page.tsx    # /about
-│   └── pricing/
-│       └── page.tsx    # /pricing
-├── (dashboard)/         # Route group with shared layout
-│   ├── layout.tsx      # Dashboard layout
-│   ├── page.tsx        # /dashboard
-│   ├── settings/
-│   │   └── page.tsx    # /dashboard/settings
-│   └── [id]/           # Dynamic route
-│       └── page.tsx    # /dashboard/[id]
-└── layout.tsx          # Root layout
-```
-
-### Parallel and Intercepting Routes
-
-Based on [Mastering Next.js and React Features for 2025](https://dev.to/golsaesk/mastering-the-most-useful-nextjs-and-react-features-for-2025-4g60):
-
-```tsx
-// Parallel routes (load multiple sections simultaneously)
-app/
-├── @dashboard/
-│   └── page.tsx
-├── @analytics/
-│   └── page.tsx
-└── layout.tsx          // Renders both slots in parallel
-
-// Intercepting routes (show modal while keeping URL)
-app/
-├── photo/
-│   └── [id]/
-│       └── page.tsx
-└── @modal/
-    └── photo/
-        └── [id]/
-            └── page.tsx  // Modal overlay
-```
-
-### Nested Routes with Layouts
-
-```tsx
-// Layout component (Server Component)
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="dashboard">
-      <Sidebar />
-      <main>{children}</main>
-    </div>
-  );
-}
-
-// Nested routes inherit layout
-// /dashboard/settings renders DashboardLayout + SettingsPage
-```
-
-## Performance (Core Web Vitals)
-
-### Core Web Vitals Targets (2024 Standard)
-
-| Metric | Good | Needs Improvement | Poor |
-|--------|------|-------------------|------|
-| LCP (Loading) | < 2.5s | < 4s | > 4s |
-| INP (Interactivity) | < 100ms | < 300ms | > 300ms |
-| CLS (Stability) | < 0.1 | < 0.25 | > 0.25 |
-
-### Performance Optimization Strategies
-
-**Server Components** (Major performance win):
-- Reduce client bundle size
-- Move heavy logic to server
-- Eliminate unnecessary client-side JavaScript
-
-**Code Splitting**:
-```tsx
-// Route-based splitting (automatic in Next.js)
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-
-// Component-based splitting
-const HeavyChart = lazy(() => import('./components/HeavyChart'));
-
-function App() {
-  return (
-    <Suspense fallback={<Skeleton />}>
-      <HeavyChart />
-    </Suspense>
-  );
-}
-```
-
-**Image Optimization**:
-```tsx
-// Next.js Image component (recommended)
-import Image from 'next/image';
-
-<Image
-  src="/hero.jpg"
-  alt="Hero"
-  width={1920}
-  height={1080}
-  priority // Above-fold images
-  placeholder="blur" // Blur-up effect
-/>
-```
-
-### Performance Checklist
-
-- [ ] Server Components by default
-- [ ] Code splitting by route
-- [ ] Lazy load heavy components
-- [ ] Optimize images (WebP, AVIF)
-- [ ] Minimize bundle size (tree shaking)
-- [ ] Enable compression (gzip, brotli)
-- [ ] Use CDN for static assets
-- [ ] Implement caching strategy
-- [ ] Measure Core Web Vitals
-- [ ] Monitor INP (Interaction to Next Paint)
-
-## Testing (2024-2025)
-
-### Testing Pyramid
-
-```
-        ┌─────────┐
-       /    E2E   \          10% - Critical user flows
-      /───────────\
-     /   Integration  \       20% - Component interactions
-    /─────────────────\
-   /     Unit Tests     \     70% - Pure functions, hooks
-  /─────────────────────\
-```
-
-### Testing Tools
-
-| Type | Tools | What to Test |
-|------|-------|--------------|
-| **Unit** | Vitest, Jest | Functions, hooks, utilities |
-| **Component** | Testing Library | Component behavior, events |
-| **Integration** | Testing Library | Multiple components together |
-| **E2E** | Playwright, Cypress | User flows across pages |
-
-### Testing Strategy
-
-```tsx
-// Unit test example (Vitest)
-import { describe, it, expect } from 'vitest';
-import { formatDate } from './utils/date';
-
-describe('formatDate', () => {
-  it('formats date correctly', () => {
-    expect(formatDate('2024-01-15')).toBe('January 15, 2024');
-  });
-});
-
-// Component test example (Testing Library)
-import { render, screen } from '@testing-library/react';
-import { Button } from './Button';
-
-test('button calls onClick when clicked', () => {
-  const handleClick = vi.fn();
-  render(<Button label="Click me" onClick={handleClick} />);
-
-  screen.getByText('Click me').click();
-  expect(handleClick).toHaveBeenCalledTimes(1);
-});
-
-// E2E test example (Playwright)
-import { test, expect } from '@playwright/test';
-
-test('user can log in', async ({ page }) => {
-  await page.goto('/login');
-  await page.fill('input[name="email"]', 'user@example.com');
-  await page.fill('input[name="password"]', 'password');
-  await page.click('button[type="submit"]');
-  await expect(page).toHaveURL('/dashboard');
-});
-```
-
-## Technology Stack Decision Guide (2024-2025)
-
-### Framework Selection
-
-Based on [React Tech Stack 2025](https://www.robinwieruch.de/react-tech-stack/):
-
-| Framework | Best For | Trade-offs |
-|-----------|----------|------------|
-| **Next.js 14+** | SEO-critical, content sites, SaaS | SSR complexity, steeper learning curve |
-| **Vite + React** | SPAs, dashboards, internal tools | No SSR, simpler setup |
-| **Remix** | Nested routes, data-heavy apps | Learning curve, opinionated |
-| **Vue + Nuxt** | Progressive enhancement | Smaller ecosystem |
-
-### Component Library Selection
-
-| Library | Best For | Trade-offs |
-|---------|----------|------------|
-| **shadcn/ui** | Full customization | Requires setup, manual updates |
-| **MUI** | Enterprise, rapid dev | Heavy bundle, opinionated |
-| **Chakra UI** | Accessibility, theming | Larger bundle size |
-| **Headless UI** | Tailwind projects | Unstyled, need CSS |
-
-### State Management Evolution (2024-2025)
-
-Based on [Frontend Tech Stack Evolution 2024-2025](https://www.linkedin.com/posts/sanchit0496_reactjs-nextjs-javascript-activity-7320785137766424576-H715):
-
-- **Redux → Zustand / RTK Query** (for simplicity)
-- **Client state → Server Components** (when possible)
-- **useEffect data fetching → React Query / SWR**
-
-## Project Structure Recommendations
-
-### Monorepo for Large Projects
-
-```
-frontend-monorepo/
-├── apps/
-│   ├── web/              # Main web app (Next.js)
-│   ├── admin/            # Admin dashboard (Next.js)
-│   └── docs/             # Documentation site (Vite)
-├── packages/
-│   ├── ui/               # Shared UI components
-│   ├── config/           # Shared config (ESLint, TSConfig)
-│   └── utils/            # Shared utilities
-└── package.json
-```
-
-### Single Repo for Small Projects
-
-```
-frontend-app/
-├── src/
-│   ├── components/       # Components
-│   ├── app/              # Next.js App Router
-│   ├── pages/            # Pages (Pages Router)
-│   ├── hooks/            # Custom hooks
-│   ├── services/         # API services
-│   ├── stores/           # State management
-│   ├── utils/            # Utilities
-│   └── types/            # TypeScript types
-├── public/               # Static assets
-└── tests/                # Test files
-```
-
-## TypeScript Best Practices (2024-2025)
-
-### Strict Mode Configuration
-
-```json
-{
-  "compilerOptions": {
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "allowUnusedImports": false,
-    "exactOptionalPropertyTypes": true
-  }
-}
-```
-
-### Type-Safe Components
-
-```tsx
-// Generic component
-interface ListProps<T> {
-  items: T[];
-  renderItem: (item: T) => React.ReactNode;
-}
-
-export function List<T>({ items, renderItem }: ListProps<T>) {
-  return <ul>{items.map(renderItem)}</ul>;
-}
-
-// Usage
-<List items={users} renderItem={(u) => <li>{u.name}</li>} />
-```
-
-### Zod for Runtime Validation
-
-```tsx
-import { z } from 'zod';
-
-const UserSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1),
-  email: z.string().email(),
-});
-
-type User = z.infer<typeof UserSchema>;
-
-// Parse and validate at runtime
-const user = UserSchema.parse(data);
-```
-
-## Edge Functions and Server Actions
-
-Based on [Mastering Next.js and React Features for 2025](https://dev.to/golsaesk/mastering-the-most-useful-nextjs-and-react-features-for-2025-4g60):
-
-```tsx
-// Edge Function (runs on edge, low latency)
-export const runtime = 'edge';
-
-export async function GET() {
-  return Response.json({ data: 'hello' });
-}
-
-// Server Action with revalidation
-'use server';
-import { revalidatePath } from 'next/cache';
-
-export async function createPost(data: FormData) {
-  const post = await db.post.create({ data });
-  revalidatePath('/posts');
-  return post;
-}
-```
-
-## AI Integration (2025 Trend)
-
-Based on [React & Next.js in 2025](https://strapi.io/blog/react-and-nextjs-in-2025-modern-best-practices):
-
-- AI-powered features becoming standard
-- Streaming responses for AI chat interfaces
-- Edge Functions for low-latency AI inference
-- Optimistic UI for immediate feedback
-
-```tsx
-// Streaming AI response
-import { experimental_streamAction } from 'ai';
-
-export const streamResponse = experimental_streamAction(
-  async function* (prompt: string) {
-    const response = await ai.generate(prompt);
-    for await (const chunk of response) {
-      yield chunk;
-    }
-  }
-);
-```
-
-## Progressive Disclosure
-
-This SKILL.md provides quick reference patterns for frontend architecture grounded in 2024-2025 best practices.
-
-**For detailed workflows**:
-- Use `/rd2:tasks-plan --design` to invoke super-designer for comprehensive UI/UX specifications
-- Use `rd2:ui-ux-design` for visual/UX design patterns
-
-**For implementation**:
-- Use `/rd2:code-generate` to implement frontend code
-- Use `/rd2:code-review` to verify implementation quality
-
-## Quick Reference
-
-### Common Component Patterns
-
-| Pattern | Use Case | Implementation |
-|---------|----------|----------------|
-| Compound Components | Components with shared state | Context + children prop |
-| Render Props | Share code between components | Function as children |
-| Custom Hooks | Reusable stateful logic | Hook composition |
-| Higher-Order Components | Cross-cutting concerns | Legacy pattern, avoid |
-
-### Common Performance Optimizations
-
-| Issue | Solution |
-|-------|----------|
-| Large bundle | Code splitting, tree shaking, Server Components |
-| Slow images | WebP, AVIF, lazy loading, next/image |
-| Re-renders | useMemo, useCallback, React.memo |
-| Slow initial load | SSR, SSG, ISR |
-| Flash of unstyled content | CSS-in-JS, critical CSS |
-
-### Common State Gotchas
-
-| Issue | Solution |
-|-------|----------|
-| Props drilling | Context, state management (Zustand) |
-| Stale closures | useRef, useCallback deps |
-| Memory leaks | Cleanup in useEffect |
-| Unnecessary re-renders | React.memo, useMemo |
 
 ### Next.js App Router Patterns
 
 | Pattern | Use Case | File |
 |---------|----------|------|
 | Server Component | Data fetching, no interactivity | `page.tsx` (default) |
-| Client Component | Interactivity, state, browser APIs | Add `'use client'` |
-| Server Action | Mutations, form submissions | `actions.ts` with `'use server'` |
+| Client Component | Interactivity, state | Add `'use client'` |
+| Server Action | Mutations, forms | `actions.ts` with `'use server'` |
 | Route Handler | API endpoints | `route.ts` |
 | Middleware | Request interception | `middleware.ts` |
+
+### Performance Checklist
+
+- [ ] Server Components by default
+- [ ] Code split by route (automatic in Next.js)
+- [ ] Lazy load below-fold components
+- [ ] Priority load above-fold images
+- [ ] Use `next/image` for images
+- [ ] Memoize expensive calculations
+- [ ] Virtual lists for large datasets
+
+## Detailed References
+
+For comprehensive guidance on specific topics, see:
+
+### Reference Files
+
+- **`references/component-patterns.md`** - Server/Client components, presentational vs container, organization patterns
+- **`references/state-management.md`** - React Query, Zustand, Server Actions, form handling
+- **`references/data-fetching.md`** - Caching strategies, real-time data, error handling
+- **`references/routing.md`** - App Router, parallel routes, intercepting routes, middleware
+- **`references/performance.md`** - Core Web Vitals optimization, code splitting, image optimization
+- **`references/testing.md`** - Testing pyramid, Vitest, Playwright, MSW
+- **`references/tech-stack.md`** - Framework selection, component libraries, project structure
+
+## Progressive Disclosure
+
+This SKILL.md provides quick reference patterns and workflows for frontend architecture grounded in 2024-2025 best practices.
+
+**For detailed implementation guidance**, see the reference files listed above.
+
+**For visual/UX design patterns**, use `rd2:ui-ux-design` skill.
+
+**For comprehensive UI/UX specifications**, use `/rd2:tasks-plan --design` to invoke super-designer.
+
+**For implementation**, use `/rd2:code-generate` to implement frontend code and `/rd2:code-review` to verify implementation quality.
 
 ## Sources
 
@@ -738,4 +375,3 @@ This SKILL.md provides quick reference patterns for frontend architecture ground
 - [Mastering the Most Useful Next.js and React Features for 2025 (Dev.to, 2024)](https://dev.to/golsaesk/mastering-the-most-useful-nextjs-and-react-features-for-2025-4g60)
 - [React Tech Stack [2025] (Robin Wieruch, 2024)](https://www.robinwieruch.de/react-tech-stack/)
 - [Frontend Tech Stack Evolution 2024-2025 (LinkedIn)](https://www.linkedin.com/posts/sanchit0496_reactjs-nextjs-javascript-activity-7320785137766424576-H715)
-- [Front-End Architecture with Next.js, React and Tailwind CSS (Medium, 2024)](https://medium.com/@codenova/system-design-template-front-end-architecture-with-next-js-react-and-tailwind-css-0b364f0b1fe9)
