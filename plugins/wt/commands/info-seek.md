@@ -1,27 +1,36 @@
 ---
-description: Extract and verify knowledge from files, URLs, or search queries
+description: Extract and verify knowledge from files, URLs, or search queries with --save workflow support
 subagents: [rd2:knowledge-seeker, wt:magent-browser]
 model: sonnet
-argument-hint: <file-path-or-url-or-description> [--aspect <aspect>]
+argument-hint: <input> [--aspect <aspect>] [--save] [--output <path>]
 allowed-tools: [Read, Write, Edit, Bash]
 arguments:
   aspect:
     description: Optional aspect to filter information (e.g., architecture, performance, security, examples, API)
     required: false
     type: string
+  save:
+    description: Save output to 0-materials/materials-extracted.md for workflow tracking
+    required: false
+    type: boolean
+  output:
+    description: Custom output path (default: auto-detected 0-materials/materials-extracted.md)
+    required: false
+    type: string
 ---
 
 # Info Seek
 
-Extract, verify, and synthesize knowledge from multiple sources with proper citation and confidence scoring. This command delegates to specialized subagents for document conversion and knowledge extraction.
+Extract, verify, and synthesize knowledge from multiple sources with proper citation and confidence scoring. This command delegates to specialized subagents for document conversion and knowledge extraction. Supports file-based workflow integration with `--save` for Technical Content Workflow.
 
 ## Quick Start
 
 ```bash
-/wt:info-seek path/to/document.pdf              # Extract from PDF
-/wt:info-seek https://example.com/article       # Extract from URL
-/wt:info-seek "React Server Components"         # Search and extract
-/wt:info-seek "React Server Components" --aspect architecture  # Filter by aspect
+/wt:info-seek path/to/document.pdf                                  # Extract from PDF
+/wt:info-seek https://example.com/article                           # Extract from URL
+/wt:info-seek "React Server Components"                             # Search and extract
+/wt:info-seek "React Server Components" --aspect architecture       # Filter by aspect
+/wt:info-seek path/to/document.pdf --save                           # Save to 0-materials/
 ```
 
 ## When to Use
@@ -32,18 +41,22 @@ Use this command when you need to:
 - **Verify information from multiple sources** - Cross-check claims with citations and confidence scoring
 - **Research technical topics** - Search documentation, synthesize findings, identify conflicts
 - **Filter by specific aspects** - Focus on architecture, security, performance, API, etc.
+- **Save for workflow** - Store extracted materials in 0-materials/ for Technical Content Workflow
 
 **Not for:**
-- Interactive web tasks requiring screenshots → Use `/wt:magent-browser` directly
-- Manual document conversion → Use `markitdown` CLI directly
-- Simple web scraping without verification → Use `curl` or `wt:magent-browser`
+- Interactive web tasks requiring screenshots -> Use `/wt:magent-browser` directly
+- Manual document conversion -> Use `markitdown` CLI directly
+- Simple web scraping without verification -> Use `curl` or `wt:magent-browser`
 
 ## Arguments
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `<input>` | Yes | File path, URL, or search description |
-| `--aspect` | No | Optional aspect to filter results (e.g., architecture, performance, security, examples, API) |
+| Argument | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `<input>` | Yes | File path, URL, or search description | - |
+| `--aspect` | No | Optional aspect to filter results | - |
+| `--save` | No | Save output to 0-materials/materials-extracted.md | `false` |
+| `--output` | No | Custom output path (implies --save) | Auto-detected |
+| `--help` | No | Show help message | - |
 
 ## Aspect Filtering
 
@@ -79,6 +92,111 @@ When `--aspect` is specified, the command will:
 2. Filter and prioritize content matching the specified aspect
 3. Add note if relevant information was filtered out
 4. Adjust confidence scoring based on aspect-relevance
+
+## Save Workflow (`--save`)
+
+The `--save` option integrates with the Technical Content Workflow by saving extracted materials to the 0-materials/ folder.
+
+### Enhanced Workflow with --save
+
+```
+1. Parse command arguments (input, --aspect, --save, --output)
+2. Detect topic folder:
+   - If 0-materials/ exists in current path -> use it
+   - If running from topic root -> use 0-materials/
+   - Otherwise -> create or ask user
+3. Process input (file/URL/description) with rd2:knowledge-seeker
+4. If --aspect provided, filter content accordingly
+5. Generate materials-extracted.md with frontmatter:
+   - source: original file/URL
+   - aspect: --aspect value if provided
+   - extracted_at: timestamp
+   - topic: detected topic name
+6. Update 0-materials/materials.json index
+7. Report success with file path
+```
+
+### materials.json Index Format
+
+```json
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-28T10:00:00Z",
+  "materials": [
+    {
+      "id": "mat-001",
+      "file": "materials-extracted.md",
+      "source": "research-paper.pdf",
+      "source_type": "file",
+      "aspect": "architecture",
+      "extracted_at": "2026-01-28T10:00:00Z",
+      "word_count": 1500,
+      "confidence": "HIGH"
+    },
+    {
+      "id": "mat-002",
+      "file": "source-2.md",
+      "source": "https://example.com/article",
+      "source_type": "url",
+      "aspect": null,
+      "extracted_at": "2026-01-28T10:30:00Z",
+      "word_count": 800,
+      "confidence": "MEDIUM"
+    }
+  ]
+}
+```
+
+### materials-extracted.md Frontmatter
+
+```markdown
+---
+title: Extracted Materials: [Topic]
+source: research-paper.pdf
+source_type: file | url | description
+aspect: architecture | performance | security | examples | API | null
+extracted_at: 2026-01-28T10:00:00Z
+topic: topic-name
+word_count: 1500
+confidence: HIGH | MEDIUM | LOW
+---
+
+# Extracted Materials: [Topic]
+
+## Source
+
+- **File**: research-paper.pdf
+- **Type**: PDF Document
+- **Extracted**: 2026-01-28
+
+## Extracted Content
+
+[Content extracted from source, filtered by --aspect if provided]
+
+## Confidence
+
+**Level**: HIGH
+**Reasoning**: Verified from multiple sources
+
+## Sources
+
+- [Source 1](URL) | **Verified**: YYYY-MM-DD
+- [Source 2](URL) | **Verified**: YYYY-MM-DD
+```
+
+### File-Based Workflow
+
+The command also supports reading from previously saved materials:
+
+```bash
+# Read existing materials-extracted.md and re-filter
+/wt:info-seek 0-materials/materials-extracted.md --aspect security
+```
+
+This allows you to:
+1. Extract and save materials initially
+2. Re-process with different aspect filters
+3. Update materials.json with new extractions
 
 ## Input Types
 
@@ -140,104 +258,70 @@ This command delegates to specialized subagents:
 
 ## Implementation
 
-This command implements a **subagent delegation pattern** — it detects input type and routes to appropriate subagents with their specialized capabilities.
-
-### Subagent Capabilities
-
-| Subagent | Capabilities |
-|----------|-------------|
-| **wt:magent-browser** | Browser automation, screenshots, JS-rendered content, form interaction, markitdown document conversion |
-| **rd2:knowledge-seeker** | Literature review, multi-source verification, evidence synthesis, fact-checking, citation formatting, confidence scoring |
-
-### Input Detection & Routing
+This command implements a **subagent delegation pattern** with workflow integration:
 
 ```python
-# Input validation
+# Enhanced implementation with --save support
 VALID_ASPECTS = ["architecture", "performance", "security", "examples", "API", "configuration", "troubleshooting"]
 
-if not input or input.strip() == "":
-    raise ValueError("Input cannot be empty. Provide file path, URL, or search description.")
+def info_seek(input, aspect=None, save=False, output=None):
+    # 1. Validate inputs
+    if not input or input.strip() == "":
+        raise ValueError("Input cannot be empty")
 
-if aspect and aspect.lower() not in [a.lower() for a in VALID_ASPECTS]:
-    logger.warning(f"Unknown aspect '{aspect}'. Valid aspects: {', '.join(VALID_ASPECTS)}")
+    if aspect and aspect.lower() not in [a.lower() for a in VALID_ASPECTS]:
+        logger.warning(f"Unknown aspect '{aspect}'")
 
-# Input detection and subagent delegation
-if input.startswith(('http://', 'https://')):
-    input_type = "URL"
-elif os.path.exists(input) or '/' in input or '\\' in input:
-    input_type = "FILE_PATH"
-else:
-    input_type = "DESCRIPTION"
+    # 2. Detect topic folder (for --save)
+    topic_folder = None
+    if save or output:
+        topic_folder = detect_topic_folder()
 
-# Delegate to appropriate subagent
-if input_type in ["URL", "FILE_PATH"]:
-    delegate_to("wt:magent-browser", {
-        "task": "convert_to_markdown",
-        "input": input,
-        "aspect": aspect  # Pass through --aspect filter
-    })
-    markdown = get_result()
+    # 3. Input detection and routing
+    if input.startswith(('http://', 'https://')):
+        input_type = "URL"
+    elif os.path.exists(input) or '/' in input or '\\' in input:
+        input_type = "FILE_PATH"
+    else:
+        input_type = "DESCRIPTION"
 
-    delegate_to("rd2:knowledge-seeker", {
-        "task": "extract_and_verify",
-        "source": markdown,
-        "aspect": aspect,
-        "source_type": "markdown"
-    })
-elif input_type == "DESCRIPTION":
-    delegate_to("rd2:knowledge-seeker", {
-        "task": "search_and_synthesize",
-        "query": input,
-        "aspect": aspect,
-        "sources": ["ref", "websearch", "searchgithub"]
-    })
+    # 4. Process input via subagents
+    if input_type in ["URL", "FILE_PATH"]:
+        delegate_to("wt:magent-browser", {
+            "task": "convert_to_markdown",
+            "input": input,
+            "aspect": aspect
+        })
+        markdown = get_result()
 
-output = get_result()
+        delegate_to("rd2:knowledge-seeker", {
+            "task": "extract_and_verify",
+            "source": markdown,
+            "aspect": aspect,
+            "source_type": "markdown"
+        })
+    elif input_type == "DESCRIPTION":
+        delegate_to("rd2:knowledge-seeker", {
+            "task": "search_and_synthesize",
+            "query": input,
+            "aspect": aspect,
+            "sources": ["ref", "websearch", "searchgithub"]
+        })
+
+    output = get_result()
+
+    # 5. Save to workflow (if --save or --output)
+    if save or output:
+        save_path = output or resolve_workflow_path(topic_folder)
+        materials_content = format_for_workflow(output, input, aspect, topic_folder)
+        save_to_path(save_path, materials_content)
+        update_materials_json(topic_folder, save_path, input, aspect)
+        output = f"Saved to: {save_path}\n\n{output}"
+
+    return output
 ```
 
-### Subagent Task Specification
-
-**wt:magent-browser tasks:**
-
-- `convert_to_markdown` - Convert file/URL to markdown using markitdown
-  - Handles PDFs, Office docs, images (OCR), HTML
-  - Supports JS-rendered content via browser automation
-  - Returns clean markdown text
-
-**rd2:knowledge-seeker tasks:**
-
-- `extract_and_verify` - Extract knowledge from markdown source
-  - Applies triangulation methodology
-  - Cross-verifies with ref MCP, WebSearch, searchGitHub
-  - Filters by `--aspect` if provided
-  - Outputs with citations, confidence levels
-
-- `search_and_synthesize` - Research topic via documentation search
-  - Uses ref MCP for official docs
-  - Cross-verifies with 2+ sources
-  - Filters by `--aspect` if provided
-  - Synthesizes with conflict detection
-  - Outputs with citations, confidence levels
-
-### Aspect Filter Propagation
-
-When `--aspect` is provided, it propagates to subagents:
-
-```python
-# Pass aspect filter to subagents
-delegate_to("rd2:knowledge-seeker", {
-    "task": "extract_and_verify",
-    "source": markdown,
-    "aspect": aspect  # e.g., "architecture", "security"
-})
-
-# Subagent applies aspect filtering during extraction
-# - Prioritizes content matching aspect
-# - Notes if irrelevant content filtered
-# - Adjusts confidence based on aspect-relevance
-```
-
-### Output Format
+## Output Format
 
 Subagents output using this standard format:
 
@@ -272,40 +356,44 @@ Subagents output using this standard format:
 {Actionable insights or next steps}
 ```
 
-**Aspect filtering behavior** (handled by subagents):
-- Extract all information first
-- Filter and prioritize by aspect if `--aspect` provided
-- Add note if relevant content was filtered out
-- Adjust confidence scoring based on aspect-relevance
-
 ## Error Handling
 
 ### Common Issues
 
 **1. File not found**
-- Verify file path is correct
-- Check file permissions
-- Suggest similar files if available
+```
+Error: File not found: path/to/document.pdf
+
+Please verify the file path is correct.
+```
 
 **2. URL inaccessible**
-- Check URL format
-- Try with and without redirects
-- Inform if paywall/login required
+```
+Error: Could not access URL: https://example.com/page
+
+Check if the URL is correct and accessible.
+```
 
 **3. No search results**
-- Refine search query
-- Try alternative terms
-- Suggest broader topic
+```
+Error: No results found for: "obscure topic"
 
-**4. Conversion failure**
-- Check file format is supported
-- Verify markitdown installation
-- Try alternative conversion method
+Try alternative search terms.
+```
 
-**5. Verification fails**
-- Note as UNVERIFIED in output
-- Explain why verification failed
-- Suggest manual review
+**4. Topic folder not found (--save)**
+```
+Error: Topic folder not detected.
+
+Run from within a topic folder or use --output to specify path.
+```
+
+**5. 0-materials/ folder missing (--save)**
+```
+Error: 0-materials/ folder not found.
+
+Create the folder first or run from within a topic folder.
+```
 
 ## Validation
 
@@ -326,11 +414,11 @@ Before presenting results:
 
 - [ ] Delegate to specialized subagents (wt:magent-browser, rd2:knowledge-seeker)
 - [ ] Pass `--aspect` filter to subagents for focused extraction
+- [ ] Use `--save` to integrate with Technical Content Workflow
 - [ ] Let subagents handle verification with multiple sources
 - [ ] Include publication dates in citations (handled by knowledge-seeker)
 - [ ] Assign confidence levels based on verification (handled by knowledge-seeker)
-- [ ] Flag conflicting information (handled by knowledge-seeker)
-- [ ] Use official documentation as primary source (handled by knowledge-seeker)
+- [ ] Update materials.json when using --save
 
 ### DON'T
 
@@ -350,42 +438,73 @@ Before presenting results:
 ```
 
 Delegation flow:
-1. Delegates to `wt:magent-browser` → Converts PDF to markdown
-2. Delegates to `rd2:knowledge-seeker` → Extracts findings, methodology, results
+1. Delegates to `wt:magent-browser` -> Converts PDF to markdown
+2. Delegates to `rd2:knowledge-seeker` -> Extracts findings, methodology, results
 3. Subagent verifies claims with citations
 4. Output with confidence level
 
-**Example 2: Blog post**
+**Example 2: Blog post with save**
 
 ```bash
-/wt:info-seek https://blog.example.com/how-to-use-fastapi
+/wt:info-seek https://blog.example.com/article --save
 ```
 
-Delegation flow:
-1. Delegates to `wt:magent-browser` → Converts blog to markdown
-2. Delegates to `rd2:knowledge-seeker` → Extracts FastAPI usage patterns
-3. Subagent cross-verifies with official FastAPI docs
-4. Output with multiple citations
+Workflow:
+1. Converts blog to markdown
+2. Extracts and verifies information
+3. Saves to 0-materials/materials-extracted.md
+4. Updates materials.json index
 
-**Example 3: API search**
+**Example 3: Aspect-filtered search**
 
 ```bash
-/wt:info-seek "React Server Components caching"
+/wt:info-seek "React Server Components caching" --aspect performance
 ```
 
-Delegation flow:
-1. Delegates to `rd2:knowledge-seeker` → Searches React docs via ref MCP
-2. Subagent extracts caching information
-3. Subagent cross-verifies with React blog and GitHub
-4. Subagent synthesizes with triangulation
-5. Output with HIGH/MEDIUM/LOW confidence
+1. Searches React documentation
+2. Filters for performance-related content
+3. Outputs performance-focused findings
+
+**Example 4: File-based re-filtering**
+
+```bash
+/wt:info-seek 0-materials/materials-extracted.md --aspect security
+```
+
+1. Reads existing materials
+2. Re-filters for security aspects
+3. Updates with new security-focused extraction
+
+## Integration with Technical Content Workflow
+
+This command integrates with the Technical Content Workflow stages:
+
+```
+Stage 0: Materials (0-materials/)
+         |
+         v
+Stage 1: Research (1-research/)
+         |
+         v
+Stage 2: Outline (2-outline/)
+         |
+         v
+Stage 3: Draft (3-draft/)
+```
+
+**Workflow integration:**
+
+1. `/wt:info-seek <sources> --save` - Stage 0: Materials
+2. `/wt:info-research "topic"` - Stage 1: Research
+3. `/wt:topic-outline research-brief.md` - Stage 2: Outline
+4. `/wt:topic-draft <profile>` - Stage 3: Draft
 
 ## Integration with Subagents
 
 This command delegates to specialized subagents:
 
-- **wt:magent-browser** - Browser automation, document conversion (PDFs, Office docs, images, web pages)
-- **rd2:knowledge-seeker** - Literature review, multi-source verification, evidence synthesis, fact-checking
+- **wt:magent-browser** - Browser automation, document conversion
+- **rd2:knowledge-seeker** - Literature review, multi-source verification, evidence synthesis
 
 ### Subagent Tool Access
 
@@ -396,10 +515,11 @@ These subagents have access to MCP tools:
 
 ## Related Commands
 
-- `/wt:style-extractor` - Extract styling information from documents
-- `/wt:translate` - Translate documents to different languages
+- `/wt:info-research` - Conduct research and generate research brief
+- `/wt:topic-outline` - Generate outlines from research
+- `/wt:topic-draft` - Apply writing style to content
 - `/rd2:knowledge-seeker` - Deep research and synthesis tasks
 
 ---
 
-**Remember**: Verification before synthesis. Always cite sources with dates. Assign confidence levels based on verification quality.
+**Remember**: Verification before synthesis. Always cite sources with dates. Assign confidence levels based on verification quality. Use --save to integrate with the Technical Content Workflow.
