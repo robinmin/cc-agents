@@ -1,3 +1,64 @@
+## [0.5.1] - 2026-01-30
+
+### Summary
+
+**Stitch Integration & Bug Fixes: UI/UX Design Enhancement, Command Improvements**
+
+Added comprehensive Google Stitch integration for UI/UX design with progressive disclosure architecture. Fixed critical bugs in tasks-fixall (early quit prevention), tasks-gitmsg (permission issues), and tasks-followup (subfolder support). Added new tasks-unit command for AI-assisted unit test generation with coverage targeting.
+
+### Added
+
+- **Google Stitch Support** (`skills/ui-ux-design/`):
+  - **8 New Reference Files** (3,126+ lines total):
+    - `stitch-workflows.md` (368 lines) - Complete Stitch integration workflows
+    - `design-context-schema.md` (436 lines) - Design context structure and validation
+    - `design-tokens.md` (423 lines) - Design token system documentation
+    - `component-patterns.md` (325 lines) - Component design patterns
+    - `ui-patterns.md` (423 lines) - UI interaction patterns
+    - `core-principles.md` (269 lines) - Core design principles
+    - `accessibility-checklist.md` (286 lines) - WCAG compliance checklist
+    - `fallback-patterns.md` (398 lines) - Graceful degradation patterns
+  - **Progressive Disclosure**: SKILL.md reduced from 600 to ~200 lines (-67%)
+
+- **tasks-unit Command** (`commands/tasks-unit.md`):
+  - AI-assisted unit test generation with coverage targeting
+  - Default 85% coverage threshold (configurable)
+  - Supports whole-project, directory, or file-level test generation
+  - Research-based best practices from 2025 industry findings
+  - Integration with TDD workflow and code patterns skills
+
+### Changed
+
+- **ui-ux-design SKILL.md**:
+  - Reduced from 600 to ~200 lines (67% reduction)
+  - All detailed content moved to reference/ directory
+  - Improved token efficiency with progressive disclosure
+
+### Fixed
+
+- **tasks-fixall Command** (`commands/tasks-fixall.md`):
+  - **Critical Bug**: Fixed early quit issue - command would complete before validation passed
+  - Added mandatory exit condition: must show `EXIT_CODE=0` before completion
+  - Added explicit validation workflow with proof of completion required
+  - Aligned command naming consistency across tasks commands
+
+- **tasks-gitmsg Command**:
+  - Fixed permission issue with git commands
+  - Resolved git execution failures in certain environments
+
+- **tasks-followup Workflow**:
+  - Fixed issue with follow-up documents being placed in wrong subfolder
+  - Corrected file path resolution for task references
+
+### Benefits
+
+- **Stitch Integration**: Complete UI/UX design workflow with Google Stitch support
+- **Better Test Generation**: AI-assisted unit tests with configurable coverage targets
+- **Improved Reliability**: Fixed critical bugs that prevented proper validation completion
+- **Token Efficiency**: Progressive disclosure reduces SKILL.md token usage by 67%
+
+---
+
 ## [0.5.0] - 2026-01-27
 
 ### Summary
