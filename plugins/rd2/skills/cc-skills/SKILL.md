@@ -386,6 +386,29 @@ For detailed validation criteria, see [Validation Checklist](references/validati
 - Make skills directly call other skills (not supported)
 - Add explicit dependencies in skill metadata (feature request only)
 - Assume cross-plugin skill references work (not implemented)
+- **Reference related subagents or slash commands from skills** (circular reference)
+
+**Circular Reference Rule (CRITICAL):**
+Following "Fat Skills, Thin Wrappers" architecture:
+- **Skills are the core** - contain all logic, workflows, and domain knowledge
+- **Agents are thin wrappers** - invoke skills for AI workflows (~100 lines)
+- **Commands are thin wrappers** - invoke skills for human users (~50 lines)
+
+**Therefore:** Skills MUST NOT reference their associated agents or commands, as this creates circular dependencies. The skill is the source of truth; wrappers depend on it.
+
+❌ **Bad (circular reference):**
+```yaml
+# In brainstorm/SKILL.md
+See also: super-brain agent, /rd2:tasks-brainstorm command
+```
+
+✅ **Good (skill is self-contained):**
+```yaml
+# In brainstorm/SKILL.md
+This skill provides brainstorming workflows with task creation.
+```
+
+The agent and command exist to invoke this skill, not the other way around.
 
 **Example correct pattern:**
 ```yaml
@@ -551,6 +574,32 @@ Use the grep tool to search for patterns.
 - **`examples/script.sh`** - Working example
 ```
 **Why good:** Claude knows where to find additional information
+
+### Mistake 5: Circular References to Wrappers
+
+❌ **Bad:**
+```yaml
+# In brainstorm/SKILL.md
+description: Brainstorming skill. See also: super-brain agent, /rd2:tasks-brainstorm command
+
+## Quick Start
+/rd2:brainstorm "Add authentication"  # References command that wraps this skill
+Invoke rd2:brainstorm with input      # References agent that wraps this skill
+```
+**Why bad:** Creates circular dependency. Skill → Command → Skill. Violates "Fat Skills, Thin Wrappers" principle.
+
+✅ **Good:**
+```yaml
+# In brainstorm/SKILL.md
+description: This skill should be used when the user asks to "brainstorm ideas", "explore solutions"...
+
+## Quick Start
+Via tasks-brainstorm command: /rd2:tasks-brainstorm "Add authentication"
+Or direct invocation by other agents/skills
+```
+**Why good:** Skill is self-contained. Documents entry points without creating circular references. Wrappers (agent/command) depend on skill, not vice versa.
+
+**Key principle:** Skills are the source of truth. Agents and commands exist to expose skills to different contexts (AI vs human), not to be referenced back from the skill.
 
 For more common mistakes and solutions, see [Common Mistakes](references/common-mistakes.md).
 - **Output formats**: [output-patterns.md](references/output-patterns.md)
