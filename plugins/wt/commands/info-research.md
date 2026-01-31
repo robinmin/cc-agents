@@ -1,16 +1,23 @@
 ---
-description: Conduct systematic, evidence-based research using PRISMA methodology with multi-source verification, GRADE quality assessment, and comprehensive citation management
-argument-hint: "<research-topic>" [--type <type>] [--years <N>] [--format <format>] [--depth <depth>]
+description: Conduct systematic, evidence-based research with file input support and 1-research/ output integration
+argument-hint: "<research-topic>" [--file <path>] [--type <type>] [--years <N>] [--format <format>] [--depth <depth>]
 examples:
   - "/wt:info-research 'machine learning interpretability techniques 2020-2025'"
-  - "/wt:info-research 'effect of intermittent fasting on longevity' --type systematic --years 10"
-  - "/wt:info-research 'quantum computing applications in drug discovery' --type rapid --format report"
-  - "/wt:info-research 'climate change impact on coastal cities' --depth comprehensive"
+  - "/wt:info-research --file 0-materials/materials-extracted.md"
+  - "/wt:info-research 'quantum computing' --type rapid --format brief"
 ---
 
 # Info Researcher
 
-Conduct comprehensive, systematic research on any topic using evidence-based methodology with multi-source verification and quality assessment.
+Conduct comprehensive, systematic research on any topic using evidence-based methodology with multi-source verification and quality assessment. Supports file-based input from materials-extracted.md and automatic save to 1-research/ folder.
+
+## Quick Start
+
+```bash
+/wt:info-research "machine learning interpretability"                        # Topic-based research
+/wt:info-research --file 0-materials/materials-extracted.md                 # File-based research
+/wt:info-research "AI trends" --type rapid --format brief                   # Quick research
+```
 
 ## When to Use
 
@@ -20,27 +27,145 @@ Conduct comprehensive, systematic research on any topic using evidence-based met
 - Analyzing research trends across multiple domains
 - Generating evidence-based reports with citations
 - Understanding complex topics through rigorous synthesis
+- Research from extracted materials (file-based workflow)
 
 ## Arguments
 
 | Argument   | Required | Description                                                         | Default      |
 | ---------- | -------- | ------------------------------------------------------------------- | ------------ |
-| `<topic>`  | Yes      | Research question or topic to investigate                           | -            |
+| `<topic>`  | Yes*     | Research question or topic to investigate                           | -            |
+| `--file`   | Yes*     | Input file for context (materials-extracted.md)                     | -            |
 | `--type`   | No       | Research type: `systematic`, `rapid`, `meta-analysis`, `fact-check` | `systematic` |
 | `--years`  | No       | Time range in years (e.g., 5, 10, 20)                               | `5`          |
 | `--format` | No       | Output format: `markdown`, `report`, `brief`                        | `markdown`   |
 | `--depth`  | No       | Research depth: `quick`, `standard`, `comprehensive`                | `standard`   |
+| `--save`   | No       | Save output to 1-research/research-brief.md                         | auto         |
+| `--help`   | No       | Show help message                                                   | -            |
+
+*Either `<topic>` or `--file` must be provided
+
+## Enhanced Workflow with --file
+
+```
+1. Parse command arguments (topic, --file, --type, --years, --save)
+2. Detect topic folder for 1-research/ path
+3. Input processing:
+   IF --file provided:
+     - Read materials-extracted.md
+     - Extract key topics, keywords, aspects from content
+     - Use extracted topics as research focus
+   ELSE:
+     - Use <topic> string directly
+4. Execute research using wt:super-researcher
+5. Generate research-brief.md with frontmatter:
+   - source_materials: materials-extracted.md (if provided)
+   - research_type: --type value
+   - time_range: --years value
+   - topics: researched topics
+6. Update 1-research/sources.json index
+7. Report success with file path
+```
+
+## File-Based Input
+
+When `--file` is provided, the command:
+
+1. Reads `materials-extracted.md` from 0-materials/
+2. Extracts key topics and research themes from the content
+3. Uses extracted topics as the research focus
+4. Generates comprehensive research on those topics
+
+**Example workflow:**
+
+```bash
+# Stage 0: Extract materials
+/wt:info-seek research-paper.pdf --save
+
+# Stage 1: Research from materials
+/wt:info-research --file 0-materials/materials-extracted.md
+```
+
+## sources.json Index Format
+
+```json
+{
+  "version": "1.0.0",
+  "last_updated": "2026-01-28T10:00:00Z",
+  "sources": [
+    {
+      "id": "src-001",
+      "title": "Research Paper Title",
+      "url": "https://example.com/paper",
+      "type": "academic | web | documentation",
+      "cited_in": "research-brief.md",
+      "added_at": "2026-01-28T10:00:00Z"
+    }
+  ],
+  "research_type": "systematic",
+  "time_range": "2021-2026",
+  "confidence": "HIGH"
+}
+```
+
+## research-brief.md Frontmatter
+
+```markdown
+---
+title: Research Brief: [Topic]
+source_materials: 0-materials/materials-extracted.md
+research_type: systematic
+time_range: 2021-2026
+topics:
+  - topic-1
+  - topic-2
+  - topic-3
+created_at: 2026-01-28T10:00:00Z
+status: draft | approved
+confidence: HIGH | MEDIUM | LOW
+sources_count: 25
+---
+
+# Research Brief: [Topic]
+
+## Executive Summary
+
+[3-5 key findings with confidence levels]
+
+## Research Parameters
+
+- **Type**: systematic
+- **Time Range**: 2021-2026
+- **Sources**: 25 sources
+- **Confidence**: HIGH
+
+## Key Findings
+
+### Theme 1: [Category]
+
+- Finding 1 [HIGH confidence]
+- Finding 2 [MEDIUM confidence]
+
+## Methodology
+
+[Research methodology description]
+
+## Sources
+
+- [Source 1](URL) | Verified: 2026-01-28
+- [Source 2](URL) | Verified: 2026-01-28
+```
 
 ## Input Validation
 
 ### Required Arguments
 
-- **`<topic>`**: Must be non-empty research question or topic
+- **`<topic>`**: Must be non-empty research question or topic (if --file not provided)
+- **`--file`**: Must exist and be readable (if provided instead of topic)
 
 ### Optional Arguments
 
 - **`--type`**: Must be one of `systematic`, `rapid`, `meta-analysis`, `fact-check`
-- **`--years`**: Positive integer between 1-100 (recommended: 1-20 for most topics)
+- **`--years`**: Positive integer between 1-100
 - **`--format`**: Must be one of `markdown`, `report`, `brief`
 - **`--depth`**: Must be one of `quick`, `standard`, `comprehensive`
 
@@ -48,15 +173,13 @@ Conduct comprehensive, systematic research on any topic using evidence-based met
 
 | Error                              | Behavior                                                                   |
 | ---------------------------------- | -------------------------------------------------------------------------- |
-| Missing `<topic>`                  | Prompt user for research topic before proceeding                           |
+| Missing `<topic>` and no `--file`  | Prompt user for research topic or provide file                             |
 | Invalid `--type`                   | Default to `systematic` with warning message                               |
 | Invalid `--years`                  | Default to `5` with warning message                                        |
 | Invalid `--format`                 | Default to `markdown` with warning message                                 |
 | Invalid `--depth`                  | Default to `standard` with warning message                                 |
-| `<topic>` too short (<5 chars)     | Request more specific research topic                                       |
-| `<topic>` contains only stop words | Request more specific research topic                                       |
-| `<topic>` is a URL without context | Extract the topic/research question from URL, validate is meaningful topic |
-| `<topic>` too long (>500 chars)    | Truncate to first 500 chars with warning, request clarification if needed  |
+| File not found (--file)            | Error: "File not found: {path}"                                            |
+| 1-research/ folder not found       | Error: "Not in a topic folder. Run from within a topic directory."         |
 
 ## Research Types
 
@@ -84,7 +207,7 @@ This command coordinates multiple research resources in a systematic workflow:
 
 ```
 Step 1: Initialize research with super-researcher
-→ Task(subagent_type="wt:super-researcher",
+-> Task(subagent_type="wt:super-researcher",
     prompt="Conduct {type} research on: {topic}
      Time range: {years} years
      Depth: {depth}
@@ -98,7 +221,7 @@ Step 1: Initialize research with super-researcher
 
 ```
 Step 2: Synthesize findings across sources
-→ Task(subagent_type="rd2:knowledge-seeker",
+-> Task(subagent_type="rd2:knowledge-seeker",
     prompt="Synthesize research findings from Phase 1
      Extract key insights, identify patterns,
      highlight consensus and controversies,
@@ -110,7 +233,7 @@ Step 2: Synthesize findings across sources
 
 ```
 Step 3: Verify and extract web content
-→ IF web sources identified:
+-> IF web sources identified:
    Task(subagent_type="wt:magent-browser",
        prompt="Extract and verify content from identified web sources
         Convert to clean markdown using markitdown
@@ -121,20 +244,20 @@ Step 3: Verify and extract web content
 
 ```
 Step 4: Apply verification protocol
-→ Skill(skill="rd2:anti-hallucination",
+-> Skill(skill="rd2:anti-hallucination",
     args="Verify all claims, check source citations,
           validate evidence quality, flag uncertainties,
           ensure proper attribution and confidence scoring")
 ```
 
-### Phase 5: Final Report Generation
+### Phase 5: Save and Final Report
 
 ```
-Step 5: Generate comprehensive report
-→ Format output based on --format parameter:
-   - markdown: Full research report with sections
-   - report: Executive summary + detailed findings
-   - brief: Concise summary with key insights
+Step 5: Generate and save report
+-> IF in topic folder with 1-research/:
+   Save to 1-research/research-brief.md
+   Update 1-research/sources.json
+   Format output based on --format parameter
 ```
 
 ## Research Methodology
@@ -150,7 +273,7 @@ Follows **PRISMA-2020** guidelines:
 
 2. **Literature Search**
    - Design Boolean search strings
-   - Search multiple databases (Semantic Scholar, ArXiv, Google Scholar, etc.)
+   - Search multiple databases
    - Document search strategy for reproducibility
 
 3. **Screening & Selection**
@@ -160,7 +283,7 @@ Follows **PRISMA-2020** guidelines:
 
 4. **Quality Assessment**
    - Apply GRADE evidence hierarchy
-   - Assess risk of bias (RoB 2, ROBINS-I)
+   - Assess risk of bias
    - Evaluate study quality
 
 5. **Data Extraction & Synthesis**
@@ -169,7 +292,7 @@ Follows **PRISMA-2020** guidelines:
    - Perform narrative synthesis for heterogeneous evidence
 
 6. **Bias Detection**
-   - Assess publication bias (funnel plots, Egger's test)
+   - Assess publication bias
    - Identify selective outcome reporting
    - Evaluate funding conflicts
 
@@ -256,125 +379,53 @@ Every claim includes confidence level:
 
 ## Examples
 
-### Example 1: Systematic Literature Review
+### Example 1: Topic-Based Research
 
 ```bash
 /wt:info-research 'machine learning interpretability techniques 2020-2025'
 ```
 
-**Output**: PRISMA-compliant systematic review with:
+**Output**: PRISMA-compliant systematic review
 
-- PICO-formulated research question
-- Multi-database search (Semantic Scholar, ArXiv, Google Scholar)
-- GRADE quality assessment for each source
-- Effect sizes and confidence intervals
-- Publication bias assessment
-- Full bibliography with DOIs
-
-**Sample Result**:
-
-```markdown
-# Research: ML Interpretability Techniques
-
-## Executive Summary
-
-1. SHAP values show highest consistency across model types [HIGH]
-2. Attention mechanisms remain model-specific [MEDIUM]
-3. Counterfactual explanations gain traction in healthcare [HIGH]
-4. LIME methods criticized for instability [MEDIUM]
-5. Integrated gradients preferred for neural networks [HIGH]
-
-## Confidence: HIGH
-
-**Sources**: 47 sources from Semantic Scholar, ArXiv, Google Scholar
-**Evidence Quality**: MODERATE to HIGH
-**Date Range**: 2020 - 2025
-...
-```
-
-### Example 2: Fact-Check Controversial Claim
+### Example 2: File-Based Research
 
 ```bash
-/wt:info-research 'intermittent fasting extends lifespan by 30% in humans' --type fact-check
+/wt:info-research --file 0-materials/materials-extracted.md
 ```
 
-**Output**: Verification report with:
+**Output**: Research based on extracted materials
 
-- Primary source verification
-- Assessment of claim accuracy
-- Context and caveats
-- Evidence quality rating
-
-**Sample Result**:
-
-```markdown
-# Fact Check: Intermittent fasting extends lifespan by 30%
-
-**Status**: PARTIALLY VERIFIED
-**Confidence**: MEDIUM
-**Last Verified**: 2025-01-27
-
-## Evidence Summary
-
-**Primary Source**: [Lee et al., 2023, Cell Metabolism] — 16% lifespan extension in mice, not yet confirmed in humans
-**Supporting Sources**: 3 observational studies showing 10-15% healthspan improvement in humans
-
-## Context & Nuance
-
-- Animal studies show promise (20-30% extension in rodents)
-- Human RCTs limited to short-term biomarkers
-- 30% figure extrapolated from animal models
-  ...
-
-## Evidence Quality
-
-**Study Design**: Animal studies, observational human studies
-**Sample Size**: Varied (N=50-5000 across studies)
-**GRADE Assessment**: LOW to MODERATE
-**Risk of Bias**: Medium (publication bias detected)
-...
-```
-
-### Example 3: Rapid Review for Quick Overview
+### Example 3: Rapid Brief
 
 ```bash
-/wt:info-research 'quantum computing applications in drug discovery' --type rapid --format brief
+/wt:info-research 'quantum computing' --type rapid --format brief
 ```
 
-**Output**: Concise brief with:
+**Output**: Concise brief with key insights
 
-- 3-5 key insights
-- Current state of research
-- Major players and breakthroughs
-- Future outlook
+## Integration with Technical Content Workflow
 
-**Sample Result**:
+This command integrates with the Technical Content Workflow stages:
 
-```markdown
-# Research Brief: Quantum Computing in Drug Discovery
-
-## Key Insights
-
-1. **Molecular Simulation**: Quantum computers excel at simulating molecular interactions [HIGH]
-   - IBM Quantum partnered with Roche (2024)
-   - 100x speedup for specific molecular systems
-
-2. **Current Limitations**: Hardware noise limits practical applications [HIGH]
-   - <100 qubit systems currently available
-   - Error correction remains challenge
-
-3. **Timeline Projection**: Practical applications expected 2030-2035 [MEDIUM]
-   - Based on industry expert consensus
-   - Hardware roadmap predictions
-
-## Confidence: MEDIUM
-
-**Sources**: 12 sources from industry reports, academic preprints
-**Evidence Quality**: MODERATE (mostly grey literature, early-stage research)
-...
+```
+Stage 0: Materials (0-materials/)
+         |
+         v
+Stage 1: Research (1-research/) <-- This command
+         |
+         v
+Stage 2: Outline (2-outline/)
+         |
+         v
+Stage 3: Draft (3-draft/)
 ```
 
-**Note on Namespace Usage:** The `wt:` prefix indicates this command is from the `wt` plugin. When using from within the `wt` plugin context, you can use simply `/info-research`. The full namespace `/wt:info-research` is required when invoking from other plugins or contexts.
+**Workflow integration:**
+
+1. `/wt:info-seek <sources> --save` - Stage 0: Materials
+2. `/wt:info-research --file 0-materials/materials-extracted.md` - Stage 1: Research
+3. `/wt:topic-outline 1-research/research-brief.md` - Stage 2: Outline
+4. `/wt:topic-draft <profile> --file 2-outline/outline-approved.md` - Stage 3: Draft
 
 ## Resource Coordination
 
@@ -386,8 +437,6 @@ This command orchestrates the following resources:
 | `rd2:knowledge-seeker`     | Knowledge synthesis and pattern identification  | Phase 2 (synthesis)      |
 | `wt:magent-browser`        | Web content extraction and verification         | Phase 3 (if web sources) |
 | `rd2:anti-hallucination`   | Verification and anti-hallucination protocol    | Phase 4 (verification)   |
-| `rd2:knowledge-extraction` | Structured information extraction               | Phase 2-3 (extraction)   |
-| `wt:markitdown-browser`    | Clean markdown conversion                       | Phase 3 (web content)    |
 
 ## Quality Assurance
 
@@ -400,18 +449,7 @@ All research outputs include:
 - [x] Explicit acknowledgment of limitations
 - [x] Reproducible search strategy documentation
 - [x] Distinction between peer-reviewed and preprint sources
-
-## Implementation
-
-This command uses a hybrid approach:
-
-**Command Layer (this file)**: Thin wrapper with pseudocode for orchestration
-
-**Agent Layer**: Delegates to:
-
-- `wt:super-researcher` - Core research methodology
-- `rd2:knowledge-seeker` - Synthesis specialist
-- Other resources as needed per research type
+- [x] sources.json index update (when in topic folder)
 
 ## Troubleshooting
 
@@ -423,37 +461,26 @@ This command uses a hybrid approach:
 | **Timeout error**        | Research stops mid-execution          | Use `--depth quick` for faster results, reduce `--years`                           |
 | **Too many sources**     | Overwhelming output, slow processing  | Use `--depth standard` or `--format brief` for summarized results                  |
 | **Conflicting evidence** | Contradictory findings across sources | Results include bias assessment; review "Heterogeneity & Bias Assessment" section  |
-| **Preprint overload**    | Too many unverified sources           | Command distinguishes peer-reviewed from preprints; check evidence quality ratings |
+| **Not in topic folder**  | Cannot save to 1-research/            | Run from within a topic directory or specify full paths                           |
 
 ### Database Fallback Strategy
 
 If primary databases are unavailable:
 
-1. **Semantic Scholar down** → Use Google Scholar + ArXiv
-2. **ArXiv slow** → Use bioRxiv/medRxiv + WebSearch
-3. **All academic databases unavailable** → Use WebSearch with `site:.edu` filter
-4. **WebSearch fails** → Use `wt:magent-browser` for direct URL extraction
-5. **All tools fail** → State limitation explicitly + assign LOW confidence
-
-### Timeout Handling
-
-Research tasks may take longer depending on:
-
-- Source availability and database response times
-- Complexity of research topic
-- Specified time range (`--years`)
-- Research depth (`--depth`)
-
-**Mitigation:**
-
-- Start with `--depth quick` for initial overview
-- Increase to `--depth standard` or `--comprehensive` for deeper research
-- Use `--type rapid` for time-sensitive queries
+1. **Semantic Scholar down** -> Use Google Scholar + ArXiv
+2. **ArXiv slow** -> Use bioRxiv/medRxiv + WebSearch
+3. **All academic databases unavailable** -> Use WebSearch with `site:.edu` filter
+4. **WebSearch fails** -> Use `wt:magent-browser` for direct URL extraction
+5. **All tools fail** -> State limitation explicitly + assign LOW confidence
 
 ## See Also
 
-- `wt:super-researcher` - Core research agent with systematic methodology
+- `/wt:info-seek` - Extract and save materials (Stage 0)
+- `/wt:topic-outline` - Generate outline from research (Stage 2)
+- `wt:super-researcher` - Core research agent
 - `rd2:knowledge-seeker` - Knowledge synthesis specialist
 - `rd2:anti-hallucination` - Verification protocol skill
-- `wt:magent-browser` - Browser automation for web research
-- `/info-seek` - Quick information extraction command
+
+---
+
+**Remember**: Use `--file` to research from extracted materials. Results are automatically saved to 1-research/ when run from within a topic folder.
