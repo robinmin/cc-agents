@@ -1,12 +1,7 @@
 ---
 name: ui-ux-design
-description: UI/UX design patterns and principles for user-centered interfaces with accessibility-first approach. Use when designing UI components, user flows, layouts, responsive designs, design systems, or when accessibility (WCAG 2.1 AA), visual design guidance, or design tokens are needed.
-
-**Sources:**
-- [UI/UX Design Principles, Trends, and Best Practices (ResearchGate, 2025)](https://www.researchgate.net/publication/389701340_UIUX_Design_Principles_Trends_and_Best_Practices)
-- [Best Practices for Creating and Maintaining Design Systems (Medium, 2024)](https://medium.com/@melvinsanthosh_/best-practices-for-creating-and-maintaining-design-systems-d795122f59db)
-- [WCAG 2.1 Guidelines (W3C)](https://www.w3.org/TR/WCAG21/)
-- [Design Token-Based UI Architecture (Martin Fowler, 2024)](https://martinfowler.com/articles/design-token-based-ui-architecture.html)
+description: This skill should be used when the user asks to "design a UI component", "create a login screen", "review accessibility", "generate a dashboard layout", "set up design tokens", "design a form", "create a navigation pattern", or mentions UI/UX patterns, WCAG compliance, responsive design, Google Stitch AI, or design system principles.
+version: 1.1.0
 ---
 
 # UI/UX Design
@@ -17,9 +12,22 @@ UI/UX design patterns and principles for user-centered interfaces with accessibi
 
 This skill provides quick reference patterns and principles for UI/UX design, grounded in current 2024-2025 best practices. It covers component design, accessibility (WCAG 2.1 AA), responsive layouts, design tokens, and common UI patterns.
 
+**Google Stitch Integration:** This skill includes AI-powered UI generation via Google Stitch MCP, enabling:
+- Generate complete UI screens from natural language prompts
+- Extract design DNA for visual consistency across screens
+- Export production-ready frontend code (HTML, React, Vue)
+- Maintain design system consistency through context management
+
+**Layered Architecture:**
+- **Layer 3 (Stitch):** AI-powered generation, context extraction, code export
+- **Layer 2 (Workflow):** Prompt-first, context-first, iterative refinement workflows
+- **Layer 1 (Patterns):** Battle-tested design patterns (fallback when Stitch unavailable)
+
 **For comprehensive design work** with user research, detailed documentation, and implementation specifications, use `/rd2:tasks-plan --design` which invokes the `rd2:super-designer` agent.
 
 ## Quick Start
+
+### Traditional Design Patterns
 
 ```bash
 # Design a component
@@ -38,6 +46,22 @@ This skill provides quick reference patterns and principles for UI/UX design, gr
 "Create design tokens for colors, spacing, and typography"
 ```
 
+### Stitch AI Workflows
+
+```bash
+# Prompt-First: Generate UI from description
+"Generate a mobile login screen with email, password, social login options"
+
+# Context-First: Extract design DNA, then generate matching screens
+"Extract design context from my dashboard, then generate a settings page"
+
+# Iterative: Generate, review, refine
+"Generate a pricing table, then refine with rounded corners and gradient header"
+
+# Code Export: Generate and export to project
+"Generate a user profile card and export as React component to src/components/"
+```
+
 ## When to Use
 
 **Use this skill when:**
@@ -48,459 +72,204 @@ This skill provides quick reference patterns and principles for UI/UX design, gr
 - Ensuring accessibility (WCAG 2.1 AA compliance)
 - Establishing design systems and tokens
 - Reviewing existing interfaces for UX improvements
-- Need visual design guidance (color, typography, spacing)
 - Implementing design tokens as single source of truth
 
-**For comprehensive design work**, use `/rd2:tasks-plan --design` command which invokes the super-designer agent to provide:
-- Detailed analysis process with user research
-- Complete design documentation
-- Implementation specifications
-- Component documentation
+**For comprehensive design work**, use `/rd2:tasks-plan --design` command which invokes the super-designer agent.
 
-## Core Principles (2024-2025)
+## Stitch Integration
 
-### Accessibility First [MANDATORY]
+Google Stitch is an AI-powered UI design tool available via MCP (Model Context Protocol). It enables natural language UI generation with design system consistency.
 
-**WCAG 2.1 AA is non-negotiable in 2025** - Recognized as essential, not optional [Key Factors that Shape UX/UI Design Trends in 2025](https://uidesignz.com/blogs/key-factors-that-shape-uxui-design-trends)
+### Prerequisites
 
-- WCAG 2.1 AA compliance minimum
-- Color contrast: 4.5:1 for normal text, 3:1 for large text
-- Keyboard navigation support for all interactive elements
-- Screen reader compatibility with semantic HTML and ARIA labels
-- **Proper ARIA role implementation** (common failure point in modern apps) [WCAG in 2025: Trends, Pitfalls & Practical Implementation](https://medium.com/@alendennis77/wcag-in-2025-trends-pitfalls-practical-implementation-8cdc2d6e38ad)
-
-### User-Centered Design
-
-- Start with user research and testing
-- Design for usability and delight
-- Progressive disclosure for complex information [7 SaaS UX Design Best Practices for 2025](https://mouseflow.com/blog/saas-ux-design-best-practices/)
-- Micro-interactions for enhanced engagement
-- Personalization capabilities
-
-### Mobile-First Responsive Design
-
-```
-Breakpoints:
-- Mobile: 320px - 768px
-- Tablet: 768px - 1024px
-- Desktop: 1024px+
-```
-
-### Design Tokens as Single Source of Truth
-
-Design tokens are "design decisions as data" - a single source of truth for design and engineering [Design Token-Based UI Architecture](https://martinfowler.com/articles/design-token-based-ui-architecture.html)
-
-```css
-/* Primitive tokens (base values) */
---color-blue-50: #eff6ff;
---color-blue-500: #3b82f6;
---color-blue-900: #1e3a8a;
-
-/* Semantic tokens (purpose-driven) */
---color-primary: var(--color-blue-500);
---color-text-default: var(--color-gray-900);
---spacing-unit: 4px;
---radius-md: 8px;
-```
-
-### Visual Hierarchy
-
-| Element | Impact | Application |
-|---------|--------|-------------|
-| Size | High | Larger = more important |
-| Color | High | Bright/bold = attention |
-| Position | Medium | Top-left = primary (LTR) |
-| Contrast | High | High contrast = emphasis |
-| Whitespace | Medium | Creates grouping and separation |
-
-### Design System Basics
-
-**Spacing Scale** (4px base unit):
-```css
---space-xs: 4px;
---space-sm: 8px;
---space-md: 16px;
---space-lg: 24px;
---space-xl: 32px;
---space-2xl: 48px;
-```
-
-**Typography**:
-- Body text: 16px minimum
-- Line height: 1.4-1.6 for readability
-- Character width: 60-75 characters per line
-- Heading scale: h1 (32px), h2 (24px), h3 (20px), h4 (16px)
-
-## Component Design Patterns
-
-### Button States
-
-Always design for:
-- Default
-- Hover (mouse)
-- Focus (keyboard) - **Visible focus indicator mandatory**
-- Active (pressed)
-- Disabled
-- Loading
-
-### Form Design
-
-**Input states**:
-- Empty
-- Filled
-- Focus - **Clear visual indicator required**
-- Error - **Clear, actionable message**
-- Disabled - **Visually distinct but readable**
-
-**Form validation**:
-- Clear error messages with actionable guidance
-- Inline validation when possible
-- Success confirmation
-- Prevent submission on critical errors
-- **Labels for all inputs** (never use placeholder as label)
-
-### Card Component
-
-**Elements**:
-- Header (title, actions)
-- Body (content)
-- Footer (metadata, actions)
-
-**Spacing**:
-- Internal padding: 16px-24px
-- Card gap: 16px-24px
-
-### Navigation Patterns
-
-**Desktop**:
-- Horizontal nav bar
-- Dropdown menus
-- Breadcrumb trails
-
-**Mobile**:
-- Hamburger menu
-- Bottom tab bar
-- Back navigation
-
-## Layout Patterns
-
-### Container Widths
-
-```
-xs: 100% (mobile)
-sm: 640px
-md: 768px
-lg: 1024px
-xl: 1280px
-2xl: 1536px
-```
-
-### Grid Systems
-
-**12-column grid** (most common):
-```css
-display: grid;
-grid-template-columns: repeat(12, 1fr);
-gap: 16px;
-```
-
-**Common spans**:
-- Full: 12 columns
-- Half: 6 columns
-- Third: 4 columns
-- Quarter: 3 columns
-
-## Accessibility Checklist
-
-**Color**:
-- [ ] Contrast ratio 4.5:1 minimum (normal text)
-- [ ] Contrast ratio 3:1 minimum (large text 18px+)
-- [ ] Don't rely on color alone (use icons, labels)
-- [ ] Test with color blindness simulators
-
-**Keyboard**:
-- [ ] All interactive elements reachable by Tab
-- [ ] Visible focus indicators (never remove outline without replacement)
-- [ ] Logical tab order
-- [ ] Enter/Space to activate
-- [ ] Escape to close modals
-- [ ] Skip links for keyboard users
-
-**Screen Readers**:
-- [ ] Semantic HTML (button, nav, main, article)
-- [ ] ARIA labels for icons without text
-- [ ] ARIA descriptions for complex widgets
-- [ ] alt text for meaningful images
-- [ ] Proper heading structure (h1-h6, single h1 per page)
-
-**Forms**:
-- [ ] Labels for all inputs (linked via for/id)
-- [ ] Required field indicators
-- [ ] Clear error messages with recovery guidance
-- [ ] Instructions for complex inputs
-- [ ] Error summaries for multiple errors
-
-**Focus Management**:
-- [ ] Focus trap in modals/dialogs
-- [ ] Return focus to trigger on close
-- [ ] Focus not lost during dynamic updates
-- [ ] Manage focus for single-page applications
-
-## Responsive Design Strategy
-
-### Mobile-First Approach
-
-1. Design for mobile (320px) first
-2. Enhance for tablet (768px+)
-3. Optimize for desktop (1024px+)
-
-### Breakpoint Strategy
-
-```css
-/* Mobile First */
-.component { /* base styles */ }
-
-/* Tablet */
-@media (min-width: 768px) {
-  .component { /* tablet overrides */ }
-}
-
-/* Desktop */
-@media (min-width: 1024px) {
-  .component { /* desktop overrides */ }
+**MCP Configuration Required:**
+```json
+{
+  "mcpServers": {
+    "stitch": {
+      "command": "npx",
+      "args": ["-y", "stitch-mcp"]
+    }
+  }
 }
 ```
 
-### Touch Targets
+**Verification:** Test with `mcp__stitch__list_projects` - should return empty array or project list.
 
-- Minimum 44x44px for all interactive elements
-- Increased spacing between touch targets
-- Consider thumb zone for mobile navigation
+### Available MCP Tools
 
-## Design Tokens
+| Tool | Purpose | Key Parameters |
+|------|---------|----------------|
+| `mcp__stitch__create_project` | Create new Stitch project | `name`, `description` |
+| `mcp__stitch__get_project` | Get project details | `projectId` |
+| `mcp__stitch__list_projects` | List all projects | none |
+| `mcp__stitch__list_screens` | List screens in project | `projectId` |
+| `mcp__stitch__get_screen` | Get screen details + code | `projectId`, `screenId` |
+| `mcp__stitch__generate_screen_from_text` | Generate UI from prompt | `projectId`, `prompt`, `deviceType`, `modelId` |
 
-### Color System (2024 Best Practice)
+### Generation Parameters
+
+**Device Types:**
+- `MOBILE` - Mobile-first responsive design (375px viewport)
+- `DESKTOP` - Desktop-optimized layout (1440px viewport)
+- `TABLET` - Tablet layout (768px viewport)
+
+**Model Options:**
+- `GEMINI_3_FLASH` - Fast generation, good for iteration (default)
+- `GEMINI_3_PRO` - Higher quality, better for final designs
+
+### Basic Usage Pattern
+
+```python
+# 1. Create or select project
+project = mcp__stitch__create_project(name="MyApp", description="E-commerce app")
+
+# 2. Generate screen from prompt
+screen = mcp__stitch__generate_screen_from_text(
+    projectId=project.id,
+    prompt="A product detail page with image carousel, price, add to cart button",
+    deviceType="MOBILE",
+    modelId="GEMINI_3_FLASH"
+)
+
+# 3. Get screen with generated code
+details = mcp__stitch__get_screen(projectId=project.id, screenId=screen.id)
+# details.code contains HTML/CSS/JS
+```
+
+## Workflow Modes
+
+Three workflow modes for different design scenarios. See `references/stitch-workflows.md` for detailed examples.
+
+### Prompt-First Workflow
+
+**Best for:** New screens, quick prototypes, exploring ideas.
+
+```
+1. DESCRIBE - Write natural language UI description
+2. GENERATE - Call generate_screen_from_text with prompt
+3. REVIEW - Inspect generated design in Stitch
+4. EXTRACT - Get code via get_screen
+5. EXPORT - Save to project files
+```
+
+### Context-First Workflow
+
+**Best for:** Maintaining visual consistency, adding screens to existing app.
+
+```
+1. EXTRACT - Get design context from existing screen
+2. SAVE - Store as design-context.json
+3. LOAD - Include context in new generation prompts
+4. GENERATE - Create new screens matching the design DNA
+5. VALIDATE - Verify consistency with existing screens
+```
+
+### Iterative Refinement Workflow
+
+**Best for:** Polishing designs, client feedback incorporation.
+
+```
+1. GENERATE - Create initial design
+2. REVIEW - Identify improvements needed
+3. REFINE - Generate with specific modifications
+4. COMPARE - Evaluate against previous version
+5. ITERATE - Repeat until satisfied
+```
+
+## Design Context
+
+Design context captures the "design DNA" for visual consistency across screens. See `references/design-context-schema.md` for complete schema documentation.
+
+### Schema Summary (design-context.json)
 
 ```json
 {
+  "version": "1.0",
+  "projectId": "stitch-project-id",
   "colors": {
-    "primitive": {
-      "blue": { "50": "#f0f9ff", "500": "#0ea5e9", "900": "#0c4a6e" },
-      "gray": { "50": "#f9fafb", "500": "#6b7280", "900": "#111827" }
-    },
-    "semantic": {
-      "primary": { "value": "{primitive.blue.500}", "type": "color" },
-      "text-default": { "value": "{primitive.gray.900}", "type": "color" },
-      "success": "#10b981",
-      "warning": "#f59e0b",
-      "error": "#ef4444",
-      "info": "#3b82f6"
-    }
-  }
-}
-```
-
-**Design Token Types**:
-- **Primitive tokens**: Base values (colors, spacing)
-- **Semantic tokens**: Purpose-driven aliases (primary, text-default)
-- **Component tokens**: Component-specific overrides
-
-### Typography Scale
-
-```json
-{
-  "fontSize": {
-    "xs": "12px",
-    "sm": "14px",
-    "base": "16px",
-    "lg": "18px",
-    "xl": "20px",
-    "2xl": "24px",
-    "3xl": "30px",
-    "4xl": "36px"
+    "primary": "#3b82f6",
+    "background": "#ffffff",
+    "text": "#1e293b"
   },
-  "fontWeight": {
-    "normal": "400",
-    "medium": "500",
-    "semibold": "600",
-    "bold": "700"
+  "typography": {
+    "fontFamily": "Inter, system-ui, sans-serif",
+    "scale": { "base": "16px", "lg": "18px" }
   },
-  "lineHeight": {
-    "tight": "1.25",
-    "normal": "1.5",
-    "relaxed": "1.75"
-  }
+  "spacing": { "unit": "4px" },
+  "components": { "borderRadius": "8px" }
 }
 ```
 
-### Spacing Scale
+## Code Output
 
-```json
-{
-  "spacing": {
-    "xs": "4px",
-    "sm": "8px",
-    "md": "16px",
-    "lg": "24px",
-    "xl": "32px",
-    "2xl": "48px",
-    "3xl": "64px"
-  }
-}
-```
+Stitch generates production-ready frontend code. Export to project files with proper organization.
 
-## Common UI Patterns
-
-### Modal/Dialog
-
-- Overlay backdrop (darkens content)
-- Close button (top-right)
-- Escape key to close
-- Click outside to close
-- **Focus trap inside modal**
-- **Return focus to trigger on close**
-- ARIA attributes: role="dialog", aria-modal="true"
-
-### Dropdown/Select
-
-- Trigger button shows selected value
-- List appears below trigger
-- Keyboard navigation (arrow keys)
-- Select with Enter/Space
-- Click outside to close
-- Scrollable if long list
-- ARIA attributes: role="combobox", aria-expanded
-
-### Tabs
-
-- Active tab visually distinct
-- Keyboard navigation (arrow keys)
-- Activate with Enter/Space
-- Panel content shows below
-- ARIA attributes: role="tablist", role="tab", role="tabpanel"
-
-### Toast/Notification
-
-- Position: top-right or bottom-right
-- Auto-dismiss after 4-6 seconds
-- Close button available
-- Dismissible with keyboard (Escape)
-- Stacked if multiple
-- ARIA: role="status" or role="alert"
-
-### Loading States
-
-- Skeleton screens (preferred over spinners)
-- Progress indicators for multi-step processes
-- Optimistic UI for fast feedback
-- Clear error states with retry options
-
-## Component Library Recommendations
-
-| Library | Best For | Notes |
-|---------|----------|-------|
-| shadcn/ui | React, Tailwind | Copy-paste components, full customization |
-| Radix UI | React, primitives | Unstyled, accessible, headless |
-| Headless UI | React, Vue | Unstyled, accessible |
-| Chakra UI | React | Styled, accessible, theming built-in |
-| Material-UI | React | Complete system, opinionated |
-| Mantine | React | Feature-rich, accessible |
-
-## Design System Best Practices (2024-2025)
-
-Based on [Best Practices for Creating and Maintaining Design Systems](https://medium.com/@melvinsanthosh_/best-practices-for-creating-and-maintaining-design-systems-d795122f59db):
-
-1. **Start with User Research** - Understanding users before building
-2. **Define Core Principles** - Establish foundational guidelines
-3. **Learn from Leaders** - Study Google, Apple, IBM, Shopify design systems [13 Best Design System Examples in 2025](https://www.uxpin.com/studio/blog/best-design-system-examples/)
-4. **Component-Based Architecture** - Reusable, composable components
-5. **Design Tokens** - Single source of truth for design decisions
-6. **Documentation** - Clear guidelines for usage
-7. **Governance** - Process for contributions and updates
-
-## Micro-Interactions (2025 Trend)
-
-Based on [7 SaaS UX Design Best Practices for 2025](https://mouseflow.com/blog/saas-ux-design-best-practices/):
-
-- Enhance user engagement through subtle animations
-- Provide immediate feedback for user actions
-- Guide user attention to important elements
-- Keep animations under 300ms for responsiveness
-- Respect `prefers-reduced-motion` for accessibility
-
-## Progressive Disclosure
-
-Based on [10 UX/UI Best Practices for Modern Digital Products in 2025](https://devpulse.com/insights/ux-ui-design-best-practices-2025-enterprise-applications/):
-
-- Present complex information incrementally
-- Show only essential information by default
-- Reveal details on user request
-- Reduce cognitive load
-- Improve perceived simplicity
-
-## Design Handoff Checklist
-
-**For each component**:
-- [ ] Dimensions (width, height, padding)
-- [ ] Colors (background, text, border)
-- [ ] Typography (font, size, weight, line-height)
-- [ ] States (default, hover, active, disabled, error)
-- [ ] Spacing (margins, padding, gaps)
-- [ ] Responsive behavior
-- [ ] Accessibility attributes (ARIA)
-
-**For layouts**:
-- [ ] Grid system
-- [ ] Container widths
-- [ ] Breakpoints
-- [ ] Responsive stacking order
-
-## Design Token Implementation
-
-Based on [Design Token-Based UI Architecture (Martin Fowler, 2024)](https://martinfowler.com/articles/design-token-based-ui-architecture.html) and [Design Tokens Explained (Contentful, 2024)](https://www.contentful.com/blog/design-token-system/):
-
-### Token Structure
+### Path Conventions
 
 ```
-design-tokens/
-├── tokens/
-│   ├── base/        # Primitive tokens (colors, spacing)
-│   ├── semantic/    # Semantic tokens (primary, text-default)
-│   └── component/   # Component-specific tokens
-├── platforms/
-│   ├── css/         # CSS variables
-│   ├── ios/         # iOS constants
-│   └── android/     # Android resources
+src/
+├── components/
+│   ├── ui/           # Generated UI components
+│   └── screens/      # Generated screen components
+├── styles/
+│   └── tokens.css    # Extracted design tokens
+└── design/
+    └── design-context.json
 ```
 
-### Token Naming Convention
+### Post-Processing
 
-```json
-{
-  "color": {
-    "primitive": {
-      "blue": { "50": "...", "500": "...", "900": "..." }
-    },
-    "semantic": {
-      "primary": "blue.500",
-      "text-default": "gray.900",
-      "border-default": "gray.200"
-    }
-  }
-}
+After code generation, apply these steps:
+
+1. **Format** - Run prettier/eslint on generated code
+2. **Validate** - Check for syntax errors, missing imports
+3. **Accessibility** - Run axe-core or similar a11y checker
+4. **Integration** - Verify component fits project structure
+
+## Fallback Mode
+
+When Stitch is unavailable, gracefully degrade to Layer 1 patterns. See `references/fallback-patterns.md` for detailed guidance.
+
+### Detection
+
+**Stitch unavailable when:**
+- MCP tool calls fail with connection error
+- Authentication/API key errors
+- Rate limiting (429 responses)
+- Service unavailable (503 responses)
+
+### Graceful Degradation
+
+```
+IF Stitch unavailable:
+├── NOTIFY user with clear message
+├── FALLBACK to Layer 1 patterns below
+├── PROVIDE manual design guidance
+└── OFFER recovery check
 ```
 
-## Progressive Disclosure
+## Core Principles Summary
 
-This SKILL.md provides quick reference patterns grounded in 2024-2025 best practices.
+For detailed implementation guidance, see `references/core-principles.md`.
 
-**For detailed workflows**:
-- Use `/rd2:tasks-plan --design` to invoke super-designer for comprehensive design analysis
-- See `references/` for detailed documentation on specific topics
+| Principle | Key Point |
+|-----------|-----------|
+| **Accessibility First** | WCAG 2.1 AA minimum, color contrast 4.5:1, keyboard nav |
+| **Mobile-First** | Design for 320px, enhance for tablet/desktop |
+| **Design Tokens** | Single source of truth for design decisions |
+| **Visual Hierarchy** | Size, color, position, contrast, whitespace |
+| **Progressive Disclosure** | Show essential info first, reveal details on demand |
 
-**For implementation**:
-- Use `/rd2:code-generate` to implement designs
-- Use `/rd2:code-review` to verify accessibility implementation
+### Quick Accessibility Checklist
+
+Essential checks (see `references/accessibility-checklist.md` for complete list):
+
+- [ ] Color contrast 4.5:1 minimum
+- [ ] Visible focus indicators
+- [ ] Labels for all form inputs
+- [ ] Semantic HTML structure
+- [ ] Keyboard navigation works
 
 ## Quick Reference
 
@@ -527,7 +296,6 @@ This SKILL.md provides quick reference patterns grounded in 2024-2025 best pract
 --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
 --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
 --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
---shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1);
 ```
 
 ### Z-Index Scale
@@ -541,16 +309,44 @@ This SKILL.md provides quick reference patterns grounded in 2024-2025 best pract
 50: Toasts/Notifications
 ```
 
+### Breakpoints
+
+| Name | Width | Use |
+|------|-------|-----|
+| Mobile | 320px-768px | Base styles |
+| Tablet | 768px-1024px | Enhanced layout |
+| Desktop | 1024px+ | Full layout |
+
+## Additional References
+
+### Design Patterns
+- **`references/core-principles.md`** - Accessibility, mobile-first, design tokens, visual hierarchy
+- **`references/component-patterns.md`** - Buttons, forms, cards, navigation, layouts
+- **`references/ui-patterns.md`** - Modal, dropdown, tabs, toast, accordion, tooltip
+- **`references/accessibility-checklist.md`** - Complete WCAG 2.1 AA checklist
+- **`references/design-tokens.md`** - Token hierarchy, naming, theming, build tools
+
+### Stitch Workflows
+- **`references/stitch-workflows.md`** - Detailed workflow documentation
+- **`references/design-context-schema.md`** - Complete design context schema
+- **`references/fallback-patterns.md`** - Graceful degradation patterns
+
 ## Sources
 
+### Design Patterns & Best Practices
 - [UI/UX Design: Principles, Trends, and Best Practices (ResearchGate, 2025)](https://www.researchgate.net/publication/389701340_UIUX_Design_Principles_Trends_and_Best_Practices)
 - [Best Practices for Creating and Maintaining Design Systems (Medium, 2024)](https://medium.com/@melvinsanthosh_/best-practices-for-creating-and-maintaining-design-systems-d795122f59db)
 - [13 Best Design System Examples in 2025 (UXPin)](https://www.uxpin.com/studio/blog/best-design-system-examples/)
 - [10 UX/UI Best Practices for Modern Digital Products in 2025 (DevPulse)](https://devpulse.com/insights/ux-ui-design-best-practices-2025-enterprise-applications/)
-- [7 SaaS UX Design Best Practices for 2025 (Mouseflow)](https://mouseflow.com/blog/saas-ux-design-best-practices/)
-- [Key Factors that Shape UX/UI Design Trends in 2025 (UIDesignz)](https://uidesignz.com/blogs/key-factors-that-shape-uxui-design-trends)
+
+### Accessibility
 - [WCAG 2.1 Guidelines (W3C)](https://www.w3.org/TR/WCAG21/)
 - [WCAG in 2025: Trends, Pitfalls & Practical Implementation (Medium)](https://medium.com/@alendennis77/wcag-in-2025-trends-pitfalls-practical-implementation-8cdc2d6e38ad)
+
+### Design Tokens
 - [Design Token-Based UI Architecture (Martin Fowler, 2024)](https://martinfowler.com/articles/design-token-based-ui-architecture.html)
-- [Design Tokens Explained - Building a Token System (Contentful, 2024)](https://www.contentful.com/blog/design-token-system/)
-- [State of Design Tokens 2024 Report (Supernova)](https://www.supernova.io/state-of-design-tokens)
+- [Design Tokens Explained (Contentful, 2024)](https://www.contentful.com/blog/design-token-system/)
+
+### Google Stitch AI
+- [From idea to app: Introducing Stitch (Google Developers Blog, 2025)](https://developers.googleblog.com/stitch-a-new-way-to-design-uis/)
+- [stitch-mcp on GitHub](https://github.com/Kargatharaakash/stitch-mcp)
