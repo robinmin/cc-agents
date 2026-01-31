@@ -8,6 +8,8 @@
       "Skill(rd2:anti-hallucination)",
       "Skill(rd2:cc-skills)",
       "Skill(rd2:cc-agents)",
+      "Skill(rd2:tasks-cli)",
+      "Skill(wt:info-seek)",
       "Skill(superpowers:brainstorming)",
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
@@ -21,8 +23,15 @@
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:googleapis.github.io)",
+      "WebFetch(domain:stitch.withgoogle.com)",
+      "WebFetch(domain:developers.googleblog.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:almcorp.com)",
       "Bash(ast-grep run:*)",
-      "Bash(ast-grep scan:*)"
+      "Bash(ast-grep scan:*)",
+      "Bash(make:*)"
     ],
     "deny": [],
     "ask": []
