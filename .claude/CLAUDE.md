@@ -1,12 +1,95 @@
 # Naming Conventions & Agent Routing
 
-## Core Rule
+## Core Rule [CRITICAL]
 
 **ALWAYS use full namespace**: `plugin-name:resource-name` for plugin resources
-**Fat Skills, Thin Wrappers** - Commands are thin wrappers, agents contain the logic
+**Fat Skills, Thin Wrappers** - Skills are the core (contain logic), Commands/Agents are thin wrappers (delegate to skills)
 **File-Based Storage** - All intermediate results saved as local files for traceability and manual intervention for all subagents
 **Path-Based Communication** - Subagents only pass file paths, not content (prevents context bloat) for all subagents
 **tasks-based task management**: All tasks management **MUST** be conducted through task files by `tasks` CLI, including creation and status management.
+
+---
+
+## Rules for Agent Skills Development
+
+### Core Principle [CRITICAL]
+
+**Fat Skills, Thin Wrappers:**
+
+- **Skills** = core logic, workflows, domain knowledge (source of truth)
+- **Commands** = ~50 line wrappers invoking skills for humans
+- **Agents** = ~100 line wrappers invoking skills for AI workflows
+
+### Circular Reference Rule [CRITICAL]
+
+**Skills MUST NOT reference their associated agents or commands.**
+
+❌ Bad: `See also: my-agent, /plugin:my-command`
+✅ Good: `This skill provides workflows for X.`
+
+### Quick Rules
+
+| Rule          | Requirement                                                         |
+| ------------- | ------------------------------------------------------------------- |
+| Description   | Third person: "This skill should be used when..." + trigger phrases |
+| Writing form  | Imperative: "Create X", not "Creates X" or "You should create"      |
+| Body length   | <5k words, move details to `references/`                            |
+| Naming        | `verb-ing-noun` (e.g., `image-generating`)                          |
+| Namespace     | Always use `plugin-name:skill-name`                                 |
+| No name reuse | Across commands/skills/agents                                       |
+
+**See also:** `rd2:cc-skills` skill for complete skill development guidelines.
+
+---
+
+## Rules for Subagent Development
+
+### Core Principle
+
+**Agents are thin wrappers (~100 lines) that invoke skills.**
+
+### Quick Rules
+
+| Rule         | Requirement                                    |
+| ------------ | ---------------------------------------------- |
+| Structure    | 8 sections, 400-600 lines total                |
+| Description  | "Use PROACTIVELY for" + 2-3 `<example>` blocks |
+| Competencies | 50+ items across 4-5 categories                |
+| Rules        | 8+ DO and 8+ DON'T                             |
+| Skills field | Enumerate skills in frontmatter, NOT in body   |
+| Naming       | `role-prefix` (e.g., `super-architect`)        |
+
+**8 Sections:** METADATA → PERSONA → PHILOSOPHY → VERIFICATION → COMPETENCIES → PROCESS → RULES → OUTPUT
+
+**See also:** `rd2:cc-agents` skill for complete agent development guidelines.
+
+---
+
+## Rules for Slash Command Development
+
+### Core Principle
+
+**Commands are thin wrappers (~50 lines) that invoke skills directly.**
+
+### Circular Reference Rule [CRITICAL]
+
+**Commands MUST delegate to skills, NOT agents.**
+
+❌ Bad: `Task(agent="wt:tc-writer", ...)`
+✅ Good: `Skill(skill="wt:technical-content-creation", ...)`
+
+### Quick Rules
+
+| Rule          | Requirement                                      |
+| ------------- | ------------------------------------------------ |
+| Delegation    | Use `Skill(skill="plugin:skill-name", ...)`      |
+| Description   | <60 chars, clear, actionable                     |
+| Writing form  | Imperative: instructions FOR Claude, not TO user |
+| argument-hint | Document expected arguments                      |
+| Naming        | Simple: `verb-noun`, Grouped: `noun-verb`        |
+| Namespace     | Always use `plugin-name:command-name`            |
+
+**See also:** `rd2:cc-commands` skill for complete command development guidelines.
 
 ---
 
