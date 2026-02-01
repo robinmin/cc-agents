@@ -8,8 +8,6 @@ version: 1.0.0
 
 Orchestrate the complete technical content creation process through a systematic 7-stage workflow. Create professional technical articles, blog posts, and documentation from research materials extraction through multi-platform publishing.
 
-**Agent Integration**: This skill works with the `wt:tc-writer` agent for content generation tasks.
-
 ## Overview
 
 Implement the **Technical Content Workflow** - produce high-quality technical articles, blog posts, and documentation through a systematic 7-stage process.
@@ -105,6 +103,133 @@ Context-aware inline illustration generation with automatic position detection.
 **Use Case**: Automatic identification and generation for abstract concepts, information-dense sections, emotional transitions.
 **Integration**: Inline illustration generation with captions.json compatibility.
 
+## Workflow Orchestration
+
+All agents and commands MUST follow this strict orchestration process when implementing this skill.
+
+### Orchestration Phases
+
+#### Phase 1: Diagnose (Analyze Request)
+
+1. **Parse user intent** - Identify topic, scope, constraints, preferences
+2. **Determine workflow type** - Full 7-stage, partial workflow, or single-stage
+3. **Check existing artifacts** - Scan for completed stages (0-materials/, 1-research/, etc.)
+4. **Identify dependencies** - Verify prerequisites for requested stages
+5. **Select research methodology** - Match research type (systematic, narrative, rapid) to content needs
+
+#### Phase 2: Plan (Stage Selection)
+
+1. **Determine optimal stages** - Based on context, artifacts, and user intent
+2. **Plan stage gate usage** - Interactive approval (Stage 2 outline, Stage 3 draft) vs straight-through
+3. **Identify delegation targets** - Map stages to skills (wt:image-*, wt:super-researcher, rd2:knowledge-seeker)
+4. **Plan error recovery** - Define fallback strategies for each stage
+5. **Set quality checkpoints** - Define verification points for technical accuracy
+
+#### Phase 3: Execute (Coordinate Workflow)
+
+1. **Execute stages in order** - Follow 7-stage pipeline with adaptive selection
+2. **Handle stage gates** - Present options, collect feedback via AskUserQuestion, iterate when needed
+3. **Delegate to skills** - Use appropriate skills for each stage:
+   - Stage 0: Materials extraction from URLs/files
+   - Stage 1: Research via wt:super-researcher or rd2:knowledge-seeker
+   - Stage 2: Outline via topic outline command or script (generate 2-3 options in parallel)
+   - Stage 3: Draft via topic draft command with style profile
+   - Stage 4: Illustrations via wt:image-cover, wt:image-illustrator, wt:image-generate
+   - Stage 5: Adaptation via topic adapt command for multi-platform
+   - Stage 6: Publishing via topic publish command (dry-run first, then confirm)
+4. **Save intermediate results** - File-based communication for recovery and traceability
+5. **Handle partial failures** - Continue workflow even if individual stages fail
+
+#### Phase 4: Verify (Quality Assurance)
+
+1. **Verify technical claims** - Apply rd2:anti-hallucination protocol
+2. **Validate completeness** - Check all requested stages completed
+3. **Quality metrics reporting** - Provide word counts, research confidence, revision counts
+4. **Final approval gate** - User confirmation before publishing (Stage 6)
+5. **Document workflow** - Report summary with outputs, next steps, recommendations
+
+### Decision Framework
+
+| Situation | Action |
+|-----------|--------|
+| New content from scratch | Run full 7-stage workflow with stage gates at Stage 2 and Stage 3 |
+| Existing research brief | Skip Stage 0-1, run Stages 2-6 |
+| Existing outline | Skip Stages 0-2, run Stages 3-6 |
+| Draft revision request | Run Stage 3 only with revision mode |
+| Quick blog post | Run Stages 0-3, 5-6 (skip illustrations) |
+| Research-heavy article | Extend Stage 1 with systematic methodology |
+| Missing dependencies detected | Prompt user, offer to run prerequisite stages |
+| Stage execution failure | Report error, offer retry/skip/manual intervention |
+| Publishing requested | Use --dry-run first, then confirm for live publishing |
+
+### Stage Gate Requirements
+
+**Stage 2 (Outline) - REQUIRED:**
+- Generate 2-3 outline options in parallel
+- Present options via AskUserQuestion for user selection
+- Save selected option as `outline-approved.md`
+- Do NOT proceed to Stage 3 without approval
+
+**Stage 3 (Draft) - REQUIRED:**
+- Generate draft using approved outline
+- Offer revision cycle (1-3 iterations)
+- Save final draft as `draft-article.md`
+- Do NOT proceed to Stage 4 without draft approval
+
+**Stage 6 (Publish) - REQUIRED:**
+- Always use --dry-run first for preview
+- Present platform adaptations for review
+- Require explicit confirmation before live publishing
+
+### Adaptive Stage Selection
+
+**Skip stages when:**
+- Stage folder exists with approved outputs
+- User explicitly requests to skip stage
+- Prerequisites already satisfied (e.g., existing outline)
+
+**Extend stages when:**
+- Research-heavy content requires systematic review
+- User requests multiple outline options (3+ instead of 2)
+- Draft requires multiple revision cycles
+- Multiple image generations needed
+
+**Validate dependencies before:**
+- Stage 1: Check Stage 0 materials extraction complete
+- Stage 2: Check Stage 1 research brief approved
+- Stage 3: Check Stage 2 outline approved
+- Stage 4: Check Stage 3 draft approved
+- Stage 5: Check Stage 4 illustrations complete (optional)
+- Stage 6: Check Stage 5 adaptations complete
+
+### Error Recovery Protocol
+
+| Error Type | Recovery Action |
+|------------|-----------------|
+| Materials extraction failed | Retry with different source, or user provides materials manually |
+| Research insufficient | Extend research time, switch to systematic methodology |
+| Outline generation failed | Re-run with different style parameters, or user provides outline |
+| Draft generation failed | Re-run with different style profile, or user provides draft |
+| Illustration generation failed | Continue without illustrations, or user provides images |
+| Adaptation failed | Re-run for specific platform only, or user edits manually |
+| Publishing failed | Retry, or user publishes manually using generated content |
+
+**Always save intermediate results** for manual intervention and workflow recovery.
+
+### File-Based Communication
+
+- Pass file paths between stages, NOT content (prevents context bloat)
+- Each stage reads from previous stage's output folder
+- Each stage writes to its designated output folder
+- Enable manual intervention at any stage by preserving all intermediate files
+
+### Quality Verification
+
+- Apply rd2:anti-hallucination protocol to all research stages
+- Verify technical claims against authoritative sources
+- Provide confidence scoring (HIGH/MEDIUM/LOW) for research quality
+- Include source citations in all research outputs
+
 ## Quick Reference
 
 ### Stage Mapping
@@ -181,12 +306,6 @@ Each stage can be invoked individually using dedicated slash commands:
 - Stage 4: Image generation for illustrations and covers
 - Stage 5: Content adaptation for multiple platforms
 - Stage 6: Publishing to blogs and social media
-
-### Related Agents
-- `wt:super-researcher` - Research specialist
-- `wt:tc-writer` - Content generation
-- `rd2:knowledge-seeker` - Knowledge synthesis
-- `wt:magent-browser` - Web content extraction
 
 ### Related Skills
 - `rd2:anti-hallucination` - Verification protocol
