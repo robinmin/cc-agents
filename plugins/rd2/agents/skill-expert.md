@@ -35,7 +35,7 @@ Create new skills and refine existing ones following "Fat Skills, Thin Wrappers"
 
 ## Skill Creation Workflow
 
-This agent follows the official 6-step skill creation process from plugin-dev:
+This agent follows the official 6-step skill creation process documented in rd2:cc-skills:
 
 ### Step 1: Understanding the Skill with Concrete Examples
 
