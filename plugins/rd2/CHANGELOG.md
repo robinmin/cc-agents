@@ -1,3 +1,145 @@
+## [0.6.0] - 2026-02-01
+
+### Summary
+
+**Skill Development System Refactoring: Type-Specific Templates, Template-Based Evaluation, Fat Skills Thin Wrappers Architecture**
+
+Major refactoring of the cc-skills meta-skill introducing type-specific skill templates (technique, pattern, reference), template-based evaluation reports, and comprehensive "Fat Skills, Thin Wrappers" architecture enforcement. Achieved 59% overall line reduction across skill-related agents and commands while improving functionality.
+
+### Added
+
+- **Type-Specific Skill Templates** (`skills/cc-skills/assets/`):
+  - **skill-template-technique.md** (120 lines): For concrete steps, debugging methods, repeatable processes
+  - **skill-template-pattern.md** (135 lines): For mental models, architectural decisions, ways of thinking
+  - **skill-template-reference.md** (146 lines): For API docs, syntax guides, tool documentation
+  - All templates include TODO markers guiding what to fill in
+
+- **Template-Based Skill Evaluation** (`skills/cc-skills/`):
+  - Restored and enhanced `evaluation-report-template.md` (90 lines)
+  - `MarkdownFormatter` now uses template with `load_template()` and `render_template()`
+  - Auto-categorizes recommendations by priority (Critical/High/Medium based on dimension scores)
+  - Extracts strengths from high-scoring dimensions automatically
+  - Added `EVALUATION_REPORT_TEMPLATE_FALLBACK` constant (55 lines)
+
+- **Init Script `--type` Argument** (`scripts/skills.py`):
+  - New `--type` argument: `technique`, `pattern`, `reference`
+  - Auto-selects appropriate template based on skill purpose
+  - Falls back to generic `skill-template.md` if type omitted
+
+- **Hook Migration** (`scripts/rd2_guard.sh`, 431+ lines):
+  - Migrated safety hooks from rd plugin to rd2
+  - Bash validation and dangerous command detection
+
+### Changed
+
+- **cc-skills SKILL.md** (`skills/cc-skills/SKILL.md`):
+  - Updated Step 3 to reference template-based approach with `--type` argument
+  - Added Skill Types table showing when to use each template type
+  - Improved documentation for template selection workflow
+
+- **skill-expert Agent** (`agents/skill-expert.md`, 109 → 124 lines):
+  - Added "Skill Types (Step 3)" section with template selection table
+  - Updated example to show choosing 'technique' template
+  - Updated Step 3 from "Create skill directory structure" to "Create skill from template"
+
+- **skill-add Command** (`commands/skill-add.md`, 101 → 115 lines):
+  - Added `--type` argument to frontmatter argument-hint
+  - Added Skill Types section with template selection guidance
+  - Updated Quick Start examples showing all three types
+  - Updated implementation prompt to pass type to init script
+
+- **Fat Skills, Thin Wrappers Architecture Enforcement**:
+  - **skill-doctor.md**: 289 → 112 lines (61% reduction) - delegates to rd2:cc-skills
+  - **skill-expert.md**: 221 → 124 lines (44% reduction) - delegates to rd2:cc-skills
+  - **skill-evaluate.md**: 137 → 50 lines (64% reduction) - delegates to skill-doctor
+  - **skill-refine.md**: 156 → 61 lines (61% reduction) - delegates to skill-expert
+
+### Fixed
+
+- **Evaluation Template Abandonment**: Restored `evaluation-report-template.md` usage
+  - Previously: `MarkdownFormatter` generated output programmatically (73 lines hardcoded)
+  - Now: Uses template with helper methods for dynamic content
+  - Benefits: Separation of concerns, maintainability, consistency
+
+- **Subagent Vendor References**: Fixed agents incorrectly referencing `vendors/` sample folder
+  - Removed all references to vendor sample code
+  - Agents now use rd2 plugin resources only
+
+### Architecture
+
+**Template-Based Skill Creation:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Templates (assets/)                                         │
+│  skill-template-technique.md  # Concrete steps              │
+│  skill-template-pattern.md    # Mental models               │
+│  skill-template-reference.md  # API docs                    │
+└─────────────────────────────────────────────────────────────┘
+                           ↑ used by
+┌─────────────────────────────────────────────────────────────┐
+│  Script: skills.py init --type {technique|pattern|reference}│
+└─────────────────────────────────────────────────────────────┘
+                           ↑ called by
+┌─────────────────────────────────────────────────────────────┐
+│  Agent: skill-expert.md → Command: /rd2:skill-add           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Template-Based Evaluation:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Template: evaluation-report-template.md                     │
+│  - Structure, layout, static reference tables               │
+│  - {{placeholder}} variables for dynamic content            │
+└─────────────────────────────────────────────────────────────┘
+                           ↑ loaded by
+┌─────────────────────────────────────────────────────────────┐
+│  MarkdownFormatter (scripts/skills.py)                       │
+│  - load_template() + render_template()                       │
+│  - Helper methods: _build_scores_table, _categorize_recs    │
+│  - Auto-extracts strengths from high-scoring dimensions      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Refactoring Summary
+
+| Component | Before | After | Reduction |
+|-----------|--------|-------|-----------|
+| skill-doctor.md (agent) | 289 lines | 112 lines | 61% |
+| skill-expert.md (agent) | 221 lines | 124 lines | 44% |
+| skill-evaluate.md (command) | 137 lines | 50 lines | 64% |
+| skill-refine.md (command) | 156 lines | 61 lines | 61% |
+| **Total** | **803 lines** | **347 lines** | **57%** |
+
+### Benefits
+
+- **Standardized Skill Creation**: Type-specific templates enforce best practices automatically
+- **Consistent Evaluation Reports**: Template-based output ensures all reports have same structure
+- **Token Efficiency**: 57% line reduction across skill-related components
+- **Better Maintainability**: Template changes don't require code changes
+- **Improved Recommendations**: Auto-categorization by priority (Critical/High/Medium)
+- **Strength Detection**: Automatically identifies high-scoring dimensions as positives
+
+### Usage Examples
+
+```bash
+# Create technique skill (concrete steps)
+/rd2:skill-add rd2 debugging --type technique
+
+# Create pattern skill (mental models)
+/rd2:skill-add rd2 architecture --type pattern
+
+# Create reference skill (API docs)
+/rd2:skill-add rd2 api-docs --type reference
+
+# Evaluate skill quality (uses template-based report)
+/rd2:skill-evaluate plugins/rd2/skills/my-skill --format markdown
+```
+
+---
+
 ## [0.5.1] - 2026-01-30
 
 ### Summary
