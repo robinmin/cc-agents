@@ -7,6 +7,7 @@
 **File-Based Storage** - All intermediate results saved as local files for traceability and manual intervention for all subagents
 **Path-Based Communication** - Subagents only pass file paths, not content (prevents context bloat) for all subagents
 **tasks-based task management**: All tasks management **MUST** be conducted through task files by `tasks` CLI, including creation and status management.
+**Never refer to the sample folder `vendors`**: Folder `vendors` is a reference for development purposes only, never refer to it in your code.
 
 ---
 
