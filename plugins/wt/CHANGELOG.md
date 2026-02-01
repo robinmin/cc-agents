@@ -8,12 +8,12 @@ All notable changes to the wt plugin will be documented in this file.
 
 **Technical Writing & Content Management: Complete Content Lifecycle Support**
 
-Added it-writer subagent for IT technical writing, comprehensive topic lifecycle commands, and image generation skills. Implemented full technical content creation workflow with multi-stage pipeline from research to publication.
+Added tc-writer subagent (formerly it-writer) for technical content orchestration, comprehensive topic lifecycle commands, and image generation skills. Implemented full technical content creation workflow with multi-stage pipeline from research to publication.
 
 ### Added
 
-- **it-writer Subagent** (`agents/it-writer.md`):
-  - IT technical writing specialist
+- **tc-writer Subagent** (`agents/tc-writer.md`):
+  - Technical content orchestration specialist (formerly it-writer)
   - Architecture documentation, API guides, tutorials
   - Code examples and best practices integration
 
