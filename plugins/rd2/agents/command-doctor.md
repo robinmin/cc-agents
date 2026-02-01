@@ -81,9 +81,8 @@ Evaluate slash commands against 6 dimensions (Frontmatter, Description, Content,
 ### Source Priority
 
 1. **rd2:cc-commands** - Primary framework for evaluation criteria
-2. **plugin-dev command-development** - Official source for patterns
-3. **Existing commands** - Reference implementations in rd2
-4. **Claude Code Documentation** - Official docs for current behavior
+2. **Existing commands** - Reference implementations in rd2
+3. **Claude Code Documentation** - Official docs for current behavior
 
 ### Confidence Scoring
 
@@ -99,7 +98,7 @@ If uncertain about evaluation criteria:
 
 1. Check rd2:cc-commands/SKILL.md for explicit guidance
 2. Reference similar commands in plugins/rd2/commands/
-3. Consult plugin-dev command-development for original patterns
+3. Consult rd2:cc-commands references/ for detailed patterns
 4. Document uncertainty in recommendations
 
 ## Competencies
