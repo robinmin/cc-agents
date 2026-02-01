@@ -1910,6 +1910,72 @@ EXAMPLE_REFERENCE_FALLBACK = """# Reference for {{skill_title}}
 Replace with actual reference content or delete if not needed.
 """
 
+EVALUATION_REPORT_TEMPLATE_FALLBACK = """# Skill Quality Evaluation: {{skill_name}}
+
+**Quality:** {{quality_level}}
+**Readiness:** {{readiness_status}}
+**Path:** `{{skill_path}}`
+
+---
+
+## Phase 1: Structural Validation
+
+{{validation_status}} **{{validation_result}}:** {{validation_message}}
+
+---
+
+## Phase 2: Quality Assessment
+
+### Summary
+
+| Dimension | Score | Weight | Weighted |
+|-----------|-------|--------|----------|
+{{scores_table}}
+
+### Dimension Details
+
+{{dimension_details}}
+
+---
+
+## Overall Score
+
+**Total Score:** {{total_score}}/100
+
+**Grade:** {{grade_letter}} - {{grade_description}}
+
+---
+
+## Recommendations
+
+### Critical (Fix Immediately)
+
+{{recommendations_critical}}
+
+### High Priority
+
+{{recommendations_high}}
+
+### Medium Priority
+
+{{recommendations_medium}}
+
+---
+
+## Positive Aspects
+
+{{strengths}}
+
+---
+
+## Next Steps
+
+1. Fix critical issues first
+2. Address high priority items
+3. Run `/rd2:skill-refine` for automated improvements
+4. Re-evaluate with `/rd2:skill-evaluate` to confirm fixes
+"""
+
 ###############################################################################
 # VALIDATION
 ###############################################################################
@@ -2284,17 +2350,24 @@ def title_case_skill_name(skill_name: str) -> str:
     return " ".join(word.capitalize() for word in skill_name.split("-"))
 
 
-def init_skill(skill_name: str, path: str) -> Path | None:
+def init_skill(skill_name: str, path: str, skill_type: str | None = None) -> Path | None:
     """
     Initialize a new skill directory with template SKILL.md.
 
     Args:
         skill_name: Name of the skill
         path: Path where the skill directory should be created
+        skill_type: Type of skill template to use (technique, pattern, reference, or None for generic)
 
     Returns:
         Path to created skill directory, or None if error
     """
+    # Validate skill type
+    valid_types = {"technique", "pattern", "reference", None}
+    if skill_type is not None and skill_type not in valid_types:
+        print(f"Error: Invalid skill type '{skill_type}'. Must be one of: technique, pattern, reference")
+        return None
+
     # Validate skill name format
     if not re.match(r"^[a-z0-9-]+$", skill_name):
         print(
@@ -2330,7 +2403,14 @@ def init_skill(skill_name: str, path: str) -> Path | None:
 
     # Create SKILL.md from template (load from assets or use fallback)
     skill_title = title_case_skill_name(skill_name)
-    skill_template = load_template("skill-template.md", SKILL_TEMPLATE_FALLBACK)
+
+    # Select template based on skill type
+    if skill_type:
+        template_name = f"skill-template-{skill_type}.md"
+    else:
+        template_name = "skill-template.md"
+
+    skill_template = load_template(template_name, SKILL_TEMPLATE_FALLBACK)
     skill_content = render_template(
         skill_template, skill_name=skill_name, skill_title=skill_title
     )
@@ -2708,45 +2788,76 @@ class JsonFormatter(ReportFormatter):
 
 
 class MarkdownFormatter(ReportFormatter):
-    """Markdown report formatter for documentation."""
+    """Markdown report formatter using evaluation-report-template.md."""
 
     def format(self, result: EvaluationResult) -> str:
-        """Format as GitHub-flavored Markdown."""
-        lines = []
+        """Format as GitHub-flavored Markdown using template."""
+        template = load_template(
+            "evaluation-report-template.md",
+            EVALUATION_REPORT_TEMPLATE_FALLBACK,
+        )
 
-        # Header
-        lines.append("# Skill Evaluation Report")
-        lines.append("")
-        lines.append(f"**Path:** `{result.skill_path}`")
-        lines.append("")
+        # Build dynamic sections
+        scores_table = self._build_scores_table(result)
+        dimension_details = self._build_dimension_details(result)
+        recommendations = self._categorize_recommendations(result)
+        strengths = self._extract_strengths(result)
 
-        # Validation
-        lines.append("## Phase 1: Structural Validation")
-        lines.append("")
-        if result.validation_result == ValidationResult.PASS:
-            lines.append(f"✅ **PASSED:** {result.validation_message}")
-        else:
-            lines.append(f"❌ **FAILED:** {result.validation_message}")
-        lines.append("")
+        # Determine quality level based on grade
+        quality_levels = {
+            "A": "Excellent",
+            "B": "Good",
+            "C": "Fair",
+            "D": "Needs Work",
+            "F": "Poor",
+        }
+        quality_level = quality_levels.get(result.grade.letter, "Unknown")
 
-        # Summary table
-        lines.append("## Phase 2: Quality Assessment")
-        lines.append("")
-        lines.append("| Dimension | Score | Weight | Weighted |")
-        lines.append("|-----------|-------|--------|----------|")
+        # Validation status emoji
+        validation_status = (
+            "✅" if result.validation_result == ValidationResult.PASS else "❌"
+        )
+        validation_result_text = (
+            "PASSED" if result.validation_result == ValidationResult.PASS else "FAILED"
+        )
+
+        return render_template(
+            template,
+            skill_name=result.skill_path.name,
+            skill_path=str(result.skill_path),
+            quality_level=quality_level,
+            readiness_status=result.grade.description,
+            validation_status=validation_status,
+            validation_result=validation_result_text,
+            validation_message=result.validation_message,
+            scores_table=scores_table,
+            dimension_details=dimension_details,
+            total_score=f"{result.total_score:.2f}",
+            grade_letter=result.grade.letter,
+            grade_description=result.grade.description,
+            recommendations_critical=recommendations["critical"],
+            recommendations_high=recommendations["high"],
+            recommendations_medium=recommendations["medium"],
+            strengths=strengths,
+        )
+
+    def _build_scores_table(self, result: EvaluationResult) -> str:
+        """Build markdown table rows for dimension scores."""
+        rows = []
         for dim_name, dim_score in result.dimensions.items():
             name = dim_name.replace("_", " ").title()
-            lines.append(
+            rows.append(
                 f"| {name} | {dim_score.score:.1f}/100 | "
                 f"{dim_score.weight * 100:.0f}% | {dim_score.weighted_score:.2f} |"
             )
-        lines.append("")
+        return "\n".join(rows)
 
-        # Details for each dimension
+    def _build_dimension_details(self, result: EvaluationResult) -> str:
+        """Build detailed findings/recommendations per dimension."""
+        sections = []
         for dim_name, dim_score in result.dimensions.items():
             name = dim_name.replace("_", " ").title()
-            lines.append(f"### {name}")
-            lines.append("")
+            lines = [f"#### {name}", ""]
 
             if dim_score.findings:
                 lines.append("**Findings:**")
@@ -2760,26 +2871,55 @@ class MarkdownFormatter(ReportFormatter):
                     lines.append(f"- {rec}")
                 lines.append("")
 
-        # Overall
-        lines.append("## Overall Score")
-        lines.append("")
-        lines.append(f"**Total Score:** {result.total_score:.2f}/100")
-        lines.append("")
-        lines.append(f"**Grade:** {result.grade.letter} - {result.grade.description}")
-        lines.append("")
+            if not dim_score.findings and not dim_score.recommendations:
+                lines.append("*No issues found.*")
+                lines.append("")
 
-        # Grade scale
-        lines.append("### Grading Scale")
-        lines.append("")
-        lines.append("| Grade | Range | Description |")
-        lines.append("|-------|-------|-------------|")
-        lines.append("| A | 90.0-100.0 | Production ready |")
-        lines.append("| B | 70.0-89.9 | Minor fixes needed |")
-        lines.append("| C | 50.0-69.9 | Moderate revision |")
-        lines.append("| D | 30.0-49.9 | Major revision |")
-        lines.append("| F | 0.0-29.9 | Rewrite needed |")
+            sections.append("\n".join(lines))
+        return "\n".join(sections)
 
-        return "\n".join(lines)
+    def _categorize_recommendations(
+        self, result: EvaluationResult
+    ) -> dict[str, str]:
+        """Categorize recommendations by priority based on dimension scores."""
+        critical = []
+        high = []
+        medium = []
+
+        for dim_name, dim_score in result.dimensions.items():
+            name = dim_name.replace("_", " ").title()
+            for rec in dim_score.recommendations:
+                # Categorize based on dimension score
+                if dim_score.score < 30:
+                    critical.append(f"- **{name}:** {rec}")
+                elif dim_score.score < 70:
+                    high.append(f"- **{name}:** {rec}")
+                else:
+                    medium.append(f"- **{name}:** {rec}")
+
+        return {
+            "critical": "\n".join(critical) if critical else "*None*",
+            "high": "\n".join(high) if high else "*None*",
+            "medium": "\n".join(medium) if medium else "*None*",
+        }
+
+    def _extract_strengths(self, result: EvaluationResult) -> str:
+        """Extract positive findings as strengths."""
+        strengths = []
+        for dim_name, dim_score in result.dimensions.items():
+            name = dim_name.replace("_", " ").title()
+            # High-scoring dimensions are strengths
+            if dim_score.score >= 80:
+                strengths.append(f"- **{name}** ({dim_score.score:.0f}/100): Well implemented")
+            # Also include positive findings
+            for finding in dim_score.findings:
+                if any(
+                    word in finding.lower()
+                    for word in ["good", "excellent", "proper", "correct", "well"]
+                ):
+                    strengths.append(f"- {finding}")
+
+        return "\n".join(strengths) if strengths else "*No significant strengths identified.*"
 
 
 # Formatter registry
@@ -2872,15 +3012,21 @@ def format_report(result: EvaluationResult) -> str:
 def cmd_init(args):
     """Handle init command."""
     if not args.skill_name or not args.path:
-        print("Usage: python3 scripts/skills.py init <skill-name> --path <path>")
+        print("Usage: python3 scripts/skills.py init <skill-name> --path <path> [--type <type>]")
+        print("\nTypes: technique, pattern, reference (default: generic)")
         print("\nExample:")
         print("  python3 scripts/skills.py init my-skill --path ./skills")
+        print("  python3 scripts/skills.py init my-skill --path ./skills --type technique")
         return 1
 
+    skill_type = getattr(args, "type", None)
     print(f"Initializing skill: {args.skill_name}")
-    print(f"Location: {args.path}\n")
+    print(f"Location: {args.path}")
+    if skill_type:
+        print(f"Type: {skill_type}")
+    print()
 
-    result = init_skill(args.skill_name, args.path)
+    result = init_skill(args.skill_name, args.path, skill_type)
     return 0 if result else 1
 
 
@@ -3067,6 +3213,11 @@ Examples:
     )
     init_parser.add_argument("skill_name", nargs="?", help="Name of the skill")
     init_parser.add_argument("--path", help="Directory to create skill in")
+    init_parser.add_argument(
+        "--type",
+        choices=["technique", "pattern", "reference"],
+        help="Skill type: technique (steps), pattern (mental model), reference (API docs)",
+    )
 
     # validate command
     validate_parser = subparsers.add_parser(

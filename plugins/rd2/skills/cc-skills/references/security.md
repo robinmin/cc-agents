@@ -628,5 +628,5 @@ The format is: `file:line: description`
 
 **See also:**
 
-- [best_practices.md](best_practices.md) for safe development patterns
+- [best-practices.md](best-practices.md) for safe development patterns
 - [evaluation.md](evaluation.md) for security testing procedures

@@ -3,7 +3,7 @@ description: Create a new Claude Code Agent Skill using the official 6-step skil
 skills:
   - rd2:cc-skills
   - rd2:anti-hallucination
-argument-hint: <plugin-name> <skill-name>
+argument-hint: <plugin-name> <skill-name> [--type technique|pattern|reference]
 ---
 
 # Add New Skill
@@ -13,8 +13,10 @@ Thin wrapper command for `rd2:skill-expert` agent. Creates skill directories wit
 ## Quick Start
 
 ```bash
-/rd2:skill-add rd2 api-docs          # Create skill in rd2 plugin
-/rd2:skill-add rd2 code-review       # Create skill in rd2 plugin
+/rd2:skill-add rd2 api-docs --type reference    # API docs skill
+/rd2:skill-add rd2 debugging --type technique   # Step-by-step method
+/rd2:skill-add rd2 architecture --type pattern  # Mental model/decisions
+/rd2:skill-add rd2 code-review                  # Generic (no type)
 ```
 
 ## Arguments
@@ -23,6 +25,17 @@ Thin wrapper command for `rd2:skill-expert` agent. Creates skill directories wit
 | ------------- | -------- | -------------------------------------- |
 | `plugin-name` | Yes      | Target plugin (e.g., "rd", "rd2")      |
 | `skill-name`  | Yes      | Skill name (lowercase-hyphens, max 64) |
+| `--type`      | No       | Template type (see table below)        |
+
+### Skill Types
+
+| Type | Use For | Template |
+|------|---------|----------|
+| `technique` | Concrete steps, debugging methods, repeatable processes | `skill-template-technique.md` |
+| `pattern` | Mental models, architectural decisions, ways of thinking | `skill-template-pattern.md` |
+| `reference` | API docs, syntax guides, tool documentation | `skill-template-reference.md` |
+
+If `--type` is omitted, the generic `skill-template.md` is used.
 
 ## Workflow
 
@@ -38,8 +51,11 @@ This command follows the official 6-step skill creation process:
 ## Example
 
 ```bash
-# Create skill
-/rd2:skill-add rd2 data-pipeline
+# Create technique skill (concrete steps)
+/rd2:skill-add rd2 data-pipeline --type technique
+
+# Create reference skill (API docs)
+/rd2:skill-add rd2 sql-syntax --type reference
 ```
 
 ## What Gets Created
@@ -70,20 +86,18 @@ Task(
     prompt="""Create a new skill in plugin '{plugin_name}':
 
 Skill name: {skill_name}
+Type: {type or 'generic'}
 
 Follow the official 6-step skill creation process:
 1. Understanding with Concrete Examples
 2. Plan Reusable Contents
-3. Create Skill Structure
-4. Edit the Skill
+3. Create Skill Structure (use --type {type} if specified)
+4. Edit the Skill (complete TODO markers)
 5. Validate and Test
 6. Iterate
 
-Initialize skill directory with:
-- SKILL.md with proper frontmatter
-- references/ (optional)
-- examples/ (optional)
-- scripts/ (optional)
+Initialize with:
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init {skill_name} --path {plugin_path}/skills [--type {type}]
 
 Follow rd2:cc-skills best practices.
    """,

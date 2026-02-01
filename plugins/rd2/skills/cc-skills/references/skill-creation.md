@@ -173,7 +173,7 @@ skill-name/
 ├── scripts/
 │   └── __init__.py   # Example script (customize or delete)
 └── references/
-    └── best_practices.md  # Example reference (customize or delete)
+    └── best-practices.md  # Example reference (customize or delete)
 ```
 
 ### After Initialization
@@ -237,7 +237,7 @@ Write instructions for using the skill and its bundled resources.
 - Workflow or usage patterns
 - Links to detailed references
 
-See [best_practices.md](best_practices.md) for comprehensive writing guidelines.
+See [best-practices.md](best-practices.md) for comprehensive writing guidelines.
 
 ## Step 5: Validate
 
@@ -384,4 +384,4 @@ scripts/skills.py package ./skills/my-skill
 - [Evaluation-First Development](evaluation.md) - Test-driven methodology
 - [Progressive Disclosure](workflows.md#progressive-disclosure) - Token efficiency patterns
 - [Security Guidelines](security.md) - Security checklist
-- [Best Practices](best_practices.md) - Comprehensive guide
+- [Best Practices](best-practices.md) - Comprehensive guide

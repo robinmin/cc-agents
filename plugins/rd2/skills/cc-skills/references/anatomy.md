@@ -132,7 +132,7 @@ Documentation and reference material loaded as needed into context to inform Cla
 **Example structure:**
 ```
 references/
-├── best_practices.md     # General best practices
+├── best-practices.md     # General best practices
 ├── workflows.md          # Detailed workflows
 ├── api_docs.md           # API reference
 └── domain/

@@ -1,6 +1,6 @@
 ---
 name: cc-skills
-description: "Meta-skill for creating effective Agent skills. Use when: building new skills, writing SKILL.md files, designing workflow automation, packaging skills for distribution, or refining existing skills with specialized knowledge and tool integrations. Follows progressive disclosure, evaluation-first development, and plugin-based quality assessment."
+description: "This skill should be used when the user asks to 'create a skill', 'write SKILL.md', 'evaluate skill quality', 'package a skill', 'initialize a new skill', or mentions skill development, skill creation, or SKILL.md workflows. Provides comprehensive meta-skill guidance including progressive disclosure patterns, evaluation-first development, and plugin-based quality assessment."
 ---
 
 # cc-skills: Claude Code Meta Skills V2
@@ -14,28 +14,34 @@ Create Agent skills that extend AI capabilities with specialized knowledge, work
 Different skills serve different purposes. Choose the type that best fits your use case:
 
 ### Technique
+
 Concrete method with steps to follow.
+
 - **Examples:** condition-based-waiting, root-cause-tracing, defensive-programming
 - **Structure:** Clear steps, code examples, common mistakes
 - **Best for:** Repeatable processes, debugging methodologies
 
 ### Pattern
+
 Way of thinking about problems.
+
 - **Examples:** flatten-with-flags, test-invariants, information-hiding
 - **Structure:** Principles, when to apply, when NOT to apply
 - **Best for:** Mental models, architectural decisions
 
 ### Reference
+
 API docs, syntax guides, tool documentation.
+
 - **Examples:** office-docs, API reference, command reference
 - **Structure:** Tables, searchable content, quick lookup
 - **Best for:** External tool integration, domain knowledge
 
-| Type | Description | Structure Focus |
-|------|-------------|-----------------|
+| Type      | Description              | Structure Focus              |
+| --------- | ------------------------ | ---------------------------- |
 | Technique | Concrete steps to follow | Steps, code, common mistakes |
-| Pattern | Way of thinking | Principles, when/when-not |
-| Reference | API/syntax docs | Tables, searchable, lookup |
+| Pattern   | Way of thinking          | Principles, when/when-not    |
+| Reference | API/syntax docs          | Tables, searchable, lookup   |
 
 ## Quick Start
 
@@ -73,6 +79,7 @@ Use this checklist workflow based on the official 6-step skill creation process:
 Skip this step only when the skill's usage patterns are already clearly understood. To create an effective skill, clearly understand concrete examples of how the skill will be used. This understanding can come from either direct user examples or generated examples that are validated with user feedback.
 
 For example, when building an image-editor skill, relevant questions include:
+
 - "What functionality should the image-editor skill support? Editing, rotating, anything else?"
 - "Can you give some examples of how this skill would be used?"
 - "I can imagine users asking for things like 'Remove the red-eye from this image' or 'Rotate this image'. Are there other ways you imagine this skill being used?"
@@ -85,36 +92,51 @@ Conclude this step when there is a clear sense of the functionality the skill sh
 **Step 2 Detail - Plan Reusable Contents:**
 
 To turn concrete examples into an effective skill, analyze each example by:
+
 1. Considering how to execute on the example from scratch
 2. Identifying what scripts, references, and assets would be helpful when executing these workflows repeatedly
 
 Example analysis patterns:
+
 - **Repeated code** → Create `scripts/` utility
 - **Repeated discovery** → Create `references/` documentation
 - **Repeated boilerplate** → Create `assets/` templates
 
 For a `pdf-editor` skill ("Help me rotate this PDF"):
+
 1. Rotating a PDF requires re-writing the same code each time
 2. A `scripts/rotate_pdf.py` script would be helpful
 
 For a `frontend-webapp-builder` skill ("Build me a todo app"):
+
 1. Writing a frontend webapp requires the same boilerplate HTML/React each time
 2. An `assets/hello-world/` template would be helpful
 
 For a `big-query` skill ("How many users have logged in today?"):
+
 1. Querying BigQuery requires re-discovering the table schemas each time
 2. A `references/schema.md` file would be helpful
 
 **Step 3 Detail - Create Skill Structure:**
 
-For Claude Code plugins, the init script creates the skill directory structure:
+Use the init script with `--type` to create skill from the appropriate template:
 
 ```bash
-mkdir -p plugin-name/skills/skill-name/{references,examples,scripts}
-touch plugin-name/skills/skill-name/SKILL.md
+# Choose template based on skill type (see "Skill Types" section above)
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init my-skill --path ${CLAUDE_PLUGIN_ROOT}/skills --type technique
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init my-skill --path ${CLAUDE_PLUGIN_ROOT}/skills --type pattern
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init my-skill --path ${CLAUDE_PLUGIN_ROOT}/skills --type reference
 ```
 
-The init script automates this with proper template files.
+| Type | Template | Use For |
+|------|----------|---------|
+| `technique` | `skill-template-technique.md` | Concrete steps, debugging methods, repeatable processes |
+| `pattern` | `skill-template-pattern.md` | Mental models, architectural decisions, ways of thinking |
+| `reference` | `skill-template-reference.md` | API docs, syntax guides, tool documentation |
+
+If `--type` is omitted, the generic `skill-template.md` is used.
+
+The template creates SKILL.md with TODO markers guiding what to fill in, plus optional directories (scripts/, references/, assets/).
 
 **Step 4 Detail - Implement resources:**
 
@@ -265,14 +287,14 @@ Match specificity to task fragility:
 
 **Metaphor:** Think of Claude as exploring a path: a narrow bridge with cliffs needs specific guardrails (low freedom), while an open field allows many routes (high freedom).
 
-| Scenario | Freedom Level | Implementation |
-|----------|---------------|----------------|
-| Error handling strategy | High | Text guidance |
-| Validation pattern | Medium | Pseudocode template |
-| PDF rotation | Low | Exact script |
-| API integration | Medium | Parameters + pattern |
-| Database migration | Low | Strict script |
-| Code style choices | High | Principles only |
+| Scenario                | Freedom Level | Implementation       |
+| ----------------------- | ------------- | -------------------- |
+| Error handling strategy | High          | Text guidance        |
+| Validation pattern      | Medium        | Pseudocode template  |
+| PDF rotation            | Low           | Exact script         |
+| API integration         | Medium        | Parameters + pattern |
+| Database migration      | Low           | Strict script        |
+| Code style choices      | High          | Principles only      |
 
 ### Progressive Disclosure
 
@@ -361,18 +383,21 @@ Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate $
 Before finalizing a skill, use this comprehensive checklist:
 
 **Structure:**
+
 - [ ] SKILL.md file exists with valid YAML frontmatter
 - [ ] Frontmatter has `name` and `description` fields
 - [ ] Markdown body is present and substantial
 - [ ] Referenced files actually exist
 
 **Description Quality:**
+
 - [ ] Uses third person ("This skill should be used when...")
 - [ ] Includes specific trigger phrases users would say
 - [ ] Lists concrete scenarios ("create X", "configure Y")
 - [ ] Not vague or generic
 
 **Content Quality:**
+
 - [ ] SKILL.md body uses imperative/infinitive form
 - [ ] Body is focused and lean (1,500-2,000 words ideal, <5k max)
 - [ ] Detailed content moved to references/
@@ -380,6 +405,7 @@ Before finalizing a skill, use this comprehensive checklist:
 - [ ] Scripts are executable and documented
 
 **Progressive Disclosure:**
+
 - [ ] Core concepts in SKILL.md
 - [ ] Detailed docs in references/
 - [ ] Working code in examples/
@@ -387,6 +413,7 @@ Before finalizing a skill, use this comprehensive checklist:
 - [ ] SKILL.md references these resources
 
 **Testing:**
+
 - [ ] Skill triggers on expected user queries
 - [ ] Content is helpful for intended tasks
 - [ ] No duplicated information across files
@@ -411,14 +438,15 @@ For detailed validation criteria, see [Validation Checklist](references/validati
    - Skills take precedence over commands with same name (blocks user invocation)
    - Use distinct naming patterns to avoid LLM confusion
 
-| Component | Naming Pattern | Example |
-|-----------|---------------|---------|
-| Slash Command | `verb-noun` | `code-review` |
-| Slash Command (grouped) | `noun-verb` | `agent-add`, `agent-evaluate`, `agent-refine` (groups related commands) |
-| Skill | `verb-ing-noun` | `reviewing-code` |
-| Subagent | `role-agent` | `code-reviewer-agent` |
+| Component               | Naming Pattern  | Example                                                                 |
+| ----------------------- | --------------- | ----------------------------------------------------------------------- |
+| Slash Command           | `verb-noun`     | `code-review`                                                           |
+| Slash Command (grouped) | `noun-verb`     | `agent-add`, `agent-evaluate`, `agent-refine` (groups related commands) |
+| Skill                   | `verb-ing-noun` | `reviewing-code`                                                        |
+| Subagent                | `role-agent`    | `code-reviewer-agent`                                                   |
 
 **Slash Command Grouping Rule:**
+
 - When multiple slash commands share the same domain, use `noun-verb` format (NOT `verb-noun`)
 - This groups related commands together alphabetically in listings
 - Examples:
@@ -427,6 +455,7 @@ For detailed validation criteria, see [Validation Checklist](references/validati
   - `tasks-plan.md`, `tasks-cli.md` (all "tasks" commands grouped) |
 
 **Sources:**
+
 - [Claude Code Skills Documentation](https://code.claude.com/docs/en/skills)
 - [GitHub Issue #14945](https://github.com/anthropics/claude-code/issues/14945) - Slash commands blocked by skill name collision
 - [GitHub Issue #15944](https://github.com/anthropics/claude-code/issues/15944) - Cross-plugin skill references
@@ -434,11 +463,13 @@ For detailed validation criteria, see [Validation Checklist](references/validati
 ### Skill Composition Rules
 
 **DO:**
+
 - Keep skills INDEPENDENT and self-contained
 - Let Claude discover and use skills based on task context
 - Use subagents to orchestrate multiple skills
 
 **DON'T:**
+
 - Make skills directly call other skills (not supported)
 - Add explicit dependencies in skill metadata (feature request only)
 - Assume cross-plugin skill references work (not implemented)
@@ -446,19 +477,22 @@ For detailed validation criteria, see [Validation Checklist](references/validati
 
 **Circular Reference Rule (CRITICAL):**
 Following "Fat Skills, Thin Wrappers" architecture:
-- **Skills are the core** - contain all logic, workflows, and domain knowledge
-- **Agents are thin wrappers** - invoke skills for AI workflows (~100 lines)
-- **Commands are thin wrappers** - invoke skills for human users (~50 lines)
 
-**Therefore:** Skills MUST NOT reference their associated agents or commands, as this creates circular dependencies. The skill is the source of truth; wrappers depend on it.
+- **Skills are the core** - contain all logic, workflows, and domain knowledge
+- **Subagents are thin wrappers** - invoke skills for AI workflows (~100 lines)
+- **Slash commands are thin wrappers** - invoke skills for human users (~50 lines)
+
+**Therefore:** Skills MUST NOT reference their associated subagents or slash commands, as this creates circular dependencies. The skill is the source of truth; wrappers depend on it.
 
 ❌ **Bad (circular reference):**
+
 ```yaml
 # In brainstorm/SKILL.md
 See also: super-brain agent, /rd2:tasks-brainstorm command
 ```
 
 ✅ **Good (skill is self-contained):**
+
 ```yaml
 # In brainstorm/SKILL.md
 This skill provides brainstorming workflows with task creation.
@@ -467,6 +501,7 @@ This skill provides brainstorming workflows with task creation.
 The agent and command exist to invoke this skill, not the other way around.
 
 **Example correct pattern:**
+
 ```yaml
 # agents/orchestrator.md
 ---
@@ -491,6 +526,7 @@ context: fork
 Write using verb-first instructions, not second person:
 
 **Correct (imperative):**
+
 ```
 To create a hook, define the event type.
 Configure the MCP server with authentication.
@@ -498,6 +534,7 @@ Validate settings before use.
 ```
 
 **Incorrect (second person):**
+
 ```
 You should create a hook by defining the event type.
 You need to configure the MCP server.
@@ -509,11 +546,13 @@ You must validate settings before use.
 The frontmatter description must use third person:
 
 **Correct:**
+
 ```yaml
 description: This skill should be used when the user asks to "create X", "configure Y"...
 ```
 
 **Incorrect:**
+
 ```yaml
 description: Use this skill when you want to create X...
 description: Load this skill when user asks...
@@ -524,6 +563,7 @@ description: Load this skill when user asks...
 Focus on what to do, not who should do it:
 
 **Correct:**
+
 ```
 Parse the frontmatter using sed.
 Extract fields with grep.
@@ -531,6 +571,7 @@ Validate values before use.
 ```
 
 **Incorrect:**
+
 ```
 You can parse the frontmatter...
 Claude should extract fields...
@@ -543,7 +584,7 @@ For detailed writing style examples and patterns, see [Writing Style Guide](refe
 
 See detailed guides in `references/`:
 
-- **Comprehensive best practices**: [best_practices.md](references/best_practices.md)
+- **Comprehensive best practices**: [best-practices.md](references/best-practices.md)
 - **Multi-step workflows**: [workflows.md](references/workflows.md)
 - **Output formats**: [output-patterns.md](references/output-patterns.md)
 - **Security guidelines**: [security.md](references/security.md)
@@ -554,27 +595,34 @@ See detailed guides in `references/`:
 ### Mistake 1: Weak Trigger Description
 
 ❌ **Bad:**
+
 ```yaml
 description: Provides guidance for working with hooks.
 ```
+
 **Why bad:** Vague, no specific trigger phrases, not third person
 
 ✅ **Good:**
+
 ```yaml
 description: This skill should be used when the user asks to "create a hook", "add a PreToolUse hook", "validate tool use", or mentions hook events. Provides comprehensive hooks API guidance.
 ```
+
 **Why good:** Third person, specific phrases, concrete scenarios
 
 ### Mistake 2: Too Much in SKILL.md
 
 ❌ **Bad:**
+
 ```
 skill-name/
 └── SKILL.md  (8,000 words - everything in one file)
 ```
+
 **Why bad:** Bloats context when skill loads, detailed content always loaded
 
 ✅ **Good:**
+
 ```
 skill-name/
 ├── SKILL.md  (1,800 words - core essentials)
@@ -582,29 +630,35 @@ skill-name/
     ├── patterns.md (2,500 words)
     └── advanced.md (3,700 words)
 ```
+
 **Why good:** Progressive disclosure, detailed content loaded only when needed
 
 ### Mistake 3: Second Person Writing
 
 ❌ **Bad:**
+
 ```markdown
 You should start by reading the configuration file.
 You need to validate the input.
 You can use the grep tool to search.
 ```
+
 **Why bad:** Second person, not imperative form
 
 ✅ **Good:**
+
 ```markdown
 Start by reading the configuration file.
 Validate the input before processing.
 Use the grep tool to search for patterns.
 ```
+
 **Why good:** Imperative form, direct instructions
 
 ### Mistake 4: Missing Resource References
 
 ❌ **Bad:**
+
 ```markdown
 # SKILL.md
 
@@ -612,9 +666,11 @@ Use the grep tool to search for patterns.
 
 [No mention of references/ or examples/]
 ```
+
 **Why bad:** Claude doesn't know references exist
 
 ✅ **Good:**
+
 ```markdown
 # SKILL.md
 
@@ -623,17 +679,21 @@ Use the grep tool to search for patterns.
 ## Additional Resources
 
 ### Reference Files
+
 - **`references/patterns.md`** - Detailed patterns
 - **`references/advanced.md`** - Advanced techniques
 
 ### Examples
+
 - **`examples/script.sh`** - Working example
 ```
+
 **Why good:** Claude knows where to find additional information
 
 ### Mistake 5: Circular References to Wrappers
 
 ❌ **Bad:**
+
 ```yaml
 # In brainstorm/SKILL.md
 description: Brainstorming skill. See also: super-brain agent, /rd2:tasks-brainstorm command
@@ -642,9 +702,11 @@ description: Brainstorming skill. See also: super-brain agent, /rd2:tasks-brains
 /rd2:brainstorm "Add authentication"  # References command that wraps this skill
 Invoke rd2:brainstorm with input      # References agent that wraps this skill
 ```
+
 **Why bad:** Creates circular dependency. Skill → Command → Skill. Violates "Fat Skills, Thin Wrappers" principle.
 
 ✅ **Good:**
+
 ```yaml
 # In brainstorm/SKILL.md
 description: This skill should be used when the user asks to "brainstorm ideas", "explore solutions"...
@@ -653,6 +715,7 @@ description: This skill should be used when the user asks to "brainstorm ideas",
 Via tasks-brainstorm command: /rd2:tasks-brainstorm "Add authentication"
 Or direct invocation by other agents/skills
 ```
+
 **Why good:** Skill is self-contained. Documents entry points without creating circular references. Wrappers (agent/command) depend on skill, not vice versa.
 
 **Key principle:** Skills are the source of truth. Agents and commands exist to expose skills to different contexts (AI vs human), not to be referenced back from the skill.
@@ -674,6 +737,7 @@ The description should ONLY describe triggering conditions. Do NOT summarize the
 **Why this matters:** Testing revealed that when a description summarizes the skill's workflow, Claude may follow the description instead of reading the full skill content. This shortcuts the skill's actual guidance.
 
 **Good Examples:**
+
 ```yaml
 # Triggering conditions only
 description: "This skill should be used when the user asks to 'create a hook', 'add a PreToolUse hook', or mentions hook events like 'before tool use' or 'after tool use'."
@@ -683,6 +747,7 @@ description: "Use when encountering 'Hook timed out', 'ENOTEMPTY', or when tests
 ```
 
 **Bad Examples:**
+
 ```yaml
 # Summarizes workflow (Claude may follow this instead of reading skill)
 description: "This skill analyzes the error, identifies the root cause, and applies a fix using the standard debugging pattern."
@@ -695,20 +760,20 @@ description: "Provides guidance for working with hooks."
 
 Include terms users and Claude actually use:
 
-| Category | Examples |
-|----------|----------|
-| **Error messages** | "Hook timed out", "ENOTEMPTY", "EPERM" |
-| **Symptoms** | "flaky", "hanging", "zombie", "race condition" |
-| **Synonyms** | "timeout/hang/freeze", "cleanup/teardown/afterEach" |
-| **Tools** | Actual commands, library names, file types |
+| Category           | Examples                                            |
+| ------------------ | --------------------------------------------------- |
+| **Error messages** | "Hook timed out", "ENOTEMPTY", "EPERM"              |
+| **Symptoms**       | "flaky", "hanging", "zombie", "race condition"      |
+| **Synonyms**       | "timeout/hang/freeze", "cleanup/teardown/afterEach" |
+| **Tools**          | Actual commands, library names, file types          |
 
 ### Token Efficiency Targets
 
-| Skill Type | Target | Rationale |
-|------------|--------|-----------|
+| Skill Type                | Target     | Rationale                       |
+| ------------------------- | ---------- | ------------------------------- |
 | Getting-started workflows | <150 words | Frequently loaded, must be fast |
-| Frequently-loaded skills | <200 words | Core context budget |
-| Standard skills | <500 words | Balance detail vs. efficiency |
+| Frequently-loaded skills  | <200 words | Core context budget             |
+| Standard skills           | <500 words | Balance detail vs. efficiency   |
 
 **Key principle:** Be discoverable but not bloated. The description loads EVERY time Claude searches for skills.
 
@@ -720,6 +785,7 @@ Include terms users and Claude actually use:
 skill-name/
 └── SKILL.md
 ```
+
 Good for: Simple knowledge, no complex resources needed
 
 ### Standard Skill (Recommended)
@@ -732,6 +798,7 @@ skill-name/
 └── examples/
     └── working-example.sh
 ```
+
 Good for: Most plugin skills with detailed documentation
 
 ### Complete Skill
@@ -748,6 +815,7 @@ skill-name/
 └── scripts/
     └── validate.sh
 ```
+
 Good for: Complex domains with validation utilities
 
 For more detailed reference patterns, see [Quick Reference](references/quick-reference.md).

@@ -316,5 +316,5 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py package ${CLAUD
 - **[validation-checklist.md](validation-checklist.md)** - Comprehensive validation
 - **[common-mistakes.md](common-mistakes.md)** - Common pitfalls and solutions
 - **[SKILL.md](../SKILL.md)** - Main skill documentation
-- **[best_practices.md](best_practices.md)** - Comprehensive best practices
+- **[best-practices.md](best-practices.md)** - Comprehensive best practices
 - **[workflows.md](workflows.md)** - Detailed workflow patterns

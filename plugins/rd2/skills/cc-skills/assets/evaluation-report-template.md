@@ -2,55 +2,66 @@
 
 **Quality:** {{quality_level}}
 **Readiness:** {{readiness_status}}
+**Path:** `{{skill_path}}`
 
-## Summary
+---
 
-**Strengths:**
-{{#strengths}}
-- {{.}}
-{{/strengths}}
+## Phase 1: Structural Validation
 
-**Critical Issues:**
-{{#critical_issues}}
-- {{.}}
-{{/critical_issues}}
+{{validation_status}} **{{validation_result}}:** {{validation_message}}
 
-## Scores
+---
 
-| Category       | Score  | Notes |
-|----------------|--------|-------|
-| Frontmatter    | {{score_frontmatter}}/10   | {{notes_frontmatter}} |
-| Content        | {{score_content}}/10   | {{notes_content}} |
-| Security       | {{score_security}}/10   | {{notes_security}} |
-| Structure      | {{score_structure}}/10   | {{notes_structure}} |
-| Efficiency     | {{score_efficiency}}/10   | {{notes_efficiency}} |
-| Best Practices | {{score_best_practices}}/10   | {{notes_best_practices}} |
-| Code Quality   | {{score_code_quality}}/10   | {{notes_code_quality}} |
-| **Overall**    | **{{score_overall}}/10** | |
+## Phase 2: Quality Assessment
+
+### Summary
+
+| Dimension | Score | Weight | Weighted |
+|-----------|-------|--------|----------|
+{{scores_table}}
+
+### Dimension Details
+
+{{dimension_details}}
+
+---
+
+## Overall Score
+
+**Total Score:** {{total_score}}/100
+
+**Grade:** {{grade_letter}} - {{grade_description}}
+
+---
 
 ## Recommendations
 
 ### Critical (Fix Immediately)
-{{#recommendations_critical}}
-1. **{{issue}}**: {{current}} -> {{fix}}
-{{/recommendations_critical}}
+
+{{recommendations_critical}}
 
 ### High Priority
-{{#recommendations_high}}
-1. **{{issue}}**: {{current}} -> {{fix}}
-{{/recommendations_high}}
+
+{{recommendations_high}}
 
 ### Medium Priority
-{{#recommendations_medium}}
-1. **{{issue}}**: {{improvement}}
-{{/recommendations_medium}}
+
+{{recommendations_medium}}
+
+---
+
+## Positive Aspects
+
+{{strengths}}
+
+---
 
 ## Next Steps
 
-1. Fix critical issues
+1. Fix critical issues first
 2. Address high priority items
-3. Run skill-expert for refinement
-4. Re-evaluate to confirm fixes
+3. Run `/rd2:skill-refine` for automated improvements
+4. Re-evaluate with `/rd2:skill-evaluate` to confirm fixes
 
 ---
 
@@ -58,22 +69,22 @@
 
 ### Grading Scale
 
-| Grade | Score    | Status              |
-|-------|----------|---------------------|
-| A     | 9.0-10.0 | Production ready    |
-| B     | 7.0-8.9  | Minor fixes needed  |
-| C     | 5.0-6.9  | Moderate revision   |
-| D     | 3.0-4.9  | Major revision      |
-| F     | 0.0-2.9  | Rewrite needed      |
+| Grade | Range | Description |
+|-------|-------|-------------|
+| A | 90.0-100.0 | Production ready |
+| B | 70.0-89.9 | Minor fixes needed |
+| C | 50.0-69.9 | Moderate revision |
+| D | 30.0-49.9 | Major revision |
+| F | 0.0-29.9 | Rewrite needed |
 
 ### Scoring Weights
 
-| Category       | Weight |
-|----------------|--------|
-| Frontmatter    | 10%    |
-| Content        | 25%    |
-| Security       | 20%    |
-| Structure      | 15%    |
-| Efficiency     | 10%    |
-| Best Practices | 10%    |
-| Code Quality   | 10%    |
+| Category | Weight | Focus Areas |
+|----------|--------|-------------|
+| Frontmatter | 10% | name, description, trigger phrases |
+| Content | 25% | workflows, examples, completeness |
+| Security | 20% | dangerous patterns, input validation |
+| Structure | 15% | progressive disclosure, organization |
+| Efficiency | 10% | token usage, references/ usage |
+| Best Practices | 10% | writing style, naming conventions |
+| Code Quality | 10% | scripts/, error handling |

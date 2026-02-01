@@ -1,19 +1,18 @@
 ---
-description: Skill quality evaluator. Use PROACTIVELY for skill validation, quality assessment, scoring skill structure, or identifying improvements needed before production deployment.
+description: Evaluate skill quality across 7 dimensions with actionable recommendations
 skills: [rd2:cc-skills, rd2:anti-hallucination]
 argument-hint: <skill-folder>
 ---
 
 # Evaluate Skill Quality
 
-Thin wrapper command for `rd2:skill-doctor` agent. Comprehensive quality assessment across 7 dimensions with actionable improvement recommendations.
+Thin wrapper for `rd2:skill-doctor` agent. Read-only quality assessment.
 
 ## Quick Start
 
 ```bash
-# Via slash command (recommended)
-/rd2:skill-evaluate data-pipeline
-/rd2:skill-evaluate plugins/rd2/skills/code-review
+/rd2:skill-evaluate plugins/rd2/skills/data-pipeline
+/rd2:skill-evaluate code-review
 ```
 
 ## Arguments
@@ -22,115 +21,29 @@ Thin wrapper command for `rd2:skill-doctor` agent. Comprehensive quality assessm
 | ---------------- | ------------------------------------------- |
 | `<skill-folder>` | Path to skill (relative, absolute, or name) |
 
-## Workflow
+## What It Does
 
-This command follows the comprehensive review process:
+Delegates to `rd2:skill-doctor` for comprehensive evaluation:
+- 7 dimensions: Frontmatter, Content, Security, Structure, Efficiency, Best Practices, Code Quality
+- Scoring with grades A-F (90-100 = A, 70-89 = B, etc.)
+- Priority-ranked recommendations (Critical → High → Medium)
 
-1. **Locate and Read** - Find SKILL.md and supporting files
-2. **Validate Structure** - Check frontmatter, required fields
-3. **Evaluate Description** (Most Critical) - Trigger phrases, third person, specificity
-4. **Assess Content Quality** - Word count, writing style, organization
-5. **Check Progressive Disclosure** - Proper separation of SKILL.md, references/, examples/
-6. **Review Supporting Files** - Quality of references/, examples/, scripts/
-7. **Identify Issues** - Categorize by severity (critical/major/minor)
-8. **Generate Report** - Specific fixes with before/after examples
-
-## Scoring Dimensions
-
-| Category       | Weight | Key Criteria                           |
-| -------------- | ------ | -------------------------------------- |
-| Frontmatter    | 10%    | Name format, description clarity       |
-| Content        | 25%    | Conciseness, examples, workflows       |
-| Security       | 20%    | Command injection, path traversal      |
-| Structure      | 15%    | Progressive disclosure, organization   |
-| Efficiency     | 10%    | Token count, file sizes                |
-| Best Practices | 10%    | Naming conventions, guidance           |
-| Code Quality   | 10%    | Error handling (if scripts present)    |
-
-## Grading Scale
-
-| Grade | Score  | Status                    |
-| ----- | ------ | ------------------------- |
-| A     | 90-100 | Production ready          |
-| B     | 70-89  | Minor polish recommended  |
-| C     | 50-69  | Needs improvement         |
-| D     | 30-49  | Major revision needed     |
-| F     | <30    | Complete rewrite required |
-
-## Output Format
-
-The evaluation provides a comprehensive report:
-
-```markdown
-# Skill Quality Evaluation: {skill-name}
-
-**Quality:** [Excellent/Good/Fair/Needs Work]
-**Readiness:** [Production/Minor Fixes/Major Revision]
-**Overall Score:** {X}/100 ({Grade})
-
-## Scores
-| Category       | Score  | Notes   |
-| Frontmatter    | X/100  | {notes} |
-| Content        | X/100  | {notes} |
-| Security       | X/100  | {notes} |
-| Structure      | X/100  | {notes} |
-| Efficiency     | X/100  | {notes} |
-| Best Practices | X/100  | {notes} |
-| Code Quality   | X/100  | {notes} |
-| **Overall**    | **X.X/100** |         |
-
-## Recommendations
-
-### Critical (Fix Immediately)
-1. **[Issue]**: [Current] -> [Fix]
-
-### High Priority
-1. **[Issue]**: [Current] -> [Fix]
-
-### Medium Priority
-1. **[Issue]**: [Improvement]
-```
-
-## Read-Only
-
-This command makes NO changes:
-- Only reads files
-- Only analyzes content
-- Only generates report
-
-Use `/rd2:skill-refine` to apply improvements.
+**Read-only** - makes no changes. Use `/rd2:skill-refine` to apply fixes.
 
 ## Implementation
-
-This command delegates to the **rd2:skill-doctor** agent for quality evaluation:
 
 ```
 Task(
     subagent_type="rd2:skill-doctor",
-    prompt="""Evaluate the skill quality for: {skill_folder}
+    prompt="Evaluate skill quality for: {skill_folder}
 
-Perform comprehensive assessment across 7 dimensions:
-1. Frontmatter (10%) - Name format, description clarity
-2. Content (25%) - Conciseness, examples, workflows
-3. Security (20%) - Command injection, path traversal
-4. Structure (15%) - Progressive disclosure, organization
-5. Efficiency (10%) - Token count, file sizes
-6. Best Practices (10%) - Naming conventions, guidance
-7. Code Quality (10%) - Error handling (if scripts)
-
-Generate detailed report with:
-- Overall score (0-100) and grade (A-F)
-- Dimension-specific scores with notes
-- Critical, high, and medium priority recommendations
-- Specific fixes with before/after examples
-   """,
+Follow rd2:cc-skills evaluation framework.
+Generate report with scores and recommendations.",
     description="Evaluate {skill_folder} quality"
 )
 ```
 
 ## See Also
 
-- `rd2:skill-doctor` - Agent that handles quality evaluation
+- `/rd2:skill-refine` - Apply improvements after evaluation
 - `/rd2:skill-add` - Create new skills
-- `/rd2:skill-refine` - Apply improvements
-- `rd2:cc-skills` - Best practices reference with validation checklist
