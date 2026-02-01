@@ -29,12 +29,8 @@ install:
 ## setup-cc: Setup Claude Code's plugins
 setup-cc:
 	@echo "🔧 Setting up Claude Code's plugins..."
-	@rm -rf ~/.claude/plugins/cache/cc-agents
-	@git -C ~/.claude/plugins/marketplaces/cc-agents/ pull -a
-	claude plugin uninstall wt && claude plugin install wt
-	claude plugin uninstall rd2 && claude plugin install rd2
-
-	# claude plugin list
+	@./scripts/setup-all.sh
+	@echo ""
 	@echo "✅ Setup complete"
 	@echo "⚠️  Please restart Claude Code to clear internal cache"
 
