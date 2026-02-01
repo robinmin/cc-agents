@@ -246,5 +246,4 @@ Three-level loading system manages context efficiently:
 ### External References
 
 - [Claude Code Commands Documentation](https://code.claude.com/docs/en/commands)
-- [Official plugin-dev command-development skill](../../../../vendors/claude-code/plugins/plugin-dev/skills/command-development/SKILL.md)
 - [GitHub Issue #14945](https://github.com/anthropics/claude-code/issues/14945) - Slash commands blocked by skill name collision
