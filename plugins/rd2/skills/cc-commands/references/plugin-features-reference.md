@@ -94,16 +94,14 @@ description: Analyze using plugin script
 allowed-tools: Bash(node:*), Read
 ---
 
-<!-- Example: Run analysis script -->
-<!-- !`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js` -->
+Example: Use inline bash to execute plugin scripts.
 
 Read template: @${CLAUDE_PLUGIN_ROOT}/templates/report.md
 ```
 
 **Expands to:**
 ```
-<!-- Example: Run analysis script -->
-<!-- !`node /path/to/plugins/plugin-name/scripts/analyze.js` -->
+Example: Use inline bash to execute plugin scripts.
 
 Read template: @/path/to/plugins/plugin-name/templates/report.md
 ```
