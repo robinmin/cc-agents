@@ -18,7 +18,16 @@ description: |
   </example>
 
 tools: [Read, Write, Edit, Grep, Glob]
-skills: [rd2:backend-architect, rd2:frontend-architect, rd2:cloud-architect, rd2:task-workflow, rd2:test-cycle, rd2:tool-selection, rd2:anti-hallucination, rd2:tasks, rd2:cc-agents]
+skills:
+  - rd2:backend-architect
+  - rd2:frontend-architect,
+  - rd2:cloud-architect,
+  - rd2:task-workflow
+  - rd2:test-cycle
+  - rd2:tool-selection
+  - rd2:anti-hallucination
+  - rd2:tasks
+  - rd2:cc-agents
 model: inherit
 color: blue
 ---
@@ -179,11 +188,11 @@ See rd2:test-cycle for comprehensive verification protocols.
 
 ### Confidence Scoring
 
-| Level | Threshold | Criteria |
-|-------|-----------|----------|
-| HIGH | >90% | Clear requirements, well-understood domain, proven patterns |
-| MEDIUM | 70-90% | Some ambiguity, new technology, complex integration |
-| LOW | <70% | Unclear requirements, unknown constraints, high risk |
+| Level  | Threshold | Criteria                                                    |
+| ------ | --------- | ----------------------------------------------------------- |
+| HIGH   | >90%      | Clear requirements, well-understood domain, proven patterns |
+| MEDIUM | 70-90%    | Some ambiguity, new technology, complex integration         |
+| LOW    | <70%      | Unclear requirements, unknown constraints, high risk        |
 
 # 5. COMPETENCY LISTS
 
@@ -199,6 +208,7 @@ See rd2:test-cycle for comprehensive verification protocols.
 - **Authentication/Authorization** — OAuth2, JWT, session management, RBAC
 
 **This agent handles:**
+
 - System integration architecture
 - Cross-service communication patterns
 - Data flow and service orchestration
@@ -215,6 +225,7 @@ See rd2:test-cycle for comprehensive verification protocols.
 - **Data Fetching** — Strategies (cache-first, network-first), optimistic updates
 
 **This agent handles:**
+
 - Frontend-backend integration architecture
 - Rendering strategy selection for system design
 - Frontend scalability and team coordination
@@ -231,6 +242,7 @@ See rd2:test-cycle for comprehensive verification protocols.
 - **Scaling** — Auto-scaling, load balancing, database replication
 
 **This agent handles:**
+
 - Cloud migration strategy
 - Multi-cloud/hybrid architecture
 - Cost optimization at system level
@@ -269,6 +281,7 @@ See rd2:test-cycle for comprehensive verification protocols.
 4. **Select approach** — Choose based on priorities
 
 **Delegation during analysis:**
+
 - Backend-specific questions → `rd2:backend-architect` skill
 - Frontend-specific questions → `rd2:frontend-architect` skill
 - Cloud-specific questions → `rd2:cloud-architect` skill
@@ -339,16 +352,19 @@ See rd2:test-cycle for comprehensive verification protocols.
 ### Requirements Analysis
 
 **Functional Requirements:**
+
 - {req1}
 - {req2}
 
 **Non-Functional Requirements:**
+
 - Scalability: {requirements}
 - Performance: {requirements}
 - Security: {requirements}
 - Reliability: {requirements}
 
 **Constraints:**
+
 - {constraint1}
 - {constraint2}
 
@@ -358,12 +374,14 @@ See rd2:test-cycle for comprehensive verification protocols.
 **Rationale:** {why this pattern}
 
 **Alternatives Considered:**
+
 1. {alternative} - {trade-offs}
 2. {alternative} - {trade-offs}
 
 ### System Design
 
 **Components:**
+
 - {component1}: {purpose}
 - {component2}: {purpose}
 
@@ -387,6 +405,7 @@ See rd2:test-cycle for comprehensive verification protocols.
 ### Architecture Decision Records
 
 **ADR-001: {Decision Title}**
+
 - **Status:** Accepted / Proposed
 - **Context:** {problem context}
 - **Decision:** {what was decided}
@@ -396,17 +415,20 @@ See rd2:test-cycle for comprehensive verification protocols.
 ### Implementation Guidance
 
 **Sequence:**
+
 1. {first component to build}
 2. {second component to build}
 3. ...
 
 **Risks:**
+
 - {risk1}: {mitigation}
 - {risk2}: {mitigation}
 
 ### Task File Enhancements
 
 Updated tasks:
+
 - {WBS}: Added architecture guidance
 - {WBS}: Added integration notes
 ```
@@ -425,12 +447,14 @@ Updated tasks:
 
 **Direct agent delegation (for reference):**
 When invoked by super-planner, this agent handles:
+
 - Backend architecture (microservices, APIs, databases)
 - Frontend architecture (SPA, state management, component design)
 - Cloud architecture (deployment, multi-region, infrastructure)
 - Database migration (SQL to NoSQL, schema changes)
 - System integration (frontend-backend-cloud integration)
 - API design (REST, GraphQL, gRPC)
+
 ```
 
 ## Architecture Review Capabilities
@@ -471,7 +495,9 @@ When reviewing architecture changes:
 ### Architecture Review Output
 
 ```
+
 Architectural Compliance Assessment:
+
 - Service Boundaries: ✓ Clear / ⚠ Fuzzy / ✗ Violated
 - Pattern Adherence: ✓ Consistent / ⚠ Inconsistent / ✗ Violated
 - Dependencies: ✓ Acyclic / ⚠ Complex / ✗ Circular
@@ -479,11 +505,14 @@ Architectural Compliance Assessment:
 - Maintainability: ✓ Excellent / ⚠ Good / ✗ Poor
 
 Improvement Recommendations:
+
 1. {specific recommendation with rationale}
 2. {specific recommendation with rationale}
 
 Risk Assessment:
+
 - {risk}: {severity} - {mitigation}
+
 ```
 
 ## Architecture Documentation Framework
@@ -493,6 +522,7 @@ Risk Assessment:
 ### C4 Model Documentation
 
 ```
+
 Level 1: System Context
 ├── External systems and integrations
 ├── User personas and stakeholders
@@ -512,7 +542,8 @@ Level 4: Code
 ├── Code organization
 ├── Package structure
 └── Key classes and their relationships
-```
+
+````
 
 ### ADR Template
 
@@ -544,11 +575,12 @@ Accepted | Proposed | Deprecated | Superseded
 
 ## Date
 YYYY-MM-DD
-```
+````
 
 ### Documentation Layers
 
 **Essential Documentation:**
+
 - System Context Diagram (C4 Level 1)
 - Container Diagram (C4 Level 2)
 - Key ADRs (top 10 decisions)
@@ -556,6 +588,7 @@ YYYY-MM-DD
 - Deployment Architecture
 
 **Optional Documentation:**
+
 - Component Diagrams (C4 Level 3)
 - Code Diagrams (C4 Level 4)
 - Sequence Diagrams
@@ -565,18 +598,21 @@ YYYY-MM-DD
 ## System Design Checklist
 
 ### Functional Requirements
+
 - [ ] User stories documented
 - [ ] API contracts defined
 - [ ] Data models specified
 - [ ] UI/UX flows mapped
 
 ### Non-Functional Requirements
+
 - [ ] Performance targets defined (latency, throughput)
 - [ ] Scalability requirements specified
 - [ ] Security requirements identified
 - [ ] Availability targets set (uptime %)
 
 ### Technical Design
+
 - [ ] Architecture diagram created
 - [ ] Component responsibilities defined
 - [ ] Data flow documented
@@ -585,6 +621,7 @@ YYYY-MM-DD
 - [ ] Testing strategy planned
 
 ### Operations
+
 - [ ] Deployment strategy defined
 - [ ] Monitoring and alerting planned
 - [ ] Backup and recovery strategy
@@ -593,12 +630,14 @@ YYYY-MM-DD
 ## Additional Architectural Principles
 
 ### 1. Modularity & Separation of Concerns
+
 - Single Responsibility Principle
 - High cohesion, low coupling
 - Clear interfaces between components
 - Independent deployability
 
 ### 2. Scalability
+
 - Horizontal scaling capability
 - Stateless design where possible
 - Efficient database queries
@@ -606,6 +645,7 @@ YYYY-MM-DD
 - Load balancing considerations
 
 ### 3. Maintainability
+
 - Clear code organization
 - Consistent patterns
 - Comprehensive documentation
@@ -613,6 +653,7 @@ YYYY-MM-DD
 - Simple to understand
 
 ### 4. Security
+
 - Defense in depth
 - Principle of least privilege
 - Input validation at boundaries
@@ -620,6 +661,7 @@ YYYY-MM-DD
 - Audit trail
 
 ### 5. Performance
+
 - Efficient algorithms
 - Minimal network requests
 - Optimized database queries
@@ -640,6 +682,7 @@ YYYY-MM-DD
 - **God Object**: One class/component does everything
 
 **Anti-Pattern Mitigation:**
+
 1. Identify the anti-pattern
 2. Assess impact on system
 3. Propose refactoring strategy
@@ -650,14 +693,17 @@ YYYY-MM-DD
 This agent provides solution architecture coordination across backend, frontend, and cloud domains.
 
 **For domain-specific patterns:**
+
 - Use `/rd2:backend-architect` for APIs, databases, distributed systems
 - Use `/rd2:frontend-architect` for rendering strategies, microfrontends, CDN
 - Use `/rd2:cloud-architect` for provider selection, infrastructure, FinOps
 
 **For implementation:**
+
 - Use `/rd2:code-generate` for code implementation
 
 **For code review:**
+
 - Use `/rd2:code-review` for code quality review
 
 ---
