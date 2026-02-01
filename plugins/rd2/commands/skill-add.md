@@ -8,7 +8,7 @@ argument-hint: <plugin-name> <skill-name>
 
 # Add New Skill
 
-Thin wrapper command for `rd2:skill-expert` agent. Creates skill directories with proper structure following the official 6-step skill creation process from plugin-dev.
+Thin wrapper command for `rd2:skill-expert` agent. Creates skill directories with proper structure following the official 6-step skill creation process documented in rd2:cc-skills.
 
 ## Quick Start
 
