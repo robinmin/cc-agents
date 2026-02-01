@@ -19,8 +19,8 @@ get_tool_config() {
 # - Requires: claude CLI installed
 #
 # Plugins installed:
-#   - wt@cc-agents (Web browsing, document conversion)
-#   - rd2@cc-agents (RD2 workflow management)
+#   - wt (Web browsing, document conversion, technical content)
+#   - rd2 (RD2 workflow management, tasks, skills, agents)
 #
 # Note: Does NOT use rulesync - uses direct plugin installation
 EOF
@@ -45,24 +45,24 @@ pre_sync() {
 post_sync() {
     echo "🔧 Post-sync actions for $TOOL_DISPLAY_NAME..."
 
-    # Check if plugins directory exists
-    if [ -d "$HOME/.claude/plugins/cc-agents" ]; then
-        echo "   ✅ Plugin directory exists: ~/.claude/plugins/cc-agents/"
+    # Check if marketplace exists
+    if [ -d "$HOME/.claude/plugins/marketplaces/cc-agents" ]; then
+        echo "   ✅ Marketplace directory exists: ~/.claude/plugins/marketplaces/cc-agents/"
     else
-        echo "   ⚠️  Plugin directory not found"
+        echo "   ⚠️  Marketplace directory not found"
     fi
 
     # Verify wt plugin
-    if claude plugin list 2>/dev/null | grep -q "wt@cc-agents"; then
-        echo "   ✅ wt@cc-agents plugin installed"
+    if claude plugin list 2>/dev/null | grep -qw "wt"; then
+        echo "   ✅ wt plugin installed"
     else
-        echo "   ⚠️  wt@cc-agents plugin not found"
+        echo "   ⚠️  wt plugin not found"
     fi
 
     # Verify rd2 plugin
-    if claude plugin list 2>/dev/null | grep -q "rd2@cc-agents"; then
-        echo "   ✅ rd2@cc-agents plugin installed"
+    if claude plugin list 2>/dev/null | grep -qw "rd2"; then
+        echo "   ✅ rd2 plugin installed"
     else
-        echo "   ⚠️  rd2@cc-agents plugin not found"
+        echo "   ⚠️  rd2 plugin not found"
     fi
 }
