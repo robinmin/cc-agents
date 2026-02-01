@@ -147,8 +147,7 @@ description: Run plugin script
 allowed-tools: Bash(node:*)
 ---
 
-<!-- Example: Run analysis script -->
-<!-- !`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js` -->
+Example: Use inline bash with node to run plugin scripts.
 
 Template: @${CLAUDE_PLUGIN_ROOT}/templates/report.md
 ```
