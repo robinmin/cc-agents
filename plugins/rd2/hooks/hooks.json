@@ -1,7 +1,51 @@
 {
-  "description": "Hooks for rd2 plugin - anti-hallucination protocol, TodoWrite synchronization, and tool usage tracking",
+  "description": "Hooks for rd2 plugin - anti-hallucination protocol, TodoWrite synchronization, validation guards, and tool usage tracking",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/rd2_guard.sh session-init",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/rd2_guard.sh session-end",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/rd2_guard.sh validate-write",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/rd2_guard.sh validate-bash",
+            "timeout": 10
+          }
+        ]
+      },
       {
         "matcher": "TodoWrite",
         "hooks": [
