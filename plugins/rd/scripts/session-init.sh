@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -eo pipefail
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SessionStart Hook - Initialization Script
@@ -57,24 +57,24 @@ fi
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Check for commonly used tools and set availability flags
-declare -A TOOLS=(
-  ["BIOME_AVAILABLE"]="biome"
-  ["RUFF_AVAILABLE"]="ruff"
-  ["SHFMT_AVAILABLE"]="shfmt"
-  ["SHELLCHECK_AVAILABLE"]="shellcheck"
-  ["GH_AVAILABLE"]="gh"
-  ["JQ_AVAILABLE"]="jq"
-  ["GLOW_AVAILABLE"]="glow"
-)
-
-for var in "${!TOOLS[@]}"; do
-  tool="${TOOLS[$var]}"
-  if command -v "$tool" &>/dev/null; then
-    echo "export ${var}=true" >> "$CLAUDE_ENV_FILE"
+# Compatible with bash 3.2 (macOS default)
+check_and_export_tool() {
+  local var_name="$1"
+  local tool_cmd="$2"
+  if command -v "$tool_cmd" &>/dev/null; then
+    echo "export ${var_name}=true" >> "$CLAUDE_ENV_FILE"
   else
-    echo "export ${var}=false" >> "$CLAUDE_ENV_FILE"
+    echo "export ${var_name}=false" >> "$CLAUDE_ENV_FILE"
   fi
-done
+}
+
+check_and_export_tool "BIOME_AVAILABLE" "biome"
+check_and_export_tool "RUFF_AVAILABLE" "ruff"
+check_and_export_tool "SHFMT_AVAILABLE" "shfmt"
+check_and_export_tool "SHELLCHECK_AVAILABLE" "shellcheck"
+check_and_export_tool "GH_AVAILABLE" "gh"
+check_and_export_tool "JQ_AVAILABLE" "jq"
+check_and_export_tool "GLOW_AVAILABLE" "glow"
 
 # # ═══════════════════════════════════════════════════════════════════════════
 # # TASK MANAGEMENT SETUP
