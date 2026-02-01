@@ -9,6 +9,34 @@ description: "Meta-skill for creating effective Agent skills. Use when: building
 
 Create Agent skills that extend AI capabilities with specialized knowledge, workflows, and tools. Use this skill when building new skills, writing SKILL.md files, or packaging skills for distribution.
 
+## Skill Types
+
+Different skills serve different purposes. Choose the type that best fits your use case:
+
+### Technique
+Concrete method with steps to follow.
+- **Examples:** condition-based-waiting, root-cause-tracing, defensive-programming
+- **Structure:** Clear steps, code examples, common mistakes
+- **Best for:** Repeatable processes, debugging methodologies
+
+### Pattern
+Way of thinking about problems.
+- **Examples:** flatten-with-flags, test-invariants, information-hiding
+- **Structure:** Principles, when to apply, when NOT to apply
+- **Best for:** Mental models, architectural decisions
+
+### Reference
+API docs, syntax guides, tool documentation.
+- **Examples:** office-docs, API reference, command reference
+- **Structure:** Tables, searchable content, quick lookup
+- **Best for:** External tool integration, domain knowledge
+
+| Type | Description | Structure Focus |
+|------|-------------|-----------------|
+| Technique | Concrete steps to follow | Steps, code, common mistakes |
+| Pattern | Way of thinking | Principles, when/when-not |
+| Reference | API/syntax docs | Tables, searchable, lookup |
+
 ## Quick Start
 
 ```bash
@@ -235,6 +263,17 @@ Match specificity to task fragility:
 - **Medium freedom** (pseudocode/params): Preferred pattern exists, some variation OK
 - **Low freedom** (scripts/strict): Fragile operations, consistency critical
 
+**Metaphor:** Think of Claude as exploring a path: a narrow bridge with cliffs needs specific guardrails (low freedom), while an open field allows many routes (high freedom).
+
+| Scenario | Freedom Level | Implementation |
+|----------|---------------|----------------|
+| Error handling strategy | High | Text guidance |
+| Validation pattern | Medium | Pseudocode template |
+| PDF rotation | Low | Exact script |
+| API integration | Medium | Parameters + pattern |
+| Database migration | Low | Strict script |
+| Code style choices | High | Principles only |
+
 ### Progressive Disclosure
 
 Three-level loading system manages context efficiently:
@@ -255,6 +294,8 @@ Test → Gap Analysis → Write → Iterate:
 4. Iterate until baseline achieved, then ship
 
 See [Evaluation-First Development](references/evaluation.md) for complete methodology.
+
+For advanced testing methodology using TDD principles, see [TDD for Skills](references/tdd-for-skills.md).
 
 ## Skill Structure
 
@@ -279,8 +320,23 @@ skill-name/
 | **references/** | Docs loaded as needed during work          | Schemas, API docs, domain knowledge, detailed guides        | [References Guide](references/anatomy.md#references) |
 | **assets/**     | Files used in output, not context          | Templates, images, boilerplate, sample documents            | [Assets Guide](references/anatomy.md#assets)         |
 
-**Important:** Do NOT include extraneous files at the skill level (README.md, INSTALLATION_GUIDE.md).
-CHANGELOG.md files are acceptable at the plugin level but not within individual skill directories.
+### What NOT to Include in a Skill
+
+A skill should only contain essential files that directly support its functionality. Do NOT create extraneous documentation or auxiliary files:
+
+**Files to Avoid:**
+| File | Why Exclude |
+|------|-------------|
+| README.md | Human onboarding; skill is for AI execution |
+| INSTALLATION_GUIDE.md | Setup procedures; not needed at runtime |
+| QUICK_REFERENCE.md | Redundant with SKILL.md content |
+| CHANGELOG.md | Version history; acceptable at plugin level only |
+| Setup/testing procedures | Not directly helpful for task execution |
+| User-facing documentation | Skill audience is AI, not humans |
+
+**Why this matters:** The skill is for an AI agent to do the job at hand. It should not contain auxiliary context about creation process, human onboarding materials, or information that does not directly help execution.
+
+**Exception:** CHANGELOG.md files are acceptable at the plugin level but not within individual skill directories.
 
 For complete anatomy details, see [Skill Anatomy Reference](references/anatomy.md).
 
@@ -602,9 +658,59 @@ Or direct invocation by other agents/skills
 **Key principle:** Skills are the source of truth. Agents and commands exist to expose skills to different contexts (AI vs human), not to be referenced back from the skill.
 
 For more common mistakes and solutions, see [Common Mistakes](references/common-mistakes.md).
-- **Output formats**: [output-patterns.md](references/output-patterns.md)
-- **Security guidelines**: [security.md](references/security.md)
-- **Evaluation methodology**: [evaluation.md](references/evaluation.md)
+
+## Claude Search Optimization (CSO)
+
+**Critical for discovery:** Future Claude instances need to FIND your skill among many options.
+
+### Rich Description Field
+
+**Purpose:** Claude reads the description to decide which skills to load. The description must answer: "Should I read this skill right now?"
+
+**CRITICAL: Description = When to Use, NOT What the Skill Does**
+
+The description should ONLY describe triggering conditions. Do NOT summarize the skill's process or workflow.
+
+**Why this matters:** Testing revealed that when a description summarizes the skill's workflow, Claude may follow the description instead of reading the full skill content. This shortcuts the skill's actual guidance.
+
+**Good Examples:**
+```yaml
+# Triggering conditions only
+description: "This skill should be used when the user asks to 'create a hook', 'add a PreToolUse hook', or mentions hook events like 'before tool use' or 'after tool use'."
+
+# Specific error messages as triggers
+description: "Use when encountering 'Hook timed out', 'ENOTEMPTY', or when tests are flaky, hanging, or producing zombie processes."
+```
+
+**Bad Examples:**
+```yaml
+# Summarizes workflow (Claude may follow this instead of reading skill)
+description: "This skill analyzes the error, identifies the root cause, and applies a fix using the standard debugging pattern."
+
+# Too vague (won't trigger reliably)
+description: "Provides guidance for working with hooks."
+```
+
+### Keyword Coverage
+
+Include terms users and Claude actually use:
+
+| Category | Examples |
+|----------|----------|
+| **Error messages** | "Hook timed out", "ENOTEMPTY", "EPERM" |
+| **Symptoms** | "flaky", "hanging", "zombie", "race condition" |
+| **Synonyms** | "timeout/hang/freeze", "cleanup/teardown/afterEach" |
+| **Tools** | Actual commands, library names, file types |
+
+### Token Efficiency Targets
+
+| Skill Type | Target | Rationale |
+|------------|--------|-----------|
+| Getting-started workflows | <150 words | Frequently loaded, must be fast |
+| Frequently-loaded skills | <200 words | Core context budget |
+| Standard skills | <500 words | Balance detail vs. efficiency |
+
+**Key principle:** Be discoverable but not bloated. The description loads EVERY time Claude searches for skills.
 
 ## Quick Reference
 
