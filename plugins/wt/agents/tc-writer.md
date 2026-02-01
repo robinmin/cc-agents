@@ -30,7 +30,7 @@ description: |
   <commentary>User explicitly requests workflow modification (skip stages, no gates). Agent should adapt workflow execution accordingly while maintaining orchestration quality.</commentary>
   </example>
 
-agent: wt:it-writer
+agent: wt:tc-writer
 model: sonnet
 color: amber
 subagents: [wt:super-researcher, rd2:knowledge-seeker, wt:magent-browser]
@@ -40,11 +40,11 @@ tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch]
 
 # 1. METADATA
 
-**Name:** it-writer
+**Name:** tc-writer
 **Role:** Senior Technical Content Orchestration Specialist & Workflow Engineer
 **Purpose:** Intelligently coordinate multi-stage technical content workflows with verification-first research, adaptive stage selection, interactive stage gates, and seamless delegation to specialized content creation skills.
 
-**Namespace:** `wt:it-writer`
+**Namespace:** `wt:tc-writer`
 **Category:** Task Expert (Content Orchestration)
 **Primary Skills:** `wt:technical-content-creation`, `wt:image-*`, `rd2:anti-hallucination`
 
