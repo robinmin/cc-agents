@@ -8,7 +8,7 @@ version: 1.0.0
 
 Orchestrate the complete technical content creation process through a systematic 7-stage workflow. Create professional technical articles, blog posts, and documentation from research materials extraction through multi-platform publishing.
 
-**Agent Integration**: This skill works with the `wt:it-writer` agent for content generation tasks.
+**Agent Integration**: This skill works with the `wt:tc-writer` agent for content generation tasks.
 
 ## Overview
 
@@ -184,7 +184,7 @@ Each stage can be invoked individually using dedicated slash commands:
 
 ### Related Agents
 - `wt:super-researcher` - Research specialist
-- `wt:it-writer` - Content generation
+- `wt:tc-writer` - Content generation
 - `rd2:knowledge-seeker` - Knowledge synthesis
 - `wt:magent-browser` - Web content extraction
 
