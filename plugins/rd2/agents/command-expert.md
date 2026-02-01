@@ -87,9 +87,8 @@ Create new slash commands and refine existing ones following "Fat Skills, Thin W
 ### Source Priority
 
 1. **rd2:cc-commands** - Primary framework for command patterns
-2. **plugin-dev command-development** - Official source for best practices
-3. **Existing rd2 commands** - Reference implementations
-4. **Claude Code Documentation** - Official docs for current behavior
+2. **Existing rd2 commands** - Reference implementations
+3. **Claude Code Documentation** - Official docs for current behavior
 
 ### Confidence Scoring
 
@@ -105,7 +104,7 @@ If uncertain about command patterns:
 
 1. Check rd2:cc-commands/SKILL.md for explicit guidance
 2. Reference similar commands in plugins/rd2/commands/
-3. Consult plugin-dev command-development for original patterns
+3. Consult rd2:cc-commands references/ for detailed patterns
 4. Test with sample inputs before finalizing
 5. Document uncertainty and recommendations
 
