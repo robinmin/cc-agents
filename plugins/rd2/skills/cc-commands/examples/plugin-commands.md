@@ -321,8 +321,7 @@ Execute comprehensive review workflow:
 
 **Phase 1: Automated Analysis**
 
-<!-- Run plugin analyzer (example): -->
-<!-- !`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js $1` -->
+Example: Use inline bash commands to run plugin analysis scripts.
 
 **Phase 2: Deep Review (Agent)**
 Launch the code-quality-reviewer agent for detailed analysis.
@@ -557,15 +556,7 @@ Use for: Verifying required plugin files exist
 
 1. **Using relative paths instead of ${CLAUDE_PLUGIN_ROOT}:**
 
-   ```markdown
-   # Wrong
-
-   \!`node ./scripts/analyze.js` [Example, not real code]
-
-   # Correct (NOTE: ensure script exists first)
-
-   \!`node ${CLAUDE_PLUGIN_ROOT}/scripts/analyze.js [Example, not real code]
-   ```
+   Example: Use inline bash commands to run plugin analysis scripts.
 
 2. **Forgetting to allow required tools:**
 
