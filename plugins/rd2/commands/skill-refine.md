@@ -1,5 +1,5 @@
 ---
-description: Skill creation and refinement specialist. Use PROACTIVELY for refining existing skills, improving skill descriptions, organizing skill content, or applying best practices from official plugin-dev.
+description: Skill creation and refinement specialist. Use PROACTIVELY for refining existing skills, improving skill descriptions, organizing skill content, or applying best practices from rd2:cc-skills.
 skills: [rd2:cc-skills, rd2:anti-hallucination]
 argument-hint: <skill-folder>
 ---
