@@ -13,7 +13,7 @@ Create, evaluate, and refine Claude Code Agent subagents that extend AI capabili
 
 ```bash
 # Evaluate an existing agent (comprehensive quality assessment)
-python3 /Users/robin/.claude/plugins/cache/cc-agents/rd2/0.2.1/skills/cc-skills/scripts/skills.py evaluate /path/to/plugin/agents/my-agent.md
+rd2:agent-evaluate /path/to/plugin/agents/my-agent.md
 
 # Create a new agent from template
 rd2:agent-add my-domain-expert
