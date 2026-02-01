@@ -39,10 +39,10 @@ The 7-Stage Technical Content Workflow:
 
 ## Usage
 
-This command delegates to the `wt:it-writer` agent for intelligent orchestration:
+This command delegates to the `wt:tc-writer` agent for intelligent orchestration:
 
 ```python
-Task(agent="wt:it-writer",
+Task(agent="wt:tc-writer",
     prompt="""Create technical content with 7-stage workflow
 
     Topic: {topic}
@@ -207,6 +207,6 @@ Auto-action: Running Stage 1 (Research) first with default settings
 
 ## See Also
 
-- **Agent:** `plugins/wt/agents/it-writer.md` - Full orchestration layer
+- **Agent:** `plugins/wt/agents/tc-writer.md` - Full orchestration layer
 - **Skill:** `plugins/wt/skills/technical-content-creation/SKILL.md` - Complete workflow documentation
-- **Design:** `docs/plans/2026-01-30-it-writer-agent-redesign.md` - Architecture details
+- **Design:** `docs/plans/2026-01-30-tc-writer-agent-redesign.md` - Architecture details
