@@ -352,7 +352,7 @@ cmd_validate_bash() {
     # For others, check for simple substring match
     if [[ "$pattern" == "curl" ]] || [[ "$pattern" == "wget" ]]; then
       case "$COMMAND" in
-        *"${pattern}| sh"*|*"${pattern}| bash"*)
+        *"${pattern}"*"| sh"*|*"${pattern}"*"| bash"*)
           echo "WARNING: Pipe to shell from internet detected: $pattern" >&2
           exit 1
           ;;
