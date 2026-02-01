@@ -304,8 +304,8 @@ sync_tool() {
             print_warning "Dry run mode - would execute:"
             echo "   rm -rf ~/.claude/plugins/cache/cc-agents"
             echo "   git -C ~/.claude/plugins/marketplaces/cc-agents/ pull -a"
-            echo "   claude plugin uninstall wt@cc-agents rd2@cc-agents"
-            echo "   claude plugin install wt@cc-agents rd2@cc-agents"
+            echo "   claude plugin uninstall wt && claude plugin install wt"
+            echo "   claude plugin uninstall rd2 && claude plugin install rd2"
         else
             print_info "Removing cache and updating marketplace..."
             rm -rf ~/.claude/plugins/cache/cc-agents
@@ -313,9 +313,13 @@ sync_tool() {
                 git -C ~/.claude/plugins/marketplaces/cc-agents/ pull -a
             fi
 
-            print_info "Reinstalling plugins..."
-            claude plugin uninstall wt@cc-agents rd2@cc-agents 2>/dev/null || true
-            claude plugin install wt@cc-agents rd2@cc-agents
+            print_info "Reinstalling wt plugin..."
+            claude plugin uninstall wt 2>/dev/null || true
+            claude plugin install wt
+
+            print_info "Reinstalling rd2 plugin..."
+            claude plugin uninstall rd2 2>/dev/null || true
+            claude plugin install rd2
         fi
     else
         # Determine features for this tool
