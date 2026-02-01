@@ -31,7 +31,8 @@
       "WebFetch(domain:almcorp.com)",
       "Bash(ast-grep run:*)",
       "Bash(ast-grep scan:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(mgrep:*)"
     ],
     "deny": [],
     "ask": []
