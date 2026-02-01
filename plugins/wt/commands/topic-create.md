@@ -39,10 +39,10 @@ The 7-Stage Technical Content Workflow:
 
 ## Usage
 
-This command delegates to the `wt:tc-writer` agent for intelligent orchestration:
+This command delegates to the `wt:technical-content-creation` skill which defines the complete 7-stage workflow orchestration:
 
 ```python
-Task(agent="wt:tc-writer",
+Skill(skill="wt:technical-content-creation",
     prompt="""Create technical content with 7-stage workflow
 
     Topic: {topic}
@@ -51,6 +51,12 @@ Task(agent="wt:tc-writer",
     Stages: {stage_range}
     Platforms: {platform_list}
     Illustrations: {count}
+
+    Follow the strict orchestration process:
+    - Phase 1: Diagnose - Parse intent, check artifacts, validate dependencies
+    - Phase 2: Plan - Determine stages, plan gates, identify delegation targets
+    - Phase 3: Execute - Coordinate stages with adaptive selection
+    - Phase 4: Verify - Quality assurance and final approval
 
     Execute workflow with:
     - Stage gates for outline and draft approval
