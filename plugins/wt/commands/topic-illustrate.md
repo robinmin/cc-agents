@@ -32,19 +32,16 @@ Generate AI images for technical content using text prompts or templates. This i
 
 ## Usage
 
-This command delegates directly to the `image_generator.py` Python script:
+This command delegates to the `wt:image-generate` skill which handles image generation using MCP huggingface (primary) with rd2:super-coder fallback.
 
-```python
-import subprocess
-import sys
-
-script_path = "plugins/wt/skills/image-generate/scripts/image_generator.py"
-sys.exit(subprocess.run([sys.executable, script_path] + args).returncode)
+```bash
+# The command forwards all arguments to the wt:image-generate skill
+# Arguments: prompt, output, resolution, style, backend, steps, timeout, template, var, content, number, list-templates
 ```
 
 ### Arguments
 
-All arguments are passed directly to the Python script:
+All arguments are passed to the `wt:image-generate` skill:
 
 | Argument | Description |
 |----------|-------------|
