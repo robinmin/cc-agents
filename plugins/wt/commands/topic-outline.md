@@ -50,4 +50,4 @@ This is Stage 2 of the 7-stage Technical Content Workflow:
 ## See Also
 
 - **Full Skill**: `plugins/wt/skills/technical-content-creation/SKILL.md`
-- **Subagent**: `wt:it-writer` for full workflow orchestration
+- **Subagent**: `wt:tc-writer` for full workflow orchestration
