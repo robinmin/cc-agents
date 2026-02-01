@@ -32,7 +32,8 @@
       "Bash(ast-grep run:*)",
       "Bash(ast-grep scan:*)",
       "Bash(make:*)",
-      "Bash(mgrep:*)"
+      "Bash(mgrep:*)",
+      "Bash(rsync:*)"
     ],
     "deny": [],
     "ask": []
