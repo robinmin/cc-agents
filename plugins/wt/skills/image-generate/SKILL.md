@@ -43,8 +43,8 @@ Activate this skill when:
 # Basic image generation
 wt:image-generate "A server architecture diagram" --style technical-diagram --output images/architecture.png
 
-# Cover image (2.35:1)
-wt:image-generate "Microservices architecture cover" --style vibrant --resolution 1920x817 --output cover.png
+# Cover image (21:9 ultrawide)
+wt:image-generate "Microservices architecture cover" --style vibrant --resolution 1344x576 --output cover.png
 
 # With temporary caching
 wt:image-generate "Flowchart" --style sketch --output diagram.png --cache .claude/temp/
@@ -69,7 +69,7 @@ wt:image-generate --template cover \
 # Or specify parameters directly
 wt:image-generate "Microservices architecture cover" \
   --style vibrant \
-  --resolution 1920x817 \
+  --resolution 1344x576 \
   --output covers/microservices-cover.png
 ```
 
@@ -192,21 +192,26 @@ Templates are markdown files with YAML frontmatter that define:
 
 **Pre-defined Templates:**
 - `default.tpl.md` - General-purpose (1024x1024, vibrant)
-- `cover.tpl.md` - Article covers (1920x817, 2.35:1)
-- `illustrator.tpl.md` - Inline illustrations (800x600, 4:3)
+- `cover.tpl.md` - Article covers (1344x576, 21:9)
+- `illustrator.tpl.md` - Inline illustrations (1152x864, 4:3)
 
 **Detailed template guide**: See `references/template-system.md` for creating custom templates, error handling, and advanced patterns.
 
 ## Resolution Options
 
+**Note:** When using the nano_banana backend (Z-Image Turbo via MCP), only specific resolutions are supported:
+
 | Resolution | Aspect Ratio | Use Case |
 |------------|--------------|----------|
 | 1024x1024 | 1:1 | Social media, square images |
-| 1920x1080 | 16:9 | Blog headers, wide images |
-| 800x600 | 4:3 | Inline illustrations |
-| 1280x720 | 16:9 | YouTube thumbnails |
-| 1080x1080 | 1:1 | Instagram, LinkedIn |
-| 1920x817 | 2.35:1 | Cinematic covers |
+| 1344x576 | 21:9 | Cinematic covers, ultrawide headers |
+| 1280x720 | 16:9 | Blog headers, YouTube thumbnails |
+| 1248x832 | 3:2 | Photo ratio images |
+| 1152x864 | 4:3 | Inline illustrations, standard displays |
+| 576x1344 | 9:21 | Portrait ultrawide |
+| 720x1280 | 9:16 | Portrait thumbnails |
+| 832x1248 | 2:3 | Portrait photo ratio |
+| 864x1152 | 3:4 | Portrait standard |
 
 ## Workflow
 
@@ -286,9 +291,16 @@ This skill uses the common image generation framework (`scripts/image_generator.
 - Uses `scripts/image_generator.py --backend nano_banana`
 - Requires: MCP HuggingFace server configured
 - Model: `Z-Image-Turbo` (via `mcp__huggingface__gr1_z_image_turbo_generate`)
-- Supports 30+ resolution options with various aspect ratios
+- Supports **9 resolution options** with various aspect ratios (see Resolution Options above)
 - Fast generation: 1-20 inference steps
 - Resolution auto-mapping to closest supported size
+
+**CRITICAL - MCP Resolution Format:**
+When invoking the MCP tool directly, the resolution parameter requires exact formatting:
+- Format: `"WIDTHxHEIGHT ( RATIO )"` with **TWO spaces** before `(` and after `)`
+- Examples: `"1024x1024 ( 1:1 )"`, `"1280x720 ( 16:9 )"`, `"1344x576 ( 21:9 )"`
+- Incorrect: `"1280x720 (16:9)"` (missing space before parenthesis)
+- Use `NanoBananaBackend.get_mcp_params()` or the RESOLUTION_MAP to get correct format
 
 The framework automatically selects the best available backend in priority order, or you can specify `--backend` to use a specific one.
 
@@ -326,7 +338,7 @@ output: "/path/to/save/image.png"    # Where to save the generated image
 
 # Optional parameters
 style: "technical-diagram|minimalist|vibrant|sketch|photorealistic|custom"
-resolution: "1920x1080"              # Default: 1024x1024
+resolution: "1280x720"               # Default: 1024x1024 (16:9 example)
 cache: "/path/to/temp/"              # Optional: temp cache location
 custom_style: "style description"    # Required if style=custom
 model: "model-name"                  # Optional: override default model
