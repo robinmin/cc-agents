@@ -631,7 +631,7 @@ Adapt draft article for blog platform --image-aware
 
 # Manually add image references if needed
 # Edit 5-adaptation/article-{platform}.md and add:
-# ![Cover image](4-illustration/cover.png)
+# ![Cover image](../4-illustration/cover.png)
 ```
 
 ### Character Limit Exceeded
