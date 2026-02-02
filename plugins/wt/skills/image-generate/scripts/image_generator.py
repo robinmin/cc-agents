@@ -69,6 +69,21 @@ except ImportError as e:
     print("Ensure template_engine.py is in the same directory")
     sys.exit(1)
 
+# Try to import WT config loader for centralized configuration
+# This is optional - if not available, falls back to environment variables
+_WT_CONFIG_LOADED = False
+try:
+    # Try parent directory (technical-content-creation/scripts)
+    parent_script_dir = script_dir.parent
+    if (parent_script_dir / "config_loader.py").exists():
+        sys.path.insert(0, str(parent_script_dir))
+        from config_loader import load_wt_config, get_wt_config
+        _WT_CONFIG_LOADED = True
+        # Load config and inject environment variables
+        _wt_config = load_wt_config()
+except ImportError:
+    pass
+
 
 # =============================================================================
 # Common Interface and Data Structures
@@ -442,6 +457,9 @@ class NanoBananaBackend(ImageGeneratorBackend):
         """Get parameters for MCP tool invocation.
 
         Returns a dict suitable for mcp__huggingface__gr1_z_image_turbo_generate.
+
+        Note: Explicitly sets seed as integer to avoid MCP tool default value
+        being serialized as string during validation.
         """
         backend = NanoBananaBackend()
         resolution_str = backend._find_closest_resolution(request.resolution)
@@ -451,6 +469,7 @@ class NanoBananaBackend(ImageGeneratorBackend):
             "resolution": resolution_str,
             "steps": max(1, min(request.steps, 20)),  # Z-Image Turbo: 1-20 steps
             "shift": 3,  # Default time shift
+            "seed": 42,  # Explicit integer seed (overridden by random_seed=True)
             "random_seed": True,
         }
 
@@ -463,10 +482,17 @@ class ImageGenerator:
     """Main image generation framework that manages multiple backends."""
 
     # Backend priority order (first available is used)
-    # Note: nano_banana is excluded from auto-selection as it requires MCP tool invocation
-    BACKEND_PRIORITIES = ["huggingface", "gemini"]
+    # Note: nano_banana requires MCP tool invocation and is only available when called from Claude Code
+    BACKEND_PRIORITIES = ["huggingface", "gemini", "nano_banana"]
 
     def __init__(self, preferred_backend: Optional[str] = None):
+        # Use config file default if no backend specified
+        if preferred_backend is None and _WT_CONFIG_LOADED:
+            try:
+                preferred_backend = get_wt_config().get("image_generation", {}).get("backend")
+            except Exception:
+                pass
+
         self.preferred_backend = preferred_backend
         self.backends: Dict[str, ImageGeneratorBackend] = {}
         self._initialize_backends()
@@ -843,8 +869,8 @@ Environment Variables:
     )
     parser.add_argument(
         "--resolution", "-r",
-        default="1024x1024",
-        help="Image resolution (default: 1024x1024)"
+        default=(get_wt_config().get("image_generation", {}).get("default_resolution", "1024x1024") if _WT_CONFIG_LOADED else "1024x1024"),
+        help="Image resolution (default: from config or 1024x1024)"
     )
     parser.add_argument(
         "--backend", "-b",
@@ -858,8 +884,8 @@ Environment Variables:
     parser.add_argument(
         "--steps", "-s",
         type=int,
-        default=50,
-        help="Inference steps (default: 50)"
+        default=(get_wt_config().get("image_generation", {}).get("default_steps", 8) if _WT_CONFIG_LOADED else 8),
+        help="Inference steps (default: from config or 8 for Z-Image Turbo)"
     )
     parser.add_argument(
         "--timeout",
