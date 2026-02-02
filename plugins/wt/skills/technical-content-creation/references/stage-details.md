@@ -84,7 +84,7 @@ Stage 4 integrates with enhanced image generation skills for comprehensive illus
 
 #### wt:image-cover - Article Cover Generation
 
-Generate cinematic 2.35:1 aspect ratio cover images based on article content analysis.
+Generate cinematic 21:9 ultrawide aspect ratio cover images based on article content analysis.
 
 ```bash
 # Basic cover generation
@@ -94,7 +94,7 @@ wt:image-cover --article 3-draft/draft-article.md --output 4-illustration/cover.
 wt:image-cover --article 3-draft/draft-article.md --style technical --output 4-illustration/cover.png
 
 # With custom resolution
-wt:image-cover --article 3-draft/draft-article.md --resolution 1920x817 --output 4-illustration/cover.png
+wt:image-cover --article 3-draft/draft-article.md --resolution 1344x576 --output 4-illustration/cover.png
 
 # Without text overlay
 wt:image-cover --article 3-draft/draft-article.md --no-text --output 4-illustration/cover.png
@@ -113,7 +113,7 @@ wt:image-cover --article 3-draft/draft-article.md --no-text --output 4-illustrat
 - `--article` - Path to source article (required)
 - `--output` - Output path for cover image (required)
 - `--style` - Cover style (auto-detected from content if not specified)
-- `--resolution` - Resolution (default: 1920x817 for 2.35:1)
+- `--resolution` - Resolution (default: 1344x576 for 21:9)
 - `--no-text` - Exclude title text overlay
 - `--cache` - Temporary cache path (optional)
 
@@ -154,7 +154,7 @@ wt:image-illustrator --article 3-draft/draft-article.md \
 - `--image-dir` - Output directory for images (required)
 - `--min-positions` - Minimum number of illustration positions to generate
 - `--style` - Illustration style (auto-detected from content if not specified)
-- `--resolution` - Resolution (default: 800x600 for inline)
+- `--resolution` - Resolution (default: 1152x864 for inline)
 - `--output` - Output article path with image references inserted (optional)
 - `--cache` - Temporary cache path (optional)
 
@@ -237,15 +237,21 @@ wt:image-generate "API workflow" --style vibrant \
 }
 ```
 
-### Resolution Options
+### Resolution Options (Z-Image Turbo MCP)
+
+**Note:** When using the nano_banana backend (Z-Image Turbo via MCP), only these resolutions are supported:
+
 | Resolution | Aspect Ratio | Use Case                    |
 |------------|--------------|-----------------------------|
 | 1024x1024  | 1:1          | Social media, square        |
-| 1920x1080  | 16:9         | Blog headers, wide images   |
-| 800x600    | 4:3          | Inline illustrations        |
-| 1280x720   | 16:9         | YouTube thumbnails          |
-| 1080x1080  | 1:1          | Instagram, LinkedIn         |
-| 1920x817   | 2.35:1       | Article cover images        |
+| 1344x576   | 21:9         | Article covers (ultrawide)  |
+| 1280x720   | 16:9         | Blog headers, YouTube       |
+| 1248x832   | 3:2          | Photo ratio images          |
+| 1152x864   | 4:3          | Inline illustrations        |
+| 576x1344   | 9:21         | Portrait ultrawide           |
+| 720x1280   | 9:16         | Portrait thumbnails         |
+| 832x1248   | 2:3          | Portrait photo ratio        |
+| 864x1152   | 3:4          | Portrait standard           |
 
 ## Stage 5: Adaptation
 
