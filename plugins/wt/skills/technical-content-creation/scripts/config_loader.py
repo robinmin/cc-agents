@@ -44,11 +44,42 @@ DEFAULT_CONFIG = {
 # Language code mappings
 # Maps language codes to filename suffixes and display names
 LANGUAGE_CODES = {
+    # Original languages
     "en": {"suffix": "en", "name": "English", "emoji": "🇬🇧"},
     "cn": {"suffix": "cn", "name": "Chinese (Simplified)", "emoji": "🇨🇳"},
     "jp": {"suffix": "jp", "name": "Japanese", "emoji": "🇯🇵"},
     "zh": {"suffix": "cn", "name": "Chinese (Simplified)", "emoji": "🇨🇳"},  # Alias for cn
     "ja": {"suffix": "jp", "name": "Japanese", "emoji": "🇯🇵"},  # Alias for jp
+
+    # NEW LANGUAGES - Add additional languages here
+    "ko": {"suffix": "ko", "name": "Korean", "emoji": "🇰🇷"},
+    "es": {"suffix": "es", "name": "Spanish", "emoji": "🇪🇸"},
+    "fr": {"suffix": "fr", "name": "French", "emoji": "🇫🇷"},
+    "de": {"suffix": "de", "name": "German", "emoji": "🇩🇪"},
+    "pt": {"suffix": "pt", "name": "Portuguese", "emoji": "🇵🇹"},
+    "ru": {"suffix": "ru", "name": "Russian", "emoji": "🇷🇺"},
+    "it": {"suffix": "it", "name": "Italian", "emoji": "🇮🇹"},
+    "ar": {"suffix": "ar", "name": "Arabic", "emoji": "🇸🇦"},
+    "hi": {"suffix": "hi", "name": "Hindi", "emoji": "🇮🇳"},
+    "th": {"suffix": "th", "name": "Thai", "emoji": "🇹🇭"},
+    "vi": {"suffix": "vi", "name": "Vietnamese", "emoji": "🇻🇳"},
+    "id": {"suffix": "id", "name": "Indonesian", "emoji": "🇮🇩"},
+    "nl": {"suffix": "nl", "name": "Dutch", "emoji": "🇳🇱"},
+    "pl": {"suffix": "pl", "name": "Polish", "emoji": "🇵🇱"},
+    "tr": {"suffix": "tr", "name": "Turkish", "emoji": "🇹🇷"},
+}
+
+# Language families for region-specific handling (optional)
+LANGUAGE_FAMILIES = {
+    "zh": {
+        "cn": {"suffix": "cn", "name": "Chinese (Simplified)", "emoji": "🇨🇳"},
+        "tw": {"suffix": "tw", "name": "Chinese (Traditional)", "emoji": "🇹🇼"},
+        "hk": {"suffix": "hk", "name": "Chinese (Hong Kong)", "emoji": "🇭🇰"},
+    },
+    "pt": {
+        "br": {"suffix": "pt-br", "name": "Portuguese (Brazil)", "emoji": "🇧🇷"},
+        "pt": {"suffix": "pt", "name": "Portuguese (Portugal)", "emoji": "🇵🇹"},
+    },
 }
 
 
@@ -306,6 +337,156 @@ def parse_article_filename(filename: str) -> dict:
         "language_code": "en",
         "language_name": "English"
     }
+
+
+# =============================================================================
+# Multi-Language Helper Functions
+# =============================================================================
+
+
+def get_supported_languages() -> list:
+    """Get list of all supported languages with metadata.
+
+    Returns:
+        List of language dicts with code, suffix, name, emoji
+
+    Examples:
+        >>> langs = get_supported_languages()
+        >>> len(langs) > 3
+        True
+    """
+    # Get unique languages (exclude aliases)
+    seen = set()
+    languages = []
+
+    for code, info in LANGUAGE_CODES.items():
+        # Skip if this suffix is already seen (prevents duplicates from aliases)
+        if info["suffix"] in seen:
+            continue
+        seen.add(info["suffix"])
+
+        languages.append({
+            "code": code,
+            "suffix": info["suffix"],
+            "name": info["name"],
+            "emoji": info["emoji"]
+        })
+
+    # Sort by name alphabetically
+    languages.sort(key=lambda x: x["name"])
+    return languages
+
+
+def get_language_variants(base_code: str) -> list:
+    """Get regional variants for a language family.
+
+    Args:
+        base_code: Base language code (e.g., 'zh', 'pt')
+
+    Returns:
+        List of variant dicts with code, suffix, name, emoji
+
+    Examples:
+        >>> get_language_variants('zh')
+        # Returns variants for Chinese (Simplified, Traditional, Hong Kong)
+    """
+    if base_code not in LANGUAGE_FAMILIES:
+        # Return base language if no variants defined
+        if base_code in LANGUAGE_CODES:
+            info = LANGUAGE_CODES[base_code]
+            return [{
+                "code": base_code,
+                "suffix": info["suffix"],
+                "name": info["name"],
+                "emoji": info["emoji"]
+            }]
+        return []
+
+    return [
+        {
+            "code": code,
+            "suffix": info["suffix"],
+            "name": info["name"],
+            "emoji": info["emoji"]
+        }
+        for code, info in LANGUAGE_FAMILIES[base_code].items()
+    ]
+
+
+def get_translation_targets(source_lang: str = "en") -> list:
+    """Get recommended translation targets from source language.
+
+    Args:
+        source_lang: Source language code (default: 'en')
+
+    Returns:
+        List of recommended target languages with priority
+
+    Examples:
+        >>> targets = get_translation_targets('en')
+        >>> # Returns high-priority languages like Spanish, Chinese, etc.
+    """
+    # Priority mapping based on global speakers and tech adoption
+    HIGH_PRIORITY = ["es", "zh", "hi", "ar", "pt", "ko"]
+    MEDIUM_PRIORITY = ["fr", "de", "ru", "ja", "it"]
+    LOW_PRIORITY = ["tr", "vi", "th", "id", "nl", "pl"]
+
+    targets = []
+    for code, info in LANGUAGE_CODES.items():
+        # Skip source language and aliases
+        if code == source_lang or info["suffix"] == source_lang:
+            continue
+        if info["suffix"] != code:
+            continue
+
+        # Determine priority
+        if code in HIGH_PRIORITY:
+            priority = "high"
+        elif code in MEDIUM_PRIORITY:
+            priority = "medium"
+        else:
+            priority = "low"
+
+        targets.append({
+            "code": code,
+            "suffix": info["suffix"],
+            "name": info["name"],
+            "emoji": info["emoji"],
+            "priority": priority
+        })
+
+    # Sort by priority then by name
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+    targets.sort(key=lambda x: (priority_order[x["priority"]], x["name"]))
+
+    return targets
+
+
+def validate_language_code(code: str) -> tuple:
+    """Validate a language code and return normalized information.
+
+    Args:
+        code: Language code to validate (e.g., 'zh', 'ja', 'ko')
+
+    Returns:
+        Tuple of (is_valid, normalized_code, language_info)
+
+    Examples:
+        >>> validate_language_code('zh')
+        (True, 'cn', {'suffix': 'cn', 'name': 'Chinese (Simplified)', 'emoji': '🇨🇳'})
+
+        >>> validate_language_code('ko')
+        (True, 'ko', {'suffix': 'ko', 'name': 'Korean', 'emoji': '🇰🇷'})
+
+        >>> validate_language_code('xx')
+        (False, 'xx', {})
+    """
+    if code in LANGUAGE_CODES:
+        return True, code, LANGUAGE_CODES[code]
+
+    # Check if it's a valid code not in our mapping
+    # Could be extended to use ISO 639-1 codes
+    return False, code, {}
 
 
 # =============================================================================
