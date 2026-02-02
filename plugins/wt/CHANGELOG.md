@@ -2,6 +2,70 @@
 
 All notable changes to the wt plugin will be documented in this file.
 
+## [1.6.4] - 2026-02-02
+
+### Summary
+
+**Configuration & Image Generation: Centralized Config, Language Support, Bug Fixes**
+
+Added centralized configuration system for wt plugin settings, implemented multi-language filename support for articles, fixed image path references, and resolved MCP tool parameter type validation errors.
+
+### Added
+
+- **Centralized Configuration System** (`~/.claude/wt/config.jsonc`):
+  - Unified configuration for all wt plugin settings
+  - Environment variables for API keys (HuggingFace, Gemini)
+  - Image generation settings (backend, resolution, steps)
+  - Content generation settings (default language)
+
+- **Multi-Language Filename Support**:
+  - Automatic language suffix for article outputs (`article_en.md`, `article_cn.md`, `article_jp.md`)
+  - Language code mapping with aliases (zh→cn, ja→jp)
+  - Configurable default language in config file
+
+- **Configuration Loader** (`scripts/config_loader.py`):
+  - JSONC format support (JSON with comments)
+  - Deep merge of user config with defaults
+  - Auto-injection of environment variables
+  - CLI utilities for validation and inspection
+
+### Fixed
+
+- **Image Path References**:
+  - Corrected relative paths from `6-publish/` to `4-illustration/` using `../4-illustration/`
+  - Fixed in `stage-details.md` and `troubleshooting.md`
+  - Ensures proper image linking in published articles
+
+- **MCP Tool Seed Parameter Error**:
+  - Fixed type validation error where seed value was serialized as string "42" instead of integer 42
+  - Added explicit integer seed parameter in `NanoBananaBackend.get_mcp_params()`
+  - Resolves `Input validation error: '42' is not of type 'integer'`
+
+- **Configuration File JSON Errors**:
+  - Fixed multiple trailing comma errors in `config.jsonc`
+  - Proper JSONC validation with `config_loader.py validate`
+
+### Changed
+
+- **Documentation Structure**:
+  - Renamed `CONFIG.md` → `README.md` for better discoverability
+  - Added language support documentation section
+  - Updated configuration setup instructions
+
+- **Image Generator Integration**:
+  - Added config loader import with fallback handling
+  - Auto-loading of backend preference from config
+  - Config-based default resolution and steps
+
+### Benefits
+
+- **Centralized Configuration**: All wt plugin settings in one location
+- **Multi-Language Support**: Automatic filename suffixing for international content
+- **Improved Reliability**: Fixed MCP tool validation errors and path references
+- **Better Developer Experience**: Easier configuration with validation CLI
+
+---
+
 ## [1.6.0] - 2026-01-30
 
 ### Summary
