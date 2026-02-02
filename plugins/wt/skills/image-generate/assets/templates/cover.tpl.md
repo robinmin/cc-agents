@@ -1,11 +1,11 @@
 ---
 name: cover
-description: Article cover image template (2.35:1 cinematic aspect ratio)
-width: 1920
-height: 817
+description: Article cover image template (21:9 ultrawide aspect ratio)
+width: 1344
+height: 576
 style: vibrant
-backend: huggingface
-steps: 50
+backend: nano_banana
+steps: 8
 output_filename: "{{title | cover}}.png"
 variables:
   title:
