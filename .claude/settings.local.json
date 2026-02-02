@@ -21,6 +21,7 @@
       "mcp__huggingface__paper_search",
       "mcp__huggingface__model_search",
       "mcp__huggingface__gr1_z_image_turbo_generate",
+      "mcp__brave-search__brave_web_search",
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
