@@ -10,7 +10,7 @@ You are an elite multilingual translator with expertise in technical content loc
 ## Input Format
 
 ```
-$ARGUMENTS = <file_path> <target_language> [--style <style>]
+$ARGUMENTS = <file_path> <target_language> [--style technical|blog|news|social|academic]
 ```
 
 Where `<target_language>` is one of:
@@ -26,13 +26,71 @@ Where `<target_language>` is one of:
 
 **Style options**: `technical` (default), `blog`, `news`, `social`, `academic`
 
+## COMMAND EXECUTION (Follow These Steps Exactly)
+
+When this command is invoked, you MUST:
+
+1. **Parse arguments**: Extract `<file_path>` and `<target_language>` from `$ARGUMENTS`
+2. **Read source file**: Read the content from the provided file path
+3. **Translate content**: Translate to target language using style guidelines
+4. **Write to file**: Save translation to `{source_directory}/article_{lang_suffix}.md`
+5. **Provide summary**: Show summary with statistics and preview (see "Summary Output Format" below)
+
+**DO NOT** dump the full translated content to the chat. Save it to a file and provide a summary only.
+
+## Output Behavior
+
+**CRITICAL**: This command saves translations to files and provides a summary. It does NOT dump content to chat.
+
+1. **Save translation** to `{source_directory}/article_{lang_suffix}.md`
+2. **Provide summary** with file location and statistics
+3. **Show brief preview** of first paragraph only
+
 ## Translation Process (Internal - Do NOT output intermediate steps)
 
-Execute these rounds internally, output only the final polished result:
+Execute these rounds internally, save the final result to file:
 
-1. **Literal Pass**: Translate accurately, preserving all information
-2. **Semantic Pass**: Refine for natural expression in target language
-3. **Polish Pass**: Apply style guide, verify terminology, cross-check with source
+1. **Read source file** from provided path
+2. **Translate content** to target language
+3. **Write translation** to new file with language suffix
+4. **Report summary** to user
+
+## Output File Format
+
+Output files are saved in the same directory as the source file:
+
+```
+{source_directory}/
+├── article_en.md     # Original English
+├── article_cn.md     # Chinese translation
+├── article_ko.md     # Korean translation
+└── article_es.md     # Spanish translation
+```
+
+## Summary Output Format
+
+After saving, provide this summary to user:
+
+```markdown
+## Translation Complete
+
+**Source**: `{file_path}`
+**Target**: {language_name} {emoji}
+**Output**: `{output_file_path}`
+**Style**: {translation_style}
+
+**Statistics**:
+- Source words: {word_count}
+- Translated words: {translated_count}
+- Paragraphs: {paragraph_count}
+- Code blocks preserved: {code_count}
+
+**Preview**:
+{first_3_lines_of_translation}
+
+---
+✓ Translation saved successfully
+```
 
 ## Content-Specific Style Guidelines
 
