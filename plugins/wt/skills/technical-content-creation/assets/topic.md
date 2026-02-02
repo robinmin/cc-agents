@@ -6,6 +6,7 @@ collection: collection-id
 created_at: 2026-01-28
 updated_at: 2026-01-28
 status: draft
+language: en
 author:
   name: Author Name
   email: author@example.com
@@ -31,7 +32,7 @@ links:
   draft: 3-draft/draft-article.md
   illustration: 4-illustration/
   adaptation: 5-adaptation/
-  publish: 6-publish/article.md
+  publish: 6-publish/article_en.md
 stats:
   word_count: null
   reading_time: null
