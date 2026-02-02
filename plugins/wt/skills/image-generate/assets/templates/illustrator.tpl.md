@@ -1,11 +1,11 @@
 ---
 name: illustrator
 description: Article illustration template for inline images (4:3 aspect ratio)
-width: 800
-height: 600
+width: 1152
+height: 864
 style: technical-diagram
-backend: huggingface
-steps: 40
+backend: nano_banana
+steps: 8
 output_filename: "{{title | illustration}}.png"
 variables:
   title:
