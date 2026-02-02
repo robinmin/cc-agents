@@ -89,6 +89,57 @@ wt:image-generate --template illustrator \
   --output illustrations/sharding.png
 ```
 
+## Configuration
+
+The wt plugin supports centralized configuration via `~/.claude/wt/config.jsonc`.
+
+### Setting Up Configuration
+
+1. **Copy the example config:**
+```bash
+mkdir -p ~/.claude/wt
+cp plugins/wt/skills/technical-content-creation/assets/config.example.jsonc ~/.claude/wt/config.jsonc
+```
+
+2. **Edit your config:**
+```bash
+# Edit with your preferred editor
+nano ~/.claude/wt/config.jsonc
+```
+
+3. **Add your API keys:**
+```jsonc
+{
+  "env": {
+    "HUGGINGFACE_API_TOKEN": "hf_xxxx...",
+    "GEMINI_API_KEY": "AIzaSy..."
+  },
+  "image_generation": {
+    "backend": "nano_banana",
+    "default_resolution": "1024x1024",
+    "default_steps": 8
+  }
+}
+```
+
+### Configuration Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `env.HUGGINGFACE_API_TOKEN` | HuggingFace API token | (required for huggingface backend) |
+| `env.GEMINI_API_KEY` | Google Gemini API key | (required for gemini backend) |
+| `image_generation.backend` | Preferred backend | `nano_banana` |
+| `image_generation.default_resolution` | Default resolution | `1024x1024` |
+| `image_generation.default_steps` | Default inference steps | `8` (Z-Image Turbo) |
+
+### Available Backends
+
+| Backend | Description | Quality | Speed |
+|---------|-------------|---------|-------|
+| `nano_banana` | Z-Image Turbo via MCP | ⭐⭐⭐⭐⭐ | Fast (4-8 steps) |
+| `huggingface` | Stable Diffusion XL | ⭐⭐⭐⭐ | Medium (20-50 steps) |
+| `gemini` | Google Imagen | ⭐⭐⭐⭐ | Medium |
+
 **More workflows**: See `references/workflows.md` for bulk generation, custom styles, and advanced patterns.
 
 ## Pre-defined Styles
