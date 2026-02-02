@@ -490,13 +490,13 @@ DEBUG=1 wt:image-generate "test" --output test.png
 **Solution**:
 ```bash
 # Use valid resolution format: WIDTHxHEIGHT
-wt:image-generate "test" --resolution 1920x1080 --output test.png
+wt:image-generate "test" --resolution 1280x720 --output test.png
 
-# Common resolutions:
+# Common resolutions (Z-Image Turbo MCP):
 # 1024x1024 (1:1 square)
-# 1920x1080 (16:9 wide)
-# 800x600 (4:3 inline)
-# 1920x817 (2.35:1 cinematic cover)
+# 1344x576 (21:9 ultrawide cover)
+# 1280x720 (16:9 wide)
+# 1152x864 (4:3 inline)
 
 # Check valid resolutions in stage-details.md
 cat references/stage-details.md | grep -A 10 "Resolution Options"
