@@ -1,12 +1,12 @@
 ---
 name: image-cover
-description: This skill should be used when the user asks to "create a cover image", "generate an article cover", "make a header image", or "create a 2.35:1 cinematic cover". Analyzes article content to generate context-aware cover images.
+description: This skill should be used when the user asks to "create a cover image", "generate an article cover", "make a header image", or "create a cinematic cover". Analyzes article content to generate context-aware cover images.
 version: 1.0.0
 ---
 
 # Image Cover
 
-Specialized skill for generating 2.35:1 cinematic cover images based on article content. Composes the core `wt:image-generate` skill with content analysis for intelligent, context-aware cover generation.
+Specialized skill for generating 21:9 ultrawide cinematic cover images based on article content. Composes the core `wt:image-generate` skill with content analysis for intelligent, context-aware cover generation.
 
 ## Overview
 
@@ -14,7 +14,7 @@ Generate professional cover images that match article content, tone, and style. 
 
 ### Key Features
 
-- **2.35:1 Aspect Ratio** - Standard cinematic/cover ratio (1920x817 default)
+- **21:9 Aspect Ratio** - Ultrawide cinematic format (1344x576 default)
 - **Content-Aware** - Analyzes article for title, themes, and tone
 - **Style-Aware** - Matches content type (technical, blog, tutorial, news)
 - **Text Overlay** - Includes article title on cover (configurable)
@@ -25,7 +25,7 @@ Generate professional cover images that match article content, tone, and style. 
 Activate this skill when:
 
 - Creating cover images for articles or blog posts
-- Generating header images with 2.35:1 aspect ratio
+- Generating header images with 21:9 ultrawide aspect ratio
 - Need content-aware cover generation based on article analysis
 - Creating covers with title text overlay
 
@@ -93,7 +93,7 @@ Override auto-detection with `--style`:
    - Select appropriate visual style
 3. **Generate cover**:
    - Call `wt:image-generate` with enhanced prompt
-   - Specify 2.35:1 resolution (1920x817 default)
+   - Specify 21:9 resolution (1344x576 default)
    - Include title text overlay (unless `--no-text`)
 4. **Store materials** in `materials/` for iteration
 5. **Return output path** to caller
@@ -109,7 +109,7 @@ output: "/path/to/cover.png" # Where to save the cover image
 
 # Optional parameters
 style: "technical|blog|tutorial|news|custom" # Override auto-detection
-resolution: "1920x817" # Default 2.35:1
+resolution: "1344x576" # Default 21:9
 custom_style: "style description" # Required if style=custom
 no_text: false # Exclude title overlay
 cache: "/path/to/temp/" # Optional: temp cache location
@@ -166,7 +166,7 @@ wt:image-cover --article my-article.md --output covers/microservices-cover.png
 #   - Title: "Introduction to Microservices"
 #   - Detected Type: technical
 #   - Selected Style: technical-diagram
-#   - Resolution: 1920x817 (2.35:1)
+#   - Resolution: 1344x576 (21:9)
 
 # 3. Review analysis results
 cat skills/image-cover/materials/analysis/analysis-*.md
@@ -222,7 +222,7 @@ article_analyzed: "/path/to/article.md"
 detected_style: "technical"
 title_extracted: "Article Title"
 text_overlay: true | false
-resolution: "1920x817"
+resolution: "1344x576"
 
 # Error
 status: "error"
@@ -246,7 +246,7 @@ article_path: "/path/to/article.md"
 
 ### External References
 
-- 2.35:1 aspect ratio: Cinematic standard for covers and headers
+- 21:9 aspect ratio: Ultrawide cinematic format for covers and headers
 - Cover design best practices: Content-aware, title visibility, readability
 - `wt:image-generate` skill documentation: Core generation capabilities and backend options
 
