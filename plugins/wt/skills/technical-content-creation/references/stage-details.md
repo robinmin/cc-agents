@@ -253,8 +253,8 @@ wt:image-generate "API workflow" --style vibrant \
 
 Stage 5 adaptations reference and preserve image outputs from Stage 4. When adapting content for different platforms:
 
-1. **Cover Images** - Include `4-illustration/cover.png` in platform-specific adaptations
-2. **Inline Images** - Adapt image references based on platform requirements
+1. **Cover Images** - Include `../4-illustration/cover.png` in platform-specific adaptations (relative path from 5-adaptation/ or 6-publish/)
+2. **Inline Images** - Adapt image references based on platform requirements (use `../4-illustration/images/` from 5-adaptation/ or 6-publish/)
 3. **Image Captions** - Use `captions.json` for accessibility and SEO
 
 **Platform-Specific Image Handling:**
@@ -271,11 +271,11 @@ Stage 5 adaptations reference and preserve image outputs from Stage 4. When adap
 ```bash
 # Adaptation for blog (includes all images)
 wt:topic-adapt --source 3-draft/draft-article.md --platform blog \
-  --cover 4-illustration/cover.png --images-dir 4-illustration/images/
+  --cover ../4-illustration/cover.png --images-dir ../4-illustration/images/
 
 # Adaptation for LinkedIn (includes cover, key inline images)
 wt:topic-adapt --source 3-draft/draft-article.md --platform linkedin \
-  --cover 4-illustration/cover.png --max-images 3
+  --cover ../4-illustration/cover.png --max-images 3
 
 # Adaptation for Twitter (no images, thread focus)
 wt:topic-adapt --source 3-draft/draft-article.md --platform twitter
