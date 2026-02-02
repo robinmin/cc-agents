@@ -1,0 +1,97 @@
+{
+  // WT Plugin Configuration
+  // Location: ~/.claude/wt/config.jsonc
+  //
+  // This file contains configuration for the wt (technical content) plugin.
+  // Environment variables defined here will be automatically injected into
+  // wt script processes.
+
+  // ==============================================================================
+  // Environment Variables
+  // ==============================================================================
+
+  "env": {
+    // HuggingFace API Configuration
+    // Get your token at: https://huggingface.co/settings/tokens
+    // Used for: HuggingFace Inference API (fallback image generation)
+    "HUGGINGFACE_API_TOKEN": "",
+
+    // Optional: Override default HuggingFace model
+    // Default: stabilityai/stable-diffusion-xl-base-1.0
+    // "HUGGINGFACE_MODEL": "stabilityai/stable-diffusion-xl-base-1.0",
+
+    // Google Gemini API Configuration
+    // Get your API key at: https://makersuite.google.com/app/apikey
+    // Used for: Google Imagen image generation (fallback)
+    "GEMINI_API_KEY": "",
+
+    // Optional: Override default Imagen model
+    // Default: imagen-3.0-generate-001
+    // Options: imagen-3.0-generate-001
+    // "GEMINI_MODEL": "imagen-3.0-generate-001",
+
+    // Optional: Python package management
+    // "PYTHONPATH": "/usr/local/lib/python3.13/site-packages"
+  },
+
+  // ==============================================================================
+  // Image Generation Settings
+  // ==============================================================================
+
+  "image_generation": {
+    // Preferred backend for image generation
+    // Options:
+    //   - "nano_banana": Z-Image Turbo via MCP (highest quality, default)
+    //   - "huggingface": HuggingFace Inference API
+    //   - "gemini": Google Imagen
+    "backend": "nano_banana",
+
+    // Default image resolution (WIDTHxHEIGHT format)
+    // Common resolutions: 1024x1024, 1920x1080, 1920x817 (2.35:1 cover)
+    "default_resolution": "1024x1024",
+
+    // Default number of inference steps
+    // Note: Z-Image Turbo works well with 4-8 steps (fast, high quality)
+    //       Stable Diffusion typically uses 20-50 steps
+    "default_steps": 8
+  },
+
+  // ==============================================================================
+  // Content Generation Settings
+  // ==============================================================================
+
+  "content_generation": {
+    // Default style profile for article generation
+    // Options: technical-writer, blogger, tutorial, news
+    "default_style": "technical-writer",
+
+    // Default research type
+    // Options: systematic, rapid, meta-analysis, fact-check
+    "default_research_type": "systematic",
+
+    // Maximum word count for generated articles
+    "max_article_words": 5000,
+
+    // Minimum word count for generated articles
+    "min_article_words": 1500
+  },
+
+  // ==============================================================================
+  // Publishing Settings
+  // ==============================================================================
+
+  "publishing": {
+    // Default platforms for publishing
+    // Options: blog, twitter, linkedin, devto, medium
+    "default_platforms": ["blog", "twitter", "linkedin"],
+
+    // Git repository for blog publishing
+    // "blog_repo": "/path/to/blog/repository",
+
+    // Branch for publishing
+    "publish_branch": "main",
+
+    // Commit message template
+    "commit_template": "Publish: {title}"
+  }
+}

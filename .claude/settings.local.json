@@ -20,6 +20,7 @@
       "mcp__huggingface__dataset_search",
       "mcp__huggingface__paper_search",
       "mcp__huggingface__model_search",
+      "mcp__huggingface__gr1_z_image_turbo_generate",
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
@@ -32,8 +33,7 @@
       "Bash(ast-grep run:*)",
       "Bash(ast-grep scan:*)",
       "Bash(make:*)",
-      "Bash(mgrep:*)",
-      "Bash(rsync:*)"
+      "Bash(mgrep:*)"
     ],
     "deny": [],
     "ask": []
