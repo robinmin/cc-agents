@@ -108,6 +108,36 @@ When using `nano_banana`, resolutions are automatically mapped:
 | 1080x1080 | 1024x1024 (square) |
 | 800x600 | 768x1024 (portrait) |
 
+### MCP Resolution Format Error (Z-Image Turbo)
+
+**Error**: `MCP error -32602: Input validation error: Invalid enum value`
+
+**Symptoms**:
+```
+"received": "1280x720 (16:9)"
+Expected: "1280x720 ( 16:9 )"
+```
+
+**Root Cause**: The Z-Image Turbo MCP tool requires resolution strings with **exactly TWO spaces** before the opening parenthesis and after the colon.
+
+**Solution**: Use the correct format with two spaces:
+
+| Incorrect Format | Correct Format |
+|-----------------|----------------|
+| `"1280x720 (16:9)"` | `"1280x720 ( 16:9 )"` |
+| `"1920x817 (21:9)"` | `"1920x817 ( 21:9 )"` |
+| `"1024x1024 (1:1)"` | `"1024x1024 ( 1:1 )"` |
+
+**Best Practice**: Use `NanoBananaBackend.get_mcp_params()` or the `RESOLUTION_MAP` from `image_generator.py` to ensure correct formatting:
+
+```python
+from scripts.image_generator import NanoBananaBackend
+
+backend = NanoBananaBackend()
+resolution_str = backend._find_closest_resolution((1280, 720))
+# Returns: "1280x720 ( 16:9 )"  (correctly formatted)
+```
+
 ## Template Issues
 
 ### Template Not Found
