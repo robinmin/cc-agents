@@ -157,3 +157,5 @@ vite.config.ts.timestamp-*
 /.gemini/
 /.opencode/
 /.rulesync/
+
+/plugins/wt/skills/image-generate/scripts/config_loader.py
