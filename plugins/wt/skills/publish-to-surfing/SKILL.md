@@ -14,24 +14,37 @@ The Surfing platform is an Astro-based static site deployed to Cloudflare Pages.
 
 **Key Point:** Surfing uses a file-based publishing workflow (NOT API-based). Content files are placed in the `contents/{type}/{lang}/` directory, then the site is built and deployed.
 
+## Script Directory
+
+**Important**: All scripts are located in the `scripts/` subdirectory of this skill.
+
+**Agent Execution Instructions**:
+
+The publish script is a bash script that wraps the postsurfing CLI. Execute it using:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-surfing/scripts/publish.sh <source-file> [OPTIONS]
+```
+
+- `CLAUDE_PLUGIN_ROOT` = Claude Code predefined variable pointing to plugin root directory
+- Full script path = `${CLAUDE_PLUGIN_ROOT}/skills/publish-to-surfing/scripts/publish.sh`
+
+**Script Reference**:
+| Script | Purpose |
+|--------|---------|
+| `scripts/publish.sh` | Wrapper that copies content and triggers postsurfing CLI |
+
 ## Quick Start
 
 ```bash
-# From Stage 6 directory (6-publish/)
-# Ensure article.md exists from Stage 5 adaptation
-
 # Dry run to preview
-wt:publish-to-surfing \
-  --source article.md \
-  --type articles \
-  --lang en \
-  --dry-run
+bash ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-surfing/scripts/publish.sh article_en.md --type articles --lang en --dry-run
 
-# Publish live
-wt:publish-to-surfing \
-  --source article.md \
-  --type articles \
-  --lang en
+# Publish live (English)
+bash ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-surfing/scripts/publish.sh article_en.md --type articles --lang en
+
+# Publish live (Chinese)
+bash ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-surfing/scripts/publish.sh article_cn.md --type articles --lang cn
 ```
 
 ## When to Use
@@ -65,12 +78,16 @@ Activate this skill when:
    - Language: en (default), cn, jp
    - Review content for publishing
 
-3. **Publish via postsurfing CLI** - Execute publishing
-   - Call `postsurfing` CLI with appropriate parameters
-   - CLI handles: frontmatter validation, file placement, build validation, git operations
+3. **Publish via postsurfing CLI** - Execute publishing [CRITICAL]
+   - **Execute the publish script:**
+     ```bash
+     bash ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-surfing/scripts/publish.sh <source-file> --type <type> --lang <lang>
+     ```
+   - The script handles: frontmatter validation, file placement, build validation, git operations
    - Content is placed in `contents/{type}/{lang}/` directory
    - Site is built and validated
    - Changes are committed and pushed to git
+   - **For dry-run, add `--dry-run` flag**
 
 4. **Verify publication** - Confirm success
    - Check postsurfing CLI output for success message
