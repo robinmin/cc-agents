@@ -6,7 +6,7 @@
   },
   "plugins": [
     {
-      "version": "1.7.2",
+      "version": "1.7.3",
       "name": "wt",
       "source": "./plugins/wt",
       "description": "Writing Tools: Style extraction, application, and professional translation"
