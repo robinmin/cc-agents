@@ -506,10 +506,7 @@ The agent and command exist to invoke this skill, not the other way around.
 # agents/orchestrator.md
 ---
 name: orchestrator
-skills:
-  - research
-  - writing
-context: fork
+description: Orchestrator agent for coordinating research and writing workflows.
 ---
 ```
 
