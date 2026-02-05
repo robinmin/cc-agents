@@ -128,11 +128,11 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init my-skill -
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init my-skill --path ${CLAUDE_PLUGIN_ROOT}/skills --type reference
 ```
 
-| Type | Template | Use For |
-|------|----------|---------|
-| `technique` | `skill-template-technique.md` | Concrete steps, debugging methods, repeatable processes |
-| `pattern` | `skill-template-pattern.md` | Mental models, architectural decisions, ways of thinking |
-| `reference` | `skill-template-reference.md` | API docs, syntax guides, tool documentation |
+| Type        | Template                      | Use For                                                  |
+| ----------- | ----------------------------- | -------------------------------------------------------- |
+| `technique` | `skill-template-technique.md` | Concrete steps, debugging methods, repeatable processes  |
+| `pattern`   | `skill-template-pattern.md`   | Mental models, architectural decisions, ways of thinking |
+| `reference` | `skill-template-reference.md` | API docs, syntax guides, tool documentation              |
 
 If `--type` is omitted, the generic `skill-template.md` is used.
 
@@ -318,6 +318,10 @@ Test → Gap Analysis → Write → Iterate:
 See [Evaluation-First Development](references/evaluation.md) for complete methodology.
 
 For advanced testing methodology using TDD principles, see [TDD for Skills](references/tdd-for-skills.md).
+
+### Circular Reference Rule [CRITICAL]
+
+**Skills MUST NOT reference their associated agents or commands.**
 
 ## Skill Structure
 
