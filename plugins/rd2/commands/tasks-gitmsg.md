@@ -2,7 +2,6 @@
 allowed-tools: Bash(git status|git diff|git log|git branch --show-current)
 description: Generate conventional commit messages from staged changes. Read-only analysis of git context - does NOT execute commits.
 argument-hint: [--amend] [--breaking]
-version: 1.0.0
 model: inherit
 ---
 
