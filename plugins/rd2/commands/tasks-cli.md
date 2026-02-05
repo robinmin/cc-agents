@@ -1,8 +1,6 @@
 ---
 description: Task management CLI with TodoWrite integration and kanban board sync
 argument-hint: <create|list|update|open|refresh|sync|init|help> [args]
-skills:
-  - rd2:tasks
 allowed-tools:
   - Bash
 ---
