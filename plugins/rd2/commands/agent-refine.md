@@ -1,6 +1,5 @@
 ---
 description: Refine and improve an existing Claude Code Agent subagent
-skills: [rd2:cc-agents, rd2:anti-hallucination]
 argument-hint: <agent-file>
 ---
 
