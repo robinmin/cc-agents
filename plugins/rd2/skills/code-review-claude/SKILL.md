@@ -1,8 +1,5 @@
 ---
 name: code-review-claude
-agent: Plan
-context: fork
-user-invocable: false
 description: Use Claude's native capabilities (Read, Grep, Glob) for code review. Trigger when user mentions "Claude review", "native review", "internal review". NOT for implementation.
 ---
 
