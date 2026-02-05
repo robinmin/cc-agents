@@ -1,8 +1,5 @@
 ---
 name: code-review-gemini
-agent: Plan
-context: fork
-user-invocable: false
 description: Use Google Gemini CLI for code review and architecture planning. Trigger when user mentions "Gemini", "ask Gemini", "second opinion". NOT for implementation.
 ---
 
