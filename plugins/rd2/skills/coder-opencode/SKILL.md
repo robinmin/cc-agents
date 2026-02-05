@@ -1,8 +1,5 @@
 ---
 name: coder-opencode
-agent: Plan
-context: fork
-user-invocable: false
 description: Use OpenCode CLI for multi-model AI code generation with external AI perspective. Trigger when user mentions "OpenCode", "multi-model generate", "external AI perspective". NOT for code review.
 ---
 
