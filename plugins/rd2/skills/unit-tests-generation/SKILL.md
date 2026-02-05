@@ -1,18 +1,6 @@
 ---
 name: unit-tests-generation
 description: This skill should be used when the user asks to "generate unit tests", "add unit tests", "achieve test coverage", "reach coverage target", "get 85% coverage", "run test generation", or mentions "AI-generated tests", "pytest coverage", or "test coverage ratio". Implements iterative 8-phase workflow for AI-assisted test generation with coverage validation. Supports Python, TypeScript, Go, and Rust with research-based best practices (70-95% coverage range, 85% default).
-triggers:
-  - generate unit tests
-  - add unit tests
-  - achieve test coverage
-  - reach coverage target
-  - 85% coverage
-  - test generation
-  - unit test generation
-  - AI-generated tests
-  - pytest coverage
-  - test coverage ratio
-model: sonnet
 ---
 
 # Unit Tests Generation
