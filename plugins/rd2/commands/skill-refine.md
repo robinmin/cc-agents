@@ -1,6 +1,5 @@
 ---
 description: Refine existing skills with evaluation-first development and progressive disclosure
-skills: [rd2:cc-skills, rd2:anti-hallucination]
 argument-hint: <skill-folder>
 ---
 
