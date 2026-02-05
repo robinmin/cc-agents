@@ -2,6 +2,36 @@
 
 Complete reference for YAML frontmatter fields in slash commands.
 
+## Valid Fields Only (CRITICAL)
+
+**Only these 5 fields are valid in slash command frontmatter:**
+
+| Field | Type | Required |
+|-------|------|----------|
+| `description` | String | No |
+| `allowed-tools` | String/Array | No |
+| `model` | String (`sonnet`/`opus`/`haiku`) | No |
+| `argument-hint` | String | No |
+| `disable-model-invocation` | Boolean | No |
+
+**Invalid Fields - DO NOT USE:**
+
+| Invalid Field | Why It's Invalid |
+|---------------|------------------|
+| `skills` | Not valid for commands (use in agents/skills only) |
+| `subagents` | Not valid for commands |
+| `name` | Not valid for commands (filename is the name) |
+| `version` | Not valid for commands |
+| `agent` | Not valid for commands |
+| `context` | Not valid for commands |
+| `user-invocable` | Not valid for commands |
+| `triggers` | Not valid for commands |
+| `license` | Not valid for commands |
+| `metadata` | Not valid for commands |
+| `examples` | Not valid for commands (document in body) |
+| `arguments` | Not valid for commands (use `argument-hint`) |
+| `tools` | Not valid (use `allowed-tools` instead) |
+
 ## Frontmatter Overview
 
 YAML frontmatter is optional metadata at the start of command files:
