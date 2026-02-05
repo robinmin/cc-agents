@@ -1,8 +1,5 @@
 ---
 name: coder-claude
-agent: Plan
-context: fork
-user-invocable: false
 description: Use Claude's native capabilities for AI-assisted code generation. Trigger when user mentions "Claude code", "native generate", "quick implementation". NOT for code review.
 ---
 
