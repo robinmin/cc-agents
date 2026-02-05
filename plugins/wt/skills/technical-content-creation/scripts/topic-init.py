@@ -166,6 +166,47 @@ def find_collection_by_id_or_name(
     return None
 
 
+def derive_collection_from_topic(topic_name: str) -> str:
+    """
+    Derive collection name from topic name when --collection is not provided.
+
+    Args:
+        topic_name: The topic identifier (kebab-case)
+
+    Returns:
+        Derived collection ID
+    """
+    topic_lower = topic_name.lower()
+
+    # Known category mappings
+    category_mappings = {
+        "claude": "claude-code",
+        "ai": "ai-agents",
+        "agent": "ai-agents",
+        "macos": "macos",
+        "mac": "macos",
+        "python": "python",
+        "web": "web-development",
+        "frontend": "web-development",
+        "react": "web-development",
+        "javascript": "web-development",
+        "typescript": "web-development",
+        "docker": "devops",
+        "kubernetes": "devops",
+        "cloud": "devops",
+    }
+
+    # Check topic prefix
+    for prefix, collection in category_mappings.items():
+        if topic_lower.startswith(prefix):
+            return collection
+
+    # Default: use first word as collection
+    if "-" in topic_lower:
+        return topic_lower.split("-")[0]
+    return topic_lower
+
+
 def create_collection(
     repo_root: Path,
     collections_data: dict,
@@ -317,8 +358,16 @@ def cmd_init(args) -> None:
         print(f"Error: {e}")
         sys.exit(1)
 
-    # Find or create collection
+    # Derive topic ID first (needed for collection derivation)
+    topic_id = args.topic if args.topic else slugify(args.title or "untopic")
+    topic_id = slugify(topic_id)
+
+    # Find or create collection (derive from topic if not provided)
     collection_id = args.collection
+    if collection_id is None:
+        collection_id = derive_collection_from_topic(topic_id)
+        print(f"Auto-detected collection from topic: {collection_id}")
+
     collection = find_collection_by_id_or_name(collections_data, collection_id)
 
     if collection is None:
@@ -344,10 +393,6 @@ def cmd_init(args) -> None:
             sys.exit(1)
 
     collection_id = collection["id"]
-
-    # Generate topic ID
-    topic_id = args.topic if args.topic else slugify(args.title or "untopic")
-    topic_id = slugify(topic_id)
 
     # Prepare topic data
     topic_data = {
@@ -414,8 +459,9 @@ Examples:
     )
     parser.add_argument(
         "--collection",
-        required=True,
-        help="Collection name or ID"
+        required=False,
+        default=None,
+        help="Collection name or ID (auto-detected from topic name if not provided)"
     )
     parser.add_argument(
         "--title",
