@@ -1,6 +1,5 @@
 ---
 description: Refine commands to fix quality issues
-skills: [rd2:cc-commands, rd2:anti-hallucination]
 argument-hint: <command-file>
 ---
 
