@@ -1,8 +1,5 @@
 ---
 name: code-review-common
-agent: Plan
-context: fork
-user-invocable: false
 description: |
   Unified code review coordinator with comprehensive two-level review process.
   Follows "fat skills, thin wrappers" pattern - delegates to code-review-* skills for actual review work.
