@@ -1,7 +1,5 @@
 ---
 description: Design phase with specialist delegation
-skills:
-  - rd2:tasks
 argument-hint: <task> [--with-architect] [--with-designer] [--skip-assessment]
 ---
 
