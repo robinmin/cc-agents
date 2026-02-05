@@ -1,8 +1,5 @@
 ---
 name: code-review-opencode
-agent: Plan
-context: fork
-user-invocable: false
 description: Use OpenCode CLI for code review. Trigger when user mentions "opencode review", "AI-assisted review", "external AI review". NOT for implementation.
 ---
 
