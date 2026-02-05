@@ -90,9 +90,9 @@ description: |
   <commentary>User needs async Python guidance - this agent specializes in Python patterns</commentary>
   </example>
 
-tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch]
 model: inherit
 color: blue
+tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch]
 ---
 ```
 
@@ -157,13 +157,29 @@ Every Claude Code Agent subagent follows the 8-section anatomy. For detailed spe
 
 ### Metadata Requirements
 
-**Frontmatter fields:**
+**Frontmatter fields (from official Claude Code schema):**
 
-- `name` (required): lowercase-hyphens, 3-50 chars, alphanumeric start/end
-- `description` (required): Include "Use PROACTIVELY for" + 2-3 `<example>` blocks with commentary
-- `model` (required): `inherit` (recommended), `sonnet`, `opus`, `haiku`
-- `color` (required): See [Color Guidelines](#color-guidelines)
-- `tools` (optional): Restrict agent to specific tools (default: all tools)
+| Field | Required | Format | Description |
+|-------|----------|--------|-------------|
+| `name` | ✅ Yes | lowercase-hyphens, 3-50 chars | Agent identifier (must start/end with alphanumeric) |
+| `description` | ✅ Yes | Text with `<example>` blocks | Triggering conditions with 2-3 examples |
+| `model` | ✅ Yes | `inherit`/`sonnet`/`opus`/`haiku` | Which model to use |
+| `color` | ✅ Yes | `blue`/`cyan`/`green`/`yellow`/`magenta`/`red` | Visual identifier for UI |
+| `tools` | ⚪ No | Array of tool names | Restrict agent to specific tools |
+
+**CRITICAL - Invalid Fields (DO NOT USE):**
+
+These fields are NOT part of the official agent schema and will cause agents to not appear in `/agents` command:
+
+| Invalid Field | Why It's Wrong | Correct Approach |
+|---------------|----------------|------------------|
+| `agent:` | Not in schema, `/agents` won't find it | Use `name:` instead |
+| `subagents:` | Not in schema | Document in body or skip |
+| `orchestrates:` | Not in schema | Document in body or skip |
+| `skills:` | Not in schema (for agents) | Document in body or skip |
+
+**Valid `color` options (from official schema):**
+- `blue`, `cyan`, `green`, `yellow`, `magenta`, `red`
 
 **Description format:**
 ```yaml
