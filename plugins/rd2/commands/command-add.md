@@ -2,7 +2,6 @@
 description: Create slash commands with proper frontmatter
 skills: [rd2:cc-commands, rd2:anti-hallucination]
 argument-hint: <plugin-name> <command-name>
-allowed-tools: [Read, Write, Edit, Glob, Bash]
 ---
 
 # Add New Command
@@ -18,10 +17,10 @@ Thin wrapper command for `rd2:command-expert` agent. Creates slash commands with
 
 ## Arguments
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `plugin-name` | Yes | Target plugin (e.g., "rd2", "myplugin") |
-| `command-name` | Yes | Command name (lowercase-hyphens, max 64) |
+| Argument       | Required | Description                              |
+| -------------- | -------- | ---------------------------------------- |
+| `plugin-name`  | Yes      | Target plugin (e.g., "rd2", "myplugin")  |
+| `command-name` | Yes      | Command name (lowercase-hyphens, max 64) |
 
 ## Validation
 
@@ -32,6 +31,7 @@ Verify inputs before proceeding:
 3. **Check for conflicts**: Ensure command doesn't already exist
 
 If validation fails:
+
 - Show specific error with expected format
 - Suggest valid plugin names if plugin not found
 - Display existing commands if conflict detected
@@ -62,12 +62,12 @@ argument-hint: [arg1] [arg2]
 
 **Key Frontmatter Fields:**
 
-| Field | Purpose | When to Include |
-|-------|---------|-----------------|
-| `description` | Shown in `/help` | Always (keep <60 chars) |
-| `allowed-tools` | Restrict tool access | When limiting tools |
-| `model` | Choose model | When specific model needed |
-| `argument-hint` | Document arguments | When command takes input |
+| Field           | Purpose              | When to Include            |
+| --------------- | -------------------- | -------------------------- |
+| `description`   | Shown in `/help`     | Always (keep <60 chars)    |
+| `allowed-tools` | Restrict tool access | When limiting tools        |
+| `model`         | Choose model         | When specific model needed |
+| `argument-hint` | Document arguments   | When command takes input   |
 
 ## Example
 
@@ -89,8 +89,10 @@ plugin-name/commands/command-name.md
 **Commands are instructions FOR Claude, not messages TO the user:**
 
 **Correct:**
+
 ```markdown
 Review this code for security vulnerabilities including:
+
 - SQL injection
 - XSS attacks
 
@@ -98,6 +100,7 @@ Provide specific line numbers and severity ratings.
 ```
 
 **Incorrect:**
+
 ```markdown
 This command will review your code for security issues.
 You'll receive a report with vulnerability details.
