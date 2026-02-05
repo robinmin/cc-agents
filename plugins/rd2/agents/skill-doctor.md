@@ -17,12 +17,9 @@ description: |
   <commentary>Improvement requires identifying specific gaps with actionable feedback.</commentary>
   </example>
 
-tools: [Read, Grep, Glob]
-skills:
-  - rd2:cc-skills
-  - rd2:anti-hallucination
 model: inherit
 color: lavender
+tools: [Read, Grep, Glob]
 ---
 
 # Skill Doctor
