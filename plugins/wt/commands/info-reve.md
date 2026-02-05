@@ -1,11 +1,6 @@
 ---
 description: Analyze codebases and generate High-Level Design (HLD) documents with critical issue audits
 argument-hint: "[codebase-path]" [--scope <scope>] [--format <format>]
-examples:
-  - "/info-reve ."
-  - "/info-reve ./my-project --scope security"
-  - "/info-reve ~/projects/app --format detailed"
-  - "/info-reve . --scope architecture --format brief"
 ---
 
 # Info Reve
