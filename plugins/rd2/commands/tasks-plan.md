@@ -1,7 +1,5 @@
 ---
 description: Full workflow orchestration with planning, design, and execution
-skills:
-  - rd2:tasks
 argument-hint: <task> [--execute] [--auto|--semi|--step] [--with-architect] [--with-designer] [--skip-design] [--skip-refinement]
 ---
 
