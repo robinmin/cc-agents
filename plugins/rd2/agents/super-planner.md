@@ -32,11 +32,6 @@ tools:
   - Glob
   - Task
   - AskUserQuestion
-skills:
-  - rd2:task-workflow
-  - rd2:tool-selection
-  - rd2:tasks
-  - rd2:anti-hallucination
 model: inherit
 color: purple
 ---
