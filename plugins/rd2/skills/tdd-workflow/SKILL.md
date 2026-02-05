@@ -1,17 +1,6 @@
 ---
 name: tdd-workflow
 description: Use when writing features, fixing bugs, refactoring, or generating tests. Enforces strict TDD with red-green-refactor cycle, test generation strategies, and testing patterns.
-triggers:
-  - write feature
-  - implement feature
-  - create component
-  - fix bug
-  - refactor code
-  - add API endpoint
-  - generate tests
-  - write tests
-  - mocking strategy
-  - test design
 ---
 
 # Test-Driven Development Workflow
