@@ -17,18 +17,9 @@ description: |
   <commentary>Explicit tool selection bypasses auto-selection logic.</commentary>
   </example>
 
-tools: [Read, Write, Edit, Grep, Glob]
-skills:
-  - rd2:code-review-common
-  - rd2:code-review-gemini
-  - rd2:code-review-claude
-  - rd2:code-review-auggie
-  - rd2:code-review-opencode
-  - rd2:test-cycle
-  - rd2:tool-selection
-  - rd2:cc-agents
 model: inherit
 color: crimson
+tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # 1. METADATA
