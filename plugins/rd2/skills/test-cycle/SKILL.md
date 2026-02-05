@@ -1,8 +1,6 @@
 ---
 name: test-cycle
 description: Universal test execution, verification, and fix iteration workflow with 3-iteration limit, escalation protocol, and comprehensive verification checklists.
-skills:
-  - rd2:tasks
 ---
 
 # Test Cycle
