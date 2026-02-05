@@ -17,12 +17,9 @@ description: |
   <commentary>Skill refinement requires identifying and fixing specific quality issues.</commentary>
   </example>
 
-tools: [Read, Write, Edit, Grep, Glob]
-skills:
-  - rd2:cc-skills
-  - rd2:anti-hallucination
 model: inherit
 color: teal
+tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # Skill Expert
