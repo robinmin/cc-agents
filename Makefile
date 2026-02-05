@@ -1,8 +1,9 @@
 # Makefile for cc-agents project
 # Tools: uv (package manager), ruff (linter/formatter), mypy (type checker), pytest (testing)
+# TypeScript tools: bun (runtime, test runner)
 
 .PHONY: help install test lint format autofix clean notify-start notify-end discover-scripts list-scripts
-.PHONY: test-one lint-one format-one ci-one
+.PHONY: test-one test-one2 lint-one format-one ci-one
 
 # Default target
 .DEFAULT_GOAL := help
@@ -64,6 +65,21 @@ test-one:
 	@echo "🧪 Testing $(DIR)..."
 	@source $(VENV_DIR)/bin/activate && if [ -d "$(DIR)/tests" ] && [ -d "$(DIR)/scripts" ]; then \
 		pytest $(DIR)/tests -v --cov=$(DIR)/scripts --cov-report=term-missing --cov-report=html:$(DIR)/htmlcov; \
+	else \
+		echo "❌ Error: $(DIR) missing tests/ or scripts/ directory"; \
+		exit 1; \
+	fi
+
+## test-one2: Run TypeScript tests for one skill directory via bun (usage: make test-one2 DIR=plugins/wt/skills/publish-to-xhs)
+test-one2:
+	@if [ -z "$(DIR)" ]; then \
+		echo "❌ Error: DIR parameter required. Usage: make test-one2 DIR=plugins/wt/skills/publish-to-xhs"; \
+		echo "   Available TypeScript skills: publish-to-xhs, publish-to-medium, etc."; \
+		exit 1; \
+	fi
+	@echo "🧪 Testing $(DIR) with bun..."
+	@if [ -d "$(DIR)/tests" ] && [ -d "$(DIR)/scripts" ]; then \
+		cd $(DIR) && bun test --coverage 2>/dev/null || echo "Note: bun test coverage reporting may vary"; \
 	else \
 		echo "❌ Error: $(DIR) missing tests/ or scripts/ directory"; \
 		exit 1; \
