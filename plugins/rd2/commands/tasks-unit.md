@@ -1,11 +1,5 @@
 ---
 description: This command should be used when the user asks to "generate unit tests", "add unit tests", "achieve test coverage", "reach coverage target", "get 85% coverage", "run test generation", or mentions "coverage ratio", "AI-generated tests", "pytest coverage", or "test coverage threshold". Thin wrapper delegating to rd2:unit-tests-generation skill for comprehensive test generation.
-skills:
-  - rd2:unit-tests-generation
-  - rd2:tdd-workflow
-  - rd2:code-patterns
-  - rd2:sys-debugging
-  - rd2:anti-hallucination
 argument-hint: "<verification-command> [<testee>] [threshold=85]"
 model: sonnet
 allowed-tools: Skill, Read, Write, Edit, Grep, Glob, Bash, AskUserQuestion
