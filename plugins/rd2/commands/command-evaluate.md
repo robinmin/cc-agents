@@ -1,6 +1,5 @@
 ---
 description: Evaluate command quality across 6 dimensions
-skills: [rd2:cc-commands, rd2:anti-hallucination]
 argument-hint: <command-file>
 ---
 
