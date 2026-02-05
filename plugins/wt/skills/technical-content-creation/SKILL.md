@@ -54,6 +54,82 @@ The complete workflow progresses through 7 stages:
 6. **Generate illustrations** - Create AI images for technical content
 7. **Adapt and publish** - Adapt for different platforms and publish
 
+## Topic Initialization (CRITICAL)
+
+**IMPORTANT**: When starting new content, you MUST use `/wt:topic-init` to initialize the topic structure. NEVER create folders directly using `mkdir` or similar commands.
+
+### Why Use topic-init?
+
+- Ensures consistent folder structure across all topics
+- Creates all 7 stage folders (0-materials through 6-publish)
+- Generates required metadata files (topic.md, metadata.yaml)
+- Properly registers topic in collections.json
+- Auto-detects collection from topic name (when --collection not provided)
+
+### How to Initialize
+
+```bash
+# Basic initialization (auto-detects collection from topic name)
+/wt:topic-init "claude-code-todo-or-task-system-evolution"
+
+# With explicit collection
+/wt:topic-init "claude-code-todo-or-task-system-evolution" --collection "agentic_coding"
+
+# With all options
+/wt:topic-init "microservices-guide" --collection "tutorials" \
+  --title "Microservices Architecture Guide" \
+  --description "Comprehensive guide to microservices"
+```
+
+### What topic-init Creates
+
+```
+collections/[collection]/[topic]/
+├── topic.md                    # Topic metadata
+├── 0-materials/                # Stage 0: Materials
+├── 1-research/                 # Stage 1: Research
+├── 2-outline/                  # Stage 2: Outline
+├── 3-draft/                    # Stage 3: Draft
+├── 4-illustration/             # Stage 4: Illustration
+├── 5-adaptation/               # Stage 5: Adaptation
+└── 6-publish/                  # Stage 6: Publish
+```
+
+### Auto-Detection Rules
+
+When `--collection` is not provided, the system derives collection from topic name:
+
+| Topic Prefix | Derived Collection |
+|--------------|-------------------|
+| `claude-*` | `claude-code` |
+| `ai-*`, `agent-*` | `ai-agents` |
+| `macos-*`, `mac-*` | `macos` |
+| `python-*` | `python` |
+| `web-*`, `frontend-*` | `web-development` |
+| `docker-*`, `kubernetes-*`, `cloud-*` | `devops` |
+| Other | First word of topic (e.g., `my-topic` -> `my`) |
+
+### NEVER Create Folders Directly
+
+**This is a critical rule**: Never use `mkdir`, Bash commands, or any other method to create topic folders directly. Always use `/wt:topic-init`.
+
+**What happens if you create folders manually:**
+- Inconsistent folder structure across topics
+- Missing metadata files (topic.md, metadata.yaml)
+- Topic not registered in collections.json
+- Workflow stages may fail due to missing expected files
+- No auto-detection of collection from topic name
+
+**The correct approach:**
+```
+# WRONG - Never do this:
+mkdir -p 0-materials 1-research 2-outline
+mkdir claude-code-todo-evolution
+
+# CORRECT - Always use topic-init:
+/wt:topic-init "claude-code-todo-or-task-system-evolution"
+```
+
 ## Workflow Stages
 
 | Stage | Name | Location | Action | Key Outputs |
@@ -116,6 +192,8 @@ All agents and commands MUST follow this strict orchestration process when imple
 3. **Check existing artifacts** - Scan for completed stages (0-materials/, 1-research/, etc.)
 4. **Identify dependencies** - Verify prerequisites for requested stages
 5. **Select research methodology** - Match research type (systematic, narrative, rapid) to content needs
+
+**CRITICAL**: If topic structure does not exist, you MUST initialize it using `/wt:topic-init` BEFORE proceeding with any other stages. Never create folders manually with `mkdir` or similar commands.
 
 #### Phase 2: Plan (Stage Selection)
 
