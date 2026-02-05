@@ -1,6 +1,5 @@
 ---
 description: Evaluate a Claude Code Agent subagent for quality and production readiness
-skills: [rd2:cc-agents, rd2:anti-hallucination]
 argument-hint: <agent-file>
 ---
 
