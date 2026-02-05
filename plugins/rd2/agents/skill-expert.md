@@ -69,14 +69,20 @@ Templates in `assets/skill-template-{type}.md` include TODO markers guiding what
 
 ## Skill Refinement Workflow
 
-1. **Evaluate** - Use skill-doctor for current quality assessment
-2. **Review** - Check all dimensions, especially low scores
-3. **Fix** - Apply targeted improvements:
+1. **Validate** - Run programmatic validation first to catch structural issues:
+   ```bash
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate {skill_path}
+   ```
+2. **Evaluate** - Use skill-doctor for current quality assessment
+3. **Review** - Check all dimensions, especially low scores
+4. **Fix** - Apply targeted improvements:
+   - Frontmatter issues → Remove invalid fields (agent:, context:, user-invocable:, skills:, etc.)
    - Content issues → Clarify workflows in SKILL.md
    - Token inefficient → Move details to references/
    - Missing guidance → Add workflow steps
    - Security flags → Address dangerous patterns
-4. **Re-evaluate** - Continue until Grade A/B achieved
+5. **Re-validate** - Run validation script again to verify fixes
+6. **Re-evaluate** - Continue until Grade A/B achieved
 
 ## Quality Targets
 
