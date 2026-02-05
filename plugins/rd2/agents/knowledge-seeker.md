@@ -42,10 +42,6 @@ tools:
   - ref_search_documentation,
   - ref_read_url,
   - mcp__grep__searchGitHub,
-skills:
-  - rd2:anti-hallucination
-  - rd2:tasks
-  - rd2:cc-agents
 model: inherit
 color: cyan
 ---
