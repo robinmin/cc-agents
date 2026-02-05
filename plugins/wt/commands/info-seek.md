@@ -1,22 +1,8 @@
 ---
 description: Extract and verify knowledge from files, URLs, or search queries with --save workflow support
-subagents: [rd2:knowledge-seeker, wt:magent-browser]
 model: sonnet
 argument-hint: <input> [--aspect <aspect>] [--save] [--output <path>]
 allowed-tools: [Read, Write, Edit, Bash]
-arguments:
-  aspect:
-    description: Optional aspect to filter information (e.g., architecture, performance, security, examples, API)
-    required: false
-    type: string
-  save:
-    description: Save output to 0-materials/materials-extracted.md for workflow tracking
-    required: false
-    type: boolean
-  output:
-    description: Custom output path (default: auto-detected 0-materials/materials-extracted.md)
-    required: false
-    type: string
 ---
 
 # Info Seek
