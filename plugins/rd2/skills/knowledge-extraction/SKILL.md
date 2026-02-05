@@ -1,20 +1,6 @@
 ---
 name: knowledge-extraction
 description: Extract, synthesize, and validate information from multiple sources with cross-verification, deduplication, and proper source attribution. Use when researching APIs, libraries, frameworks, verifying facts, or consolidating information from PDFs, web pages, and code files.
-triggers:
-  - research
-  - find documentation
-  - verify information
-  - extract from
-  - look up
-  - what is
-  - how does
-  - cross-check
-  - consolidate information
-  - verify claim
-  - fact check
-  - source attribution
-  - cross-reference
 ---
 
 # Knowledge Seeker
