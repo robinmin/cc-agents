@@ -1,10 +1,6 @@
 ---
 description: This command should be used when the user asks to "brainstorm ideas", "explore solutions", "consider options", "research approaches", or mentions needing multiple solution options with trade-offs. Integrates research, ideation, and task CLI for automatic task file creation.
 argument-hint: "<issue-description | task-file-path>"
-tools:
-  - AskUserQuestion
-skills:
-  - rd2:brainstorm
 ---
 
 # tasks-brainstorm - Brainstorm Ideas Into Tasks
