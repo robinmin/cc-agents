@@ -1,7 +1,6 @@
 ---
 name: tool-selection
 description: General-purpose tool/skill selection framework with heuristics, availability checking, fallback strategies, and confidence scoring. Applicable to any agent choosing between multiple implementation options.
-skills: []
 ---
 
 # Tool Selection Framework
