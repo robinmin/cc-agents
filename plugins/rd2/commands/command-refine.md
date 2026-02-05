@@ -2,7 +2,6 @@
 description: Refine commands to fix quality issues
 skills: [rd2:cc-commands, rd2:anti-hallucination]
 argument-hint: <command-file>
-allowed-tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # Refine Command
@@ -19,8 +18,8 @@ Thin wrapper command for `rd2:command-expert` agent. Improves existing commands 
 
 ## Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument         | Description                                 |
+| ---------------- | ------------------------------------------- |
 | `<command-file>` | Path to command file (relative or absolute) |
 
 ## Validation
@@ -33,6 +32,7 @@ Verify command file before refinement:
 4. **Check write access**: Ensure file can be modified
 
 If validation fails:
+
 - Show clear error message with file path
 - Suggest checking file path and permissions
 - Indicate YAML syntax errors with line numbers
@@ -54,18 +54,19 @@ This command follows the command refinement process:
 
 ## Common Improvements by Dimension
 
-| Dimension | Typical Fixes |
-|-----------|---------------|
-| Frontmatter | Add missing fields, fix YAML syntax |
-| Description | Shorten (<60 chars), add specificity |
-| Content | Use imperative form, add clarity |
-| Structure | Improve organization, add examples |
-| Validation | Add input checks, error handling |
-| Best Practices | Fix naming, add documentation |
+| Dimension      | Typical Fixes                        |
+| -------------- | ------------------------------------ |
+| Frontmatter    | Add missing fields, fix YAML syntax  |
+| Description    | Shorten (<60 chars), add specificity |
+| Content        | Use imperative form, add clarity     |
+| Structure      | Improve organization, add examples   |
+| Validation     | Add input checks, error handling     |
+| Best Practices | Fix naming, add documentation        |
 
 ## Refinement Example
 
 **Before (Grade: C):**
+
 ```markdown
 ---
 description: This is a command that will review your code and check for bugs
@@ -75,6 +76,7 @@ You should review the code for bugs and suggest improvements.
 ```
 
 **After (Grade: A):**
+
 ```markdown
 ---
 description: Review code for bugs and security issues
@@ -83,6 +85,7 @@ allowed-tools: Read, Grep
 ---
 
 Review this code for:
+
 - Potential bugs
 - Security vulnerabilities
 - Best practices violations
@@ -98,29 +101,33 @@ Provide specific line numbers and actionable suggestions.
 ## Changes Made
 
 ### Frontmatter
+
 - {Changes to YAML fields}
 
 ### Description
+
 - **Before**: "{old description}"
 - **After**: "{new description}"
 
 ### Content
+
 - {Content improvements}
 
 ### Validation
+
 - {Validation additions}
 
 ## New Score
 
-| Dimension | Before | After |
-|-----------|--------|-------|
-| Frontmatter | X/20 | Y/20 |
-| Description | X/25 | Y/25 |
-| Content | X/25 | Y/25 |
-| Structure | X/15 | Y/15 |
-| Validation | X/10 | Y/10 |
-| Best Practices | X/5 | Y/5 |
-| **Overall** | **X.X/100** | **Y.Y/100** |
+| Dimension      | Before      | After       |
+| -------------- | ----------- | ----------- |
+| Frontmatter    | X/20        | Y/20        |
+| Description    | X/25        | Y/25        |
+| Content        | X/25        | Y/25        |
+| Structure      | X/15        | Y/15        |
+| Validation     | X/10        | Y/10        |
+| Best Practices | X/5         | Y/5         |
+| **Overall**    | **X.X/100** | **Y.Y/100** |
 
 ## Grade Improved: {old-grade} → {new-grade}
 ```
@@ -128,6 +135,7 @@ Provide specific line numbers and actionable suggestions.
 ## Read vs Write
 
 This command MODIFIES files:
+
 - Edits command file to apply improvements
 - Makes changes to fix identified issues
 
