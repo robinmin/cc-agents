@@ -24,27 +24,9 @@ description: |
   <commentary>Task-driven mode follows complete 17-step workflow with Q&A documentation, solution design, implementation plan, and references added to task file.</commentary>
   </example>
 
-tools: [Read, Write, Edit, Grep, Glob]
-skills:
-  - rd2:coder-gemini
-  - rd2:coder-claude
-  - rd2:coder-auggie
-  - rd2:coder-agy
-  - rd2:coder-opencode
-  - rd2:pl-golang
-  - rd2:pl-python
-  - rd2:pl-typescript
-  - rd2:pl-javascript
-  - rd2:tasks
-  - rd2:task-workflow
-  - rd2:test-cycle
-  - rd2:tool-selection
-  - rd2:tdd-workflow
-  - rd2:anti-hallucination
-  - rd2:sys-debugging
-  - rd2:code-patterns
 model: inherit
 color: teal
+tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # 1. METADATA
