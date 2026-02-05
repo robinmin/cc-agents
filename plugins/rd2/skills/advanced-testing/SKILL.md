@@ -1,15 +1,6 @@
 ---
 name: advanced-testing
 description: Use when implementing mutation testing, property-based testing, accessibility testing, or code permutation testing. Covers advanced techniques for validating test quality beyond coverage.
-triggers:
-  - mutation testing
-  - property-based testing
-  - accessibility testing
-  - code permutation
-  - test quality validation
-  - invariant testing
-  - PBT
-  - WCAG testing
 ---
 
 # Advanced Testing Techniques
