@@ -1,6 +1,5 @@
 ---
 description: Evaluate skill quality across 7 dimensions with actionable recommendations
-skills: [rd2:cc-skills, rd2:anti-hallucination]
 argument-hint: <skill-folder>
 ---
 
