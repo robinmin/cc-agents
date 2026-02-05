@@ -17,12 +17,9 @@ description: |
   <commentary>Quality enforcement via hooks requires context-aware prompt-based validation.</commentary>
   </example>
 
-tools: [Read, Write, Edit]
-skills:
-  - rd2:cc-hooks
-  - rd2:anti-hallucination
 model: inherit
 color: orange
+tools: [Read, Write, Edit]
 ---
 
 # Hook Expert
