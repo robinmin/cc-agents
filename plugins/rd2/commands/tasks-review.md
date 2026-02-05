@@ -1,8 +1,5 @@
 ---
 description: Single task code review
-skills:
-  - rd2:tasks
-  - rd2:code-review-common
 argument-hint: <task> [--tool auto|gemini|claude|auggie|opencode] [--focus security|performance|testing|quality|architecture]
 ---
 
