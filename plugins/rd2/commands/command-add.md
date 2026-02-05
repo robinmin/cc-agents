@@ -1,6 +1,5 @@
 ---
 description: Create slash commands with proper frontmatter
-skills: [rd2:cc-commands, rd2:anti-hallucination]
 argument-hint: <plugin-name> <command-name>
 ---
 
