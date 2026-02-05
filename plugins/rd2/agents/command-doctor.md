@@ -24,12 +24,9 @@ description: |
   <commentary>Debugging commands requires identifying specific validation and structural issues.</commentary>
   </example>
 
-tools: [Read, Grep, Glob]
-skills:
-  - rd2:cc-commands
-  - rd2:anti-hallucination
 model: inherit
 color: lavender
+tools: [Read, Grep, Glob]
 ---
 
 # Command Doctor
