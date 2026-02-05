@@ -1,8 +1,5 @@
 ---
 name: coder-auggie
-agent: Plan
-context: fork
-user-invocable: false
 description: Use Auggie MCP for codebase-aware AI code generation with semantic understanding. Trigger when user mentions "Auggie code", "semantic generate", "codebase-aware implementation". NOT for code review.
 ---
 
