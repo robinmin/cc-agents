@@ -1,14 +1,6 @@
 ---
 name: test-coverage
 description: Use when measuring test coverage, setting coverage targets, or optimizing coverage strategy. Covers industry standards, coverage analysis, and module-specific targets.
-triggers:
-  - test coverage
-  - coverage report
-  - coverage target
-  - measure coverage
-  - optimize coverage
-  - coverage gap
-  - code coverage percentage
 ---
 
 # Test Coverage Strategy
