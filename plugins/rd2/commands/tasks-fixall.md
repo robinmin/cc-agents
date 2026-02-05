@@ -1,8 +1,5 @@
 ---
 description: Fix all lint, type, and test errors using deterministic single-pass workflow with sys-debugging methodology
-skills:
-  - rd2:sys-debugging
-  - rd2:anti-hallucination
 argument-hint: "[<validation-command>] [--max-retry=5]"
 ---
 
