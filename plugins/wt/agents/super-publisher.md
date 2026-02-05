@@ -1,4 +1,5 @@
 ---
+name: super-publisher
 description: |
   Senior Multi-Platform Publishing Orchestration Expert. Use PROACTIVELY for publishing content to multiple platforms simultaneously, intelligent platform selection based on content category/topic/language, graceful error handling across platforms, publishing result summarization, and coordinating cross-platform publishing workflows.
 
@@ -30,23 +31,8 @@ description: |
   <commentary>User requests selective retry. Agent should: (1) load checkpoint file to identify failed vs successful platforms, (2) retry only failed platforms, (3) preserve successful platform URLs from previous run, (4) generate updated summary with combined results.</commentary>
   </example>
 
-agent: wt:super-publisher
 model: sonnet
 color: cyan
-subagents: []
-orchestrates:
-  [
-    wt:publish-to-juejin,
-    wt:publish-to-qiita,
-    wt:publish-to-surfing,
-    wt:publish-to-x,
-    wt:publish-to-zenn,
-    wt:publish-to-infoq,
-    wt:publish-to-medium,
-    wt:publish-to-substack,
-    wt:publish-to-wechatmp,
-    wt:publish-to-xhs,
-  ]
 tools: [Read, Write, Edit, Grep, Glob, AskUserQuestion]
 ---
 
@@ -308,18 +294,18 @@ These situations have HIGH hallucination risk during platform verification:
 
 ## 5.3 Platform Decision Table Knowledge (10 items)
 
-| Platform | Content Categories | Topics | Languages | Character Limit | Special Requirements |
-|----------|-------------------|--------|-----------|-----------------|---------------------|
-| Juejin | Technical | Backend, Frontend, AI, Android, iOS | Chinese (Simplified) | No strict limit | Category selection required |
-| Qiita | Technical | Programming, Software Engineering | Japanese, English | No strict limit | YAML frontmatter required |
-| Zenn | Technical | Programming, Software Engineering | Japanese | No strict limit | Markdown with YAML frontmatter |
-| Medium | Technical, General | All tech topics, Business | English, Multilingual | No strict limit | Integration token required |
-| X (Twitter) | Social, Technical | All topics, Threads | English, Multilingual | Character limit applies | Thread support for long content |
-| Substack | Newsletter | All topics | English | No strict limit | Email subscription model |
-| InfoQ | Enterprise Technical | Java, Architecture, Microservices | English, Chinese | No strict limit | Editorial review process |
-| WeChat MP | General, Technical | All topics | Chinese (Simplified) | No strict limit | Official Account required |
-| XHS | Lifestyle, Technical | Tech, Shopping, Lifestyle | Chinese (Simplified) | 1000+ characters | Image-rich content encouraged |
-| Surfing | Technical | All topics | English, Chinese, Japanese | No strict limit | Developer community focus |
+| Platform    | Content Categories   | Topics                              | Languages                  | Character Limit         | Special Requirements            |
+| ----------- | -------------------- | ----------------------------------- | -------------------------- | ----------------------- | ------------------------------- |
+| Juejin      | Technical            | Backend, Frontend, AI, Android, iOS | Chinese (Simplified)       | No strict limit         | Category selection required     |
+| Qiita       | Technical            | Programming, Software Engineering   | Japanese, English          | No strict limit         | YAML frontmatter required       |
+| Zenn        | Technical            | Programming, Software Engineering   | Japanese                   | No strict limit         | Markdown with YAML frontmatter  |
+| Medium      | Technical, General   | All tech topics, Business           | English, Multilingual      | No strict limit         | Integration token required      |
+| X (Twitter) | Social, Technical    | All topics, Threads                 | English, Multilingual      | Character limit applies | Thread support for long content |
+| Substack    | Newsletter           | All topics                          | English                    | No strict limit         | Email subscription model        |
+| InfoQ       | Enterprise Technical | Java, Architecture, Microservices   | English, Chinese           | No strict limit         | Editorial review process        |
+| WeChat MP   | General, Technical   | All topics                          | Chinese (Simplified)       | No strict limit         | Official Account required       |
+| XHS         | Lifestyle, Technical | Tech, Shopping, Lifestyle           | Chinese (Simplified)       | 1000+ characters        | Image-rich content encouraged   |
+| Surfing     | Technical            | All topics                          | English, Chinese, Japanese | No strict limit         | Developer community focus       |
 
 ## 5.4 Publishing Workflow Patterns
 
