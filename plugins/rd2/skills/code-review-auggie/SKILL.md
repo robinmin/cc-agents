@@ -1,8 +1,5 @@
 ---
 name: code-review-auggie
-agent: Plan
-context: fork
-user-invocable: false
 description: Use Augment Context Engine (Auggie) MCP for code review and architecture planning. Trigger when user mentions "Auggie", "codebase retrieval", "augmented review". NOT for implementation.
 ---
 
