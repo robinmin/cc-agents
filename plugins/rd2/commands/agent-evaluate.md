@@ -33,6 +33,18 @@ Thin wrapper for `rd2:cc-agents` skill. Assesses agent quality across 6 dimensio
 
 **Passing Score:** >= 80/100
 
+## Frontmatter Validation Check
+
+The evaluation checks for valid frontmatter fields per official Claude Code schema:
+
+| Valid Fields | Invalid Fields (causes failure) |
+|--------------|----------------------------------|
+| `name:` ✅ | `agent:` ❌ |
+| `description:` ✅ | `subagents:` ❌ |
+| `model:` ✅ | `orchestrates:` ❌ |
+| `color:` ✅ | `skills:` ❌ |
+| `tools:` ✅ | |
+
 ## Output
 
 ```markdown
