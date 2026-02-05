@@ -17,11 +17,9 @@ description: |
   <commentary>Agent handles file reading, delegates brainstorming to skill. Contains all 4-phase workflow with anti-hallucination protocol and task CLI integration.</commentary>
   </example>
 
-tools: [Read, AskUserQuestion, Bash]
-skills:
-  - rd2:brainstorm
 model: inherit
 color: gold
+tools: [Read, AskUserQuestion, Bash]
 ---
 
 # 1. METADATA
