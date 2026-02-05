@@ -3,7 +3,6 @@ allowed-tools:
   - Bash
 description: This command should be used when the user asks to "generate changelog", "create release notes", or "write changelog from git commits". Analyzes git history, categorizes changes by type, and translates technical commits into user-friendly release notes.
 argument-hint: [output-file] [--since <tag|commit>] [--until <tag|commit>] [--version <version>]
-version: 1.0.0
 model: inherit
 ---
 
