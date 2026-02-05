@@ -1,8 +1,5 @@
 ---
 description: Create a new Claude Code Agent Skill using the official 6-step skill creation process. Use PROACTIVELY when building new skills, writing SKILL.md files, designing skill workflows, or packaging skills for distribution.
-skills:
-  - rd2:cc-skills
-  - rd2:anti-hallucination
 argument-hint: <plugin-name> <skill-name> [--type technique|pattern|reference]
 ---
 
