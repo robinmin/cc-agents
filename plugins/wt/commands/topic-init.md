@@ -51,7 +51,7 @@ Use this command when:
 | Argument | Required | Description | Default |
 |----------|----------|-------------|---------|
 | `<topic_name>` | Yes | Name of new topic (kebab-case recommended) | - |
-| `--collection` | No | Collection name for topic | Current folder |
+| `--collection` | No | Collection name for topic | Auto-detected from topic name |
 | `--force` | No | Overwrite existing folders | `false` |
 | `--template` | No | Template: default, minimal, comprehensive | `default` |
 | `--help` | No | Show help message | - |
@@ -234,8 +234,26 @@ def init_topic(topic_name, collection=None, force=False, template="default"):
     if os.path.exists(topic_name) and not force:
         raise ValueError(f"Topic folder '{topic_name}' already exists. Use --force to overwrite.")
 
-    # 3. Determine collection name
-    collection_name = collection or get_current_folder_name()
+    # 3. Determine collection name (infer from topic if not provided)
+    collection_name = collection
+    if not collection_name:
+        # Derive collection from topic name - use topic's primary category
+        # e.g., "claude-code-todo-or-task-system-evolution" -> "claude-code"
+        # e.g., "ai-agent-development" -> "ai-agents"
+        topic_lower = topic_name.lower()
+        if topic_lower.startswith("claude"):
+            collection_name = "claude-code"
+        elif topic_lower.startswith("ai") or topic_lower.startswith("agent"):
+            collection_name = "ai-agents"
+        elif topic_lower.startswith("macos") or topic_lower.startswith("mac"):
+            collection_name = "macos"
+        elif topic_lower.startswith("python"):
+            collection_name = "python"
+        elif topic_lower.startswith("web") or topic_lower.startswith("frontend"):
+            collection_name = "web-development"
+        else:
+            # Default: use first word as collection
+            collection_name = topic_lower.split("-")[0] if "-" in topic_lower else topic_lower
 
     # 4. Create folder structure
     folders = [
