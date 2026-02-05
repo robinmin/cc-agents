@@ -12,17 +12,17 @@ Create, evaluate, and refine Claude Code Agent subagents that extend AI capabili
 ## Quick Start
 
 ```bash
-# Evaluate an existing agent (comprehensive quality assessment)
-rd2:agent-evaluate /path/to/plugin/agents/my-agent.md
+# Use the agent template as starting point:
+# Copy: plugins/rd2/skills/cc-agents/assets/agent-template.md
+# To: your-plugin/agents/your-agent.md
 
-# Create a new agent from template
-rd2:agent-add my-domain-expert
-
-# Refine an existing agent
-rd2:agent-refine /path/to/plugin/agents/my-agent.md
-
-# List all agents in a plugin
-rd2:agent-list
+# Key evaluation dimensions to check:
+# - Structure: All 8 sections present, 400-600 lines
+# - Verification: Complete protocol with red flags, fallbacks
+# - Competencies: 50+ items across 4-5 categories
+# - Rules: 8+ DO and 8+ DON'T
+# - Auto-Routing: "Use PROACTIVELY for" with keywords
+# - Examples: 2-3 examples with commentary
 ```
 
 ## Workflows
@@ -54,13 +54,20 @@ rd2:agent-list
 
 **Passing Score:** >= 80/100
 
+**Grading Scale:**
+- A (90-100): Production ready
+- B (80-89): Minor polish recommended
+- C (70-79): Needs improvement
+- D (60-69): Major revision needed
+- F (<60): Complete rewrite required
+
 ### Refining an Agent
 
 **Use this workflow:**
 
 1. **Evaluate current quality** - Identify gaps and issues
 2. **Review findings** - Check all dimensions, especially low scores
-3. **Determine action**:
+3. **Determine action:**
    - Structure issues? → Add missing sections, adjust line counts
    - Content gaps? → Expand competency lists, add workflows
    - Verification weak? → Add red flags, source priority, fallbacks
@@ -69,58 +76,13 @@ rd2:agent-list
 5. **Re-evaluate** - Run evaluation again
 6. **Repeat** - Continue until passing score achieved
 
-### Example: Creating a Python Expert Agent
-
-**Step 1 - Define Domain:**
-- Expertise: Python programming, testing, async, decorators
-- Scope: Code generation, debugging, best practices
-- Target: Developers working on Python projects
-
-**Step 2-3 - Generate Skeleton:**
-```yaml
----
-name: python-expert
-description: |
-  Senior Python expert. Use PROACTIVELY for python, pytest, async, decorator, generator, type hint.
-
-  <example>
-  Context: User asks about implementing async functionality
-  user: "How do I make this function async?"
-  assistant: "I'll help you convert this to async. Let me first check the current implementation..."
-  <commentary>User needs async Python guidance - this agent specializes in Python patterns</commentary>
-  </example>
-
-model: inherit
-color: blue
-tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch]
----
-```
-
-**Step 4 - Enumerate Competencies (excerpt):**
-```markdown
-### Core Python
-- async/await patterns
-- Type hints (PEP 484, 585, 612)
-- Decorators (@property, @staticmethod, @lru_cache)
-- Context managers (with statements)
-- Generators and yield expressions
-
-### Testing
-- pytest fixtures and parametrization
-- unittest.mock for mocking
-- pytest-asyncio for async tests
-- coverage.py integration
-```
-
-**Step 5-6 - Complete agent and validate.**
-
 ## Architecture: Fat Skills, Thin Wrappers
 
 Follow the **Fat Skills, Thin Wrappers** pattern:
 
-- **Skills** contain all core logic, workflows, and domain knowledge
-- **Commands** are minimal wrappers (~50 lines) that invoke skills for human users
-- **Agents** are minimal wrappers (~100 lines) that invoke skills for AI workflows
+- **Skills** contain all core logic, workflows, and domain knowledge (1,500-2,000 words)
+- **Commands** are minimal wrappers (~150 lines) that invoke skills for human users
+- **Agents** are minimal wrappers (~100-150 lines) that invoke skills for AI workflows
 
 ### Hybrid Approach for Complex Orchestration
 
@@ -130,11 +92,11 @@ Follow the **Fat Skills, Thin Wrappers** pattern:
 
 ### Built-in Tools for Orchestration
 
-| Tool              | Purpose                | Example                                              |
-| ----------------- | ---------------------- | ---------------------------------------------------- |
-| `Task`            | Delegate to subagent   | `Task(subagent_type="super-planner", prompt="...")`  |
-| `SlashCommand`    | Call another command   | `SlashCommand(skill="rd2:tasks-refine", args="...")` |
-| `AskUserQuestion` | Interactive user input | Ask clarifying questions with options                |
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `Task` | Delegate to subagent | `Task(subagent_type="specialist", prompt="...")` |
+| `SlashCommand` | Call another command | `SlashCommand(skill="plugin:command-name", args="...")` |
+| `AskUserQuestion` | Interactive user input | Ask clarifying questions with options |
 
 ## Agent Structure (8-Section Anatomy)
 
@@ -157,42 +119,20 @@ Every Claude Code Agent subagent follows the 8-section anatomy. For detailed spe
 
 ### Metadata Requirements
 
-**Frontmatter fields (from official Claude Code schema):**
+**Required frontmatter fields:**
 
-| Field | Required | Format | Description |
-|-------|----------|--------|-------------|
-| `name` | ✅ Yes | lowercase-hyphens, 3-50 chars | Agent identifier (must start/end with alphanumeric) |
-| `description` | ✅ Yes | Text with `<example>` blocks | Triggering conditions with 2-3 examples |
-| `model` | ✅ Yes | `inherit`/`sonnet`/`opus`/`haiku` | Which model to use |
-| `color` | ✅ Yes | `blue`/`cyan`/`green`/`yellow`/`magenta`/`red` | Visual identifier for UI |
-| `tools` | ⚪ No | Array of tool names | Restrict agent to specific tools |
+| Field | Description |
+|-------|-------------|
+| `name` | lowercase-hyphens, 3-50 chars, alphanumeric start/end |
+| `description` | "Use PROACTIVELY for" + 2-3 `<example>` blocks with `<commentary>` |
+| `model` | `inherit`/`sonnet`/`opus`/`haiku` |
+| `color` | `blue`/`cyan`/`green`/`yellow`/`magenta`/`red` |
+| `tools` | Optional: restrict to specific tools |
 
-**CRITICAL - Invalid Fields (DO NOT USE):**
+**CRITICAL - Invalid fields (agents won't appear in `/agents`):**
+- `agent:`, `subagents:`, `orchestrates:`, `skills:` (document in body instead)
 
-These fields are NOT part of the official agent schema and will cause agents to not appear in `/agents` command:
-
-| Invalid Field | Why It's Wrong | Correct Approach |
-|---------------|----------------|------------------|
-| `agent:` | Not in schema, `/agents` won't find it | Use `name:` instead |
-| `subagents:` | Not in schema | Document in body or skip |
-| `orchestrates:` | Not in schema | Document in body or skip |
-| `skills:` | Not in schema (for agents) | Document in body or skip |
-
-**Valid `color` options (from official schema):**
-- `blue`, `cyan`, `green`, `yellow`, `magenta`, `red`
-
-**Description format:**
-```yaml
-description: |
-  Senior {Domain} expert. Use PROACTIVELY for {trigger-keywords}.
-
-  <example>
-  Context: {situation}
-  user: "{request}"
-  assistant: "{response}"
-  <commentary>{why-agent-triggers}</commentary>
-  </example>
-```
+For detailed metadata templates, see **[`references/agent-anatomy.md`](references/agent-anatomy.md)**.
 
 ### Color Guidelines
 
@@ -212,84 +152,119 @@ orange = Architect   teal   = Design      gray    = Docs
 | Skill evaluators | `coral` | Review |
 | Skill creators | `teal` | Design |
 
-## Best Practices
+## Evaluation Principles
 
-### Naming Conventions (CRITICAL)
+**Agent Creation Standards:**
 
-1. **ALWAYS use full namespace** for plugin skills: `plugin-name:skill-name`
-   - In user-facing documentation: `rd2:my-skill`
-   - In `agents.md` skills field: `my-skill` (internal reference only)
+1. **Structured Memory** - Competency lists are the agent's knowledge base - be exhaustive
+2. **Verification First** - Every agent needs domain-specific fact-checking protocol
+3. **Clear Triggers** - "Use PROACTIVELY for" with specific keywords ensures auto-routing
+4. **Guardrails** - 8+ DO and 8+ DON'T rules prevent common mistakes
+5. **Confidence Scoring** - Always indicate certainty level (HIGH/MEDIUM/LOW)
+6. **Output Consistency** - Templates ensure predictable, actionable responses
 
-2. **NEVER reuse names** across components
-   - Skills take precedence over commands with same name (blocks user invocation)
-   - Use distinct naming patterns to avoid confusion
+**Evaluation Principles:**
 
-| Component | Naming Pattern | Example |
-|-----------|---------------|---------|
-| Slash Command | `verb-noun` | `test-code` |
-| Slash Command (grouped) | `noun-verb` | `agent-add`, `agent-evaluate` |
-| Skill | `verb-ing-noun` | `reviewing-code` |
-| Subagent | `role-agent` | `code-reviewer-agent` |
+- Constructive assessment - Identify both strengths and areas for improvement
+- Specific recommendations - Provide concrete before/after examples
+- Context-aware - Consider the agent's purpose when applying standards
+- Evidence-based - Cite specific sections, patterns, and anti-patterns
+- Progressive fixes - Prioritize by impact (critical > high > medium)
 
-**Slash Command Grouping Rule:**
-- When multiple slash commands share the same domain, use `noun-verb` format
-- This groups related commands together alphabetically: `agent-add.md`, `agent-evaluate.md`, `agent-refine.md`
+## Red Flags and Anti-Patterns
 
-### Skill Composition Rules
+**Critical Red Flags (Stop and Investigate):**
+
+- Missing frontmatter fields (name, description, model, color required)
+- Description without "Use PROACTIVELY for" (won't auto-route)
+- Too few examples (<2) or missing commentary
+- Verification protocol missing or incomplete
+- Competency list under 50 items
+- Fewer than 8 DO or 8 DON'T rules
+- Total lines outside 400-600 range
+
+**Anti-Patterns:**
+
+- Generic persona: "You are a helpful assistant" (no domain expertise)
+- Vague triggering: "Use when user asks for help" (too broad)
+- Missing verification: No red flags or confidence scoring
+- Empty competencies: Less than 10 items per category
+- No process: Missing workflow phases
+- Generic rules: "Be helpful" instead of specific domain guidance
+- Copy-pasted content: Competencies irrelevant to domain
+- Circular references: Skill references commands that use the skill
+
+## Common Issues by Category
+
+**Structure Issues:**
+
+- Missing one or more of the 8 sections
+- Total lines outside 400-600 range
+- Sections in wrong order
+- Sections significantly over/under target line counts
+
+**Metadata Issues:**
+
+- Missing required fields (name, description, model, color)
+- Invalid field names (agent:, subagents:, skills:)
+- Color not from valid list
+- Description lacks "Use PROACTIVELY for"
+- Fewer than 2 examples in description
+- Examples missing <commentary> tags
+
+**Verification Issues:**
+
+- No red flags defined
+- Missing source priority
+- No confidence scoring approach
+- No fallback protocol
+- Verification not domain-specific
+
+**Competency Issues:**
+
+- Fewer than 50 total items
+- Items not categorized
+- Categories not relevant to domain
+- Missing "When NOT to use" section
+- Items too vague/generic
+
+**Rules Issues:**
+
+- Fewer than 8 DO rules
+- Fewer than 8 DON'T rules
+- Rules too generic ("Be helpful")
+- Rules not domain-specific
+- Rules contradict each other
+
+## Best Practices: DO and DON'T
 
 **DO:**
-- Keep agents and skills INDEPENDENT
-- Use subagents to orchestrate multiple skills via the `skills` field
-- Leverage `context: fork` for skill isolation
+
+- Use lowercase-hyphens for agent names (python-expert, code-reviewer)
+- Include "Use PROACTIVELY for" in description with specific keywords
+- Add 2-4 examples with <commentary> explaining why agent triggers
+- Create 50+ competency items across 4-5 categories
+- Define domain-specific red flags and verification protocol
+- Include 8+ DO and 8+ DON'T rules
+- Use second person in persona ("You are a...")
+- Keep total lines between 400-600
+- Use appropriate color for functional category
+- Reference this skill for detailed templates
 
 **DON'T:**
-- Make agents/skills directly call other agents/skills
-- Add explicit dependencies between skills (not supported)
-- Assume cross-plugin skill references work (feature request only)
 
-### Writing Guidelines
+- Use invalid frontmatter fields (agent:, subagents:, skills:)
+- Skip "Use PROACTIVELY for" in description
+- Use generic persona ("You are a helpful assistant")
+- Create fewer than 50 competency items
+- Omit verification protocol
+- Use fewer than 8 rules in either DO or DON'T list
+- Exceed 600 lines (move details to references/)
+- Fall below 400 lines (add competencies or verification)
+- Use colors outside the valid list
+- Reference commands that use this skill (circular reference)
 
-- **Use imperative/infinitive form** ("Create X", not "Creates X")
-- **Frontmatter description**: Include BOTH what the agent does AND when to use it
-- **Body**: Focus on procedural instructions and workflow guidance
-- **Competency lists**: Be exhaustive - LLMs cannot invent what's not in the prompt
-
-### Common Anti-Patterns
-
-| Anti-Pattern | Issue | Fix |
-|--------------|-------|-----|
-| Too short (<400 lines) | Missing competencies | Add competency items |
-| Too long (>600 lines) | Verbose | Condense descriptions |
-| Missing verification | High hallucination risk | Add verification protocol |
-| Incomplete rules | Missing guardrails | Add 8+ DO and 8+ DON'T |
-| No auto-routing | Won't trigger automatically | Add "Use PROACTIVELY for" |
-| Too few examples | Users unclear when to use | Add 2-3 examples |
-| **Name reuse** | **Blocks invocation** | **Use distinct names** |
-
-## Quality Checklist
-
-Before completing an agent:
-
-- [ ] All 8 sections present
-- [ ] 400-600 total lines
-- [ ] 50+ competency items
-- [ ] 8+ DO and 8+ DON'T rules
-- [ ] Verification protocol with red flags
-- [ ] "Use PROACTIVELY for" in description
-- [ ] 2-3 examples with commentary
-- [ ] Output format with confidence scoring
-- [ ] Evaluation score >= 80/100
-
-## References
-
-### Bundled Resources
-
-- **[`references/agent-anatomy.md`](references/agent-anatomy.md)** - Complete 8-section anatomy with templates and examples
-- **[`references/colors.md`](references/colors.md)** - Full color palette with category assignments
-- **[`references/ClaudeCodeBuilt-inTools.md`](references/ClaudeCodeBuilt-inTools.md)** - Built-in tools reference (Task, SlashCommand, AskUserQuestion)
-- **[`assets/agent-template.md`](assets/agent-template.md)** - Ready-to-use agent template
-
-### Agent Organization
+## Agent Organization
 
 ```
 plugin-name/
@@ -302,6 +277,17 @@ plugin-name/
 All `.md` files in `agents/` are auto-discovered. Namespacing is automatic:
 - Single plugin: `agent-name`
 - With subdirectories: `plugin:subdir:agent-name`
+
+## References
+
+### Bundled Resources
+
+- **[`references/agent-anatomy.md`](references/agent-anatomy.md)** - Complete 8-section anatomy with templates and examples
+- **[`references/evaluation-criteria.md`](references/evaluation-criteria.md)** - Detailed evaluation criteria, scoring framework, and quality standards
+- **[`references/colors.md`](references/colors.md)** - Full color palette with category assignments
+- **[`references/ClaudeCodeBuilt-inTools.md`](references/ClaudeCodeBuilt-inTools.md)** - Built-in tools reference (Task, SlashCommand, AskUserQuestion)
+- **[`references/hybrid-architecture.md`](references/hybrid-architecture.md)** - Hybrid approach for complex orchestration
+- **[`assets/agent-template.md`](assets/agent-template.md)** - Ready-to-use agent template
 
 ### External References
 
