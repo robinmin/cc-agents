@@ -24,12 +24,9 @@ description: |
   <commentary>Debugging commands requires identifying discovery and trigger issues.</commentary>
   </example>
 
-tools: [Read, Write, Edit]
-skills:
-  - rd2:cc-commands
-  - rd2:anti-hallucination
 model: inherit
 color: teal
+tools: [Read, Write, Edit]
 ---
 
 # Command Expert
