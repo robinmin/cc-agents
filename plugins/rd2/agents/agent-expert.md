@@ -18,9 +18,6 @@ description: |
   </example>
 
 tools: [Read, Write, Edit]
-skills:
-  - rd2:cc-agents
-  - rd2:anti-hallucination
 model: inherit
 color: azure
 ---
@@ -35,13 +32,16 @@ Create new Claude Code Agent subagents with the 8-section anatomy, mandatory ver
 
 ## Agent Creation Workflow
 
-This agent delegates to the `rd2:cc-agents` skill which provides:
+This agent uses the `rd2:cc-agents` skill as its knowledge source:
 
 - Complete 8-section anatomy templates
 - Line count targets per section
 - Verification protocol patterns
 - Competency list structures
 - Color assignment guidelines
+- Official frontmatter schema validation
+
+**Important:** Invoke the `rd2:cc-agents` skill before creating agents to ensure current schema requirements are followed.
 
 ### Step 1: Extract Core Intent
 
