@@ -1,8 +1,5 @@
 ---
 name: coder-gemini
-agent: Plan
-context: fork
-user-invocable: false
 description: Use Google Gemini CLI for AI-assisted code generation. Trigger when user mentions "Gemini code", "ask Gemini to implement", "Gemini generate". NOT for code review.
 ---
 
