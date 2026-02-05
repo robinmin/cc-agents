@@ -66,6 +66,24 @@ Thin wrapper for `rd2:cc-agents` skill. Creates production-ready agent skeletons
 | Task experts      | `yellow`, `orange`  |
 | Quality/Security  | `red`, `crimson`    |
 
+## Frontmatter Validation
+
+**Valid Agent Frontmatter Fields (Official Schema):**
+
+| Field | Required | Options |
+|-------|----------|---------|
+| `name` | Yes | lowercase-hyphens, 3-50 chars |
+| `description` | Yes | Text with `<example>` blocks |
+| `model` | Yes | `inherit`, `sonnet`, `opus`, `haiku` |
+| `color` | Yes | `blue`, `cyan`, `green`, `yellow`, `magenta`, `red` |
+| `tools` | No | Array of tool names |
+
+**DO NOT USE these invalid fields:**
+- `agent:` → Use `name:` instead
+- `subagents:` → Not in schema
+- `orchestrates:` → Not in schema
+- `skills:` → Not in schema for agents
+
 ## Next Steps
 
 1. Edit generated agent - customize persona and competencies
