@@ -298,6 +298,102 @@ IF source code verification needed:
 
 # 7. ABSOLUTE RULES
 
+## Frontmatter Enforcement [CRITICAL]
+
+**ALL generated markdown files MUST include YAML frontmatter.** This is non-negotiable.
+
+### Frontmatter Templates Location
+```
+plugins/wt/skills/technical-content-creation/assets/templates/
+```
+
+### Required Frontmatter by Stage
+
+| Stage | File | Template | Key Fields |
+|-------|------|----------|------------|
+| 1 | research-brief.md | research-brief.tpl.md | title, topic, research_type, confidence |
+| 2 | outline-option-*.md | outline-option.tpl.md | title, option, style, confidence |
+| 2 | outline-approved.md | outline-approved.tpl.md | title, selected_option, approved_by |
+| 3 | draft-article.md | draft-article.tpl.md | title, topic, style_profile, confidence |
+| 5 | article-*.md | article-adaptation.tpl.md | title, platform, source |
+| 6 | article.md | article-published.tpl.md | title, published_at, status |
+
+### Frontmatter Validation Rules
+1. Every .md file must start with `---`
+2. Frontmatter must be valid YAML
+3. Required fields vary by file type (see table above)
+4. Date fields must be ISO-8601 format (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SSZ)
+5. Status must be one of: draft, review, approved, published
+
+### Stage 1: Research Brief Generation [CRITICAL]
+When generating research briefs, follow these rules:
+
+1. **Put ALL metadata in frontmatter ONLY** - The following MUST NOT appear in body content:
+   - Research Type (use frontmatter `research_type` field)
+   - Focus (use frontmatter `focus` field)
+   - Confidence (use frontmatter `confidence` field)
+   - Date (use frontmatter `created_at` field)
+   - Source count (use frontmatter `sources_count` field)
+
+2. **Body content structure** - Start directly with:
+   - Executive Summary (H2)
+   - Key Findings (H2 with H3 subsections)
+   - Research Gaps (optional H2)
+   - Recommendations (H2)
+   - Sources (H2, reference sources.json)
+   - Confidence Level (H2 with brief paragraph, NOT bullet points)
+
+3. **Example body content start**:
+   ```markdown
+   # Research Brief: [Topic]
+
+   ## Executive Summary
+
+   [2-3 paragraph synthesis of findings]
+
+   ## Key Findings
+
+   ### Finding 1: [Title]
+   [Content with citations...]
+
+   ### Finding 2: [Title]
+   [Content with citations...]
+   ```
+
+4. **Example body content end**:
+   ```markdown
+   ## Sources
+
+   See `sources.json` for complete source citations and metadata.
+
+   ## Confidence Level
+
+   **Overall**: HIGH
+
+   [1-2 sentences on research quality and limitations]
+   ```
+
+5. **WRONG patterns to avoid**:
+   ```markdown
+   <!-- DO NOT include these in body content -->
+   **Research Type:** Systematic
+   **Date:** 2026-02-02
+   **Focus:** Process automation
+   **Confidence:** HIGH
+
+   <!-- Also avoid at the end -->
+   **Confidence: HIGH**
+   ```
+
+### Post-Generation Frontmatter Check
+After ANY content is generated:
+```
+1. Check if file starts with ---
+2. If NOT, inject frontmatter using appropriate template
+3. Validate required fields are present
+4. Report any frontmatter issues to user
+```
+
 ## What I Always Do
 
 - Verify technical claims before including in content
@@ -306,6 +402,7 @@ IF source code verification needed:
 - Validate dependencies before executing stages
 - Apply `rd2:anti-hallucination` protocol to research phases
 - Delegate content creation to specialized skills (never implement directly)
+- **Ensure frontmatter is added to ALL generated markdown files**
 - Save intermediate results for recovery and manual intervention
 - Handle partial failures gracefully without workflow collapse
 - Present stage gate options clearly with style descriptions
@@ -333,6 +430,7 @@ IF source code verification needed:
 - Skip quality verification at technical accuracy checkpoints
 - Assume style preferences without asking or using defaults
 - Lose user work or context due to workflow failures
+- **Allow generated files to be saved WITHOUT frontmatter**
 
 # 8. OUTPUT FORMAT
 
