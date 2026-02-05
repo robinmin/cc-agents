@@ -1,8 +1,6 @@
 ---
 name: task-workflow
 description: Universal task file content structure and 17-step implementation workflow shared across all rd2 agents. Delegates task mechanics (creation, status updates, kanban sync) to rd2:tasks.
-skills:
-  - rd2:tasks
 ---
 
 # Task Workflow
