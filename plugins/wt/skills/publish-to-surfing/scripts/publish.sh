@@ -4,7 +4,7 @@
 # Simple wrapper: copy article to Surfing content dir and trigger postsurfing CLI
 # Handles Surfing-specific requirements: image paths, translations, topic-based filenames
 
-set -euo pipefail
+set -eo pipefail  # Note: -u removed to allow unbound variables in optional operations
 
 # Surfing project location
 SURFING_PROJECT="${SURFING_PROJECT:-$HOME/projects/surfing}"
@@ -39,6 +39,8 @@ Options:
     -l, --lang <lang>       Content language: en, cn, jp
     -d, --dry-run           Preview without publishing
     --no-copy              Skip file copy (if already in place)
+    --no-build             Skip build validation in postsurfing CLI
+    --no-commit            Skip git commit/push in postsurfing CLI
     --translations <langs>  Comma-separated list of available languages (e.g., en,zh)
 
 Environment Variables:
@@ -59,6 +61,12 @@ Examples:
     # Dry run to preview
     publish.sh article.md --dry-run
 
+    # Publish without build validation (useful when build takes long)
+    publish.sh article.md --no-build
+
+    # Publish without git operations (commit manually later)
+    publish.sh article.md --no-build --no-commit
+
 For content types and languages, see Surfing project documentation.
 EOF
 }
@@ -67,6 +75,8 @@ EOF
 SOURCE_FILE=""
 DRY_RUN=""
 NO_COPY=""
+NO_BUILD=""
+NO_COMMIT=""
 TRANSLATIONS=""
 
 while [[ $# -gt 0 ]]; do
@@ -75,6 +85,8 @@ while [[ $# -gt 0 ]]; do
         -l|--lang) LANGUAGE="$2"; shift 2 ;;
         -d|--dry-run) DRY_RUN="--dry-run"; shift ;;
         --no-copy) NO_COPY=1; shift ;;
+        --no-build) NO_BUILD=1; shift ;;
+        --no-commit) NO_COMMIT=1; shift ;;
         --translations) TRANSLATIONS="$2"; shift 2 ;;
         -h|--help) usage; exit 0 ;;
         -*)
@@ -118,62 +130,93 @@ fi
 SURFING_LANG="$LANGUAGE"
 
 # Function to extract field from YAML frontmatter
+# Returns: Field value or empty string if field not found (always safe)
 extract_field() {
     local file="$1"
     local field="$2"
-    grep -E "^${field}:" "$file" | head -1 | sed "s/^${field}:[[:space:]]*//" | tr -d '"' | tr -d "'" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+    local result
+    result=$(grep -E "^${field}:" "$file" 2>/dev/null | head -1 | sed "s/^${field}:[[:space:]]*//" | tr -d '"' | tr -d "'" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    echo "${result:-}"
 }
 
 # Function to extract and copy cover image
+# Returns: Image reference to stdout, empty if no processing needed/possible
+# Always exits with 0 for safe use with set -e
 process_cover_image() {
     local source_file="$1"
     local target_dir="$2"
 
-    # Extract cover_image or image field
+    # Extract cover_image or image field (handle missing fields gracefully)
     local cover_path
-    cover_path=$(extract_field "$source_file" "cover_image") || cover_path=$(extract_field "$source_file" "image")
+    cover_path=$(extract_field "$source_file" "cover_image" 2>/dev/null) || cover_path=""
+    if [[ -z "$cover_path" ]]; then
+        cover_path=$(extract_field "$source_file" "image" 2>/dev/null) || cover_path=""
+    fi
 
-    # Skip if no cover image or already using @assets/images/ format
-    if [[ -z "$cover_path" ]] || [[ "$cover_path" == @assets/images/* ]]; then
-        return
+    # Skip if no cover image found
+    if [[ -z "$cover_path" ]]; then
+        return 0
+    fi
+
+    # Skip if already using @assets/images/ format
+    if [[ "$cover_path" == @assets/images/* ]]; then
+        return 0
     fi
 
     # Skip if it's an absolute URL
     if [[ "$cover_path" =~ ^https?:// ]]; then
-        return
+        return 0
     fi
 
     # Handle /images/ prefix - convert to @assets/images/ format
     if [[ "$cover_path" == /images/* ]]; then
-        local filename=$(basename "$cover_path")
+        local filename
+        filename=$(basename "$cover_path")
         echo "@assets/images/$filename"
-        return
+        return 0
     fi
 
     # Handle relative paths like ../4-illustration/cover.webp
     if [[ "$cover_path" == ../* ]] || [[ "$cover_path" == ./* ]]; then
-        local source_dir=$(dirname "$source_file")
+        local source_dir
+        source_dir=$(dirname "$source_file")
         local full_path="$source_dir/$cover_path"
 
-        if [[ -f "$full_path" ]]; then
-            local filename=$(basename "$full_path")
-            local ext="${filename##*.}"
-            local base_name="${filename%.*}"
-
-            # Generate new filename based on article topic
-            local topic=$(extract_field "$source_file" "topic")
-            local safe_topic=$(echo "$topic" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9\n' '-')
-            local new_filename="${safe_topic}-cover.${ext}"
-
-            # Copy to assets/images directory
-            mkdir -p "$target_dir/assets/images"
-            cp "$full_path" "$target_dir/assets/images/$new_filename"
-
-            # Output message to stderr, image ref to stdout
-            >&2 echo "Copied cover image: $full_path -> $target_dir/assets/images/$new_filename"
-            echo "@assets/images/$new_filename"
+        # Validate source file exists before processing
+        if [[ ! -f "$full_path" ]]; then
+            >&2 echo "Warning: Cover image not found: $full_path"
+            return 0
         fi
+
+        local filename
+        filename=$(basename "$full_path")
+        local ext="${filename##*.}"
+        local base_name="${filename%.*}"
+
+        # Generate new filename based on article topic
+        local topic
+        topic=$(extract_field "$source_file" "topic" 2>/dev/null) || topic=""
+        if [[ -z "$topic" ]]; then
+            >&2 echo "Warning: No topic field found, using timestamp for image filename"
+            topic="article-$(date +%s)"
+        fi
+
+        local safe_topic
+        safe_topic=$(echo "$topic" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9\n' '-')
+        local new_filename="${safe_topic}-cover.${ext}"
+
+        # Copy to assets/images directory
+        mkdir -p "$target_dir/assets/images"
+        cp "$full_path" "$target_dir/assets/images/$new_filename"
+
+        # Output message to stderr, image ref to stdout
+        >&2 echo "Copied cover image: $full_path -> $target_dir/assets/images/$new_filename"
+        echo "@assets/images/$new_filename"
+        return 0
     fi
+
+    # Unknown format, return as-is
+    return 0
 }
 
 # Extract topic from frontmatter (use as filename)
@@ -256,16 +299,27 @@ echo "Triggering postsurfing CLI..."
 
 cd "$SURFING_PROJECT" || exit 1
 
-# Build args: required --type, optional --lang and --dry-run
+# Build args: required --type, optional --lang, --dry-run, --no-build, --no-commit
 POSTSURFING_ARGS=("--type" "$CONTENT_TYPE" "--lang" "$SURFING_LANG")
 if [[ -n "$DRY_RUN" ]]; then
     POSTSURFING_ARGS+=("--dry-run")
 fi
+if [[ -n "$NO_BUILD" ]]; then
+    POSTSURFING_ARGS+=("--no-build")
+fi
+if [[ -n "$NO_COMMIT" ]]; then
+    POSTSURFING_ARGS+=("--no-commit")
+fi
 
+# Run postsurfing CLI
+echo "Running postsurfing CLI..."
 if node "$POSTSURFING_CLI" "$TARGET_FILE" "${POSTSURFING_ARGS[@]}"; then
     echo "✓ Publish completed successfully"
     [[ -n "$DRY_RUN" ]] && echo "(dry run - no changes applied)"
+    [[ -n "$NO_BUILD" ]] && echo "Build validation skipped (--no-build)"
+    [[ -n "$NO_COMMIT" ]] && echo "Git operations skipped (--no-commit)"
 else
     echo "✗ Publish failed"
+    echo "Tip: Use --no-build to skip build validation, or --no-commit to skip git operations"
     exit 1
 fi
