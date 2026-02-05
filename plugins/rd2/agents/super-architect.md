@@ -17,19 +17,9 @@ description: |
   <commentary>Architecture-level decisions require analyzing trade-offs and designing the approach before implementation.</commentary>
   </example>
 
-tools: [Read, Write, Edit, Grep, Glob]
-skills:
-  - rd2:backend-architect
-  - rd2:frontend-architect,
-  - rd2:cloud-architect,
-  - rd2:task-workflow
-  - rd2:test-cycle
-  - rd2:tool-selection
-  - rd2:anti-hallucination
-  - rd2:tasks
-  - rd2:cc-agents
 model: inherit
 color: blue
+tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # 1. METADATA
