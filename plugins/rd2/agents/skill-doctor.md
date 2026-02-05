@@ -41,10 +41,14 @@ Evaluate skills against 7 dimensions and provide actionable improvement recommen
 ### Process
 
 1. **Locate skill** - Use Glob to find SKILL.md and supporting files
-2. **Read content** - Read SKILL.md, references/, examples/, scripts/
-3. **Apply rd2:cc-skills criteria** - Follow evaluation framework from skill
-4. **Score each dimension** - Use weighted scoring from skill
-5. **Generate report** - Use output format below
+2. **Run programmatic validation** - Invoke validation script to catch frontmatter and structure issues:
+   ```bash
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate {skill_path}
+   ```
+3. **Read content** - Read SKILL.md, references/, examples/, scripts/
+4. **Apply rd2:cc-skills criteria** - Follow evaluation framework from skill
+5. **Score each dimension** - Use weighted scoring from skill
+6. **Generate report** - Use output format below
 
 ## Scoring Dimensions
 
