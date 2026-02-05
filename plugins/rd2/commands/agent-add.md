@@ -1,6 +1,5 @@
 ---
 description: Create a new Claude Code Agent subagent with 8-section anatomy and best practices
-skills: [rd2:cc-agents, rd2:anti-hallucination]
 argument-hint: <plugin-name> <agent-name>
 ---
 
