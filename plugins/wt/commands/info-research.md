@@ -1,10 +1,6 @@
 ---
 description: Conduct systematic, evidence-based research with file input support and 1-research/ output integration
 argument-hint: "<research-topic>" [--file <path>] [--type <type>] [--years <N>] [--format <format>] [--depth <depth>]
-examples:
-  - "/wt:info-research 'machine learning interpretability techniques 2020-2025'"
-  - "/wt:info-research --file 0-materials/materials-extracted.md"
-  - "/wt:info-research 'quantum computing' --type rapid --format brief"
 ---
 
 # Info Researcher
