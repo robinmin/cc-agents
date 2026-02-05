@@ -25,19 +25,26 @@ Thin wrapper for `rd2:skill-expert` agent. Improves skill quality to Grade A/B.
 
 Delegates to `rd2:skill-expert` for refinement workflow:
 
-1. **Evaluate** - Assess current quality via skill-doctor
-2. **Review** - Identify low-scoring dimensions
-3. **Fix** - Apply targeted improvements:
+1. **Validate** - Run programmatic validation to catch structural issues
+2. **Evaluate** - Assess current quality via skill-doctor
+3. **Review** - Identify low-scoring dimensions
+4. **Fix** - Apply targeted improvements:
+   - Frontmatter → Remove invalid fields (agent:, context:, user-invocable:, skills:, etc.)
    - Content → Add workflows, examples
    - Efficiency → Move details to references/
    - Description → Strengthen trigger phrases
-4. **Re-evaluate** - Continue until Grade A/B
+5. **Re-validate** - Run validation script again to verify fixes
+6. **Re-evaluate** - Continue until Grade A/B
 
 May ask for approval before major changes.
 
 ## Implementation
 
-```
+```bash
+# Step 1: Run programmatic validation to identify issues
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate {skill_folder}
+
+# Step 2: Delegate to skill-expert for refinement
 Task(
     subagent_type="rd2:skill-expert",
     prompt="Refine skill at: {skill_folder}
