@@ -1980,7 +1980,7 @@ EVALUATION_REPORT_TEMPLATE_FALLBACK = """# Skill Quality Evaluation: {{skill_nam
 # VALIDATION
 ###############################################################################
 
-ALLOWED_PROPERTIES = {"name", "description", "license", "allowed-tools", "metadata", "triggers"}
+ALLOWED_PROPERTIES = {"name", "description", "version"}
 
 
 ###############################################################################
