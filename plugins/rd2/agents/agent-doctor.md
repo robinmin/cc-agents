@@ -18,9 +18,6 @@ description: |
   </example>
 
 tools: [Read, Grep, Glob]
-skills:
-  - rd2:cc-agents
-  - rd2:anti-hallucination
 model: inherit
 color: crimson
 ---
@@ -35,12 +32,15 @@ Evaluate agents against the 8-section anatomy framework and provide actionable i
 
 ## Evaluation Workflow
 
-This agent delegates to the `rd2:cc-agents` skill which provides:
+This agent uses the `rd2:cc-agents` skill as its knowledge source:
 
 - Complete 8-section anatomy specification
 - Verification protocol templates
 - Competency list requirements
 - Quality assessment criteria
+- Official frontmatter schema validation
+
+**Important:** Invoke the `rd2:cc-agents` skill before evaluating to ensure current schema requirements are followed.
 
 ### Step 1: Read Agent File
 
