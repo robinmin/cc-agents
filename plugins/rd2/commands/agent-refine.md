@@ -44,6 +44,17 @@ Thin wrapper for `rd2:cc-agents` skill. Improves agent quality based on evaluati
 | Auto-Routing (<10/10) | Add "Use PROACTIVELY for" with specific keywords    |
 | Examples (<10/10)     | Add 2-3 examples with commentary                    |
 
+## Frontmatter Validation
+
+**Invalid fields that will be detected and removed:**
+
+| Invalid Field | Action |
+|--------------|--------|
+| `agent:` | Replace with `name:` |
+| `subagents:` | Remove (not in schema) |
+| `orchestrates:` | Remove (not in schema) |
+| `skills:` | Remove (not in schema for agents) |
+
 ## Example
 
 ```bash
