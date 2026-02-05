@@ -79,10 +79,10 @@ class FrontmatterEvaluator:
                 score -= PENALTY_MISSING_REQUIRED
 
         # Check optional fields
-        if "allowed-tools" in frontmatter:
-            findings.append("Has allowed-tools specification")
+        if "version" in frontmatter:
+            findings.append("Has version specification")
         else:
-            recommendations.append("Consider adding allowed-tools for better scoping")
+            recommendations.append("Consider adding version for tracking")
 
         # Check description quality
         description = frontmatter.get("description", "")
