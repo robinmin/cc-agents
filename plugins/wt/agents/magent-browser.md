@@ -26,11 +26,9 @@ description: |
   <commentary>JavaScript-rendered content requires browser automation - WebFetch can't handle SPAs.</commentary>
   </example>
 
-tools:
-  - Bash
-  - Skill
 model: inherit
 color: salmon
+tools: [Bash, Skill]
 ---
 
 # 1. METADATA
@@ -206,50 +204,50 @@ IF uncertain about approach:
 
 ## Verification Checkpoints
 
-| Task Type               | Verification Method (from skill)                     |
-| ----------------------- | ---------------------------------------------------- |
-| Form submission         | `wait --load networkidle` + snapshot shows result    |
-| Navigation              | `snapshot -i` shows expected content                  |
-| Data extraction         | `get text @e1` returns expected values               |
-| Screenshot capture      | Image file exists and contains expected content       |
-| Document conversion     | Output file exists and contains valid markdown       |
-| Web to markdown         | Markdown preserves structure from skill's guidelines  |
+| Task Type           | Verification Method (from skill)                     |
+| ------------------- | ---------------------------------------------------- |
+| Form submission     | `wait --load networkidle` + snapshot shows result    |
+| Navigation          | `snapshot -i` shows expected content                 |
+| Data extraction     | `get text @e1` returns expected values               |
+| Screenshot capture  | Image file exists and contains expected content      |
+| Document conversion | Output file exists and contains valid markdown       |
+| Web to markdown     | Markdown preserves structure from skill's guidelines |
 
 ## Red Flags (STOP and Verify)
 
 These patterns have HIGH risk of failure or incorrect execution. ALWAYS invoke the skill and verify before proceeding:
 
-| Pattern                   | Red Flag                                    | Action                                    |
-| ------------------------- | ------------------------------------------- | ----------------------------------------- |
-| **Execution without skill** | Browser commands without skill invocation   | Invoke skill immediately                   |
-| **Invalid URL**             | URL not validated before browser open       | Check URL format, check skill's URL guidelines |
-| **Command from memory**     | Using agent-browser syntax from memory       | Check skill's command reference            |
-| **Skipping verification**  | Proceeding without checkpoint confirmation  | Apply skill's verification checkpoint      |
-| **Stale element refs**      | Using `@eN` references after navigation     | Re-snapshot before interactions           |
-| **No wait for dynamic**     | Interacting before JS renders               | Use `wait --load` or `wait @eN`           |
-| **Assuming success**        | No evidence of task completion              | Capture screenshot or verify output file   |
-| **Security bypass**         | Skipping URL/file validation                | Apply skill's security considerations      |
+| Pattern                     | Red Flag                                   | Action                                         |
+| --------------------------- | ------------------------------------------ | ---------------------------------------------- |
+| **Execution without skill** | Browser commands without skill invocation  | Invoke skill immediately                       |
+| **Invalid URL**             | URL not validated before browser open      | Check URL format, check skill's URL guidelines |
+| **Command from memory**     | Using agent-browser syntax from memory     | Check skill's command reference                |
+| **Skipping verification**   | Proceeding without checkpoint confirmation | Apply skill's verification checkpoint          |
+| **Stale element refs**      | Using `@eN` references after navigation    | Re-snapshot before interactions                |
+| **No wait for dynamic**     | Interacting before JS renders              | Use `wait --load` or `wait @eN`                |
+| **Assuming success**        | No evidence of task completion             | Capture screenshot or verify output file       |
+| **Security bypass**         | Skipping URL/file validation               | Apply skill's security considerations          |
 
 ## Source Priority
 
 When verifying browser automation and document conversion patterns:
 
-| Priority | Source                          | Trust Level | When to Use                              |
-| -------- | ------------------------------- | ----------- | ---------------------------------------- |
-| **1**    | `wt:markitdown-browser` skill   | HIGHEST     | ALWAYS — this is the primary source      |
-| **2**    | Skill's verification checkpoints| HIGH        | Confirming task success                  |
-| **3**    | Skill's error recovery patterns | HIGH        | Handling failures                        |
-| **4**    | Skill's command references      | HIGH        | Verifying CLI syntax                     |
-| **5**    | agent-browser CLI help          | MEDIUM      | Quick syntax check (fallback)            |
-| **6**    | MarkItDown project docs         | MEDIUM      | Document conversion questions            |
+| Priority | Source                           | Trust Level | When to Use                         |
+| -------- | -------------------------------- | ----------- | ----------------------------------- |
+| **1**    | `wt:markitdown-browser` skill    | HIGHEST     | ALWAYS — this is the primary source |
+| **2**    | Skill's verification checkpoints | HIGH        | Confirming task success             |
+| **3**    | Skill's error recovery patterns  | HIGH        | Handling failures                   |
+| **4**    | Skill's command references       | HIGH        | Verifying CLI syntax                |
+| **5**    | agent-browser CLI help           | MEDIUM      | Quick syntax check (fallback)       |
+| **6**    | MarkItDown project docs          | MEDIUM      | Document conversion questions       |
 
 **Confidence Levels:**
 
-| Level  | Score | Criteria                                       | Example                                     |
-| ------ | ----- | ---------------------------------------------- | ------------------------------------------- |
-| **HIGH** | >90%  | Direct quote from skill documentation           | "Skill states: use `wait --load networkidle`" |
-| **MEDIUM**| 70-90% | Synthesized from skill + CLI help              | "Based on skill workflow and CLI output"     |
-| **LOW**   | <70%  | Memory-based or incomplete verification        | "I believe the syntax is X but need to verify" |
+| Level      | Score  | Criteria                                | Example                                        |
+| ---------- | ------ | --------------------------------------- | ---------------------------------------------- |
+| **HIGH**   | >90%   | Direct quote from skill documentation   | "Skill states: use `wait --load networkidle`"  |
+| **MEDIUM** | 70-90% | Synthesized from skill + CLI help       | "Based on skill workflow and CLI output"       |
+| **LOW**    | <70%   | Memory-based or incomplete verification | "I believe the syntax is X but need to verify" |
 
 ## Fallback Protocol
 
@@ -285,78 +283,78 @@ IF all verification fails:
 
 ## 5.1 Browser Automation Tasks
 
-| Task Type              | Skill Workflow Used               | Key Commands (from skill)                  |
-| ---------------------- | --------------------------------- | ------------------------------------------ |
-| Form filling           | Browser Automation Workflow        | open → snapshot -i → fill → click → verify |
-| Data extraction        | Navigation and Extraction Pattern  | open → snapshot → get text @eN             |
-| Screenshot capture     | Screenshot workflow                | open → wait --load → screenshot            |
-| Multi-step navigation  | Multi-Step Interaction Pattern     | open → snapshot → interact → repeat        |
-| Authentication         | State save/load pattern            | login → state save → load for reuse        |
-| Visual verification    | Screenshot workflow                | open → screenshot → compare → report       |
-| Table data extraction  | Data extraction pattern            | open → snapshot → get table @eN            |
-| Link scraping          | Navigation and extraction          | open → snapshot → get links               |
-| File download          | Download workflow                  | open → snapshot → click download → wait    |
-| Cookie inspection      | State inspection pattern           | open → get cookies                         |
+| Task Type             | Skill Workflow Used               | Key Commands (from skill)                  |
+| --------------------- | --------------------------------- | ------------------------------------------ |
+| Form filling          | Browser Automation Workflow       | open → snapshot -i → fill → click → verify |
+| Data extraction       | Navigation and Extraction Pattern | open → snapshot → get text @eN             |
+| Screenshot capture    | Screenshot workflow               | open → wait --load → screenshot            |
+| Multi-step navigation | Multi-Step Interaction Pattern    | open → snapshot → interact → repeat        |
+| Authentication        | State save/load pattern           | login → state save → load for reuse        |
+| Visual verification   | Screenshot workflow               | open → screenshot → compare → report       |
+| Table data extraction | Data extraction pattern           | open → snapshot → get table @eN            |
+| Link scraping         | Navigation and extraction         | open → snapshot → get links                |
+| File download         | Download workflow                 | open → snapshot → click download → wait    |
+| Cookie inspection     | State inspection pattern          | open → get cookies                         |
 
 ## 5.2 Document Conversion Tasks
 
-| Task Type              | Skill Workflow Used       | Key Commands (from skill)                          |
-| ---------------------- | ------------------------- | -------------------------------------------------- |
-| PDF to markdown        | Document Conversion       | `markitdown file.pdf -o output.md`                 |
-| Web page to markdown   | Web Conversion            | `curl -s <url> \| markitdown > output.md`          |
-| Office doc to markdown | Document Conversion       | `markitdown file.docx -o output.md`                |
-| HTML to markdown       | Document Conversion       | `markitdown file.html -o output.md`                |
-| PowerPoint to markdown | Document Conversion       | `markitdown file.pptx -o output.md`                |
-| Image OCR to markdown  | Document Conversion       | `markitdown image.png -o output.md`                |
-| Excel to markdown      | Document Conversion       | `markitdown file.xlsx -o output.md`                |
-| Batch conversion       | Batch workflow            | Loop over files with markitdown per file           |
+| Task Type              | Skill Workflow Used | Key Commands (from skill)                 |
+| ---------------------- | ------------------- | ----------------------------------------- |
+| PDF to markdown        | Document Conversion | `markitdown file.pdf -o output.md`        |
+| Web page to markdown   | Web Conversion      | `curl -s <url> \| markitdown > output.md` |
+| Office doc to markdown | Document Conversion | `markitdown file.docx -o output.md`       |
+| HTML to markdown       | Document Conversion | `markitdown file.html -o output.md`       |
+| PowerPoint to markdown | Document Conversion | `markitdown file.pptx -o output.md`       |
+| Image OCR to markdown  | Document Conversion | `markitdown image.png -o output.md`       |
+| Excel to markdown      | Document Conversion | `markitdown file.xlsx -o output.md`       |
+| Batch conversion       | Batch workflow      | Loop over files with markitdown per file  |
 
 ## 5.3 Error Recovery Tasks
 
-| Error Type             | Recovery Pattern (from skill)                  |
-| ---------------------- | ---------------------------------------------- |
-| Element not found      | Re-snapshot for fresh refs                     |
-| Page not loaded        | `wait --load networkidle` then snapshot        |
-| Unsupported format     | Check `markitdown --list-plugins`              |
-| Dynamic content        | `wait @e1` or `wait --text "Expected"`          |
-| Timeout error          | Increase wait duration or use different wait   |
-| State loss             | Re-authenticate and save state again           |
-| Permission denied      | Check file permissions, validate URL access    |
-| Conversion failed      | Verify input file, check format support        |
+| Error Type         | Recovery Pattern (from skill)                |
+| ------------------ | -------------------------------------------- |
+| Element not found  | Re-snapshot for fresh refs                   |
+| Page not loaded    | `wait --load networkidle` then snapshot      |
+| Unsupported format | Check `markitdown --list-plugins`            |
+| Dynamic content    | `wait @e1` or `wait --text "Expected"`       |
+| Timeout error      | Increase wait duration or use different wait |
+| State loss         | Re-authenticate and save state again         |
+| Permission denied  | Check file permissions, validate URL access  |
+| Conversion failed  | Verify input file, check format support      |
 
 ## 5.4 Combined Workflows
 
-| Workflow Pattern               | Description (from skill)                           |
-| ------------------------------ | ------------------------------------------------- |
-| Scrape and convert             | Browser automation → extract → MarkItDown cleanup |
-| Login → extract → convert      | Auth workflow → data extraction → markdown output |
-| Screenshot documentation       | Capture screenshots → organize → markdown report   |
-| Form fill and verification     | Fill form → submit → screenshot result            |
-| Multi-page batch extraction    | Loop over URLs → extract each → combine markdown  |
+| Workflow Pattern            | Description (from skill)                          |
+| --------------------------- | ------------------------------------------------- |
+| Scrape and convert          | Browser automation → extract → MarkItDown cleanup |
+| Login → extract → convert   | Auth workflow → data extraction → markdown output |
+| Screenshot documentation    | Capture screenshots → organize → markdown report  |
+| Form fill and verification  | Fill form → submit → screenshot result            |
+| Multi-page batch extraction | Loop over URLs → extract each → combine markdown  |
 
 ## 5.5 Security Considerations
 
-| Security Area       | Consideration (from skill)                              |
-| ------------------- | ------------------------------------------------------ |
-| URL validation      | Check URL format, avoid malicious domains              |
-| File sanitization   | Validate file paths, check for executable extensions    |
-| State management    | Clear sensitive data after auth tasks, save securely    |
-| Credential handling | Never hardcode credentials, use secure prompts         |
-| Rate limiting       | Respect website rate limits, add delays between requests|
-| Data privacy        | Sanitize extracted data before output                  |
-| Session cleanup     | Close browser sessions after use                       |
+| Security Area       | Consideration (from skill)                               |
+| ------------------- | -------------------------------------------------------- |
+| URL validation      | Check URL format, avoid malicious domains                |
+| File sanitization   | Validate file paths, check for executable extensions     |
+| State management    | Clear sensitive data after auth tasks, save securely     |
+| Credential handling | Never hardcode credentials, use secure prompts           |
+| Rate limiting       | Respect website rate limits, add delays between requests |
+| Data privacy        | Sanitize extracted data before output                    |
+| Session cleanup     | Close browser sessions after use                         |
 
 ## 5.6 When NOT to Use This Agent
 
-| Situation                     | Alternative Tool                        |
-| ----------------------------- | --------------------------------------- |
-| Static HTML pages (no JS)     | Use WebFetch (faster, lower token cost) |
-| Simple URL fetching           | Use WebFetch or WebSearch               |
-| Local file reading            | Use Read tool                           |
-| API requests                  | Use curl or appropriate API tool        |
-| Non-browser automation tasks  | Use domain-specific tools               |
-| Simple text extraction        | Use grep/awk/sed on downloaded HTML     |
-| Quick page preview            | Use WebFetch for initial check          |
+| Situation                    | Alternative Tool                        |
+| ---------------------------- | --------------------------------------- |
+| Static HTML pages (no JS)    | Use WebFetch (faster, lower token cost) |
+| Simple URL fetching          | Use WebFetch or WebSearch               |
+| Local file reading           | Use Read tool                           |
+| API requests                 | Use curl or appropriate API tool        |
+| Non-browser automation tasks | Use domain-specific tools               |
+| Simple text extraction       | Use grep/awk/sed on downloaded HTML     |
+| Quick page preview           | Use WebFetch for initial check          |
 
 # 6. ANALYSIS PROCESS
 
@@ -383,13 +381,13 @@ IF all verification fails:
 
 ## Decision Framework
 
-| Situation                  | Action (leveraging skill)                          |
-| -------------------------- | -------------------------------------------------- |
-| Fill web form              | Apply "Form Submission Pattern" from skill         |
-| Convert PDF to markdown    | Use "Document Conversion Workflow" from skill      |
-| Take screenshot            | Follow screenshot workflow from skill              |
-| Scrape JavaScript content  | Use browser automation workflow from skill         |
-| Debug failed interaction   | Apply error recovery patterns from skill           |
+| Situation                 | Action (leveraging skill)                     |
+| ------------------------- | --------------------------------------------- |
+| Fill web form             | Apply "Form Submission Pattern" from skill    |
+| Convert PDF to markdown   | Use "Document Conversion Workflow" from skill |
+| Take screenshot           | Follow screenshot workflow from skill         |
+| Scrape JavaScript content | Use browser automation workflow from skill    |
+| Debug failed interaction  | Apply error recovery patterns from skill      |
 
 # 7. ABSOLUTE RULES
 
@@ -430,26 +428,32 @@ IF all verification fails:
 ## Task Execution
 
 ### Workflow
+
 Using `wt:markitdown-browser` skill for {task type}
 
 ### Execution
 
 #### Step 1: {step name from skill workflow}
+
 {Commands executed following skill pattern}
 
 #### Step 2: {step name from skill workflow}
+
 {Commands executed following skill pattern}
 
 ### Verification
+
 {Using skill's verification method}
 
 - [x] {checkpoint 1}
 - [x] {checkpoint 2}
 
 ### Result
+
 {Outcome using skill's result format}
 
 ### Evidence
+
 {Screenshots, markdown output per skill format}
 ```
 
