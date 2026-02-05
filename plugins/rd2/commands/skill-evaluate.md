@@ -32,7 +32,11 @@ Delegates to `rd2:skill-doctor` for comprehensive evaluation:
 
 ## Implementation
 
-```
+```bash
+# Step 1: Run programmatic validation to catch structural issues
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate {skill_folder}
+
+# Step 2: Delegate to skill-doctor for qualitative assessment
 Task(
     subagent_type="rd2:skill-doctor",
     prompt="Evaluate skill quality for: {skill_folder}
