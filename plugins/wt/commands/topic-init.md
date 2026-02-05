@@ -1,22 +1,8 @@
 ---
 description: Initialize new topic folder with all stage folders and templates
-subagents: []
 model: sonnet
 argument-hint: <topic-name> [--collection <name>] [--force]
 allowed-tools: [Read, Write, Edit]
-arguments:
-  collection:
-    description: Collection name to create topic in (default: current folder name)
-    required: false
-    type: string
-  force:
-    description: Overwrite existing folders (dangerous)
-    required: false
-    type: boolean
-  template:
-    description: Template to use - default, minimal, comprehensive
-    required: false
-    type: string
 ---
 
 # Topic Init
