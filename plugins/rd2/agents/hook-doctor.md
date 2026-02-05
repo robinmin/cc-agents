@@ -17,12 +17,9 @@ description: |
   <commentary>Improvement requires identifying specific gaps with actionable feedback.</commentary>
   </example>
 
-tools: [Read, Grep, Glob]
-skills:
-  - rd2:cc-hooks
-  - rd2:anti-hallucination
 model: inherit
 color: coral
+tools: [Read, Grep, Glob]
 ---
 
 # Hook Doctor
