@@ -31,19 +31,9 @@ description: |
   <commentary>High-level architecture decisions require frontend-architect skill for rendering strategy, microfrontends, and system design.</commentary>
   </example>
 
-tools: [Read, Write, Edit, Grep, Glob]
-skills:
-  - rd2:ui-ux-design
-  - rd2:frontend-design
-  - rd2:frontend-architect
-  - rd2:task-workflow
-  - rd2:test-cycle
-  - rd2:anti-hallucination
-  - rd2:tasks
-  - rd2:cc-agents
 model: inherit
 color: pink
-version: 1.2.0
+tools: [Read, Write, Edit, Grep, Glob]
 ---
 
 # 1. METADATA
