@@ -1,7 +1,5 @@
 ---
 description: Single task implementation via super-coder
-skills:
-  - rd2:tasks
 argument-hint: <task> [--tool auto|gemini|claude|auggie|opencode] [--no-tdd]
 ---
 
