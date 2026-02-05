@@ -1,7 +1,5 @@
 ---
 description: Task refinement via quality check and user interaction
-skills:
-  - rd2:tasks
 argument-hint: <task> [--force]
 ---
 
