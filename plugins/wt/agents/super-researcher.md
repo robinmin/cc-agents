@@ -31,16 +31,16 @@ description: |
   </example>
 
 tools:
-  [
-    Read,
-    Write,
-    Edit,
-    Grep,
-    Glob,
-    WebSearch,
-    WebFetch,
-    mcp__huggingface__paper_search,
-  ]
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - WebSearch
+  - WebFetch
+  - mcp__huggingface__paper_search
+  - Skill
+  - Bash
 model: inherit
 color: magenta
 ---
