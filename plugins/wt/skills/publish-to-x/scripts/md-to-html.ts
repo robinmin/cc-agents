@@ -7,6 +7,19 @@ import path from 'node:path';
 import process from 'node:process';
 import { createHash } from 'node:crypto';
 
+import { convertTablesAndCodeBlocks, type ConverterOptions } from '../../../scripts/web-automation/dist/table-code-converter.js';
+
+// Extend the options to include table/code conversion options
+interface ParseMarkdownOptions {
+  coverImage?: string;
+  title?: string;
+  tempDir?: string;
+  // Table and code block conversion options
+  convertTables?: boolean;
+  formatCodeBlocks?: boolean;
+  converterOptions?: Omit<ConverterOptions, 'cdp' | 'sessionId'>;
+}
+
 interface ImageInfo {
   placeholder: string;
   localPath: string;
@@ -116,7 +129,8 @@ function escapeHtml(text: string): string {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function convertMarkdownToHtml(markdown: string, imageCallback: (src: string, alt: string) => string): { html: string; totalBlocks: number } {
@@ -128,12 +142,55 @@ function convertMarkdownToHtml(markdown: string, imageCallback: (src: string, al
   let listItems: string[] = [];
   let listType: 'ul' | 'ol' = 'ul';
 
+  // Table parsing state
+  let inTable = false;
+  let tableRows: string[][] = [];
+  let tableHeaders: string[] | null = null;
+
   const flushList = () => {
     if (listItems.length > 0) {
       const tag = listType === 'ol' ? 'ol' : 'ul';
       blocks.push(`<${tag}>${listItems.map((item) => `<li>${item}</li>`).join('')}</${tag}>`);
       listItems = [];
       inList = false;
+    }
+  };
+
+  const flushTable = () => {
+    if (tableRows.length > 0) {
+      const headers = tableHeaders || tableRows[0] || [];
+      let html = '<table>';
+
+      // Header row
+      html += '<thead><tr>';
+      for (const cell of headers) {
+        html += `<th>${processInline(cell || '')}</th>`;
+      }
+      html += '</tr></thead>';
+
+      // Body rows (skip separator row if exists)
+      html += '<tbody>';
+      let isSeparator = false;
+      for (let i = 1; i < tableRows.length; i++) {
+        const row = tableRows[i]!;
+        // Check if this is a separator row (contains only -, |, spaces)
+        if (row.every((cell, idx) => idx === 0 || cell === '' || /^[-:|]+$/.test(cell))) {
+          isSeparator = true;
+          continue;
+        }
+
+        html += '<tr>';
+        for (const cell of row) {
+          html += `<td>${processInline(cell || '')}</td>`;
+        }
+        html += '</tr>';
+      }
+      html += '</tbody></table>';
+
+      blocks.push(html);
+      tableRows = [];
+      tableHeaders = null;
+      inTable = false;
     }
   };
 
@@ -168,6 +225,7 @@ function convertMarkdownToHtml(markdown: string, imageCallback: (src: string, al
         inCodeBlock = false;
       } else {
         flushList();
+        flushTable();
         inCodeBlock = true;
       }
       continue;
@@ -178,14 +236,67 @@ function convertMarkdownToHtml(markdown: string, imageCallback: (src: string, al
       continue;
     }
 
+    // Table detection (markdown table syntax)
+    if (line.includes('|') && line.trim().startsWith('|')) {
+      flushList();
+
+      // Parse table row
+      const cells: string[] = [];
+      let start = 0;
+      let inCell = false;
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j]!;
+        if (char === '|') {
+          if (inCell) {
+            cells.push(line.slice(start, j).trim());
+          }
+          start = j + 1;
+          inCell = true;
+        }
+      }
+      // Last cell
+      if (inCell && start <= line.length) {
+        cells.push(line.slice(start).trim());
+      }
+
+      // Check if this is a separator row (only contains -, |, :, spaces)
+      const isSeparator = cells.every((cell) => /^[-:|\s]*$/.test(cell));
+
+      if (!inTable) {
+        inTable = true;
+        tableRows = [];
+        tableHeaders = null;
+      }
+
+      if (!isSeparator) {
+        tableRows.push(cells);
+        // First non-separator row becomes headers if we only have one row so far
+        if (tableRows.length === 1) {
+          tableHeaders = cells;
+        }
+      }
+
+      // Check if next line is also a table, if not, close the table
+      const nextLine = lines[i + 1];
+      if (!nextLine || (!nextLine.includes('|') || !nextLine.trim().startsWith('|'))) {
+        flushTable();
+      }
+      continue;
+    }
+
+    if (inTable) {
+      flushTable();
+    }
+
     // Empty line
     if (line.trim() === '') {
       flushList();
       continue;
     }
 
-    // Image
-    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/);
+    // Image - Handle standard markdown and extended format with title/dimensions
+    // Formats: ![alt](url) ![alt](url "title") ![alt](url width=100 height=200)
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+?)(?:\s*"(?:[^"]*)")?(?:\s+width=\d+\s+height=\d+)?\)\s*$/);
     if (imgMatch) {
       flushList();
       const placeholder = imageCallback(imgMatch[2]!, imgMatch[1]!);
@@ -256,13 +367,37 @@ function convertMarkdownToHtml(markdown: string, imageCallback: (src: string, al
 
 export async function parseMarkdown(
   markdownPath: string,
-  options?: { coverImage?: string; title?: string; tempDir?: string },
+  options?: ParseMarkdownOptions,
 ): Promise<ParsedMarkdown> {
-  const content = fs.readFileSync(markdownPath, 'utf-8');
+  let content = fs.readFileSync(markdownPath, 'utf-8');
   const baseDir = path.dirname(markdownPath);
   const tempDir = options?.tempDir ?? path.join(os.tmpdir(), 'x-article-images');
 
   await mkdir(tempDir, { recursive: true });
+
+  // Convert tables and code blocks if enabled
+  if (options?.convertTables || options?.formatCodeBlocks) {
+    console.log('[md-to-html] Converting tables and code blocks...');
+    const converted = await convertTablesAndCodeBlocks(content, {
+      outputDir: tempDir,
+      renderTables: options.convertTables ?? true,
+      formatCodeBlocks: options.formatCodeBlocks ?? true,
+      verbose: options.converterOptions?.verbose ?? false,
+      // Note: CDP-based table rendering requires CDP connection,
+      // which will be handled by x-article.ts
+      cdp: undefined as any,
+      sessionId: undefined,
+    });
+
+    content = converted.markdown;
+
+    if (converted.tables.length > 0) {
+      console.log(`[md-to-html] Converted ${converted.tables.length} table(s) to image(s)`);
+    }
+    if (converted.codeBlocks.length > 0) {
+      console.log(`[md-to-html] Formatted ${converted.codeBlocks.length} code block(s)`);
+    }
+  }
 
   const { frontmatter, body } = parseFrontmatter(content);
 
@@ -432,7 +567,10 @@ async function main(): Promise<void> {
   }
 }
 
-await main().catch((err) => {
-  console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+// Only run main if this is the entry point
+if (import.meta.url === `file://${process.argv[1]}`) {
+  await main().catch((err) => {
+    console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  });
+}
