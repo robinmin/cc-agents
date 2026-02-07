@@ -3,20 +3,30 @@ import fs from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+
+// CDP utilities from web-automation
 import {
   CHROME_CANDIDATES_FULL,
   CdpConnection,
   findChromeExecutable,
+  waitForChromeDebugPort,
+} from '../../../scripts/web-automation/dist/browser.js';
+
+// Shared utilities from playwright
+import {
+  getFreePort,
+  pwSleep as sleep,
+} from '../../../scripts/web-automation/dist/playwright.js';
+
+// X-specific utilities from x-utils
+import {
   getDefaultProfileDir,
   getAutoSubmitPreference,
-  getFreePort,
-  sleep,
-  waitForChromeDebugPort,
 } from './x-utils.js';
 
-const X_COMPOSE_URL = 'https://x.com/compose/post';
+export const X_COMPOSE_URL = 'https://x.com/compose/post';
 
-interface XVideoOptions {
+export interface XVideoOptions {
   text?: string;
   videoPath: string;
   submit?: boolean;
@@ -184,9 +194,11 @@ export async function postVideoToX(options: XVideoOptions): Promise<void> {
     }
   } finally {
     if (cdp) {
-      cdp.close();
+      await cdp.close();
     }
-    // Don't kill Chrome in preview mode, let user review
+    // Cleanup Chrome in both submit and preview modes
+    // Preview mode: graceful cleanup with SIGTERM
+    // Submit mode: aggressive cleanup with SIGKILL after timeout
     if (submit) {
       setTimeout(() => {
         if (!chrome.killed) try { chrome.kill('SIGKILL'); } catch (error) {
@@ -196,6 +208,13 @@ export async function postVideoToX(options: XVideoOptions): Promise<void> {
       try { chrome.kill('SIGTERM'); } catch (error) {
         console.debug('[x-video] SIGTERM error:', error);
       }
+    } else {
+      // Preview mode: graceful cleanup
+      setTimeout(() => {
+        if (!chrome.killed) try { chrome.kill('SIGTERM'); } catch (error) {
+          console.debug('[x-video] Preview cleanup SIGTERM error:', error);
+        }
+      }, 500).unref?.();
     }
   }
 }
@@ -262,7 +281,11 @@ async function main(): Promise<void> {
   await postVideoToX({ text, videoPath, submit, profileDir });
 }
 
-await main().catch((err) => {
-  console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+// Only run main() when this file is executed directly, not when imported
+const isMain = process.argv[1]?.includes('x-video.ts');
+if (isMain) {
+  await main().catch((err) => {
+    console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  });
+}
