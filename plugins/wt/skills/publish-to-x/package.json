@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Tests for publish-to-x skill",
   "type": "module",
+  "dependencies": {
+    "playwright": "^1.50.0"
+  },
   "scripts": {
     "test": "bun test tests/**/*.test.ts",
     "test:watch": "bun test --watch tests/**/*.test.ts"
