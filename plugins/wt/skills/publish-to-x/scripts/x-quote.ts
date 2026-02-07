@@ -1,18 +1,28 @@
 import { spawn } from 'node:child_process';
 import { mkdir } from 'node:fs/promises';
 import process from 'node:process';
+
+// CDP utilities from web-automation
 import {
   CHROME_CANDIDATES_FULL,
   CdpConnection,
   findChromeExecutable,
+  waitForChromeDebugPort,
+} from '../../../scripts/web-automation/dist/browser.js';
+
+// Shared utilities from playwright
+import {
+  getFreePort,
+  pwSleep as sleep,
+} from '../../../scripts/web-automation/dist/playwright.js';
+
+// X-specific utilities from x-utils
+import {
   getDefaultProfileDir,
   getAutoSubmitPreference,
-  getFreePort,
-  sleep,
-  waitForChromeDebugPort,
 } from './x-utils.js';
 
-function extractTweetUrl(urlOrId: string): string | null {
+export function extractTweetUrl(urlOrId: string): string | null {
   // If it's already a full URL, normalize it
   if (urlOrId.match(/(?:x\.com|twitter\.com)\/\w+\/status\/\d+/)) {
     return urlOrId.replace(/twitter\.com/, 'x.com').split('?')[0];
@@ -20,7 +30,7 @@ function extractTweetUrl(urlOrId: string): string | null {
   return null;
 }
 
-interface QuoteOptions {
+export interface QuoteOptions {
   tweetUrl: string;
   comment?: string;
   submit?: boolean;
@@ -91,8 +101,8 @@ export async function quotePost(options: QuoteOptions): Promise<void> {
     if (!retweetFound) {
       console.log('[x-quote] Tweet not found or not logged in. Please log in to X in the browser window.');
       console.log('[x-quote] Waiting for login...');
-      const loggedIn = await waitForRetweetButton();
-      if (!loggedIn) throw new Error('Timed out waiting for tweet. Please log in first or check the tweet URL.');
+      const retweetButtonVisible = await waitForRetweetButton();
+      if (!retweetButtonVisible) throw new Error('Timed out waiting for tweet. Please log in first or check the tweet URL.');
     }
 
     // Click the retweet button
@@ -108,7 +118,7 @@ export async function quotePost(options: QuoteOptions): Promise<void> {
       const start = Date.now();
       while (Date.now() - start < 10_000) {
         const result = await cdp!.send<{ result: { value: boolean } }>('Runtime.evaluate', {
-          expression: `!!document.querySelector('[data-testid="Dropdown"] [role="menuitem"]:nth-child(2)')`,
+          expression: `!!document.querySelector('[data-testid="Dropdown"] [role="menuitem"]')?.textContent?.includes('Quote')`,
           returnByValue: true,
         }, { sessionId });
         if (result.result.value) return true;
@@ -122,9 +132,9 @@ export async function quotePost(options: QuoteOptions): Promise<void> {
       throw new Error('Quote option not found. The menu may not have opened.');
     }
 
-    // Click the quote option (second menu item)
+    // Click the quote option (by text content)
     await cdp.send('Runtime.evaluate', {
-      expression: `document.querySelector('[data-testid="Dropdown"] [role="menuitem"]:nth-child(2)')?.click()`,
+      expression: `document.querySelector('[data-testid="Dropdown"] [role="menuitem"]')?.click()`,
     }, { sessionId });
     await sleep(2000);
 
@@ -251,7 +261,11 @@ async function main(): Promise<void> {
   await quotePost({ tweetUrl, comment, submit, profileDir });
 }
 
-await main().catch((err) => {
-  console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+// Only run main() when this file is executed directly, not when imported
+const isMain = process.argv[1]?.includes('x-quote.ts');
+if (isMain) {
+  await main().catch((err) => {
+    console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  });
+}
