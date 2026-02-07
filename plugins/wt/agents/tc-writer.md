@@ -31,7 +31,7 @@ description: |
   <commentary>User explicitly requests workflow modification (skip stages, no gates). Agent should adapt workflow execution accordingly while maintaining orchestration quality.</commentary>
   </example>
 
-tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch]
+tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, Skill, Bash]
 model: sonnet
 color: amber
 ---
