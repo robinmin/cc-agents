@@ -33,7 +33,7 @@ description: |
 
 model: sonnet
 color: cyan
-tools: [Read, Write, Edit, Grep, Glob, AskUserQuestion]
+tools: [Read, Write, Edit, Grep, Glob, AskUserQuestion, Skill, Bash]
 ---
 
 # 1. METADATA
@@ -376,7 +376,19 @@ These situations have HIGH hallucination risk during platform verification:
 
 1. **For each platform in sequence**:
    a. Adapt content for platform requirements
-   b. Invoke platform-specific `wt:publish-to-*` skill
+   b. Invoke platform-specific `wt:publish-to-*` skill using `Skill` tool:
+      ```
+      Skill(
+        skill="wt:publish-to-{platform}",
+        args="--content {file_path} --submit"
+      )
+      ```
+      OR execute bash script directly:
+      ```
+      Bash(
+        command="bun {script_path} {file_path} --submit"
+      )
+      ```
    c. Capture result (success URL or error message)
    d. Save checkpoint to enable selective retry
    e. Continue to next platform regardless of current result
