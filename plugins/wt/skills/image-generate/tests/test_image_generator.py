@@ -521,10 +521,10 @@ class TestImageGenerator:
 
     def test_backend_priorities(self):
         """Test backend priority order."""
-        # Note: nano_banana is excluded from auto-selection (requires MCP tool invocation)
         assert ImageGenerator.BACKEND_PRIORITIES == [
             "huggingface",
-            "gemini"
+            "gemini",
+            "nano_banana"
         ]
 
     def test_get_available_backends(self, monkeypatch):

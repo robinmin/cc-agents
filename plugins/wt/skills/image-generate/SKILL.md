@@ -21,15 +21,7 @@ Generate AI images from text prompts with configurable styles and resolutions. T
 - **Pre-defined Styles**: Common image style options for consistency
 - **Hybrid Approach**: MCP huggingface (primary) + rd2:super-coder (fallback)
 
-## When to Use
-
-Activate this skill when:
-
-- Generating images from text descriptions
-- Creating visuals for articles, blog posts, or documentation
-- Generating cover images with specific aspect ratios
-- Creating illustrations for technical content
-- Needing consistent visual style across multiple images
+**When to use:** Generate standalone images from text prompts with style and resolution control. Use as the foundation when to use image generation in any workflow.
 
 **Not for:**
 
@@ -91,127 +83,59 @@ wt:image-generate --template illustrator \
 
 ## Configuration
 
-The wt plugin supports centralized configuration via `~/.claude/wt/config.jsonc`.
-
-### Setting Up Configuration
-
-1. **Copy the example config:**
-```bash
-mkdir -p ~/.claude/wt
-cp plugins/wt/skills/technical-content-creation/assets/config.example.jsonc ~/.claude/wt/config.jsonc
-```
-
-2. **Edit your config:**
-```bash
-# Edit with your preferred editor
-nano ~/.claude/wt/config.jsonc
-```
-
-3. **Add your API keys:**
-```jsonc
-{
-  "env": {
-    "HUGGINGFACE_API_TOKEN": "hf_xxxx...",
-    "GEMINI_API_KEY": "AIzaSy..."
-  },
-  "image_generation": {
-    "backend": "nano_banana",
-    "default_resolution": "1024x1024",
-    "default_steps": 8
-  }
-}
-```
-
-### Configuration Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `env.HUGGINGFACE_API_TOKEN` | HuggingFace API token | (required for huggingface backend) |
-| `env.GEMINI_API_KEY` | Google Gemini API key | (required for gemini backend) |
-| `image_generation.backend` | Preferred backend | `nano_banana` |
-| `image_generation.default_resolution` | Default resolution | `1024x1024` |
-| `image_generation.default_steps` | Default inference steps | `8` (Z-Image Turbo) |
-
-### Available Backends
-
-| Backend | Description | Quality | Speed |
-|---------|-------------|---------|-------|
-| `nano_banana` | Z-Image Turbo via MCP | ⭐⭐⭐⭐⭐ | Fast (4-8 steps) |
-| `huggingface` | Stable Diffusion XL | ⭐⭐⭐⭐ | Medium (20-50 steps) |
-| `gemini` | Google Imagen | ⭐⭐⭐⭐ | Medium |
+Configure backends and API keys via `~/.claude/wt/config.jsonc`. Three backends available: `nano_banana` (fastest, best quality), `huggingface` (Stable Diffusion XL), and `gemini` (Google Imagen). See `references/configuration.md` for setup instructions, config options, and backend details.
 
 **More workflows**: See `references/workflows.md` for bulk generation, custom styles, and advanced patterns.
 
+## Prompt Engineering Principles
+
+Beautiful images require structured prompts, not vague descriptions. Follow the **7-layer prompt anatomy**: Subject > Environment > Composition > Lighting > Color Palette > Style Anchors > Quality Keywords. Each layer adds specificity — the more precise your creative direction, the better the output.
+
+**Key principles**: Always specify a color palette (not just "colorful"), define composition (focal point, negative space), choose lighting direction (not just "good lighting"), and anchor to a visual style. See `references/prompt-engineering.md` for the complete guide with examples and color psychology reference.
+
 ## Pre-defined Styles
 
-| Style | Description | Use Case |
-|-------|-------------|----------|
-| `technical-diagram` | Clean, technical illustrations | Architecture diagrams, flowcharts |
-| `minimalist` | Simple, clean aesthetic | Modern UI, minimal designs |
-| `vibrant` | Bold colors, high contrast | Social media, eye-catching visuals |
-| `sketch` | Hand-drawn, artistic feel | Concept art, informal diagrams |
-| `photorealistic` | Realistic images | Product mockups, realistic scenes |
-| `custom` | User provides style description | Custom requirements |
+| Style | Description | Emotional Tone | Best For |
+|-------|-------------|----------------|----------|
+| `technical-diagram` | Clean, precise illustrations | Authoritative, educational | Architecture diagrams, documentation |
+| `minimalist` | Simple aesthetic, generous whitespace | Calm, sophisticated | UI mockups, clean visualizations |
+| `vibrant` | Bold colors, high contrast | Exciting, energetic | Social media, marketing, thumbnails |
+| `sketch` | Hand-drawn, organic lines | Authentic, personal | Concept art, wireframes, storyboards |
+| `photorealistic` | Professional photography quality | Immersive, premium | Product mockups, hero images |
+| `warm` | Cozy, golden-hour warmth | Comforting, inviting | Lifestyle, XHS, personal brand |
+| `fresh` | Clean, natural, bright whites + greens | Refreshing, optimistic | Health, nature, product launches |
+| `cute` | Pastel, rounded, kawaii-influenced | Playful, sweet | XHS lifestyle, tutorials, social media |
+| `editorial` | Magazine-quality, high contrast | Authoritative, premium | Thought leadership, professional blogs |
+| `custom` | User provides style description | Varies | Custom requirements |
+
+Each style includes a detailed profile in `materials/styles/<style-name>.md` with color palette (hex codes), composition patterns, prompt transformation examples, and platform pairing recommendations.
+
+## Platform Optimization
+
+Choose template and style based on target platform for best results:
+
+| Platform | Template | Resolution | Recommended Styles | Key Consideration |
+|----------|----------|------------|--------------------|--------------------|
+| Blog/Article cover | `cover` | 1344x576 (21:9) | vibrant, editorial | Text overlay space, cinematic feel |
+| Technical docs | `illustrator` | 1152x864 (4:3) | technical-diagram, minimalist | Clarity, whitespace, readability |
+| XHS/Xiaohongshu | `cover-xhs` | 864x1152 (3:4) | warm, cute, fresh | Mobile-first, save-worthy, warm tones |
+| Social square | `default` | 1024x1024 (1:1) | vibrant, fresh | Centered composition, mobile-friendly |
+| YouTube thumbnail | — | 1280x720 (16:9) | vibrant, editorial | High contrast, readable at small size |
+| Instagram portrait | — | 832x1248 (2:3) | fresh, warm, cute | Eye-catching in feed scroll |
 
 ## Template System
 
-The image generation framework includes a **declarative template system** for reusable image generation configurations.
-
-### Quick Template Usage
-
-```bash
-# List available templates
-python scripts/image_generator.py --list-templates
-
-# Use a template with variables
-python scripts/image_generator.py --template cover \
-  --var title="My Article" \
-  --var topics="AI and Machine Learning"
-
-# Template with custom output path
-python scripts/image_generator.py --template illustrator \
-  --var concept="Microservices Architecture" \
-  --output docs/images/diagram.png
-```
-
-### Template Basics
-
-Templates are markdown files with YAML frontmatter that define:
-- Image specifications (resolution, style, backend, steps)
-- Variable placeholders for dynamic content
-- Default values for variables
-- Output filename patterns
-
-**Variable Syntax:**
-- `{{variable}}` - Required variable (leaves as-is if missing)
-- `{{var | default}}` - Variable with default value
-
-**Template Resolution Order:**
-1. `.image-templates/` (project overrides)
-2. `assets/templates/` (skill defaults)
+Templates are `.tpl.md` files with YAML frontmatter defining image specs, variables with defaults, and prompt body. Variable syntax: `{{var}}` (required) or `{{var | default}}` (with fallback).
 
 **Pre-defined Templates:**
 - `default.tpl.md` - General-purpose (1024x1024, vibrant)
 - `cover.tpl.md` - Article covers (1344x576, 21:9)
 - `illustrator.tpl.md` - Inline illustrations (1152x864, 4:3)
+- `cover-xhs.tpl.md` - XHS/Xiaohongshu covers (864x1152, 3:4 portrait)
 
-**Detailed template guide**: See `references/template-system.md` for creating custom templates, error handling, and advanced patterns.
+**Resolution order:** `.image-templates/` (project overrides) > `assets/templates/` (skill defaults).
 
-## Resolution Options
-
-**Note:** When using the nano_banana backend (Z-Image Turbo via MCP), only specific resolutions are supported:
-
-| Resolution | Aspect Ratio | Use Case |
-|------------|--------------|----------|
-| 1024x1024 | 1:1 | Social media, square images |
-| 1344x576 | 21:9 | Cinematic covers, ultrawide headers |
-| 1280x720 | 16:9 | Blog headers, YouTube thumbnails |
-| 1248x832 | 3:2 | Photo ratio images |
-| 1152x864 | 4:3 | Inline illustrations, standard displays |
-| 576x1344 | 9:21 | Portrait ultrawide |
-| 720x1280 | 9:16 | Portrait thumbnails |
-| 832x1248 | 2:3 | Portrait photo ratio |
-| 864x1152 | 3:4 | Portrait standard |
+See `references/template-system.md` for creating custom templates, variable syntax, and error handling.
 
 ## Workflow
 
@@ -238,96 +162,15 @@ Templates are markdown files with YAML frontmatter that define:
 | Invalid prompt | Ask for clarification | - |
 | Output path invalid | Validate directory, ask user | - |
 
-## Materials Storage
-
-```
-skills/image-generate/materials/
-├── prompts/           # Enhanced prompts used
-│   ├── prompt-001.md  # Timestamped prompt logs
-│   └── styles/        # Style-specific templates
-├── tasks/             # Task files for rd2:super-coder
-│   ├── task-template.md
-│   └── generated/     # Generated task files
-├── styles/            # Style definitions and templates
-│   ├── technical-diagram.md
-│   ├── minimalist.md
-│   ├── vibrant.md
-│   ├── sketch.md
-│   └── photorealistic.md
-└── cache/             # Temporary image cache (optional)
-
-skills/image-generate/assets/
-└── templates/         # Template system (.tpl.md files)
-    ├── default.tpl.md
-    ├── cover.tpl.md
-    └── illustrator.tpl.md
-
-# Project-level overrides (optional)
-.image-templates/       # Custom templates for specific project
-    └── custom.tpl.md
-```
-
 ## Integration Points
 
 ### Image Generation Backends
 
-This skill uses the common image generation framework (`scripts/image_generator.py`) which supports multiple backends:
-
-**Primary: HuggingFace API**
-- Uses `scripts/image_generator.py --backend huggingface`
-- Requires: `HUGGINGFACE_API_TOKEN` environment variable
-- Model: `stabilityai/stable-diffusion-xl-base-1.0` (default)
-- Installation: `uv add requests Pillow`
-
-**Fallback 1: Gemini Imagen API**
-- Uses `scripts/image_generator.py --backend gemini`
-- Requires: `GEMINI_API_KEY` environment variable
-- Model: `imagen-3.0-generate-001` (default)
-- Installation: `uv add google-genai`
-- Supports aspect ratios: 1:1, 4:3, 3:4, 16:9, 9:16
-- Documentation: [Generate images using Imagen](https://ai.google.dev/gemini-api/docs/imagen)
-
-**Fallback 2: nano banana (Z-Image Turbo via MCP)**
-- Uses `scripts/image_generator.py --backend nano_banana`
-- Requires: MCP HuggingFace server configured
-- Model: `Z-Image-Turbo` (via `mcp__huggingface__gr1_z_image_turbo_generate`)
-- Supports **9 resolution options** with various aspect ratios (see Resolution Options above)
-- Fast generation: 1-20 inference steps
-- Resolution auto-mapping to closest supported size
-
-**CRITICAL - MCP Resolution Format:**
-When invoking the MCP tool directly, the resolution parameter requires exact formatting:
-- Format: `"WIDTHxHEIGHT ( RATIO )"` with **TWO spaces** before `(` and after `)`
-- Examples: `"1024x1024 ( 1:1 )"`, `"1280x720 ( 16:9 )"`, `"1344x576 ( 21:9 )"`
-- Incorrect: `"1280x720 (16:9)"` (missing space before parenthesis)
-- Use `NanoBananaBackend.get_mcp_params()` or the RESOLUTION_MAP to get correct format
-
-The framework automatically selects the best available backend in priority order, or you can specify `--backend` to use a specific one.
-
-Backend priority order: `huggingface` → `gemini` → `nano_banana`
-
-```
-Create task file: materials/tasks/image-generation-{timestamp}.md
-Delegate to: rd2:super-coder
-Tool selection: agy (Agy) or gemini for image generation
-```
+This skill uses `scripts/image_generator.py` with automatic backend selection (priority: `huggingface` -> `gemini` -> `nano_banana`). See `references/configuration.md` for backend details, API requirements, and MCP resolution format.
 
 ### Style Enhancement
 
-Enhance user prompt with style-specific modifiers:
-
-```python
-def enhance_prompt(user_prompt: str, style: str) -> str:
-    """Add style-specific modifiers to user prompt."""
-    style_modifiers = {
-        "technical-diagram": ", clean technical illustration, precise lines, professional diagram style, minimal colors",
-        "minimalist": ", minimalist design, clean lines, simple aesthetic, plenty of whitespace",
-        "vibrant": ", bold colors, high contrast, vibrant and energetic, eye-catching",
-        "sketch": ", hand-drawn sketch style, artistic, pencil drawing feel, organic lines",
-        "photorealistic": ", photorealistic, highly detailed, realistic lighting, professional photography"
-    }
-    return user_prompt + style_modifiers.get(style, "")
-```
+Style modifiers are loaded from `materials/styles.yaml` (single source of truth) and appended to user prompts. Each style also has a detailed profile in `materials/styles/<style-name>.md` with color palettes, composition patterns, and prompt transformation examples.
 
 ## Input Parameters
 
@@ -337,7 +180,7 @@ prompt: "image description"          # Text description of desired image
 output: "/path/to/save/image.png"    # Where to save the generated image
 
 # Optional parameters
-style: "technical-diagram|minimalist|vibrant|sketch|photorealistic|custom"
+style: "technical-diagram|minimalist|vibrant|sketch|photorealistic|warm|fresh|cute|editorial|custom"
 resolution: "1280x720"               # Default: 1024x1024 (16:9 example)
 cache: "/path/to/temp/"              # Optional: temp cache location
 custom_style: "style description"    # Required if style=custom
@@ -374,6 +217,8 @@ fallback_attempted: true | false
 - MCP Huggingface integration
 
 ### Skill Reference Files
+- **`references/configuration.md`** - Backend setup, API keys, config options, MCP resolution format, and backend priority order
+- **`references/prompt-engineering.md`** - 7-layer prompt anatomy, color psychology, composition rules, and weak-vs-strong prompt examples
 - **`references/template-system.md`** - Complete template system guide including custom templates, variable syntax, and error handling
 - **`references/workflows.md`** - Step-by-step workflow examples for common tasks (cover generation, illustrations, bulk generation)
 - **`references/troubleshooting.md`** - Common issues and solutions for API keys, backend selection, resolution mapping, and template errors

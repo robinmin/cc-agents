@@ -8,13 +8,18 @@
 # To add a custom style:
 # 1. Add a new entry below with your style name and modifiers
 # 2. Use the style name in your template frontmatter
+# 3. See materials/styles/<style-name>.md for full style documentation
 
 styles:
-  technical-diagram: "clean technical illustration, precise lines, professional diagram style"
-  minimalist: "minimalist design, clean lines, simple aesthetic, plenty of whitespace"
-  vibrant: "bold colors, high contrast, vibrant and energetic, eye-catching"
-  sketch: "hand-drawn sketch style, artistic, pencil drawing feel, organic lines"
-  photorealistic: "photorealistic, highly detailed, realistic lighting, professional photography"
+  technical-diagram: "clean technical illustration, precise lines, professional diagram style, flat even lighting, grid-aligned composition"
+  minimalist: "minimalist design, clean lines, simple aesthetic, plenty of whitespace, balanced composition, matte surfaces, geometric alignment"
+  vibrant: "bold colors, high contrast, vibrant and energetic, eye-catching, dynamic composition, volumetric light rays, neon accent glow"
+  sketch: "hand-drawn sketch style, artistic, pencil drawing feel, organic lines, paper texture, warm tones, cross-hatching, warm paper background"
+  photorealistic: "photorealistic, highly detailed, realistic lighting, professional photography, natural textures, cinematic depth of field, natural color grading"
+  warm: "warm cozy aesthetic, golden hour lighting, soft warm tones, terracotta and amber palette, inviting atmosphere, gentle shadows, matte textures"
+  fresh: "fresh clean aesthetic, bright natural daylight, soft greens and whites, airy composition, generous whitespace, natural elements, refreshing atmosphere"
+  cute: "cute kawaii aesthetic, pastel colors, rounded shapes, soft gradients, playful design, sweet and gentle, no sharp edges, bubbly composition"
+  editorial: "editorial magazine style, high contrast, bold composition, dramatic directional lighting, sophisticated design, strong visual hierarchy, premium quality"
 
 # Example custom styles (commented out):
 #   cyberpunk: "neon lights, cybernetic elements, futuristic cityscape, high tech aesthetic"

@@ -15,28 +15,27 @@ Templates are markdown files with YAML frontmatter that define:
 ```yaml
 ---
 name: cover
-description: Article cover image template
-width: 1920
-height: 817
+description: Article cover image template (21:9 ultrawide cinematic aspect ratio)
+width: 1344
+height: 576
 style: vibrant
-backend: huggingface
-steps: 50
+backend: nano_banana
+steps: 8
 output_filename: "{{title | cover}}.png"
 variables:
   title:
     description: Article title
     default: "Article"
   subtitle:
-    description: Article subtitle
+    description: Article subtitle or tagline
     default: ""
   topics:
-    description: Main topics
+    description: Main topics or themes
     default: "technology"
-keywords: ["8K", "high-quality"]
+keywords: ["8K", "ultra-high-quality", "cinematic composition"]
 ---
 
-Professional cover image for "{{title}}"{{subtitle | - {{subtitle}}}}.
-{{topics | Modern, clean, tech-focused}} design showcasing the main theme.
+Cinematic wide-format cover illustration for "{{title}}"...
 ```
 
 ## Template Fields
@@ -93,28 +92,35 @@ python scripts/image_generator.py --template cover \
 
 ## Pre-defined Templates
 
-Three default templates are included in `assets/templates/`:
+Four default templates are included in `assets/templates/`:
 
 ### 1. `default.tpl.md`
 
-General-purpose image generation with sensible defaults.
+General-purpose image generation with rich art direction defaults.
 - **Resolution**: 1024x1024 (1:1)
 - **Style**: vibrant
-- **Variables**: `subject`, `mood`, `detail_level`, `content`
+- **Variables**: `subject`, `mood`, `detail_level`, `color_palette`, `composition`, `lighting`, `content`
 
 ### 2. `cover.tpl.md`
 
-Article cover images with cinematic aspect ratio.
-- **Resolution**: 1920x817 (2.35:1)
+Article cover images with cinematic ultrawide aspect ratio.
+- **Resolution**: 1344x576 (21:9)
 - **Style**: vibrant
-- **Variables**: `title`, `subtitle`, `topics`, `mood`, `content`
+- **Variables**: `title`, `subtitle`, `topics`, `mood`, `visual_style`, `color_palette`, `composition`, `atmosphere`, `content`
 
 ### 3. `illustrator.tpl.md`
 
 Article illustrations for inline content.
-- **Resolution**: 800x600 (4:3)
+- **Resolution**: 1152x864 (4:3)
 - **Style**: technical-diagram
-- **Variables**: `title`, `concept`, `style_detail`, `complexity`, `content`
+- **Variables**: `title`, `concept`, `style_detail`, `complexity`, `visual_approach`, `color_scheme`, `content`
+
+### 4. `cover-xhs.tpl.md`
+
+Xiaohongshu (XHS) cover images optimized for mobile-first social media.
+- **Resolution**: 864x1152 (3:4 portrait)
+- **Style**: custom (XHS-native prompt engineering)
+- **Variables**: `title`, `xhs_category`, `aesthetic`, `color_palette`, `focal_subject`, `text_area`, `mood`, `content`
 
 ## Creating Custom Templates
 

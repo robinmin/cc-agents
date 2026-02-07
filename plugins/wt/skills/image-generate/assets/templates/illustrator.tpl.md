@@ -18,16 +18,33 @@ variables:
     description: Additional style details
     default: "clean"
   complexity:
-    description: Level of complexity
+    description: Level of complexity (simple, moderate, complex)
     default: "moderate"
+  visual_approach:
+    description: Illustration approach (diagrammatic, conceptual, metaphorical, isometric)
+    default: "clean diagrammatic with subtle depth"
+  color_scheme:
+    description: Color scheme direction
+    default: "professional blues and grays with one accent color for emphasis"
   content:
     description: Article content for context (use --content)
     default: ""
-keywords: ["technical", "precise", "educational", "clear"]
+keywords:
+  - "technical"
+  - "precise"
+  - "educational"
+  - "clear"
+  - "vector-like lines"
+  - "logical flow"
+  - "generous whitespace"
+  - "polished"
 ---
 
-{{complexity | Moderately complex}} {{style_detail | clean}} technical illustration of {{concept}}.
-{{content | Drawing from the article's content, }}
-professional diagram style with precise lines and clear visual hierarchy.
-Educational content illustration suitable for technical documentation.
-Minimalist aesthetic with excellent readability, {{title}} context.
+{{complexity | Moderately complex}} technical illustration of {{concept}}.
+Visual approach: {{visual_approach | clean diagrammatic with subtle depth}}.
+Style: {{style_detail | clean}} with precise vector-like lines and clear visual hierarchy.
+Color scheme: {{color_scheme | professional blues and grays with one accent color for emphasis}}.
+{{content | Grounded in the article's technical content, }}
+create an educational diagram with logical flow, labeled components where appropriate,
+and generous whitespace for readability. Context: {{title}}.
+Render as a polished technical illustration suitable for professional documentation.

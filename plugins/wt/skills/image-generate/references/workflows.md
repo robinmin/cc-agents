@@ -25,12 +25,12 @@ This guide provides step-by-step workflows for common image generation tasks.
    ```bash
    wt:image-generate "Microservices architecture cover" \
      --style vibrant \
-     --resolution 1920x817 \
+     --resolution 1344x576 \
      --output covers/microservices-cover.png
    ```
 
 ### Output
-- 1920x817 (2.35:1 cinematic aspect ratio)
+- 1344x576 (21:9 cinematic aspect ratio)
 - Bold, professional cover image
 - Saved to specified output path
 
@@ -64,7 +64,7 @@ This guide provides step-by-step workflows for common image generation tasks.
    ```
 
 ### Output
-- 800x600 (4:3 aspect ratio)
+- 1152x864 (4:3 aspect ratio)
 - Clean technical illustration style
 - Suitable for inline article images
 

@@ -108,7 +108,7 @@ class GenerationResult:
     method: str = ""
     error: Optional[str] = None
     size: Optional[Tuple[int, int]] = None
-    metadata: Dict[str, Any] = None
+    metadata: Optional[Dict[str, Any]] = None
 
 
 class ImageGeneratorBackend(ABC):
