@@ -2,22 +2,32 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import process from 'node:process';
+
+// CDP utilities from web-automation
 import {
   CHROME_CANDIDATES_FULL,
   CdpConnection,
-  copyImageToClipboard,
   findChromeExecutable,
+  waitForChromeDebugPort,
+} from '../../../scripts/web-automation/dist/browser.js';
+
+// Shared utilities from playwright
+import {
+  getFreePort,
+  pwSleep as sleep,
+} from '../../../scripts/web-automation/dist/playwright.js';
+
+// X-specific utilities from x-utils
+import {
   getDefaultProfileDir,
   getAutoSubmitPreference,
-  getFreePort,
-  pasteFromClipboard,
-  sleep,
-  waitForChromeDebugPort,
+  copyImageToClipboard,
+  paste,
 } from './x-utils.js';
 
-const X_COMPOSE_URL = 'https://x.com/compose/post';
+export const X_COMPOSE_URL = 'https://x.com/compose/post';
 
-interface XBrowserOptions {
+export interface XBrowserOptions {
   text?: string;
   images?: string[];
   submit?: boolean;
@@ -37,19 +47,21 @@ export async function postToX(options: XBrowserOptions): Promise<void> {
   const port = await getFreePort();
   console.log(`[x-browser] Launching Chrome (profile: ${profileDir})`);
 
-  const chrome = spawn(chromePath, [
-    `--remote-debugging-port=${port}`,
-    `--user-data-dir=${profileDir}`,
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--disable-blink-features=AutomationControlled',
-    '--start-maximized',
-    X_COMPOSE_URL,
-  ], { stdio: 'ignore' });
-
+  let chrome: ReturnType<typeof spawn>;
   let cdp: CdpConnection | null = null;
 
   try {
+    chrome = spawn(chromePath, [
+      `--remote-debugging-port=${port}`,
+      `--user-data-dir=${profileDir}`,
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-blink-features=AutomationControlled',
+      '--start-maximized',
+      X_COMPOSE_URL,
+    ], { stdio: 'ignore' });
+
+    // Wait for Chrome to start and be ready
     const wsUrl = await waitForChromeDebugPort(port, 30_000, { includeLastError: true });
     cdp = await CdpConnection.connect(wsUrl, 30_000, { defaultTimeoutMs: 15_000 });
 
@@ -59,6 +71,11 @@ export async function postToX(options: XBrowserOptions): Promise<void> {
     if (!pageTarget) {
       const { targetId } = await cdp.send<{ targetId: string }>('Target.createTarget', { url: X_COMPOSE_URL });
       pageTarget = { targetId, url: X_COMPOSE_URL, type: 'page' };
+    }
+
+    // Ensure pageTarget is valid before use
+    if (!pageTarget) {
+      throw new Error('Failed to create or find X page target');
     }
 
     const { sessionId } = await cdp.send<{ sessionId: string }>('Target.attachToTarget', { targetId: pageTarget.targetId, flatten: true });
@@ -129,7 +146,7 @@ export async function postToX(options: XBrowserOptions): Promise<void> {
 
       // Use paste script (handles platform differences, activates Chrome)
       console.log('[x-browser] Pasting from clipboard...');
-      const pasteSuccess = pasteFromClipboard('Google Chrome', 5, 500);
+      const pasteSuccess = await paste({ targetApp: 'Google Chrome', retries: 5, delayMs: 500 });
 
       if (!pasteSuccess) {
         // Fallback to CDP (may not work for images on X)
@@ -167,6 +184,10 @@ export async function postToX(options: XBrowserOptions): Promise<void> {
       console.log('[x-browser] Browser will stay open for 30 seconds for preview...');
       await sleep(30_000);
     }
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error(`[x-browser] Chrome operation failed: ${err.message}`);
+    throw new Error(`Failed to communicate with Chrome: ${err.message}`);
   } finally {
     if (cdp) {
       try { await cdp.send('Browser.close', {}, { timeoutMs: 5_000 }); } catch (error) {
@@ -176,11 +197,11 @@ export async function postToX(options: XBrowserOptions): Promise<void> {
     }
 
     setTimeout(() => {
-      if (!chrome.killed) try { chrome.kill('SIGKILL'); } catch (error) {
+      if (chrome && !chrome.killed) try { chrome.kill('SIGKILL'); } catch (error) {
         console.debug('[x-browser] SIGKILL error:', error);
       }
     }, 2_000).unref?.();
-    try { chrome.kill('SIGTERM'); } catch (error) {
+    try { if (chrome) chrome.kill('SIGTERM'); } catch (error) {
       console.debug('[x-browser] SIGTERM error:', error);
     }
   }
@@ -241,7 +262,11 @@ async function main(): Promise<void> {
   await postToX({ text, images, submit, profileDir });
 }
 
-await main().catch((err) => {
-  console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
-});
+// Only run main() when this file is executed directly, not when imported
+const isMain = process.argv[1]?.includes('x-browser.ts');
+if (isMain) {
+  await main().catch((err) => {
+    console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  });
+}
