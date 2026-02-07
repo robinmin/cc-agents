@@ -1,0 +1,30 @@
+{
+  "name": "@wt/web-automation",
+  "version": "1.0.0",
+  "description": "Shared web automation utilities for WT publishing plugins (Playwright, CDP, browser utilities)",
+  "type": "module",
+  "exports": {
+    "./table-code-converter": "./dist/table-code-converter.js",
+    "./cdp": "./dist/cdp.js",
+    "./playwright": "./dist/playwright.js",
+    "./browser": "./dist/browser.js",
+    "./clipboard": "./dist/clipboard.js",
+    "./paste": "./dist/paste.js",
+    "./types": "./dist/types.d.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "bun test tests/**/*.test.ts",
+    "test:cdp": "bun test tests/cdp.test.ts",
+    "test:converter": "bun test tests/table-code-converter.test.ts",
+    "test:watch": "bun test --watch tests/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "bun-types": "^1.3.8"
+  }
+}

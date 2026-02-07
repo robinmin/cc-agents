@@ -1,3 +1,16 @@
+/**
+ * Clipboard Utilities - Cross-platform
+ *
+ * Cross-platform clipboard operations for copying images and HTML content.
+ * Supports:
+ * - macOS: Swift-based clipboard access
+ * - Linux: wl-clipboard (Wayland) and xclip (X11)
+ * - Windows: PowerShell
+ *
+ * Usage:
+ *   import { copyImageToClipboard, copyHtmlToClipboard } from '@wt/web-automation/clipboard';
+ */
+
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
@@ -5,48 +18,28 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 
-const SUPPORTED_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+// ============================================================================
+// Constants
+// ============================================================================
 
-function printUsage(exitCode = 0): never {
-  console.log(`Copy image or HTML to system clipboard
+const SUPPORTED_IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', 'webp']);
 
-Supports:
-  - Image files (jpg, png, gif, webp) - copies as image data
-  - HTML content - copies as rich text for paste
+// ============================================================================
+// Platform Detection
+// ============================================================================
 
-Usage:
-  # Copy image to clipboard
-  npx -y bun copy-to-clipboard.ts image /path/to/image.jpg
+export type Platform = 'darwin' | 'linux' | 'win32';
 
-  # Copy HTML to clipboard
-  npx -y bun copy-to-clipboard.ts html "<p>Hello</p>"
-
-  # Copy HTML from file
-  npx -y bun copy-to-clipboard.ts html --file /path/to/content.html
-`);
-  process.exit(exitCode);
+export function getPlatform(): Platform {
+  if (process.platform === 'darwin') return 'darwin';
+  if (process.platform === 'linux') return 'linux';
+  if (process.platform === 'win32') return 'win32';
+  throw new Error(`Unsupported platform: ${process.platform}`);
 }
 
-function resolvePath(filePath: string): string {
-  return path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
-}
-
-function inferImageMimeType(imagePath: string): string {
-  const ext = path.extname(imagePath).toLowerCase();
-  switch (ext) {
-    case '.jpg':
-    case '.jpeg':
-      return 'image/jpeg';
-    case '.png':
-      return 'image/png';
-    case '.gif':
-      return 'image/gif';
-    case '.webp':
-      return 'image/webp';
-    default:
-      return 'application/octet-stream';
-  }
-}
+// ============================================================================
+// Command Helpers
+// ============================================================================
 
 type RunResult = { stdout: string; stderr: string; exitCode: number };
 
@@ -125,6 +118,31 @@ async function withTempDir<T>(prefix: string, fn: (tempDir: string) => Promise<T
   }
 }
 
+// ============================================================================
+// MIME Type Detection
+// ============================================================================
+
+export function inferImageMimeType(imagePath: string): string {
+  const ext = path.extname(imagePath).toLowerCase();
+  switch (ext) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.gif':
+      return 'image/gif';
+    case '.webp':
+      return 'image/webp';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+// ============================================================================
+// macOS Implementation (Swift)
+// ============================================================================
+
 function getMacSwiftClipboardSource(): string {
   return `import AppKit
 import Foundation
@@ -161,7 +179,7 @@ case "html":
     die("Failed to read HTML file: \\(inputPath)\\n")
   }
 
-  _ = pasteboard.setData(data, forType: .html)
+  _ = pasteboard.setData(data, forTypes: [.html])
 
   let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
     .documentType: NSAttributedString.DocumentType.html,
@@ -187,7 +205,7 @@ default:
 }
 
 async function copyImageMac(imagePath: string): Promise<void> {
-  await withTempDir('copy-to-clipboard-', async (tempDir) => {
+  await withTempDir('clipboard-', async (tempDir) => {
     const swiftPath = path.join(tempDir, 'clipboard.swift');
     await writeFile(swiftPath, getMacSwiftClipboardSource(), 'utf8');
     await runCommand('swift', [swiftPath, 'image', imagePath]);
@@ -195,12 +213,16 @@ async function copyImageMac(imagePath: string): Promise<void> {
 }
 
 async function copyHtmlMac(htmlFilePath: string): Promise<void> {
-  await withTempDir('copy-to-clipboard-', async (tempDir) => {
+  await withTempDir('clipboard-', async (tempDir) => {
     const swiftPath = path.join(tempDir, 'clipboard.swift');
     await writeFile(swiftPath, getMacSwiftClipboardSource(), 'utf8');
     await runCommand('swift', [swiftPath, 'html', htmlFilePath]);
   });
 }
+
+// ============================================================================
+// Linux Implementation (wl-clipboard / xclip)
+// ============================================================================
 
 async function copyImageLinux(imagePath: string): Promise<void> {
   const mime = inferImageMimeType(imagePath);
@@ -227,6 +249,10 @@ async function copyHtmlLinux(htmlFilePath: string): Promise<void> {
   throw new Error('No clipboard tool found. Install `wl-clipboard` (wl-copy) or `xclip`.');
 }
 
+// ============================================================================
+// Windows Implementation (PowerShell)
+// ============================================================================
+
 async function copyImageWindows(imagePath: string): Promise<void> {
   const ps = [
     'param([string]$Path)',
@@ -249,7 +275,21 @@ async function copyHtmlWindows(htmlFilePath: string): Promise<void> {
   await runCommand('powershell.exe', ['-NoProfile', '-Sta', '-Command', ps, '-Path', htmlFilePath]);
 }
 
-async function copyImageToClipboard(imagePathInput: string): Promise<void> {
+// ============================================================================
+// Public API
+// ============================================================================
+
+export function resolvePath(filePath: string): string {
+  return path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
+}
+
+/**
+ * Copy an image file to the system clipboard
+ *
+ * @param imagePathInput - Path to the image file (absolute or relative to cwd)
+ * @throws Error if file not found, unsupported format, or no clipboard tool available
+ */
+export async function copyImageToClipboard(imagePathInput: string): Promise<void> {
   const imagePath = resolvePath(imagePathInput);
   const ext = path.extname(imagePath).toLowerCase();
   if (!SUPPORTED_IMAGE_EXTS.has(ext)) {
@@ -259,7 +299,8 @@ async function copyImageToClipboard(imagePathInput: string): Promise<void> {
   }
   if (!fs.existsSync(imagePath)) throw new Error(`File not found: ${imagePath}`);
 
-  switch (process.platform) {
+  const platform = getPlatform();
+  switch (platform) {
     case 'darwin':
       await copyImageMac(imagePath);
       return;
@@ -269,16 +310,21 @@ async function copyImageToClipboard(imagePathInput: string): Promise<void> {
     case 'win32':
       await copyImageWindows(imagePath);
       return;
-    default:
-      throw new Error(`Unsupported platform: ${process.platform}`);
   }
 }
 
-async function copyHtmlFileToClipboard(htmlFilePathInput: string): Promise<void> {
+/**
+ * Copy HTML content from a file to the system clipboard
+ *
+ * @param htmlFilePathInput - Path to the HTML file (absolute or relative to cwd)
+ * @throws Error if file not found or no clipboard tool available
+ */
+export async function copyHtmlFileToClipboard(htmlFilePathInput: string): Promise<void> {
   const htmlFilePath = resolvePath(htmlFilePathInput);
   if (!fs.existsSync(htmlFilePath)) throw new Error(`File not found: ${htmlFilePath}`);
 
-  switch (process.platform) {
+  const platform = getPlatform();
+  switch (platform) {
     case 'darwin':
       await copyHtmlMac(htmlFilePath);
       return;
@@ -288,93 +334,18 @@ async function copyHtmlFileToClipboard(htmlFilePathInput: string): Promise<void>
     case 'win32':
       await copyHtmlWindows(htmlFilePath);
       return;
-    default:
-      throw new Error(`Unsupported platform: ${process.platform}`);
   }
 }
 
-async function readStdinText(): Promise<string | null> {
-  if (process.stdin.isTTY) return null;
-  const chunks: Buffer[] = [];
-  for await (const chunk of process.stdin) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  const text = Buffer.concat(chunks).toString('utf8');
-  return text.length > 0 ? text : null;
-}
-
-async function copyHtmlToClipboard(args: string[]): Promise<void> {
-  let htmlFile: string | undefined;
-  const positional: string[] = [];
-
-  for (let i = 0; i < args.length; i += 1) {
-    const arg = args[i] ?? '';
-    if (arg === '--help' || arg === '-h') printUsage(0);
-    if (arg === '--file') {
-      htmlFile = args[i + 1];
-      i += 1;
-      continue;
-    }
-    if (arg.startsWith('--file=')) {
-      htmlFile = arg.slice('--file='.length);
-      continue;
-    }
-    if (arg === '--') {
-      positional.push(...args.slice(i + 1));
-      break;
-    }
-    if (arg.startsWith('-')) {
-      throw new Error(`Unknown option: ${arg}`);
-    }
-    positional.push(arg);
-  }
-
-  if (htmlFile && positional.length > 0) {
-    throw new Error('Do not pass HTML text when using --file.');
-  }
-
-  if (htmlFile) {
-    await copyHtmlFileToClipboard(htmlFile);
-    return;
-  }
-
-  const htmlFromArgs = positional.join(' ').trim();
-  const htmlFromStdin = (await readStdinText())?.trim() ?? '';
-  const html = htmlFromArgs || htmlFromStdin;
-  if (!html) throw new Error('Missing HTML input. Provide a string or use --file.');
-
-  await withTempDir('copy-to-clipboard-', async (tempDir) => {
+/**
+ * Copy HTML string to the clipboard (creates temp file internally)
+ *
+ * @param html - HTML content to copy
+ */
+export async function copyHtmlToClipboard(html: string): Promise<void> {
+  await withTempDir('clipboard-', async (tempDir) => {
     const htmlPath = path.join(tempDir, 'input.html');
     await writeFile(htmlPath, html, 'utf8');
     await copyHtmlFileToClipboard(htmlPath);
   });
 }
-
-async function main(): Promise<void> {
-  const argv = process.argv.slice(2);
-  if (argv.length === 0) printUsage(1);
-
-  const command = argv[0];
-  if (command === '--help' || command === '-h') printUsage(0);
-
-  if (command === 'image') {
-    const imagePath = argv[1];
-    if (!imagePath) throw new Error('Missing image path.');
-    await copyImageToClipboard(imagePath);
-    return;
-  }
-
-  if (command === 'html') {
-    await copyHtmlToClipboard(argv.slice(1));
-    return;
-  }
-
-  throw new Error(`Unknown command: ${command}`);
-}
-
-await main().catch((err) => {
-  const message = err instanceof Error ? err.message : String(err);
-  console.error(`Error: ${message}`);
-  process.exit(1);
-});
-
