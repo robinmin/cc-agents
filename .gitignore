@@ -58,6 +58,7 @@ htmlcov
 
 # Optional npm cache directory
 .npm
+plugins/wt/**/*.map
 
 # Optional eslint cache
 .eslintcache
