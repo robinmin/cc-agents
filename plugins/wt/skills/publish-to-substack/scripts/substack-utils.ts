@@ -1,74 +1,26 @@
 import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import { getWtConfig, expandTilde } from '@wt/web-automation/config';
 
 // ============================================================================
 // WT Configuration
 // ============================================================================
 
-interface WtConfig {
-  version?: string;
-  'publish-to-substack'?: {
-    profile_dir?: string;
-    auto_publish?: boolean;
-  };
+interface SubstackConfig {
+  profile_dir?: string;
+  auto_publish?: boolean;
 }
 
-let wtConfigCache: WtConfig | null = null;
-let wtConfigCacheTime = 0;
-const CONFIG_CACHE_TTL_MS = 60_000; // Cache expires after 1 minute
-
-/**
- * Read WT plugin configuration from ~/.claude/wt/config.jsonc
- * Uses caching with TTL to avoid repeated file reads while allowing updates.
- */
-export function readWtConfig(): WtConfig {
-  const now = Date.now();
-
-  // Return cached config if still valid
-  if (wtConfigCache && (now - wtConfigCacheTime) < CONFIG_CACHE_TTL_MS) {
-    return wtConfigCache;
-  }
-
-  const configPath = path.join(os.homedir(), '.claude', 'wt', 'config.jsonc');
-
-  try {
-    if (!fs.existsSync(configPath)) {
-      return {};
-    }
-
-    // Read and parse JSONC (allows comments)
-    const content = fs.readFileSync(configPath, 'utf-8');
-
-    // Strip comments for JSON parsing
-    const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
-    const parsed = JSON.parse(jsonContent) as WtConfig;
-
-    wtConfigCache = parsed;
-    wtConfigCacheTime = now;
-    return parsed;
-  } catch (error) {
-    console.debug('[substack-utils] Failed to read WT config, using defaults:', error);
-    return {};
-  }
-}
-
-/**
- * Expand tilde (~) in file paths to user's home directory
- */
-export function expandTilde(filePath: string): string {
-  if (filePath.startsWith('~/')) {
-    return path.join(os.homedir(), filePath.slice(2));
-  }
-  return filePath;
+function getSubstackConfig(): SubstackConfig {
+  const wtConfig = getWtConfig();
+  return (wtConfig['publish-to-substack'] as SubstackConfig) || {};
 }
 
 /**
  * Get default profile directory for Substack browser from WT config
  */
 export function getWtProfileDir(): string | undefined {
-  const config = readWtConfig();
-  const configProfileDir = config['publish-to-substack']?.profile_dir;
+  const config = getSubstackConfig();
+  const configProfileDir = config.profile_dir;
 
   if (configProfileDir) {
     return expandTilde(configProfileDir);
@@ -82,8 +34,8 @@ export function getWtProfileDir(): string | undefined {
  * @returns true if auto-publish is enabled (publishes immediately without draft)
  */
 export function getAutoPublishPreference(): boolean {
-  const config = readWtConfig();
-  return config['publish-to-substack']?.auto_publish ?? false;
+  const config = getSubstackConfig();
+  return config.auto_publish ?? false;
 }
 
 // ============================================================================
