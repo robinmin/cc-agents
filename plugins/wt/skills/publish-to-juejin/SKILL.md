@@ -1,22 +1,24 @@
 ---
 name: publish-to-juejin
-description: This skill should be used when the user asks to "publish to juejin", "create a juejin article", "post article to juejin.cn", or mentions Juejin (稀土掘金) publishing. Supports markdown articles with frontmatter metadata via browser automation (Chrome CDP).
-version: 1.0.0
+description: This skill should be used when the user asks to "publish to juejin", "create a juejin article", "post article to juejin.cn", or mentions Juejin (稀土掘金) publishing. Supports markdown articles with frontmatter metadata via browser automation (Playwright).
+version: 2.0.0
 ---
 
 # Post to Juejin (稀土掘金)
 
-Post markdown articles to Juejin contribution platform via browser automation using Chrome DevTools Protocol (CDP).
+Post markdown articles to Juejin contribution platform via browser automation using Playwright.
 
 ## Quick Start
 
 ```bash
 # Post markdown as draft (recommended for first use)
-npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-juejin/scripts/juejin-article.ts --markdown article.md
+npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-juejin/scripts/juejin-playwright.ts --markdown article.md
 
 # Publish immediately
-npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-juejin/scripts/juejin-article.ts --markdown article.md --publish
+npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-juejin/scripts/juejin-playwright.ts --markdown article.md --publish
 ```
+
+**Note**: This is the new Playwright-based implementation. The old CDP-based script (`juejin-article.ts`) is still available but deprecated.
 
 ## When to Use
 
@@ -39,14 +41,15 @@ Scripts are invoked using `${CLAUDE_PLUGIN_ROOT}/skills/publish-to-juejin/script
 **Script Reference**:
 | Script | Purpose |
 |--------|---------|
-| `scripts/juejin-article.ts` | Post articles to Juejin via CDP browser automation |
-| `scripts/cdp.ts` | Chrome DevTools Protocol utilities |
+| `scripts/juejin-playwright.ts` | **NEW**: Post articles to Juejin via Playwright browser automation (recommended) |
+| `scripts/juejin-article.ts` | **DEPRECATED**: Post articles to Juejin via CDP browser automation (legacy) |
+| `scripts/cdp.ts` | Chrome DevTools Protocol utilities (legacy) |
 | `scripts/juejin-utils.ts` | Juejin-specific utilities and configuration |
 
 ## Prerequisites
 
-- Google Chrome or Chromium browser
 - `bun` runtime
+- Playwright (auto-installed on first run)
 - First run: log in to juejin.cn manually (phone + SMS verification)
 - Juejin account (register at https://juejin.cn)
 
@@ -70,9 +73,9 @@ Use `--publish` / `--draft` flags to override auto_publish setting per invocatio
 First time setup (requires manual login):
 
 1. Run any publish command
-2. Chrome will open with Juejin login page (https://juejin.cn)
+2. Browser will open with Juejin login page (using Playwright's bundled Chromium)
 3. Log in with your phone number and SMS verification code
-4. Your session will be saved to the Chrome profile directory
+4. Your session will be saved to the browser profile directory
 5. Subsequent runs will use the saved session
 
 ## Parameters
@@ -86,7 +89,7 @@ First time setup (requires manual login):
 | `--tags <tag1,tag2>` | Comma-separated tags |
 | `--publish` | Publish immediately (default: draft) |
 | `--draft` | Save as draft (overrides auto_publish config) |
-| `--profile <dir>` | Custom Chrome profile directory |
+| `--profile <dir>` | Custom browser profile directory |
 
 ## Markdown Frontmatter
 
@@ -138,60 +141,83 @@ Default: `draft` (safe default for preview before publishing)
 
 ## Why Browser Automation?
 
-Juejin has NO official public API for content posting. Browser automation via Chrome CDP is the most reliable approach. See **`references/juejin-api-research.md`** for research on internal API endpoints and automation approaches.
+Juejin has NO official public API for content posting. Browser automation via Playwright is the most reliable approach. See **`references/juejin-api-research.md`** for research on internal API endpoints and automation approaches.
 
 ## Additional References
 
 ### Technical Details
 
-For implementation details including DOM selectors, CDP protocol usage, and platform support, see **`references/technical-details.md`**.
+For implementation details including DOM selectors, Playwright usage, and platform support, see **`references/technical-details.md`**.
 
 ### Troubleshooting
 
 For common issues and solutions, see **`references/troubleshooting.md`**. Covers:
-- Chrome not found
+- Playwright Chromium not found
 - Page navigation errors
 - DOM selector issues
-- CDP connection timeout
 - Login session persistence
 
 ### Usage Examples
 
 For comprehensive examples including workflows, batch operations, and integrations, see **`references/usage-examples.md`**.
 
+## Related Skills
+
+- **wt:technical-content-creation** - Full 7-stage workflow (Stage 6 delegates here)
+- **wt:publish-to-wechatmp** - WeChat Official Account publishing (similar Playwright approach)
+- **wt:publish-to-substack** - Substack platform publishing (similar Playwright approach)
+
+## Migration Notes
+
+This skill was migrated from Chrome DevTools Protocol (CDP) to Playwright in version 2.0.0. Key improvements:
+- Uses Playwright's bundled Chromium (no Chrome lock file issues)
+- More reliable element selection with Playwright's locator API
+- Better error handling and retry mechanisms
+- Uses shared `@wt/web-automation` library for common utilities
+
 ## Output
 
 After successful posting, the script outputs:
 
 ```
-[juejin] Parsing markdown: article.md
-[juejin] Title: Your Article Title
-[juejin] Category: 前端
-[juejin] Tags: vue, react
-[juejin] Status: draft
-[juejin] Launching Chrome (profile: ~/.local/share/juejin-browser-profile)
-[juejin] Navigating to article creation page...
-[juejin] Checking login status...
-[juejin] Waiting for editor to load...
-[juejin] Filling in title...
-[juejin] Filling in content...
-[juejin] Setting category...
-[juejin] Setting tags...
-[juejin] Saving article...
-[juejin] Article saved successfully!
-[juejin] URL: https://juejin.cn/post/xxxxx
-[juejin] Status: draft
+[juejin-pw] Parsing markdown: article.md
+[juejin-pw] Title: Your Article Title
+[juejin-pw] Category: 前端
+[juejin-pw] Tags: vue, react
+[juejin-pw] Status: draft
+[juejin-pw] Launching browser (profile: ~/.local/share/juejin-browser-profile)
+[juejin-pw] Using Playwright bundled Chromium
+[juejin-pw] Navigating to: https://juejin.cn/editor
+[juejin-pw] Checking login status...
+[juejin-pw] Already logged in.
+[juejin-pw] Waiting for editor to load...
+[juejin-pw] Editor ready
+[juejin-pw] Filling in title...
+[juejin-pw] Title filled
+[juejin-pw] Filling in content...
+[juejin-pw] Content filled using CodeMirror API
+[juejin-pw] Setting category...
+[juejin-pw] Category set
+[juejin-pw] Setting tags...
+[juejin-pw] Tags added
+[juejin-pw] Saving as draft...
+[juejin-pw] Article saved successfully!
+[juejin-pw] URL: https://juejin.cn/post/xxxxx
+[juejin-pw] Status: draft
+[juejin-pw] Browser window remains open for review.
+[juejin-pw] Press Ctrl+C to close.
 ```
 
 ## Notes
 
 - **No Official API**: Juejin has no official public API for content publishing
-- **Session Persistence**: Login session persists in Chrome profile directory
+- **Session Persistence**: Login session persists in browser profile directory
 - **SMS Verification**: First login requires phone number + SMS verification code
 - **Content Language**: Chinese (Simplified) is the primary language
 - **Code Blocks**: Syntax highlighting supported via markdown code blocks
 - **Cross-platform**: macOS, Linux, Windows (uses bun runtime)
-- **Rich Text Editor**: Juejin uses a rich text editor (likely markdown-based)
+- **Rich Text Editor**: Juejin uses a rich text editor (CodeMirror-based)
+- **Login Timeout**: Script waits up to 5 minutes for manual login completion
 
 ## Sources
 
