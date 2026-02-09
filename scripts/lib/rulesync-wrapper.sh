@@ -6,7 +6,7 @@ get_rulesync_cmd() {
     if command -v rulesync &> /dev/null; then
         echo "rulesync"
     else
-        echo "npx rulesync"
+        echo "npx --yes rulesync"
     fi
 }
 
