@@ -12,6 +12,7 @@
 import { test, expect, describe } from 'bun:test';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { expandTilde } from '@wt/web-automation/config';
 
 // Import functions under test
 import {
@@ -20,7 +21,6 @@ import {
   parseMarkdownFile,
   markdownToHtml,
   sanitizeForJavaScript,
-  expandTilde,
   getWtProfileDir,
   getAutoPublishPreference,
 } from '../scripts/substack-utils.js';
