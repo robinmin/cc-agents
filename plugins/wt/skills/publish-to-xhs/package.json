@@ -8,7 +8,11 @@
     "test:coverage": "bun test --coverage",
     "test:watch": "bun test --watch"
   },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "@wt/web-automation": "workspace:*"
   }
 }
