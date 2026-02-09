@@ -5,59 +5,46 @@
  */
 
 import * as fs from 'node:fs';
-import * as path from 'node:path';
-import * as os from 'node:os';
+import * as process from 'node:process';
+import { getWtConfig } from '@wt/web-automation/config';
 
 // ============================================================================
 // WT Configuration
 // ============================================================================
 
+interface QiitaConfig {
+  method?: 'cli' | 'api';
+  access_token?: string;
+  default_private?: boolean;
+  default_slide?: boolean;
+  organization_url_name?: string;
+}
+
 interface WtConfig {
   version?: string;
   env?: Record<string, string>;
-  'publish-to-qiita'?: {
-    method?: 'cli' | 'api';
-    access_token?: string;
-    default_private?: boolean;
-    default_slide?: boolean;
-    organization_url_name?: string;
-  };
+  'publish-to-qiita'?: QiitaConfig;
 }
 
-/**
- * Read WT plugin configuration from ~/.claude/wt/config.jsonc
- */
-export function readWtConfig(): WtConfig {
-  const configPath = path.join(os.homedir(), '.claude', 'wt', 'config.jsonc');
-
-  try {
-    if (!fs.existsSync(configPath)) {
-      return {};
-    }
-
-    const content = fs.readFileSync(configPath, 'utf-8');
-    const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
-    return JSON.parse(jsonContent) as WtConfig;
-  } catch {
-    console.debug('[qiita] Failed to read WT config, using defaults');
-    return {};
-  }
+function getQiitaConfig(): QiitaConfig {
+  const wtConfig = getWtConfig();
+  return (wtConfig['publish-to-qiita'] as QiitaConfig) || {};
 }
 
 /**
  * Get method preference
  */
 export function getMethodPreference(): 'cli' | 'api' {
-  const config = readWtConfig();
-  return config['publish-to-qiita']?.method ?? 'cli';
+  const config = getQiitaConfig();
+  return config.method ?? 'cli';
 }
 
 /**
  * Get default private preference
  */
 export function getDefaultPrivatePreference(): boolean {
-  const config = readWtConfig();
-  return config['publish-to-qiita']?.default_private ?? false;
+  const config = getQiitaConfig();
+  return config.default_private ?? false;
 }
 
 /**
@@ -65,9 +52,9 @@ export function getDefaultPrivatePreference(): boolean {
  * This implements the WT plugin pattern where env vars are auto-injected
  */
 function loadEnvFromConfig(): void {
-  const config = readWtConfig();
-  if (config.env) {
-    for (const [key, value] of Object.entries(config.env)) {
+  const wtConfig = getWtConfig() as WtConfig;
+  if (wtConfig.env) {
+    for (const [key, value] of Object.entries(wtConfig.env)) {
       if (value && !process.env[key]) {
         process.env[key] = value;
       }
@@ -89,14 +76,16 @@ export function getAccessToken(): string | undefined {
   }
 
   // Priority 2: Deprecated access_token field (backward compatibility)
-  return readWtConfig()['publish-to-qiita']?.access_token;
+  const config = getQiitaConfig();
+  return config.access_token;
 }
 
 /**
  * Get organization URL name
  */
 export function getOrganizationUrlName(): string | undefined {
-  return readWtConfig()['publish-to-qiita']?.organization_url_name;
+  const config = getQiitaConfig();
+  return config.organization_url_name;
 }
 
 // ============================================================================
