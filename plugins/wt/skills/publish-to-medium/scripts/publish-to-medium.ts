@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { getWtConfig } from '@wt/web-automation/config';
 
 const MEDIUM_API_BASE = 'https://api.medium.com/v1';
 
@@ -47,49 +48,16 @@ interface PostOptions {
 // Configuration
 // ============================================================================
 
-let wtConfigCache: MediumConfig | null = null;
-let wtConfigCacheTime = 0;
-const CONFIG_CACHE_TTL_MS = 60_000;
-
-function expandTilde(filePath: string): string {
-  if (filePath.startsWith('~/')) {
-    return path.join(process.env.HOME || process.env.USERPROFILE || '', filePath.slice(2));
-  }
-  return filePath;
-}
-
-function readWtConfig(): MediumConfig {
-  const now = Date.now();
-
-  if (wtConfigCache && (now - wtConfigCacheTime) < CONFIG_CACHE_TTL_MS) {
-    return wtConfigCache;
-  }
-
-  const configPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.claude', 'wt', 'config.jsonc');
-
-  try {
-    if (!fs.existsSync(configPath)) {
-      return {};
-    }
-
-    const content = fs.readFileSync(configPath, 'utf-8');
-    const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
-    const parsed = JSON.parse(jsonContent) as { 'publish-to-medium'?: MediumConfig };
-
-    wtConfigCache = parsed['publish-to-medium'] || {};
-    wtConfigCacheTime = now;
-    return wtConfigCache ?? {};
-  } catch (error) {
-    console.debug('[medium] Failed to read WT config, using defaults:', error);
-    return {};
-  }
+function getMediumConfig(): MediumConfig {
+  const wtConfig = getWtConfig();
+  return (wtConfig['publish-to-medium'] as MediumConfig) || {};
 }
 
 function getIntegrationToken(): string {
   const envToken = process.env.MEDIUM_INTEGRATION_TOKEN?.trim();
   if (envToken) return envToken;
 
-  const config = readWtConfig();
+  const config = getMediumConfig();
   const token = config.integration_token;
 
   if (!token) {
@@ -103,7 +71,7 @@ function getIntegrationToken(): string {
 }
 
 function getDefaultPublishStatus(): 'public' | 'draft' | 'unlisted' {
-  const config = readWtConfig();
+  const config = getMediumConfig();
   return config.default_publish_status || 'draft';
 }
 
