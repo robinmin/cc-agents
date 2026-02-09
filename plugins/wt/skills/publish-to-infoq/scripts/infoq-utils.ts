@@ -1,56 +1,23 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { getWtConfig } from '@wt/web-automation/config';
 
 // ============================================================================
 // WT Configuration
 // ============================================================================
 
-interface WtConfig {
-  version?: string;
-  'publish-to-infoq'?: {
-    profile_dir?: string;
-    auto_publish?: boolean;
-  };
+interface InfoQConfig {
+  profile_dir?: string;
+  auto_publish?: boolean;
 }
 
-let wtConfigCache: WtConfig | null = null;
-let wtConfigCacheTime = 0;
-const CONFIG_CACHE_TTL_MS = 60_000; // Cache expires after 1 minute
-
 /**
- * Read WT plugin configuration from ~/.claude/wt/config.jsonc
- * Uses caching with TTL to avoid repeated file reads while allowing updates.
+ * Get InfoQ config from WT config
  */
-export function readWtConfig(): WtConfig {
-  const now = Date.now();
-
-  // Return cached config if still valid
-  if (wtConfigCache && (now - wtConfigCacheTime) < CONFIG_CACHE_TTL_MS) {
-    return wtConfigCache;
-  }
-
-  const configPath = path.join(os.homedir(), '.claude', 'wt', 'config.jsonc');
-
-  try {
-    if (!fs.existsSync(configPath)) {
-      return {};
-    }
-
-    // Read and parse JSONC (allows comments)
-    const content = fs.readFileSync(configPath, 'utf-8');
-
-    // Strip comments for JSON parsing
-    const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
-    const parsed = JSON.parse(jsonContent) as WtConfig;
-
-    wtConfigCache = parsed;
-    wtConfigCacheTime = now;
-    return parsed;
-  } catch (error) {
-    console.debug('[infoq-utils] Failed to read WT config, using defaults:', error);
-    return {};
-  }
+export function getInfoQConfig(): InfoQConfig {
+  const wtConfig = getWtConfig();
+  return (wtConfig['publish-to-infoq'] as InfoQConfig) || {};
 }
 
 /**
@@ -67,8 +34,8 @@ export function expandTilde(filePath: string): string {
  * Get default profile directory for InfoQ browser from WT config
  */
 export function getWtProfileDir(): string | undefined {
-  const config = readWtConfig();
-  const configProfileDir = config['publish-to-infoq']?.profile_dir;
+  const config = getInfoQConfig();
+  const configProfileDir = config.profile_dir;
 
   if (configProfileDir) {
     return expandTilde(configProfileDir);
@@ -79,11 +46,10 @@ export function getWtProfileDir(): string | undefined {
 
 /**
  * Get auto-publish preference from WT config
- * @returns true if auto-publish is enabled (submits immediately without draft)
  */
 export function getAutoPublishPreference(): boolean {
-  const config = readWtConfig();
-  return config['publish-to-infoq']?.auto_publish ?? false;
+  const config = getInfoQConfig();
+  return config.auto_publish ?? false;
 }
 
 // ============================================================================
