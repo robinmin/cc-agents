@@ -18,7 +18,7 @@ import {
   parseMarkdownFile,
   generateSlug,
   sanitizeForJavaScript,
-  readWtConfig,
+  getZennConfig,
   getWtProfileDir,
 } from '../scripts/zenn-utils.js';
 
@@ -236,8 +236,8 @@ Content`;
   });
 
   describe('configuration functions', () => {
-    test('readWtConfig should return config object', () => {
-      const config = readWtConfig();
+    test('getZennConfig should return config object', () => {
+      const config = getZennConfig();
       expect(typeof config).toBe('object');
     });
 
