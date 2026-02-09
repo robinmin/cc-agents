@@ -7,47 +7,33 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
+import { getWtConfig } from '@wt/web-automation/config';
 
 // ============================================================================
 // WT Configuration
 // ============================================================================
 
-interface WtConfig {
-  version?: string;
-  'publish-to-zenn'?: {
-    method?: 'cli' | 'browser';
-    github_repo?: string;
-    auto_publish?: boolean;
-    profile_dir?: string;
-  };
+interface ZennConfig {
+  method?: 'cli' | 'browser';
+  github_repo?: string;
+  auto_publish?: boolean;
+  profile_dir?: string;
 }
 
 /**
- * Read WT plugin configuration from ~/.claude/wt/config.jsonc
+ * Get Zenn config from WT config
  */
-export function readWtConfig(): WtConfig {
-  const configPath = path.join(os.homedir(), '.claude', 'wt', 'config.jsonc');
-
-  try {
-    if (!fs.existsSync(configPath)) {
-      return {};
-    }
-
-    const content = fs.readFileSync(configPath, 'utf-8');
-    const jsonContent = content.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
-    return JSON.parse(jsonContent) as WtConfig;
-  } catch {
-    console.debug('[zenn] Failed to read WT config, using defaults');
-    return {};
-  }
+export function getZennConfig(): ZennConfig {
+  const wtConfig = getWtConfig();
+  return (wtConfig['publish-to-zenn'] as ZennConfig) || {};
 }
 
 /**
  * Get WT profile directory for browser automation
  */
 export function getWtProfileDir(): string | undefined {
-  const config = readWtConfig();
-  return config['publish-to-zenn']?.profile_dir;
+  const config = getZennConfig();
+  return config.profile_dir;
 }
 
 // ============================================================================
