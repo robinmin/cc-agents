@@ -20,11 +20,6 @@ import {
 
 export const X_COMPOSE_URL = 'https://x.com/compose/post';
 
-// Known working Chromium executables (Playwright-installed)
-const CHROMIUM_PATHS = [
-  '/Users/robin/Library/Caches/ms-playwright/chromium-1187/chrome-mac/Chromium.app/Contents/MacOS/Chromium',
-];
-
 // Selectors for X UI elements (with fallbacks for different UI states)
 const EDITOR_SELECTORS = [
   '[data-testid="tweetTextarea_0"]',
@@ -49,15 +44,22 @@ export interface XPlaywrightOptions {
   headless?: boolean;
 }
 
-async function findWorkingChromium(): Promise<string | undefined> {
-  for (const chromiumPath of CHROMIUM_PATHS) {
-    if (fs.existsSync(chromiumPath)) {
-      console.log(`[x-playwright] Found Chromium: ${chromiumPath}`);
-      return chromiumPath;
-    }
+/**
+ * Get Playwright Chromium executable path
+ *
+ * Uses Playwright's built-in cross-platform executable detection.
+ * This works on macOS, Windows, and Linux without hardcoded paths.
+ */
+async function getChromiumPath(): Promise<string | undefined> {
+  try {
+    // Use Playwright's built-in executable detection
+    const executablePath = chromium.executablePath();
+    console.log(`[x-playwright] Using Playwright Chromium: ${executablePath}`);
+    return executablePath;
+  } catch {
+    console.log('[x-playwright] Playwright Chromium not found, falling back to system Chrome');
+    return undefined;
   }
-  console.log('[x-playwright] No explicit Chromium found');
-  return undefined;
 }
 
 async function copyImage(imagePath: string): Promise<boolean> {
@@ -87,7 +89,7 @@ export async function postToXPlaywright(options: XPlaywrightOptions): Promise<vo
 
   await mkdir(profileDir, { recursive: true });
 
-  const chromiumPath = await findWorkingChromium();
+  const chromiumPath = await getChromiumPath();
   console.log(`[x-playwright] Launching Chromium (${chromiumPath || 'system'}, profile: ${profileDir})`);
 
   const context = await chromium.launchPersistentContext(profileDir, {
