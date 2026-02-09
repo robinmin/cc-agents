@@ -1,0 +1,23 @@
+{
+  "name": "@wt/skills",
+  "version": "1.0.0",
+  "description": "WT plugin publishing skills",
+  "private": true,
+  "workspaces": [
+    "skills/*",
+    "scripts/*"
+  ],
+  "scripts": {
+    "install:all": "pnpm install",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.3.0"
+  },
+  "overrides": {
+    "@wt/web-automation": "workspace:*"
+  }
+}
