@@ -9,6 +9,9 @@ import http from 'node:http';
 import { spawnSync } from 'node:child_process';
 import process from 'node:process';
 
+// Import theme validation for security (command injection prevention)
+import { getValidTheme } from '@wt/web-automation/sanitize.js';
+
 interface ImageInfo {
   placeholder: string;
   localPath: string;
@@ -19,6 +22,7 @@ interface ParsedResult {
   title: string;
   author: string;
   summary: string;
+  coverImage?: string;
   htmlPath: string;
   contentImages: ImageInfo[];
 }
@@ -115,7 +119,10 @@ function parseFrontmatter(content: string): { frontmatter: Record<string, string
 export async function convertMarkdown(markdownPath: string, options?: { title?: string; theme?: string }): Promise<ParsedResult> {
   const baseDir = path.dirname(markdownPath);
   const content = fs.readFileSync(markdownPath, 'utf-8');
-  const theme = options?.theme ?? 'default';
+
+  // Validate theme parameter for security (command injection prevention)
+  // This throws an Error if theme is not in the allowed list
+  const theme = getValidTheme(options?.theme, 'default');
 
   const { frontmatter, body } = parseFrontmatter(content);
 
@@ -155,7 +162,7 @@ export async function convertMarkdown(markdownPath: string, options?: { title?: 
   const images: Array<{ src: string; placeholder: string }> = [];
   let imageCounter = 0;
 
-  const modifiedBody = body.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+  const modifiedBody = body.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, _alt, src) => {
     const placeholder = `WECHATIMGPH_${++imageCounter}`;
     images.push({ src, placeholder });
     return placeholder;
@@ -202,6 +209,7 @@ export async function convertMarkdown(markdownPath: string, options?: { title?: 
     title,
     author,
     summary,
+    coverImage: frontmatter.cover_image || frontmatter.coverImage || frontmatter['cover-image'],
     htmlPath,
     contentImages,
   };
@@ -267,6 +275,17 @@ async function main(): Promise<void> {
   if (!fs.existsSync(markdownPath)) {
     console.error(`Error: File not found: ${markdownPath}`);
     process.exit(1);
+  }
+
+  // Validate theme parameter from command line for security
+  if (theme) {
+    try {
+      theme = getValidTheme(theme);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      console.error(`Error: ${errorMsg}`);
+      process.exit(1);
+    }
   }
 
   const result = await convertMarkdown(markdownPath, { title, theme });
