@@ -10,7 +10,15 @@
     "./browser": "./dist/browser.js",
     "./clipboard": "./dist/clipboard.js",
     "./paste": "./dist/paste.js",
-    "./types": "./dist/types.d.ts"
+    "./config": "./dist/config.js",
+    "./selectors": "./dist/selectors.js",
+    "./types": "./dist/types.d.ts",
+    "./logger": "./dist/logger.js",
+    "./sanitize": "./dist/sanitize.js",
+    "./constants": "./dist/constants.js",
+    "./errors": "./dist/errors.js",
+    "./fs": "./dist/fs.js",
+    "./async": "./dist/async.js"
   },
   "files": [
     "dist"

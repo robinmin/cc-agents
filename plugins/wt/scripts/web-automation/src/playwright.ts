@@ -29,6 +29,53 @@ export interface PlaywrightOptions {
   viewport?: { width: number; height: number };
   args?: string[];
   verbose?: boolean;
+  chromiumPath?: string;
+}
+
+// ============================================================================
+// Cross-Platform Chromium Detection
+// ============================================================================
+
+import { chromium } from 'playwright';
+
+/**
+ * Get Playwright Chromium executable path
+ *
+ * Uses Playwright's built-in executable detection, which works
+ * across all platforms (macOS, Windows, Linux).
+ *
+ * This replaces hardcoded macOS-only paths and ensures
+ * cross-platform compatibility.
+ */
+export async function getChromiumPath(): Promise<string> {
+  const executablePath = chromium.executablePath();
+  return executablePath;
+}
+
+/**
+ * Launch browser with cross-platform Chromium detection
+ *
+ * @param options - Browser launch options
+ * @returns Launched Playwright browser instance
+ *
+ * @example
+ * const browser = await launchBrowser({ headless: false });
+ */
+export async function launchBrowser(options: PlaywrightOptions = {}) {
+  const { profileDir, headless = false, slowMo, viewport, args = [], chromiumPath, verbose } = options;
+
+  const browser = await chromium.launch({
+    headless,
+    executablePath: chromiumPath ?? await getChromiumPath(),
+    args: profileDir ? [`--user-data-dir=${profileDir}`, ...args] : args,
+    slowMo,
+  });
+
+  if (verbose) {
+    console.log('[pw] Browser launched with executable:', chromiumPath ?? await getChromiumPath());
+  }
+
+  return browser;
 }
 
 export interface PlatformConfig {

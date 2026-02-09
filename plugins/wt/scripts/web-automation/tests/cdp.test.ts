@@ -2,7 +2,7 @@
  * Unit tests for CDP library
  */
 
-import { describe, test, expect, beforeEach, spyOn } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -35,6 +35,11 @@ function restoreEnv() {
     process.env[key] = originalEnv[key]!;
   }
 }
+
+// Add afterEach to restore environment after all tests
+afterEach(() => {
+  restoreEnv();
+});
 
 // ============================================================================
 // sleep Tests
@@ -95,10 +100,6 @@ describe('getFreePort', () => {
 // ============================================================================
 
 describe('findChromeExecutable', () => {
-  beforeEach(() => {
-    restoreEnv();
-  });
-
   test('should return undefined when Chrome is not found', () => {
     // Use candidates that definitely don't exist
     const nonExistentCandidates = {
@@ -125,6 +126,9 @@ describe('findChromeExecutable', () => {
   });
 
   test('should return existing path from env var', () => {
+    // Clear any existing env var first
+    delete process.env.WT_BROWSER_CHROME_PATH;
+
     // Create a temp file to simulate an executable
     const tempDir = os.tmpdir();
     const fakeChrome = path.join(tempDir, 'fake-chrome-test');
@@ -137,6 +141,7 @@ describe('findChromeExecutable', () => {
 
     // Clean up
     fs.unlinkSync(fakeChrome);
+    delete process.env.WT_BROWSER_CHROME_PATH;
     restoreEnv();
   });
 
@@ -193,12 +198,17 @@ describe('getDefaultProfileDir', () => {
   });
 
   test('should respect XDG_DATA_HOME env var', () => {
+    // Clear any existing env var first
+    delete process.env.XDG_DATA_HOME;
+
     const customDir = '/tmp/xdg-data';
     process.env.XDG_DATA_HOME = customDir;
 
     const result = getDefaultProfileDir();
     expect(result).toContain(customDir);
 
+    // Clean up
+    delete process.env.XDG_DATA_HOME;
     restoreEnv();
   });
 

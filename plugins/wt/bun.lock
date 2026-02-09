@@ -1,0 +1,186 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "@wt/skills",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.3.0",
+      },
+    },
+    "scripts/web-automation": {
+      "name": "@wt/web-automation",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/node": "^20.0.0",
+        "bun-types": "^1.3.8",
+      },
+    },
+    "skills/publish-to-infoq": {
+      "name": "publish-to-infoq-tests",
+      "version": "1.0.0",
+      "dependencies": {
+        "playwright": "^1.40.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@wt/web-automation": "workspace:*",
+      },
+    },
+    "skills/publish-to-juejin": {
+      "name": "publish-to-juejin-tests",
+      "version": "1.0.0",
+      "dependencies": {
+        "playwright": "^1.40.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@wt/web-automation": "workspace:*",
+      },
+    },
+    "skills/publish-to-medium": {
+      "name": "publish-to-medium-tests",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/bun": "latest",
+      },
+    },
+    "skills/publish-to-qiita": {
+      "name": "publish-to-qiita-tests",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@wt/web-automation": "workspace:*",
+      },
+    },
+    "skills/publish-to-substack": {
+      "name": "publish-to-substack-tests",
+      "version": "1.0.0",
+      "dependencies": {
+        "playwright": "^1.40.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@wt/web-automation": "workspace:*",
+      },
+    },
+    "skills/publish-to-wechatmp": {
+      "name": "publish-to-wechatmp",
+      "version": "2.0.0",
+      "dependencies": {
+        "fflate": "^0.8.2",
+        "front-matter": "^4.0.2",
+        "highlight.js": "^11.11.1",
+        "marked": "^17.0.1",
+        "playwright": "^1.40.0",
+        "reading-time": "^1.5.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@wt/web-automation": "workspace:*",
+      },
+    },
+    "skills/publish-to-x": {
+      "name": "publish-to-x-tests",
+      "version": "1.0.0",
+      "dependencies": {
+        "playwright": "^1.50.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@wt/web-automation": "workspace:*",
+      },
+    },
+    "skills/publish-to-xhs": {
+      "name": "publish-to-xhs",
+      "version": "1.0.0",
+      "dependencies": {
+        "playwright": "^1.40.0",
+      },
+      "devDependencies": {
+        "@wt/web-automation": "workspace:*",
+        "bun-types": "latest",
+      },
+    },
+    "skills/publish-to-zenn": {
+      "name": "publish-to-zenn-tests",
+      "version": "1.0.0",
+      "dependencies": {
+        "playwright": "^1.40.0",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@wt/web-automation": "workspace:*",
+      },
+    },
+  },
+  "overrides": {
+    "@wt/web-automation": "workspace:*",
+  },
+  "packages": {
+    "@types/bun": ["@types/bun@1.3.8", "", { "dependencies": { "bun-types": "1.3.8" } }, "sha512-3LvWJ2q5GerAXYxO2mffLTqOzEu5qnhEAlh48Vnu8WQfnmSwbgagjGZV6BoHKJztENYEDn6QmVd949W4uESRJA=="],
+
+    "@types/node": ["@types/node@20.19.33", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-Rs1bVAIdBs5gbTIKza/tgpMuG1k3U/UMJLWecIMxNdJFDMzcM5LOiLVRYh3PilWEYDIeUDv7bpiHPLPsbydGcw=="],
+
+    "@wt/web-automation": ["@wt/web-automation@workspace:scripts/web-automation"],
+
+    "argparse": ["argparse@1.0.10", "", { "dependencies": { "sprintf-js": "~1.0.2" } }, "sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg=="],
+
+    "bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
+
+    "esprima": ["esprima@4.0.1", "", { "bin": { "esparse": "./bin/esparse.js", "esvalidate": "./bin/esvalidate.js" } }, "sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A=="],
+
+    "fflate": ["fflate@0.8.2", "", {}, "sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A=="],
+
+    "front-matter": ["front-matter@4.0.2", "", { "dependencies": { "js-yaml": "^3.13.1" } }, "sha512-I8ZuJ/qG92NWX8i5x1Y8qyj3vizhXS31OxjKDu3LKP+7/qBgfIKValiZIEwoVoJKUHlhWtYrktkxV1XsX+pPlg=="],
+
+    "fsevents": ["fsevents@2.3.2", "", { "os": "darwin" }, "sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA=="],
+
+    "highlight.js": ["highlight.js@11.11.1", "", {}, "sha512-Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w=="],
+
+    "js-yaml": ["js-yaml@3.14.2", "", { "dependencies": { "argparse": "^1.0.7", "esprima": "^4.0.0" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-PMSmkqxr106Xa156c2M265Z+FTrPl+oxd/rgOQy2tijQeK5TxQ43psO1ZCwhVOSdnn+RzkzlRz/eY4BgJBYVpg=="],
+
+    "marked": ["marked@17.0.1", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-boeBdiS0ghpWcSwoNm/jJBwdpFaMnZWRzjA6SkUMYb40SVaN1x7mmfGKp0jvexGcx+7y2La5zRZsYFZI6Qpypg=="],
+
+    "playwright": ["playwright@1.58.2", "", { "dependencies": { "playwright-core": "1.58.2" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-vA30H8Nvkq/cPBnNw4Q8TWz1EJyqgpuinBcHET0YVJVFldr8JDNiU9LaWAE1KqSkRYazuaBhTpB5ZzShOezQ6A=="],
+
+    "playwright-core": ["playwright-core@1.58.2", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-yZkEtftgwS8CsfYo7nm0KE8jsvm6i/PTgVtB8DL726wNf6H2IMsDuxCpJj59KDaxCtSnrWan2AeDqM7JBaultg=="],
+
+    "publish-to-infoq-tests": ["publish-to-infoq-tests@workspace:skills/publish-to-infoq"],
+
+    "publish-to-juejin-tests": ["publish-to-juejin-tests@workspace:skills/publish-to-juejin"],
+
+    "publish-to-medium-tests": ["publish-to-medium-tests@workspace:skills/publish-to-medium"],
+
+    "publish-to-qiita-tests": ["publish-to-qiita-tests@workspace:skills/publish-to-qiita"],
+
+    "publish-to-substack-tests": ["publish-to-substack-tests@workspace:skills/publish-to-substack"],
+
+    "publish-to-wechatmp": ["publish-to-wechatmp@workspace:skills/publish-to-wechatmp"],
+
+    "publish-to-x-tests": ["publish-to-x-tests@workspace:skills/publish-to-x"],
+
+    "publish-to-xhs": ["publish-to-xhs@workspace:skills/publish-to-xhs"],
+
+    "publish-to-zenn-tests": ["publish-to-zenn-tests@workspace:skills/publish-to-zenn"],
+
+    "reading-time": ["reading-time@1.5.0", "", {}, "sha512-onYyVhBNr4CmAxFsKS7bz+uTLRakypIe4R+5A824vBSkQy/hB3fZepoVEf8OVAxzLvK+H/jm9TzpI3ETSm64Kg=="],
+
+    "sprintf-js": ["sprintf-js@1.0.3", "", {}, "sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g=="],
+
+    "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+
+    "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+
+    "@types/bun/bun-types": ["bun-types@1.3.8", "", { "dependencies": { "@types/node": "25.2.2" } }, "sha512-fL99nxdOWvV4LqjmC+8Q9kW3M4QTtTR1eePs94v5ctGqU8OeceWrSUaRw3JYb7tU3FkMIAjkueehrHPPPGKi5Q=="],
+
+    "bun-types/@types/node": ["@types/node@25.2.2", "", { "dependencies": { "undici-types": "7.16.0" } }, "sha512-BkmoP5/FhRYek5izySdkOneRyXYN35I860MFAGupTdebyE66uZaR+bXLHq8k4DirE5DwQi3NuhvRU1jqTVwUrQ=="],
+
+    "@types/bun/bun-types/@types/node": ["@types/node@25.2.2", "", { "dependencies": { "undici-types": "7.16.0" } }, "sha512-BkmoP5/FhRYek5izySdkOneRyXYN35I860MFAGupTdebyE66uZaR+bXLHq8k4DirE5DwQi3NuhvRU1jqTVwUrQ=="],
+
+    "bun-types/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
+
+    "@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
+  }
+}

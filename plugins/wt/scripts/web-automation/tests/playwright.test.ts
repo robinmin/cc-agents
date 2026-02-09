@@ -54,6 +54,8 @@ describe('getDefaultProfileDir', () => {
   it('should return a path in XDG_DATA_HOME when set', () => {
     const original = process.env.XDG_DATA_HOME;
     try {
+      // Clear any existing value first to ensure clean state
+      delete process.env.XDG_DATA_HOME;
       process.env.XDG_DATA_HOME = '/custom/data';
       const dir = getDefaultProfileDir('test');
       expect(dir).toBe('/custom/data/test-profile');
