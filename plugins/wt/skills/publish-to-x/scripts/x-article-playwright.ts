@@ -197,20 +197,22 @@ interface ArticleOptions {
   chromiumPath?: string;
 }
 
-// Playwright-installed Chromium paths
-const CHROMIUM_PATHS = [
-  '/Users/robin/Library/Caches/ms-playwright/chromium-1187/chrome-mac/Chromium.app/Contents/MacOS/Chromium',
-];
-
-async function findWorkingChromium(): Promise<string | undefined> {
-  for (const chromiumPath of CHROMIUM_PATHS) {
-    if (fs.existsSync(chromiumPath)) {
-      console.log(`[x-article-pw] Found Chromium: ${chromiumPath}`);
-      return chromiumPath;
-    }
+/**
+ * Get Playwright Chromium executable path
+ *
+ * Uses Playwright's built-in cross-platform executable detection.
+ * This works on macOS, Windows, and Linux without hardcoded paths.
+ */
+async function getChromiumPath(): Promise<string | undefined> {
+  try {
+    // Use Playwright's built-in executable detection
+    const executablePath = chromium.executablePath();
+    console.log(`[x-article-pw] Using Playwright Chromium: ${executablePath}`);
+    return executablePath;
+  } catch {
+    console.log('[x-article-pw] Playwright Chromium not found, falling back to system Chrome');
+    return undefined;
   }
-  console.log('[x-article-pw] No explicit Chromium found, using system default');
-  return undefined;
 }
 
 async function findSelector(page: Page, selectors: string[]): Promise<string | null> {
@@ -433,7 +435,7 @@ export async function publishArticle(
 
   await mkdir(profileDir, { recursive: true });
 
-  const chromiumPath = await findWorkingChromium();
+  const chromiumPath = await getChromiumPath();
   console.log(`[x-article-pw] Launching Chromium (${chromiumPath || 'system'}, profile: ${profileDir})`);
 
   const context = await chromium.launchPersistentContext(profileDir, {
