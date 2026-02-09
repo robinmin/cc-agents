@@ -4,70 +4,32 @@
  * X (Twitter) specific utilities for publishing content.
  *
  * Architecture:
- * - WT config utilities
+ * - WT config utilities (using @wt/web-automation)
  * - Clipboard/paste operations (re-exported from @wt/web-automation)
  *
  * Usage:
- *   import { readWtConfig, getAutoSubmitPreference, copyImageToClipboard } from './x-utils.js';
+ *   import { getWtConfig, getAutoSubmitPreference, copyImageToClipboard } from './x-utils.js';
  */
 
-import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
+import os from 'node:os';
+import { getWtConfig } from '@wt/web-automation/config';
 
 // ============================================================================
 // WT Configuration
 // ============================================================================
 
-interface WtConfig {
-  version?: string;
-  'publish-to-x'?: {
-    profile_dir?: string;
-    auto_submit?: boolean;
-  };
+interface XConfig {
+  profile_dir?: string;
+  auto_submit?: boolean;
 }
 
-let wtConfigCache: WtConfig | null = null;
-let wtConfigCacheTime = 0;
-const CONFIG_CACHE_TTL_MS = 60_000; // Cache expires after 1 minute
-
 /**
- * Read WT plugin configuration from ~/.claude/wt/config.jsonc
- * Uses caching with TTL to avoid repeated file reads while allowing updates.
+ * Get X (Twitter) config from WT config
  */
-export function readWtConfig(): WtConfig {
-  const now = Date.now();
-
-  // Return cached config if still valid
-  if (wtConfigCache && (now - wtConfigCacheTime) < CONFIG_CACHE_TTL_MS) {
-    return wtConfigCache;
-  }
-
-  const configPath = path.join(os.homedir(), '.claude', 'wt', 'config.jsonc');
-
-  try {
-    if (!fs.existsSync(configPath)) {
-      return {};
-    }
-
-    // Read and parse JSONC (allows comments)
-    const content = fs.readFileSync(configPath, 'utf-8');
-
-    // Strip comments for JSON parsing
-    // First remove comments, then fix trailing commas
-    const jsonContent = content
-      .replace(/\/\*[\s\S]*?\*\//g, '')   // Remove /* ... */ comments
-      .replace(/\s*\/\/.*$/gm, '')         // Remove // ... comments
-      .replace(/,\s*([}\]])/g, '$1');      // Remove trailing commas before } or ]
-    const parsed = JSON.parse(jsonContent) as WtConfig;
-
-    wtConfigCache = parsed;
-    wtConfigCacheTime = now;
-    return parsed;
-  } catch (error) {
-    console.debug('[x-utils] Failed to read WT config, using defaults:', error);
-    return {};
-  }
+function getXConfig(): XConfig {
+  const wtConfig = getWtConfig();
+  return (wtConfig['publish-to-x'] as XConfig) || {};
 }
 
 /**
@@ -75,8 +37,8 @@ export function readWtConfig(): WtConfig {
  * @returns true if auto-submit is enabled (posts immediately without preview)
  */
 export function getAutoSubmitPreference(): boolean {
-  const config = readWtConfig();
-  return config['publish-to-x']?.auto_submit ?? false;
+  const config = getXConfig();
+  return config.auto_submit ?? false;
 }
 
 /**
@@ -92,9 +54,8 @@ export function getAutoSubmitPreference(): boolean {
  */
 export function getDefaultProfileDir(skillName: string = 'publish-to-x'): string {
   // Try to read from WT config
-  // Config format: { "publish-to-x": { "profile_dir": "..." } }
-  const config = readWtConfig();
-  const configProfileDir = (config as Record<string, { profile_dir?: string }>)[skillName]?.profile_dir;
+  const wtConfig = getWtConfig();
+  const configProfileDir = (wtConfig[skillName] as { profile_dir?: string } | undefined)?.profile_dir;
 
   if (configProfileDir) {
     // Expand tilde in path
