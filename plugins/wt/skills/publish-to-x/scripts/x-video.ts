@@ -4,19 +4,19 @@ import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
-// CDP utilities from web-automation
+// CDP utilities from @wt/web-automation (workspace dependency)
 import {
   CHROME_CANDIDATES_FULL,
   CdpConnection,
   findChromeExecutable,
   waitForChromeDebugPort,
-} from '../../../scripts/web-automation/dist/browser.js';
+} from '@wt/web-automation/browser';
 
-// Shared utilities from playwright
+// Shared utilities from @wt/web-automation (workspace dependency)
 import {
   getFreePort,
   pwSleep as sleep,
-} from '../../../scripts/web-automation/dist/playwright.js';
+} from '@wt/web-automation/playwright';
 
 // X-specific utilities from x-utils
 import {
