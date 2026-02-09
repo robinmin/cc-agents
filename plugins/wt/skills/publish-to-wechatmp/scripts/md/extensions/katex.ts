@@ -1,3 +1,4 @@
+/// <reference path="./katex.d.ts" />
 import type { MarkedExtension } from 'marked'
 
 export interface MarkedKatexOptions {
@@ -15,12 +16,11 @@ const blockLatexRule = /^\\\[([^\\]*(?:\\.[^\\]*)*?)\\\]/
 
 function createRenderer(display: boolean, withStyle: boolean = true) {
   return (token: any) => {
-    // @ts-expect-error MathJax is a global variable
+    // Type-safe MathJax access (types defined in katex.d.ts)
     window.MathJax.texReset()
-    // @ts-expect-error MathJax is a global variable
     const mjxContainer = window.MathJax.tex2svg(token.text, { display })
     const svg = mjxContainer.firstChild
-    const width = svg.style[`min-width`] || svg.getAttribute(`width`)
+    const width = svg.style[`min-width`] || svg.getAttribute(`width`) || undefined
     svg.removeAttribute(`width`)
 
     // 行内公式对齐 https://groups.google.com/g/mathjax-users/c/zThKffrrCvE?pli=1
@@ -31,7 +31,7 @@ function createRenderer(display: boolean, withStyle: boolean = true) {
       svg.style.display = `initial`
       svg.style.setProperty(`max-width`, `300vw`, `important`)
       svg.style.flexShrink = `0`
-      svg.style.width = width
+      if (width) svg.style.width = width
     }
 
     if (!display) {
