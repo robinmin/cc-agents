@@ -2,6 +2,105 @@
 
 All notable changes to the wt plugin will be documented in this file.
 
+## [1.7.4] - 2026-02-07
+
+### Summary
+
+**Browser Automation Enhancement & New Image Generation: Playwright Integration, Unified Web Automation, and Image Generator Subagent**
+
+Major refactoring of web automation infrastructure with Playwright integration, new CDP module, and comprehensive unit tests. Added wt:image-generator subagent for AI image generation and appwrite application support.
+
+### Added
+
+- **wt:image-generator Subagent** (`agents/image-generator.md`):
+  - AI-powered image generation with multiple backends (HuggingFace, Gemini)
+  - Template-based generation with style presets
+  - Configurable resolution, steps, and seed parameters
+  - Support for cover images and article illustrations
+
+- **wt:image-generate Command** (`commands/image-generate.md`):
+  - Slash command interface for image generation
+  - Preset templates (blog, news, tutorial, technical)
+  - Style options (realistic, artistic, minimalist, vibrant, dark, light)
+  - Backend selection (z-image-turbo, stable-diffusion, flux)
+
+- **web-automation Package** (`scripts/web-automation/`):
+  - **CDP Module** (`src/cdp.ts`): Chrome DevTools Protocol integration for browser control
+  - **Playwright Integration** (`src/playwright.ts`): Modern browser automation framework
+  - **Async Utilities** (`src/async.ts`): Timeout handling, retry logic, sleep utilities
+  - **Config System** (`src/config.ts`): Centralized configuration with XDG paths
+  - **Selectors Module** (`src/selectors.ts`): Helper functions for element selection
+  - **Sanitize Module** (`src/sanitize.ts`): Content sanitization for safe HTML generation
+  - **Error Types** (`src/errors.ts`): Custom error classes for better error handling
+  - **Logger** (`src/logger.ts`): Structured logging for debugging
+
+- **Appwrite Application**:
+  - New application added to plugin capabilities
+  - Serverless backend and authentication support
+
+### Changed
+
+- **publish-to-x Enhancements**:
+  - Migrated from browser.js CDP wrapper to unified web-automation package
+  - Added `x-playwright.ts` for Playwright-based publishing
+  - Enhanced `x-article-playwright.ts` with better content processing
+  - Improved quote handling and content consistency
+
+- **publish-to-wechatmp Enhancements**:
+  - Adapted to use Playwright via web-automation package
+  - Replaced CDP-based approach with modern Playwright integration
+  - Improved article formatting and content processing
+
+- **publish-to-surfing Enhancements**:
+  - Fixed script exit issues with proper cleanup
+  - Added advanced options for content publishing
+  - Improved error handling and async patterns
+
+- **Publish-to Skills Migration**:
+  - All publish-to-* skills migrated to use `@wt/web-automation` workspace package
+  - Unified module resolution with proper package.json exports
+  - Removed code duplication across publish-to skills
+
+### Fixed
+
+- **Module Resolution Issues**:
+  - Fixed imports from `@wt/web-automation/dist/*.js` to use package exports
+  - Added missing `@wt/web-automation` workspace dependencies
+  - Corrected function name imports (e.g., `readWtConfig` → `getZennConfig`)
+
+- **Unit Test Infrastructure**:
+  - Fixed environment variable handling in test lifecycle hooks
+  - Achieved 100% pass rate for web-automation tests (678 pass / 0 fail)
+  - Achieved 100% pass rate for all publish-to skills (288 tests)
+  - Fixed test imports and outdated test expectations
+
+- **Content Processing**:
+  - Fixed MathJax type safety issues
+  - Fixed command injection vulnerabilities in shell escaping
+  - Improved table-code-converter reliability
+
+- **Browser Automation**:
+  - Fixed CDP connection cleanup and resource management
+  - Fixed browser launch failures with proper error handling
+  - Fixed clipboard paste operations for cross-platform compatibility
+
+### Technical Improvements
+
+- **Test Coverage**: Enhanced unit tests for WT publish-to skills with comprehensive coverage
+- **Code Quality**: Improved type safety, error handling, and async patterns
+- **Package Structure**: Reorganized web-automation as shared workspace package
+- **Documentation**: Added task files documenting refactoring process and migration steps
+
+### Benefits
+
+- **Modern Browser Automation**: Playwright integration provides more reliable cross-browser support
+- **Unified Infrastructure**: Shared web-automation package reduces code duplication
+- **Better Image Generation**: New subagent with configurable backends and templates
+- **Improved Reliability**: Comprehensive test coverage ensures publish-to skills work correctly
+- **Enhanced Developer Experience**: Centralized configuration and better error messages
+
+---
+
 ## [1.6.4] - 2026-02-02
 
 ### Summary
