@@ -1,13 +1,18 @@
 {
-  "name": "publish-to-wechatmp-tests",
-  "version": "1.0.0",
-  "description": "Tests for publish-to-wechatmp skill",
+  "name": "publish-to-wechatmp",
+  "version": "2.0.0",
+  "description": "WeChat MP publishing scripts with Playwright",
   "type": "module",
-  "scripts": {
-    "test": "bun test tests/**/*.test.ts",
-    "test:watch": "bun test --watch tests/**/*.test.ts"
+  "dependencies": {
+    "fflate": "^0.8.2",
+    "front-matter": "^4.0.2",
+    "highlight.js": "^11.11.1",
+    "marked": "^17.0.1",
+    "playwright": "^1.40.0",
+    "reading-time": "^1.5.0"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@wt/web-automation": "workspace:*"
   }
 }
