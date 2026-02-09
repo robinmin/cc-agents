@@ -91,7 +91,7 @@ describe('x-utils', () => {
       expect(result.length).toBeGreaterThan(0);
 
       expect(path.isAbsolute(result)).toBe(true);
-      expect(result).toContain('x-browser-profile');
+      expect(result).toContain('publish-to-x-profile');
     });
 
     test('should return consistent results on multiple calls', () => {
