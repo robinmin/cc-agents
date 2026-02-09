@@ -11,6 +11,7 @@
     "test:watch": "bun test --watch tests/**/*.test.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@wt/web-automation": "workspace:*"
   }
 }
