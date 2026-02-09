@@ -1,12 +1,12 @@
 ---
 name: publish-to-zenn
-description: This skill should be used when the user asks to "publish to zenn", "create a zenn article", "post article to zenn.dev", "zenn.dev投稿", or mentions Zenn publishing. Supports markdown with frontmatter via Zenn CLI (GitHub integration) or browser automation.
-version: 1.0.0
+description: This skill should be used when the user asks to "publish to zenn", "create a zenn article", "post article to zenn.dev", "zenn.dev投稿", or mentions Zenn publishing. Supports markdown with frontmatter via Zenn CLI (GitHub integration) or browser automation (Playwright).
+version: 2.0.0
 ---
 
 # Post to Zenn (zenn.dev)
 
-Post markdown articles to Zenn platform using Zenn CLI with GitHub integration (primary) or browser automation (fallback).
+Post markdown articles to Zenn platform using Zenn CLI with GitHub integration (primary) or browser automation via Playwright (fallback).
 
 ## Quick Start
 
@@ -15,8 +15,10 @@ Post markdown articles to Zenn platform using Zenn CLI with GitHub integration (
 npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-zenn/scripts/zenn-article.ts --markdown article.md
 
 # Using browser automation (fallback - no GitHub required)
-npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-zenn/scripts/zenn-browser.ts --markdown article.md
+npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-zenn/scripts/zenn-article.ts --method browser --markdown article.md
 ```
+
+**Note**: The browser automation method now uses Playwright (version 2.0.0). The old CDP-based script (`zenn-browser.ts`) is deprecated.
 
 ## Publishing Methods
 
@@ -47,7 +49,8 @@ npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-zenn/scripts/zenn-browser.ts 
 - Similar to other publishing skills
 
 **Requirements:**
-- Chrome/Chromium browser
+- `bun` runtime
+- Playwright (auto-installed on first run)
 - Zenn login credentials
 - Manual login first run
 
@@ -60,8 +63,10 @@ Scripts are invoked using `${CLAUDE_PLUGIN_ROOT}/skills/publish-to-zenn/scripts/
 **Script Reference**:
 | Script | Purpose | Method |
 |--------|---------|--------|
-| `scripts/zenn-article.ts` | Post articles via Zenn CLI + Git | CLI |
-| `scripts/zenn-browser.ts` | Post articles via browser automation | Browser |
+| `scripts/zenn-article.ts` | Main entry point - routes to CLI or browser method | Both |
+| `scripts/zenn-utils.ts` | Zenn-specific utilities and configuration | Shared |
+| `scripts/zenn-playwright.ts` | **NEW**: Browser automation via Playwright (recommended) | Browser |
+| `scripts/zenn-browser.ts` | **DEPRECATED**: Legacy CDP-based browser automation | Browser |
 
 ## Prerequisites
 
@@ -72,8 +77,8 @@ Scripts are invoked using `${CLAUDE_PLUGIN_ROOT}/skills/publish-to-zenn/scripts/
 - Zenn account (connect to GitHub at https://zenn.dev/login)
 
 ### For Browser Automation Method:
-- Google Chrome or Chromium browser
 - `bun` runtime
+- Playwright (auto-installed on first run)
 - Zenn account (first run: manual login)
 
 ## Configuration
@@ -207,13 +212,16 @@ Common Zenn topics include:
 
 5. Zenn auto-deploys from GitHub
 
-### Browser Automation Method
+### Browser Automation Method (Playwright)
 
 ```bash
-npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-zenn/scripts/zenn-browser.ts \
+npx -y bun ${CLAUDE_PLUGIN_ROOT}/skills/publish-to-zenn/scripts/zenn-article.ts \
+  --method browser \
   --markdown article.md \
   --publish
 ```
+
+**Note**: This is the new Playwright-based implementation. The browser window will remain open for manual review after posting.
 
 ## Output
 
@@ -246,6 +254,19 @@ After successful operation:
 - **Image Support**: Local images in `images/slug/` directory or Zenn Editor upload
 - **Language**: Zenn supports Japanese and English content
 - **Cross-Platform**: macOS, Linux, Windows (uses bun/npm runtime)
+- **Playwright Browser**: Browser method uses Playwright's bundled Chromium (no Chrome lock file issues)
+
+## Migration Notes
+
+This skill was migrated from Chrome DevTools Protocol (CDP) to Playwright in version 2.0.0 for the browser automation method. Key improvements:
+
+- **Playwright Bundled Chromium**: No Chrome lock file issues
+- **More Reliable Element Selection**: Uses Playwright's locator API with multi-selector fallback
+- **Better Error Handling**: Includes debug screenshots on errors
+- **Shared Common Library**: Uses `@wt/web-automation` for utilities (selectors, config, etc.)
+- **Session Persistence**: Maintains login sessions across runs
+
+**Breaking Changes**: None. The CLI interface remains the same. Use `--method browser` to use the Playwright-based browser automation.
 
 ## Additional References
 
