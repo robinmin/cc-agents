@@ -1,5 +1,5 @@
 {
-  "description": "Hooks for rd2 plugin - anti-hallucination protocol, TodoWrite synchronization, validation guards, and tool usage tracking",
+  "description": "Hooks for rd2 plugin - anti-hallucination protocol, validation guards, and tool usage tracking",
   "hooks": {
     "SessionStart": [
       {
@@ -43,16 +43,6 @@
             "type": "command",
             "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/rd2_guard.sh validate-bash",
             "timeout": 10
-          }
-        ]
-      },
-      {
-        "matcher": "TodoWrite",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/skills/tasks/scripts/tasks.py sync todowrite --data '${TOOL_INPUT}'",
-            "timeout": 5
           }
         ]
       }
