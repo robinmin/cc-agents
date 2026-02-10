@@ -817,10 +817,10 @@ Introduces the `rd2:tasks` skill for managing markdown-based task files with aut
   - Comprehensive help and error handling
 
 - **Reference Documentation** (`references/`):
-  - **README_INTEGRATION.md**: Master TodoWrite integration guide
-  - **QUICK_INTEGRATION_GUIDE.md**: 5-minute setup walkthrough
-  - **INTEGRATION_PLAN.md**: Full technical architecture specification
-  - **PROMPT_ENGINEERING_GUIDE.md**: Deep dive into promotion heuristics
+  - **todowrite-integration.md**: Master TodoWrite integration guide
+  - **quick-integration-guide.md**: 5-minute setup walkthrough
+  - **integration-plan.md**: Full technical architecture specification
+  - **prompt-engineering.md**: Deep dive into promotion heuristics
   - **architecture.md**: Component design and data flow diagrams
   - **status-aliases.md**: 15+ supported status aliases
   - **hook-integration.md**: Hook event logging patterns
@@ -914,10 +914,10 @@ plugins/rd2/skills/tasks/
 │   ├── test_tasks.py (648 lines)    # Comprehensive test suite
 │   └── __init__.py                  # Test package marker
 ├── references/                       # 8 reference documents
-│   ├── README_INTEGRATION.md        # Master integration guide
-│   ├── QUICK_INTEGRATION_GUIDE.md   # 5-minute setup
-│   ├── INTEGRATION_PLAN.md          # Full architecture
-│   ├── PROMPT_ENGINEERING_GUIDE.md  # Promotion heuristics
+│   ├── todowrite-integration.md     # Master integration guide
+│   ├── quick-integration-guide.md   # 5-minute setup
+│   ├── integration-plan.md          # Full architecture
+│   ├── prompt-engineering.md        # Promotion heuristics
 │   ├── architecture.md              # Component design
 │   ├── status-aliases.md            # Status alias mappings
 │   ├── hook-integration.md          # Hook patterns
