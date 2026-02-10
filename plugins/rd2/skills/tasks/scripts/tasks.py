@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import shutil
@@ -65,25 +64,28 @@ def _cleanup_old_logs(log_path: Path, keep_count: int = 5) -> None:
 
 TASKS_USAGE = """
 Tasks CLI Tool - Python implementation
-Manages task files in docs/prompts/ with kanban board synchronization.
+Manages task files with centralized metadata (docs/.tasks/) and kanban board sync.
 
 Usage:
-    tasks <command> [arguments]
+    tasks <command> [arguments] [--folder <path>]
     python3 ${CLAUDE_PLUGIN_ROOT}/skills/tasks/scripts/tasks.py <command> [arguments]
 
+Global Options:
+    --folder <path>          Override active task folder (e.g., docs/next-phase)
+
 Commands:
-    init                     Initialize the tasks management tool
+    init                     Initialize tasks (creates docs/.tasks/, migrates metadata)
     create <task name>       Create a new task
     list [stage]             List tasks (optionally filter by stage)
     update <WBS> <stage>     Update a task's stage
     open <WBS>               Open a task file in default editor
     refresh                  Refresh the kanban board
     check                    Verify tasks CLI availability
+    config                   Show current configuration
+    config set-active <dir>  Change the active task folder
+    config add-folder <dir>  Add a new task folder
     decompose <requirement>  Break down requirement into subtasks
-    hook <operation>         Handle TodoWrite hook events
     log <prefix> [--data]    Log developer events
-    sync todowrite [--data]  Sync TodoWrite items to external tasks
-    sync restore             Restore TodoWrite from active tasks
     help                     Show this help message
 
 Examples:
@@ -93,12 +95,13 @@ Examples:
     tasks update 47 testing
     tasks open 0047
     tasks check
+    tasks config
+    tasks config set-active docs/next-phase
+    tasks config add-folder docs/next-phase --base-counter 200 --label "Phase 2"
+    tasks create "New task" --folder docs/next-phase
     tasks decompose "Build authentication system"
     tasks decompose "Add OAuth" --wbs-prefix 50
-    tasks hook add --data '{"items": [...]}'
     tasks log DEBUG --data '{"key": "value"}'
-    tasks sync todowrite --data '{"todos": [...]}'
-    tasks sync restore
 """
 
 
@@ -147,22 +150,189 @@ class TaskStatus(Enum):
 
 
 class TasksConfig:
-    """Configuration for the tasks CLI."""
+    """Configuration for the tasks CLI with dual-mode support.
 
-    DEFAULT_DIR = "docs/prompts"
-    KANBAN_FILE = ".kanban.md"
-    TEMPLATE_FILE = ".template.md"
+    Supports two modes:
+    - Legacy mode: metadata in docs/prompts/ (no config file)
+    - Config mode: metadata in docs/.tasks/ with config.jsonc
+    """
 
-    def __init__(self, project_root: Path | None = None):
+    LEGACY_DIR = "docs/prompts"
+    LEGACY_KANBAN = ".kanban.md"
+    LEGACY_TEMPLATE = ".template.md"
+    TASKS_META_DIR = "docs/.tasks"
+    CONFIG_FILE = "config.jsonc"
+
+    def __init__(self, project_root: Path | None = None, folder: str | None = None):
         """Initialize configuration.
 
         Args:
             project_root: Project root directory. Defaults to current git root.
+            folder: Override active folder (e.g., "docs/next-phase").
         """
         self.project_root = project_root or self._find_git_root()
-        self.prompts_dir = self.project_root / self.DEFAULT_DIR
-        self.kanban_file = self.prompts_dir / self.KANBAN_FILE
-        self.template_file = self.prompts_dir / self.TEMPLATE_FILE
+        self._folder_override = folder
+        self._config: dict | None = None
+        self._mode: str = "legacy"
+        self._load_config()
+
+    def _load_config(self) -> None:
+        """Load config.jsonc if it exists, otherwise use legacy mode."""
+        config_path = self.project_root / self.TASKS_META_DIR / self.CONFIG_FILE
+        if config_path.exists():
+            self._config = self._parse_jsonc(config_path)
+            self._mode = "config"
+        else:
+            self._config = None
+            self._mode = "legacy"
+
+    @staticmethod
+    def _parse_jsonc(path: Path) -> dict:
+        """Parse JSONC (JSON with comments) file.
+
+        Strips // line comments before parsing as JSON.
+        """
+        text = path.read_text()
+        # Strip // line comments (but not inside strings)
+        lines = []
+        for line in text.splitlines():
+            stripped = line.lstrip()
+            if stripped.startswith("//"):
+                continue
+            # Remove trailing // comments (simple heuristic: outside quotes)
+            in_string = False
+            result = []
+            i = 0
+            while i < len(line):
+                ch = line[i]
+                if ch == '"' and (i == 0 or line[i - 1] != "\\"):
+                    in_string = not in_string
+                elif ch == "/" and not in_string and i + 1 < len(line) and line[i + 1] == "/":
+                    break
+                result.append(ch)
+                i += 1
+            lines.append("".join(result))
+        return json.loads("\n".join(lines))
+
+    @property
+    def mode(self) -> str:
+        """Return current mode: 'legacy' or 'config'."""
+        return self._mode
+
+    @property
+    def meta_dir(self) -> Path:
+        """Central metadata directory (docs/.tasks/)."""
+        return self.project_root / self.TASKS_META_DIR
+
+    @property
+    def active_folder(self) -> Path:
+        """The active task folder for create/list operations."""
+        if self._folder_override:
+            return self.project_root / self._folder_override
+        if self._mode == "config" and self._config:
+            return self.project_root / self._config.get("active_folder", self.LEGACY_DIR)
+        return self.project_root / self.LEGACY_DIR
+
+    @property
+    def prompts_dir(self) -> Path:
+        """Alias for active_folder (backward compat)."""
+        return self.active_folder
+
+    @property
+    def all_folders(self) -> list[Path]:
+        """All configured task folders."""
+        if self._mode == "config" and self._config:
+            folders = self._config.get("folders", {})
+            return [self.project_root / f for f in folders]
+        return [self.project_root / self.LEGACY_DIR]
+
+    @property
+    def kanban_file(self) -> Path:
+        """Path to kanban board file."""
+        if self._mode == "config":
+            return self.meta_dir / "kanban.md"
+        return self.project_root / self.LEGACY_DIR / self.LEGACY_KANBAN
+
+    @property
+    def template_file(self) -> Path:
+        """Path to task template file."""
+        if self._mode == "config":
+            return self.meta_dir / "template.md"
+        return self.project_root / self.LEGACY_DIR / self.LEGACY_TEMPLATE
+
+    @property
+    def sync_dir(self) -> Path:
+        """Path to sync data directory."""
+        if self._mode == "config":
+            return self.meta_dir / "sync"
+        return self.project_root / "docs/tasks_sync"
+
+    @property
+    def brainstorm_dir(self) -> Path:
+        """Path to brainstorm output directory."""
+        if self._mode == "config":
+            return self.meta_dir / "brainstorm"
+        return self.project_root / "docs/plans"
+
+    @property
+    def codereview_dir(self) -> Path:
+        """Path to code review output directory."""
+        return self.meta_dir / "codereview"
+
+    @property
+    def design_dir(self) -> Path:
+        """Path to design output directory."""
+        return self.meta_dir / "design"
+
+    def get_next_wbs(self) -> int:
+        """Get globally unique next WBS number.
+
+        Scans ALL configured folders to find the global max WBS,
+        then applies base_counter as a floor for the target folder.
+
+        Returns:
+            Next available WBS number.
+        """
+        global_max = 0
+
+        # Scan all folders for the global max WBS
+        for folder in self.all_folders:
+            if not folder.exists():
+                continue
+            for task_file in folder.glob("*.md"):
+                if task_file.name.startswith("."):
+                    continue
+                match = re.match(r"^(\d{4})", task_file.name)
+                if match:
+                    global_max = max(global_max, int(match.group(1)))
+
+        # Apply base_counter floor for the active folder
+        base_counter = 0
+        if self._mode == "config" and self._config:
+            folders_config = self._config.get("folders", {})
+            # Find the active folder's relative path
+            active_rel = str(self.active_folder.relative_to(self.project_root))
+            folder_config = folders_config.get(active_rel, {})
+            base_counter = folder_config.get("base_counter", 0)
+
+        return max(global_max, base_counter) + 1
+
+    def find_task_by_wbs(self, wbs: str) -> Path | None:
+        """Search across ALL configured folders for a task by WBS number.
+
+        Args:
+            wbs: 4-digit WBS string (e.g., "0047").
+
+        Returns:
+            Path to the task file, or None if not found.
+        """
+        for folder in self.all_folders:
+            if not folder.exists():
+                continue
+            matches = list(folder.glob(f"{wbs}_*.md"))
+            if matches:
+                return matches[0]
+        return None
 
     def _find_git_root(self) -> Path:
         """Find the git repository root directory."""
@@ -177,9 +347,7 @@ class TasksConfig:
         if not self.prompts_dir.exists():
             raise RuntimeError(f"Prompts directory not found: {self.prompts_dir}")
         if not self.kanban_file.exists():
-            raise RuntimeError(
-                f"Kanban file not found: {self.kanban_file}. Run 'init' first."
-            )
+            raise RuntimeError(f"Kanban file not found: {self.kanban_file}. Run 'init' first.")
 
 
 class TaskFile:
@@ -237,285 +405,6 @@ class TaskFile:
             f.writelines(updated_lines)
 
 
-class StateMapper:
-    """Bidirectional state mapping between TodoWrite and external tasks."""
-
-    # TodoWrite → Tasks mapping
-    TODOWRITE_TO_TASKS = {
-        "pending": TaskStatus.TODO,
-        "in_progress": TaskStatus.WIP,
-        "completed": TaskStatus.DONE,
-    }
-
-    # Tasks → TodoWrite mapping (reverse)
-    TASKS_TO_TODOWRITE = {
-        TaskStatus.BACKLOG: "pending",
-        TaskStatus.TODO: "pending",
-        TaskStatus.WIP: "in_progress",
-        TaskStatus.TESTING: "in_progress",
-        TaskStatus.DONE: "completed",
-        TaskStatus.BLOCKED: "pending",  # Blocked tasks appear as pending for retry
-    }
-
-    @staticmethod
-    def to_task_status(todowrite_state: str) -> TaskStatus:
-        """Convert TodoWrite state to TaskStatus."""
-        return StateMapper.TODOWRITE_TO_TASKS.get(
-            todowrite_state, TaskStatus.BACKLOG
-        )
-
-    @staticmethod
-    def to_todowrite_state(task_status: TaskStatus) -> str:
-        """Convert TaskStatus to TodoWrite state."""
-        return StateMapper.TASKS_TO_TODOWRITE.get(task_status, "pending")
-
-
-class PromotionEngine:
-    """Determine when TodoWrite items should be promoted to external tasks."""
-
-    MIN_CONTENT_LENGTH = 50
-    COMPLEX_KEYWORDS = [
-        "implement",
-        "refactor",
-        "design",
-        "architecture",
-        "integrate",
-        "migrate",
-        "optimize",
-        "feature",
-        "build",
-    ]
-    TRACKING_KEYWORDS = ["wbs", "task file", "docs/prompts"]
-
-    @staticmethod
-    def should_promote(todo_item: dict[str, str]) -> tuple[bool, list[str]]:
-        """
-        Evaluate if a TodoWrite item should be promoted to external task.
-
-        Uses 5-signal heuristic (OR logic):
-        - Complex keywords (implement, refactor, design, etc.)
-        - Long content (> 50 chars)
-        - Active work (in_progress status)
-        - Explicit tracking (mentions wbs, task file)
-        - Multi-step detection (numbered lists)
-
-        Args:
-            todo_item: TodoWrite item dict with 'content', 'status', 'activeForm'
-
-        Returns:
-            (should_promote: bool, triggered_signals: list[str])
-        """
-        content = todo_item.get("content", "")
-        status = todo_item.get("status", "")
-
-        triggered_signals = []
-
-        # Signal 1: Complex keywords
-        for keyword in PromotionEngine.COMPLEX_KEYWORDS:
-            if keyword.lower() in content.lower():
-                triggered_signals.append(f"complex_keyword:{keyword}")
-                break
-
-        # Signal 2: Long content
-        if len(content) > PromotionEngine.MIN_CONTENT_LENGTH:
-            triggered_signals.append("long_content")
-
-        # Signal 3: Active work
-        if status == "in_progress":
-            triggered_signals.append("active_work")
-
-        # Signal 4: Explicit tracking
-        for keyword in PromotionEngine.TRACKING_KEYWORDS:
-            if keyword.lower() in content.lower():
-                triggered_signals.append(f"explicit_tracking:{keyword}")
-                break
-
-        # Signal 5: Multi-step detection
-        if re.search(r"\d+\.|\-\s", content):  # Matches "1." or "- "
-            triggered_signals.append("multi_step")
-
-        return (len(triggered_signals) > 0, triggered_signals)
-
-
-class SyncOrchestrator:
-    """Orchestrates bidirectional sync between TodoWrite and external tasks."""
-
-    def __init__(self, config: TasksConfig):
-        self.config = config
-        self.state_mapper = StateMapper()
-        # Session data (mapping, logs) goes to docs/tasks_sync/
-        self.sync_data_dir = config.project_root / "docs/tasks_sync"
-        # Configuration stays in .claude/tasks_sync/
-        self.sync_config_dir = config.project_root / ".claude/tasks_sync"
-        self.session_map_file = self.sync_data_dir / "session_map.json"
-        self.promotions_log = self.sync_data_dir / "promotions.log"
-        self.config_file = self.sync_config_dir / "config.json"
-        self.session_map: dict[str, str] = self._load_session_map()
-
-    def _load_session_map(self) -> dict[str, str]:
-        """Load TodoWrite → WBS mapping from disk."""
-        if self.session_map_file.exists():
-            try:
-                data = json.loads(self.session_map_file.read_text())
-                return data if isinstance(data, dict) else {}
-            except json.JSONDecodeError:
-                return {}
-        return {}
-
-    def _save_session_map(self) -> None:
-        """Persist TodoWrite → WBS mapping to disk."""
-        self.session_map_file.parent.mkdir(parents=True, exist_ok=True)
-        self.session_map_file.write_text(json.dumps(self.session_map, indent=2))
-
-    def _log_promotion(
-        self, todo_item: dict[str, str], wbs: str, signals: list[str]
-    ) -> None:
-        """Log task promotion event."""
-        self.promotions_log.parent.mkdir(parents=True, exist_ok=True)
-
-        # Rotate log if needed before writing
-        rotate_log_file(self.promotions_log)
-
-        timestamp = datetime.now().isoformat()
-        log_entry = {
-            "timestamp": timestamp,
-            "wbs": wbs,
-            "content": todo_item["content"][:100],  # Truncate for readability
-            "signals": signals,
-            "reason": signals[0] if signals else "unknown",
-        }
-
-        with open(self.promotions_log, "a") as f:
-            f.write(json.dumps(log_entry) + "\n")
-
-    def process_todowrite_items(self, todo_items: list[dict[str, str]]) -> None:
-        """
-        Process TodoWrite items for auto-promotion and sync.
-
-        Args:
-            todo_items: List of TodoWrite items from PreToolUse hook
-        """
-        for item in todo_items:
-            content = item.get("content", "")
-            if not content:
-                continue
-
-            # Generate stable hash for TodoWrite item
-            item_hash = hashlib.md5(content.encode()).hexdigest()[:8]
-
-            # Check if already promoted
-            if item_hash in self.session_map:
-                wbs = self.session_map[item_hash]
-                # Update existing external task
-                self._sync_to_external_task(wbs, item)
-            else:
-                # Check promotion criteria
-                should_promote, signals = PromotionEngine.should_promote(item)
-                if should_promote:
-                    # Create new external task
-                    new_wbs = self._create_external_task(item)
-                    if new_wbs:
-                        self.session_map[item_hash] = new_wbs
-                        self._log_promotion(item, new_wbs, signals)
-                        print(
-                            f"[INFO] Promoted TodoWrite item to task {new_wbs}: {content[:50]}..."
-                        )
-
-        # Save updated session map
-        self._save_session_map()
-
-    def _create_external_task(self, todo_item: dict[str, str]) -> str | None:
-        """Create external task file from TodoWrite item."""
-        try:
-            # Use TasksManager to create task
-            manager = TasksManager(self.config)
-            task_name = todo_item["content"][:100]  # Truncate to reasonable length
-
-            # Create task
-            manager.cmd_create(task_name)
-
-            # Get the latest task (just created)
-            task_files = sorted(
-                [
-                    f
-                    for f in self.config.prompts_dir.glob("*.md")
-                    if not f.name.startswith(".")
-                ],
-                key=lambda f: f.stat().st_mtime,
-            )
-
-            if task_files:
-                latest_task = TaskFile(task_files[-1])
-                wbs = latest_task.wbs
-
-                # Update status based on TodoWrite state
-                task_status = self.state_mapper.to_task_status(
-                    todo_item.get("status", "pending")
-                )
-                latest_task.update_status(task_status)
-
-                return wbs
-
-        except (OSError, ValueError) as e:
-            print(
-                f"[ERROR] Failed to create external task: {e}", file=sys.stderr
-            )
-
-        return None
-
-    def _sync_to_external_task(self, wbs: str, todo_item: dict[str, str]) -> None:
-        """Update external task status based on TodoWrite state."""
-        try:
-            task_status = self.state_mapper.to_task_status(
-                todo_item.get("status", "pending")
-            )
-            manager = TasksManager(self.config)
-            manager.cmd_update(wbs, task_status.value.lower())
-        except (OSError, ValueError) as e:
-            print(f"[WARN] Failed to sync to task {wbs}: {e}", file=sys.stderr)
-
-    def restore_from_tasks(self) -> list[dict[str, str]]:
-        """
-        Generate TodoWrite items from active external tasks.
-
-        Returns:
-            List of TodoWrite-compatible todo items
-        """
-        todos = []
-
-        for task_file in self.config.prompts_dir.glob("*.md"):
-            if task_file.name.startswith("."):
-                continue
-
-            try:
-                task = TaskFile(task_file)
-                status = task.get_status()
-
-                # Only restore active work
-                if status in [TaskStatus.WIP, TaskStatus.TESTING]:
-                    todowrite_state = self.state_mapper.to_todowrite_state(status)
-
-                    content = f"Continue {task.name} (WBS {task.wbs})"
-                    todos.append(
-                        {
-                            "content": content,
-                            "status": todowrite_state,
-                            "activeForm": f"Continuing {task.name}",
-                        }
-                    )
-
-                    # Add to session map
-                    item_hash = hashlib.md5(content.encode()).hexdigest()[:8]
-                    self.session_map[item_hash] = task.wbs
-
-            except (OSError, ValueError) as e:
-                print(f"[WARN] Failed to restore from {task_file.name}: {e}", file=sys.stderr)
-
-        # Save regenerated session map
-        if todos:
-            self._save_session_map()
-
-        return todos
 
 
 class TasksManager:
@@ -599,44 +488,105 @@ class TasksManager:
             print(f"[WARN] Failed to create symlink: {e}")
 
     def cmd_init(self) -> int:
-        """Initialize the tasks management tool."""
+        """Initialize the tasks management tool.
+
+        Creates docs/.tasks/ centralized metadata directory with config.jsonc.
+        Migrates existing metadata files from legacy locations.
+        Idempotent — safe to run multiple times.
+        """
         print("[INFO] Initializing tasks management tool...")
 
-        # Create prompts directory
+        # Create prompts directory (active folder)
         if not self.config.prompts_dir.exists():
             self.config.prompts_dir.mkdir(parents=True)
             print(f"[INFO] Created directory: {self.config.prompts_dir}")
         else:
             print(f"[INFO] Directory already exists: {self.config.prompts_dir}")
 
-        # Create kanban file from assets/
-        if not self.config.kanban_file.exists():
+        # Create docs/.tasks/ centralized metadata directory
+        meta_dir = self.config.meta_dir
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        print(f"[INFO] Metadata directory: {meta_dir}")
+
+        # Create subdirectories
+        for subdir in ["brainstorm", "codereview", "design", "sync"]:
+            sub_path = meta_dir / subdir
+            sub_path.mkdir(exist_ok=True)
+
+        # Generate config.jsonc if not present
+        config_path = meta_dir / TasksConfig.CONFIG_FILE
+        if not config_path.exists():
+            # Detect existing task folders
+            active_rel = str(self.config.active_folder.relative_to(self.config.project_root))
+            config_data = {
+                "$schema_version": 1,
+                "active_folder": active_rel,
+                "folders": {
+                    active_rel: {
+                        "base_counter": 0,
+                        "label": "Phase 1",
+                    }
+                },
+            }
+            config_text = json.dumps(config_data, indent=2)
+            # Add a comment header
+            config_text = (
+                "// Tasks CLI configuration — managed by `tasks init`\n"
+                "// See: plugins/rd2/skills/tasks/SKILL.md\n" + config_text + "\n"
+            )
+            config_path.write_text(config_text)
+            print(f"[INFO] Created config: {config_path}")
+        else:
+            print(f"[INFO] Config already exists: {config_path}")
+
+        # Migrate .kanban.md from legacy location
+        legacy_kanban = (
+            self.config.project_root / self.config.LEGACY_DIR / self.config.LEGACY_KANBAN
+        )
+        config_kanban = meta_dir / "kanban.md"
+        if legacy_kanban.exists() and not config_kanban.exists():
+            shutil.copy2(legacy_kanban, config_kanban)
+            print(f"[INFO] Migrated kanban: {legacy_kanban} -> {config_kanban}")
+        elif not config_kanban.exists():
+            # Create fresh kanban
             source_kanban = self.assets_dir / ".kanban.md"
             if source_kanban.exists():
-                shutil.copy(source_kanban, self.config.kanban_file)
-                print(f"[INFO] Created kanban board: {self.config.kanban_file}")
+                shutil.copy(source_kanban, config_kanban)
             else:
-                # Fallback to creating empty kanban
                 self._write_kanban(
-                    self.config.kanban_file,
+                    config_kanban,
                     {status: [] for status in self.VALID_STAGES},
                 )
-                print(f"[INFO] Created kanban board: {self.config.kanban_file}")
-        else:
-            print(f"[INFO] Kanban board already exists: {self.config.kanban_file}")
+            print(f"[INFO] Created kanban board: {config_kanban}")
 
-        # Create template file from assets/
-        if not self.config.template_file.exists():
+        # Migrate .template.md from legacy location
+        legacy_template = (
+            self.config.project_root / self.config.LEGACY_DIR / self.config.LEGACY_TEMPLATE
+        )
+        config_template = meta_dir / "template.md"
+        if legacy_template.exists() and not config_template.exists():
+            shutil.copy2(legacy_template, config_template)
+            print(f"[INFO] Migrated template: {legacy_template} -> {config_template}")
+        elif not config_template.exists():
             source_template = self.assets_dir / ".template.md"
             if source_template.exists():
-                shutil.copy(source_template, self.config.template_file)
-                print(f"[INFO] Created template file: {self.config.template_file}")
+                shutil.copy(source_template, config_template)
             else:
-                # Fallback to creating default template
-                self._write_template(self.config.template_file)
-                print(f"[INFO] Created template file: {self.config.template_file}")
-        else:
-            print(f"[INFO] Template file already exists: {self.config.template_file}")
+                self._write_template(config_template)
+            print(f"[INFO] Created template: {config_template}")
+
+        # Migrate docs/tasks_sync/ -> docs/.tasks/sync/
+        legacy_sync = self.config.project_root / "docs/tasks_sync"
+        config_sync = meta_dir / "sync"
+        if legacy_sync.exists() and legacy_sync.is_dir():
+            for sync_file in legacy_sync.iterdir():
+                dest = config_sync / sync_file.name
+                if not dest.exists():
+                    shutil.copy2(sync_file, dest)
+            print(f"[INFO] Migrated sync data: {legacy_sync} -> {config_sync}")
+
+        # Reload config after creating config.jsonc
+        self.config._load_config()
 
         # Create symlink for convenient 'tasks' command
         self._create_symlink()
@@ -673,10 +623,8 @@ class TasksManager:
 
         self.config.validate()
 
-        # Find next WBS number
-        existing_tasks = list(self.config.prompts_dir.glob("*.md"))
-        existing_tasks = [t for t in existing_tasks if not t.name.startswith(".")]
-        next_seq = len(existing_tasks) + 1
+        # Find next globally unique WBS number
+        next_seq = self.config.get_next_wbs()
         wbs = f"{next_seq:04d}"
 
         # Create filename
@@ -780,20 +728,13 @@ class TasksManager:
 
         self.config.validate()
 
-        # Find task file
-        task_files = list(self.config.prompts_dir.glob(f"{wbs_normalized}_*.md"))
-        if not task_files:
+        # Find task file across all folders
+        task_path = self.config.find_task_by_wbs(wbs_normalized)
+        if not task_path:
             print(f"[ERROR] No task found with WBS: {wbs_normalized}", file=sys.stderr)
             return 1
 
-        if len(task_files) > 1:
-            print(
-                f"[ERROR] Multiple files found for WBS: {wbs_normalized}",
-                file=sys.stderr,
-            )
-            return 1
-
-        task_file = TaskFile(task_files[0])
+        task_file = TaskFile(task_path)
         task_file.update_status(new_status)
 
         print(f"[INFO] Updated status of {task_file.path.name} to '{new_status.value}'")
@@ -818,20 +759,11 @@ class TasksManager:
 
         self.config.validate()
 
-        # Find task file
-        task_files = list(self.config.prompts_dir.glob(f"{wbs_normalized}_*.md"))
-        if not task_files:
+        # Find task file across all folders
+        task_file = self.config.find_task_by_wbs(wbs_normalized)
+        if not task_file:
             print(f"[ERROR] No task found with WBS: {wbs_normalized}", file=sys.stderr)
             return 1
-
-        if len(task_files) > 1:
-            print(
-                f"[ERROR] Multiple files found for WBS: {wbs_normalized}",
-                file=sys.stderr,
-            )
-            return 1
-
-        task_file = task_files[0]
         print(f"[INFO] Opening: {task_file}")
 
         # Use system open command
@@ -845,36 +777,37 @@ class TasksManager:
         return 0
 
     def cmd_refresh(self) -> int:
-        """Refresh the kanban board from task files."""
+        """Refresh the kanban board from task files across all configured folders."""
         print("[INFO] Refreshing kanban board...")
 
         self.config.validate()
 
-        # Organize tasks by status
-        tasks_by_status: dict[str, list[str]] = {
-            status.value: [] for status in TaskStatus
-        }
+        # Organize tasks by status (scan ALL folders)
+        tasks_by_status: dict[str, list[str]] = {status.value: [] for status in TaskStatus}
 
-        for task_file in self.config.prompts_dir.glob("*.md"):
-            # Skip dotfiles
-            if task_file.name.startswith("."):
+        for folder in self.config.all_folders:
+            if not folder.exists():
                 continue
+            for task_file in folder.glob("*.md"):
+                # Skip dotfiles
+                if task_file.name.startswith("."):
+                    continue
 
-            try:
-                task = TaskFile(task_file)
-                status = task.get_status()
-                name_no_ext = task.path.stem
+                try:
+                    task = TaskFile(task_file)
+                    status = task.get_status()
+                    name_no_ext = task.path.stem
 
-                # Determine checkbox state
-                checkbox = " "
-                if status == TaskStatus.WIP or status == TaskStatus.TESTING:
-                    checkbox = "."
-                elif status == TaskStatus.DONE:
-                    checkbox = "x"
+                    # Determine checkbox state
+                    checkbox = " "
+                    if status == TaskStatus.WIP or status == TaskStatus.TESTING:
+                        checkbox = "."
+                    elif status == TaskStatus.DONE:
+                        checkbox = "x"
 
-                tasks_by_status[status.value].append(f"- [{checkbox}] {name_no_ext}")
-            except (OSError, ValueError) as e:
-                print(f"[WARN] Skipping {task_file.name}: {e}", file=sys.stderr)
+                    tasks_by_status[status.value].append(f"- [{checkbox}] {name_no_ext}")
+                except (OSError, ValueError) as e:
+                    print(f"[WARN] Skipping {task_file.name}: {e}", file=sys.stderr)
 
         # Write kanban file
         self._write_kanban(self.config.kanban_file, tasks_by_status)
@@ -889,17 +822,11 @@ class TasksManager:
             tasks_by_status: Dictionary mapping status to list of task entries.
         """
         content = "---\nkanban-plugin: board\n---\n\n# Kanban Board\n\n"
-        content += (
-            "## Backlog\n\n" + "\n".join(tasks_by_status.get("Backlog", [])) + "\n\n"
-        )
+        content += "## Backlog\n\n" + "\n".join(tasks_by_status.get("Backlog", [])) + "\n\n"
         content += "## Todo\n\n" + "\n".join(tasks_by_status.get("Todo", [])) + "\n\n"
         content += "## WIP\n\n" + "\n".join(tasks_by_status.get("WIP", [])) + "\n\n"
-        content += (
-            "## Testing\n\n" + "\n".join(tasks_by_status.get("Testing", [])) + "\n\n"
-        )
-        content += (
-            "## Blocked\n\n" + "\n".join(tasks_by_status.get("Blocked", [])) + "\n\n"
-        )
+        content += "## Testing\n\n" + "\n".join(tasks_by_status.get("Testing", [])) + "\n\n"
+        content += "## Blocked\n\n" + "\n".join(tasks_by_status.get("Blocked", [])) + "\n\n"
         content += "## Done\n\n" + "\n".join(tasks_by_status.get("Done", [])) + "\n\n"
         path.write_text(content)
 
@@ -915,24 +842,45 @@ class TasksManager:
 
             shutil.copy(source_template, path)
         else:
-            # Fallback to hardcoded template
+            # Fallback to hardcoded template (mirrors assets/.template.md)
             content = """---
-name: { { PROMPT_NAME } }
+name: {{ PROMPT_NAME }}
 description: <prompt description>
 status: Backlog
-created_at: { { CREATED_AT } }
-updated_at: { { UPDATED_AT } }
+created_at: {{ CREATED_AT }}
+updated_at: {{ UPDATED_AT }}
 ---
 
-## { { WBS } }. { { PROMPT_NAME } }
+## {{ WBS }}. {{ PROMPT_NAME }}
 
 ### Background
 
-### Requirements / Objectives
+[Context and motivation - why this task exists]
 
-### Solutions / Goals
+### Requirements
+
+[What needs to be done - acceptance criteria]
+
+### Q&A
+
+[Clarifications added during planning phase]
+
+### Design
+
+[Architecture/UI specs added by specialists]
+
+### Plan
+
+[Step-by-step implementation plan]
+
+### Artifacts
+
+| Type | Path | Generated By | Date |
+|------|------|--------------|------|
 
 ### References
+
+[Links to docs, related tasks, external resources]
 """
             path.write_text(content)
 
@@ -957,80 +905,6 @@ updated_at: { { UPDATED_AT } }
 
         # Fallback: print directly
         print(content)
-
-    def cmd_hook(self, operation: str, data: str | None = None) -> int:
-        """Handle TodoWrite PreToolUse hook events.
-
-        Called by Claude Code hooks to log TodoWrite operations for synchronization
-        with external task files.
-
-        Args:
-            operation: The TodoWrite operation (add/update/remove).
-            data: JSON string containing tool_input data with items list.
-
-        Returns:
-            0 on success, 1 on failure.
-        """
-        try:
-            # Parse and validate the input data if provided
-            items = []
-            if data:
-                try:
-                    hook_data = json.loads(data)
-                    # Validate JSON structure
-                    if not isinstance(hook_data, dict):
-                        print(
-                            "[ERROR] Invalid hook data: not a JSON object",
-                            file=sys.stderr,
-                        )
-                        return 1
-                    tool_input = hook_data.get("tool_input", {})
-                    if not isinstance(tool_input, dict):
-                        print(
-                            "[ERROR] Invalid tool_input: not a JSON object",
-                            file=sys.stderr,
-                        )
-                        return 1
-                    items = tool_input.get("items", [])
-                    if not isinstance(items, list):
-                        print(
-                            "[ERROR] Invalid items: not a JSON array", file=sys.stderr
-                        )
-                        return 1
-                except json.JSONDecodeError as e:
-                    print(f"[ERROR] Invalid JSON data: {e}", file=sys.stderr)
-                    return 1
-
-            # Log to project-local .claude directory (project-specific logs)
-            log_file = self.config.project_root / ".claude" / "tasks_hook.log"
-            log_file.parent.mkdir(parents=True, exist_ok=True)
-
-            # Rotate log if needed before writing
-            rotate_log_file(log_file)
-
-            timestamp = datetime.now().isoformat()
-            log_entry = {
-                "timestamp": timestamp,
-                "operation": operation,
-                "item_count": len(items),
-                "items": items[:3] if items else [],  # Log first 3 items
-            }
-
-            with open(log_file, "a") as f:
-                f.write(json.dumps(log_entry) + "\n")
-
-            # Optional: Auto-sync with task files based on operation
-            # This can be extended to automatically create/update task files
-            if operation == "add" and items:
-                # Check if we should auto-create task files for new todos
-                # For now, just log - auto-creation can be configured later
-                pass
-
-            return 0
-
-        except (OSError, ValueError) as e:
-            print(f"[ERROR] Hook failed: {e}", file=sys.stderr)
-            return 1
 
     def cmd_log(self, prefix: str, data: str | None = None) -> int:
         """Log event data with timestamp and prefix.
@@ -1066,9 +940,7 @@ updated_at: { { UPDATED_AT } }
                     payload = data
 
             # Build log entry as single line: timestamp prefix json_payload
-            log_entry = (
-                f"{timestamp} {prefix} {json.dumps(payload) if payload else '{}'}"
-            )
+            log_entry = f"{timestamp} {prefix} {json.dumps(payload) if payload else '{}'}"
 
             with open(log_file, "a") as f:
                 f.write(log_entry + "\n")
@@ -1077,82 +949,6 @@ updated_at: { { UPDATED_AT } }
 
         except (OSError, ValueError) as e:
             print(f"[ERROR] Log failed: {e}", file=sys.stderr)
-            return 1
-
-    def cmd_sync_todowrite(self, data: str | None = None) -> int:
-        """Sync TodoWrite items to external task files.
-
-        Called by PreToolUse hook for TodoWrite events. Evaluates promotion
-        criteria and creates/updates external tasks as needed.
-
-        Args:
-            data: JSON string from ${TOOL_INPUT} containing todos array
-
-        Returns:
-            0 on success, 1 on failure
-
-        Example hook data:
-        {
-          "todos": [
-            {
-              "content": "Implement OAuth2 authentication",
-              "status": "in_progress",
-              "activeForm": "Implementing OAuth2 authentication"
-            }
-          ]
-        }
-        """
-        try:
-            # Parse hook data
-            hook_data = json.loads(data) if data else {}
-            todos = hook_data.get("todos", [])
-
-            if not todos:
-                print("[INFO] No todos to sync", file=sys.stderr)
-                return 0
-
-            # Use SyncOrchestrator to process items
-            orchestrator = SyncOrchestrator(self.config)
-            orchestrator.process_todowrite_items(todos)
-
-            return 0
-
-        except json.JSONDecodeError as e:
-            print(f"[ERROR] Invalid JSON data: {e}", file=sys.stderr)
-            return 1
-        except (OSError, ValueError) as e:
-            print(f"[ERROR] Sync failed: {e}", file=sys.stderr)
-            return 1
-
-    def cmd_sync_restore(self) -> int:
-        """Restore TodoWrite items from active external tasks.
-
-        Use case: Session resume or user asks "What was I working on?"
-
-        Generates TodoWrite-compatible items from WIP/Testing tasks and prints
-        them as JSON to stdout.
-
-        Returns:
-            0 on success, 1 on failure
-        """
-        try:
-            self.config.validate()
-
-            # Use SyncOrchestrator to restore items
-            orchestrator = SyncOrchestrator(self.config)
-            active_items = orchestrator.restore_from_tasks()
-
-            if not active_items:
-                print("[INFO] No active tasks to restore")
-                return 0
-
-            # Print TodoWrite items as JSON
-            print(json.dumps(active_items, indent=2))
-
-            return 0
-
-        except (OSError, ValueError) as e:
-            print(f"[ERROR] Session restore failed: {e}", file=sys.stderr)
             return 1
 
     def cmd_check(self) -> int:
@@ -1198,6 +994,109 @@ updated_at: { { UPDATED_AT } }
         print("\n[SUCCESS] Tasks CLI is ready.")
         return 0
 
+    def cmd_config(self, subcommand: str | None = None, args: list[str] | None = None) -> int:
+        """Display or modify tasks configuration.
+
+        Args:
+            subcommand: None (show), "set-active", or "add-folder".
+            args: Arguments for the subcommand.
+
+        Returns:
+            0 on success, 1 on failure.
+        """
+        if not subcommand:
+            # Show current config
+            print(f"Mode: {self.config.mode}")
+            print(
+                f"Active folder: {self.config.active_folder.relative_to(self.config.project_root)}"
+            )
+            print(f"Kanban file: {self.config.kanban_file}")
+            print(f"Template file: {self.config.template_file}")
+            print(f"Sync dir: {self.config.sync_dir}")
+            print("All folders:")
+            for folder in self.config.all_folders:
+                rel = folder.relative_to(self.config.project_root)
+                exists = "exists" if folder.exists() else "not created"
+                print(f"  - {rel} ({exists})")
+            return 0
+
+        config_path = self.config.meta_dir / TasksConfig.CONFIG_FILE
+        if not config_path.exists():
+            print("[ERROR] No config.jsonc found. Run 'tasks init' first.", file=sys.stderr)
+            return 1
+
+        config_data = TasksConfig._parse_jsonc(config_path)
+
+        if subcommand == "set-active":
+            if not args:
+                print("[ERROR] Usage: tasks config set-active <folder>", file=sys.stderr)
+                return 1
+            folder = args[0]
+            if folder not in config_data.get("folders", {}):
+                print(
+                    f"[ERROR] Folder '{folder}' not in config. Add it first with 'tasks config add-folder'.",
+                    file=sys.stderr,
+                )
+                return 1
+            config_data["active_folder"] = folder
+            config_text = (
+                "// Tasks CLI configuration — managed by `tasks init`\n"
+                "// See: plugins/rd2/skills/tasks/SKILL.md\n"
+                + json.dumps(config_data, indent=2)
+                + "\n"
+            )
+            config_path.write_text(config_text)
+            self.config._load_config()
+            print(f"[INFO] Active folder set to: {folder}")
+            return 0
+
+        elif subcommand == "add-folder":
+            if not args:
+                print(
+                    "[ERROR] Usage: tasks config add-folder <folder> [--base-counter N] [--label LABEL]",
+                    file=sys.stderr,
+                )
+                return 1
+            folder = args[0]
+            base_counter = 0
+            label = ""
+            # Parse optional flags
+            i = 1
+            while i < len(args):
+                if args[i] == "--base-counter" and i + 1 < len(args):
+                    try:
+                        base_counter = int(args[i + 1])
+                    except ValueError:
+                        print(f"[ERROR] Invalid base-counter: {args[i + 1]}", file=sys.stderr)
+                        return 1
+                    i += 2
+                elif args[i] == "--label" and i + 1 < len(args):
+                    label = args[i + 1]
+                    i += 2
+                else:
+                    i += 1
+
+            folders = config_data.setdefault("folders", {})
+            folders[folder] = {"base_counter": base_counter, "label": label}
+            config_text = (
+                "// Tasks CLI configuration — managed by `tasks init`\n"
+                "// See: plugins/rd2/skills/tasks/SKILL.md\n"
+                + json.dumps(config_data, indent=2)
+                + "\n"
+            )
+            config_path.write_text(config_text)
+            # Create the folder directory
+            folder_path = self.config.project_root / folder
+            folder_path.mkdir(parents=True, exist_ok=True)
+            self.config._load_config()
+            print(f"[INFO] Added folder: {folder} (base_counter={base_counter}, label='{label}')")
+            return 0
+
+        else:
+            print(f"[ERROR] Unknown config subcommand: {subcommand}", file=sys.stderr)
+            print("Valid subcommands: set-active, add-folder", file=sys.stderr)
+            return 1
+
     def cmd_decompose(
         self,
         requirement: str,
@@ -1233,18 +1132,8 @@ updated_at: { { UPDATED_AT } }
                 print(f"[ERROR] Invalid WBS prefix: {wbs_prefix}", file=sys.stderr)
                 return 1
         else:
-            # Find next available WBS
-            existing_tasks = list(self.config.prompts_dir.glob("*.md"))
-            existing_tasks = [t for t in existing_tasks if not t.name.startswith(".")]
-            if existing_tasks:
-                max_wbs = 0
-                for task in existing_tasks:
-                    match = re.match(r"^(\d{4})", task.name)
-                    if match:
-                        max_wbs = max(max_wbs, int(match.group(1)))
-                start_wbs = max_wbs + 1
-            else:
-                start_wbs = 1
+            # Find next globally unique WBS
+            start_wbs = self.config.get_next_wbs()
 
         # Analyze requirement and suggest subtasks
         subtasks = self._analyze_requirement(requirement)
@@ -1260,8 +1149,8 @@ updated_at: { { UPDATED_AT } }
             # Build enhanced task file content
             now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             content = f"""---
-name: {subtask['name']}
-description: {subtask['description']}
+name: {subtask["name"]}
+description: {subtask["description"]}
 status: Backlog
 created_at: {now}
 updated_at: {now}
@@ -1270,37 +1159,42 @@ wbs: {wbs}
 
             # Add dependencies if specified
             if idx > start_wbs:
-                content += f"dependencies: ['{idx-1:04d}']\n"
+                content += f"dependencies: ['{idx - 1:04d}']\n"
             elif parent:
                 content += f"parent: {parent}\n"
 
             content += f"""---
 
-## {wbs}. {subtask['name']}
+## {wbs}. {subtask["name"]}
 
 ### Background
 
 {requirement}
 
-### Requirements / Objectives
+### Requirements
 
-{subtask['description']}
+{subtask["description"]}
 
-#### Q&A
+### Q&A
 
-[Clarifications from user, decisions made during implementation]
+[Clarifications added during planning phase]
 
-### Solutions / Goals
+### Design
 
-[Technical approach, architecture decisions]
+[Architecture/UI specs added by specialists]
 
-#### Plan
+### Plan
 
 [Step-by-step implementation plan]
 
+### Artifacts
+
+| Type | Path | Generated By | Date |
+|------|------|--------------|------|
+
 ### References
 
-[Documentation links, code examples, similar implementations]
+[Links to docs, related tasks, external resources]
 """
 
             if dry_run:
@@ -1337,41 +1231,104 @@ wbs: {wbs}
         # Pattern matching for common task types
         keywords = {
             "authentication": [
-                {"name": "Design authentication architecture", "description": "Design the overall authentication system architecture"},
-                {"name": "Implement user model and database", "description": "Create user model with email/password fields"},
-                {"name": "Implement authentication service", "description": "Implement login, logout, and session management"},
-                {"name": "Add authentication endpoints", "description": "Create API endpoints for authentication"},
-                {"name": "Add authentication tests", "description": "Write tests for authentication functionality"},
+                {
+                    "name": "Design authentication architecture",
+                    "description": "Design the overall authentication system architecture",
+                },
+                {
+                    "name": "Implement user model and database",
+                    "description": "Create user model with email/password fields",
+                },
+                {
+                    "name": "Implement authentication service",
+                    "description": "Implement login, logout, and session management",
+                },
+                {
+                    "name": "Add authentication endpoints",
+                    "description": "Create API endpoints for authentication",
+                },
+                {
+                    "name": "Add authentication tests",
+                    "description": "Write tests for authentication functionality",
+                },
             ],
             "oauth": [
-                {"name": "Design OAuth integration architecture", "description": "Design OAuth2 integration with providers"},
-                {"name": "Implement OAuth client", "description": "Implement OAuth client for provider integration"},
-                {"name": "Add OAuth endpoints", "description": "Create OAuth callback and redirect endpoints"},
+                {
+                    "name": "Design OAuth integration architecture",
+                    "description": "Design OAuth2 integration with providers",
+                },
+                {
+                    "name": "Implement OAuth client",
+                    "description": "Implement OAuth client for provider integration",
+                },
+                {
+                    "name": "Add OAuth endpoints",
+                    "description": "Create OAuth callback and redirect endpoints",
+                },
                 {"name": "Add OAuth tests", "description": "Write tests for OAuth functionality"},
             ],
             "api": [
-                {"name": "Design API structure", "description": "Design RESTful API endpoints and structure"},
-                {"name": "Implement API endpoints", "description": "Implement the core API endpoints"},
-                {"name": "Add input validation", "description": "Add request validation and error handling"},
-                {"name": "Add API documentation", "description": "Document API endpoints with OpenAPI/Swagger"},
+                {
+                    "name": "Design API structure",
+                    "description": "Design RESTful API endpoints and structure",
+                },
+                {
+                    "name": "Implement API endpoints",
+                    "description": "Implement the core API endpoints",
+                },
+                {
+                    "name": "Add input validation",
+                    "description": "Add request validation and error handling",
+                },
+                {
+                    "name": "Add API documentation",
+                    "description": "Document API endpoints with OpenAPI/Swagger",
+                },
                 {"name": "Add API tests", "description": "Write tests for API endpoints"},
             ],
             "ui": [
-                {"name": "Design UI layout", "description": "Design the overall UI layout and components"},
+                {
+                    "name": "Design UI layout",
+                    "description": "Design the overall UI layout and components",
+                },
                 {"name": "Implement UI components", "description": "Implement the UI components"},
-                {"name": "Add state management", "description": "Add state management for UI components"},
+                {
+                    "name": "Add state management",
+                    "description": "Add state management for UI components",
+                },
                 {"name": "Add UI tests", "description": "Write tests for UI components"},
             ],
             "dashboard": [
-                {"name": "Design dashboard layout", "description": "Design dashboard layout and navigation"},
-                {"name": "Implement dashboard components", "description": "Implement dashboard widgets and components"},
-                {"name": "Add data fetching", "description": "Implement data fetching and state management"},
-                {"name": "Add dashboard tests", "description": "Write tests for dashboard functionality"},
+                {
+                    "name": "Design dashboard layout",
+                    "description": "Design dashboard layout and navigation",
+                },
+                {
+                    "name": "Implement dashboard components",
+                    "description": "Implement dashboard widgets and components",
+                },
+                {
+                    "name": "Add data fetching",
+                    "description": "Implement data fetching and state management",
+                },
+                {
+                    "name": "Add dashboard tests",
+                    "description": "Write tests for dashboard functionality",
+                },
             ],
             "database": [
-                {"name": "Design database schema", "description": "Design database schema and relationships"},
-                {"name": "Implement migrations", "description": "Create database migration scripts"},
-                {"name": "Create repositories", "description": "Implement repository pattern for data access"},
+                {
+                    "name": "Design database schema",
+                    "description": "Design database schema and relationships",
+                },
+                {
+                    "name": "Implement migrations",
+                    "description": "Create database migration scripts",
+                },
+                {
+                    "name": "Create repositories",
+                    "description": "Implement repository pattern for data access",
+                },
                 {"name": "Add data tests", "description": "Write tests for data layer"},
             ],
         }
@@ -1383,9 +1340,18 @@ wbs: {wbs}
 
         # Default generic decomposition
         return [
-            {"name": "Design and planning", "description": f"Analyze requirements and create implementation plan for: {requirement}"},
-            {"name": "Implementation", "description": f"Implement the core functionality for: {requirement}"},
-            {"name": "Testing", "description": f"Add tests and verify correctness for: {requirement}"},
+            {
+                "name": "Design and planning",
+                "description": f"Analyze requirements and create implementation plan for: {requirement}",
+            },
+            {
+                "name": "Implementation",
+                "description": f"Implement the core functionality for: {requirement}",
+            },
+            {
+                "name": "Testing",
+                "description": f"Add tests and verify correctness for: {requirement}",
+            },
         ]
 
 
@@ -1395,6 +1361,7 @@ def main() -> int:
     pre_parser = argparse.ArgumentParser(add_help=False)
     pre_parser.add_argument("command", nargs="?")
     pre_parser.add_argument("--data", help="JSON data for commands")
+    pre_parser.add_argument("--folder", help="Override active task folder")
     pre_parser.add_argument("--wbs-prefix", help="WBS prefix for decompose")
     pre_parser.add_argument("--parent", help="Parent task WBS for decompose")
     pre_parser.add_argument("--dry-run", action="store_true", help="Preview decompose")
@@ -1405,7 +1372,8 @@ def main() -> int:
         return 0
 
     try:
-        manager = TasksManager()
+        config = TasksConfig(folder=pre_args.folder)
+        manager = TasksManager(config)
 
         # Route based on command, with custom argument handling
         if pre_args.command == "init":
@@ -1414,6 +1382,11 @@ def main() -> int:
             return manager.cmd_refresh()
         elif pre_args.command == "check":
             return manager.cmd_check()
+        elif pre_args.command == "config":
+            # config takes: [subcommand] [args...]
+            subcommand = remaining[0] if remaining else None
+            config_args = remaining[1:] if len(remaining) > 1 else None
+            return manager.cmd_config(subcommand, config_args)
         elif pre_args.command == "create":
             # create takes: <task name> (all remaining args joined)
             task_name = " ".join(remaining) if remaining else ""
@@ -1448,13 +1421,6 @@ def main() -> int:
                 parent=pre_args.parent,
                 dry_run=pre_args.dry_run,
             )
-        elif pre_args.command == "hook":
-            # hook takes: <operation> (first remaining arg)
-            if not remaining:
-                print("[ERROR] Usage: tasks hook <operation>", file=sys.stderr)
-                return 1
-            operation = remaining[0]
-            return manager.cmd_hook(operation, pre_args.data)
         elif pre_args.command == "log":
             # log takes: <prefix> (first remaining arg)
             if not remaining:
@@ -1462,20 +1428,6 @@ def main() -> int:
                 return 1
             prefix = remaining[0]
             return manager.cmd_log(prefix, pre_args.data)
-        elif pre_args.command == "sync":
-            # sync takes: <subcommand> (first remaining arg)
-            if not remaining:
-                print("[ERROR] Usage: tasks sync <todowrite|restore>", file=sys.stderr)
-                return 1
-            subcommand = remaining[0]
-            if subcommand == "todowrite":
-                return manager.cmd_sync_todowrite(pre_args.data)
-            elif subcommand == "restore":
-                return manager.cmd_sync_restore()
-            else:
-                print(f"[ERROR] Unknown sync subcommand: {subcommand}", file=sys.stderr)
-                print("Valid subcommands: todowrite, restore", file=sys.stderr)
-                return 1
         else:
             print(f"[ERROR] Unknown command: {pre_args.command}", file=sys.stderr)
             print(TASKS_USAGE, file=sys.stderr)

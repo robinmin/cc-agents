@@ -189,17 +189,23 @@ class TestTasksManager:
     """Test TasksManager class."""
 
     def test_cmd_init(self, tmp_path):
-        """Test init command."""
+        """Test init command creates docs/.tasks/ structure."""
         manager = TasksManager(TasksConfig(project_root=tmp_path))
         exit_code = manager.cmd_init()
 
         assert exit_code == 0
         assert (tmp_path / "docs/prompts").exists()
-        assert (tmp_path / "docs/prompts/.kanban.md").exists()
-        assert (tmp_path / "docs/prompts/.template.md").exists()
+        # After init, metadata is in docs/.tasks/
+        assert (tmp_path / "docs/.tasks/config.jsonc").exists()
+        assert (tmp_path / "docs/.tasks/kanban.md").exists()
+        assert (tmp_path / "docs/.tasks/template.md").exists()
+        assert (tmp_path / "docs/.tasks/brainstorm").is_dir()
+        assert (tmp_path / "docs/.tasks/codereview").is_dir()
+        assert (tmp_path / "docs/.tasks/design").is_dir()
+        assert (tmp_path / "docs/.tasks/sync").is_dir()
 
         # Check kanban content
-        kanban = (tmp_path / "docs/prompts/.kanban.md").read_text()
+        kanban = (tmp_path / "docs/.tasks/kanban.md").read_text()
         assert "## Backlog" in kanban
         assert "## Todo" in kanban
         assert "## WIP" in kanban
@@ -207,17 +213,19 @@ class TestTasksManager:
         assert "## Done" in kanban
 
     def test_cmd_init_existing(self, tmp_path):
-        """Test init command with existing setup."""
+        """Test init command with existing legacy setup migrates files."""
         prompts_dir = tmp_path / "docs/prompts"
         prompts_dir.mkdir(parents=True)
-        (prompts_dir / ".kanban.md").write_text("existing")
+        (prompts_dir / ".kanban.md").write_text("existing kanban")
+        (prompts_dir / ".template.md").write_text("existing template")
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
         exit_code = manager.cmd_init()
 
         assert exit_code == 0
-        # Should not overwrite existing files
-        assert (prompts_dir / ".kanban.md").read_text() == "existing"
+        # Legacy files should be migrated to docs/.tasks/
+        assert (tmp_path / "docs/.tasks/kanban.md").read_text() == "existing kanban"
+        assert (tmp_path / "docs/.tasks/template.md").read_text() == "existing template"
 
     @freeze_time("2026-01-21 14:30:00")
     def test_cmd_create(self, tmp_path):
@@ -419,29 +427,6 @@ status: Backlog
         assert "- [.] 0047_wip_task" in kanban_content
         assert "- [x] 0048_done_task" in kanban_content
 
-    @freeze_time("2026-01-21 15:00:00")
-    def test_cmd_hook(self, tmp_path):
-        """Test hook command for TodoWrite events."""
-        # Setup
-        prompts_dir = tmp_path / "docs/prompts"
-        prompts_dir.mkdir(parents=True)
-        (prompts_dir / ".kanban.md").write_text("test")
-
-        manager = TasksManager(TasksConfig(project_root=tmp_path))
-        data = json.dumps({"tool_input": {"items": [{"content": "Test task", "status": "pending"}]}})
-        exit_code = manager.cmd_hook("add", data)
-
-        assert exit_code == 0
-
-        # Check hook log was created
-        log_file = tmp_path / ".claude" / "tasks_hook.log"
-        assert log_file.exists()
-        log_content = log_file.read_text()
-        assert '"operation": "add"' in log_content
-        assert '"item_count": 1' in log_content
-        assert "Test task" in log_content
-
-
 class TestCmdLog:
     """Tests for the log command."""
 
@@ -592,7 +577,7 @@ class TestIntegration:
         os.chdir(tmp_path)
 
         try:
-            # Initialize
+            # Initialize (creates docs/.tasks/ with config.jsonc)
             with patch("sys.argv", ["tasks", "init"]):
                 assert main() == 0
 
@@ -603,7 +588,6 @@ class TestIntegration:
                 assert main() == 0
 
             # Update task using TasksManager API directly
-            # (argparse positional limitation makes main() approach problematic)
             manager = TasksManager(TasksConfig(project_root=tmp_path))
             exit_code = manager.cmd_update("1", "wip")
             assert exit_code == 0
@@ -621,8 +605,8 @@ class TestIntegration:
             task2_content = task2.read_text()
             assert "status: Backlog" in task2_content
 
-            # Verify kanban
-            kanban = tmp_path / "docs/prompts/.kanban.md"
+            # Verify kanban (now in docs/.tasks/)
+            kanban = tmp_path / "docs/.tasks/kanban.md"
             kanban_content = kanban.read_text()
             assert "- [.] 0001_Task_One" in kanban_content
             assert "- [ ] 0002_Task_Two" in kanban_content
@@ -770,3 +754,483 @@ class TestLogRotation:
         # Current log file should exist and be smaller
         assert log_file.exists()
         assert log_file.stat().st_size < MAX_LOG_SIZE
+
+
+class TestTasksConfigLegacy:
+    """Test that legacy mode (no config.jsonc) preserves all existing behavior."""
+
+    def test_legacy_mode_default(self, tmp_path):
+        """No config.jsonc means legacy mode."""
+        config = TasksConfig(project_root=tmp_path)
+        assert config.mode == "legacy"
+
+    def test_legacy_paths(self, tmp_path):
+        """Legacy mode uses docs/prompts/ for everything."""
+        config = TasksConfig(project_root=tmp_path)
+        assert config.prompts_dir == tmp_path / "docs/prompts"
+        assert config.kanban_file == tmp_path / "docs/prompts/.kanban.md"
+        assert config.template_file == tmp_path / "docs/prompts/.template.md"
+        assert config.sync_dir == tmp_path / "docs/tasks_sync"
+
+    def test_legacy_all_folders(self, tmp_path):
+        """Legacy mode has single folder."""
+        config = TasksConfig(project_root=tmp_path)
+        assert config.all_folders == [tmp_path / "docs/prompts"]
+
+    def test_legacy_get_next_wbs(self, tmp_path):
+        """Legacy get_next_wbs scans docs/prompts/."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+        (prompts / "0010_task.md").write_text("test")
+        (prompts / "0020_task.md").write_text("test")
+
+        config = TasksConfig(project_root=tmp_path)
+        assert config.get_next_wbs() == 21
+
+    def test_legacy_get_next_wbs_empty(self, tmp_path):
+        """Legacy get_next_wbs returns 1 for empty folder."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+
+        config = TasksConfig(project_root=tmp_path)
+        assert config.get_next_wbs() == 1
+
+    def test_legacy_find_task_by_wbs(self, tmp_path):
+        """Legacy find_task_by_wbs searches docs/prompts/."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+        task = prompts / "0047_test.md"
+        task.write_text("test")
+
+        config = TasksConfig(project_root=tmp_path)
+        assert config.find_task_by_wbs("0047") == task
+
+    def test_legacy_find_task_by_wbs_not_found(self, tmp_path):
+        """Legacy find_task_by_wbs returns None for missing task."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+
+        config = TasksConfig(project_root=tmp_path)
+        assert config.find_task_by_wbs("9999") is None
+
+
+class TestTasksConfigWithConfig:
+    """Test config mode (with config.jsonc)."""
+
+    def _create_config(self, tmp_path, config_data):
+        """Helper: create config.jsonc."""
+        meta_dir = tmp_path / "docs/.tasks"
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        config_text = (
+            "// Test config\n"
+            + json.dumps(config_data, indent=2)
+            + "\n"
+        )
+        (meta_dir / "config.jsonc").write_text(config_text)
+
+    def test_config_mode_detected(self, tmp_path):
+        """Config.jsonc triggers config mode."""
+        self._create_config(tmp_path, {
+            "$schema_version": 1,
+            "active_folder": "docs/prompts",
+            "folders": {"docs/prompts": {"base_counter": 0, "label": "Phase 1"}},
+        })
+        config = TasksConfig(project_root=tmp_path)
+        assert config.mode == "config"
+
+    def test_config_paths(self, tmp_path):
+        """Config mode uses docs/.tasks/ for metadata."""
+        self._create_config(tmp_path, {
+            "$schema_version": 1,
+            "active_folder": "docs/prompts",
+            "folders": {"docs/prompts": {"base_counter": 0, "label": "Phase 1"}},
+        })
+        config = TasksConfig(project_root=tmp_path)
+        assert config.kanban_file == tmp_path / "docs/.tasks/kanban.md"
+        assert config.template_file == tmp_path / "docs/.tasks/template.md"
+        assert config.sync_dir == tmp_path / "docs/.tasks/sync"
+        assert config.prompts_dir == tmp_path / "docs/prompts"
+
+    def test_config_active_folder(self, tmp_path):
+        """Config mode respects active_folder setting."""
+        self._create_config(tmp_path, {
+            "$schema_version": 1,
+            "active_folder": "docs/next-phase",
+            "folders": {
+                "docs/prompts": {"base_counter": 0},
+                "docs/next-phase": {"base_counter": 200},
+            },
+        })
+        config = TasksConfig(project_root=tmp_path)
+        assert config.active_folder == tmp_path / "docs/next-phase"
+
+    def test_config_folder_override(self, tmp_path):
+        """--folder overrides active_folder."""
+        self._create_config(tmp_path, {
+            "$schema_version": 1,
+            "active_folder": "docs/prompts",
+            "folders": {
+                "docs/prompts": {"base_counter": 0},
+                "docs/next-phase": {"base_counter": 200},
+            },
+        })
+        config = TasksConfig(project_root=tmp_path, folder="docs/next-phase")
+        assert config.active_folder == tmp_path / "docs/next-phase"
+
+    def test_config_all_folders(self, tmp_path):
+        """Config mode lists all folders."""
+        self._create_config(tmp_path, {
+            "$schema_version": 1,
+            "active_folder": "docs/prompts",
+            "folders": {
+                "docs/prompts": {"base_counter": 0},
+                "docs/next-phase": {"base_counter": 200},
+            },
+        })
+        config = TasksConfig(project_root=tmp_path)
+        assert len(config.all_folders) == 2
+        assert tmp_path / "docs/prompts" in config.all_folders
+        assert tmp_path / "docs/next-phase" in config.all_folders
+
+    def test_jsonc_parsing(self, tmp_path):
+        """JSONC comments are stripped correctly."""
+        meta_dir = tmp_path / "docs/.tasks"
+        meta_dir.mkdir(parents=True)
+        (meta_dir / "config.jsonc").write_text(
+            '// This is a comment\n'
+            '{\n'
+            '  // Another comment\n'
+            '  "$schema_version": 1,\n'
+            '  "active_folder": "docs/prompts", // inline comment\n'
+            '  "folders": {\n'
+            '    "docs/prompts": {"base_counter": 0}\n'
+            '  }\n'
+            '}\n'
+        )
+        config = TasksConfig(project_root=tmp_path)
+        assert config.mode == "config"
+        assert config.active_folder == tmp_path / "docs/prompts"
+
+
+class TestGlobalWBSUniqueness:
+    """Test WBS uniqueness across multiple folders."""
+
+    def _setup_multi_folder(self, tmp_path):
+        """Helper: set up multi-folder config with tasks."""
+        meta_dir = tmp_path / "docs/.tasks"
+        meta_dir.mkdir(parents=True)
+        config_data = {
+            "$schema_version": 1,
+            "active_folder": "docs/prompts",
+            "folders": {
+                "docs/prompts": {"base_counter": 0, "label": "Phase 1"},
+                "docs/next-phase": {"base_counter": 200, "label": "Phase 2"},
+            },
+        }
+        (meta_dir / "config.jsonc").write_text(
+            "// test\n" + json.dumps(config_data, indent=2) + "\n"
+        )
+
+        # Create folders with tasks
+        p1 = tmp_path / "docs/prompts"
+        p1.mkdir(parents=True)
+        (p1 / "0100_task_a.md").write_text("---\nstatus: WIP\n---\n")
+        (p1 / "0150_task_b.md").write_text("---\nstatus: Done\n---\n")
+
+        p2 = tmp_path / "docs/next-phase"
+        p2.mkdir(parents=True)
+        (p2 / "0201_task_c.md").write_text("---\nstatus: Backlog\n---\n")
+
+        return TasksConfig(project_root=tmp_path)
+
+    def test_global_max_across_folders(self, tmp_path):
+        """get_next_wbs returns max across ALL folders + 1."""
+        config = self._setup_multi_folder(tmp_path)
+        # Global max is 201 (from next-phase), so next = 202
+        assert config.get_next_wbs() == 202
+
+    def test_base_counter_as_floor(self, tmp_path):
+        """base_counter acts as floor when it's higher than global max."""
+        meta_dir = tmp_path / "docs/.tasks"
+        meta_dir.mkdir(parents=True)
+        config_data = {
+            "$schema_version": 1,
+            "active_folder": "docs/next-phase",
+            "folders": {
+                "docs/prompts": {"base_counter": 0},
+                "docs/next-phase": {"base_counter": 500},
+            },
+        }
+        (meta_dir / "config.jsonc").write_text(
+            "// test\n" + json.dumps(config_data, indent=2) + "\n"
+        )
+
+        p1 = tmp_path / "docs/prompts"
+        p1.mkdir(parents=True)
+        (p1 / "0010_task.md").write_text("test")
+
+        p2 = tmp_path / "docs/next-phase"
+        p2.mkdir(parents=True)
+
+        config = TasksConfig(project_root=tmp_path)
+        # Global max is 10, but base_counter for active folder is 500
+        assert config.get_next_wbs() == 501
+
+    def test_no_collisions_after_create(self, tmp_path):
+        """Creating tasks in different folders never collides."""
+        config = self._setup_multi_folder(tmp_path)
+        # Create kanban and template for validate()
+        meta_dir = tmp_path / "docs/.tasks"
+        (meta_dir / "kanban.md").write_text("---\nkanban-plugin: board\n---\n")
+        (meta_dir / "template.md").write_text(
+            "---\nname: {{PROMPT_NAME}}\nstatus: Backlog\n"
+            "created_at: {{CREATED_AT}}\nupdated_at: {{UPDATED_AT}}\n---\n"
+            "## {{WBS}}. {{PROMPT_NAME}}\n"
+        )
+
+        manager = TasksManager(config)
+        exit_code = manager.cmd_create("New Task")
+        assert exit_code == 0
+
+        # Should be 0202 (global max 201 + 1)
+        assert (tmp_path / "docs/prompts/0202_New_Task.md").exists()
+
+
+class TestCrossFolderOperations:
+    """Test that update/open find tasks across all folders."""
+
+    def _setup_cross_folder(self, tmp_path):
+        """Helper: multi-folder with kanban in docs/.tasks/."""
+        meta_dir = tmp_path / "docs/.tasks"
+        meta_dir.mkdir(parents=True)
+        config_data = {
+            "$schema_version": 1,
+            "active_folder": "docs/next-phase",
+            "folders": {
+                "docs/prompts": {"base_counter": 0},
+                "docs/next-phase": {"base_counter": 200},
+            },
+        }
+        (meta_dir / "config.jsonc").write_text(
+            "// test\n" + json.dumps(config_data, indent=2) + "\n"
+        )
+        (meta_dir / "kanban.md").write_text("---\nkanban-plugin: board\n---\n")
+
+        p1 = tmp_path / "docs/prompts"
+        p1.mkdir(parents=True)
+        (p1 / "0047_old_task.md").write_text("---\nstatus: Backlog\nupdated_at: 2026-01-01\n---\n")
+
+        p2 = tmp_path / "docs/next-phase"
+        p2.mkdir(parents=True)
+        (p2 / "0201_new_task.md").write_text("---\nstatus: Backlog\nupdated_at: 2026-01-01\n---\n")
+
+        return TasksConfig(project_root=tmp_path)
+
+    def test_update_finds_task_in_other_folder(self, tmp_path):
+        """cmd_update finds task 0047 in docs/prompts/ even when active is docs/next-phase/."""
+        config = self._setup_cross_folder(tmp_path)
+        manager = TasksManager(config)
+
+        exit_code = manager.cmd_update("47", "wip")
+        assert exit_code == 0
+
+        task_content = (tmp_path / "docs/prompts/0047_old_task.md").read_text()
+        assert "status: WIP" in task_content
+
+    def test_update_finds_task_in_active_folder(self, tmp_path):
+        """cmd_update finds task 0201 in the active folder."""
+        config = self._setup_cross_folder(tmp_path)
+        manager = TasksManager(config)
+
+        exit_code = manager.cmd_update("201", "testing")
+        assert exit_code == 0
+
+        task_content = (tmp_path / "docs/next-phase/0201_new_task.md").read_text()
+        assert "status: Testing" in task_content
+
+    def test_find_task_by_wbs_across_folders(self, tmp_path):
+        """find_task_by_wbs searches all configured folders."""
+        config = self._setup_cross_folder(tmp_path)
+        assert config.find_task_by_wbs("0047") == tmp_path / "docs/prompts/0047_old_task.md"
+        assert config.find_task_by_wbs("0201") == tmp_path / "docs/next-phase/0201_new_task.md"
+        assert config.find_task_by_wbs("9999") is None
+
+
+class TestMigration:
+    """Test init migration from legacy to config mode."""
+
+    def test_migration_moves_kanban(self, tmp_path):
+        """Init migrates .kanban.md from docs/prompts/ to docs/.tasks/."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+        (prompts / ".kanban.md").write_text("original kanban")
+
+        manager = TasksManager(TasksConfig(project_root=tmp_path))
+        manager.cmd_init()
+
+        assert (tmp_path / "docs/.tasks/kanban.md").read_text() == "original kanban"
+
+    def test_migration_moves_template(self, tmp_path):
+        """Init migrates .template.md from docs/prompts/ to docs/.tasks/."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+        (prompts / ".template.md").write_text("original template")
+
+        manager = TasksManager(TasksConfig(project_root=tmp_path))
+        manager.cmd_init()
+
+        assert (tmp_path / "docs/.tasks/template.md").read_text() == "original template"
+
+    def test_migration_moves_sync_data(self, tmp_path):
+        """Init migrates docs/tasks_sync/ to docs/.tasks/sync/."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+        sync_dir = tmp_path / "docs/tasks_sync"
+        sync_dir.mkdir(parents=True)
+        (sync_dir / "session_map.json").write_text('{"key": "value"}')
+        (sync_dir / "promotions.log").write_text("log data")
+
+        manager = TasksManager(TasksConfig(project_root=tmp_path))
+        manager.cmd_init()
+
+        assert (tmp_path / "docs/.tasks/sync/session_map.json").read_text() == '{"key": "value"}'
+        assert (tmp_path / "docs/.tasks/sync/promotions.log").read_text() == "log data"
+
+    def test_migration_idempotent(self, tmp_path):
+        """Running init twice doesn't break anything."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+        (prompts / ".kanban.md").write_text("kanban v1")
+
+        config = TasksConfig(project_root=tmp_path)
+        manager = TasksManager(config)
+        manager.cmd_init()
+
+        # First run migrates
+        assert (tmp_path / "docs/.tasks/kanban.md").read_text() == "kanban v1"
+
+        # Second run: reload config (now in config mode)
+        config2 = TasksConfig(project_root=tmp_path)
+        manager2 = TasksManager(config2)
+        result = manager2.cmd_init()
+        assert result == 0
+
+        # kanban still has original content
+        assert (tmp_path / "docs/.tasks/kanban.md").read_text() == "kanban v1"
+
+    def test_migration_generates_config(self, tmp_path):
+        """Init creates config.jsonc with correct structure."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+
+        manager = TasksManager(TasksConfig(project_root=tmp_path))
+        manager.cmd_init()
+
+        config_path = tmp_path / "docs/.tasks/config.jsonc"
+        assert config_path.exists()
+
+        config = TasksConfig._parse_jsonc(config_path)
+        assert config["$schema_version"] == 1
+        assert config["active_folder"] == "docs/prompts"
+        assert "docs/prompts" in config["folders"]
+
+
+class TestCmdConfig:
+    """Test the config command."""
+
+    def _init_project(self, tmp_path):
+        """Helper: run init to create config."""
+        prompts = tmp_path / "docs/prompts"
+        prompts.mkdir(parents=True)
+        manager = TasksManager(TasksConfig(project_root=tmp_path))
+        manager.cmd_init()
+        return TasksManager(TasksConfig(project_root=tmp_path))
+
+    def test_config_show(self, tmp_path, capsys):
+        """tasks config shows current settings."""
+        manager = self._init_project(tmp_path)
+        exit_code = manager.cmd_config()
+
+        assert exit_code == 0
+        captured = capsys.readouterr()
+        assert "Mode: config" in captured.out
+        assert "docs/prompts" in captured.out
+
+    def test_config_add_folder(self, tmp_path):
+        """tasks config add-folder adds a new folder."""
+        manager = self._init_project(tmp_path)
+        exit_code = manager.cmd_config(
+            "add-folder",
+            ["docs/next-phase", "--base-counter", "200", "--label", "Phase 2"],
+        )
+
+        assert exit_code == 0
+
+        # Reload and verify
+        config = TasksConfig(project_root=tmp_path)
+        assert len(config.all_folders) == 2
+        assert (tmp_path / "docs/next-phase").exists()
+
+    def test_config_set_active(self, tmp_path):
+        """tasks config set-active changes the active folder."""
+        manager = self._init_project(tmp_path)
+        # First add the folder
+        manager.cmd_config(
+            "add-folder",
+            ["docs/next-phase", "--base-counter", "200"],
+        )
+        # Then set it active
+        exit_code = manager.cmd_config("set-active", ["docs/next-phase"])
+        assert exit_code == 0
+
+        # Reload and verify
+        config = TasksConfig(project_root=tmp_path)
+        assert config.active_folder == tmp_path / "docs/next-phase"
+
+    def test_config_set_active_invalid(self, tmp_path, capsys):
+        """tasks config set-active rejects unknown folders."""
+        manager = self._init_project(tmp_path)
+        exit_code = manager.cmd_config("set-active", ["docs/nonexistent"])
+
+        assert exit_code == 1
+        captured = capsys.readouterr()
+        assert "not in config" in captured.err
+
+
+class TestMultiFolderRefresh:
+    """Test kanban refresh across multiple folders."""
+
+    def test_refresh_aggregates_all_folders(self, tmp_path):
+        """Refresh creates single kanban with tasks from all folders."""
+        meta_dir = tmp_path / "docs/.tasks"
+        meta_dir.mkdir(parents=True)
+        config_data = {
+            "$schema_version": 1,
+            "active_folder": "docs/prompts",
+            "folders": {
+                "docs/prompts": {"base_counter": 0},
+                "docs/next-phase": {"base_counter": 200},
+            },
+        }
+        (meta_dir / "config.jsonc").write_text(
+            "// test\n" + json.dumps(config_data, indent=2) + "\n"
+        )
+        (meta_dir / "kanban.md").write_text("---\nkanban-plugin: board\n---\n")
+
+        p1 = tmp_path / "docs/prompts"
+        p1.mkdir(parents=True)
+        (p1 / "0001_phase1.md").write_text("---\nstatus: WIP\n---\n")
+
+        p2 = tmp_path / "docs/next-phase"
+        p2.mkdir(parents=True)
+        (p2 / "0201_phase2.md").write_text("---\nstatus: Backlog\n---\n")
+
+        config = TasksConfig(project_root=tmp_path)
+        manager = TasksManager(config)
+        exit_code = manager.cmd_refresh()
+
+        assert exit_code == 0
+
+        kanban = (meta_dir / "kanban.md").read_text()
+        assert "0001_phase1" in kanban
+        assert "0201_phase2" in kanban
