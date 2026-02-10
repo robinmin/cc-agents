@@ -42,7 +42,7 @@ Refine incomplete or unclear task files through quality checks, gap detection, a
 |----------|----------|-----------|
 | Frontmatter | Empty description | < 10 chars |
 | Content | Empty Requirements | < 10 chars |
-| Content | Empty Design | < 10 chars |
+| Content | Empty Solution | < 10 chars |
 | Quality | Very brief Requirements | < 50 chars |
 | Quality | No acceptance criteria | Missing |
 
@@ -77,7 +77,7 @@ Steps:
 
 ```bash
 # Auto-detect issues
-/rd2:tasks-refine --task 0047
+/rd2:tasks-refine 0047
 
 # Output:
 # → Loading task 0047...

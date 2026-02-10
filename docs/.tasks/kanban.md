@@ -9,35 +9,30 @@ kanban-plugin: board
 - [ ] 0147_rd2-tasks-upgrade
 - [ ] 0155_error-handling-layer
 - [ ] 0158_integration-tests
-- [ ] 0171_fix_wt_critical_cdp_code_duplication
-- [ ] 0172_fix_wt_critical_mathjax_type_safety
-- [ ] 0182_demote-todowrite-to-notification-layer
 - [ ] 0161_edge-case-testing
 - [ ] 0154_command-router-update
 - [ ] 0160_performance-testing
 - [ ] 0159_documentation-update
-- [ ] 0179_refactor-tasks-py-into-modular-architecture
-- [ ] 0173_fix_wt_critical_package_dependency_path
 - [ ] 0151_taskget-adapter
-- [ ] 0181_enhance-tasks-create-with-rich-content-and-validation
 - [ ] 0152_taskupdate-adapter
-- [ ] 0178_add-structured-output-protocol-and-batch-create
 - [ ] 0153_wbs-dependency-support
 - [ ] 0157_unit-tests-adapters
 - [ ] 0177_enhance_unit_tests_for_WT_publish_to_skills
 - [ ] 0162_final-review
-- [ ] 0175_fix_wt_code_quality_improvements
 - [ ] 0149_tool-abstraction-layer
 - [ ] 0156_backward-compatibility
-- [ ] 0162_fix_x_publishing_quote_and_utils_bugs
 - [ ] 0148_compatibility-checker
 - [ ] 0159_upgrade_Agent_Skills_to_add_unit_tests_for_evaluation
 - [ ] 0150_tasklist-adapter
-- [ ] 0174_fix_wt_high_priority_issues
 
 ## Todo
 
-
+- [ ] 0171_fix_wt_critical_cdp_code_duplication
+- [ ] 0172_fix_wt_critical_mathjax_type_safety
+- [ ] 0173_fix_wt_critical_package_dependency_path
+- [ ] 0175_fix_wt_code_quality_improvements
+- [ ] 0162_fix_x_publishing_quote_and_utils_bugs
+- [ ] 0174_fix_wt_high_priority_issues
 
 ## WIP
 
@@ -86,6 +81,7 @@ kanban-plugin: board
 - [x] 0129_rename_doc-publish_to_wt_topic-publish
 - [x] 0087_refine_Agents_Skills_article-extractor_into_knowledge-extraction
 - [x] 0142_brainstorm_structured_output
+- [x] 0182_demote-todowrite-to-notification-layer
 - [x] 0002_fine_tune_the_project_structure
 - [x] 0045_workflow_completion_report
 - [x] 0041_workflow_phase2_integration
@@ -109,6 +105,7 @@ kanban-plugin: board
 - [x] 0055_create_new_Agent_Skills_backend-architect
 - [x] 0070_fine_tune_Agent_Skills_cc-skills
 - [x] 0093_create_wt-adapt_command
+- [x] 0179_refactor-tasks-py-into-modular-architecture
 - [x] 0094_create_wt-generate-image_command
 - [x] 0071_create_new_Agent_Skills_cc-commands_and_its_complementary_subagents_and_slash_commands
 - [x] 0137_create_test_repo_config_py
@@ -127,6 +124,7 @@ kanban-plugin: board
 - [x] 0036_create_changelog
 - [x] 0170_adapt_publish-to-wechatmp_with_playwright
 - [x] 0053_Review_on_super-code-reviewer
+- [x] 0181_enhance-tasks-create-with-rich-content-and-validation
 - [x] 0133_create_comprehensive_unit_tests_for_tcc_scripts
 - [x] 0075_add_new_Agent_Skills_coder-agy
 - [x] 0052_add_new_Agent_Skills_code-revew-opencode
@@ -137,9 +135,11 @@ kanban-plugin: board
 - [x] 0098_enhance_wt-style-apply_command
 - [x] 0102_tcc_phase_2_outline_multi_option
 - [x] 0078_Create_base_pl-typescript_skill_structure_using__rd2:skill-add
+- [x] 0178_add-structured-output-protocol-and-batch-create
 - [x] 0085_Evaluate_and_refine_pl-typescript_skill_using__rd2:skill-evaluate_and__rd2:skill-refine
 - [x] 0112_Add_Missing_Circular_Reference_Tests
 - [x] 0006_add_new_slash_command_tasks
+- [x] 0183_simplify-task-workflow-skill
 - [x] 0030_extensibility_hooks
 - [x] 0026_decouple_formatting
 - [x] 0004_expert_based_agent_architecture

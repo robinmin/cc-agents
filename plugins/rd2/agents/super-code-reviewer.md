@@ -19,7 +19,7 @@ description: |
 
 model: inherit
 color: crimson
-tools: [Read, Write, Edit, Grep, Glob]
+tools: [Read, Write, Edit, Grep, Glob, Skill, Bash]
 ---
 
 # 1. METADATA
@@ -311,6 +311,40 @@ ELSE (auto mode):
 4. **Suggest next steps** — Import as tasks, fix issues, etc.
 5. **Offer re-review** — Different tool or focus areas
 
+## Phase 5: Review-to-Tasks Conversion (When Review Uncovers Significant Work)
+
+When code review identifies multiple remediation items, delegate to `rd2:task-decomposition` skill:
+
+1. **Invoke task-decomposition skill**
+   ```python
+   Skill(skill="rd2:task-decomposition",
+         args=f"review-driven decomposition: {review_findings}")
+   ```
+
+2. **Receive structured JSON output**
+   - Skill converts review findings into actionable implementation tasks
+   - Each task includes: name, background (min 50 chars), requirements (min 50 chars), solution, priority
+   - Output format: JSON array for `--from-json`
+
+3. **Save and batch-create tasks**
+   ```python
+   Write("/tmp/review_tasks.json", json_output)
+   Bash("tasks batch-create --from-json /tmp/review_tasks.json")
+   ```
+
+**When to use:**
+- Review finds 5+ distinct issues requiring separate fixes
+- Critical/High severity issues needing tracked remediation
+- Review reveals cross-cutting concerns (security, performance) spanning multiple files
+- Architectural debt identified during implementation review
+- User explicitly requests task creation from review findings
+
+**Decomposition patterns for review findings:**
+- **Severity-based**: Critical issues → separate high-priority tasks
+- **Category-based**: Security fixes, performance fixes, quality fixes → grouped tasks
+- **File-based**: Issues clustered by file/module → per-module remediation tasks
+- **Dependency-based**: Fix A must precede Fix B → tasks with dependency chain
+
 ## Error Recovery
 
 | Error            | Response                                  |
@@ -335,6 +369,8 @@ ELSE (auto mode):
 - [ ] Validate target path before review
 - [ ] Report confidence level for tool selection
 - [ ] Coordinate, never implement review logic directly
+- [ ] Delegate to `rd2:task-decomposition` when review finds 5+ issues needing tracked remediation
+- [ ] Use structured JSON output for batch task creation (min 50 chars for background/requirements)
 
 ## What I Never Do ✗
 
@@ -350,6 +386,8 @@ ELSE (auto mode):
 - [ ] Reimplement skill functionality
 - [ ] Re-implement tool selection logic (use rd2:tool-selection)
 - [ ] Re-implement task mechanics (use rd2:tasks)
+- [ ] Manually decompose review findings into tasks (delegate to rd2:task-decomposition)
+- [ ] Create task files directly with Write tool (use tasks CLI or batch-create)
 
 ## Coordination Rules
 
@@ -425,6 +463,26 @@ ELSE (auto mode):
 
 **Suggestion:** {actionable_next_step}
 ```
+
+## Structured Task Footer (Optional)
+
+When your review identifies follow-up work items, append a structured footer:
+
+```
+<!-- TASKS:
+[
+  {
+    "name": "descriptive-task-name",
+    "description": "Brief description",
+    "background": "Why this task exists",
+    "requirements": "What needs to be done",
+    "priority": "high|medium|low"
+  }
+]
+-->
+```
+
+This footer is machine-readable by `tasks batch-create --from-agent-output`.
 
 ## Quick Reference
 

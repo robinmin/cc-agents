@@ -28,7 +28,7 @@ Transform ideas and problems into structured solutions with automatic task file 
 - Extracts Background, Requirements, Solutions for context
 - Example: `docs/prompts/0140_*.md`
 
-## 4-Phase Workflow
+## 5-Phase Workflow
 
 This command delegates to **super-brain** agent, which uses **rd2:brainstorm** skill:
 

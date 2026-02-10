@@ -75,12 +75,29 @@ Global Options:
 
 Commands:
     init                     Initialize tasks (creates docs/.tasks/, migrates metadata)
-    create <task name>       Create a new task
+    create <name>            Create a new task
+    create <name> --background TEXT --requirements TEXT
+                             Create with pre-filled sections
+    create --from-json FILE  Create from JSON definition
+    create --from-stdin      Create from JSON on stdin
+    batch-create --from-json FILE
+                             Create multiple tasks from JSON array
+    batch-create --from-agent-output FILE
+                             Create tasks from agent output footer
     list [stage]             List tasks (optionally filter by stage)
     update <WBS> <stage>     Update a task's stage
+    update <WBS> <stage> --force
+                             Bypass validation warnings
+    update <WBS> --phase <phase> <status> [--force]
+                             Update impl_progress phase and auto-compute status
+    update <WBS> --section <name> --from-file <path>
+                             Update a section's content from a file
+    update <WBS> --section Artifacts --append-row "type|path|agent|date"
+                             Append a row to the Artifacts table
     open <WBS>               Open a task file in default editor
     refresh                  Refresh the kanban board
     check                    Verify tasks CLI availability
+    check <WBS>              Validate a specific task file
     config                   Show current configuration
     config set-active <dir>  Change the active task folder
     config add-folder <dir>  Add a new task folder
@@ -91,10 +108,17 @@ Commands:
 Examples:
     tasks init
     tasks create "Implement feature X"
+    tasks create "Feature" --background "Context" --requirements "Criteria"
+    tasks create --from-json task.json
+    tasks batch-create --from-json tasks.json
+    tasks batch-create --from-agent-output output.md
     tasks list wip
     tasks update 47 testing
+    tasks update 47 wip --force
+    tasks update 47 --phase implementation completed
     tasks open 0047
     tasks check
+    tasks check 47
     tasks config
     tasks config set-active docs/next-phase
     tasks config add-folder docs/next-phase --base-counter 200 --label "Phase 2"
@@ -124,9 +148,11 @@ class TaskStatus(Enum):
             "backlog": cls.BACKLOG,
             "todo": cls.TODO,
             "to-do": cls.TODO,
+            "pending": cls.TODO,
             "wip": cls.WIP,
             "inprogress": cls.WIP,
             "in-progress": cls.WIP,
+            "in_progress": cls.WIP,
             "working": cls.WIP,
             "testing": cls.TESTING,
             "test": cls.TESTING,
@@ -404,7 +430,222 @@ class TaskFile:
         with open(self.path, "w") as f:
             f.writelines(updated_lines)
 
+    def update_timestamp(self) -> None:
+        """Update the updated_at field in frontmatter to current time."""
+        lines = self.path.read_text().splitlines(keepends=True)
+        updated = []
+        for line in lines:
+            if line.startswith("updated_at:"):
+                now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                line = f"updated_at: {now}\n"
+            updated.append(line)
+        self.path.write_text("".join(updated))
 
+    def get_section_content(self, section: str) -> str:
+        """Read content of a named section (e.g., 'Background', 'Requirements')."""
+        content = self.path.read_text()
+        pattern = rf"###\s+{re.escape(section)}\s*\n(.*?)(?=###\s|\Z)"
+        match = re.search(pattern, content, re.DOTALL)
+        return match.group(1).strip() if match else ""
+
+    def set_section_content(self, section: str, new_content: str) -> bool:
+        """Replace content of a named section (e.g., 'Design', 'Plan').
+
+        Works for any ### heading in the task file. Replaces everything between
+        the ### heading and the next ### heading (or end of file).
+
+        Returns True if section was found and updated, False otherwise.
+        """
+        content = self.path.read_text()
+        pattern = rf"(###\s+{re.escape(section)}\s*\n)(.*?)(?=###\s|\Z)"
+        match = re.search(pattern, content, re.DOTALL)
+        if not match:
+            return False
+        replacement = match.group(1) + "\n" + new_content.strip() + "\n\n"
+        updated = content[: match.start()] + replacement + content[match.end() :]
+        self.path.write_text(updated)
+        self.update_timestamp()
+        return True
+
+    def append_artifact_row(
+        self, artifact_type: str, path: str, generated_by: str, date: str
+    ) -> bool:
+        """Append a row to the Artifacts table.
+
+        Returns True if the table was found and row appended, False otherwise.
+        """
+        content = self.path.read_text()
+        # Find the Artifacts table header + separator
+        table_pattern = r"(\| Type \| Path \| Generated By \| Date \|\n\|[-\s|]+\|\n)"
+        match = re.search(table_pattern, content)
+        if not match:
+            return False
+        insert_point = match.end()
+        new_row = f"| {artifact_type} | {path} | {generated_by} | {date} |\n"
+        updated = content[:insert_point] + new_row + content[insert_point:]
+        self.path.write_text(updated)
+        self.update_timestamp()
+        return True
+
+    def get_impl_progress(self) -> dict[str, str]:
+        """Read impl_progress from frontmatter."""
+        result = {}
+        content = self.path.read_text()
+        fm_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
+        if not fm_match:
+            return result
+        fm = fm_match.group(1)
+        in_impl = False
+        for line in fm.splitlines():
+            if line.startswith("impl_progress:"):
+                in_impl = True
+                continue
+            if in_impl:
+                if line.startswith("  "):
+                    key, _, val = line.strip().partition(":")
+                    result[key.strip()] = val.strip()
+                else:
+                    break
+        return result
+
+    def sync_impl_progress_to_status(self, new_status: "TaskStatus") -> bool:
+        """Sync all impl_progress phases to match a direct status change.
+
+        Only syncs for unambiguous statuses:
+        - Done → all phases = "completed"
+        - Backlog/Todo → all phases = "pending"
+        - WIP/Testing/Blocked → no change (ambiguous which phase is active)
+
+        Returns True if phases were updated, False if no change needed.
+        """
+        progress = self.get_impl_progress()
+        if not progress:
+            return False
+
+        if new_status == TaskStatus.DONE:
+            target = "completed"
+        elif new_status in (TaskStatus.BACKLOG, TaskStatus.TODO):
+            target = "pending"
+        else:
+            return False
+
+        # Check if any phase needs updating
+        if all(v == target for v in progress.values()):
+            return False
+
+        for phase in progress:
+            self.update_impl_progress(phase, target)
+        return True
+
+    def update_impl_progress(self, phase: str, status: str) -> None:
+        """Update a single impl_progress phase in frontmatter."""
+        content = self.path.read_text()
+        lines = content.splitlines(keepends=True)
+        updated = []
+        in_impl = False
+        for line in lines:
+            if line.strip() == "impl_progress:":
+                in_impl = True
+                updated.append(line)
+                continue
+            if in_impl:
+                stripped = line.strip()
+                if stripped.startswith(f"{phase}:"):
+                    # Preserve indentation
+                    indent = line[: len(line) - len(line.lstrip())]
+                    line = f"{indent}{phase}: {status}\n"
+                    updated.append(line)
+                    continue
+                elif not line.startswith("  "):
+                    in_impl = False
+            updated.append(line)
+        self.path.write_text("".join(updated))
+
+
+IMPL_PHASES = ["planning", "design", "implementation", "review", "testing"]
+IMPL_PHASE_STATUSES = ["pending", "in_progress", "completed", "blocked"]
+
+
+def _phase_status_indicator(status: str) -> str:
+    """Return a visual indicator for a phase status."""
+    indicators = {
+        "completed": "[x]",
+        "in_progress": "[~]",
+        "blocked": "[!]",
+        "pending": "[ ]",
+    }
+    return indicators.get(status, "[ ]")
+
+
+def compute_status_from_progress(progress: dict[str, str]) -> TaskStatus | None:
+    """Compute task status from impl_progress phases."""
+    if not progress:
+        return None
+    values = list(progress.values())
+    if any(v == "blocked" for v in values):
+        return TaskStatus.BLOCKED
+    if all(v == "completed" for v in values):
+        return TaskStatus.DONE
+    if any(v == "in_progress" for v in values):
+        return TaskStatus.WIP
+    if any(v == "completed" for v in values):
+        return TaskStatus.WIP  # mixed completed/pending = some work done
+    return None  # all pending = no change
+
+
+class ValidationResult:
+    """Tiered validation result for task transitions."""
+
+    def __init__(self):
+        self.errors: list[str] = []  # Tier 1: always block
+        self.warnings: list[str] = []  # Tier 2: block unless --force
+        self.suggestions: list[str] = []  # Tier 3: informational
+
+    @property
+    def has_errors(self) -> bool:
+        return len(self.errors) > 0
+
+    @property
+    def has_warnings(self) -> bool:
+        return len(self.warnings) > 0
+
+
+def validate_task_for_transition(task: TaskFile, new_status: TaskStatus) -> ValidationResult:
+    """Validate a task file for a status transition."""
+    result = ValidationResult()
+
+    # Tier 1: structural errors (always block)
+    try:
+        task.get_status()
+    except Exception:
+        result.errors.append("Missing or invalid frontmatter status")
+
+    # Tier 2: content warnings (block transitions to WIP/Testing/Done)
+    if new_status in (TaskStatus.WIP, TaskStatus.TESTING, TaskStatus.DONE):
+        bg = task.get_section_content("Background")
+        if not bg or bg.startswith("["):
+            result.warnings.append("Background section is empty or placeholder-only")
+        req = task.get_section_content("Requirements")
+        if not req or req.startswith("["):
+            result.warnings.append("Requirements section is empty or placeholder-only")
+        solution = task.get_section_content("Solution")
+        if not solution or solution.startswith("["):
+            result.warnings.append("Solution section is empty or placeholder-only")
+
+    # Tier 3: suggestions (informational)
+    design = task.get_section_content("Design")
+    if not design or design.startswith("["):
+        result.suggestions.append("Design section is empty (optional)")
+
+    plan = task.get_section_content("Plan")
+    if not plan or plan.startswith("["):
+        result.suggestions.append("Plan section is empty (optional)")
+
+    refs = task.get_section_content("References")
+    if not refs or refs.startswith("["):
+        result.suggestions.append("References section is empty")
+
+    return result
 
 
 class TasksManager:
@@ -444,6 +685,46 @@ class TasksManager:
                 f"Invalid WBS number '{wbs}'. Expected 1-4 digit number (e.g., '47' or '0047')."
             )
         return int(wbs)
+
+    def _render_template(
+        self,
+        content: str,
+        task_name: str,
+        wbs: str,
+        background: str | None = None,
+        requirements: str | None = None,
+    ) -> str:
+        """Render a task template with variable substitution.
+
+        Args:
+            content: Raw template content.
+            task_name: Name of the task.
+            wbs: 4-digit WBS string.
+            background: Optional content for Background section.
+            requirements: Optional content for Requirements section.
+
+        Returns:
+            Rendered template content.
+        """
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for var, val in [
+            ("PROMPT_NAME", task_name),
+            ("WBS", wbs),
+            ("CREATED_AT", now),
+            ("UPDATED_AT", now),
+        ]:
+            content = content.replace("{ { " + var + " } }", val)
+            content = content.replace("{{ " + var + " }}", val)
+            content = content.replace("{{" + var + "}}", val)
+        content = content.replace("{{ DESCRIPTION }}", f"Task: {task_name}")
+        content = content.replace("<prompt description>", f"Task: {task_name}")
+
+        if background:
+            content = content.replace("[Context and motivation - why this task exists]", background)
+        if requirements:
+            content = content.replace("[What needs to be done - acceptance criteria]", requirements)
+
+        return content
 
     def _create_symlink(self) -> None:
         """Create symlink at $HOMEBREW_PREFIX/bin/tasks for convenient access.
@@ -601,12 +882,27 @@ class TasksManager:
         print("[INFO] Initialization complete.")
         return 0
 
-    def cmd_create(self, task_name: str) -> int:
+    def cmd_create(
+        self,
+        task_name: str,
+        background: str | None = None,
+        requirements: str | None = None,
+        from_json: str | None = None,
+        from_stdin: bool = False,
+    ) -> int:
         """Create a new task.
 
         Args:
             task_name: Name for the new task.
+            background: Content to inject into Background section.
+            requirements: Content to inject into Requirements section.
+            from_json: Path to JSON file with task definition.
+            from_stdin: Read JSON task definition from stdin.
         """
+        # Handle --from-json / --from-stdin
+        if from_json or from_stdin:
+            return self._create_from_json(from_json, from_stdin)
+
         if not task_name:
             print("[ERROR] Please provide a task name.", file=sys.stderr)
             print(TASKS_USAGE, file=sys.stderr)
@@ -638,23 +934,13 @@ class TasksManager:
 
         # Create task from template
         if self.config.template_file.exists():
-            content = self.config.template_file.read_text()
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            content = content.replace("{ { PROMPT_NAME } }", task_name)
-            content = content.replace("{{ PROMPT_NAME }}", task_name)
-            content = content.replace("{{PROMPT_NAME}}", task_name)
-            content = content.replace("{ { WBS } }", wbs)
-            content = content.replace("{{ WBS }}", wbs)
-            content = content.replace("{{WBS}}", wbs)
-            content = content.replace("{ { CREATED_AT } }", now)
-            content = content.replace("{{ CREATED_AT }}", now)
-            content = content.replace("{{CREATED_AT}}", now)
-            content = content.replace("{ { UPDATED_AT } }", now)
-            content = content.replace("{{ UPDATED_AT }}", now)
-            content = content.replace("{{UPDATED_AT}}", now)
-            content = content.replace("{{ DESCRIPTION }}", f"Task: {task_name}")
-            content = content.replace("<prompt description>", f"Task: {task_name}")
-
+            content = self._render_template(
+                self.config.template_file.read_text(),
+                task_name,
+                wbs,
+                background,
+                requirements,
+            )
             filepath.write_text(content)
             print(f"[INFO] Created task: {filepath}")
         else:
@@ -667,6 +953,147 @@ class TasksManager:
         # Refresh kanban
         self.cmd_refresh()
         return 0
+
+    def _create_from_json(self, from_json: str | None, from_stdin: bool) -> int:
+        """Create a task from a JSON definition.
+
+        JSON format: {"name": "...", "background": "...", "requirements": "...", "description": "..."}
+        """
+        try:
+            if from_stdin:
+                data = json.loads(sys.stdin.read())
+            elif from_json:
+                data = json.loads(Path(from_json).read_text())
+            else:
+                print("[ERROR] No JSON source specified.", file=sys.stderr)
+                return 1
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[ERROR] Failed to parse JSON: {e}", file=sys.stderr)
+            return 1
+
+        name = data.get("name", "")
+        if not name:
+            print("[ERROR] JSON must include 'name' field.", file=sys.stderr)
+            return 1
+
+        return self.cmd_create(
+            task_name=name,
+            background=data.get("background"),
+            requirements=data.get("requirements"),
+        )
+
+    def cmd_batch_create(
+        self,
+        from_json: str | None = None,
+        from_agent_output: str | None = None,
+        from_stdin: bool = False,
+    ) -> int:
+        """Create multiple tasks from a JSON array.
+
+        Args:
+            from_json: Path to JSON file with array of task definitions.
+            from_agent_output: Path to agent output file with <!-- TASKS: [...] --> footer.
+            from_stdin: Read JSON array from stdin.
+
+        Returns:
+            0 on success, 1 on failure.
+        """
+        tasks_data: list[dict] = []
+
+        try:
+            if from_agent_output:
+                content = Path(from_agent_output).read_text()
+                match = re.search(r"<!--\s*TASKS:\s*(\[.*?\])\s*-->", content, re.DOTALL)
+                if not match:
+                    print("[ERROR] No <!-- TASKS: [...] --> footer found.", file=sys.stderr)
+                    return 1
+                tasks_data = json.loads(match.group(1))
+            elif from_stdin:
+                tasks_data = json.loads(sys.stdin.read())
+            elif from_json:
+                tasks_data = json.loads(Path(from_json).read_text())
+            else:
+                print(
+                    "[ERROR] Usage: tasks batch-create --from-json FILE | --from-agent-output FILE | --from-stdin",
+                    file=sys.stderr,
+                )
+                return 1
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[ERROR] Failed to parse input: {e}", file=sys.stderr)
+            return 1
+
+        if not isinstance(tasks_data, list):
+            print("[ERROR] Expected JSON array of task definitions.", file=sys.stderr)
+            return 1
+
+        if not tasks_data:
+            print("[INFO] No tasks to create.")
+            return 0
+
+        self.config.validate()
+
+        created_wbs = []
+        for task_def in tasks_data:
+            name = task_def.get("name", "")
+            if not name:
+                print("[WARN] Skipping task with no name.", file=sys.stderr)
+                continue
+
+            # Use cmd_create but suppress its individual kanban refresh
+            # by calling the creation logic directly
+            result = self._create_single_task(
+                name,
+                background=task_def.get("background"),
+                requirements=task_def.get("requirements"),
+            )
+            if result:
+                created_wbs.append(result)
+
+        # Single kanban refresh at end
+        if created_wbs:
+            self.cmd_refresh()
+            print(f"[SUCCESS] Created {len(created_wbs)} tasks: {', '.join(created_wbs)}")
+
+        return 0
+
+    def _create_single_task(
+        self,
+        task_name: str,
+        background: str | None = None,
+        requirements: str | None = None,
+    ) -> str | None:
+        """Create a single task without refreshing kanban. Returns WBS or None."""
+        MAX_TASK_NAME_LENGTH = 200
+        if len(task_name) > MAX_TASK_NAME_LENGTH:
+            print(f"[WARN] Task name too long, skipping: {task_name[:50]}...", file=sys.stderr)
+            return None
+
+        next_seq = self.config.get_next_wbs()
+        wbs = f"{next_seq:04d}"
+
+        safe_name = task_name.replace(" ", "_").replace("/", "_").replace("\\", "_")
+        filename = f"{wbs}_{safe_name}.md"
+        filepath = self.config.prompts_dir / filename
+
+        if filepath.exists():
+            print(f"[WARN] File already exists, skipping: {filepath}", file=sys.stderr)
+            return None
+
+        if not self.config.template_file.exists():
+            print(f"[ERROR] Template file not found: {self.config.template_file}", file=sys.stderr)
+            return None
+
+        content = self._render_template(
+            self.config.template_file.read_text(),
+            task_name,
+            wbs,
+            background,
+            requirements,
+        )
+
+        filepath.write_text(content)
+        print(f"[INFO] Created task: {filepath}")
+        return wbs
 
     def cmd_list(self, stage: str | None = None) -> int:
         """List tasks, optionally filtered by stage.
@@ -704,12 +1131,28 @@ class TasksManager:
 
         return 0
 
-    def cmd_update(self, wbs: str, stage: str) -> int:
-        """Update a task's stage.
+    def cmd_update(
+        self,
+        wbs: str,
+        stage: str | None = None,
+        phase: str | None = None,
+        phase_status: str | None = None,
+        force: bool = False,
+        section: str | None = None,
+        from_file: str | None = None,
+        append_row: str | None = None,
+    ) -> int:
+        """Update a task's stage, impl_progress phase, or section content.
 
         Args:
             wbs: WBS number (can be short form like "47" or full "0047").
-            stage: New stage for the task.
+            stage: New stage for the task (mutually exclusive with phase/section).
+            phase: impl_progress phase to update (e.g., "implementation").
+            phase_status: Status for the phase (e.g., "completed").
+            force: Bypass tier-2 validation warnings.
+            section: Section name to update (e.g., "Design", "Plan").
+            from_file: Path to file containing new section content.
+            append_row: Pipe-delimited row for Artifacts table (type|path|agent|date).
         """
         # Validate and normalize WBS to 4-digit
         try:
@@ -717,13 +1160,6 @@ class TasksManager:
             wbs_normalized = f"{wbs_int:04d}"
         except ValueError as e:
             print(f"[ERROR] {e}", file=sys.stderr)
-            return 1
-
-        # Normalize stage
-        new_status = TaskStatus.from_alias(stage)
-        if not new_status:
-            print(f"[ERROR] Invalid stage: '{stage}'", file=sys.stderr)
-            print(f"Valid stages: {', '.join(self.VALID_STAGES)}", file=sys.stderr)
             return 1
 
         self.config.validate()
@@ -735,9 +1171,150 @@ class TasksManager:
             return 1
 
         task_file = TaskFile(task_path)
-        task_file.update_status(new_status)
 
+        # --section mode: update section content from file
+        if section:
+            # --append-row for Artifacts table
+            if append_row:
+                if section != "Artifacts":
+                    print(
+                        "[ERROR] --append-row is only valid with --section Artifacts",
+                        file=sys.stderr,
+                    )
+                    return 1
+                parts = append_row.split("|")
+                if len(parts) != 4:
+                    print(
+                        "[ERROR] --append-row expects 4 pipe-delimited fields: "
+                        "type|path|generated_by|date",
+                        file=sys.stderr,
+                    )
+                    return 1
+                if task_file.append_artifact_row(*[p.strip() for p in parts]):
+                    print(f"[INFO] Appended artifact row to {task_file.path.name}")
+                    return 0
+                else:
+                    print(
+                        "[ERROR] Artifacts table not found in task file",
+                        file=sys.stderr,
+                    )
+                    return 1
+
+            # --from-file for section content
+            if not from_file:
+                print(
+                    "[ERROR] --section requires --from-file <path> or --append-row",
+                    file=sys.stderr,
+                )
+                return 1
+            from_path = Path(from_file)
+            if not from_path.exists():
+                print(f"[ERROR] File not found: {from_file}", file=sys.stderr)
+                return 1
+            new_content = from_path.read_text()
+            if not new_content.strip():
+                print(f"[ERROR] File is empty: {from_file}", file=sys.stderr)
+                return 1
+            if task_file.set_section_content(section, new_content):
+                print(
+                    f"[INFO] Updated section '{section}' in {task_file.path.name} from {from_file}"
+                )
+                return 0
+            else:
+                print(
+                    f"[ERROR] Section '### {section}' not found in {task_file.path.name}",
+                    file=sys.stderr,
+                )
+                return 1
+
+        # --phase mode: update impl_progress and auto-compute status
+        if phase:
+            if phase not in IMPL_PHASES:
+                print(
+                    f"[ERROR] Invalid phase: '{phase}'. Valid: {', '.join(IMPL_PHASES)}",
+                    file=sys.stderr,
+                )
+                return 1
+            if not phase_status or phase_status not in IMPL_PHASE_STATUSES:
+                print(
+                    f"[ERROR] Invalid phase status: '{phase_status}'. "
+                    f"Valid: {', '.join(IMPL_PHASE_STATUSES)}",
+                    file=sys.stderr,
+                )
+                return 1
+
+            task_file.update_impl_progress(phase, phase_status)
+            print(f"[INFO] Updated {task_file.path.name} phase '{phase}' to '{phase_status}'")
+
+            # Auto-compute task status from updated progress
+            progress = task_file.get_impl_progress()
+            computed = compute_status_from_progress(progress)
+            if computed:
+                current = task_file.get_status()
+                if computed != current:
+                    # Validate before auto-advancing status
+                    validation = validate_task_for_transition(task_file, computed)
+                    if validation.has_errors:
+                        for err in validation.errors:
+                            print(f"[ERROR] {err}", file=sys.stderr)
+                        print("[INFO] Phase updated but status not auto-advanced due to errors.")
+                    elif validation.has_warnings and not force:
+                        for warn in validation.warnings:
+                            print(f"[WARN] {warn}", file=sys.stderr)
+                        print(
+                            "[INFO] Phase updated but status not auto-advanced. "
+                            "Use --force to bypass."
+                        )
+                    else:
+                        if validation.has_warnings:
+                            for warn in validation.warnings:
+                                print(f"[INFO] (bypassed) {warn}")
+                        task_file.update_status(computed)
+                        print(
+                            f"[INFO] Auto-computed status: '{current.value}' -> '{computed.value}'"
+                        )
+
+            self.cmd_refresh()
+            return 0
+
+        # Direct stage mode
+        if not stage:
+            print("[ERROR] Usage: tasks update <WBS> <stage>", file=sys.stderr)
+            return 1
+
+        new_status = TaskStatus.from_alias(stage)
+        if not new_status:
+            print(f"[ERROR] Invalid stage: '{stage}'", file=sys.stderr)
+            print(f"Valid stages: {', '.join(self.VALID_STAGES)}", file=sys.stderr)
+            return 1
+
+        # Run tiered validation
+        validation = validate_task_for_transition(task_file, new_status)
+
+        if validation.has_errors:
+            for err in validation.errors:
+                print(f"[ERROR] {err}", file=sys.stderr)
+            return 1
+
+        if validation.has_warnings and not force:
+            for warn in validation.warnings:
+                print(f"[WARN] {warn}", file=sys.stderr)
+            print("[INFO] Use --force to bypass warnings.", file=sys.stderr)
+            return 1
+
+        if validation.has_warnings and force:
+            for warn in validation.warnings:
+                print(f"[INFO] (bypassed) {warn}")
+
+        for suggestion in validation.suggestions:
+            print(f"[SUGGESTION] {suggestion}")
+
+        task_file.update_status(new_status)
         print(f"[INFO] Updated status of {task_file.path.name} to '{new_status.value}'")
+
+        # Sync impl_progress to match the new status
+        if task_file.sync_impl_progress_to_status(new_status):
+            print(f"[INFO] Synced impl_progress phases to match '{new_status.value}'")
 
         # Refresh kanban
         self.cmd_refresh()
@@ -805,7 +1382,18 @@ class TasksManager:
                     elif status == TaskStatus.DONE:
                         checkbox = "x"
 
-                    tasks_by_status[status.value].append(f"- [{checkbox}] {name_no_ext}")
+                    entry = f"- [{checkbox}] {name_no_ext}"
+
+                    # Show phase progress for active tasks
+                    if status in (TaskStatus.WIP, TaskStatus.TESTING):
+                        progress = task.get_impl_progress()
+                        if progress:
+                            parts = []
+                            for phase, pstatus in progress.items():
+                                parts.append(f"{_phase_status_indicator(pstatus)} {phase}")
+                            entry += "\n  " + " ".join(parts)
+
+                    tasks_by_status[status.value].append(entry)
                 except (OSError, ValueError) as e:
                     print(f"[WARN] Skipping {task_file.name}: {e}", file=sys.stderr)
 
@@ -838,8 +1426,6 @@ class TasksManager:
         """
         source_template = self.assets_dir / ".template.md"
         if source_template.exists():
-            import shutil
-
             shutil.copy(source_template, path)
         else:
             # Fallback to hardcoded template (mirrors assets/.template.md)
@@ -849,6 +1435,12 @@ description: <prompt description>
 status: Backlog
 created_at: {{ CREATED_AT }}
 updated_at: {{ UPDATED_AT }}
+impl_progress:
+  planning: pending
+  design: pending
+  implementation: pending
+  review: pending
+  testing: pending
 ---
 
 ## {{ WBS }}. {{ PROMPT_NAME }}
@@ -868,6 +1460,11 @@ updated_at: {{ UPDATED_AT }}
 ### Design
 
 [Architecture/UI specs added by specialists]
+
+### Solution
+
+[Solution added by specialists]
+
 
 ### Plan
 
@@ -951,12 +1548,73 @@ updated_at: {{ UPDATED_AT }}
             print(f"[ERROR] Log failed: {e}", file=sys.stderr)
             return 1
 
-    def cmd_check(self) -> int:
-        """Check if tasks CLI prerequisites are met.
+    def cmd_check(self, wbs: str | None = None) -> int:
+        """Check tasks CLI prerequisites or validate a specific task.
+
+        Args:
+            wbs: Optional WBS number to validate a single task.
 
         Returns:
             0 on success, 1 on failure
         """
+        # Single task validation mode
+        if wbs:
+            try:
+                wbs_int = self._validate_wbs(wbs)
+                wbs_normalized = f"{wbs_int:04d}"
+            except ValueError as e:
+                print(f"[ERROR] {e}", file=sys.stderr)
+                return 1
+
+            self.config.validate()
+            task_path = self.config.find_task_by_wbs(wbs_normalized)
+            if not task_path:
+                print(f"[ERROR] No task found with WBS: {wbs_normalized}", file=sys.stderr)
+                return 1
+
+            task_file = TaskFile(task_path)
+            current = task_file.get_status()
+            # Validate against next logical status
+            next_status_map = {
+                TaskStatus.BACKLOG: TaskStatus.TODO,
+                TaskStatus.TODO: TaskStatus.WIP,
+                TaskStatus.WIP: TaskStatus.TESTING,
+                TaskStatus.TESTING: TaskStatus.DONE,
+                TaskStatus.DONE: TaskStatus.DONE,
+                TaskStatus.BLOCKED: TaskStatus.WIP,
+            }
+            target = next_status_map.get(current, TaskStatus.WIP)
+            validation = validate_task_for_transition(task_file, target)
+
+            print(f"[CHECK] {task_path.name} (status: {current.value} -> {target.value})")
+
+            # Display impl_progress breakdown
+            progress = task_file.get_impl_progress()
+            if progress:
+                print("\n  impl_progress:")
+                for phase, phase_status in progress.items():
+                    indicator = _phase_status_indicator(phase_status)
+                    print(f"    {indicator} {phase}: {phase_status}")
+                print()
+
+            if validation.errors:
+                for err in validation.errors:
+                    print(f"  [ERROR] {err}")
+            if validation.warnings:
+                for warn in validation.warnings:
+                    print(f"  [WARN] {warn}")
+            if validation.suggestions:
+                for sug in validation.suggestions:
+                    print(f"  [SUGGESTION] {sug}")
+
+            print(
+                f"\n  {len(validation.errors)} errors, "
+                f"{len(validation.warnings)} warnings, "
+                f"{len(validation.suggestions)} suggestions"
+            )
+            return 1 if validation.has_errors else 0
+
+        # System check mode (original behavior)
         issues = []
 
         # Check prompts directory
@@ -991,7 +1649,60 @@ updated_at: {{ UPDATED_AT }}
             print("\nRun 'tasks init' to set up the tasks CLI.", file=sys.stderr)
             return 1
 
-        print("\n[SUCCESS] Tasks CLI is ready.")
+        print("\n[OK] Tasks CLI is ready.\n")
+
+        # Validate all tasks across all folders
+        next_status_map = {
+            TaskStatus.BACKLOG: TaskStatus.TODO,
+            TaskStatus.TODO: TaskStatus.WIP,
+            TaskStatus.WIP: TaskStatus.TESTING,
+            TaskStatus.TESTING: TaskStatus.DONE,
+            TaskStatus.DONE: TaskStatus.DONE,
+            TaskStatus.BLOCKED: TaskStatus.WIP,
+        }
+
+        total_tasks = 0
+        total_errors = 0
+        total_warnings = 0
+        tasks_with_issues: list[str] = []
+
+        for folder in self.config.all_folders:
+            if not folder.exists():
+                continue
+            for tf_path in sorted(folder.glob("*.md")):
+                if tf_path.name.startswith("."):
+                    continue
+                try:
+                    tf = TaskFile(tf_path)
+                    current = tf.get_status()
+                    target = next_status_map.get(current, TaskStatus.WIP)
+                    validation = validate_task_for_transition(tf, target)
+                    total_tasks += 1
+
+                    if validation.has_errors or validation.has_warnings:
+                        tasks_with_issues.append(
+                            f"  {tf_path.name} ({current.value}): "
+                            f"{len(validation.errors)} errors, "
+                            f"{len(validation.warnings)} warnings"
+                        )
+                        total_errors += len(validation.errors)
+                        total_warnings += len(validation.warnings)
+                except (OSError, ValueError):
+                    continue
+
+        print(
+            f"[CHECK] Validated {total_tasks} tasks across {len(self.config.all_folders)} folder(s)"
+        )
+
+        if tasks_with_issues:
+            print(
+                f"\n  {total_errors} errors, {total_warnings} warnings in {len(tasks_with_issues)} task(s):\n"
+            )
+            for line in tasks_with_issues:
+                print(line)
+            return 1 if total_errors > 0 else 0
+
+        print("[OK] All tasks pass validation.")
         return 0
 
     def cmd_config(self, subcommand: str | None = None, args: list[str] | None = None) -> int:
@@ -1111,7 +1822,7 @@ updated_at: {{ UPDATED_AT }}
 
         Args:
             requirement: High-level requirement to decompose
-            wbs_prefix: WBS prefix to use (default: auto-generated)
+            wbs_prefix: Deprecated. WBS numbers are auto-assigned for global uniqueness.
             parent: Parent task WBS for subtasks
             dry_run: If True, preview without creating files
 
@@ -1124,92 +1835,42 @@ updated_at: {{ UPDATED_AT }}
 
         self.config.validate()
 
-        # Determine starting WBS
         if wbs_prefix:
-            try:
-                start_wbs = int(wbs_prefix)
-            except ValueError:
-                print(f"[ERROR] Invalid WBS prefix: {wbs_prefix}", file=sys.stderr)
-                return 1
-        else:
-            # Find next globally unique WBS
-            start_wbs = self.config.get_next_wbs()
+            print(
+                "[INFO] --wbs-prefix is deprecated; "
+                "WBS numbers are auto-assigned for global uniqueness."
+            )
 
         # Analyze requirement and suggest subtasks
         subtasks = self._analyze_requirement(requirement)
 
-        # Create task files
-        created_files = []
-        for idx, subtask in enumerate(subtasks, start_wbs):
-            wbs = f"{idx:04d}"
-            safe_name = subtask["name"].lower().replace(" ", "_").replace("/", "_")
-            filename = f"{wbs}_{safe_name}.md"
-            filepath = self.config.prompts_dir / filename
-
-            # Build enhanced task file content
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            content = f"""---
-name: {subtask["name"]}
-description: {subtask["description"]}
-status: Backlog
-created_at: {now}
-updated_at: {now}
-wbs: {wbs}
-"""
-
-            # Add dependencies if specified
-            if idx > start_wbs:
-                content += f"dependencies: ['{idx - 1:04d}']\n"
+        # Create task files using standard create flow
+        created_wbs: list[str] = []
+        for subtask in subtasks:
+            bg = requirement
+            if created_wbs:
+                bg += f"\n\nDepends on: {created_wbs[-1]}"
             elif parent:
-                content += f"parent: {parent}\n"
-
-            content += f"""---
-
-## {wbs}. {subtask["name"]}
-
-### Background
-
-{requirement}
-
-### Requirements
-
-{subtask["description"]}
-
-### Q&A
-
-[Clarifications added during planning phase]
-
-### Design
-
-[Architecture/UI specs added by specialists]
-
-### Plan
-
-[Step-by-step implementation plan]
-
-### Artifacts
-
-| Type | Path | Generated By | Date |
-|------|------|--------------|------|
-
-### References
-
-[Links to docs, related tasks, external resources]
-"""
+                bg += f"\n\nParent task: {parent}"
 
             if dry_run:
-                print(f"[DRY RUN] Would create: {filepath}")
-                created_files.append(filepath)
+                print(f"[DRY RUN] Would create: {subtask['name']}")
+                created_wbs.append("auto")
             else:
-                filepath.write_text(content)
-                print(f"[INFO] Created: {filepath}")
-                created_files.append(filepath)
+                wbs = self._create_single_task(
+                    subtask["name"],
+                    background=bg,
+                    requirements=subtask["description"],
+                )
+                if wbs:
+                    created_wbs.append(wbs)
 
         if dry_run:
-            print(f"\n[DRY RUN] Would create {len(created_files)} task files")
+            print(f"\n[DRY RUN] Would create {len(created_wbs)} task files")
         else:
-            print(f"\n[SUCCESS] Created {len(created_files)} task files")
-            self.cmd_refresh()
+            if created_wbs:
+                self.cmd_refresh()
+            print(f"\n[SUCCESS] Created {len(created_wbs)} task files: {', '.join(created_wbs)}")
 
         return 0
 
@@ -1365,6 +2026,18 @@ def main() -> int:
     pre_parser.add_argument("--wbs-prefix", help="WBS prefix for decompose")
     pre_parser.add_argument("--parent", help="Parent task WBS for decompose")
     pre_parser.add_argument("--dry-run", action="store_true", help="Preview decompose")
+    pre_parser.add_argument(
+        "--phase", nargs=2, metavar=("PHASE", "STATUS"), help="Update impl_progress phase"
+    )
+    pre_parser.add_argument("--force", action="store_true", help="Bypass validation warnings")
+    pre_parser.add_argument("--background", help="Background content for create")
+    pre_parser.add_argument("--requirements", help="Requirements content for create")
+    pre_parser.add_argument("--from-json", help="JSON file for create/batch-create")
+    pre_parser.add_argument("--from-stdin", action="store_true", help="Read JSON from stdin")
+    pre_parser.add_argument("--from-agent-output", help="Extract tasks from agent output file")
+    pre_parser.add_argument("--section", help="Section name to update (e.g., Design, Plan)")
+    pre_parser.add_argument("--from-file", help="File path containing section content")
+    pre_parser.add_argument("--append-row", help="Pipe-delimited row for Artifacts table")
     pre_args, remaining = pre_parser.parse_known_args()
 
     if not pre_args.command or pre_args.command == "help":
@@ -1381,7 +2054,15 @@ def main() -> int:
         elif pre_args.command == "refresh":
             return manager.cmd_refresh()
         elif pre_args.command == "check":
-            return manager.cmd_check()
+            # check takes: [WBS] (optional, first remaining arg)
+            check_wbs = remaining[0] if remaining else None
+            return manager.cmd_check(check_wbs)
+        elif pre_args.command == "batch-create":
+            return manager.cmd_batch_create(
+                from_json=getattr(pre_args, "from_json", None),
+                from_agent_output=getattr(pre_args, "from_agent_output", None),
+                from_stdin=pre_args.from_stdin,
+            )
         elif pre_args.command == "config":
             # config takes: [subcommand] [args...]
             subcommand = remaining[0] if remaining else None
@@ -1390,18 +2071,54 @@ def main() -> int:
         elif pre_args.command == "create":
             # create takes: <task name> (all remaining args joined)
             task_name = " ".join(remaining) if remaining else ""
-            return manager.cmd_create(task_name)
+            return manager.cmd_create(
+                task_name,
+                background=pre_args.background,
+                requirements=pre_args.requirements,
+                from_json=getattr(pre_args, "from_json", None),
+                from_stdin=pre_args.from_stdin,
+            )
         elif pre_args.command == "list":
             # list takes: [stage] (optional, first remaining arg)
             stage = remaining[0] if remaining else None
             return manager.cmd_list(stage)
         elif pre_args.command == "update":
-            # update takes: <WBS> <stage> (two positional args)
+            # --section mode: tasks update <WBS> --section <name> --from-file <path>
+            if pre_args.section:
+                if not remaining:
+                    print(
+                        "[ERROR] Usage: tasks update <WBS> --section <name> --from-file <path>",
+                        file=sys.stderr,
+                    )
+                    return 1
+                wbs = remaining[0]
+                return manager.cmd_update(
+                    wbs,
+                    section=pre_args.section,
+                    from_file=getattr(pre_args, "from_file", None),
+                    append_row=pre_args.append_row,
+                )
+            # --phase mode: tasks update <WBS> --phase <phase> <status>
+            if pre_args.phase:
+                if not remaining:
+                    print(
+                        "[ERROR] Usage: tasks update <WBS> --phase <phase> <status>",
+                        file=sys.stderr,
+                    )
+                    return 1
+                wbs = remaining[0]
+                return manager.cmd_update(
+                    wbs,
+                    phase=pre_args.phase[0],
+                    phase_status=pre_args.phase[1],
+                    force=pre_args.force,
+                )
+            # Direct mode: tasks update <WBS> <stage> [--force]
             if len(remaining) < 2:
                 print("[ERROR] Usage: tasks update <WBS> <stage>", file=sys.stderr)
                 return 1
             wbs, stage = remaining[0], remaining[1]
-            return manager.cmd_update(wbs, stage)
+            return manager.cmd_update(wbs, stage, force=pre_args.force)
         elif pre_args.command == "open":
             # open takes: <WBS> (one positional arg)
             if not remaining:

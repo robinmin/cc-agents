@@ -107,7 +107,7 @@ updated_at: 2026-01-21 14:22:18
 
 [What needs to be done]
 
-### Solutions / Goals
+### Solution
 
 [Implementation notes]
 

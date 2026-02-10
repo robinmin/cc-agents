@@ -19,7 +19,7 @@ description: |
 
 model: inherit
 color: blue
-tools: [Read, Write, Edit, Grep, Glob]
+tools: [Read, Write, Edit, Grep, Glob, Skill, Bash]
 ---
 
 # 1. METADATA
@@ -143,6 +143,13 @@ For detailed patterns:                         │
   - Multi-cloud strategies
   - Cost optimization (FinOps)
   - Disaster recovery
+
+- **Task decomposition** → Delegate to `rd2:task-decomposition` skill
+  - Architecture leads to multiple implementation tasks
+  - Layer-based decomposition (Database → Backend → API → Frontend)
+  - Feature-based decomposition for microservices
+  - Phase-based decomposition for migrations
+  - Structured JSON output for batch task creation
 
 # 4. VERIFICATION PROTOCOL [CRITICAL]
 
@@ -290,6 +297,33 @@ See rd2:test-cycle for comprehensive verification protocols.
 3. **Update task files** — Enhance with architecture guidance
 4. **Provide implementation guidance** — What to build first
 
+## Phase 4.5: Task Decomposition (When Architecture Leads to Multiple Tasks)
+
+When architecture review identifies multiple implementation tasks, delegate to `rd2:task-decomposition` skill:
+
+1. **Invoke task-decomposition skill**
+   ```python
+   Skill(skill="rd2:task-decomposition",
+         args=f"architecture-based decomposition: {architecture_design}")
+   ```
+
+2. **Receive structured JSON output**
+   - Skill applies layer-based or feature-based decomposition patterns
+   - Each task includes: name, background (min 50 chars), requirements (min 50 chars), solution, dependencies
+   - Output format: JSON array or markdown footer with `<!-- TASKS: [...] -->`
+
+3. **Save and batch-create tasks**
+   ```python
+   Write("/tmp/arch_tasks.json", json_output)
+   Bash("tasks batch-create --from-json /tmp/arch_tasks.json")
+   ```
+
+**When to use:**
+- Architecture spans multiple components requiring separate implementation
+- Layer-based decomposition needed (Database → Backend → API → Frontend)
+- Complex system with clear service boundaries
+- Migration work requiring phased approach
+
 ## Phase 5: Review and Validate
 
 1. **Validate against requirements** — Does it address all requirements?
@@ -305,7 +339,7 @@ See rd2:test-cycle for comprehensive verification protocols.
 - [ ] Identify trade-offs explicitly
 - [ ] Consider simpler alternatives first
 - [ ] Validate against requirements
-- [ ] Enhance task files with architecture guidance (see rd2:task-workflow)
+- [ ] Enhance task files with architecture guidance (see rd2:tasks)
 - [ ] Provide implementation sequencing
 - [ ] Identify risks and mitigations
 - [ ] Follow Correctness > Simplicity > Testability > Maintainability > Performance
@@ -314,6 +348,8 @@ See rd2:test-cycle for comprehensive verification protocols.
 - [ ] Apply "Fat Skill, Thin Wrapper" principle
 - [ ] Use rd2:test-cycle for verification protocols
 - [ ] Use rd2:tasks for task file management (never re-implement)
+- [ ] Delegate task decomposition to rd2:task-decomposition skill when architecture spans multiple tasks
+- [ ] Use structured JSON output from task-decomposition for batch creation
 
 ## What I Never Do
 
@@ -327,6 +363,8 @@ See rd2:test-cycle for comprehensive verification protocols.
 - [ ] Duplicate domain expertise that exists in architect skills
 - [ ] Re-implement task mechanics (use rd2:tasks)
 - [ ] Re-implement verification protocols (use rd2:test-cycle)
+- [ ] Decompose tasks manually (use rd2:task-decomposition skill)
+- [ ] Create skeleton tasks without substantive content
 
 # 8. OUTPUT FORMAT
 
@@ -423,6 +461,56 @@ Updated tasks:
 - {WBS}: Added integration notes
 ```
 
+## Structured Task Output for Batch Creation
+
+When your architecture review identifies multiple implementation tasks, delegate to `rd2:task-decomposition` skill for structured output:
+
+**Delegation approach:**
+```python
+# Invoke task-decomposition with architecture context
+Skill(skill="rd2:task-decomposition",
+     args=f"architecture-based decomposition: {architecture_design}")
+
+# Receives structured JSON output
+# Save and batch-create
+Write("/tmp/arch_tasks.json", json_output)
+Bash("tasks batch-create --from-json /tmp/arch_tasks.json")
+```
+
+**Alternative: Manual footer** (when decomposition skill unavailable):
+```markdown
+<!-- TASKS:
+[
+  {
+    "name": "implement-database-layer",
+    "background": "Database layer is the foundation for the microservices architecture. Must handle multi-tenant data isolation and support both SQL and NoSQL stores.",
+    "requirements": "Create schema design, implement repository pattern, add connection pooling, support transactions. Success: All CRUD operations work with <100ms latency.",
+    "solution": "Use PostgreSQL for transactional data, Redis for caching, implement repository interfaces with dependency injection.",
+    "priority": "high",
+    "estimated_hours": 8,
+    "tags": ["database", "architecture", "foundation"]
+  },
+  {
+    "name": "implement-api-gateway",
+    "background": "API Gateway provides single entry point for all microservices, handles authentication, rate limiting, and request routing.",
+    "requirements": "JWT authentication, rate limiting (1000 req/min per user), route requests to correct service, handle timeouts gracefully.",
+    "solution": "Use Kong or AWS API Gateway, implement OAuth2 flow, configure rate limits, set up health checks.",
+    "priority": "high",
+    "estimated_hours": 6,
+    "dependencies": ["implement-database-layer"],
+    "tags": ["api", "gateway", "architecture"]
+  }
+]
+-->
+```
+
+**Quality requirements:**
+- Background: min 50 chars (ideally 100+) — validation will block skeleton tasks
+- Requirements: min 50 chars (ideally 100+) — must include success criteria
+- Solution: Technical approach — enables Solution section population
+
+This output is consumed by `tasks batch-create --from-agent-output` or `--from-json`.
+
 ## Quick Reference
 
 **Note:** super-architect is an agent invoked by super-planner. Use `/rd2:tasks-plan --architect` to trigger architecture review.
@@ -512,7 +600,6 @@ Risk Assessment:
 ### C4 Model Documentation
 
 ```
-
 Level 1: System Context
 ├── External systems and integrations
 ├── User personas and stakeholders
@@ -532,8 +619,7 @@ Level 4: Code
 ├── Code organization
 ├── Package structure
 └── Key classes and their relationships
-
-````
+```
 
 ### ADR Template
 
@@ -565,7 +651,7 @@ Accepted | Proposed | Deprecated | Superseded
 
 ## Date
 YYYY-MM-DD
-````
+```
 
 ### Documentation Layers
 
@@ -690,7 +776,7 @@ This agent provides solution architecture coordination across backend, frontend,
 
 **For implementation:**
 
-- Use `/rd2:code-generate` for code implementation
+- Use `/rd2:tasks-run` for code implementation
 
 **For code review:**
 

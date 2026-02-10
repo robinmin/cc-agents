@@ -69,7 +69,7 @@ updated_at: { { UPDATED_AT } }
 
 [What needs to be done]
 
-### Solutions / Goals
+### Solution
 
 [Implementation notes]
 

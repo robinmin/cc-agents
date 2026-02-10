@@ -1,392 +1,288 @@
 ---
 name: task-workflow
-description: Universal task file content structure and 17-step implementation workflow shared across all rd2 agents. Delegates task mechanics (creation, status updates, kanban sync) to rd2:tasks.
+description: 13-step implementation workflow for rd2 agents. Workflow orchestration that delegates all task mechanics to rd2:tasks.
 ---
 
 # Task Workflow
 
 ## Overview
 
-Universal task file content structure and 17-step implementation workflow for rd2 agents. This skill defines the **format** and **workflow** for working with task files, while delegating the **mechanics** (file creation, status updates, kanban synchronization) to `rd2:tasks`.
+Simplified 13-step implementation workflow for task-driven development. This skill defines **workflow orchestration** (what to do when), while the `rd2:tasks` skill handles **task mechanics** (creation, updates, validation).
 
-**Key distinction:**
-- This skill (`rd2:task-workflow`) = Task file structure and workflow
-- `rd2:tasks` skill = Task lifecycle mechanics (create, update, sync)
+**Key Distinction**:
+- **This skill** (`rd2:task-workflow`) = Workflow orchestration, decision points, coordination logic
+- **rd2:tasks skill** = Task file mechanics (create, update, validate, template, kanban sync)
 
-**Used by:** `super-coder`, `super-planner`, `super-architect`, `super-designer`, `super-code-reviewer`
+**Used by**: `super-coder`, `super-planner`, `super-architect`, `super-designer`, `super-code-reviewer`
 
-## Enhanced Task File Structure
-
-### File Organization Pattern
-
-**Main Task File:**
-```
-docs/prompts/<WBS>_<task_name>.md
-```
-Example: `docs/prompts/0089_customize_rulesync_to_sync_plugins.md`
-
-**Additional Files (Implementation Artifacts):**
-```
-docs/prompts/<WBS>/
-├── <WBS>_IMPLEMENTATION_SUMMARY.md
-├── <WBS>_DESIGN.md
-├── <WBS>_NOTES.md
-└── ... (other implementation-related files)
-```
-Example: `docs/prompts/0089/0089_IMPLEMENTATION_SUMMARY.md`
-
-**Key Rules:**
-1. **Main task file** stays in `docs/prompts/` with pattern `<WBS>_<name>.md`
-2. **Additional files** go into subfolder `docs/prompts/<WBS>/`
-3. **Only create subfolder** when additional files are needed (avoid empty folders)
-4. **Prefix additional files** with WBS number for consistency
-
-**Rationale:**
-- Prevents multiple files with same WBS prefix from cluttering `docs/prompts/`
-- Keeps main task files discoverable by the `tasks` CLI
-- Groups related implementation artifacts together
-- Maintains clear separation between task definition and implementation details
-
-### Frontmatter Format
-
-```yaml
 ---
-name: task-name
-description: brief description
-status: Backlog | Todo | WIP | Testing | Done
-created_at: YYYY-MM-DD
-updated_at: YYYY-MM-DD
-impl_progress:
-  planning: pending | in_progress | completed | blocked
-  design: pending | in_progress | completed | blocked
-  implementation: pending | in_progress | completed | blocked
-  review: pending | in_progress | completed | blocked
-  testing: pending | in_progress | completed | blocked
-dependencies: []
-tags: []
+
+## When to Use
+
+Use this workflow when:
+- Following task-driven development with WBS files
+- Implementing features through structured process
+- Coordinating multi-phase project execution
+- Need clear decision points in development workflow
+
 ---
-```
 
-### Content Structure
+## 13-Step Implementation Workflow
 
-```markdown
-## WBS#_task_name
+### Phase 1: Understand (Steps 1-3)
 
-### Background
+**Step 1: Read & Parse Task**
+- **Action**: Read task file via `tasks open WBS`
+- **Parse**: Frontmatter (status, impl_progress), Background, Requirements, References
+- **Validate**: Task file format is correct (use `tasks check WBS`)
+- **Understand**: Problem domain and context from Background section
 
-[Context about the problem domain, why this task exists]
+**Step 2: Clarify & Document**
+- **Action**: If requirements are unclear, ask user for clarification via `AskUserQuestion`
+- **Document**: Add Q&A subsection under Requirements with questions and answers
+- **Update**: Use `tasks update WBS --section "Q&A" --from-file` to save clarifications
+- **Verify**: Re-read task file to confirm updates
 
-### Requirements / Objectives
+**Step 3: Research Context**
+- **Action**: For enhancement tasks, find relevant files in codebase
+- **Tools**: Use `Grep` and `Glob` to locate related code
+- **Understand**: Existing patterns, conventions, and architectural constraints
+- **Reference**: Note relevant code patterns in References section
 
-**Functional Requirements:**
-- Requirement 1
-- Requirement 2
+---
 
-**Non-Functional Requirements:**
-- Performance constraint
-- Security requirement
+### Phase 2: Design (Steps 4-6)
 
-**Acceptance Criteria:**
-- [ ] Criteria 1
-- [ ] Criteria 2
+**Step 4: Design Solution**
+- **Action**: Create technical approach considering architecture and constraints
+- **Consider**: Existing patterns, testability, maintainability, performance
+- **Document**: Write design under Design section (architecture, UI specs, approach)
+- **Update**: Use `tasks update WBS --section Design --from-file design.md`
+- **Solution**: Populate Solution section with technical strategy (required for WIP transition)
+- **Update**: Use `tasks update WBS --section Solution --from-file solution.md`
 
-#### Q&A
+**Step 5: Plan Implementation**
+- **Action**: Break down solution into step-by-step implementation phases
+- **Structure**: Create Plan subsection with phases and sequencing
+- **Include**: Dependencies, prerequisites, verification steps
+- **Add**: References to documentation, patterns, similar implementations
+- **Update**: Use `tasks update WBS --section Plan --from-file plan.md`
 
-**Q:** [Question from agent]
-**A:** [Answer from user]
+**Step 6: Mark as WIP**
+- **Critical Checkpoint**: Transition task status to WIP
+- **Command**: `tasks update WBS wip`
+- **Validation**: Tiered validation runs automatically (Background, Requirements, Solution must be populated)
+- **Bypass**: Use `--force` if needed: `tasks update WBS wip --force`
+- **Phase Sync**: Optionally update impl_progress: `tasks update WBS --phase planning completed`
 
-### Solutions / Goals
+---
 
-**Technology Stack:**
-- Technology choices
+### Phase 3: Execute (Steps 7-13)
 
-**Implementation Approach:**
-1. Step 1
-2. Step 2
+**Step 7: Select Approach**
+- **Decision**: Choose appropriate coder skill based on task characteristics
+- **Factors**: Code complexity, codebase context needs, security requirements
+- **Options**: rd2:coder-gemini, rd2:coder-claude, rd2:coder-auggie, rd2:coder-agy, rd2:coder-opencode
+- **Reference**: Use `rd2:tool-selection` skill for selection heuristics
 
-#### Plan
+**Step 8: Write Tests First** (TDD Red Phase)
+- **Action**: Create failing tests that define expected behavior
+- **Coverage**: Include happy path, edge cases, error scenarios
+- **Run**: Execute tests to verify they fail for the right reasons
+- **Reference**: Use `rd2:tdd-workflow` skill for TDD discipline
 
-1. **Phase 1** - [Description]
-   - [ ] Subtask 1
-   - [ ] Subtask 2
+**Step 9: Implement Code** (TDD Green Phase)
+- **Action**: Write minimal code to make tests pass
+- **Follow**: Project conventions, patterns discovered in Step 3
+- **Track**: `tasks update WBS --phase implementation in_progress`
+- **Document**: Note any deviations from plan in task file
 
-2. **Phase 2** - [Description]
-   - [ ] Subtask 3
+**Step 10: Refactor** (TDD Refactor Phase)
+- **Action**: Clean up code while keeping tests green
+- **Improve**: Code structure, readability, performance
+- **Maintain**: All tests must continue passing
+- **Verify**: Run full test suite after each refactoring
 
-### References
+**Step 11: Run Full Test Suite**
+- **Action**: Execute all tests (unit, integration, e2e)
+- **Verify**: All existing tests still pass (no regressions)
+- **Check**: Code coverage meets project standards (typically 70-80%)
+- **Use**: `rd2:test-cycle` skill for test execution workflow
 
-- [Documentation link](url)
-- [Code reference](path)
-```
+**Step 12: Debug & Fix**
+- **Trigger**: If tests fail or errors occur
+- **Action**: Apply systematic debugging via `rd2:sys-debugging` skill
+- **Process**: Use `rd2:test-cycle` for fix iteration (3-iteration limit with escalation)
+- **Document**: Note issues found and solutions in task file
 
-## impl_progress Tracking
+**Step 13: Verify & Complete**
+- **Pre-conditions**: All tests passing, coverage adequate, no blockers
+- **Transition**: Update task status to Testing: `tasks update WBS testing`
+- **Phase Tracking**: Mark implementation complete: `tasks update WBS --phase implementation completed`
+- **Artifact**: Log completed work: `tasks update WBS --section Artifacts --append-row "code|path/to/file.py|super-coder|2026-02-10"`
+- **Final**: When ready, mark as done: `tasks update WBS done`
 
-### Purpose
-
-Track phase-by-phase completion in task file frontmatter for checkpoint-based resumption.
-
-### Standard Phases
-
-| Phase | Owner | Description |
-|-------|-------|-------------|
-| `planning` | super-planner | Requirements gathering, clarification |
-| `design` | super-architect/designer | Architecture, UI/UX design |
-| `implementation` | super-coder | Code generation, writing |
-| `review` | super-code-reviewer | Code review, quality check |
-| `testing` | super-coder | Test execution, verification |
-
-### Status Values
-
-- `pending` - Not started
-- `in_progress` - Currently executing
-- `completed` - Finished, checkpoint written
-- `blocked` - Cannot proceed, documented reason
-
-### Transitions
-
-```
-pending → in_progress: On phase start
-in_progress → completed: On successful completion
-in_progress → blocked: On failure with blocker
-NEVER: completed → any other state (checkpoints are immutable)
-```
-
-### Update Discipline
-
-1. **Before execution** - Set phase to `in_progress` via `rd2:tasks update WBS wip`
-2. **After completion** - Set phase to `completed`
-3. **Write checkpoint** - Update task file frontmatter immediately
-4. **Verify write** - Re-read file to confirm
-5. **Sync status** - Update tasks CLI and TodoWrite
-
-### Resumption Support
-
-- On `--resume`: Scan `impl_progress`, find last `in_progress` or `completed`
-- Skip completed phases automatically
-- Resume from next pending or in-progress phase
-- Validate checkpoint integrity before resuming
-
-### Status Mapping to tasks CLI
-
-```
-Any phase in_progress → Task status: WIP
-All phases completed → Task status: Done
-Any phase blocked → Task status: Blocked
-```
-
-## 17-Step Implementation Workflow
-
-### Steps 1-6: Understand & Clarify
-
-**Step 1: Read Task File**
-- Parse WBS#, Background, Requirements/Objectives, Solutions/Goals, References
-- Extract frontmatter (status, impl_progress, dependencies)
-- Verify task file format is valid
-
-**Step 2: Understand Context**
-- Read Background section
-- Understand the problem domain
-- Identify related work or dependencies
-
-**Step 3: Parse Requirements**
-- Extract objectives from Requirements/Objectives section
-- List functional and non-functional requirements
-- Review acceptance criteria
-
-**Step 4: Clarify Ambiguities**
-- If requirements are unclear, ask user for clarification
-- Use `AskUserQuestion` tool for structured clarification
-- Document all clarifications in Q&A subsection
-
-**Step 5: Document Q&A**
-- Add new "Q&A" subsection under Requirements/Objectives
-- Include questions asked and answers received
-- Update task file with clarifications
-
-**Step 6: Research Existing Code**
-- For enhancement tasks, find relevant files in codebase
-- Use `Grep` and `Glob` to locate related code
-- Understand existing patterns and conventions
-
-### Steps 7-10: Design & Plan
-
-**Step 7: Design Solution**
-- Create technical approach considering architecture constraints
-- Consider existing patterns and conventions
-- Think about testability and maintainability
-
-**Step 8: Update Solutions Section**
-- Write solution design under Solutions/Goals
-- Include technology choices and rationale
-- Document approach and trade-offs
-
-**Step 9: Create Implementation Plan**
-- Add "Plan" subsection under Solutions/Goals
-- Break down into step-by-step implementation phases
-- Include dependencies and sequencing
-
-**Step 10: Add References**
-- Include relevant documentation links
-- Reference code patterns and examples
-- Link to existing implementations or similar tasks
-
-### Step 11: Status Transition
-
-**Step 11: Mark Task as WIP**
-- Update task file status to "WIP" in frontmatter via `rd2:tasks update WBS wip`
-- Set appropriate impl_progress phase to `in_progress`
-- Confirm update was successful
-
-### Steps 12-17: Execute & Verify
-
-**Step 12: Select Code Generation**
-- Delegate to appropriate coder skill based on task characteristics
-- Consider: complexity, codebase context, security needs
-- Use tool selection heuristics (see `rd2:tool-selection`)
-
-**Step 13: Apply TDD Workflow**
-- Use `rd2:tdd-workflow` skill for test-driven development
-- Follow red-green-refactor cycle
-- Generate tests before implementation when appropriate
-
-**Step 14: Implement Code**
-- Write implementation code following the plan
-- Follow project conventions and patterns
-- Document any deviations from the plan
-
-**Step 15: Generate Tests**
-- Create unit tests ensuring code correctness
-- Target 70-80% test coverage for production code
-- Include edge cases and error scenarios
-
-**Step 16: Debug Issues**
-- Apply systematic debugging if tests fail or errors occur
-- Use `rd2:test-cycle` for test execution and fix iteration
-- Follow 3-iteration fix cycle with escalation
-
-**Step 17: Verify Completion**
-- Ensure all tests pass before marking as ready for review
-- Update impl_progress phase to `completed`
-- Update task status to "Testing" via `rd2:tasks update WBS testing`
-
-## Task-Driven Mode Workflow
-
-When an agent is invoked with `--task WBS#`:
-
-```
-1. Detect input format:
-   ├── If contains "/" or ".md" → treat as file path
-   │   └── Read directly: <path>
-   └── If numeric/short (e.g., 0047) → treat as WBS#
-       └── Search: docs/prompts/<wbs_number>_*.md
-
-2. Extract WBS# from filename (first 4 digits before underscore)
-
-3. Parse frontmatter (name, description, status, impl_progress)
-
-4. Follow 17-step workflow:
-   ├── Steps 1-6: Understand & Clarify
-   ├── Steps 7-10: Design & Plan
-   ├── Step 11: Mark as WIP (via rd2:tasks update)
-   └── Steps 12-17: Execute & Verify
-
-5. Update task file with:
-   ├── Q&A subsection (if clarifications made)
-   ├── Plan subsection (implementation steps)
-   ├── References (docs, patterns, examples)
-   └── impl_progress updates
-
-6. Delegate mechanics to rd2:tasks:
-   ├── Status updates: tasks update WBS wip
-   ├── Kanban sync: tasks refresh
-   └── TodoWrite sync: automatic via hooks
-```
+---
 
 ## Delegation to rd2:tasks
 
-### What rd2:tasks Handles
+### Infrastructure Handled by rd2:tasks
 
-**Do NOT re-implement in this skill:**
-- Task file creation (`tasks create`)
-- Status lifecycle management (`tasks update WBS status`)
-- Kanban board synchronization (`tasks refresh`)
-- TodoWrite integration (automatic via hooks)
-- Task templates and format
+**DO NOT re-implement these in agents or workflows**:
 
-**What this skill defines:**
-- Task file content structure (sections, subsections)
-- Workflow for working through task files (17 steps)
-- Phase progress tracking format (impl_progress)
-- Q&A, Plan, References formats
+- **File Creation**: `tasks create "task-name" --background "..." --requirements "..."`
+- **Batch Creation**: `tasks batch-create --from-json tasks.json`
+- **Status Updates**: `tasks update WBS status`
+- **Phase Tracking**: `tasks update WBS --phase implementation completed`
+- **Section Updates**: `tasks update WBS --section Design --from-file design.md`
+- **Artifact Logging**: `tasks update WBS --section Artifacts --append-row "type|path|agent|date"`
+- **Validation**: Built into `tasks update` (tiered: errors, warnings, suggestions)
+- **Template**: `docs/.tasks/template.md` defines structure
+- **Kanban Sync**: `tasks refresh` aggregates all tasks
 
-### Correct Usage Pattern
+### Workflow Handled by task-workflow
 
-```python
-# ❌ WRONG: Don't re-implement task status management
-update_task_status(wbs, "wip")  # Don't do this
+**This skill defines these orchestration responsibilities**:
 
-# ✅ CORRECT: Delegate to rd2:tasks
-invoke_skill("rd2:tasks", f"update {wbs} wip")  # Do this instead
-```
+- **Decision Points**: When to move from Phase 1 → Phase 2 → Phase 3
+- **Coordination Logic**: Which step comes next based on current state
+- **Workflow Guidance**: How to structure Q&A, Design, Plan sections
+- **TDD Integration**: When to write tests vs implement vs refactor
+- **Error Handling**: When to debug, when to escalate, when to document
+
+---
 
 ## Quick Reference
 
-### WBS# Extraction
-
-- Filename: `0032_update_evaluation_md.md` → WBS# = `0032`
-- Filename: `0047_add_oauth_support.md` → WBS# = `0047`
-- WBS# is always the 4-digit prefix before the first underscore
-
-### Task Status Flow
-
-```
-Backlog → Todo → WIP → Testing → Done
-```
-
-### impl_progress Status Values
-
-```
-pending → in_progress → completed
-                    ↓
-                  blocked
-```
-
-### File Organization Pattern
-
-**Main Task File:**
-```
-docs/prompts/<WBS>_<task_name>.md
-```
-Example: `docs/prompts/0089_customize_rulesync.md`
-
-**Additional Implementation Artifacts:**
-```
-docs/prompts/<WBS>/
-├── <WBS>_IMPLEMENTATION_SUMMARY.md
-├── <WBS>_DESIGN.md
-└── ... (other files)
-```
-Example: `docs/prompts/0089/0089_IMPLEMENTATION_SUMMARY.md`
-
-**Key Rule:** Create subfolder `docs/prompts/<WBS>/` only when additional files are needed during implementation.
-
-### Example Commands
+### Typical Workflow Commands
 
 ```bash
-# By WBS# (auto-search in docs/prompts/)
-/rd2:tasks-run --task 0047
+# Phase 1: Understand
+tasks open 47                                    # Step 1: Read task
+tasks check 47                                   # Validate format
+tasks update 47 --section "Q&A" --from-file qa.md  # Step 2: Document clarifications
 
-# By file path (reads directly, extracts WBS# from filename)
-/rd2:tasks-run --task docs/prompts/0047_add_auth.md
+# Phase 2: Design
+tasks update 47 --section Design --from-file design.md    # Step 4: Design
+tasks update 47 --section Plan --from-file plan.md        # Step 5: Plan
+tasks update 47 wip                                        # Step 6: Mark WIP
 
-# Update status via rd2:tasks
-tasks update 47 wip
-tasks update 0047 testing
-tasks update 47 done
+# Phase 3: Execute
+tasks update 47 --phase implementation in_progress   # Step 9: Track progress
+tasks update 47 --phase implementation completed     # After implementation
+tasks update 47 testing                              # Step 13: Transition to testing
+tasks update 47 done                                 # Final completion
 ```
+
+### Status & Phase Flow
+
+```
+Task Status:    Backlog → Todo → WIP → Testing → Done
+                                   ↓
+                                Blocked
+
+impl_progress:  pending → in_progress → completed
+                              ↓
+                          blocked
+
+Phase Mapping:  Any phase in_progress → Task status: WIP
+                All phases completed   → Task status: Done
+                Any phase blocked      → Task status: Blocked
+```
+
+### Validation Tiers
+
+When running `tasks update WBS status`:
+
+- **Tier 1 (Errors)**: Always block (missing frontmatter)
+- **Tier 2 (Warnings)**: Block unless `--force` (empty Background, Requirements, Solution)
+- **Tier 3 (Suggestions)**: Informational only (empty References)
+
+Example:
+```bash
+tasks update 47 wip          # Blocked if Background/Requirements empty
+tasks update 47 wip --force  # Bypass warnings
+```
+
+---
+
+## Integration with Other Skills
+
+### Workflow Coordination
+
+| Phase | Primary Skill | Supporting Skills |
+|-------|---------------|-------------------|
+| Understand | rd2:task-workflow | rd2:tasks (open, check) |
+| Design | rd2:task-workflow | rd2:tasks (update --section) |
+| Execute | rd2:tdd-workflow | rd2:tasks (update --phase), rd2:test-cycle, rd2:sys-debugging |
+| Review | rd2:code-review-* | rd2:tasks (update status) |
+
+### Correct Delegation Pattern
+
+```python
+# ✅ CORRECT: Delegate to rd2:tasks
+invoke_skill("rd2:tasks", f"update {wbs} wip")
+invoke_skill("rd2:tasks", f"update {wbs} --phase implementation completed")
+
+# ❌ WRONG: Don't re-implement task mechanics
+update_task_status(wbs, "wip")  # Don't do this
+write_impl_progress(wbs, "implementation", "completed")  # Don't do this
+```
+
+---
+
+## Workflow Optimization Tips
+
+### Skip Steps When Appropriate
+
+- **Step 2 (Clarify)**: Skip if requirements are crystal clear
+- **Step 3 (Research)**: Skip for greenfield/new features
+- **Step 4 (Design)**: Lightweight for simple tasks
+- **Steps 8-10 (TDD)**: Can collapse for trivial fixes (but prefer full TDD)
+
+### Workflow Checkpoints
+
+Key decision points where workflow can pause for review:
+
+1. **After Step 2**: User clarification needed?
+2. **After Step 5**: Design/plan approved?
+3. **After Step 6**: Ready to code? (Status: WIP)
+4. **After Step 11**: Tests passing? Ready for review?
+5. **After Step 13**: Ready to mark done? (Status: Done)
+
+### Multi-Agent Coordination
+
+Different agents handle different phases:
+
+- **super-planner**: Steps 1-5 (understand, design, plan)
+- **super-architect**: Step 4 (technical design)
+- **super-coder**: Steps 7-13 (execute, implement, verify)
+- **super-code-reviewer**: Post-Step 13 (review before done)
+
+---
 
 ## References
 
-- `rd2:tasks` skill - Task lifecycle mechanics
-- Task file template: `docs/prompts/.template.md`
-- Kanban board: `docs/prompts/.kanban.md`
+- **rd2:tasks** skill - Task file mechanics and CLI commands
+- **rd2:tdd-workflow** skill - Test-driven development discipline
+- **rd2:test-cycle** skill - Test execution and fix iteration
+- **rd2:sys-debugging** skill - Systematic debugging methodology
+- **rd2:tool-selection** skill - Coder skill selection heuristics
+- **Template**: `docs/.tasks/template.md` - Task file structure
+- **Kanban**: `docs/.tasks/kanban.md` - Visual task board
+
+---
+
+## Migration Notes
+
+**Changes from previous version (393 lines → 198 lines)**:
+
+- ✅ Simplified 17 steps → 13 steps (24% reduction)
+- ✅ Removed redundant infrastructure (file organization, frontmatter, content structure)
+- ✅ Removed impl_progress mechanics (now use `tasks update --phase`)
+- ✅ Removed WBS extraction logic (tasks CLI handles this)
+- ✅ Removed status flow diagrams (delegated to rd2:tasks)
+- ✅ Clearer TDD integration (Steps 8-10 explicitly map to red-green-refactor)
+- ✅ All task mechanics delegated to rd2:tasks skill
+
+**Backward Compatibility**: Agents using the previous 17-step workflow will continue to work - the 13 steps are consolidations, not removals of functionality.
