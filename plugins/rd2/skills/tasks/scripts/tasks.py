@@ -238,7 +238,10 @@ class TasksConfig:
                 result.append(ch)
                 i += 1
             lines.append("".join(result))
-        return json.loads("\n".join(lines))
+        cleaned = "\n".join(lines)
+        # Strip trailing commas before } or ] (valid in JSONC, not in JSON)
+        cleaned = re.sub(r",\s*([}\]])", r"\1", cleaned)
+        return json.loads(cleaned)
 
     @property
     def mode(self) -> str:
