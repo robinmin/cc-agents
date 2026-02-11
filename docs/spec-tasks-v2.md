@@ -1,7 +1,7 @@
 # Tasks v2 Specification
 
-**Version:** 2.0
-**Date:** 2026-01-26
+**Version:** 2.1
+**Date:** 2026-02-10
 **Status:** Implemented
 **Design Doc:** [docs/plans/2026-01-26-tasks-refactor-design.md](plans/2026-01-26-tasks-refactor-design.md)
 
@@ -28,19 +28,22 @@ The Tasks v2 system is a comprehensive workflow orchestration toolset for the rd
 │                    COMMAND LAYER (Entry Points)                 │
 │  /rd2:tasks-plan  /rd2:tasks-run  /rd2:tasks-review            │
 │  /rd2:tasks-refine  /rd2:tasks-design  /rd2:tasks-cli          │
+│  /rd2:tasks-brainstorm  /rd2:tasks-unit  /rd2:tasks-fixall     │
+│  /rd2:tasks-changelog  /rd2:tasks-gitmsg                       │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    AGENT LAYER (Coordinators)                   │
 │  super-planner  super-coder  super-code-reviewer               │
-│  super-architect  super-designer                                │
+│  super-architect  super-designer  super-brain                   │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    SKILL LAYER (Implementation)                 │
-│  rd2:tasks  coder-*  code-review-*  tdd-workflow               │
+│  rd2:tasks  rd2:task-workflow  rd2:task-decomposition          │
+│  coder-*  code-review-*  tdd-workflow  brainstorm             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,12 +55,17 @@ The Tasks v2 system is a comprehensive workflow orchestration toolset for the rd
 
 | Command | Arguments | Delegates To | Purpose |
 |---------|-----------|--------------|---------|
-| `/rd2:tasks-plan` | `<task> [--execute] [--auto\|--semi\|--step] [--with-architect] [--with-designer] [--skip-design]` | super-planner | Full workflow orchestration |
+| `/rd2:tasks-plan` | `<task> [--execute] [--auto\|--semi\|--step] [--with-architect] [--with-designer] [--skip-design] [--skip-refinement]` | super-planner | Full workflow orchestration |
 | `/rd2:tasks-refine` | `<task> [--force]` | super-planner --refine-only | Requirement refinement |
-| `/rd2:tasks-design` | `<task> [--with-architect] [--with-designer]` | super-planner --design-only | Design phase only |
-| `/rd2:tasks-run` | `<task> [--tool] [--no-tdd]` | super-coder | Single task implementation |
-| `/rd2:tasks-review` | `<task> [--tool] [--focus]` | super-code-reviewer | Single task review |
-| `/rd2:tasks-cli` | `<subcommand>` | rd2:tasks skill | Task file management |
+| `/rd2:tasks-design` | `<task> [--with-architect] [--with-designer] [--skip-assessment]` | super-planner --design-only | Design phase only |
+| `/rd2:tasks-run` | `<task> [--tool auto\|gemini\|claude\|auggie\|opencode] [--no-tdd]` | super-coder | Single task implementation |
+| `/rd2:tasks-review` | `<task> [--tool auto\|gemini\|claude\|auggie\|opencode] [--focus security\|performance\|testing\|quality\|architecture]` | super-code-reviewer | Single task review |
+| `/rd2:tasks-cli` | `<create\|list\|update\|batch-create\|check\|open\|refresh\|config\|decompose\|init\|help> [args]` | rd2:tasks skill | Task file management |
+| `/rd2:tasks-brainstorm` | `<issue-description \| task-file-path>` | super-brain | Brainstorm ideas into tasks |
+| `/rd2:tasks-unit` | `<verification-command> [<testee>] [threshold=85]` | rd2:unit-tests-generation skill | Generate unit tests |
+| `/rd2:tasks-fixall` | `[<validation-command>] [--max-retry=5]` | Self-contained (sys-debugging) | Fix all validation errors |
+| `/rd2:tasks-changelog` | `[output-file] [--since <tag\|commit>] [--until <tag\|commit>] [--version <version>]` | Self-contained | Generate changelog from git |
+| `/rd2:tasks-gitmsg` | `[--amend] [--breaking]` | Self-contained | Generate conventional commit messages |
 
 ### 2.2 Smart Positional Input Pattern
 
@@ -263,7 +271,7 @@ def checkpoint(message: str, mode: str) -> bool:
 │       └─ Execution loop (if --execute)                          │
 │                                                                 │
 │  super-coder (implementation specialist)                        │
-│       ├─ 17-step methodology                                    │
+│       ├─ 13-step methodology (Phase 1: Understand 1-3, Phase 2: Design 4-6, Phase 3: Execute 7-13) │
 │       ├─ TDD workflow                                           │
 │       └─ Delegates to rd2:coder-* skills                        │
 │                                                                 │
@@ -276,6 +284,10 @@ def checkpoint(message: str, mode: str) -> bool:
 │                                                                 │
 │  super-designer (UI/UX design)                                  │
 │       └─ Delegates to design skills                             │
+│                                                                 │
+│  super-brain (brainstorming specialist)                          │
+│       ├─ 5-phase workflow (Input → Research → Output → Tasks)   │
+│       └─ Delegates to rd2:brainstorm skill                        │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -311,8 +323,37 @@ def checkpoint(message: str, mode: str) -> bool:
 
 ### 5.1 File Location
 
+**Multi-Folder Support** (v2.1+):
+
+Task files can be organized across multiple folders, configured in `docs/.tasks/config.jsonc`:
+
+```jsonc
+{
+  "$schema_version": 1,
+  "active_folder": "docs/tasks",
+  "folders": {
+    "docs/prompts": { "base_counter": 0, "label": "Phase 1" },
+    "docs/tasks": { "base_counter": 184, "label": "Phase 2" }
+  }
+}
+```
+
+**Default Location**:
+
 ```
 docs/prompts/{WBS}_{name}.md
+```
+
+**Centralized Metadata**:
+
+```
+docs/.tasks/
+├── config.jsonc          # Multi-folder configuration
+├── kanban.md              # Kanban board (aggregates all folders)
+├── template.md            # Task file template (config mode)
+├── sync/                   # Cross-platform symlinks
+├── brainstorm/             # Brainstorming workspace
+└── decompose/              # Task decomposition cache
 ```
 
 Example: `docs/prompts/0047_add_oauth2_authentication.md`
@@ -345,6 +386,7 @@ blocked_at: YYYY-MM-DDTHH:MM:SS       # Only when status: Blocked
 |---------|---------|-------|
 | `Background` | Context and motivation | User/Planner |
 | `Requirements` | Acceptance criteria | User/Planner |
+| `Solution` | Technical strategy/approach | super-coder/super-architect |
 | `Q&A` | Clarifications from planning | super-planner |
 | `Design` | Architecture/UI specs | super-architect/super-designer |
 | `Plan` | Step-by-step implementation plan | super-planner |
@@ -371,6 +413,34 @@ blocked_at: YYYY-MM-DDTHH:MM:SS       # Only when status: Blocked
 | `implementation` | super-coder | Code generation, writing |
 | `review` | super-code-reviewer | Code review, quality check |
 | `testing` | super-coder | Test execution, verification |
+
+### 5.6 Write Guard Hook (v2.1+)
+
+**Purpose**: Prevent direct creation of task files via Write tool, ensuring all task creation goes through the `tasks` CLI for proper WBS numbering and validation.
+
+**Hook Location**: `.claude/hooks/hooks.json` → `PreToolUse`
+
+**Behavior**:
+- Blocks Write operations on task file paths (`docs/prompts/{WBS}_*.md`)
+- Edit operations on task files are still allowed (for content updates)
+- Reads folder list from `docs/.tasks/config.jsonc` dynamically
+
+**Exit Codes**:
+- `0` = allow operation
+- `1` = warn but allow
+- `2` = block operation
+
+**Usage**:
+```bash
+# Correct: Create via CLI
+tasks create "Implement feature"
+
+# Blocked: Direct Write tool
+Write("docs/prompts/0047_feature.md", content)  # BLOCKED by hook
+
+# Allowed: Edit tool for content updates
+Edit("docs/prompts/0047_feature.md", old_string, new_string)  # OK
+```
 
 ---
 
@@ -451,14 +521,63 @@ Flow:
 6. Report specialist contributions
 ```
 
-### 6.4 Red Flag Detection
+### 6.4 13-Step Implementation Workflow
+
+**Phase 1: Understand (Steps 1-3)**
+
+| Step | Action | Command |
+|------|--------|---------|
+| 1 | Read & Parse Task | `tasks open {WBS}` |
+| 2 | Clarify & Document | `tasks update {WBS} --section Q&A --from-file qa.md` |
+| 3 | Research Context | Use `rd2:anti-hallucination` skill for external APIs |
+
+**Phase 2: Design (Steps 4-6)**
+
+| Step | Action | Command |
+|------|--------|---------|
+| 4 | Design Solution | `tasks update {WBS} --section Design --from-file design.md` |
+| 5 | Plan Implementation | `tasks update {WBS} --section Plan --from-file plan.md` |
+| 6 | Mark as WIP | `tasks update {WBS} wip` |
+
+**Phase 3: Execute (Steps 7-13)**
+
+| Step | Action | Command |
+|------|--------|---------|
+| 7 | Select Approach | Auto-detect or manual `--tool` selection |
+| 8 | Write Tests First | TDD Red phase |
+| 9 | Implement Code | TDD Green phase |
+| 10 | Refactor | TDD Refactor phase |
+| 11 | Run Full Test Suite | Verify all tests pass |
+| 12 | Debug & Fix | Address failures |
+| 13 | Verify & Complete | `tasks update {WBS} done` |
+
+**Decision Points:**
+
+1. After Step 2: User clarification needed?
+2. After Step 5: Design/plan approved?
+3. After Step 6: Ready to code? (Status: WIP)
+4. After Step 11: Tests passing? Ready for review?
+5. After Step 13: Ready to mark done? (Status: Done)
+
+### 6.5 Red Flag Detection (Tiered Validation)
+
+**Tier 2 (Required for WIP transition)**:
+- Empty Background (< 50 chars)
+- Empty Requirements (< 50 chars)
+- Empty Solution (< 50 chars)
+
+**Tier 3 (Suggestions)**:
+- Missing Design section
+- Missing Plan section
+- Very brief content (< 50 chars for quality)
 
 | Category | Red Flag | Threshold |
 |----------|----------|-----------|
 | Frontmatter | Empty description | < 10 chars |
 | Content | Empty Requirements | < 10 chars |
-| Content | Empty Design | < 10 chars |
+| Content | Empty Solution | < 10 chars (Tier 2) |
 | Quality | Very brief Requirements | < 50 chars |
+| Quality | Very brief Background | < 50 chars (Tier 2) |
 | Quality | No acceptance criteria | Missing |
 
 ---
@@ -558,11 +677,44 @@ def handle_task_error(task, error, mode, retry_count):
 ### 9.1 With rd2:tasks CLI
 
 ```bash
-# Task management
-rd2:tasks create "Feature name"       # Create task file
-rd2:tasks list [status]               # List tasks
-rd2:tasks update <WBS> <status>       # Update status
-rd2:tasks refresh                     # Sync kanban board
+# Task creation
+tasks create "Feature name"                           # Create task file
+tasks create "Feature" --background "Context" --requirements "Criteria"
+tasks create --from-json task.json                      # Create from JSON
+
+# Batch creation (v2.1)
+tasks batch-create --from-json tasks.json               # Create multiple tasks
+tasks batch-create --from-agent-output brainstorm.md  # From agent footer
+
+# Task viewing
+tasks list [status]                                     # List tasks
+tasks check [WBS]                                        # Validate single/all tasks
+tasks open 47                                             # Open task file
+
+# Task status updates
+tasks update 47 wip                                      # Update status
+tasks update 47 wip --force                              # Bypass validation warnings
+tasks update 47 done
+
+# Phase tracking (v2.1)
+tasks update 47 --phase planning completed              # Update impl_progress phase
+tasks update 47 --phase implementation in_progress       # Auto-advances status to WIP
+tasks update 47 --phase testing completed                 # Auto-advances to Done
+
+# Content updates (v2.1)
+tasks update 47 --section Design --from-file design.md    # Update section from file
+tasks update 47 --section Artifacts --append-row "t|p|a|d"  # Append row to Artifacts table
+
+# Task decomposition
+tasks decompose "Build authentication system"
+
+# Multi-folder configuration (v2.1)
+tasks config                                              # Show configuration
+tasks config set-active docs/next-phase                   # Change active folder
+tasks init                                                 # Initialize task system
+
+# Kanban sync
+tasks refresh                                             # Sync kanban board
 ```
 
 ### 9.2 With TodoWrite
@@ -573,7 +725,42 @@ The `rd2:tasks` skill synchronizes with Claude Code's TodoWrite for visual task 
 Task File (docs/prompts/*)  ←→  TodoWrite  ←→  Kanban Board
 ```
 
-### 9.3 With External Tools
+### 9.3 Task Decomposition Integration
+
+The `rd2:task-decomposition` skill is integrated into 6 agents for automatic breakdown:
+
+| Agent | Trigger Condition | Output |
+|-------|-----------------|--------|
+| **super-planner** | Planning phase, complex requirements | Structured subtask array |
+| **super-architect** | Architecture-driven decomposition | Layer-based task breakdown |
+| **super-brain** | After brainstorming session | Ideas converted to tasks |
+| **super-coder** | Implementation exceeds 500 LOC or 5+ files | Subtask delegation |
+| **super-designer** | Design spans 10+ components | Component-based breakdown |
+| **super-code-reviewer** | 5+ issues found | Remediation task tracking |
+
+**Structured Output Protocol:**
+
+```json
+[
+  {
+    "name": "implement-user-authentication-api",
+    "background": "Users need OAuth2 authentication...",
+    "requirements": "- Support Google OAuth2\n- JWT token validation",
+    "solution": "Use passport-oauth2 middleware...",
+    "parent_wbs": "0047"
+  }
+]
+```
+
+**Agent Usage Pattern:**
+
+```python
+Skill(skill="rd2:task-decomposition", args=f"context: {task_context}")
+Write("/tmp/decomposition.json", json_output)
+Bash("tasks batch-create --from-json /tmp/decomposition.json")
+```
+
+### 9.4 With External Tools
 
 | Tool | Integration Point |
 |------|------------------|
@@ -595,47 +782,69 @@ plugins/rd2/commands/
 ├── tasks-design.md      # Design command
 ├── tasks-run.md         # Single task implementation
 ├── tasks-review.md      # Single task review
-└── tasks-cli.md         # Task file management
+├── tasks-cli.md         # Task file management
+├── tasks-brainstorm.md  # Brainstorming to tasks
+├── tasks-unit.md        # Unit test generation
+├── tasks-fixall.md      # Fix all validation errors
+├── tasks-changelog.md    # Generate changelog from git
+└── tasks-gitmsg.md      # Generate conventional commits
 ```
 
 ### 10.2 Agents
 
 ```
 plugins/rd2/agents/
-├── super-planner.md     # Orchestration coordinator
-├── super-coder.md       # Implementation specialist
-├── super-code-reviewer.md # Review coordinator
-├── super-architect.md   # Solution architecture
-└── super-designer.md    # UI/UX design
+├── super-planner.md       # Orchestration coordinator
+├── super-coder.md         # Implementation specialist (13-step workflow)
+├── super-code-reviewer.md # Review coordinator (with decomposition)
+├── super-architect.md     # Solution architecture
+├── super-designer.md      # UI/UX design (with decomposition)
+└── super-brain.md         # Brainstorming and ideation specialist
 ```
 
 ### 10.3 Skills
 
 ```
 plugins/rd2/skills/
-├── tasks/               # Task file management
+├── tasks/                  # Task file management (CLI)
 │   ├── SKILL.md
 │   ├── scripts/tasks.py
 │   └── assets/.template.md
-├── coder-gemini/        # Code generation skills
+├── task-workflow/          # 13-step implementation workflow
+│   └── SKILL.md
+├── task-decomposition/     # Task breakdown into subtasks
+│   └── SKILL.md
+├── brainstorm/             # 5-phase brainstorming workflow
+│   └── SKILL.md
+├── coder-gemini/          # Code generation skills
 ├── coder-claude/
 ├── coder-auggie/
 ├── coder-opencode/
-├── code-review-gemini/  # Code review skills
+├── code-review-gemini/     # Code review skills
 ├── code-review-claude/
 ├── code-review-auggie/
 ├── code-review-opencode/
-└── tdd-workflow/        # TDD enforcement
+├── tdd-workflow/           # TDD enforcement
+└── unit-tests-generation/  # Unit test generation
 ```
 
 ### 10.4 Task Files
 
 ```
-docs/prompts/
-├── .kanban.md           # Kanban board view
-├── 0001_feature_a.md    # Task files
-├── 0002_feature_b.md
-└── ...
+docs/
+├── .tasks/                 # Centralized metadata (v2.1+)
+│   ├── config.jsonc       # Multi-folder configuration
+│   ├── kanban.md          # Kanban board (aggregates all folders)
+│   ├── template.md        # Task file template
+│   ├── sync/              # Cross-platform symlinks
+│   ├── brainstorm/        # Brainstorming workspace
+│   └── decompose/         # Task decomposition cache
+│
+└── prompts/               # Default task folder (Phase 1)
+    ├── .kanban.md        # Kanban board view (legacy)
+    ├── 0001_feature_a.md # Task files
+    ├── 0002_feature_b.md
+    └── ...
 ```
 
 ---
@@ -695,6 +904,23 @@ rd2:tasks update 0047 wip
 ---
 
 ## 12. Changelog
+
+### v2.1 (2026-02-10)
+
+- **Added**: Multi-folder task organization with `docs/.tasks/config.jsonc`
+- **Added**: 13-step implementation workflow (simplified from 17-step)
+- **Added**: `rd2:task-decomposition` skill integrated into 6 agents
+- **Added**: `super-brain` agent with 5-phase brainstorming workflow
+- **Added**: Tiered validation (Tier 2: Background/Requirements/Solution; Tier 3: Design/Plan)
+- **Added**: `Solution` section to task schema (technical strategy)
+- **Added**: New CLI commands: `tasks-brainstorm`, `tasks-unit`, `tasks-fixall`, `tasks-changelog`, `tasks-gitmsg`
+- **Added**: Phase tracking with `--phase` flag (auto-advances status)
+- **Added**: Content updates with `--section` flag
+- **Added**: Write guard hook preventing direct task file creation
+- **Fixed**: WBS numbering bug (collision on task deletion)
+- **Changed**: Red flag detection uses "Empty Solution" instead of "Empty Design"
+- **Changed**: All agents use `tasks open {WBS}` instead of hardcoded paths
+- **Changed**: Code review happens post-Phase 3 (after Step 13) instead of Step 9-10
 
 ### v2.0 (2026-01-26)
 
