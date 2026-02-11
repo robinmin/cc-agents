@@ -58,10 +58,10 @@ Use this workflow when:
 - **Consider**: Existing patterns, testability, maintainability, performance
 - **Document**: Write design under Design section (architecture, UI specs, approach)
 - **Update**: Use `tasks update WBS --section Design --from-file design.md`
-- **Solution**: Populate Solution section with technical strategy (required for WIP transition)
+- **Solution [MANDATORY]**: Populate Solution section with technical strategy. This is REQUIRED before WIP transition. Solution should contain: approach summary, key decisions, files to create/modify, acceptance criteria.
 - **Update**: Use `tasks update WBS --section Solution --from-file solution.md`
 
-**Step 5: Plan Implementation**
+**Step 5: Plan Implementation** (optional for simple tasks)
 - **Action**: Break down solution into step-by-step implementation phases
 - **Structure**: Create Plan subsection with phases and sequencing
 - **Include**: Dependencies, prerequisites, verification steps
@@ -72,7 +72,7 @@ Use this workflow when:
 - **Critical Checkpoint**: Transition task status to WIP
 - **Command**: `tasks update WBS wip`
 - **Validation**: Tiered validation runs automatically (Background, Requirements, Solution must be populated)
-- **Bypass**: Use `--force` if needed: `tasks update WBS wip --force`
+- **DO NOT use `--force`**: If validation blocks, go back to Step 4 and populate the missing sections. Using `--force` bypasses quality gates and leads to incomplete task documentation.
 - **Phase Sync**: Optionally update impl_progress: `tasks update WBS --phase planning completed`
 
 ---
@@ -195,13 +195,19 @@ Phase Mapping:  Any phase in_progress → Task status: WIP
 When running `tasks update WBS status`:
 
 - **Tier 1 (Errors)**: Always block (missing frontmatter)
-- **Tier 2 (Warnings)**: Block unless `--force` (empty Background, Requirements, Solution)
+- **Tier 2 (Warnings)**: Block when empty Background, Requirements, or Solution. Fix: populate the sections first.
 - **Tier 3 (Suggestions)**: Informational only (empty References)
 
 Example:
 ```bash
-tasks update 47 wip          # Blocked if Background/Requirements empty
-tasks update 47 wip --force  # Bypass warnings
+tasks update 47 wip          # Blocked if Background/Requirements/Solution empty
+
+# CORRECT: populate sections first, then transition
+tasks update 47 --section Solution --from-file /tmp/solution.md
+tasks update 47 wip          # Now passes validation
+
+# AVOID: --force bypasses quality gates and leads to incomplete documentation
+# tasks update 47 wip --force  # Use only as last resort
 ```
 
 ---
