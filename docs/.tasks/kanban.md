@@ -204,4 +204,9 @@ kanban-plugin: board
 - [x] 0114_Add_Output_Path_Validation
 - [x] 0019_type_hint_detection
 - [x] 0065_enhance_super-designer
+- [x] 0187_Rewrite_super-planner_as_thin_orchestrator_wrapper
+- [x] 0189_Add_integration_tests_for_workflow_orchestration
+- [x] 0188_Update_tasks-plan_command_for_workflow-aware_orchestration
+- [x] 0186_Create_rd2:workflow-orchestration_skill
+- [x] 0185_enhance_super-planner
 
