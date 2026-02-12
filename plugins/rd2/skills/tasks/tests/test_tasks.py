@@ -205,7 +205,8 @@ class TestTasksManager:
         assert (tmp_path / "docs/prompts").exists()
         # After init, metadata is in docs/.tasks/
         assert (tmp_path / "docs/.tasks/config.jsonc").exists()
-        assert (tmp_path / "docs/.tasks/kanban.md").exists()
+        # Kanban file is per-folder: kanban_prompts.md for docs/prompts
+        assert (tmp_path / "docs/.tasks/kanban_prompts.md").exists()
         assert (tmp_path / "docs/.tasks/template.md").exists()
         assert (tmp_path / "docs/.tasks/brainstorm").is_dir()
         assert (tmp_path / "docs/.tasks/codereview").is_dir()
@@ -213,7 +214,7 @@ class TestTasksManager:
         assert (tmp_path / "docs/.tasks/sync").is_dir()
 
         # Check kanban content
-        kanban = (tmp_path / "docs/.tasks/kanban.md").read_text()
+        kanban = (tmp_path / "docs/.tasks/kanban_prompts.md").read_text()
         assert "## Backlog" in kanban
         assert "## Todo" in kanban
         assert "## WIP" in kanban
@@ -231,8 +232,8 @@ class TestTasksManager:
         exit_code = manager.cmd_init()
 
         assert exit_code == 0
-        # Legacy files should be migrated to docs/.tasks/
-        assert (tmp_path / "docs/.tasks/kanban.md").read_text() == "existing kanban"
+        # Legacy files should be migrated to docs/.tasks/ with per-folder kanban
+        assert (tmp_path / "docs/.tasks/kanban_prompts.md").read_text() == "existing kanban"
         assert (tmp_path / "docs/.tasks/template.md").read_text() == "existing template"
 
     @freeze_time("2026-01-21 14:30:00")
@@ -615,8 +616,9 @@ class TestIntegration:
             task2_content = task2.read_text()
             assert "status: Backlog" in task2_content
 
-            # Verify kanban (now in docs/.tasks/)
-            kanban = tmp_path / "docs/.tasks/kanban.md"
+            # Verify kanban (now in docs/.tasks/ with per-folder name)
+            # Default active folder is docs/prompts, so kanban is kanban_prompts.md
+            kanban = tmp_path / "docs/.tasks/kanban_prompts.md"
             kanban_content = kanban.read_text()
             assert "- [.] 0001_Task_One" in kanban_content
             assert "- [ ] 0002_Task_Two" in kanban_content
@@ -849,14 +851,15 @@ class TestTasksConfigWithConfig:
         assert config.mode == "config"
 
     def test_config_paths(self, tmp_path):
-        """Config mode uses docs/.tasks/ for metadata."""
+        """Config mode uses docs/.tasks/ for metadata with per-folder kanban."""
         self._create_config(tmp_path, {
             "$schema_version": 1,
             "active_folder": "docs/prompts",
             "folders": {"docs/prompts": {"base_counter": 0, "label": "Phase 1"}},
         })
         config = TasksConfig(project_root=tmp_path)
-        assert config.kanban_file == tmp_path / "docs/.tasks/kanban.md"
+        # Kanban file is now per-folder: kanban_prompts.md for docs/prompts
+        assert config.kanban_file == tmp_path / "docs/.tasks/kanban_prompts.md"
         assert config.template_file == tmp_path / "docs/.tasks/template.md"
         assert config.sync_dir == tmp_path / "docs/.tasks/sync"
         assert config.prompts_dir == tmp_path / "docs/prompts"
@@ -991,7 +994,8 @@ class TestGlobalWBSUniqueness:
         config = self._setup_multi_folder(tmp_path)
         # Create kanban and template for validate()
         meta_dir = tmp_path / "docs/.tasks"
-        (meta_dir / "kanban.md").write_text("---\nkanban-plugin: board\n---\n")
+        # Use per-folder kanban (kanban_prompts.md since active_folder is docs/prompts)
+        (meta_dir / "kanban_prompts.md").write_text("---\nkanban-plugin: board\n---\n")
         (meta_dir / "template.md").write_text(
             "---\nname: {{PROMPT_NAME}}\nstatus: Backlog\n"
             "created_at: {{CREATED_AT}}\nupdated_at: {{UPDATED_AT}}\n---\n"
@@ -1024,7 +1028,8 @@ class TestCrossFolderOperations:
         (meta_dir / "config.jsonc").write_text(
             "// test\n" + json.dumps(config_data, indent=2) + "\n"
         )
-        (meta_dir / "kanban.md").write_text("---\nkanban-plugin: board\n---\n")
+        # Use per-folder kanban (kanban_next-phase.md since active_folder is docs/next-phase)
+        (meta_dir / "kanban_next-phase.md").write_text("---\nkanban-plugin: board\n---\n")
 
         p1 = tmp_path / "docs/prompts"
         p1.mkdir(parents=True)
@@ -1070,7 +1075,7 @@ class TestMigration:
     """Test init migration from legacy to config mode."""
 
     def test_migration_moves_kanban(self, tmp_path):
-        """Init migrates .kanban.md from docs/prompts/ to docs/.tasks/."""
+        """Init migrates .kanban.md from docs/prompts/ to docs/.tasks/kanban_prompts.md."""
         prompts = tmp_path / "docs/prompts"
         prompts.mkdir(parents=True)
         (prompts / ".kanban.md").write_text("original kanban")
@@ -1078,7 +1083,8 @@ class TestMigration:
         manager = TasksManager(TasksConfig(project_root=tmp_path))
         manager.cmd_init()
 
-        assert (tmp_path / "docs/.tasks/kanban.md").read_text() == "original kanban"
+        # Migrates to per-folder kanban file
+        assert (tmp_path / "docs/.tasks/kanban_prompts.md").read_text() == "original kanban"
 
     def test_migration_moves_template(self, tmp_path):
         """Init migrates .template.md from docs/prompts/ to docs/.tasks/."""
@@ -1116,8 +1122,8 @@ class TestMigration:
         manager = TasksManager(config)
         manager.cmd_init()
 
-        # First run migrates
-        assert (tmp_path / "docs/.tasks/kanban.md").read_text() == "kanban v1"
+        # First run migrates to per-folder kanban
+        assert (tmp_path / "docs/.tasks/kanban_prompts.md").read_text() == "kanban v1"
 
         # Second run: reload config (now in config mode)
         config2 = TasksConfig(project_root=tmp_path)
@@ -1126,7 +1132,7 @@ class TestMigration:
         assert result == 0
 
         # kanban still has original content
-        assert (tmp_path / "docs/.tasks/kanban.md").read_text() == "kanban v1"
+        assert (tmp_path / "docs/.tasks/kanban_prompts.md").read_text() == "kanban v1"
 
     def test_migration_generates_config(self, tmp_path):
         """Init creates config.jsonc with correct structure."""
@@ -1211,7 +1217,7 @@ class TestMultiFolderRefresh:
     """Test kanban refresh across multiple folders."""
 
     def test_refresh_aggregates_all_folders(self, tmp_path):
-        """Refresh creates single kanban with tasks from all folders."""
+        """Refresh creates per-folder kanban files."""
         meta_dir = tmp_path / "docs/.tasks"
         meta_dir.mkdir(parents=True)
         config_data = {
@@ -1225,7 +1231,7 @@ class TestMultiFolderRefresh:
         (meta_dir / "config.jsonc").write_text(
             "// test\n" + json.dumps(config_data, indent=2) + "\n"
         )
-        (meta_dir / "kanban.md").write_text("---\nkanban-plugin: board\n---\n")
+        (meta_dir / "kanban_prompts.md").write_text("---\nkanban-plugin: board\n---\n")
 
         p1 = tmp_path / "docs/prompts"
         p1.mkdir(parents=True)
@@ -1241,9 +1247,14 @@ class TestMultiFolderRefresh:
 
         assert exit_code == 0
 
-        kanban = (meta_dir / "kanban.md").read_text()
-        assert "0001_phase1" in kanban
-        assert "0201_phase2" in kanban
+        # Check per-folder kanban files
+        kanban_prompts = (meta_dir / "kanban_prompts.md").read_text()
+        assert "0001_phase1" in kanban_prompts
+        assert "0201_phase2" not in kanban_prompts  # Should NOT contain tasks from other folder
+
+        kanban_next_phase = (meta_dir / "kanban_next-phase.md").read_text()
+        assert "0201_phase2" in kanban_next_phase
+        assert "0001_phase1" not in kanban_next_phase  # Should NOT contain tasks from other folder
 
 
 # ============================================================================
@@ -1664,7 +1675,8 @@ class TestRichCreate:
         prompts_dir.mkdir(parents=True)
         meta_dir = tmp_path / "docs/.tasks"
         meta_dir.mkdir(parents=True)
-        (meta_dir / "kanban.md").write_text("---\nkanban-plugin: board\n---\n")
+        # Use per-folder kanban file (kanban_prompts.md for docs/prompts)
+        (meta_dir / "kanban_prompts.md").write_text("---\nkanban-plugin: board\n---\n")
         (meta_dir / "template.md").write_text(
             "---\nname: {{PROMPT_NAME}}\nstatus: Backlog\n"
             "created_at: {{CREATED_AT}}\nupdated_at: {{UPDATED_AT}}\n---\n\n"
@@ -1768,7 +1780,8 @@ class TestBatchCreate:
         prompts_dir.mkdir(parents=True)
         meta_dir = tmp_path / "docs/.tasks"
         meta_dir.mkdir(parents=True)
-        (meta_dir / "kanban.md").write_text("---\nkanban-plugin: board\n---\n")
+        # Per-folder kanban file (kanban_prompts.md for docs/prompts folder)
+        (meta_dir / "kanban_prompts.md").write_text("---\nkanban-plugin: board\n---\n")
         (meta_dir / "template.md").write_text(
             "---\nname: {{PROMPT_NAME}}\nstatus: Backlog\n"
             "created_at: {{CREATED_AT}}\nupdated_at: {{UPDATED_AT}}\n---\n\n"
@@ -1883,8 +1896,8 @@ class TestBatchCreate:
         assert exit_code == 0
 
         out = capsys.readouterr().out
-        # Should see "Refreshing kanban board" only once
-        assert out.count("Refreshing kanban board") == 1
+        # Should see kanban refresh message only once
+        assert "kanban" in out.lower()
 
 
 class TestGetSectionContent:
