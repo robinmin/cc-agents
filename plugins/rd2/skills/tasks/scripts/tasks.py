@@ -253,11 +253,58 @@ class TasksConfig:
         """Central metadata directory (docs/.tasks/)."""
         return self.project_root / self.TASKS_META_DIR
 
+    def resolve_folder(self, folder: str) -> str:
+        """Resolve a folder name to a configured folder key.
+
+        Args:
+            folder: Folder name (e.g., "tasks", "prompts", "docs/tasks")
+
+        Returns:
+            Resolved folder key that matches configured folders
+
+        Raises:
+            ValueError: If folder cannot be resolved to a configured folder
+        """
+        folder = folder.rstrip("/")
+
+        # Check all configured folders for exact match or partial match
+        if self._mode == "config" and self._config:
+            folders_config = self._config.get("folders", {})
+
+            # Exact match
+            if folder in folders_config:
+                return folder
+
+            # Try matching with "docs/" prefix stripped
+            if folder.startswith("docs/"):
+                bare = folder[5:]  # Strip "docs/"
+                for key in folders_config:
+                    if key == bare or key.endswith(f"/{bare}"):
+                        return key
+
+            # Try matching just the last component
+            last_component = folder.split("/")[-1]
+            for key in folders_config:
+                if key.endswith(f"/{last_component}") or key == last_component:
+                    return key
+
+            # Show available folders in error message
+            available = list(folders_config.keys())
+            raise ValueError(
+                f"Folder '{folder}' not configured.\n"
+                f"Available: {', '.join(available)}\n"
+                f"Use: tasks create \"<name>\" --folder <folder>"
+            )
+
+        # Legacy mode: just use as-is
+        return folder
+
     @property
     def active_folder(self) -> Path:
         """The active task folder for create/list operations."""
         if self._folder_override:
-            return self.project_root / self._folder_override
+            resolved = self.resolve_folder(self._folder_override)
+            return self.project_root / resolved
         if self._mode == "config" and self._config:
             return self.project_root / self._config.get("active_folder", self.LEGACY_DIR)
         return self.project_root / self.LEGACY_DIR
@@ -374,7 +421,13 @@ class TasksConfig:
     def validate(self) -> None:
         """Validate that required directories exist."""
         if not self.prompts_dir.exists():
-            raise RuntimeError(f"Prompts directory not found: {self.prompts_dir}")
+            # Provide helpful error message
+            available_folders = [str(f.relative_to(self.project_root)) for f in self.all_folders]
+            raise RuntimeError(
+                f"Tasks directory not found: {self.prompts_dir}\n"
+                f"Available folders: {', '.join(available_folders)}\n"
+                f"Use: tasks create \"<name>\" --folder <folder>"
+            )
         if not self.kanban_file.exists():
             raise RuntimeError(f"Kanban file not found: {self.kanban_file}. Run 'init' first.")
 
@@ -634,15 +687,17 @@ def validate_task_for_transition(task: TaskFile, new_status: TaskStatus) -> Vali
         solution = task.get_section_content("Solution")
         if not solution or solution.startswith("["):
             result.warnings.append("Solution section is empty or placeholder-only")
+        design = task.get_section_content("Design")
+        if not design or design.startswith("["):
+            result.warnings.append("Design section is empty or placeholder-only")
+        plan = task.get_section_content("Plan")
+        if not plan or plan.startswith("["):
+            result.warnings.append("Plan section is empty or placeholder-only")
 
     # Tier 3: suggestions (informational)
-    design = task.get_section_content("Design")
-    if not design or design.startswith("["):
-        result.suggestions.append("Design section is empty (optional)")
-
-    plan = task.get_section_content("Plan")
-    if not plan or plan.startswith("["):
-        result.suggestions.append("Plan section is empty (optional)")
+    refs = task.get_section_content("References")
+    if not refs or refs.startswith("["):
+        result.suggestions.append("References section is empty")
 
     refs = task.get_section_content("References")
     if not refs or refs.startswith("["):
@@ -1622,7 +1677,11 @@ impl_progress:
 
         # Check prompts directory
         if not self.config.prompts_dir.exists():
-            issues.append(f"Prompts directory not found: {self.config.prompts_dir}")
+            available_folders = [str(f.relative_to(self.config.project_root)) for f in self.config.all_folders]
+            issues.append(
+                f"Tasks directory not found: {self.config.prompts_dir}\n"
+                f"  Available: {', '.join(available_folders)}"
+            )
         else:
             print(f"[OK] Prompts directory: {self.config.prompts_dir}")
 
