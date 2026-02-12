@@ -324,9 +324,33 @@ class TasksConfig:
 
     @property
     def kanban_file(self) -> Path:
-        """Path to kanban board file."""
+        """Path to kanban board file for the active folder.
+
+        Returns a per-folder kanban file like kanban_tasks.md, kanban_prompts.md
+        based on the basename of the active folder.
+        """
         if self._mode == "config":
-            return self.meta_dir / "kanban.md"
+            # Get the active folder's basename for the kanban filename
+            folder_name = self.active_folder.name  # e.g., "tasks" from "docs/tasks"
+            return self.meta_dir / f"kanban_{folder_name}.md"
+        return self.project_root / self.LEGACY_DIR / self.LEGACY_KANBAN
+
+    def get_kanban_file_for_folder(self, folder: Path) -> Path:
+        """Get the kanban file path for a specific folder.
+
+        In config mode: returns docs/.tasks/kanban_<folder_name>.md
+        In legacy mode: returns docs/prompts/.kanban.md (single file)
+
+        Args:
+            folder: The task folder path (e.g., docs/tasks).
+
+        Returns:
+            Path to the per-folder kanban file.
+        """
+        if self._mode == "config":
+            folder_name = folder.name  # e.g., "tasks" from "docs/tasks"
+            return self.meta_dir / f"kanban_{folder_name}.md"
+        # Legacy mode: use the old kanban location
         return self.project_root / self.LEGACY_DIR / self.LEGACY_KANBAN
 
     @property
@@ -882,7 +906,10 @@ class TasksManager:
         legacy_kanban = (
             self.config.project_root / self.config.LEGACY_DIR / self.config.LEGACY_KANBAN
         )
-        config_kanban = meta_dir / "kanban.md"
+        # Compute per-folder kanban path directly (config may have been just created)
+        active_rel = str(self.config.active_folder.relative_to(self.config.project_root))
+        folder_name = Path(active_rel).name  # e.g., "prompts" from "docs/prompts"
+        config_kanban = meta_dir / f"kanban_{folder_name}.md"
         if legacy_kanban.exists() and not config_kanban.exists():
             shutil.copy2(legacy_kanban, config_kanban)
             print(f"[INFO] Migrated kanban: {legacy_kanban} -> {config_kanban}")
@@ -1412,18 +1439,40 @@ class TasksManager:
         return 0
 
     def cmd_refresh(self) -> int:
-        """Refresh the kanban board from task files across all configured folders."""
-        print("[INFO] Refreshing kanban board...")
+        """Refresh the kanban boards from task files.
 
-        self.config.validate()
+        Creates per-folder kanban files (kanban_<folder_name>.md) for each
+        configured task folder.
+        """
+        print("[INFO] Refreshing kanban boards...")
 
-        # Organize tasks by status (scan ALL folders)
-        tasks_by_status: dict[str, list[str]] = {status.value: [] for status in TaskStatus}
+        # Only validate prompts_dir exists, not kanban (we're creating it)
+        if not self.config.prompts_dir.exists():
+            available_folders = [str(f.relative_to(self.config.project_root)) for f in self.config.all_folders]
+            print(
+                f"[ERROR] Tasks directory not found: {self.config.prompts_dir}",
+                file=sys.stderr,
+            )
+            print(f"Available folders: {', '.join(available_folders)}", file=sys.stderr)
+            return 1
 
+        # Process each folder separately
         for folder in self.config.all_folders:
             if not folder.exists():
                 continue
-            for task_file in folder.glob("*.md"):
+
+            # Get per-folder kanban file
+            kanban_file = self.config.get_kanban_file_for_folder(folder)
+            folder_name = folder.name
+
+            # Organize tasks by status for this folder
+            tasks_by_status: dict[str, list[str]] = {status.value: [] for status in TaskStatus}
+
+            task_files = list(folder.glob("*.md"))
+            # Sort by filename (WBS order)
+            task_files.sort(key=lambda p: p.name)
+
+            for task_file in task_files:
                 # Skip dotfiles
                 if task_file.name.startswith("."):
                     continue
@@ -1455,19 +1504,25 @@ class TasksManager:
                 except (OSError, ValueError) as e:
                     print(f"[WARN] Skipping {task_file.name}: {e}", file=sys.stderr)
 
-        # Write kanban file
-        self._write_kanban(self.config.kanban_file, tasks_by_status)
-        print("[INFO] Kanban board updated.")
+            # Write per-folder kanban file
+            self._write_kanban(kanban_file, tasks_by_status, folder_name)
+            print(f"[INFO] Updated kanban for {folder_name}: {kanban_file.name}")
+
+        print("[INFO] Kanban boards updated.")
         return 0
 
-    def _write_kanban(self, path: Path, tasks_by_status: dict[str, list[str]]) -> None:
+    def _write_kanban(
+        self, path: Path, tasks_by_status: dict[str, list[str]], folder_name: str = ""
+    ) -> None:
         """Write kanban file.
 
         Args:
             path: Path to write the kanban file.
             tasks_by_status: Dictionary mapping status to list of task entries.
+            folder_name: Optional folder name to include in title.
         """
-        content = "---\nkanban-plugin: board\n---\n\n# Kanban Board\n\n"
+        title = f"# Kanban Board - {folder_name}" if folder_name else "# Kanban Board"
+        content = f"---\nkanban-plugin: board\n---\n\n{title}\n\n"
         content += "## Backlog\n\n" + "\n".join(tasks_by_status.get("Backlog", [])) + "\n\n"
         content += "## Todo\n\n" + "\n".join(tasks_by_status.get("Todo", [])) + "\n\n"
         content += "## WIP\n\n" + "\n".join(tasks_by_status.get("WIP", [])) + "\n\n"
