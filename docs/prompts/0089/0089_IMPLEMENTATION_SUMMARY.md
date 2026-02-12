@@ -95,6 +95,13 @@ Each tool module defines metadata, configuration, and hooks for a specific vibe 
 - **Target**: opencode
 - **Output**: `opencode.json`, `opencode.md`, `opencode.subagents/`, `opencode.skills/`
 
+#### `scripts/tools/codex.sh`
+
+- **Tool**: Codex MCP Server
+- **Features**: MCP tools only
+- **Target**: N/A (MCP server, not a rulesync target)
+- **Output**: No config files (accessed via MCP protocol)
+
 ### 4. Documentation
 
 #### `scripts/README.md`
@@ -158,7 +165,8 @@ scripts/
     ├── antigravity.sh        # Google Antigravity
     ├── gemini-cli.sh         # Gemini CLI
     ├── auggie.sh             # Auggie (AugmentCode)
-    └── opencode.sh           # OpenCode
+    ├── opencode.sh           # OpenCode
+    └── codex.sh             # Codex MCP Server
 ```
 
 ## Supported Tools
@@ -169,13 +177,14 @@ scripts/
 | Gemini CLI         | `gemini-cli`  | rules, ignore, mcp, commands, skills    | `.gemini/`      |
 | Auggie             | `auggie`      | rules, mcp, skills                      | `.aughie/`      |
 | OpenCode           | `opencode`    | rules, mcp, commands, subagents, skills | `opencode.*`    |
+| Codex MCP Server   | `codex`       | MCP tools                                | N/A (MCP only)  |
 
 ## Acceptance Criteria Status
 
 - [x] **Script successfully syncs rd2 plugins to all vibe coding tools**
   - Modular design with tool-specific modules
   - Uses rulesync CLI for actual sync
-  - Supports all 4 tools: antigravity, gemini-cli, auggie, opencode
+  - Supports 5 tools: antigravity, gemini-cli, auggie, opencode, codex (MCP)
 
 - [x] **Script supports modular design (easy to add new tools)**
   - Each tool is a separate module in `scripts/tools/`
