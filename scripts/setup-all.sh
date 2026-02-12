@@ -38,7 +38,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Available tools (for validation)
-AVAILABLE_TOOLS="claude antigravity gemini-cli auggie opencode"
+AVAILABLE_TOOLS="claude antigravity gemini-cli auggie opencode codex"
 
 # Print usage
 usage() {
@@ -47,7 +47,7 @@ usage() {
     printf "    $(basename "$0") [OPTIONS]\n\n"
     printf "${GREEN}OPTIONS:${NC}\n"
     printf "    --tools=LIST        Comma-separated list of tools to sync\n"
-    printf "                        Available: claude, antigravity, gemini-cli, auggie, opencode\n"
+    printf "                        Available: claude, antigravity, gemini-cli, auggie, opencode, codex\n"
     printf "                        Default: all tools\n\n"
     printf "    --features=LIST     Comma-separated list of features to sync\n"
     printf "                        Available: rules, ignore, mcp, commands, subagents, skills\n"
@@ -71,7 +71,8 @@ usage() {
     printf "    antigravity     Google Antigravity CLI\n"
     printf "    gemini-cli      Google Gemini CLI\n"
     printf "    auggie          Augment Code CLI\n"
-    printf "    opencode        OpenCode CLI\n\n"
+    printf "    opencode        OpenCode CLI\n"
+    printf "    codex           Codex MCP Server\n\n"
     printf "${GREEN}FEATURES:${NC}\n"
     printf "    rules           Project rules and guidelines\n"
     printf "    ignore          Ignore patterns (.gitignore style)\n"
@@ -178,6 +179,9 @@ get_rulesync_target() {
         opencode)
             echo "opencode"
             ;;
+        codex)
+            echo ""
+            ;;
         *)
             echo ""
             ;;
@@ -279,7 +283,8 @@ sync_tool() {
     local target=$(get_rulesync_target "$tool")
     local tool_features="$FEATURES"
 
-    if [ -z "$target" ]; then
+    # Check if tool is valid (has known target OR is special-cased non-rulesync tool)
+    if [ -z "$target" ] && [ "$tool" != "claude" ] && [ "$tool" != "codex" ]; then
         print_error "Unknown tool: $tool"
         return 1
     fi
@@ -295,7 +300,7 @@ sync_tool() {
         pre_sync
     fi
 
-    # Special handling for Claude Code (direct plugin install, no rulesync)
+    # Special handling for tools that don't use rulesync
     if [ "$tool" = "claude" ]; then
         echo
         print_info "Claude Code uses direct plugin installation (not rulesync)"
@@ -323,6 +328,22 @@ sync_tool() {
             print_info "Reinstalling rd2 plugin..."
             claude plugin uninstall rd2 2>/dev/null || true
             claude plugin install rd2
+        fi
+    elif [ "$tool" = "codex" ]; then
+        echo
+        print_info "Codex MCP Server - plugins accessible via MCP protocol"
+
+        if [ "$DRY_RUN" = "true" ]; then
+            print_warning "Dry run mode - Codex MCP server available"
+            echo "   Start with: mcp-server-name codex"
+            echo "   Or use: Skill(skill='mcp__codex__codex', ...)"
+        else
+            print_info "Codex MCP server is ready to use"
+            echo "   Plugins are available via MCP tools:"
+            echo "   - mcp__codex__codex: Run Codex sessions"
+            echo ""
+            echo "   Example usage:"
+            echo "   mcp-server-name start codex"
         fi
     else
         # Determine features for this tool
