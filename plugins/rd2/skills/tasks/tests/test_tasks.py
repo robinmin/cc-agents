@@ -109,7 +109,7 @@ class TestTasksConfig:
     def test_validate_missing_prompts_dir(self, tmp_path):
         """Test validate with missing prompts directory."""
         config = TasksConfig(project_root=tmp_path)
-        with pytest.raises(RuntimeError, match="Prompts directory not found"):
+        with pytest.raises(RuntimeError, match=r"Tasks? directory not found"):
             config.validate()
 
     def test_validate_missing_kanban(self, tmp_path):
@@ -365,7 +365,9 @@ kanban-plugin: board
             "---\nname: test\nstatus: Backlog\n---\n\n"
             "### Background\n\nReal context here\n\n"
             "### Requirements\n\nReal requirements here\n\n"
-            "### Design\n\nReal design here\n"
+            "### Solution\n\nReal solution here\n\n"
+            "### Design\n\nReal design here\n\n"
+            "### Plan\n\nStep 1: do the thing\n"
         )
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
@@ -389,6 +391,7 @@ kanban-plugin: board
             "---\nname: test\nstatus: Backlog\n---\n\n"
             "### Background\n\nReal context here\n\n"
             "### Requirements\n\nReal requirements here\n\n"
+            "### Solution\n\nReal solution here\n\n"
             "### Design\n\nReal design here\n\n"
             "### Plan\n\nStep 1: do the thing\n"
         )
@@ -1270,6 +1273,10 @@ Real background content
 
 Real requirements content
 
+### Solution
+
+Real solution content
+
 ### Design
 
 Modular architecture with service layer
@@ -1299,6 +1306,10 @@ updated_at: 2026-01-01
 ### Requirements
 
 [What needs to be done - acceptance criteria]
+
+### Solution
+
+[Solution added by specialists]
 
 ### Plan
 
@@ -1533,6 +1544,7 @@ class TestValidation:
             "---\nname: test\nstatus: Backlog\nupdated_at: 2026-01-01\n---\n\n"
             "### Background\n\nReal background\n\n"
             "### Requirements\n\nReal requirements\n\n"
+            "### Solution\n\nReal solution\n\n"
             "### Design\n\n[Architecture/UI specs added by specialists]\n"
         )
 
@@ -1551,7 +1563,9 @@ class TestValidation:
             "---\nname: test\nstatus: Backlog\nupdated_at: 2026-01-01\n---\n\n"
             "### Background\n\nReal background\n\n"
             "### Requirements\n\nReal requirements\n\n"
-            "### Design\n\nModular architecture with service layer\n"
+            "### Solution\n\nReal solution\n\n"
+            "### Design\n\nModular architecture with service layer\n\n"
+            "### Plan\n\nStep 1: implement the solution\n"
         )
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
@@ -1581,6 +1595,7 @@ class TestValidation:
             "---\nname: test\nstatus: WIP\nupdated_at: 2026-01-01\n---\n\n"
             "### Background\n\nReal background\n\n"
             "### Requirements\n\nReal requirements\n\n"
+            "### Solution\n\nReal solution\n\n"
             "### Design\n\nReal design\n\n"
             "### Plan\n\n[Step-by-step implementation plan]\n"
         )
@@ -1599,7 +1614,9 @@ class TestValidation:
             "---\nname: test\nstatus: Backlog\nupdated_at: 2026-01-01\n---\n\n"
             "### Background\n\nReal background\n\n"
             "### Requirements\n\nReal requirements\n\n"
+            "### Solution\n\nReal solution\n\n"
             "### Design\n\nReal design\n\n"
+            "### Plan\n\nStep 1: implement\n\n"
             "### References\n\n[Links to docs]\n"
         )
 
