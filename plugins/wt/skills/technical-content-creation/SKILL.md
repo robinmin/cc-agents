@@ -99,21 +99,22 @@ collections/[collection]/[topic]/
 
 When `--collection` is not provided, the system derives collection from topic name:
 
-| Topic Prefix | Derived Collection |
-|--------------|-------------------|
-| `claude-*` | `claude-code` |
-| `ai-*`, `agent-*` | `ai-agents` |
-| `macos-*`, `mac-*` | `macos` |
-| `python-*` | `python` |
-| `web-*`, `frontend-*` | `web-development` |
-| `docker-*`, `kubernetes-*`, `cloud-*` | `devops` |
-| Other | First word of topic (e.g., `my-topic` -> `my`) |
+| Topic Prefix                          | Derived Collection                             |
+| ------------------------------------- | ---------------------------------------------- |
+| `claude-*`                            | `claude-code`                                  |
+| `ai-*`, `agent-*`                     | `ai-agents`                                    |
+| `macos-*`, `mac-*`                    | `macos`                                        |
+| `python-*`                            | `python`                                       |
+| `web-*`, `frontend-*`                 | `web-development`                              |
+| `docker-*`, `kubernetes-*`, `cloud-*` | `devops`                                       |
+| Other                                 | First word of topic (e.g., `my-topic` -> `my`) |
 
 ### NEVER Create Folders Directly
 
 **This is a critical rule**: Never use `mkdir`, Bash commands, or any other method to create topic folders directly. Always use `/wt:topic-init`.
 
 **What happens if you create folders manually:**
+
 - Inconsistent folder structure across topics
 - Missing metadata files (topic.md, metadata.yaml)
 - Topic not registered in collections.json
@@ -121,6 +122,7 @@ When `--collection` is not provided, the system derives collection from topic na
 - No auto-detection of collection from topic name
 
 **The correct approach:**
+
 ```
 # WRONG - Never do this:
 mkdir -p 0-materials 1-research 2-outline
@@ -132,15 +134,15 @@ mkdir claude-code-todo-evolution
 
 ## Workflow Stages
 
-| Stage | Name | Location | Action | Key Outputs |
-|-------|------|----------|--------|-------------|
-| 0 | Materials | `0-materials/` | Extract and verify source materials | `materials.json`, `materials-extracted.md` |
-| 1 | Research | `1-research/` | Conduct systematic research | `sources.json`, `research-brief.md` |
-| 2 | Outline | `2-outline/` | **Generate 2-3 outline options in parallel, user selects one** | `outline-option-{a,b,c}.md`, `outline-approved.md`, `materials/` |
-| 3 | Draft | `3-draft/` | Write content using style profiles | `draft-article.md`, `draft-revisions/` |
-| 4 | Illustration | `4-illustration/` | **Generate AI images using wt:image-cover, wt:image-illustrator, wt:image-generate** | `cover.png`, `images/`, `captions.json` |
-| 5 | Adaptation | `5-adaptation/` | Adapt content for target platforms (image-aware) | `article-{platform}.md` |
-| 6 | Publish | `6-publish/` | Publish to target platforms | `article.md`, `publish-log.json` |
+| Stage | Name         | Location          | Action                                                                               | Key Outputs                                                      |
+| ----- | ------------ | ----------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| 0     | Materials    | `0-materials/`    | Extract and verify source materials                                                  | `materials.json`, `materials-extracted.md`                       |
+| 1     | Research     | `1-research/`     | Conduct systematic research                                                          | `sources.json`, `research-brief.md`                              |
+| 2     | Outline      | `2-outline/`      | **Generate 2-3 outline options in parallel, user selects one**                       | `outline-option-{a,b,c}.md`, `outline-approved.md`, `materials/` |
+| 3     | Draft        | `3-draft/`        | Write content using style profiles                                                   | `draft-article.md`, `draft-revisions/`                           |
+| 4     | Illustration | `4-illustration/` | **Generate AI images using wt:image-cover, wt:image-illustrator, wt:image-generate** | `cover.png`, `images/`, `captions.json`                          |
+| 5     | Adaptation   | `5-adaptation/`   | Adapt content for target platforms (image-aware)                                     | `article-{platform}.md`                                          |
+| 6     | Publish      | `6-publish/`      | Publish to target platforms                                                          | `article.md`, `publish-log.json`                                 |
 
 ### Quick Reference
 
@@ -165,16 +167,19 @@ mkdir claude-code-todo-evolution
 ### Image Skills (Stage 4)
 
 #### wt:image-generate
+
 Core image generation with style options and resolution support.
 **Use Case**: Custom illustrations, diagrams, or visual concepts without content analysis.
 **Integration**: Direct image generation for specific visual needs.
 
 #### wt:image-cover
+
 Article cover generation (2.35:1 cinematic) based on content analysis with text overlay options.
 **Use Case**: Professional article covers with auto-detected style from article tone.
 **Integration**: Featured image generation for blog posts and social media.
 
 #### wt:image-illustrator
+
 Context-aware inline illustration generation with automatic position detection.
 **Use Case**: Automatic identification and generation for abstract concepts, information-dense sections, emotional transitions.
 **Integration**: Inline illustration generation with captions.json compatibility.
@@ -199,7 +204,7 @@ All agents and commands MUST follow this strict orchestration process when imple
 
 1. **Determine optimal stages** - Based on context, artifacts, and user intent
 2. **Plan stage gate usage** - Interactive approval (Stage 2 outline, Stage 3 draft) vs straight-through
-3. **Identify delegation targets** - Map stages to skills (wt:image-*, wt:super-researcher, rd2:knowledge-seeker)
+3. **Identify delegation targets** - Map stages to skills (wt:image-\*, wt:super-researcher, rd2:knowledge-seeker)
 4. **Plan error recovery** - Define fallback strategies for each stage
 5. **Set quality checkpoints** - Define verification points for technical accuracy
 
@@ -228,33 +233,36 @@ All agents and commands MUST follow this strict orchestration process when imple
 
 ### Decision Framework
 
-| Situation | Action |
-|-----------|--------|
-| New content from scratch | Run full 7-stage workflow with stage gates at Stage 2 and Stage 3 |
-| Existing research brief | Skip Stage 0-1, run Stages 2-6 |
-| Existing outline | Skip Stages 0-2, run Stages 3-6 |
-| Draft revision request | Run Stage 3 only with revision mode |
-| Quick blog post | Run Stages 0-3, 5-6 (skip illustrations) |
-| Research-heavy article | Extend Stage 1 with systematic methodology |
-| Missing dependencies detected | Prompt user, offer to run prerequisite stages |
-| Stage execution failure | Report error, offer retry/skip/manual intervention |
-| Publishing requested | Use --dry-run first, then confirm for live publishing |
+| Situation                     | Action                                                            |
+| ----------------------------- | ----------------------------------------------------------------- |
+| New content from scratch      | Run full 7-stage workflow with stage gates at Stage 2 and Stage 3 |
+| Existing research brief       | Skip Stage 0-1, run Stages 2-6                                    |
+| Existing outline              | Skip Stages 0-2, run Stages 3-6                                   |
+| Draft revision request        | Run Stage 3 only with revision mode                               |
+| Quick blog post               | Run Stages 0-3, 5-6 (skip illustrations)                          |
+| Research-heavy article        | Extend Stage 1 with systematic methodology                        |
+| Missing dependencies detected | Prompt user, offer to run prerequisite stages                     |
+| Stage execution failure       | Report error, offer retry/skip/manual intervention                |
+| Publishing requested          | Use --dry-run first, then confirm for live publishing             |
 
 ### Stage Gate Requirements
 
 **Stage 2 (Outline) - REQUIRED:**
+
 - Generate 2-3 outline options in parallel
 - Present options via AskUserQuestion for user selection
 - Save selected option as `outline-approved.md`
 - Do NOT proceed to Stage 3 without approval
 
 **Stage 3 (Draft) - REQUIRED:**
+
 - Generate draft using approved outline
 - Offer revision cycle (1-3 iterations)
 - Save final draft as `draft-article.md`
 - Do NOT proceed to Stage 4 without draft approval
 
 **Stage 6 (Publish) - REQUIRED:**
+
 - Always use --dry-run first for preview
 - Present platform adaptations for review
 - Require explicit confirmation before live publishing
@@ -262,17 +270,20 @@ All agents and commands MUST follow this strict orchestration process when imple
 ### Adaptive Stage Selection
 
 **Skip stages when:**
+
 - Stage folder exists with approved outputs
 - User explicitly requests to skip stage
 - Prerequisites already satisfied (e.g., existing outline)
 
 **Extend stages when:**
+
 - Research-heavy content requires systematic review
 - User requests multiple outline options (3+ instead of 2)
 - Draft requires multiple revision cycles
 - Multiple image generations needed
 
 **Validate dependencies before:**
+
 - Stage 1: Check Stage 0 materials extraction complete
 - Stage 2: Check Stage 1 research brief approved
 - Stage 3: Check Stage 2 outline approved
@@ -282,15 +293,15 @@ All agents and commands MUST follow this strict orchestration process when imple
 
 ### Error Recovery Protocol
 
-| Error Type | Recovery Action |
-|------------|-----------------|
-| Materials extraction failed | Retry with different source, or user provides materials manually |
-| Research insufficient | Extend research time, switch to systematic methodology |
-| Outline generation failed | Re-run with different style parameters, or user provides outline |
-| Draft generation failed | Re-run with different style profile, or user provides draft |
-| Illustration generation failed | Continue without illustrations, or user provides images |
-| Adaptation failed | Re-run for specific platform only, or user edits manually |
-| Publishing failed | Retry, or user publishes manually using generated content |
+| Error Type                     | Recovery Action                                                  |
+| ------------------------------ | ---------------------------------------------------------------- |
+| Materials extraction failed    | Retry with different source, or user provides materials manually |
+| Research insufficient          | Extend research time, switch to systematic methodology           |
+| Outline generation failed      | Re-run with different style parameters, or user provides outline |
+| Draft generation failed        | Re-run with different style profile, or user provides draft      |
+| Illustration generation failed | Continue without illustrations, or user provides images          |
+| Adaptation failed              | Re-run for specific platform only, or user edits manually        |
+| Publishing failed              | Retry, or user publishes manually using generated content        |
 
 **Always save intermediate results** for manual intervention and workflow recovery.
 
@@ -312,41 +323,41 @@ All agents and commands MUST follow this strict orchestration process when imple
 
 ### Stage Mapping
 
-| Stage | Action | Output Folder | Key Parameters |
-|-------|--------|---------------|---------------|
-| 0 | Extract materials | 0-materials/ | Source input, aspect filter, save flag |
-| 1 | Conduct research | 1-research/ | Research type, source file |
-| 2 | Generate outline | 2-outline/ | Length, number of options (2-3) |
-| 3 | Write draft | 3-draft/ | Style profile, source file, revision mode |
-| 4 | Generate illustrations | 4-illustration/ | wt:image-cover, wt:image-illustrator, wt:image-generate |
-| 5 | Adapt content | 5-adaptation/ | Source file, target platforms, image-aware |
-| 6 | Publish content | 6-publish/ | Source file, target platforms, dry-run mode |
+| Stage | Action                 | Output Folder   | Key Parameters                                          |
+| ----- | ---------------------- | --------------- | ------------------------------------------------------- |
+| 0     | Extract materials      | 0-materials/    | Source input, aspect filter, save flag                  |
+| 1     | Conduct research       | 1-research/     | Research type, source file                              |
+| 2     | Generate outline       | 2-outline/      | Length, number of options (2-3)                         |
+| 3     | Write draft            | 3-draft/        | Style profile, source file, revision mode               |
+| 4     | Generate illustrations | 4-illustration/ | wt:image-cover, wt:image-illustrator, wt:image-generate |
+| 5     | Adapt content          | 5-adaptation/   | Source file, target platforms, image-aware              |
+| 6     | Publish content        | 6-publish/      | Source file, target platforms, dry-run mode             |
 
 ### Research Types
 
-| Type | Duration | Sources | Best For |
-|------|----------|---------|----------|
-| systematic | 10-15 min | 20-50 | Comprehensive articles |
-| rapid | 5-8 min | 10-20 | Quick blog posts |
-| meta-analysis | 15-20 min | 15-40 | Research reviews |
-| fact-check | 3-5 min | 5-15 | Opinion pieces |
+| Type          | Duration  | Sources | Best For               |
+| ------------- | --------- | ------- | ---------------------- |
+| systematic    | 10-15 min | 20-50   | Comprehensive articles |
+| rapid         | 5-8 min   | 10-20   | Quick blog posts       |
+| meta-analysis | 15-20 min | 15-40   | Research reviews       |
+| fact-check    | 3-5 min   | 5-15    | Opinion pieces         |
 
 ### Status Values
 
-| Stage | Status Options |
-|-------|----------------|
-| All | `draft`, `in_progress`, `approved` |
-| Research | `draft`, `approved` |
-| Draft | `draft`, `review`, `approved` |
-| Publish | `draft`, `published` |
+| Stage    | Status Options                     |
+| -------- | ---------------------------------- |
+| All      | `draft`, `in_progress`, `approved` |
+| Research | `draft`, `approved`                |
+| Draft    | `draft`, `review`, `approved`      |
+| Publish  | `draft`, `published`               |
 
 ### Confidence Levels
 
-| Level | Score | Use Case |
-|-------|-------|----------|
-| HIGH | >90% | Primary sources, verified claims |
-| MEDIUM | 70-90% | Synthesized sources |
-| LOW | <70% | Limited verification |
+| Level  | Score  | Use Case                         |
+| ------ | ------ | -------------------------------- |
+| HIGH   | >90%   | Primary sources, verified claims |
+| MEDIUM | 70-90% | Synthesized sources              |
+| LOW    | <70%   | Limited verification             |
 
 ## References
 
@@ -368,15 +379,17 @@ All agents and commands MUST follow this strict orchestration process when imple
 
 ### Skill Resources
 
-| Path | Purpose |
-|------|---------|
-| `assets/topic.md` | Topic metadata template for all stages |
-| `tests/test-workflow.sh` | Integration test script |
+| Path                     | Purpose                                |
+| ------------------------ | -------------------------------------- |
+| `assets/topic.md`        | Topic metadata template for all stages |
+| `tests/test-workflow.sh` | Integration test script                |
 
 ## Related Commands and Resources
 
 ### Stage-Specific Commands
+
 Each stage can be invoked individually using dedicated slash commands:
+
 - Stage 0: Material extraction commands
 - Stage 1: Research commands with systematic methodology
 - Stage 2: Outline generation with multiple style options
@@ -386,8 +399,9 @@ Each stage can be invoked individually using dedicated slash commands:
 - Stage 6: Publishing to blogs and social media
 
 ### Related Skills
+
 - `rd2:anti-hallucination` - Verification protocol
-- `rd2:task-workflow` - Task management
+- `rd2:tasks` - Task management
 
 ---
 

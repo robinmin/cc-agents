@@ -2,6 +2,83 @@
 
 All notable changes to the wt plugin will be documented in this file.
 
+## [0.7.0] - 2026-02-10
+
+### Summary
+
+**Web Automation Infrastructure Overhaul & Playwright Migration**
+
+Major refactoring of web-automation shared package with new utility modules, Playwright migration across all publish-to skills, comprehensive test infrastructure, and technical content creation workflow improvements.
+
+### Added
+
+- **Web Automation Shared Modules** (`scripts/web-automation/src/`):
+  - `async.ts` - Timeout handling, retry logic, sleep utilities
+  - `config.ts` - Centralized configuration with XDG base directory support
+  - `constants.ts` - Shared constants for browser automation
+  - `errors.ts` - Custom error classes for structured error handling
+  - `fs.ts` - File system utilities for automation workflows
+  - `logger.ts` - Structured logging for debugging automation
+  - `sanitize.ts` - Content sanitization for safe HTML generation
+  - `selectors.ts` - Helper functions for element selection and interaction
+
+- **Web Automation Test Suite** (`scripts/web-automation/tests/`):
+  - Unit tests for all new shared modules (async, config, constants, errors, fs, logger, sanitize, selectors)
+  - Browser automation test infrastructure
+  - Environment variable handling tests
+
+- **Playwright Integration for Publish Skills**:
+  - `publish-to-xhs`: Added `xhs-playwright.ts` for Playwright-based XiaoHongShu publishing
+  - `publish-to-zenn`: Added `zenn-playwright.ts` for Playwright-based Zenn publishing
+  - `publish-to-infoq`: Added `infoq-playwright.ts` for Playwright-based InfoQ publishing
+  - `publish-to-juejin`: Added `juejin-playwright.ts` for Playwright-based Juejin publishing
+  - `publish-to-substack`: Added `substack-playwright.ts` for Playwright-based Substack publishing
+
+- **Workspace Package Configuration** (`package.json`, `bun.lock`):
+  - Root workspace configuration for `@wt/web-automation` shared package
+  - Bun lockfile for dependency management
+
+### Changed
+
+- **All Publish-to Skills Migrated to Shared Package**:
+  - Replaced per-skill CDP modules with imports from `@wt/web-automation`
+  - Unified module resolution with proper workspace dependencies
+  - Updated package.json in all 9 publish-to skills (infoq, juejin, medium, qiita, substack, wechatmp, x, xhs, zenn)
+
+- **CDP Module Consolidation**:
+  - Migrated inline CDP implementations to use shared `@wt/web-automation` CDP module
+  - Reduced code duplication across publish-to-xhs, publish-to-zenn, publish-to-infoq, publish-to-substack
+
+- **Publish-to-x Improvements**:
+  - Refactored `x-article-playwright.ts` for better content processing
+  - Updated `x-utils.ts` with improved utility functions
+  - Simplified `x-video.ts` handling
+
+- **Publish-to-wechatmp Improvements**:
+  - Updated MathJax/KaTeX type definitions
+  - Enhanced article processing and markdown rendering
+  - Improved Playwright integration
+
+- **technical-content-creation Skill**:
+  - Enhanced workflow documentation and stage descriptions
+  - Improved integration with rd2 task system
+
+### Fixed
+
+- **Module Resolution**: Fixed workspace imports across all publish-to skills to correctly reference `@wt/web-automation` shared package
+- **Script Compatibility**: Fixed script entry points and utility function signatures across all publish-to skills
+- **Test Infrastructure**: Fixed test configurations and environment variable handling
+- **SKILL.md Documentation**: Updated skill descriptions to match current implementation
+
+### Benefits
+
+- **Reduced Duplication**: Shared web-automation package eliminates per-skill CDP module copies
+- **Better Testability**: Modular architecture with dedicated test suites per module
+- **Unified Browser Automation**: All publish-to skills use consistent Playwright integration
+- **Easier Maintenance**: Changes to shared modules propagate to all publish-to skills automatically
+
+---
+
 ## [1.7.4] - 2026-02-07
 
 ### Summary

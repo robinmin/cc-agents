@@ -1,0 +1,93 @@
+{
+  "W1": {
+    "id": "W1",
+    "name": "coding",
+    "description": "Standard coding workflow for backend features, APIs, database work",
+    "roles": {
+      "orchestrator": "super-planner",
+      "pre_production": ["super-architect"],
+      "maker": "super-coder",
+      "post_production": "super-code-reviewer",
+      "checker": "super-coder"
+    },
+    "keywords": ["implement", "feature", "add", "build", "API", "database", "schema", "endpoint", "backend", "service", "integration"]
+  },
+  "W2": {
+    "id": "W2",
+    "name": "coding-with-design",
+    "description": "Coding with UI/UX design for frontend-heavy features",
+    "roles": {
+      "orchestrator": "super-planner",
+      "pre_production": ["super-architect", "super-designer"],
+      "maker": "super-coder",
+      "post_production": "super-code-reviewer",
+      "checker": "super-coder"
+    },
+    "keywords": ["implement", "feature", "add", "build", "UI", "component", "form", "page", "layout", "frontend", "responsive", "accessibility"]
+  },
+  "W3": {
+    "id": "W3",
+    "name": "research",
+    "description": "Research and analysis workflow for investigation and knowledge gathering",
+    "roles": {
+      "orchestrator": "super-planner",
+      "pre_production": ["knowledge-seeker"],
+      "maker": "super-brain",
+      "post_production": null,
+      "checker": "knowledge-seeker"
+    },
+    "keywords": ["research", "analyze", "investigate", "literature", "survey", "study", "evaluate", "compare"]
+  },
+  "W4": {
+    "id": "W4",
+    "name": "bugfix",
+    "description": "Bug fix workflow with systematic debugging",
+    "roles": {
+      "orchestrator": "super-planner",
+      "pre_production": null,
+      "maker": "super-coder",
+      "post_production": "super-code-reviewer",
+      "checker": "super-coder"
+    },
+    "keywords": ["fix", "bug", "error", "crash", "regression", "broken", "failing", "debug"]
+  },
+  "W5": {
+    "id": "W5",
+    "name": "refactor",
+    "description": "Refactoring workflow with architecture review",
+    "roles": {
+      "orchestrator": "super-planner",
+      "pre_production": ["super-architect"],
+      "maker": "super-coder",
+      "post_production": "super-code-reviewer",
+      "checker": "super-coder"
+    },
+    "keywords": ["refactor", "restructure", "clean up", "simplify", "reorganize", "modularize", "extract"]
+  },
+  "W6": {
+    "id": "W6",
+    "name": "content",
+    "description": "Content creation workflow for articles, documentation, tutorials",
+    "roles": {
+      "orchestrator": "super-planner",
+      "pre_production": ["knowledge-seeker"],
+      "maker": "wt:tc-writer",
+      "post_production": null,
+      "checker": "knowledge-seeker"
+    },
+    "keywords": ["article", "blog", "content", "documentation", "tutorial", "guide", "write-up", "README"]
+  },
+  "W7": {
+    "id": "W7",
+    "name": "planning-only",
+    "description": "Planning and brainstorming with no implementation",
+    "roles": {
+      "orchestrator": "super-planner",
+      "pre_production": ["super-brain"],
+      "maker": null,
+      "post_production": null,
+      "checker": null
+    },
+    "keywords": ["plan", "brainstorm", "explore", "what if", "ideate", "options", "approaches", "strategy"]
+  }
+}

@@ -88,7 +88,7 @@ Steps:
 
 ```bash
 # Auto-assessment
-/rd2:tasks-design --task 0047
+/rd2:tasks-design 0047
 
 # Output:
 # → Loading task 0047...

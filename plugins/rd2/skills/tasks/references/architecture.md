@@ -7,14 +7,81 @@ Detailed technical architecture of the tasks CLI system.
 ```
 tasks/
 ├── scripts/
-│   └── tasks.py          # Main CLI (326 lines, 75% coverage)
-│       ├── TaskStatus     # Enum with alias mapping
-│       ├── TasksConfig    # Configuration & git root detection
-│       ├── TaskFile       # Single task file operations
-│       └── TasksManager   # CLI command handlers
+│   └── tasks.py              # Main CLI
+│       ├── TaskStatus         # Enum with 15+ alias mapping
+│       ├── TasksConfig        # Dual-mode config, multi-folder, global WBS
+│       ├── TaskFile           # Single task file operations
+│       └── TasksManager       # CLI command handlers
 ├── tests/
-│   └── test_tasks.py      # 33 tests, 75% coverage
+│   └── test_tasks.py          # 67 tests
+├── assets/
+│   ├── .kanban.md             # Default kanban template
+│   └── .template.md           # Default task template
+├── references/                # Detailed docs
 └── SKILL.md
+```
+
+## Dual-Mode Configuration
+
+TasksConfig supports two modes for backward compatibility:
+
+### Legacy Mode (no config.jsonc)
+
+```
+docs/prompts/
+├── .kanban.md        # Kanban board
+├── .template.md      # Task template
+├── 0001_task.md ...  # Task files
+
+```
+
+### Config Mode (with docs/.tasks/config.jsonc)
+
+```
+docs/.tasks/          # Centralized metadata
+├── config.jsonc      # Project configuration
+├── kanban.md         # Global kanban board
+├── template.md       # Task template
+├── brainstorm/       # Brainstorm outputs
+├── codereview/       # Code review outputs
+├── design/           # Design outputs
+└── sync/             # Sync data
+
+docs/prompts/         # Task folder 1
+├── 0001_task.md ...
+
+docs/next-phase/      # Task folder 2 (optional)
+├── 0201_task.md ...
+```
+
+## TasksConfig Class
+
+Dual-mode configuration with multi-folder support:
+
+```python
+class TasksConfig:
+    LEGACY_DIR = "docs/prompts"
+    TASKS_META_DIR = "docs/.tasks"
+    CONFIG_FILE = "config.jsonc"
+
+    def __init__(self, project_root=None, folder=None):
+        self.project_root = project_root or self._find_git_root()
+        self._folder_override = folder
+        self._load_config()  # Sets mode to "legacy" or "config"
+
+    # Key properties (adapt based on mode):
+    # - active_folder → current task folder
+    # - prompts_dir   → alias for active_folder (backward compat)
+    # - all_folders   → list of all configured folders
+    # - kanban_file   → docs/.tasks/kanban.md (config) or docs/prompts/.kanban.md (legacy)
+    # - template_file → docs/.tasks/template.md (config) or docs/prompts/.template.md (legacy)
+    # - sync_dir      → docs/.tasks/sync/ (config) or docs/tasks_sync/ (legacy)
+
+    def get_next_wbs(self) -> int:
+        """Globally unique WBS across all folders with base_counter floor."""
+
+    def find_task_by_wbs(self, wbs: str) -> Path | None:
+        """Cross-folder task search."""
 ```
 
 ## Task File Format
@@ -40,7 +107,7 @@ updated_at: 2026-01-21 14:22:18
 
 [What needs to be done]
 
-### Solutions / Goals
+### Solution
 
 [Implementation notes]
 
@@ -49,16 +116,9 @@ updated_at: 2026-01-21 14:22:18
 [Links and resources]
 ```
 
-**Frontmatter Fields:**
-- `name`: Task name (from filename)
-- `description`: Optional detailed description
-- `status`: One of Backlog, Todo, WIP, Testing, Done
-- `created_at`: Creation timestamp
-- `updated_at`: Last update timestamp
-
 ## Kanban Board Format
 
-The `.kanban.md` file uses Obsidian Kanban plugin format:
+The kanban file uses Obsidian Kanban plugin format:
 
 ```markdown
 ---
@@ -69,120 +129,79 @@ kanban-plugin: board
 
 - [ ] 0048_task_one
 
-## Todo
-
-- [ ] 0049_task_two
-
 ## WIP
 
 - [.] 0047_task_three
-
-## Testing
-
-- [.] 0050_task_four
 
 ## Done
 
 - [x] 0046_task_complete
 ```
 
-**Checkbox States:**
-- `[ ]` - Backlog/Todo (not started)
-- `[.]` - WIP/Testing (in progress)
-- `[x]` - Done (complete)
+**Checkbox States:** `[ ]` not started, `[.]` in progress, `[x]` complete
 
-## TaskStatus Enum
+## WBS Numbering Algorithm (Global)
 
 ```python
-class TaskStatus(Enum):
-    BACKLOG = "Backlog"
-    TODO = "Todo"
-    WIP = "WIP"
-    TESTING = "Testing"
-    DONE = "Done"
+def get_next_wbs(self) -> int:
+    global_max = 0
+
+    # Scan ALL configured folders
+    for folder in self.all_folders:
+        for task_file in folder.glob("*.md"):
+            if not task_file.name.startswith("."):
+                match = re.match(r"^(\d{4})", task_file.name)
+                if match:
+                    global_max = max(global_max, int(match.group(1)))
+
+    # Apply base_counter floor for the active folder
+    base_counter = active_folder_config.get("base_counter", 0)
+    return max(global_max, base_counter) + 1
 ```
 
-Supports 15+ aliases via `from_alias()` classmethod.
+This guarantees no WBS collisions across any number of folders.
 
-## TasksConfig Class
+## config.jsonc Schema
 
-Handles configuration and git root detection:
-
-```python
-class TasksConfig:
-    DEFAULT_DIR = "docs/prompts"
-    KANBAN_FILE = ".kanban.md"
-    TEMPLATE_FILE = ".template.md"
-
-    def __init__(self, project_root: Path | None = None):
-        self.project_root = project_root or self._find_git_root()
-        self.prompts_dir = self.project_root / self.DEFAULT_DIR
+```jsonc
+{
+  "$schema_version": 1,
+  "active_folder": "docs/prompts",
+  "folders": {
+    "docs/prompts": { "base_counter": 0, "label": "Phase 1" },
+    "docs/next-phase": { "base_counter": 200, "label": "Phase 2" }
+  }
+}
 ```
 
-**Key Behavior:** Auto-detects git repository root by searching upward for `.git` directory.
-
-## TaskFile Class
-
-Represents a single task file:
-
-```python
-class TaskFile:
-    def __init__(self, path: Path):
-        self.path = path
-
-    @property
-    def wbs(self) -> str:
-        # Extracts 4-digit WBS from filename
-
-    @property
-    def name(self) -> str:
-        # Extracts task name from filename
-
-    def get_status(self) -> TaskStatus:
-        # Reads status from frontmatter
-
-    def update_status(self, new_status: TaskStatus) -> None:
-        # Updates status in frontmatter
-```
-
-## TasksManager Class
-
-Main command handler with methods for each CLI command:
-
-- `cmd_init()` - Initialize tasks system
-- `cmd_create(task_name)` - Create new task
-- `cmd_list(stage)` - List tasks (optional filter)
-- `cmd_update(wbs, stage)` - Update task status
-- `cmd_open(wbs)` - Open in editor
-- `cmd_refresh()` - Refresh kanban board
-- `cmd_hook(operation, data)` - Handle TodoWrite events
-- `cmd_log(prefix, data)` - Log developer events
+JSONC: Standard JSON with `//` line comments (stripped before parsing).
 
 ## Data Flow
 
 ```
 CLI Command (main)
     ↓
-ArgumentParser
+ArgumentParser (--folder, --data, etc.)
     ↓
+TasksConfig(folder=args.folder)
+    ↓ loads config.jsonc or uses legacy mode
 TasksManager.cmd_*()
     ↓
-TasksConfig → TaskFile → File I/O
+TasksConfig → find_task_by_wbs() (cross-folder)
+    ↓       → get_next_wbs() (global unique)
+TaskFile → File I/O
     ↓
-Kanban Board Refresh (on status changes)
+Kanban Board Refresh (scans all folders)
 ```
 
-## WBS Numbering Algorithm
+## Write Guard
 
-```python
-# Count existing tasks (excluding dotfiles)
-existing_tasks = list(prompts_dir.glob("*.md"))
-existing_tasks = [t for t in existing_tasks if not t.name.startswith(".")]
+The `rd2_guard.sh` hook protects task files from direct Write tool usage:
 
-# Next WBS is count + 1, formatted as 4-digit
-next_seq = len(existing_tasks) + 1
-wbs = f"{next_seq:04d}"  # 0001, 0002, ..., 0047, ...
-```
+1. Reads folder names from `docs/.tasks/config.jsonc` via `jq`
+2. Falls back to `prompts` if no config exists
+3. Blocks Write to `*/FOLDER/[0-9]{4}_*.md` for each configured folder
+4. Edit tool is still allowed (for content section updates)
 
 ## Short WBS Support
 

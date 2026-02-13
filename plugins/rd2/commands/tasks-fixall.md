@@ -71,7 +71,7 @@ If you cannot show this exact output from the validation command, you have NOT s
 
 - Single obvious error (fix directly)
 - Test failures requiring logic changes (use sys-debugging directly)
-- New feature implementation (use code-generate instead)
+- New feature implementation (use `/rd2:tasks-run` instead)
 - Runtime errors without test failures (use sys-debugging)
 
 ## Arguments

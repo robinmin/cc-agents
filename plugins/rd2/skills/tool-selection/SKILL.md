@@ -10,6 +10,7 @@ description: General-purpose tool/skill selection framework with heuristics, ava
 General-purpose tool/skill selection framework for rd2 agents. Provides a systematic approach to choosing between multiple implementation options based on task characteristics, availability, and user preferences.
 
 **Key features:**
+
 - Generic selection process and heuristics template
 - Availability verification methods
 - Fallback protocol with decision tree
@@ -67,25 +68,27 @@ Use tool   Suggest          Select tool
 
 **Template for tool/skill selection decisions:**
 
-| Task Characteristic | Recommended Option | Rationale |
-|---------------------|-------------------|-----------|
-| Simple/quick | Fast/default option | Speed priority, minimal setup |
-| Multi-file/complex | Thorough option | Handles complexity, deep analysis |
-| Needs context | Context-aware option | Semantic understanding, indexing |
-| Security-sensitive | Pro/advanced option | Deep analysis, security review |
-| External perspective | Multi-model option | Diverse approaches, external input |
-| Privacy-sensitive | Local option | Data stays local, no external calls |
-| Test-driven | Any (with TDD) | All options support TDD workflow |
+| Task Characteristic  | Recommended Option   | Rationale                           |
+| -------------------- | -------------------- | ----------------------------------- |
+| Simple/quick         | Fast/default option  | Speed priority, minimal setup       |
+| Multi-file/complex   | Thorough option      | Handles complexity, deep analysis   |
+| Needs context        | Context-aware option | Semantic understanding, indexing    |
+| Security-sensitive   | Pro/advanced option  | Deep analysis, security review      |
+| External perspective | Multi-model option   | Diverse approaches, external input  |
+| Privacy-sensitive    | Local option         | Data stays local, no external calls |
+| Test-driven          | Any (with TDD)       | All options support TDD workflow    |
 
 ### Customization per Agent
 
 **Replace placeholders with actual tools/skills:**
+
 - "Option" → Actual tool/skill names
 - Adjust rationales per domain
 - Add domain-specific characteristics
 - Remove irrelevant rows
 
 **Example for super-coder:**
+
 - "Fast/default option" → "claude"
 - "Thorough option" → "gemini"
 - "Context-aware option" → "auggie"
@@ -119,8 +122,8 @@ def check_tool_availability(tool_name: str) -> bool:
 
 ### Availability Table Template
 
-| Tool | Check Method | Fallback |
-|------|-------------|----------|
+| Tool     | Check Method                             | Fallback |
+| -------- | ---------------------------------------- | -------- |
 | option-a | `check-script-a.sh` or skill file exists | option-b |
 | option-b | `check-script-b.sh` or skill file exists | option-c |
 | option-c | `check-script-c.sh` or skill file exists | option-a |
@@ -186,11 +189,11 @@ Primary Tool Unavailable
 
 ### Confidence Levels
 
-| Level | Threshold | Criteria |
-|-------|-----------|----------|
-| HIGH | >90% | Tool matches task, available, requirements clear |
-| MEDIUM | 70-90% | Tool based on partial info, available, some assumptions |
-| LOW | <70% | Tool unavailable, uncertain, requirements unclear |
+| Level  | Threshold | Criteria                                                |
+| ------ | --------- | ------------------------------------------------------- |
+| HIGH   | >90%      | Tool matches task, available, requirements clear        |
+| MEDIUM | 70-90%    | Tool based on partial info, available, some assumptions |
+| LOW    | <70%      | Tool unavailable, uncertain, requirements unclear       |
 
 ### Confidence Assessment Checklist
 
@@ -219,6 +222,7 @@ Primary Tool Unavailable
 **Rationale:** {reasoning}
 
 **Availability Check:**
+
 - {tool_1}: {available ✓ / unavailable ✗}
 - {tool_2}: {available ✓ / unavailable ✗}
 - {tool_3}: {available ✓ / unavailable ✗}
@@ -227,6 +231,7 @@ Primary Tool Unavailable
 **Reasoning:** {detailed_explanation}
 
 **Characteristics analyzed:**
+
 - File count: {single_file / multi_file}
 - Codebase context: {needed / not_needed}
 - Security: {sensitive / standard}
@@ -235,13 +240,14 @@ Primary Tool Unavailable
 
 ### Error Report (Tool Unavailable)
 
-```markdown
+````markdown
 ## Tool Selection Failed
 
 **Requested Tool:** {tool_name}
 **Availability:** {unavailable_reason}
 
 **Alternatives:**
+
 1. {alternative_1} - {reason_for_recommendation}
 2. {alternative_2} - {reason_for_recommendation}
 3. {alternative_3} - {reason_for_recommendation}
@@ -249,13 +255,13 @@ Primary Tool Unavailable
 **Suggestion:** {actionable_next_step}
 
 **Example usage:**
+
 ```bash
 # Try alternative
 /command --tool {alternative_1}
 
 # Or let us auto-select
 /command (no --tool flag)
-```
 ```
 
 ## Agent-Specific Customization
@@ -266,16 +272,16 @@ Primary Tool Unavailable
 
 **Characteristics:**
 
-| Task Characteristic | Recommended Tool | Rationale |
-|---------------------|------------------|-----------|
-| Simple function/class | claude | Fast, no external setup |
-| Multi-file feature | gemini | Handles complexity well |
-| Needs codebase context | auggie | Semantic indexing |
-| Security-sensitive | gemini (pro) | Thorough analysis |
-| External perspective | opencode | Multi-model access |
-| Quick prototype | claude | Speed priority |
-| Complex architecture | gemini (pro) | Deep reasoning |
-| Privacy-sensitive | opencode (local) | Local model option |
+| Task Characteristic    | Recommended Tool | Rationale               |
+| ---------------------- | ---------------- | ----------------------- |
+| Simple function/class  | claude           | Fast, no external setup |
+| Multi-file feature     | gemini           | Handles complexity well |
+| Needs codebase context | auggie           | Semantic indexing       |
+| Security-sensitive     | gemini (pro)     | Thorough analysis       |
+| External perspective   | opencode         | Multi-model access      |
+| Quick prototype        | claude           | Speed priority          |
+| Complex architecture   | gemini (pro)     | Deep reasoning          |
+| Privacy-sensitive      | opencode (local) | Local model option      |
 
 ### For super-code-reviewer (Reviewer Tool Selection)
 
@@ -283,14 +289,14 @@ Primary Tool Unavailable
 
 **Characteristics:**
 
-| Task Characteristic | Recommended Tool | Rationale |
-|---------------------|------------------|-----------|
-| Quick review | claude | Fast feedback |
-| Security-focused | gemini | Thorough analysis |
-| Codebase-aware | auggie | Semantic understanding |
-| Multi-model opinion | opencode | Diverse perspectives |
-| Performance-focused | gemini (pro) | Deep analysis |
-| Convention check | claude | Fast pattern matching |
+| Task Characteristic | Recommended Tool | Rationale              |
+| ------------------- | ---------------- | ---------------------- |
+| Quick review        | claude           | Fast feedback          |
+| Security-focused    | gemini           | Thorough analysis      |
+| Codebase-aware      | auggie           | Semantic understanding |
+| Multi-model opinion | opencode         | Diverse perspectives   |
+| Performance-focused | gemini (pro)     | Deep analysis          |
+| Convention check    | claude           | Fast pattern matching  |
 
 ### For super-planner (Planning Approach Selection)
 
@@ -298,13 +304,13 @@ Primary Tool Unavailable
 
 **Characteristics:**
 
-| Task Characteristic | Recommended Approach | Rationale |
-|---------------------|----------------------|-----------|
-| Complex project | comprehensive | Full breakdown, all phases |
-| Time-sensitive | lean | Essential steps only |
-| Iterative needed | agile | Incremental planning |
-| Unknown requirements | comprehensive | Exploration included |
-| Well-defined scope | lean | Direct to implementation |
+| Task Characteristic  | Recommended Approach | Rationale                  |
+| -------------------- | -------------------- | -------------------------- |
+| Complex project      | comprehensive        | Full breakdown, all phases |
+| Time-sensitive       | lean                 | Essential steps only       |
+| Iterative needed     | agile                | Incremental planning       |
+| Unknown requirements | comprehensive        | Exploration included       |
+| Well-defined scope   | lean                 | Direct to implementation   |
 
 ### For super-designer (Design Tool Selection)
 
@@ -312,12 +318,12 @@ Primary Tool Unavailable
 
 **Characteristics:**
 
-| Task Characteristic | Recommended Tool | Rationale |
-|---------------------|------------------|-----------|
-| UI/UX design | rd2:ui-ux-design | Accessibility, user flows |
-| Component design | rd2:frontend-design | React/Vue/Svelte patterns |
-| Design system | rd2:ui-ux-design | Tokens, variants |
-| Single component | rd2:frontend-design | Quick implementation |
+| Task Characteristic | Recommended Tool    | Rationale                 |
+| ------------------- | ------------------- | ------------------------- |
+| UI/UX design        | rd2:ui-ux-design    | Accessibility, user flows |
+| Component design    | rd2:frontend-design | React/Vue/Svelte patterns |
+| Design system       | rd2:ui-ux-design    | Tokens, variants          |
+| Single component    | rd2:frontend-design | Quick implementation      |
 
 ## Implementation Pattern
 
@@ -359,6 +365,7 @@ def suggest_alternative(unavailable_tool):
     alternatives = [t for t in available_tools if t != unavailable_tool]
     return alternatives[0] if alternatives else None
 ```
+````
 
 ## Quick Reference
 

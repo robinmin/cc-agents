@@ -199,6 +199,34 @@ cmd_validate_write() {
     exit 1  # Warn but allow
   fi
 
+  # Block creating task files via Write tool — use `tasks create` instead
+  TOOL_NAME=$(echo "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+  if [[ "$TOOL_NAME" == "Write" ]]; then
+    # Determine task folders from config.jsonc (multi-folder support)
+    CONFIG_FILE="${CLAUDE_PROJECT_DIR:-}/docs/.tasks/config.jsonc"
+    if [[ -f "$CONFIG_FILE" ]]; then
+      # Strip comments, extract folder basenames
+      TASK_FOLDERS=$(sed 's|//.*||' "$CONFIG_FILE" | jq -r '.folders | keys[]' 2>/dev/null | xargs -I{} basename {} 2>/dev/null)
+    else
+      TASK_FOLDERS="prompts"  # Legacy fallback
+    fi
+
+    # Check each configured folder for task file write attempts
+    for FOLDER_NAME in $TASK_FOLDERS; do
+      case "$FILE_PATH" in
+        *"/docs/${FOLDER_NAME}/"[0-9][0-9][0-9][0-9]_*.md|*"/${FOLDER_NAME}/"[0-9][0-9][0-9][0-9]_*.md)
+          # Verify it's a direct child (not a subdirectory like 0089/0089_SUMMARY.md)
+          PARENT_DIR=$(dirname "$FILE_PATH" 2>/dev/null || echo "")
+          PARENT_BASENAME=$(basename "$PARENT_DIR" 2>/dev/null || echo "")
+          if [[ "$PARENT_BASENAME" == "$FOLDER_NAME" ]]; then
+            echo "BLOCKED: Use \`tasks create\` CLI instead of writing task files directly to ${FOLDER_NAME}/. Run: python3 \${CLAUDE_PLUGIN_ROOT}/skills/tasks/scripts/tasks.py create \"task-name\"" >&2
+            exit 2
+          fi
+          ;;
+      esac
+    done
+  fi
+
   exit 0
 }
 

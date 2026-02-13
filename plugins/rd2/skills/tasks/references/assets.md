@@ -8,7 +8,9 @@ Default templates and configuration files for the tasks CLI.
 
 Default kanban board template in Obsidian Kanban format.
 
-**Usage:** Copied to `docs/prompts/.kanban.md` during `init` command.
+**Usage:**
+- **Config mode:** Copied to `docs/.tasks/kanban.md` during `init` command.
+- **Legacy mode:** Copied to `docs/prompts/.kanban.md` during `init` command.
 
 **Format:**
 ```markdown
@@ -43,7 +45,9 @@ kanban-plugin: board
 
 Default task file template with YAML frontmatter.
 
-**Usage:** Copied to `docs/prompts/.template.md` during `init` command. Used as template for new tasks.
+**Usage:**
+- **Config mode:** Copied to `docs/.tasks/template.md` during `init` command. Used as template for new tasks.
+- **Legacy mode:** Copied to `docs/prompts/.template.md` during `init` command. Used as template for new tasks.
 
 **Format:**
 ```markdown
@@ -65,7 +69,7 @@ updated_at: { { UPDATED_AT } }
 
 [What needs to be done]
 
-### Solutions / Goals
+### Solution
 
 [Implementation notes]
 
@@ -90,6 +94,11 @@ To customize the default templates for your project:
 **Note:** The `init` command only copies files if they don't exist. To update existing templates, delete the target files first:
 
 ```bash
+# Config mode
+rm docs/.tasks/kanban.md docs/.tasks/template.md
+tasks init
+
+# Legacy mode
 rm docs/prompts/.kanban.md docs/prompts/.template.md
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/tasks/scripts/tasks.py init
+tasks init
 ```

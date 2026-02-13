@@ -360,6 +360,109 @@ find opencode.skills -name "SKILL.md"
 
 ---
 
+## Codex MCP Server
+
+### Overview
+
+Codex is an MCP (Model Context Protocol) server that provides AI coding capabilities through the MCP protocol. Unlike other vibe coding tools, Codex operates as an MCP server rather than a traditional CLI with configuration files.
+
+### Configuration
+
+- **Target Name**: N/A (MCP server, not a rulesync target)
+- **Supported Features**: MCP tools only
+- **Protocol**: Model Context Protocol (MCP)
+- **Access**: Via MCP tools (e.g., `mcp__codex__codex`)
+
+### Important Differences
+
+Codex does **NOT** work like other vibe coding tools:
+
+| Feature | Codex | Other Tools |
+| ------- | ------- | ------------ |
+| Config files | ❌ None | ✅ JSON/MD configs |
+| rulesync support | ❌ No | ✅ Yes |
+| CLI interface | ❌ No (MCP only) | ✅ Yes |
+| MCP protocol | ✅ Native | ⚠️ Varies |
+
+### Available MCP Tools
+
+| Tool | Description |
+| ---- | ----------- |
+| `mcp__codex__codex` | Run Codex sessions with custom configuration |
+
+### Usage
+
+**Starting Codex MCP server:**
+
+```bash
+# Via mcp-server-name
+mcp-server-name start codex
+
+# Or use directly via MCP tools
+Skill(skill="mcp__codex__codex", args="...")
+```
+
+**Example Codex session:**
+
+```python
+# Python code execution with Codex
+mcp__codex__codex(
+    prompt="Implement a binary search tree",
+    cwd="/path/to/project",
+    sandbox="read-only"
+)
+```
+
+### Special Considerations
+
+1. **No Configuration Files**: Codex doesn't generate config files
+   - No `.codex/` directory
+   - No `codex.json` or similar
+   - Configuration via MCP protocol only
+
+2. **Not a rulesync Target**: Codex cannot be used with rulesync
+   - It's an MCP server, not a CLI tool
+   - setup-all.sh marks it as special-cased like Claude
+
+3. **Direct Plugin Access**: Plugins available via MCP tools
+   - No sync process needed
+   - Direct access through MCP protocol
+
+4. **MCP Server Architecture**:
+   - Runs as separate process
+   - Exposes tools via MCP protocol
+   - Clients connect to use Codex features
+
+### Verification
+
+After "sync" (no-op for Codex), verify:
+
+```bash
+# Check MCP server is available
+mcp-server-name list | grep codex
+
+# Test Codex MCP tool
+# (Depends on your MCP client setup)
+```
+
+### Troubleshooting
+
+**Issue**: Codex not available in MCP tools list
+
+**Solution**:
+
+1. Verify MCP server is running: `mcp-server-name list`
+2. Check Codex is installed/configured properly
+3. Restart MCP server if needed
+
+**Issue**: Can't find generated configs
+
+**Cause**: Codex doesn't generate config files (this is expected)
+
+**Solution**: Codex works via MCP protocol only, no config files needed
+
+---
+
 ## Common Issues Across All Tools
 
 ### File Permissions

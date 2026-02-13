@@ -7,7 +7,7 @@ argument-hint: <task> [--tool auto|gemini|claude|auggie|opencode] [--focus secur
 
 Review code for a single task. This is the single-task entry point for code review - `/tasks-plan --execute` automatically calls this after each implementation.
 
-**IMPORTANT**: This reviews implementation quality (Step 9-10), not solution architecture (Step 3 - handled by super-architect).
+**IMPORTANT**: This reviews implementation quality (post-Phase 3), not solution architecture (Phase 2 - handled by super-architect).
 
 ## Quick Start
 
@@ -53,7 +53,7 @@ Tool: {tool}
 Focus: {focus_areas}
 
 Steps:
-1. Read task file from docs/prompts/{WBS}_*.md
+1. Load task file via tasks open {WBS}
 2. Identify files modified for this task (from Artifacts section)
 3. Run code review on modified files
 4. If issues found:
@@ -110,8 +110,8 @@ Steps:
 
 | Level | What | When | Owner |
 |-------|------|------|-------|
-| Solution Review | Architecture/design | Step 3 (optional) | super-architect |
-| Code Review | Implementation quality | Step 9-10 (mandatory) | This command |
+| Solution Review | Architecture/design | Phase 2, Steps 4-6 (optional) | super-architect |
+| Code Review | Implementation quality | Post-Phase 3, after Step 13 (mandatory) | This command |
 
 ## See Also
 

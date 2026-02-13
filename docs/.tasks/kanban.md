@@ -1,0 +1,222 @@
+---
+kanban-plugin: board
+---
+
+# Kanban Board
+
+## Backlog
+
+- [ ] 0147_rd2-tasks-upgrade
+- [ ] 0155_error-handling-layer
+- [ ] 0158_integration-tests
+- [ ] 0161_edge-case-testing
+- [ ] 0154_command-router-update
+- [ ] 0160_performance-testing
+- [ ] 0159_documentation-update
+- [ ] 0151_taskget-adapter
+- [ ] 0152_taskupdate-adapter
+- [ ] 0153_wbs-dependency-support
+- [ ] 0157_unit-tests-adapters
+- [ ] 0177_enhance_unit_tests_for_WT_publish_to_skills
+- [ ] 0162_final-review
+- [ ] 0149_tool-abstraction-layer
+- [ ] 0156_backward-compatibility
+- [ ] 0148_compatibility-checker
+- [ ] 0159_upgrade_Agent_Skills_to_add_unit_tests_for_evaluation
+- [ ] 0150_tasklist-adapter
+- [ ] 0195_Refactor_scoring_from_point-deductions_to_rubric-based
+- [ ] 0199_simplify_the_output_of_command_tasks_list
+
+## Todo
+
+- [ ] 0171_fix_wt_critical_cdp_code_duplication
+- [ ] 0172_fix_wt_critical_mathjax_type_safety
+- [ ] 0173_fix_wt_critical_package_dependency_path
+- [ ] 0175_fix_wt_code_quality_improvements
+- [ ] 0162_fix_x_publishing_quote_and_utils_bugs
+- [ ] 0174_fix_wt_high_priority_issues
+
+## WIP
+
+- [.] 0190_enhance_Agent_Skills_cc-skills
+  [ ] planning [ ] design [ ] implementation [ ] review [ ] testing
+
+## Testing
+
+
+
+## Blocked
+
+
+
+## Done
+
+- [x] 0063_fine_tune_Agent_Skills_tdd-workflow
+- [x] 0034_sync_best_practices
+- [x] 0080_Research_additional_TypeScript_patterns_for_web_using_rd:super-researcher
+- [x] 0100_integration_testing
+- [x] 0132_update_documentation_and_references
+- [x] 0127_rename_doc-style_to_wt_topic-draft
+- [x] 0067_comprehensive_review_on_plugin_rd2
+- [x] 0027_config_file_support
+- [x] 0163_fix_x_publishing_browser_launch_and_cleanup
+- [x] 0058_create_new_subagent_and_slash_command_super-architect
+- [x] 0007_fine_tune_subagent_task-decomposition-expert
+- [x] 0047_add_new_skills_tasks
+- [x] 0117_fixll_early_quit_issue
+- [x] 0111_Fix_load_content_Silent_File_Not_Found_Behavior
+- [x] 0039_build_new_skills_cc-agents
+- [x] 0126_rename_doc-outline_to_wt_topic-outline
+- [x] 0042_workflow_phase3_merge
+- [x] 0059_create_super-coder_ecosystem
+- [x] 0035_auto_doc_generation
+- [x] 0084_Create_example_files_for_TypeScript_code_samples
+- [x] 0138_create_test_outline_generator_py
+- [x] 0101_tcc_phase_1_config_scripts
+- [x] 0079_Extract_TypeScript_knowledge_from_existing_reference_files_using_rd2:knowledge-seeker
+- [x] 0090_technical_content_creattion_tool_set
+- [x] 0023_ast_caching
+- [x] 0082_Create_comprehensive_SKILL.md_for_pl-typescript
+- [x] 0109_update_existing_sections
+- [x] 0024_phase2_verification
+- [x] 0097_enhance_wt-info-research_command
+- [x] 0115_Fix_Missing_CLI_Command_Wrapper
+- [x] 0129_rename_doc-publish_to_wt_topic-publish
+- [x] 0087_refine_Agents_Skills_article-extractor_into_knowledge-extraction
+- [x] 0142_brainstorm_structured_output
+- [x] 0182_demote-todowrite-to-notification-layer
+- [x] 0002_fine_tune_the_project_structure
+- [x] 0045_workflow_completion_report
+- [x] 0041_workflow_phase2_integration
+- [x] 0072_create_new_Agent_Skills_cc-hooks_and_its_complementary_subagents
+- [x] 0020_bare_except_detection
+- [x] 0066_enhance_super-architect
+- [x] 0143_brainstorm_task_creation
+- [x] 0119_add_unit_tests_for_these_Agent_Skills_publish-to-
+- [x] 0099_create_topic_init_helper
+- [x] 0062_implement_task_0061_recommendations
+- [x] 0146_implement_Agent_Skills_publish-ro-surfing
+- [x] 0033_update_security_md
+- [x] 0116_Fix_Failing_Error_Handling_Tests
+- [x] 0105_Image_Prompt_Template_System
+- [x] 0018_ast_grep_integration
+- [x] 0069_fine_tune_Agent_Skills_cc-agents
+- [x] 0076_enhance_new_Agent_Skills_pl-typescript
+- [x] 0096_enhance_wt-info-seek_command
+- [x] 0092_create_wt-outline_command
+- [x] 0014_markdown_context_analyzer
+- [x] 0055_create_new_Agent_Skills_backend-architect
+- [x] 0070_fine_tune_Agent_Skills_cc-skills
+- [x] 0093_create_wt-adapt_command
+- [x] 0179_refactor-tasks-py-into-modular-architecture
+- [x] 0094_create_wt-generate-image_command
+- [x] 0071_create_new_Agent_Skills_cc-commands_and_its_complementary_subagents_and_slash_commands
+- [x] 0137_create_test_repo_config_py
+- [x] 0089_customize_rulesync_to_sync_plugins_to_all_vibe_coding_tools
+- [x] 0061_fine_tune_process_for_super-coder
+- [x] 0131_create_backward_compatibility_aliases
+- [x] 0107_Fix_select_backend_Error_Logic_Bug
+- [x] 0145_enhance_cc-skills_with_other_reference
+- [x] 0001_upgrade_skills_for_ast-grep
+- [x] 0051_add_new_slash_command_and_subagent_super-code-reviewer
+- [x] 0010_refine_task-runner
+- [x] 0060_enhance_Agent_Skills_cc-skills_with_superpowers_writing-skills
+- [x] 0081_Consolidate_and_cross-verify_TypeScript_findings
+- [x] 0110_Remove_Duplicate_Import_in_Tests
+- [x] 0032_update_evaluation_md
+- [x] 0036_create_changelog
+- [x] 0170_adapt_publish-to-wechatmp_with_playwright
+- [x] 0053_Review_on_super-code-reviewer
+- [x] 0181_enhance-tasks-create-with-rich-content-and-validation
+- [x] 0133_create_comprehensive_unit_tests_for_tcc_scripts
+- [x] 0075_add_new_Agent_Skills_coder-agy
+- [x] 0052_add_new_Agent_Skills_code-revew-opencode
+- [x] 0009_fine_tune_the_subagents_for_project_shower
+- [x] 0056_create_new_Agent_Skills_frontend-architect
+- [x] 0050_add_new_Agent_Skills_code-revew-claude
+- [x] 0095_create_wt-publish_command
+- [x] 0098_enhance_wt-style-apply_command
+- [x] 0102_tcc_phase_2_outline_multi_option
+- [x] 0078_Create_base_pl-typescript_skill_structure_using__rd2:skill-add
+- [x] 0178_add-structured-output-protocol-and-batch-create
+- [x] 0085_Evaluate_and_refine_pl-typescript_skill_using__rd2:skill-evaluate_and__rd2:skill-refine
+- [x] 0112_Add_Missing_Circular_Reference_Tests
+- [x] 0006_add_new_slash_command_tasks
+- [x] 0183_simplify-task-workflow-skill
+- [x] 0030_extensibility_hooks
+- [x] 0026_decouple_formatting
+- [x] 0004_expert_based_agent_architecture
+- [x] 0011_enhance_orchestrator_testing
+- [x] 0091_repository_structure_setup
+- [x] 0120_create_as_new_subagent_wt:super-publisher
+- [x] 0003_add_antigraty_install_tool
+- [x] 0106_Fix_NanoBanana_Backend_-_Always_Returns_Failure
+- [x] 0134_create_test_config_py_for_shared_config_module
+- [x] 0144_fix_install_issue_with_antigravity
+- [x] 0104_tcc_phase_4_documentation_restructuring
+- [x] 0135_create_test_context_validator_py
+- [x] 0016_test_suite
+- [x] 0083_Create_reference_files_for_TypeScript_patterns
+- [x] 0165_fix_x_publishing_async_patterns_and_error_handling
+- [x] 0130_consolidate_image-gen_and_image-generate_to_wt_topic-illustrate
+- [x] 0077_enhance_new_Agent_Skills_pl-golang
+- [x] 0074_enhance_new_Agent_Skills_pl-python
+- [x] 0136_create_test_topic_init_py
+- [x] 0013_ast_security_analyzer
+- [x] 0040_workflow_phase1_source_validation
+- [x] 0064_create_new_Agent_Skills_knowledge-seeker_and_relevaant_slash_command_rd2:knowledge-seeker
+- [x] 0180_fix-wbs-numbering-bug-and-write-hook-enforcement
+- [x] 0038_phase4_verification
+- [x] 0124_Upgrade_ui-ux-design_skill_with_Google_Stitch_integration
+- [x] 0103_tcc_phase_3_image_integration
+- [x] 0031_phase3_verification
+- [x] 0140_brainstorm_input_processing
+- [x] 0088_migrate_agent-browser_from_plugin_rt_to_plugin_wt
+- [x] 0028_caching_layer
+- [x] 0128_rename_doc-adapt_to_wt_topic-adapt
+- [x] 0139_anew_new_Agent_Skill_brainstrom_ans_super-brain
+- [x] 0108_add_new_sections_to_agent
+- [x] 0054_create_new_Agent_Skills_tdd-workflow
+- [x] 0012_new_plugin_rd2
+- [x] 0068_enhance_slash_command_tasks-plan
+- [x] 0029_extract_modules
+- [x] 0141_brainstorm_research_ideation
+- [x] 0043_validation_report
+- [x] 0176_fix_wt_security_command_injection
+- [x] 0015_refactor_evaluate_security
+- [x] 0017_phase1_verification
+- [x] 0113_Fix_Hardcoded_Style_Modifiers
+- [x] 0008_add_daily_used_subagents
+- [x] 0161_fix_x_publishing_critical_paste_and_selector_bugs
+- [x] 0057_create_new_Agent_Skills_cloud-architect
+- [x] 0163_fix_publish-to-x_agent_skill_issue
+- [x] 0086_refactor_code-generate_and_tasks-plan
+- [x] 0037_migration_guide
+- [x] 0025_plugin_architecture
+- [x] 0005_task_review_for_0004
+- [x] 0046_add_ah-guard.sh_for_Stop_hook
+- [x] 0049_add_new_Agent_Skills_code-revew-auggie
+- [x] 0073_create_new_subagent_knowledge-seeker
+- [x] 0021_multi_language_support
+- [x] 0022_rules_system
+- [x] 0048_customize_and_enhance_code-revew-gemini
+- [x] 0044_technique_extraction
+- [x] 0125_create_wt_topic-create_command
+- [x] 0118_create_new_Agent_Skills_publish-to-xhs
+- [x] 0164_fix_x_publishing_content_processing_and_consistency
+- [x] 0114_Add_Output_Path_Validation
+- [x] 0019_type_hint_detection
+- [x] 0065_enhance_super-designer
+- [x] 0193_Add_Value-Add_Assessment_evaluator_plugin
+- [x] 0194_Add_Behavioral_Readiness_evaluator_plugin
+- [x] 0191_Add_Trigger_Design_evaluator_plugin
+- [x] 0187_Rewrite_super-planner_as_thin_orchestrator_wrapper
+- [x] 0192_Add_Instruction_Clarity_evaluator_plugin
+- [x] 0189_Add_integration_tests_for_workflow_orchestration
+- [x] 0198_Update_cc-skills_SKILL.md_and_references_for_new_dimensions
+- [x] 0197_Add_behavioral_test_scenario_format_and_runner
+- [x] 0188_Update_tasks-plan_command_for_workflow-aware_orchestration
+- [x] 0196_Add_LLM-as-Judge_evaluation_with_--deep_flag
+- [x] 0186_Create_rd2:workflow-orchestration_skill
+- [x] 0185_enhance_super-planner
+
