@@ -5,6 +5,8 @@ import * as os from 'node:os';
 import { chromium, type Page } from 'playwright';
 import { trySelectors, buildInputSelectors, buildEditorSelectors, buildSelectSelectors, buildButtonSelectors } from '@wt/web-automation/selectors';
 import { pwSleep } from '@wt/web-automation/playwright';
+import { copyHtmlToClipboard } from '@wt/web-automation/clipboard';
+import { marked } from 'marked';
 import {
   getWtProfileDir,
   getAutoPublishPreference,
@@ -20,46 +22,41 @@ import {
 
 const XHS_SELECTORS = {
   // Title input field
-  titleInput: buildInputSelectors({
-    placeholder: '填写标题',
-    type: 'text',
-  }),
+  titleInput: [
+    '.input-title',
+    '.input-title-input',
+    'input[placeholder="输入标题"]',
+    'div[data-placeholder="输入标题"]'
+  ],
 
-  // Subtitle/summary input field (optional)
-  subtitleInput: buildInputSelectors({
-    placeholder: '简介',
-    name: 'subtitle',
-  }),
+  // Content editor
+  contentEditor: [
+    '.ql-editor',
+    '.ProseMirror',
+    '.content-input',
+    'div[data-placeholder*="粘贴到这里"]',
+    'div[data-placeholder*="输入文字"]'
+  ],
 
-  // Content editor (CodeMirror or rich text editor)
-  contentEditor: buildEditorSelectors({
-    className: 'CodeMirror',
-    contentEditable: true,
-  }),
-
-  // Category selector
-  categorySelect: buildSelectSelectors({
-    name: 'category',
-    className: 'category',
-  }),
-
-  // Tags input field
-  tagsInput: buildInputSelectors({
-    placeholder: '标签',
-    name: 'tags',
-  }),
+  // Optional/Missing in long-form portal editor
+  subtitleInput: ['.input-summary', '[placeholder="简介"]'],
+  categorySelect: ['.category-select'],
+  tagsInput: ['.tag-input', '[placeholder="标签"]'],
 
   // Publish button
-  publishButton: buildButtonSelectors({
-    type: 'submit',
-    className: 'publish',
-  }),
+  publishButton: [
+    ':text("一键排版")',
+    ':text("下一步")',
+    '.publish-btn',
+    'button:text("下一步")'
+  ],
 
   // Draft button
-  draftButton: buildButtonSelectors({
-    className: 'draft',
-    text: '保存',
-  }),
+  draftButton: [
+    ':text("暂存离开")',
+    '.draft-btn',
+    'button:text("暂存离开")'
+  ],
 };
 
 // ============================================================================
@@ -104,11 +101,35 @@ async function checkLoginStatus(page: Page): Promise<boolean> {
 
   // Check for logged-in indicators
   try {
-    const isLoggedIn = await page.locator('.user-avatar, .logout-button, [class*="user"], .avatar').first().count() > 0;
-    return isLoggedIn;
-  } catch {
-    return false;
+    // If we see a big "登录" button on the left sidebar, we are NOT logged in
+    const loginBtn = await page.locator('button:text("登录"), a:text("登录"), .login-button').first();
+    const loginVisible = await loginBtn.isVisible();
+    if (loginVisible) {
+      console.log('[xhs-pw] Login button is visible, not logged in');
+      return false;
+    }
+
+    // Check for user-specific indicators in the header or sidebar
+    const hasUserIndicator = await page.locator('.user-avatar, .avatar, [class*="user"], .creator-info').first().isVisible();
+
+    // Also check if we are on the creator domain
+    const isCreatorDomain = currentUrl.includes('creator.xiaohongshu.com');
+
+    if (isCreatorDomain && hasUserIndicator) {
+      return true;
+    }
+
+    // If we are on the main domain, look for "创作中心" (Creator Center) or avatar
+    if (currentUrl.includes('xiaohongshu.com')) {
+      const creatorLink = await page.locator(':text("创作中心")').first().isVisible();
+      if (creatorLink || hasUserIndicator) {
+        return true;
+      }
+    }
+  } catch (e) {
+    console.log(`[xhs-pw] Error checking login status: ${e}`);
   }
+  return false;
 }
 
 /**
@@ -159,10 +180,38 @@ async function fillContent(page: Page, content: string): Promise<void> {
     throw new Error('Content editor not found');
   }
 
-  // Try to fill content using different methods based on editor type
   const element = result.locator;
 
-  // First try with CodeMirror editor
+  // Method 1: HTML Clipboard Pasting (Best for preserving formatting in rich editors)
+  try {
+    console.log('[xhs-pw] Attempting to fill content via HTML clipboard pasting...');
+    const html = await marked.parse(content);
+    await copyHtmlToClipboard(html);
+
+    await element.scrollIntoViewIfNeeded();
+    await element.click();
+    await pwSleep(500);
+
+    // Paste using keyboard shortcut
+    const isMac = process.platform === 'darwin';
+    const modifier = isMac ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+v`);
+
+    console.log('[xhs-pw] Content pasted from clipboard');
+    await pwSleep(2000); // Wait for paste to process and images to load if any
+
+    // Verify paste result
+    const textLength = await element.evaluate(el => el.textContent?.length || 0);
+    if (textLength > 20) {
+      console.log(`[xhs-pw] Successfully pasted ${textLength} characters`);
+      return;
+    }
+    console.log('[xhs-pw] Clipboard paste produced minimal content, trying fallbacks...');
+  } catch (e) {
+    console.log(`[xhs-pw] Clipboard paste failed: ${e}`);
+  }
+
+  // Method 2: CodeMirror editor API
   try {
     const isCodeMirror = await element.locator('.CodeMirror-code').count() > 0;
     if (isCodeMirror) {
@@ -180,7 +229,7 @@ async function fillContent(page: Page, content: string): Promise<void> {
     // Not CodeMirror, continue with other methods
   }
 
-  // Try contenteditable approach
+  // Method 3: contenteditable approach
   try {
     await element.evaluate((el: HTMLElement, text) => {
       el.focus();
@@ -369,7 +418,7 @@ export async function publishToXhs(options: PublishOptions): Promise<string> {
     viewport: { width: 1280, height: 900 },
   });
 
-  const page = context.pages()[0] || await context.newPage();
+  let page = context.pages()[0] || await context.newPage();
 
   try {
     // Navigate to editor
@@ -407,8 +456,86 @@ export async function publishToXhs(options: PublishOptions): Promise<string> {
     console.log('[xhs-pw] Waiting for editor to load...');
     await waitForPageReady(page);
 
+    // If we are on creator dashboard but NOT the editor, try to reach the editor
+    const currentUrl = page.url();
+    if (currentUrl.includes('creator.xiaohongshu.com')) {
+      // Check if we need to click "写长文" (Write Long Article)
+      const longArticleTab = await page.locator(':text("写长文")').first();
+      if (await longArticleTab.isVisible()) {
+        console.log('[xhs-pw] Clicking "写长文" (Write Long Article) tab...');
+        await longArticleTab.click();
+        await page.waitForTimeout(3000);
+
+        // After clicking "写长文", we might need to click "新的创作" (New Creation)
+        const newCreationBtn = await page.locator(':text("新的创作")').first();
+        if (await newCreationBtn.isVisible()) {
+          console.log('[xhs-pw] Clicking "新的创作" (New Creation) button...');
+          await newCreationBtn.click();
+          await page.waitForTimeout(5000);
+
+          // Check if a new tab opened
+          const pages = page.context().pages();
+          if (pages.length > 1) {
+            console.log('[xhs-pw] Multiple pages detected after clicking New Creation, switching to newest...');
+            page = pages[pages.length - 1]!;
+            await page.bringToFront();
+            await waitForPageReady(page);
+          }
+        }
+      } else {
+        // Try clicking the big red "发布笔记" button first if we are on home/other page
+        const publishNoteBtn = await page.locator(':text("发布笔记")').first();
+        if (await publishNoteBtn.isVisible()) {
+          console.log('[xhs-pw] Clicking "发布笔记" button...');
+          await publishNoteBtn.click();
+          await page.waitForTimeout(3000);
+          const longArticleTabRetry = await page.locator(':text("写长文")').first();
+          if (await longArticleTabRetry.isVisible()) {
+            await longArticleTabRetry.click();
+            await page.waitForTimeout(3000);
+
+            const newCreationBtnRetry = await page.locator(':text("新的创作")').first();
+            if (await newCreationBtnRetry.isVisible()) {
+              await newCreationBtnRetry.click();
+              await page.waitForTimeout(5000);
+            }
+          }
+        }
+      }
+    }
+
+    // Double check if we reached the editor via URL or selectors
+    const titleInputResult = await trySelectors(page, XHS_SELECTORS.titleInput, { timeout: 5000, visible: true });
+    if (!titleInputResult.found) {
+      console.log('[xhs-pw] Title input still not found, checking for alternative tabs or buttons...');
+
+      // Look for any contenteditable element that might be the title
+      const editables = await page.locator('[contenteditable="true"]').all();
+      console.log(`[xhs-pw] Found ${editables.length} contenteditable elements`);
+
+      // If no title found, try to find "写笔记" as fallback
+      const writeNoteTab = await page.locator(':text("写笔记")').first();
+      if (await writeNoteTab.isVisible()) {
+        console.log('[xhs-pw] Found "写笔记" (Write Note) tab, clicking...');
+        await writeNoteTab.click();
+        await page.waitForTimeout(3000);
+      }
+    }
+
     // Fill in the article
-    await fillTitle(page, article.title);
+    try {
+      await fillTitle(page, article.title);
+    } catch (e) {
+      console.log(`[xhs-pw] Failed to fill title: ${e}. Trying fallback...`);
+      // Fallback: just find the first contenteditable that has "标题" or is empty
+      const titleCandidate = await page.locator('[contenteditable="true"], .input-title, [placeholder*="标题"]').first();
+      if (await titleCandidate.isVisible()) {
+        await titleCandidate.fill(article.title);
+        console.log('[xhs-pw] Title filled via fallback');
+      } else {
+        throw e;
+      }
+    }
 
     if (article.subtitle) {
       await fillSubtitle(page, article.subtitle);
@@ -435,7 +562,7 @@ export async function publishToXhs(options: PublishOptions): Promise<string> {
     console.log('[xhs-pw] Press Ctrl+C to close.');
 
     // Keep browser open for manual review
-    await new Promise(() => {}); // Never resolve
+    await new Promise(() => { }); // Never resolve
 
     return articleUrl;
   } catch (error) {
