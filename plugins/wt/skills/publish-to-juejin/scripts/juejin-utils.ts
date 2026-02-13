@@ -60,7 +60,7 @@ export const JUEJIN_URLS = {
   home: 'https://juejin.cn',
   login: 'https://juejin.cn',
   creator: 'https://juejin.cn/creator',
-  postCreate: 'https://juejin.cn/post/create',
+  postCreate: 'https://juejin.cn/editor/drafts/new',
   editor: 'https://juejin.cn/editor',
   markdownEditor: 'https://juejin.cn/markdown-editor',
 } as const;
@@ -84,7 +84,7 @@ export const JUEJIN_CATEGORIES = {
   ios: 'iOS',
   ai: '人工智能',
   devtools: '开发工具',
- codelife: '代码人生',
+  codelife: '代码人生',
   reading: '阅读',
 } as const;
 

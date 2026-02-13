@@ -5,6 +5,8 @@ import * as os from 'node:os';
 import { chromium, type Page } from 'playwright';
 import { trySelectors, buildInputSelectors, buildEditorSelectors, buildSelectSelectors, buildButtonSelectors } from '@wt/web-automation/selectors';
 import { pwSleep } from '@wt/web-automation/playwright';
+import { copyHtmlToClipboard } from '@wt/web-automation/clipboard';
+import { marked } from 'marked';
 import {
   getWtProfileDir,
   getAutoPublishPreference,
@@ -52,7 +54,6 @@ const INFOQ_SELECTORS = {
   // Submit/Save button
   submitButton: buildButtonSelectors({
     text: '提交',
-    type: 'submit',
   }),
 
   // Draft button
@@ -102,13 +103,46 @@ async function checkLoginStatus(page: Page): Promise<boolean> {
     return false;
   }
 
+  // If we are on editor page, we are likely logged in
+  if (currentUrl.includes('/write') || currentUrl.includes('/article/create') || currentUrl.includes('/publish')) {
+    return true;
+  }
+
   // Check for logged-in indicators
   try {
-    const isLoggedIn = await page.locator('.user-avatar, .logout-button, [class*="user"]').first().count() > 0;
-    return isLoggedIn;
-  } catch {
-    return false;
+    // Only check the header/account area for login status to avoid false positives from page content
+    const accountArea = page.locator('.header .account, .nav-right .account, header .user-info, .header .avatar');
+
+    // Presence of avatar or user-specific elements in the account area
+    const hasUserIndicator = await accountArea.locator('.user-avatar, [class*="avatar"], .user-info, [class*="user"], img').first().isVisible();
+    if (hasUserIndicator) {
+      // One more check: make sure "登录" text is NOT the only thing in account area
+      const loginText = await accountArea.locator(':text("登录")').first().isVisible();
+      if (!loginText) {
+        console.log('[infoq-pw] User indicator found in header (avatar/info)');
+        return true;
+      }
+    }
+
+    // Explicit check for "登录" or "Sign in" in the account area
+    const hasLoginButton = await accountArea.locator(':text("登录"), :text("注册"), :text("Sign in")').first().isVisible();
+    if (hasLoginButton) {
+      return false;
+    }
+
+    // If we've reached here and saw NO login button, but did see an account area, we might be logged in
+    const isAccountAreaPresent = await accountArea.first().isVisible();
+    if (isAccountAreaPresent) {
+      // Final check: if we see "写点什么" and NO "登录", we are likely in
+      const writeBtnPresent = await page.locator(':text("写点什么")').first().isVisible();
+      if (writeBtnPresent) {
+        return true;
+      }
+    }
+  } catch (e) {
+    console.log(`[infoq-pw] Error checking login status: ${e}`);
   }
+  return false;
 }
 
 /**
@@ -117,7 +151,13 @@ async function checkLoginStatus(page: Page): Promise<boolean> {
 async function fillTitle(page: Page, title: string): Promise<void> {
   console.log('[infoq-pw] Filling in title...');
 
-  const result = await trySelectors(page, INFOQ_SELECTORS.titleInput, { timeout: 5000, visible: true });
+  const result = await trySelectors(page, [
+    'input[placeholder="标题"]',
+    'input[placeholder*="标题"]',
+    '.title-input',
+    'input.title',
+    '.article-title input'
+  ], { timeout: 5000, visible: true });
   if (!result.found || !result.locator) {
     throw new Error('Title input not found');
   }
@@ -159,10 +199,38 @@ async function fillContent(page: Page, content: string): Promise<void> {
     throw new Error('Content editor not found');
   }
 
-  // Try to fill content using different methods based on editor type
   const element = result.locator;
 
-  // Try ProseMirror approach
+  // Method 1: HTML Clipboard Pasting (Best for rich editors)
+  try {
+    console.log('[infoq-pw] Attempting to fill content via HTML clipboard pasting...');
+    const html = await marked.parse(content);
+    await copyHtmlToClipboard(html);
+
+    await element.scrollIntoViewIfNeeded();
+    await element.click();
+    await pwSleep(500);
+
+    // Paste using keyboard shortcut
+    const isMac = process.platform === 'darwin';
+    const modifier = isMac ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+v`);
+
+    console.log('[infoq-pw] Content pasted from clipboard');
+    await pwSleep(2000); // Wait for paste processing
+
+    // Verify paste result
+    const textLength = await element.evaluate(el => el.textContent?.length || 0);
+    if (textLength > 20) {
+      console.log(`[infoq-pw] Successfully pasted ${textLength} characters`);
+      return;
+    }
+    console.log('[infoq-pw] Clipboard paste produced minimal content, trying fallbacks...');
+  } catch (e) {
+    console.log(`[infoq-pw] Clipboard paste failed: ${e}`);
+  }
+
+  // Method 2: ProseMirror editor API
   try {
     await element.evaluate((el: HTMLElement, text) => {
       el.focus();
@@ -359,7 +427,7 @@ export async function publishToInfoQ(options: PublishOptions): Promise<string> {
     viewport: { width: 1280, height: 900 },
   });
 
-  const page = context.pages()[0] || await context.newPage();
+  let page = context.pages()[0] || await context.newPage();
 
   try {
     // Navigate to editor
@@ -397,6 +465,56 @@ export async function publishToInfoQ(options: PublishOptions): Promise<string> {
     console.log('[infoq-pw] Waiting for editor to load...');
     await waitForPageReady(page);
 
+    // If we are on a known page but NOT the editor, try clicking "Write" button
+    let currentUrl = page.url();
+    if (!currentUrl.includes('/write') && !currentUrl.includes('/article/create')) {
+      console.log('[infoq-pw] Not on editor page, attempting to click "Write" button...');
+
+      const writeBtnResult = await trySelectors(page, [
+        '.write-btn',
+        ':text("写点什么")',
+        ':text("立即创作")',
+        '.account .writing',
+        '.account .btn-write'
+      ], { timeout: 10000, visible: true });
+
+      if (writeBtnResult.found && writeBtnResult.locator) {
+        console.log('[infoq-pw] Clicking "Write" button');
+        await writeBtnResult.locator.click();
+        await page.waitForTimeout(3000);
+
+        // Refresh URL after click
+        currentUrl = page.url();
+
+        // Check if a new tab opened
+        const pages = page.context().pages();
+        if (pages.length > 1) {
+          console.log('[infoq-pw] Multiple pages detected, switching to newest...');
+          page = pages[pages.length - 1]!;
+          await page.bringToFront();
+        }
+
+        await waitForPageReady(page);
+      } else {
+        console.log('[infoq-pw] "Write" button not found, trying direct navigation to possible URLs...');
+        const possibleUrls = [
+          'https://xie.infoq.cn/write',
+          'https://xie.infoq.cn/write/article/new',
+          'https://xie.infoq.cn/article/create'
+        ];
+
+        for (const url of possibleUrls) {
+          console.log(`[infoq-pw] Trying direct navigation to: ${url}`);
+          await page.goto(url, { waitUntil: 'networkidle' });
+          await page.waitForTimeout(2000);
+          if (page.url().includes('write') || page.url().includes('create')) {
+            console.log(`[infoq-pw] Successfully reached editor: ${page.url()}`);
+            break;
+          }
+        }
+      }
+    }
+
     // Fill in the article
     await fillTitle(page, article.title);
 
@@ -425,7 +543,7 @@ export async function publishToInfoQ(options: PublishOptions): Promise<string> {
     console.log('[infoq-pw] Press Ctrl+C to close.');
 
     // Keep browser open for manual review
-    await new Promise(() => {}); // Never resolve
+    await new Promise(() => { }); // Never resolve
 
     return articleUrl;
   } catch (error) {

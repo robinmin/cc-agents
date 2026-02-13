@@ -5,7 +5,7 @@
 check_rulesync() {
     if command -v rulesync &> /dev/null; then
         return 0
-    elif npx rulesync --version &> /dev/null; then
+    elif npx --yes rulesync --version &> /dev/null; then
         return 0
     else
         return 1

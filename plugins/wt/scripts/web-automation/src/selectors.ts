@@ -469,6 +469,36 @@ export function buildButtonSelectors(options: {
 }
 
 /**
+ * Build select selectors
+ */
+export function buildSelectSelectors(options: {
+  name?: string;
+  className?: string;
+  testId?: string;
+}): string[] {
+  const variants: string[] = [];
+
+  if (options.className) {
+    variants.push(`select.${options.className}`);
+    variants.push(`.${options.className} select`);
+    variants.push(`.${options.className}`);
+  }
+
+  if (options.name) {
+    variants.push(`select[name="${options.name}"]`);
+  }
+
+  if (options.testId) {
+    variants.push(`[data-testid="${options.testId}"]`);
+  }
+
+  // Generic select
+  variants.push('select');
+
+  return [...new Set(variants)];
+}
+
+/**
  * Build input selectors
  */
 export function buildInputSelectors(options: {
@@ -591,6 +621,7 @@ export default {
   buildSelectorVariants,
   buildButtonSelectors,
   buildInputSelectors,
+  buildSelectSelectors,
   buildEditorSelectors,
   getI18NSelectors,
 };

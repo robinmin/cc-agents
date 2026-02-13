@@ -59,9 +59,9 @@ export function getAutoPublishPreference(): boolean {
 export const XHS_URLS = {
   home: 'https://www.xiaohongshu.com',
   login: 'https://www.xiaohongshu.com',
-  creator: 'https://www.xiaohongshu.com/creator',
-  postCreate: 'https://www.xiaohongshu.com/publish/publish',
-  editor: 'https://www.xiaohongshu.com/publish',
+  creator: 'https://creator.xiaohongshu.com/creator',
+  postCreate: 'https://creator.xiaohongshu.com/publish/publish',
+  editor: 'https://creator.xiaohongshu.com/publish/publish',
 } as const;
 
 /**

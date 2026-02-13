@@ -30,6 +30,9 @@ import {
   getDefaultProfileDir,
 } from '@wt/web-automation/playwright';
 
+import { copyHtmlToClipboard } from '@wt/web-automation/clipboard';
+import { marked } from 'marked';
+
 // ============================================================================
 // Configuration
 // ============================================================================
@@ -91,19 +94,21 @@ function getAutoPublishPreference(): boolean {
 // ============================================================================
 
 const SUBSTACK_SELECTORS = {
-  // Title input field
-  titleInput: buildInputSelectors({
-    placeholder: 'Title',
-    name: 'title',
-  }),
+  // Title input field (often a textarea with placeholder)
+  titleInput: [
+    'textarea[placeholder="Title"]',
+    'input[placeholder="Title"]',
+    '.pencraft textarea[placeholder="Title"]',
+    '[data-testid="title-input"]',
+    'h1[contenteditable="true"]',
+  ],
 
   // Subtitle input field
   subtitleInput: [
-    'input[placeholder*="subtitle" i]',
-    'input[placeholder*="Subtitle" i]',
+    'textarea[placeholder="Add a subtitle..."]',
+    'input[placeholder="Add a subtitle..."]',
     'textarea[placeholder*="subtitle" i]',
     '[data-testid="subtitle-input"]',
-    '[name="subtitle"]',
   ],
 
   // Content editor (ProseMirror)
@@ -120,10 +125,21 @@ const SUBSTACK_SELECTORS = {
     '[name="tags"]',
   ],
 
-  // Publish button
-  publishButton: buildButtonSelectors({
-    text: 'Publish',
-  }),
+  // Publish/Continue button
+  publishButton: [
+    'button:has-text("Continue")',
+    'button:has-text("Publish")',
+    '[data-testid="continue-button"]',
+    '.continue-button',
+  ],
+
+  // Final publish button (on the post-settings page)
+  finalPublishButton: [
+    'button:has-text("Send to everyone now")',
+    'button:has-text("Publish now")',
+    'button:has-text("Publish")',
+    '[data-testid="publish-button"]',
+  ],
 
   // Draft button
   draftButton: [
@@ -138,8 +154,27 @@ const SUBSTACK_SELECTORS = {
   writeButton: [
     'a:has-text("Write")',
     'button:has-text("Write")',
+    'a:has-text("Dashboard")',
+    'button:has-text("Dashboard")',
+    'a:has-text("Create Post")',
+    'button:has-text("Create Post")',
     '[data-testid="write-button"]',
     '.write-button',
+  ],
+
+  // "Create new" dropdown button on dashboard
+  createNewButton: [
+    'button:has-text("Create new")',
+    '.pencraft.buttonBase-GK1x3M.priority_primary-RfbeYt:has-text("Create new")',
+  ],
+
+  // "Article" item in the "Create new" dropdown
+  articleMenuItem: [
+    'div[role="menuitem"]:has-text("Article")',
+    'span:has-text("Article")',
+    'button:has-text("Article")',
+    '.pencraft:has-text("Article")',
+    '[data-testid="article-menu-item"]',
   ],
 } as const;
 
@@ -209,8 +244,8 @@ export function parseMarkdownFile(filePath: string): ParsedArticle {
  */
 function getNewPostUrl(publicationUrl?: string): string {
   if (publicationUrl) {
-    const baseUrl = publicationUrl.replace(/\/$/, '');
-    return `${baseUrl}/new`;
+    const baseUrl = publicationUrl.replace(/\/$/, '').replace(/\/publish$/, '');
+    return `${baseUrl}/publish/post/new`;
   }
   return 'https://substack.com/new';
 }
@@ -226,18 +261,48 @@ async function isLoggedIn(page: Page): Promise<boolean> {
     return false;
   }
 
-  // If on new post page or publication home, likely logged in
-  if (url.includes('/new') || url.includes('/publish')) {
+  // Check for "Sign in" button in the header (very reliable indicator of logged out state)
+  try {
+    const signInBtn = await page.locator('a:text("Sign in"), button:text("Sign in")').first();
+    if (await signInBtn.isVisible({ timeout: 2000 })) {
+      return false;
+    }
+  } catch {
+    // Ignore error
+  }
+
+  // Check if we are on a publication dashboard or editor
+  if (url.includes('/publish/home') || url.includes('/publish/post/') || url.includes('/new')) {
     return true;
+  }
+
+  // Check for profile menu or avatar (reliable indicators of logged in state)
+  try {
+    const avatar = await page.locator('[data-testid="user-menu-button"], .nav-user-menu, .profile-menu img').first();
+    if (await avatar.isVisible({ timeout: 2000 })) {
+      return true;
+    }
+  } catch {
+    // Ignore error
   }
 
   // Check for logout button (indicates logged in)
   try {
-    const hasLogout = await page.locator('button:has-text("Sign out"), button:has-text("Log out"), button:has-text("Logout")').count() > 0;
-    return hasLogout;
+    const hasLogout = await page.locator('button:has-text("Sign out"), button:has-text("Log out"), button:has-text("Logout"), a:has-text("Sign out")').first().isVisible({ timeout: 2000 });
+    if (hasLogout) return true;
   } catch {
-    return false;
+    // Ignore error
   }
+
+  // Check for "Dashboard" or "Create Post" buttons (indicates logged in)
+  try {
+    const dashboardBtn = await page.locator('a:text("Dashboard"), a:text("Create Post")').first().isVisible({ timeout: 2000 });
+    if (dashboardBtn) return true;
+  } catch {
+    // Ignore error
+  }
+
+  return false;
 }
 
 /**
@@ -254,8 +319,26 @@ async function waitForLogin(page: Page): Promise<void> {
   console.log('========================================');
   console.log('');
 
-  // Wait for navigation to authenticated page
-  await page.waitForURL(/\/new|\/publish|substack\.com\/$/, { timeout: 300000 });
+  // Wait for login by checking URL and status periodically
+  let loggedIn = false;
+  const startTime = Date.now();
+  const timeout = 300000; // 5 minutes
+
+  while (!loggedIn && (Date.now() - startTime < timeout)) {
+    await pwSleep(3000);
+    loggedIn = await isLoggedIn(page);
+
+    const url = page.url();
+    // If we've reached an editor or publish page, that's a strong indicator
+    if (url.includes('/new') || url.includes('/publish') || url.includes('/dashboard')) {
+      loggedIn = true;
+    }
+  }
+
+  if (!loggedIn) {
+    throw new Error('Login timeout');
+  }
+
   console.log('[substack-pw] Login successful!');
 }
 
@@ -343,16 +426,38 @@ async function fillContent(page: Page, content: string): Promise<void> {
   const locator = result.locator;
   const selector = result.selector!;
 
-  // Focus the editor
-  await locator.click();
-  await pwSleep(300);
-
-  // Try multiple methods to insert content
-  let inserted = false;
-
-  // Method 1: Try to use ProseMirror API if available
+  // Method 1: HTML Clipboard Pasting (Best for rich editors like Substack)
   try {
-    await page.evaluate((sel, text) => {
+    console.log('[substack-pw] Attempting to fill content via HTML clipboard pasting...');
+    const html = await marked.parse(content);
+    await copyHtmlToClipboard(html);
+
+    await locator.scrollIntoViewIfNeeded();
+    await locator.click();
+    await pwSleep(500);
+
+    // Paste using keyboard shortcut
+    const isMac = process.platform === 'darwin';
+    const modifier = isMac ? 'Meta' : 'Control';
+    await page.keyboard.press(`${modifier}+v`);
+
+    console.log('[substack-pw] Content pasted from clipboard');
+    await pwSleep(2000); // Wait for paste processing
+
+    // Verify paste result
+    const textLength = await locator.evaluate(el => el.textContent?.length || 0);
+    if (textLength > 20) {
+      console.log(`[substack-pw] Successfully pasted ${textLength} characters`);
+      return;
+    }
+    console.log('[substack-pw] Clipboard paste produced minimal content, trying fallbacks...');
+  } catch (e) {
+    console.log(`[substack-pw] Clipboard paste failed: ${e}`);
+  }
+
+  // Method 2: Try to use ProseMirror API if available
+  try {
+    const inserted = await page.evaluate((sel, text) => {
       const el = document.querySelector(sel);
       if (!el) return false;
 
@@ -369,67 +474,38 @@ async function fillContent(page: Page, content: string): Promise<void> {
       return false;
     }, selector, content);
 
-    // Check if content was inserted
-    const editorText = await locator.evaluate((el) => (el as HTMLElement).textContent || '');
-    if (editorText.length > 10) {
-      inserted = true;
+    if (inserted) {
+      console.log('[substack-pw] Content filled using ProseMirror API');
+      await pwSleep(1000);
+      return;
     }
   } catch {
     // ProseMirror API not available, try other methods
   }
 
-  // Method 2: Use clipboard paste event
-  if (!inserted) {
-    await page.evaluate((sel, text) => {
-      const el = document.querySelector(sel);
-      if (!el) return false;
+  // Method 3: Use direct innerHTML (fallback)
+  console.log('[substack-pw] Using innerHTML fallback...');
+  await page.evaluate((sel, text) => {
+    const el = document.querySelector(sel);
+    if (!el) return false;
 
-      // Focus the editor
-      el.focus();
+    // Convert markdown to simple HTML (preserve paragraphs)
+    const html = text
+      .split('\n\n')
+      .map((para) => {
+        if (para.startsWith('#')) {
+          // Heading
+          const level = para.match(/^#+/)?.[0]?.length || 1;
+          const text = para.replace(/^#+\s*/, '');
+          return `<h${level}>${text}</h${level}>`;
+        }
+        return `<p>${para}</p>`;
+      })
+      .join('\n');
 
-      // Create DataTransfer for paste
-      const dt = new DataTransfer();
-      dt.setData('text/plain', text);
-      dt.setData('text/html', text);
-
-      // Create and dispatch paste event
-      const evt = new ClipboardEvent('paste', {
-        bubbles: true,
-        cancelable: true,
-        clipboardData: dt,
-      });
-      el.dispatchEvent(evt);
-
-      return true;
-    }, selector, content);
-
-    await pwSleep(500);
-  }
-
-  // Method 3: Direct innerHTML (fallback)
-  if (!inserted) {
-    await page.evaluate((sel, text) => {
-      const el = document.querySelector(sel);
-      if (!el) return false;
-
-      // Convert markdown to simple HTML (preserve paragraphs)
-      const html = text
-        .split('\n\n')
-        .map((para) => {
-          if (para.startsWith('#')) {
-            // Heading
-            const level = para.match(/^#+/)?.[0]?.length || 1;
-            const text = para.replace(/^#+\s*/, '');
-            return `<h${level}>${text}</h${level}>`;
-          }
-          return `<p>${para}</p>`;
-        })
-        .join('\n');
-
-      el.innerHTML = html;
-      return true;
-    }, selector, content);
-  }
+    el.innerHTML = html;
+    return true;
+  }, selector, content);
 
   await pwSleep(1000);
   console.log('[substack-pw] Content filled');
@@ -481,11 +557,11 @@ async function publishArticle(page: Page, asDraft: boolean): Promise<string> {
 
   const buttonSelectors = asDraft ? SUBSTACK_SELECTORS.draftButton : SUBSTACK_SELECTORS.publishButton;
 
-  const result = await trySelectors(page, buttonSelectors, { timeout: 10000 });
+  const result = await trySelectors(page, buttonSelectors as unknown as string[], { timeout: 10000 });
 
   if (!result.found || !result.locator) {
     // If button not found, try keyboard shortcut
-    console.log('[substack-pw] Button not found, trying keyboard shortcut...');
+    console.log('[substack-pw] Continue/Draft button not found, trying keyboard shortcut...');
 
     // Cmd/Ctrl + Enter to publish (Substack shortcut)
     if (process.platform === 'darwin') {
@@ -493,18 +569,43 @@ async function publishArticle(page: Page, asDraft: boolean): Promise<string> {
     } else {
       await page.keyboard.press('Control+Enter');
     }
+    await pwSleep(2000);
   } else {
     // Click the button
+    console.log(`[substack-pw] Clicking ${asDraft ? 'draft' : 'continue'} button...`);
     await result.locator.click();
+    await pwSleep(2000);
   }
 
-  // Wait for navigation or completion
+  // If not draft, handle the final settings page
+  if (!asDraft) {
+    console.log('[substack-pw] On settings page, clicking final publish button...');
+
+    // Check if on settings page via URL or presence of button
+    const finalResult = await trySelectors(page, SUBSTACK_SELECTORS.finalPublishButton as unknown as string[], { timeout: 10000 });
+    if (finalResult.found && finalResult.locator) {
+      await finalResult.locator.click();
+      await pwSleep(2000);
+    } else {
+      console.log('[substack-pw] Final publish button not found, checking if already published...');
+    }
+  }
+
+  // Get the published/draft URL
   await pwSleep(3000);
+  const finalUrl = page.url();
+  return finalUrl;
+}
+await result.locator.click();
+  }
 
-  // Get the current URL (should be the published/draft article URL)
-  const url = page.url();
+// Wait for navigation or completion
+await pwSleep(3000);
 
-  return url;
+// Get the current URL (should be the published/draft article URL)
+const url = page.url();
+
+return url;
 }
 
 // ============================================================================
@@ -570,21 +671,82 @@ export async function publishToSubstack(options: PublishOptions): Promise<string
   const page = context.pages()[0] || await context.newPage();
 
   try {
-    // Navigate to new post page
-    await page.goto(newPostUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    // Navigate to dashboard and handle potential redirects to global home
+    const dashboardUrl = options.publicationUrl || 'https://robinmin.substack.com/publish/home?utm_source=menu';
+    console.log(`[substack-pw] Navigating to dashboard: ${dashboardUrl}`);
+    await page.goto(dashboardUrl, { waitUntil: 'networkidle', timeout: 60000 });
 
-    // Check login status
-    const loggedIn = await isLoggedIn(page);
+    // Handle redirection loop
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const currentUrl = page.url();
+      console.log(`[substack-pw] Current URL (attempt ${attempt + 1}): ${currentUrl}`);
 
-    if (!loggedIn) {
-      await waitForLogin(page);
+      if (!await isLoggedIn(page)) {
+        await waitForLogin(page);
+      }
 
-      // Navigate to new post page again if needed
-      if (!page.url().includes('/new')) {
-        await page.goto(newPostUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      const finalUrl = page.url();
+      if (finalUrl.includes('robinmin.substack.com') && finalUrl.includes('/publish')) {
+        console.log('[substack-pw] Successfully reached publication dashboard.');
+        break;
+      }
+
+      if (finalUrl === 'https://substack.com' || finalUrl === 'https://substack.com/' || finalUrl.includes('substack.com/home')) {
+        console.log('[substack-pw] Landed on global home, clicking dashboard button...');
+        const dashboardBtn = await page.locator('a:has-text("Dashboard"), button:has-text("Dashboard"), a[href*="/publish"]').first();
+        if (await dashboardBtn.isVisible({ timeout: 5000 })) {
+          await dashboardBtn.click();
+          await page.waitForLoadState('networkidle');
+        } else {
+          console.log('[substack-pw] Dashboard button not found, force navigating...');
+          await page.goto('https://robinmin.substack.com/publish/home', { waitUntil: 'networkidle', timeout: 30000 });
+        }
+      } else if (!finalUrl.includes('robinmin.substack.com')) {
+        console.log('[substack-pw] Unexpected URL, force navigating to dashboard...');
+        await page.goto('https://robinmin.substack.com/publish/home', { waitUntil: 'networkidle', timeout: 30000 });
+      }
+
+      await pwSleep(3000);
+    }
+
+    // Follow the "Create new" -> "Article" path
+    console.log('[substack-pw] Attempting to create new article via dashboard...');
+    const createNewBtn = await trySelectors(page, SUBSTACK_SELECTORS.createNewButton as unknown as string[], { timeout: 10000 });
+    if (createNewBtn.found && createNewBtn.locator) {
+      await createNewBtn.locator.click();
+      await pwSleep(1000);
+
+      const articleItem = await trySelectors(page, [
+        'a:has-text("Article")',
+        'div[role="menuitem"]:has-text("Article")',
+        '.pencraft:has-text("Article")',
+        'span:has-text("Article")',
+        '[data-testid="article-menu-item"]',
+      ], { timeout: 5000 });
+
+      if (articleItem.found && articleItem.locator) {
+        console.log('[substack-pw] "Article" menu item found, clicking...');
+        await articleItem.locator.click({ force: true });
+
+        // Wait for navigation or look for editor
+        try {
+          await page.waitForNavigation({ timeout: 10000 });
+        } catch {
+          console.log('[substack-pw] Navigation timeout after "Article" click, checking if on editor...');
+        }
+
+        // If still on dashboard, trigger fallback
+        if (page.url().includes('/publish/home')) {
+          console.log('[substack-pw] Still on dashboard after click, force navigating to /new...');
+          await page.goto(newPostUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        }
+      } else {
+        console.log('[substack-pw] "Article" menu item not found, trying fallback to /new...');
+        await page.goto(newPostUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
       }
     } else {
-      console.log('[substack-pw] Already logged in');
+      console.log('[substack-pw] "Create new" button not found, trying fallback to /new...');
+      await page.goto(newPostUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     }
 
     // Wait for editor
@@ -632,7 +794,7 @@ export async function publishToSubstack(options: PublishOptions): Promise<string
     console.log('[substack-pw] Press Ctrl+C to close.');
 
     // Wait for user to close
-    await new Promise(() => {}); // Never resolve, wait for Ctrl+C
+    await new Promise(() => { }); // Never resolve, wait for Ctrl+C
 
     // Close context (when script is terminated)
     await context.close();

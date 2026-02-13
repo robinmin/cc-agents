@@ -20,10 +20,7 @@ import {
 
 const JUEJIN_SELECTORS = {
   // Title input field
-  titleInput: buildInputSelectors({
-    placeholder: '请输入标题',
-    type: 'text',
-  }),
+  titleInput: ['.title-input', 'input[placeholder="输入文章标题..."]', 'input[placeholder*="标题"]', 'input.title-input'],
 
   // Subtitle input field (optional)
   subtitleInput: buildInputSelectors({
@@ -37,28 +34,24 @@ const JUEJIN_SELECTORS = {
     contentEditable: true,
   }),
 
-  // Category selector
-  categorySelect: buildSelectSelectors({
-    name: 'category',
-    className: 'category',
-  }),
+  // Category items in publish popup
+  categoryItems: '.category-list .item, .category-item, .item',
 
-  // Tags input field
-  tagsInput: buildInputSelectors({
-    placeholder: '标签',
-    name: 'tags',
-  }),
+  // Tags input field in publish popup
+  tagsInput: '.tag-input input, .tag-input',
 
-  // Publish button
+  // First Publish button (opens popup)
   publishButton: buildButtonSelectors({
     text: '发布',
-    type: 'submit',
   }),
 
-  // Draft button
-  draftButton: buildButtonSelectors({
-    text: '保存草稿',
+  // Final Publish button (in popup)
+  confirmPublishButton: buildButtonSelectors({
+    text: '确定并发布',
   }),
+
+  // Draft indicator
+  draftStatus: ':text("保存成功"), :text("草稿箱")',
 };
 
 // ============================================================================
@@ -99,6 +92,11 @@ async function checkLoginStatus(page: Page): Promise<boolean> {
   // If URL is still homepage and we're supposed to be at editor, not logged in
   if (currentUrl === 'https://juejin.cn/' || currentUrl === 'https://juejin.cn') {
     return false;
+  }
+
+  // If we are on editor page, we are likely logged in
+  if (currentUrl.includes('/editor/') || currentUrl.includes('/markdown-editor')) {
+    return true;
   }
 
   // Check for logged-in indicators
@@ -203,24 +201,19 @@ async function fillContent(page: Page, content: string): Promise<void> {
  */
 async function setCategory(page: Page, category?: string): Promise<void> {
   if (!category) {
-    console.log('[juejin-pw] No category specified (optional)...');
     return;
   }
 
   console.log(`[juejin-pw] Setting category: ${category}...`);
 
-  const result = await trySelectors(page, JUEJIN_SELECTORS.categorySelect, { timeout: 2000, visible: false });
-  if (!result.found || !result.locator) {
-    console.log('[juejin-pw] Category selector not found (optional, skipping...)');
-    return;
-  }
-
   try {
-    await result.locator.selectOption({ label: category });
+    const item = page.locator(`.category-list .item:has-text("${category}")`).first();
+    await item.waitFor({ state: 'visible', timeout: 5000 });
+    await item.click();
     console.log('[juejin-pw] Category set');
     await pwSleep(500);
-  } catch {
-    console.log('[juejin-pw] Failed to set category (optional, skipping...)');
+  } catch (err) {
+    console.log(`[juejin-pw] Failed to set category: ${category}. Error: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -235,23 +228,22 @@ async function addTags(page: Page, tags: string[]): Promise<void> {
 
   console.log(`[juejin-pw] Setting tags: ${tags.join(', ')}...`);
 
-  const result = await trySelectors(page, JUEJIN_SELECTORS.tagsInput, { timeout: 2000, visible: false });
-  if (!result.found || !result.locator) {
+  const inputResult = await trySelectors(page, [JUEJIN_SELECTORS.tagsInput], { timeout: 2000, visible: true });
+  if (!inputResult.found || !inputResult.locator) {
     console.log('[juejin-pw] Tags input not found (optional, skipping...)');
     return;
   }
 
-  const input = result.locator;
+  const input = inputResult.locator;
 
   for (const tag of tags) {
     try {
-      await input.clear();
       await input.fill(tag);
       await pwSleep(300);
 
       // Press Enter to add the tag
       await input.press('Enter');
-      await pwSleep(300);
+      await pwSleep(500);
     } catch {
       console.log(`[juejin-pw] Failed to add tag: ${tag}`);
     }
@@ -264,35 +256,57 @@ async function addTags(page: Page, tags: string[]): Promise<void> {
 /**
  * Submit the article or save as draft
  */
-async function submitArticle(page: Page, asDraft: boolean): Promise<string> {
+async function submitArticle(page: Page, asDraft: boolean, article: ParsedArticle): Promise<string> {
   const action = asDraft ? 'Saving as draft' : 'Publishing';
   console.log(`[juejin-pw] ${action}...`);
 
-  const buttonSelectors = asDraft ? JUEJIN_SELECTORS.draftButton : JUEJIN_SELECTORS.publishButton;
+  if (asDraft) {
+    console.log('[juejin-pw] Waiting for autosave...');
+    await pwSleep(5000); // Give time for autosave
 
+    // Check if "保存成功" appears
+    const saved = await page.locator(':text("保存成功")').count() > 0;
+    if (saved) {
+      console.log('[juejin-pw] Draft saved successfully via autosave');
+    } else {
+      console.log('[juejin-pw] Autosave not detected, trying Ctrl+S...');
+      const keyCombo = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
+      await page.keyboard.press(keyCombo);
+      await pwSleep(3000);
+    }
+    return page.url();
+  }
+
+  // Two-step publish process
   try {
-    const result = await trySelectors(page, buttonSelectors, { timeout: 3000, visible: true });
+    // 1. Click first "发布" button
+    const result = await trySelectors(page, JUEJIN_SELECTORS.publishButton, { timeout: 3000, visible: true });
     if (!result.found || !result.locator) {
-      throw new Error('Button not found');
+      throw new Error('First Publish button not found');
+    }
+    await result.locator.click();
+    await pwSleep(2000);
+
+    // 2. Set Category and Tags in popup
+    if (article.category) {
+      await setCategory(page, article.category);
+    }
+    if (article.tags && article.tags.length > 0) {
+      await addTags(page, article.tags);
     }
 
-    await result.locator.click();
-    await pwSleep(3000);
+    // 3. Click final "确定并发布" button
+    const finalResult = await trySelectors(page, JUEJIN_SELECTORS.confirmPublishButton, { timeout: 3000, visible: true });
+    if (!finalResult.found || !finalResult.locator) {
+      throw new Error('Final Publish button not found');
+    }
+    await finalResult.locator.click();
+    await pwSleep(5000);
 
-    // Get the current URL (should be the submitted article URL)
-    const url = page.url();
-    return url;
+    return page.url();
   } catch (error) {
-    // If button click failed, try keyboard shortcut
-    console.log('[juejin-pw] Button click failed, trying keyboard shortcut...');
-
-    // Try Ctrl/Cmd + S to save/publish
-    const keyCombo = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(keyCombo);
-    await pwSleep(3000);
-
-    const url = page.url();
-    return url;
+    console.log(`[juejin-pw] Publish failed: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
   }
 }
 
@@ -424,7 +438,7 @@ export async function publishToJuejin(options: PublishOptions): Promise<string> 
     }
 
     // Submit or save as draft
-    const articleUrl = await submitArticle(page, asDraft);
+    const articleUrl = await submitArticle(page, asDraft, article);
 
     console.log('');
     console.log('[juejin-pw] Article saved successfully!');
@@ -434,7 +448,7 @@ export async function publishToJuejin(options: PublishOptions): Promise<string> 
     console.log('[juejin-pw] Press Ctrl+C to close.');
 
     // Keep browser open for manual review
-    await new Promise(() => {}); // Never resolve
+    await new Promise(() => { }); // Never resolve
 
     return articleUrl;
   } catch (error) {
