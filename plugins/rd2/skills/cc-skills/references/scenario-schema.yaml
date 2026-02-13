@@ -1,0 +1,258 @@
+# Behavioral Test Scenario Schema for cc-skills
+# Version: 2.0
+# Purpose: Define test scenarios for skill behavioral validation
+# Enhanced with trigger testing and performance comparison per official guide
+
+$schema: https://json-schema.org/draft/2020-12/schema
+
+type: object
+properties:
+  version:
+    type: string
+    description: Schema version for compatibility
+    default: "2.0"
+
+  # Section 1: Trigger Testing (Official Guide: 90% trigger rate metric)
+  trigger_tests:
+    type: object
+    description: Tests for skill discovery and activation
+    properties:
+      should_trigger:
+        type: array
+        description: Queries that SHOULD trigger the skill
+        items:
+          type: object
+          required:
+            - query
+          properties:
+            query:
+              type: string
+              description: User query that should trigger skill
+              minLength: 1
+            confidence:
+              type: number
+              description: Expected trigger confidence (0.0-1.0)
+              minimum: 0.0
+              maximum: 1.0
+              default: 0.9
+            notes:
+              type: string
+              description: Optional notes about this trigger
+        minItems: 3
+
+      should_not_trigger:
+        type: array
+        description: Queries that should NOT trigger the skill
+        items:
+          type: object
+          required:
+            - query
+          properties:
+            query:
+              type: string
+              description: User query that should NOT trigger skill
+              minLength: 1
+            reason:
+              type: string
+              description: Why this should not trigger
+        minItems: 2
+
+      pass_criteria:
+        type: object
+        description: Success criteria for trigger tests
+        properties:
+          min_trigger_rate:
+            type: number
+            description: Minimum percentage of should_trigger queries that must trigger
+            default: 0.9
+          max_false_positive_rate:
+            type: number
+            description: Maximum percentage of should_not_trigger that incorrectly trigger
+            default: 0.1
+
+  # Section 2: Performance Comparison (Official Guide: tool calls, tokens)
+  performance_tests:
+    type: object
+    description: Compare skill performance with/without skill
+    properties:
+      baseline_without_skill:
+        type: object
+        description: Metrics without skill enabled
+        properties:
+          tool_calls:
+            type: number
+            description: Expected tool calls without skill
+          user_prompts:
+            type: number
+            description: Expected user clarification prompts
+          tokens:
+            type: number
+            description: Expected token consumption
+          time_seconds:
+            type: number
+            description: Expected completion time
+
+      with_skill:
+        type: object
+        description: Metrics with skill enabled
+        properties:
+          tool_calls:
+            type: number
+            description: Expected tool calls with skill
+          user_prompts:
+            type: number
+            description: Expected user clarification prompts
+          tokens:
+            type: number
+            description: Expected token consumption
+          time_seconds:
+            type: number
+            description: Expected completion time
+
+      pass_criteria:
+        type: object
+        description: Success criteria for performance tests
+        properties:
+          tool_call_reduction:
+            type: string
+            description: Minimum reduction in tool calls (e.g., ">50%")
+          prompt_reduction:
+            type: string
+            description: Minimum reduction in user prompts (e.g., ">80%")
+          token_reduction:
+            type: string
+            description: Minimum reduction in tokens (e.g., ">40%")
+
+  # Section 3: Behavioral Scenarios (Existing)
+  scenarios:
+    type: array
+    description: List of behavioral test scenarios
+    items:
+      type: object
+      required:
+        - name
+        - input
+        - expected_behaviors
+      properties:
+        name:
+          type: string
+          description: Human-readable scenario name
+          minLength: 1
+          maxLength: 100
+        input:
+          type: string
+          description: Expected input/trigger that should invoke the skill
+          minLength: 1
+        expected_behaviors:
+          type: array
+          description: Behaviors that SHOULD occur when skill is invoked
+          items:
+            type: string
+            minLength: 1
+          minItems: 1
+        anti_behaviors:
+          type: array
+          description: Behaviors that SHOULD NOT occur (anti-patterns)
+          items:
+            type: string
+            minLength: 1
+          default: []
+        difficulty:
+          type: string
+          description: Skill level required to handle this scenario
+          enum: [beginner, intermediate, advanced]
+          default: beginner
+        tags:
+          type: array
+          description: Categorization tags for filtering scenarios
+          items:
+            type: string
+            pattern: ^[a-z0-9_-]+$
+          default: []
+        context:
+          type: object
+          description: Optional context for the scenario
+          properties:
+            prerequisites:
+              type: array
+              description: Required prior conditions
+              items:
+                type: string
+            environment:
+              type: string
+              description: Required environment state
+              default: "standard"
+            examples:
+              type: array
+              description: Concrete example inputs
+              items:
+                type: string
+      additionalProperties: false
+
+examples:
+  # Complete example with all sections
+  - version: "2.0"
+    trigger_tests:
+      should_trigger:
+        - query: "Create a new skill for PDF processing"
+          confidence: 0.95
+        - query: "Evaluate my skill quality"
+          confidence: 0.90
+        - query: "Help me write SKILL.md"
+          confidence: 0.92
+        - query: "Package this skill for distribution"
+          confidence: 0.88
+      should_not_trigger:
+        - query: "What's the weather today?"
+          reason: "Unrelated to skill development"
+        - query: "Write a Python function"
+          reason: "Generic coding task, not skill-specific"
+        - query: "Debug my application"
+          reason: "Debugging task, not skill creation"
+      pass_criteria:
+        min_trigger_rate: 0.9
+        max_false_positive_rate: 0.1
+
+    performance_tests:
+      baseline_without_skill:
+        tool_calls: 15
+        user_prompts: 5
+        tokens: 12000
+      with_skill:
+        tool_calls: 2
+        user_prompts: 0
+        tokens: 6000
+      pass_criteria:
+        tool_call_reduction: ">50%"
+        prompt_reduction: "100%"
+        token_reduction: ">40%"
+
+    scenarios:
+      - name: "Basic skill invocation"
+        input: "Create a skill for X"
+        expected_behaviors:
+          - "Skill provides 6-step workflow guidance"
+          - "Skill mentions progressive disclosure"
+          - "Skill includes validation checklist"
+        anti_behaviors:
+          - "Skill suggests generic advice"
+        difficulty: beginner
+        tags: [basic, invocation]
+
+      - name: "Error handling scenario"
+        input: "Skill encounters error condition Y"
+        expected_behaviors:
+          - "Skill provides error-specific guidance"
+          - "Skill mentions recovery steps"
+        anti_behaviors:
+          - "Generic error message without context"
+        difficulty: intermediate
+        tags: [error, recovery]
+
+# Minimum requirements for a valid scenario file
+required:
+  - version
+anyOf:
+  - required: [trigger_tests]
+  - required: [scenarios]
+  - required: [performance_tests]

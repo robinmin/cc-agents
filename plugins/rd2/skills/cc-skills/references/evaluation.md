@@ -289,3 +289,214 @@ Grade: A - Production ready
 - Dangerous code patterns (-1.5 points per finding)
 - Missing error handling (-0.5 points per script)
 - Broad exception handlers (informational, no deduction)
+
+---
+
+## LLM-as-Judge Evaluation
+
+Starting with cc-skills 2.0, you can use Claude itself to evaluate skills against full rubric criteria for deeper analysis.
+
+### When to Use Deep Evaluation
+
+- **Human-level nuance**: When you need judgment beyond pattern matching
+- **Quality assessment**: When you want Claude's opinion on skill quality
+- **Rubric compliance**: When you need structured scoring against criteria
+- **Comparative analysis**: When comparing multiple skills
+
+### Usage
+
+```bash
+# Basic evaluation (pattern-based, fast)
+python3 skills.py evaluate /path/to/skill
+
+# Deep evaluation (LLM-based, thorough)
+python3 skills.py evaluate /path/to/skill --deep
+
+# Deep evaluation with specific model
+python3 skills.py evaluate /path/to/skill --deep --model claude-sonnet-4-20250514
+```
+
+### What Deep Evaluation Does
+
+1. **Builds a prompt** with:
+   - Full skill content (SKILL.md and key files)
+   - Complete rubric for each dimension
+   - Scoring instructions and examples
+
+2. **Sends to LLM** for evaluation
+
+3. **Parses response** for:
+   - Dimension scores (0-100)
+   - Level determinations (Excellent/Good/Fair/Poor/Missing)
+   - Specific findings with rationale
+   - Improvement recommendations
+
+### Cost Estimation
+
+| Skill Size | Dimensions | Est. Tokens | Est. Cost (Claude Sonnet) |
+|------------|------------|-------------|---------------------------|
+| Small (<1K) | 10 | ~15K | ~$0.01 |
+| Medium (1-3K) | 10 | ~25K | ~$0.02 |
+| Large (>3K) | 10 | ~40K | ~$0.03 |
+
+### Interpreting Deep Results
+
+```json
+{
+  "dimensions": {
+    "trigger_design": {
+      "score": 85,
+      "level": "good",
+      "findings": [
+        "Has 3 trigger phrases in quotes",
+        "Third-person form present",
+        "Missing synonym coverage for 'timeout'"
+      ],
+      "recommendations": [
+        "Add 'hang' and 'freeze' as related terms"
+      ]
+    }
+  },
+  "overall_score": 82,
+  "overall_level": "good",
+  "cost_report": {
+    "input_tokens": 25000,
+    "output_tokens": 1500,
+    "estimated_cost": 0.02
+  }
+}
+```
+
+### Calibration Notes
+
+Deep evaluation is subjective. Results may vary between:
+- Different models
+- Different model versions
+- Different temperatures
+
+For consistent results:
+- Use fixed model versions (--model flag)
+- Keep temperature at default (0)
+- Run multiple evaluations and average
+
+---
+
+## Pass@k Consistency Metric
+
+For skill development, pass@k measures whether a skill would "pass" evaluation if tested k times with different random seeds.
+
+### Calculation
+
+For a set of n test scenarios where c passed:
+
+```
+pass@1 = c/n
+pass@k = 1 - (n-c)/n * ((n-c-1)/(n-1)) * ... * ((n-c-k+1)/(n-k))
+```
+
+### Example
+
+| Scenarios | Passed | pass@1 | pass@3 |
+|-----------|--------|--------|--------|
+| 10 | 7 | 0.70 | 0.89 |
+| 10 | 5 | 0.50 | 0.78 |
+| 10 | 3 | 0.30 | 0.59 |
+
+### Interpretation
+
+- **pass@1 < 0.70**: Skill needs significant work
+- **pass@1 0.70-0.85**: Minor improvements needed
+- **pass@1 > 0.85**: Skill is ready
+
+Use pass@k to track improvement over iterations.
+
+---
+
+## Rubric-Based Scoring Reference
+
+Each dimension has a rubric with criteria and levels:
+
+### Rubric Structure
+
+```python
+RubricCriterion(
+    name="description_quality",
+    description="Quality of skill description",
+    weight=0.30,  # 30% of dimension score
+    levels=[
+        RubricLevel("excellent", 100, "Clear, specific with trigger phrases"),
+        RubricLevel("good", 75, "Clear but generic description"),
+        RubricLevel("fair", 50, "Vague or incomplete"),
+        RubricLevel("poor", 25, "Minimal or confusing"),
+        RubricLevel("missing", 0, "No description"),
+    ]
+)
+```
+
+### Complete Rubrics
+
+See individual dimension implementations for full rubrics:
+- [TriggerDesignEvaluator](../scripts/evaluators/trigger_design.py)
+- [InstructionClarityEvaluator](../scripts/evaluators/instruction_clarity.py)
+- [ValueAddEvaluator](../scripts/evaluators/value_add.py)
+- [BehavioralReadinessEvaluator](../scripts/evaluators/behavioral_readiness.py)
+
+### Scoring Algorithm
+
+```python
+def calculate_dimension_score(rubric: list, findings: dict) -> float:
+    """Calculate dimension score from rubric evaluation."""
+    total_weighted_score = 0.0
+    total_weight = 0.0
+    
+    for criterion in rubric:
+        level = findings.get(criterion.name, "missing")
+        score = criterion.get_level_score(level)
+        total_weighted_score += criterion.weight * score
+        total_weight += criterion.weight
+    
+    return total_weighted_score / total_weight
+```
+
+---
+
+## Integration with CI/CD
+
+Add skill evaluation to your workflow:
+
+```yaml
+# .github/workflows/skill-quality.yml
+name: Skill Quality Check
+
+on: [push, pull_request]
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install cc-skills
+        run: pip install cc-skills
+      - name: Evaluate skill
+        run: |
+          cc-skills evaluate . --output results.json
+      - name: Check score
+        run: |
+          if [ $(jq '.overall_score' results.json) -lt 70 ]; then
+            echo "Score below threshold"
+            exit 1
+          fi
+```
+
+---
+
+## See Also
+
+- [Scanner Criteria](scanner-criteria.md) - Detailed dimension descriptions
+- [Scenario Schema](scenario-schema.md) - Behavioral test format
+- [Behavioral Evaluator](../scripts/evaluators/behavioral.py) - Scenario-based testing
+- [LLM Judge Evaluator](../scripts/evaluators/llm_judge.py) - Deep evaluation implementation

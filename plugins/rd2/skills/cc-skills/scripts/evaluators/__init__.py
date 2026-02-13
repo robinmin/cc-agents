@@ -18,6 +18,11 @@ from .structure import StructureEvaluator
 from .efficiency import EfficiencyEvaluator
 from .best_practices import BestPracticesEvaluator
 from .code_quality import CodeQualityEvaluator
+from .trigger_design import TriggerDesignEvaluator
+from .instruction_clarity import InstructionClarityEvaluator
+from .value_add import ValueAddEvaluator
+from .behavioral_readiness import BehavioralReadinessEvaluator
+from .behavioral import BehavioralEvaluator
 
 __all__ = [
     # Base classes
@@ -34,4 +39,9 @@ __all__ = [
     "EfficiencyEvaluator",
     "BestPracticesEvaluator",
     "CodeQualityEvaluator",
+    "TriggerDesignEvaluator",
+    "InstructionClarityEvaluator",
+    "ValueAddEvaluator",
+    "BehavioralReadinessEvaluator",
+    "BehavioralEvaluator",
 ]

@@ -1,15 +1,14 @@
 """Frontmatter evaluation module.
 
 Evaluates the quality of YAML frontmatter in SKILL.md files.
+
+Uses rubric-based scoring with clear criteria for each level.
 """
 
 import re
 from pathlib import Path
 
-from .base import DimensionScore, DIMENSION_WEIGHTS
-
-# Score deduction constants (M4: Extract magic numbers)
-PENALTY_MISSING_REQUIRED = 20.0  # Missing required frontmatter field (0-100 scale)
+from .base import DimensionScore, RubricLevel, RubricCriterion, RubricScorer, DIMENSION_WEIGHTS
 
 # Handle both package import and direct execution
 try:
@@ -18,12 +17,62 @@ except ImportError:
     from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
 
 
+# =============================================================================
+# RUBRIC DEFINITIONS
+# =============================================================================
+
+# Rubric for required fields completeness (40% weight)
+REQUIRED_FIELDS_RUBRIC = RubricCriterion(
+    name="required_fields",
+    description="Presence of required frontmatter fields",
+    weight=0.40,
+    levels=[
+        RubricLevel("complete", 100, "Both 'name' and 'description' present with meaningful values"),
+        RubricLevel("partial", 50, "One required field present, one missing"),
+        RubricLevel("missing", 0, "Both required fields missing"),
+    ],
+)
+
+# Rubric for description quality (35% weight)
+DESCRIPTION_RUBRIC = RubricCriterion(
+    name="description_quality",
+    description="Quality and completeness of description field",
+    weight=0.35,
+    levels=[
+        RubricLevel("excellent", 100, "Description is 20-1024 chars, clear and specific"),
+        RubricLevel("good", 75, "Description is 20-1024 chars but somewhat generic"),
+        RubricLevel("fair", 50, "Description is too short (20 chars) or too long (>1024 chars)"),
+        RubricLevel("poor", 25, "Description exists but is very short (<20 chars)"),
+        RubricLevel("missing", 0, "No description field"),
+    ],
+)
+
+# Rubric for naming convention (25% weight)
+NAMING_RUBRIC = RubricCriterion(
+    name="naming_convention",
+    description="Follows hyphen-case naming convention",
+    weight=0.25,
+    levels=[
+        RubricLevel("perfect", 100, "Name follows hyphen-case pattern [a-z0-9-]+"),
+        RubricLevel("minor_issues", 50, "Name has some issues (invalid hyphens)"),
+        RubricLevel("invalid", 0, "Name does not follow hyphen-case at all"),
+    ],
+)
+
+
 class FrontmatterEvaluator:
-    """Evaluates frontmatter quality in SKILL.md files."""
+    """Evaluates frontmatter quality in SKILL.md files using rubric-based scoring."""
+
+    # Pre-configured rubric scorer for frontmatter evaluation
+    RUBRIC_SCORER = RubricScorer([
+        REQUIRED_FIELDS_RUBRIC,
+        DESCRIPTION_RUBRIC,
+        NAMING_RUBRIC,
+    ])
 
     def __init__(self):
         self._name = "frontmatter"
-        self._weight = DIMENSION_WEIGHTS.get("frontmatter", 0.10)
+        self._weight = DIMENSION_WEIGHTS.get("frontmatter", 0.05)  # Updated weight
 
     @property
     def name(self) -> str:
@@ -44,9 +93,8 @@ class FrontmatterEvaluator:
         Returns:
             DimensionScore with findings and recommendations
         """
-        findings = []
-        recommendations = []
-        score = 100.0  # 0-100 scale
+        findings: list[str] = []
+        recommendations: list[str] = []
 
         skill_md = skill_path / "SKILL.md"
         if not skill_md.exists():
@@ -70,51 +118,74 @@ class FrontmatterEvaluator:
                 recommendations=["Fix YAML frontmatter syntax"],
             )
 
-        # Check required fields
-        required_fields = ["name", "description"]
-        for field in required_fields:
-            if field not in frontmatter:
-                findings.append(f"Missing required field: {field}")
-                recommendations.append(f"Add '{field}' to frontmatter")
-                score -= PENALTY_MISSING_REQUIRED
+        # Evaluate required fields criterion
+        def eval_required_fields(criterion: RubricCriterion) -> tuple[str, str]:
+            has_name = frontmatter.get("name", "").strip() != ""
+            has_desc = frontmatter.get("description", "").strip() != ""
+            if has_name and has_desc:
+                return "complete", f"name='{frontmatter.get('name')}', description present"
+            elif has_name or has_desc:
+                return "partial", f"only {'name' if has_name else 'description'} present"
+            return "missing", "no required fields"
 
-        # Check optional fields
-        if "version" in frontmatter:
-            findings.append("Has version specification")
-        else:
-            recommendations.append("Consider adding version for tracking")
-
-        # Check description quality
-        description = frontmatter.get("description", "")
-        if description:
-            if len(description) < 20:
-                findings.append("Description is very short")
-                recommendations.append("Expand description to better explain the skill")
-                score -= 1.0
-            elif len(description) > 1024:
-                findings.append("Description exceeds 1024 characters")
-                score -= 1.0
+        # Evaluate description quality criterion
+        def eval_description(criterion: RubricCriterion) -> tuple[str, str]:
+            desc = frontmatter.get("description", "")
+            desc_len = len(desc)
+            if desc_len == 0:
+                return "missing", "description empty"
+            elif desc_len < 20:
+                return "poor", f"description is {desc_len} chars (very short)"
+            elif desc_len > 1024:
+                return "fair", f"description is {desc_len} chars (too long)"
             else:
-                findings.append("Description length is appropriate")
-        else:
-            score -= 3.0
+                # Check if description is specific vs generic
+                specific_patterns = ["when", "use", "skill", "handle", "process"]
+                has_specific = any(p in desc.lower() for p in specific_patterns)
+                if has_specific:
+                    return "excellent", f"description is {desc_len} chars with specific usage context"
+                return "good", f"description is {desc_len} chars but somewhat generic"
 
-        # Check naming convention
-        name = frontmatter.get("name", "")
-        if name:
-            if not re.match(r"^[a-z0-9-]+$", name):
-                findings.append("Name does not follow hyphen-case convention")
-                score -= 1.0
-            if name.startswith("-") or name.endswith("-") or "--" in name:
-                findings.append("Name has invalid hyphen placement")
-                score -= 1.0
+        # Evaluate naming convention criterion
+        def eval_naming(criterion: RubricCriterion) -> tuple[str, str]:
+            name = frontmatter.get("name", "")
+            if not name:
+                return "invalid", "name field is empty"
+            has_invalid_hyphens = name.startswith("-") or name.endswith("-") or "--" in name
+            is_hyphen_case = bool(re.match(r"^[a-z0-9-]+$", name))
+            if is_hyphen_case and not has_invalid_hyphens:
+                return "perfect", f"name '{name}' follows hyphen-case"
+            elif has_invalid_hyphens:
+                return "minor_issues", f"name '{name}' has invalid hyphen placement"
+            return "invalid", f"name '{name}' does not follow hyphen-case"
+
+        # Run rubric evaluation
+        score, findings, recommendations = self.RUBRIC_SCORER.evaluate(
+            eval_required_fields
+        )
+
+        # Add description and naming evaluations
+        desc_score, desc_findings, desc_recs = self.RUBRIC_SCORER.evaluate(
+            eval_description
+        )
+        name_score, name_findings, name_recs = self.RUBRIC_SCORER.evaluate(
+            eval_naming
+        )
+
+        # Combine scores (average of three rubric scores)
+        combined_score = (score + desc_score + name_score) / 3.0
+
+        findings.extend(desc_findings)
+        findings.extend(name_findings)
+        recommendations.extend(desc_recs)
+        recommendations.extend(name_recs)
 
         return DimensionScore(
             name=self.name,
-            score=max(0.0, min(100.0, score)),  # 0-100 scale
+            score=combined_score,
             weight=self.weight,
             findings=findings,
-            recommendations=recommendations,
+            recommendations=recommendations if recommendations else ["Frontmatter is adequate"],
         )
 
 

@@ -368,64 +368,92 @@ For complete anatomy details, see [Skill Anatomy Reference](references/anatomy.m
 
 ## Quality Standards
 
-Skills are evaluated across 7 dimensions:
+Skills are evaluated across 10 dimensions, each weighted to contribute to an overall quality score (0-100) and letter grade (A-F):
 
-| Dimension      | Weight | What It Measures                               |
-| -------------- | ------ | ---------------------------------------------- |
-| Frontmatter    | 10%    | YAML validity, required fields                 |
-| Content        | 25%    | Length, sections, examples                     |
-| Security       | 20%    | AST-based dangerous pattern detection          |
-| Structure      | 15%    | Directory organization, progressive disclosure |
-| Efficiency     | 10%    | Token count, file sizes                        |
-| Best Practices | 10%    | Naming conventions, guidance                   |
-| Code Quality   | 10%    | Error handling, type hints                     |
+| Dimension             | Weight | What It Measures                                          |
+| --------------------- | ------ | --------------------------------------------------------- |
+| Frontmatter           | 10%    | YAML validity, required fields, naming conventions         |
+| Content               | 20%    | Length, sections, examples, writing quality                |
+| Security              | 15%    | AST-based dangerous pattern detection                     |
+| Structure             | 10%    | Directory organization, progressive disclosure             |
+| Trigger Design        | 15%    | Discovery quality, trigger phrases, CSO optimization      |
+| Instruction Clarity   | 10%    | Imperative form, unambiguous directives, actionability     |
+| Value-Add Assessment  | 10%    | Domain-specific knowledge, unique workflows, artifacts      |
+| Behavioral Readiness  | 10%    | Error handling, edge cases, test scenarios                 |
+| Efficiency            | 5%     | Token count, file sizes, no duplication                   |
+| Best Practices        | 5%     | Naming conventions, documentation standards               |
 
 Run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate ${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>` to assess quality.
 
-## Validation Checklist
+### Rubric-Based Scoring
+
+Starting with version 2.0, cc-skills uses rubric-based scoring instead of point deductions:
+
+- **Rubric Levels**: Each dimension has criteria with 4-6 levels (Excellent/Good/Fair/Poor/Missing)
+- **Structured Findings**: Every score includes specific findings with line numbers
+- **Actionable Recommendations**: Each finding includes suggestions for improvement
+- **LLM-as-Judge**: Optional deep evaluation using Claude to score against full rubrics
+
+See [Evaluation Reference](references/evaluation.md) for full rubric details.
+
+## Validation Checklist## Validation Checklist
 
 Before finalizing a skill, use this comprehensive checklist:
 
-**Structure:**
-
-- [ ] SKILL.md file exists with valid YAML frontmatter
-- [ ] Frontmatter has `name` and `description` fields
-- [ ] Markdown body is present and substantial
-- [ ] Referenced files actually exist
-
-**Description Quality:**
-
-- [ ] Uses third person ("This skill should be used when...")
-- [ ] Includes specific trigger phrases users would say
-- [ ] Lists concrete scenarios ("create X", "configure Y")
-- [ ] Not vague or generic
+**Frontmatter:**
+- [ ] YAML frontmatter is valid
+- [ ] `name` field follows hyphen-case (max 64 chars)
+- [ ] `description` field is 50-500 chars, describes what AND when to use
 
 **Content Quality:**
-
 - [ ] SKILL.md body uses imperative/infinitive form
 - [ ] Body is focused and lean (1,500-2,000 words ideal, <5k max)
 - [ ] Detailed content moved to references/
 - [ ] Examples are complete and working
-- [ ] Scripts are executable and documented
 
-**Progressive Disclosure:**
+**Trigger Design:**
+- [ ] Includes specific trigger phrases in quotes ("...")
+- [ ] Third-person description ("This skill should be used when...")
+- [ ] Concrete "when to use" scenarios ("create X", "configure Y")
+- [ ] Synonym coverage for key concepts (timeout vs hang vs freeze)
+- [ ] No workflow summaries in description (CSO violation)
 
-- [ ] Core concepts in SKILL.md
-- [ ] Detailed docs in references/
-- [ ] Working code in examples/
-- [ ] Utilities in scripts/
-- [ ] SKILL.md references these resources
+**Instruction Clarity:**
+- [ ] Imperative form ratio > 70%
+- [ ] No vague language ("might", "could", "maybe", "as needed")
+- [ ] Specific action verbs (create, configure, validate)
+- [ ] Conditional instructions have clear branching criteria
+
+**Value-Add Assessment:**
+- [ ] Domain-specific content beyond generic advice
+- [ ] Unique workflows not covered by standard prompting
+- [ ] Concrete artifacts (scripts, templates, schemas)
+- [ ] No explaining well-known concepts (REST, SQL, HTTP basics)
+
+**Behavioral Readiness:**
+- [ ] Error handling guidance ("what to do when X fails")
+- [ ] Edge case documentation (null inputs, empty collections)
+- [ ] Fallback strategies when primary approach fails
+- [ ] tests/scenarios.yaml with behavioral test cases
+
+**Structure:**
+- [ ] SKILL.md in root (required)
+- [ ] scripts/, references/, assets/ directories as needed
+- [ ] SKILL.md references auxiliary resources
+- [ ] Progressive disclosure: Quick Start in SKILL.md, details in references/
 
 **Testing:**
-
 - [ ] Skill triggers on expected user queries
 - [ ] Content is helpful for intended tasks
 - [ ] No duplicated information across files
 - [ ] References load when needed
 
-For detailed validation criteria, see [Validation Checklist](references/validation-checklist.md).
+**Efficiency:**
+- [ ] Under 3000 tokens (strongly prefer under 1500)
+- [ ] No duplicate lines over 20 characters
+- [ ] No verbose lines over 30 words
 
-## Best Practices
+For detailed validation criteria, see [Scanner Criteria](references/scanner-criteria.md).## Best Practices
 
 ### Naming Conventions (CRITICAL)
 

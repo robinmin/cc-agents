@@ -1,24 +1,91 @@
 """Content evaluation module.
 
 Evaluates the quality and completeness of SKILL.md content.
+
+Uses rubric-based scoring with clear criteria for each level.
 """
 
 from pathlib import Path
 import re
 
-from .base import DimensionScore, DIMENSION_WEIGHTS
+from .base import DimensionScore, RubricLevel, RubricCriterion, RubricScorer, DIMENSION_WEIGHTS
 
-# Score deduction constants (M4: Extract magic numbers)
-PENALTY_TOO_BRIEF = 20.0  # Content <20 lines (0-100 scale)
-PENALTY_MISSING_SECTION = 10.0  # Missing important section (0-100 scale)
+
+# =============================================================================
+# RUBRIC DEFINITIONS
+# =============================================================================
+
+# Rubric for content length (20% weight)
+CONTENT_LENGTH_RUBRIC = RubricCriterion(
+    name="content_length",
+    description="Appropriateness of content length",
+    weight=0.20,
+    levels=[
+        RubricLevel("optimal", 100, "Content is 20-500 lines with comprehensive details"),
+        RubricLevel("adequate", 75, "Content is 20-500 lines with basic information"),
+        RubricLevel("brief", 50, "Content is <20 lines but has essential information"),
+        RubricLevel("minimal", 25, "Content is <20 lines and lacks essential information"),
+        RubricLevel("empty", 0, "Content is essentially empty"),
+    ],
+)
+
+# Rubric for core sections (30% weight)
+CORE_SECTIONS_RUBRIC = RubricCriterion(
+    name="core_sections",
+    description="Presence of Overview, Examples, and Workflow/When to Use sections",
+    weight=0.30,
+    levels=[
+        RubricLevel("complete", 100, "Has Overview, Examples, and Workflow/When to Use sections"),
+        RubricLevel("good", 75, "Has Overview + Examples OR Overview + Workflow sections"),
+        RubricLevel("fair", 50, "Has only one core section (Overview, Examples, or Workflow)"),
+        RubricLevel("poor", 25, "Has Overview but missing Examples and Workflow"),
+        RubricLevel("missing", 0, "Missing Overview section entirely"),
+    ],
+)
+
+# Rubric for workflow quality (30% weight)
+WORKFLOW_QUALITY_RUBRIC = RubricCriterion(
+    name="workflow_quality",
+    description="Quality of workflow/usage guidance within SKILL.md",
+    weight=0.30,
+    levels=[
+        RubricLevel("excellent", 100, "Substantive workflow with numbered steps, checklists, or detailed guidance"),
+        RubricLevel("good", 75, "Has workflow section with meaningful content (not just links)"),
+        RubricLevel("acceptable", 50, "Has workflow section with basic details"),
+        RubricLevel("minimal", 25, "Has 'When to use' guidance but no detailed workflow"),
+        RubricLevel("external_only", 0, "Workflow only references external files (not acceptable)"),
+    ],
+)
+
+# Rubric for documentation completeness (20% weight)
+DOC_COMPLETENESS_RUBRIC = RubricCriterion(
+    name="documentation_completeness",
+    description="Presence of Quick Start, examples, and absence of TODO placeholders",
+    weight=0.20,
+    levels=[
+        RubricLevel("complete", 100, "Has Quick Start, Examples, code blocks, and no TODOs"),
+        RubricLevel("good", 75, "Has Quick Start and Examples with minimal TODOs"),
+        RubricLevel("fair", 50, "Has Quick Start OR Examples but not both"),
+        RubricLevel("poor", 25, "Missing both Quick Start and Examples"),
+        RubricLevel("incomplete", 0, "Contains unresolved TODOs and missing essential sections"),
+    ],
+)
 
 
 class ContentEvaluator:
-    """Evaluates content quality in SKILL.md files."""
+    """Evaluates content quality in SKILL.md files using rubric-based scoring."""
+
+    # Pre-configured rubric scorer for content evaluation
+    RUBRIC_SCORER = RubricScorer([
+        CONTENT_LENGTH_RUBRIC,
+        CORE_SECTIONS_RUBRIC,
+        WORKFLOW_QUALITY_RUBRIC,
+        DOC_COMPLETENESS_RUBRIC,
+    ])
 
     def __init__(self):
         self._name = "content"
-        self._weight = DIMENSION_WEIGHTS.get("content", 0.25)
+        self._weight = DIMENSION_WEIGHTS.get("content", 0.15)  # Updated weight
 
     @property
     def name(self) -> str:
@@ -32,9 +99,8 @@ class ContentEvaluator:
 
     def evaluate(self, skill_path: Path) -> DimensionScore:
         """Evaluate content quality."""
-        findings = []
-        recommendations = []
-        score = 100.0  # 0-100 scale
+        findings: list[str] = []
+        recommendations: list[str] = []
 
         skill_md = skill_path / "SKILL.md"
         if not skill_md.exists():
@@ -49,192 +115,111 @@ class ContentEvaluator:
         content = skill_md.read_text()
 
         # Remove frontmatter
-        content_body = re.sub(r"^---\n.*?\n---\n", "", content, flags=re.DOTALL)
-
-        # Check content length
+        content_body = re.sub(r"^---\n.*?\n---\n?", "", content, flags=re.DOTALL)
         lines = [line for line in content_body.split("\n") if line.strip()]
-        if len(lines) < 20:
-            findings.append("Content is very brief (< 20 lines)")
-            recommendations.append("Expand content with more details")
-            score -= PENALTY_TOO_BRIEF
-        elif len(lines) > 500:
-            findings.append("Content is very long (> 500 lines)")
-            recommendations.append("Consider splitting into smaller skills")
-            score -= PENALTY_MISSING_SECTION
-        else:
-            findings.append(f"Content length is appropriate ({len(lines)} lines)")
 
         # Check for sections
-        has_overview = "## Overview" in content or "# Overview" in content
-        has_examples = "## Example" in content or "```" in content
-        has_when_to_use = "## When to use" in content or "# When to use" in content
+        has_overview = re.search(r"^#{1,3}\s+Overview", content_body, re.MULTILINE | re.IGNORECASE)
+        has_examples = re.search(r"^#{1,3}\s+Example", content_body, re.MULTILINE | re.IGNORECASE) or "```" in content_body
+        has_when_to_use = re.search(r"^#{1,3}\s+(When to use|Usage)", content_body, re.MULTILINE | re.IGNORECASE)
+        has_quick_start = re.search(r"^#{1,3}\s+Quick\s+Start", content_body, re.MULTILINE | re.IGNORECASE)
+        has_todo = "[TODO:" in content
 
-        if has_overview:
-            findings.append("Has Overview section")
-        else:
-            recommendations.append("Add Overview section explaining the skill")
-            score -= PENALTY_MISSING_SECTION
+        # Check content length level
+        def eval_content_length(criterion: RubricCriterion) -> tuple[str, str]:
+            line_count = len(lines)
+            if 20 <= line_count <= 500:
+                return "optimal", f"{line_count} lines (appropriate length)"
+            elif 10 <= line_count < 20:
+                return "adequate", f"{line_count} lines (brief but present)"
+            elif line_count < 10:
+                return "brief", f"{line_count} lines (very minimal)"
+            elif line_count > 500:
+                return "minimal", f"{line_count} lines (excessive, consider splitting)"
+            return "empty", "no content"
 
-        if has_examples:
-            findings.append("Has examples or code blocks")
-        else:
-            recommendations.append("Add examples to illustrate usage")
-            score -= 1.5
+        # Check core sections level
+        def eval_core_sections(criterion: RubricCriterion) -> tuple[str, str]:
+            sections = sum([bool(has_overview), bool(has_examples), bool(has_when_to_use)])
+            if sections >= 3:
+                return "complete", f"Overview, Examples, and Workflow sections present"
+            elif sections == 2:
+                return "good", f"Two core sections present"
+            elif sections == 1:
+                return "fair", f"One core section present"
+            elif has_overview:
+                return "poor", "Only Overview present"
+            return "missing", "Missing core sections"
 
-        # Enhanced workflow check: Verify workflow is IN SKILL.md, not just referenced
-        # But allow single-action tools to skip workflow section
-
-        workflow_section_found = False
-        workflow_has_substance = False
-        workflow_only_external = False
-
-        # Look for workflow sections in body (after frontmatter)
-        content_body = re.sub(r"^---\n.*?\n---\n", "", content, flags=re.DOTALL)
-
-        # Check for workflow section headers
-        workflow_pattern = re.search(
-            r"#{1,3}\s+(workflow|workflows)", content_body, re.IGNORECASE | re.MULTILINE
-        )
-
-        # Determine if this is a "simple tool" (single-action) vs "complex skill"
-        # Simple tools: single-action verbs in description, short content, direct commands
-        is_simple_tool = False
-
-        # Check 1: Description contains single-action verbs
-        single_action_verbs = [
-            r"\bconvert\b",
-            r"\bformat\b",
-            r"\bresize\b",
-            r"\bextract\b",
-            r"\btransform\b",
-            r"\bparse\b",
-            r"\bvalidate\b",
-            r"\bencode\b",
-            r"\bdecode\b",
-            r"\bcompress\b",
-            r"\bexpand\b",
-        ]
-        desc_check = False
-        frontmatter_match = re.search(r"^---\n(.*?)\n---", content, re.DOTALL)
-        if frontmatter_match:
-            frontmatter = frontmatter_match.group(1)
-            desc_match = re.search(
-                r"description:\s*[\"'](.+?)[\"']", frontmatter, re.IGNORECASE
+        # Check workflow quality
+        def eval_workflow_quality(criterion: RubricCriterion) -> tuple[str, str]:
+            # Check for workflow section
+            workflow_pattern = re.search(
+                r"^#{1,3}\s+(workflow|Workflows|Usage|When to use)",
+                content_body, re.MULTILINE | re.IGNORECASE
             )
-            if desc_match:
-                description = desc_match.group(1)
-                for verb_pattern in single_action_verbs:
-                    if re.search(verb_pattern, description, re.IGNORECASE):
-                        desc_check = True
-                        break
 
-        # Check 2: Short content with Quick Start
-        quick_start_simple = False
-        has_quick_start = (
-            "## Quick Start" in content_body or "# Quick Start" in content_body
-        )
-        if has_quick_start and len(lines) < 150:
-            # Check if Quick Start has direct single command (not numbered steps)
-            quick_start_match = re.search(
-                r"#{1,3}\s+Quick\s+Start.*?(?=#{1,3}|\Z)",
-                content_body,
-                re.DOTALL | re.IGNORECASE,
-            )
-            if quick_start_match:
-                quick_start_content = quick_start_match.group(0)
-                # If few numbered/bullet items, it's a simple tool
-                step_count = len(
-                    re.findall(r"^\s*[\d\-\*]+\s+", quick_start_content, re.MULTILINE)
-                )
-                if step_count <= 2:
-                    quick_start_simple = True
+            if not workflow_pattern:
+                if has_when_to_use:
+                    return "minimal", "Has 'When to use' guidance but no detailed workflow"
+                return "minimal", "No workflow or usage guidance section"
 
-        # Simple tool = single-action verb OR short + simple quick start
-        is_simple_tool = desc_check or (quick_start_simple and len(lines) < 150)
-
-        if workflow_pattern:
-            workflow_section_found = True
-            # Extract workflow section content (next 2000 chars)
+            # Extract workflow section
             workflow_start = workflow_pattern.end()
             workflow_section = content_body[workflow_start : workflow_start + 2000]
 
-            # Check if workflow has substantive content (not just links)
-            workflow_indicators = [
-                r"step\s+\d+",  # Numbered steps
-                r"\*\*Step\s+\d",  # Bold step headers
-                r"- \[\*\*\]",  # Checklists
-                r"\d+\.",  # Numbered lists
-                r"^\s*- ",  # Bullet lists with content
-                r"follow\s+this",  # "Follow this" language
-                r"use\s+this",  # "Use this" language
+            # Check for external-only references
+            link_pattern = re.search(r"^\s*\[.*?\]\(.*?\)\s*$", workflow_section, re.MULTILINE)
+            if link_pattern and not any(p in workflow_section for p in ["step", "Step", "1.", "2.", "- ["]):
+                return "external_only", "Workflow only references external files"
+
+            # Check for substantive content
+            substantive_patterns = [
+                r"step\s+\d+", r"Step\s+\d+", r"\d+\.\s+", r"- \[\*",
             ]
+            has_substantive = any(re.search(p, workflow_section, re.IGNORECASE) for p in substantive_patterns)
 
-            for pattern in workflow_indicators:
-                if re.search(pattern, workflow_section, re.IGNORECASE | re.MULTILINE):
-                    workflow_has_substance = True
-                    break
+            if has_substantive:
+                return "excellent", "Workflow has detailed step-by-step guidance"
+            return "good", "Workflow section has meaningful content"
 
-            # Check if workflow is ONLY external reference (never acceptable)
-            if re.search(r"^\s*\[.*?\]\(.*\.md\)\s*$", workflow_section, re.MULTILINE):
-                # Check if ONLY links exist without substantive content
-                link_lines = re.findall(
-                    r"^\s*\[.*?\]\(.*\.md\)\s*$", workflow_section, re.MULTILINE
-                )
-                if len(link_lines) > 0 and not workflow_has_substance:
-                    workflow_only_external = True
+        # Check documentation completeness
+        def eval_doc_completeness(criterion: RubricCriterion) -> tuple[str, str]:
+            if not has_todo and has_quick_start and has_examples:
+                return "complete", "Quick Start, Examples, and no TODOs"
+            elif has_quick_start and has_examples and not has_todo:
+                return "good", "Quick Start and Examples present"
+            elif has_quick_start or has_examples:
+                return "fair", "One of Quick Start or Examples present"
+            elif has_todo:
+                return "incomplete", "Contains unresolved TODOs"
+            return "poor", "Missing both Quick Start and Examples"
 
-        # Evaluate workflow quality with nuance for simple tools
-        if workflow_section_found:
-            if workflow_only_external:
-                # External-only workflow is NEVER acceptable (even for simple tools)
-                findings.append(
-                    "Has workflow section but only references external files"
-                )
-                recommendations.append(
-                    "Move workflow content directly into SKILL.md - workflows are the skill's core guidance"
-                )
-                score -= 2.0
-            elif workflow_has_substance:
-                findings.append(
-                    "Has workflow/usage guidance with substantive steps in SKILL.md"
-                )
-            else:
-                findings.append("Has workflow section but needs more detail")
-                recommendations.append(
-                    "Add step-by-step details to workflow section (checklists, numbered steps, feedback loops)"
-                )
-                score -= PENALTY_MISSING_SECTION
-        elif has_when_to_use:
-            findings.append("Has 'when to use' guidance")
-        elif is_simple_tool:
-            # Simple tools don't need workflow sections - this is acceptable
-            findings.append("Simple single-action tool (workflow section not required)")
-        else:
-            # Complex skills without workflow need guidance
-            recommendations.append(
-                "Add workflow or step-by-step guidance directly in SKILL.md (not just in references/)"
-            )
-            score -= 1.5
+        # Evaluate each criterion
+        score1, findings1, recs1 = self.RUBRIC_SCORER.evaluate(eval_content_length)
+        score2, findings2, recs2 = self.RUBRIC_SCORER.evaluate(eval_core_sections)
+        score3, findings3, recs3 = self.RUBRIC_SCORER.evaluate(eval_workflow_quality)
+        score4, findings4, recs4 = self.RUBRIC_SCORER.evaluate(eval_doc_completeness)
 
-        # Check for TODO placeholders
-        if "[TODO:" in content:
-            findings.append("Contains unresolved TODO placeholders")
-            recommendations.append("Complete or remove TODO placeholders")
-            score -= 2.0
+        # Combine scores (average of four rubric scores)
+        combined_score = (score1 + score2 + score3 + score4) / 4.0
 
-        # Check for clarity indicators
-        has_quick_start = "## Quick Start" in content or "# Quick Start" in content
-        if has_quick_start:
-            findings.append("Has Quick Start section")
-        else:
-            recommendations.append("Consider adding Quick Start section")
+        findings.extend(findings1)
+        findings.extend(findings2)
+        findings.extend(findings3)
+        findings.extend(findings4)
+
+        recommendations.extend(recs1)
+        recommendations.extend(recs2)
+        recommendations.extend(recs3)
+        recommendations.extend(recs4)
 
         return DimensionScore(
             name=self.name,
-            score=max(0.0, min(100.0, score)),  # 0-100 scale
+            score=combined_score,
             weight=self.weight,
             findings=findings,
-            recommendations=recommendations,
+            recommendations=recommendations if recommendations else ["Content is comprehensive"],
         )
 
 

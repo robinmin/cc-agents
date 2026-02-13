@@ -1,0 +1,88 @@
+# Behavioral Test Scenarios for cc-skills
+# This file defines test scenarios for evaluating cc-skills quality
+
+version: "1.0"
+scenarios:
+  - name: "Basic skill evaluation"
+    input: "Evaluate a skill at plugins/rd2/skills/my-skill/"
+    expected_behaviors:
+      - "Runs all dimension evaluators"
+      - "Returns DimensionScore for each dimension"
+      - "Calculates weighted total score"
+    anti_behaviors:
+      - "Crashes on invalid skill path"
+      - "Returns incomplete scores"
+    difficulty: beginner
+    tags: [evaluation, basic, core]
+
+  - name: "Security vulnerability detection"
+    input: "Evaluate skill with dangerous code patterns"
+    expected_behaviors:
+      - "SecurityEvaluator detects eval() calls"
+      - "SecurityEvaluator detects exec() calls"
+      - "Returns security findings with line numbers"
+    anti_behaviors:
+      - "False positives on safe patterns in strings"
+      - "Missing dangerous call detection"
+    difficulty: intermediate
+    tags: [security, detection, patterns]
+
+  - name: "Trigger design quality"
+    input: "Evaluate skill with vague description"
+    expected_behaviors:
+      - "TriggerDesignEvaluator identifies missing trigger phrases"
+      - "Detects workflow summaries in description"
+      - "Reports lack of CSO coverage"
+    anti_behaviors:
+      - "Accepts empty descriptions"
+      - "Misses CSO violations"
+    difficulty: intermediate
+    tags: [trigger, design, quality]
+
+  - name: "Instruction clarity assessment"
+    input: "Evaluate skill with ambiguous instructions"
+    expected_behaviors:
+      - "InstructionClarityEvaluator detects vague language"
+      - "Scores imperative form ratio"
+      - "Identifies missing action verbs"
+    anti_behaviors:
+      - "Passes skills with hedging language"
+      - "Ignores passive voice"
+    difficulty: advanced
+    tags: [clarity, instructions, language]
+
+  - name: "Value-add detection"
+    input: "Evaluate skill with generic content"
+    expected_behaviors:
+      - "ValueAddEvaluator identifies wrapper-only skills"
+      - "Detects explaining well-known concepts"
+      - "Scores domain-specific content ratio"
+    anti_behaviors:
+      - "Scores generic content highly"
+      - "Misses duplicate information"
+    difficulty: advanced
+    tags: [value, content, analysis]
+
+  - name: "Behavioral readiness"
+    input: "Evaluate skill without error handling"
+    expected_behaviors:
+      - "BehavioralReadinessEvaluator finds missing error guidance"
+      - "Detects lack of edge case documentation"
+      - "Reports missing anti-patterns section"
+    anti_behaviors:
+      - "Passes skills with no error guidance"
+      - "Ignores missing fallback strategies"
+    difficulty: intermediate
+    tags: [behavioral, error-handling, readiness]
+
+  - name: "LLM-as-Judge deep evaluation"
+    input: "Evaluate with --deep flag"
+    expected_behaviors:
+      - "LLMEvaluator scores against rubric criteria"
+      - "Returns structured JSON with level names"
+      - "Includes cost report for the evaluation"
+    anti_behaviors:
+      - "Fails on invalid rubric definitions"
+      - "Returns non-JSON output"
+    difficulty: advanced
+    tags: [llm, deep-evaluation, rubric]

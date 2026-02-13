@@ -1618,14 +1618,24 @@ ASSETS_DIR = SKILL_ROOT / "assets"
 ###############################################################################
 
 # Scoring dimension weights (must sum to 1.0)
+# New 11-dimension model with enhanced behavioral evaluation
 DIMENSION_WEIGHTS: dict[str, float] = {
-    "frontmatter": 0.10,
-    "content": 0.25,
-    "security": 0.20,
-    "structure": 0.15,
-    "efficiency": 0.10,
-    "best_practices": 0.10,
-    "code_quality": 0.10,
+    # Core structural dimensions
+    "frontmatter": 0.05,          # YAML frontmatter quality
+    "structure": 0.10,             # Directory organization
+    # Content dimensions
+    "content": 0.15,              # SKILL.md content quality
+    # NEW: Behavioral/Quality dimensions
+    "trigger_design": 0.15,       # Skill discovery/trigger quality
+    "instruction_clarity": 0.10, # Instruction unambiguity
+    "value_add": 0.10,            # Beyond-base-capability value
+    "behavioral_readiness": 0.05, # Error handling, edge cases
+    # Technical dimensions
+    "security": 0.15,             # Security considerations
+    "code_quality": 0.05,         # Script code quality
+    # Efficiency/Process
+    "efficiency": 0.05,           # Token efficiency
+    "best_practices": 0.05,        # Naming conventions, guidance
 }
 
 
@@ -3064,17 +3074,17 @@ def cmd_package(args):
 
 
 def cmd_evaluate(args):
-    """Handle evaluate command - two-phase skill evaluation."""
+    """Handle evaluate command - two-phase skill evaluation with optional deep LLM grading."""
     if not args.skill_path:
         print(
-            "Usage: python3 scripts/skills.py evaluate <skill-path> [--format text|json|markdown]"
+            "Usage: python3 scripts/skills.py evaluate <skill-path> [--format text|json|markdown] [--deep] [--model MODEL] [--pass-k K]"
         )
         print("\nExample:")
         print("  python3 scripts/skills.py evaluate ./skills/my-skill")
         print("  python3 scripts/skills.py evaluate ./skills/my-skill --format json")
-        print(
-            "  python3 scripts/skills.py evaluate ./skills/my-skill --format markdown"
-        )
+        print("  python3 scripts/skills.py evaluate ./skills/my-skill --format markdown")
+        print("  python3 scripts/skills.py evaluate ./skills/my-skill --deep --model claude-opus-4-20250514")
+        print("  python3 scripts/skills.py evaluate ./skills/my-skill --deep --pass-k 3")
         return 1
 
     skill_path = Path(args.skill_path).resolve()
@@ -3089,6 +3099,16 @@ def cmd_evaluate(args):
 
     # Determine output format (--json is shorthand for --format json)
     output_format = "json" if args.json else getattr(args, "format", "text") or "text"
+
+    # Check for deep evaluation flag
+    deep_evaluation = getattr(args, "deep", False)
+    llm_model = getattr(args, "model", "claude-sonnet-4-20250514")
+    pass_k = getattr(args, "pass_k", 1)
+
+    if deep_evaluation:
+        print("Deep LLM evaluation enabled", file=sys.stderr)
+        print(f"  Model: {llm_model}", file=sys.stderr)
+        print(f"  Pass@k: {pass_k}", file=sys.stderr)
 
     # Initialize result
     result = EvaluationResult(skill_path=skill_path)
@@ -3116,6 +3136,105 @@ def cmd_evaluate(args):
     result.total_score = calculate_total_score(dimensions)
     result.grade = Grade.from_score(result.total_score)
 
+    # Deep evaluation for subjective dimensions
+    llm_cost_reports: dict[str, dict] = {}
+    if deep_evaluation:
+        print("\nPhase 2b: Running deep LLM evaluation...", file=sys.stderr)
+
+        # Import here to avoid dependency issues if not needed
+        llm_import_error = None
+        try:
+            try:
+                from evaluators.llm_judge import (
+                    LLMJudgeEvaluator,
+                    INSTRUCTION_CLARITY_RUBRIC,
+                    VALUE_ADD_RUBRIC,
+                    get_llm_client,
+                )
+            except ImportError:
+                from .evaluators.llm_judge import (  # type: ignore[no-redef, import-not-found]
+                    LLMJudgeEvaluator,
+                    INSTRUCTION_CLARITY_RUBRIC,
+                    VALUE_ADD_RUBRIC,
+                    get_llm_client,
+                )
+        except ImportError as e:
+            llm_import_error = str(e)
+
+        if llm_import_error:
+            print(
+                f"  ⚠ Could not import LLM judge module: {llm_import_error}",
+                file=sys.stderr,
+            )
+            print("  Deep evaluation skipped", file=sys.stderr)
+        else:
+            client = get_llm_client(llm_model)
+
+            if client is None:
+                print(
+                    "  ⚠ LLM API not available (ANTHROPIC_API_KEY or OPENAI_API_KEY not set)",
+                    file=sys.stderr,
+                )
+                print("  Falling back to static analysis", file=sys.stderr)
+            else:
+                print(f"  ✓ LLM client connected ({llm_model})", file=sys.stderr)
+
+            evaluator = LLMJudgeEvaluator(
+                model=llm_model, pass_k=pass_k, verbose=True
+            )
+
+            # Evaluate instruction clarity
+            try:
+                print("  Evaluating instruction_clarity...", file=sys.stderr)
+                clarity_result = evaluator.evaluate_dimension(
+                    skill_path,
+                    "instruction_clarity",
+                    INSTRUCTION_CLARITY_RUBRIC,
+                )
+                if "instruction_clarity" in dimensions:
+                    dimensions["instruction_clarity"].score = clarity_result.score
+                    dimensions["instruction_clarity"].findings.append(
+                        f"LLM: {clarity_result.level_name} - {clarity_result.reasoning}"
+                    )
+                if clarity_result.cost_report:
+                    llm_cost_reports["instruction_clarity"] = (
+                        clarity_result.cost_report.to_dict()
+                    )
+                print(
+                    f"    Score: {clarity_result.score:.1f}/100 ({clarity_result.level_name})",
+                    file=sys.stderr,
+                )
+            except Exception as e:
+                print(f"    Warning: {e}", file=sys.stderr)
+
+            # Evaluate value add
+            try:
+                print("  Evaluating value_add...", file=sys.stderr)
+                value_result = evaluator.evaluate_dimension(
+                    skill_path,
+                    "value_add",
+                    VALUE_ADD_RUBRIC,
+                )
+                if "value_add" in dimensions:
+                    dimensions["value_add"].score = value_result.score
+                    dimensions["value_add"].findings.append(
+                        f"LLM: {value_result.level_name} - {value_result.reasoning}"
+                    )
+                if value_result.cost_report:
+                    llm_cost_reports["value_add"] = value_result.cost_report.to_dict()
+                print(
+                    f"    Score: {value_result.score:.1f}/100 ({value_result.level_name})",
+                    file=sys.stderr,
+                )
+            except Exception as e:
+                print(f"    Warning: {e}", file=sys.stderr)
+
+            # Recalculate total after LLM updates
+            result.dimensions = dimensions
+            result.total_score = calculate_total_score(dimensions)
+            result.grade = Grade.from_score(result.total_score)
+
+    # Print dimension scores
     for dim_name, dim_score in dimensions.items():
         print(f"  {dim_name}: {dim_score.score:.1f}/100", file=sys.stderr)
 
@@ -3254,6 +3373,22 @@ Examples:
         choices=["text", "json", "markdown", "md"],
         default="text",
         help="Output format (default: text)",
+    )
+    evaluate_parser.add_argument(
+        "--deep",
+        action="store_true",
+        help="Enable deep LLM-based evaluation for subjective dimensions",
+    )
+    evaluate_parser.add_argument(
+        "--model",
+        default="claude-sonnet-4-20250514",
+        help="LLM model for deep evaluation (default: claude-sonnet-4-20250514)",
+    )
+    evaluate_parser.add_argument(
+        "--pass-k",
+        type=int,
+        default=1,
+        help="Number of passes for LLM evaluation consistency (default: 1)",
     )
 
     args = parser.parse_args()
