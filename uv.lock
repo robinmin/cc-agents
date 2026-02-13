@@ -38,6 +38,11 @@ dependencies = [
     { name = "requests" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "freezegun" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "freezegun", specifier = ">=1.5.1" },
@@ -49,6 +54,9 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "requests", specifier = ">=2.32.5" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "freezegun", specifier = ">=1.5.5" }]
 
 [[package]]
 name = "certifi"

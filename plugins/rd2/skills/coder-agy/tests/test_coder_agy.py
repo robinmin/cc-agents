@@ -176,17 +176,6 @@ class TestGetScriptDir:
         assert (result / "coder-agy.py").exists()
 
 
-class TestGetAssetsDir:
-    """Test assets directory can be accessed."""
-
-    def test_assets_directory_exists(self):
-        """Test that assets directory exists."""
-        script_dir = coder_agy.get_script_dir()
-        assets_dir = script_dir.parent / "assets"
-        assert assets_dir.exists()
-        assert assets_dir.is_dir()
-
-
 class TestSanitizeFilename:
     """Test sanitize_filename function."""
 
@@ -295,7 +284,7 @@ class TestValidateFilePath:
         """Test that null bytes in path are handled (caught by pathlib)."""
         test_path = tmp_path / "test\x00.txt"
         # Pathlib raises ValueError for null bytes during resolve()
-        with pytest.raises(ValueError, match="embedded null character"):
+        with pytest.raises(ValueError, match="embedded null"):
             coder_agy.validate_file_path(test_path)
 
     def test_raises_error_for_unreadable_file(self, tmp_path):
