@@ -1,3 +1,146 @@
+## [0.7.2] - 2026-02-12
+
+### Summary
+
+**cc-skills v2.0: 10-Dimension Rubric-Based Evaluation, LLM-as-Judge, Behavioral Testing**
+
+Major enhancement of the cc-skills meta-skill introducing 4 new evaluation dimensions (Trigger Design, Instruction Clarity, Value-Add Assessment, Behavioral Readiness), rubric-based scoring replacing arbitrary point deductions, LLM-as-Judge deep evaluation, and comprehensive behavioral test scenario format. Achieved 200+ tests passing with production-ready quality.
+
+### Added
+
+- **4 New Evaluation Dimensions** (`skills/cc-skills/scripts/evaluators/`):
+  - **trigger_design.py** (300 lines, 15% weight): Trigger phrase coverage, CSO compliance, when-to-use documentation
+  - **instruction_clarity.py** (269 lines, 10% weight): Imperative form ratio, vague language detection, actionability scoring
+  - **value_add.py** (305 lines, 10% weight): Domain expertise, workflow uniqueness, artifact quality assessment
+  - **behavioral_readiness.py** (354 lines, 5% weight): Error handling, edge cases, trigger testing, performance metrics
+
+- **Rubric-Based Scoring System** (`scripts/evaluators/base.py`):
+  - **RubricScorer Class**: Unified scoring with weighted criteria aggregation
+  - **5-Level Rubric**: Excellent (100) / Good (75) / Fair (50) / Poor (25) / Missing (0)
+  - **RubricCriterion & RubricLevel**: Structured evaluation definitions
+  - Replaced arbitrary point-deduction with positive rubric-based scoring
+
+- **LLM-as-Judge Deep Evaluation** (`scripts/evaluators/llm_judge.py`, 620 lines):
+  - `--deep` flag for subjective dimension evaluation
+  - Claude API integration with structured prompts
+  - Supports instruction_clarity and value_add dimensions
+  - Cost reporting and graceful degradation when unavailable
+
+- **Behavioral Test Scenario Format v2.0** (`references/scenario-schema.yaml`, 258 lines):
+  - **trigger_tests**: should_trigger / should_not_trigger queries with 90% target rate
+  - **performance_tests**: baseline_without_skill vs with_skill comparison
+  - **pass_criteria**: Configurable thresholds for tool call/token reduction
+  - JSON Schema compliant with comprehensive examples
+
+- **Comprehensive Test Suite** (`tests/`, 3,600+ lines):
+  - 200+ tests across all 10 dimensions
+  - New test files: test_trigger_design.py, test_instruction_clarity.py, test_value_add.py, test_behavioral_readiness.py, test_llm_judge.py
+  - All tests passing with pytest
+
+- **New Reference Documentation** (`references/`):
+  - **evaluation.md** (211 lines): Complete evaluation methodology
+  - **scanner-criteria.md** (357 lines): Updated rubric criteria for all dimensions
+  - **scenario-schema.md** (211 lines): Scenario format documentation
+
+### Changed
+
+- **10-Dimension Evaluation Framework** (`scripts/skills.py`):
+  - Expanded from 7 to 10 dimensions
+  - Updated DIMENSION_WEIGHTS with new evaluators
+  - New evaluators auto-discovered via __init__.py exports
+
+- **super-planner Agent** (`agents/super-planner.md`):
+  - Added rd2:workflow-orchestration skill integration
+  - 5-role generic model (Orchestrator, Pre-production, Maker, Post-production, Checker)
+  - 7 workflow templates (W1-W7) with intent mapping
+  - Solution gate enforcement before Maker execution
+
+- **tasks-plan Command** (`commands/tasks-plan.md`):
+  - Integrated with workflow-orchestration skill
+  - Phase execution: planning → design → implementation
+  - Enhanced checkpoint handling
+
+### Fixed
+
+- **WBS Numbering Bug**: Fixed get_next_wbs() using len() instead of max() (tasks.py)
+- **Test Assertions**: Adjusted behavioral_readiness test thresholds for rubric scoring
+- **Import Patterns**: Standardized try/except fallback imports across evaluators
+
+### Evaluation Framework Summary
+
+| Dimension | Weight | Rubric Criteria |
+|-----------|--------|-----------------|
+| Frontmatter | 10% | name_quality, description_quality |
+| Content | 15% | content_length, required_sections, writing_quality |
+| Security | 15% | ast_patterns, positive_indicators |
+| Structure | 10% | directory_structure, progressive_disclosure |
+| Trigger Design | 15% | trigger_phrases, when_to_use, cso_compliance |
+| Instruction Clarity | 10% | imperative_form, vague_language, actionability |
+| Value-Add | 10% | domain_expertise, workflow_uniqueness, artifacts |
+| Behavioral Readiness | 5% | examples, anti_patterns, error_handling, trigger_testing |
+| Efficiency | 5% | token_count, duplicate_detection |
+| Best Practices | 5% | naming_convention, todo_placeholders |
+
+### Architecture
+
+**Rubric-Based Scoring Flow:**
+
+```
+Skill Path → DimensionEvaluator.evaluate()
+    ↓
+RubricScorer.evaluate(criterion_evaluator)
+    ↓
+For each RubricCriterion:
+    → criterion_evaluator(criterion) → (level_name, finding)
+    → RubricLevel.score × criterion.weight
+    ↓
+Aggregate → DimensionScore (0-100)
+```
+
+**LLM-as-Judge Flow:**
+
+```
+--deep flag → llm_judge.evaluate_dimension()
+    ↓
+Build structured prompt → Claude API
+    ↓
+Parse JSON response → score, reasoning, confidence
+    ↓
+Fallback to static evaluation if unavailable
+```
+
+### Benefits
+
+- **10-Dimension Coverage**: Comprehensive skill quality assessment
+- **Objective Scoring**: Rubric-based replaces subjective point deductions
+- **LLM Enhancement**: Deep evaluation for subjective dimensions
+- **Behavioral Testing**: Trigger rate and performance comparison metrics
+- **Production Quality**: 200+ tests, Grade B (70.73) self-evaluation
+
+### Usage Examples
+
+```bash
+# Standard evaluation (7 static dimensions)
+python3 scripts/skills.py evaluate my-skill/
+
+# Deep evaluation with LLM-as-Judge
+python3 scripts/skills.py evaluate my-skill/ --deep
+
+# View dimension weights
+python3 scripts/skills.py config
+
+# Run all tests
+pytest tests/ -v
+```
+
+### References
+
+- Task file: `docs/tasks/0190_enhance_Agent_Skills_cc-skills.md`
+- Official Guide: `vendors/The-Complete-Guide-to-Building-Skill-for-Claude.md`
+- Follow-up tasks: 0200-0203 (skill patterns, troubleshooting, MCP, distribution)
+
+---
+
 ## [0.6.0] - 2026-02-01
 
 ### Summary
