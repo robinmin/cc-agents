@@ -142,6 +142,10 @@ async function fillContent(page: Page, content: string): Promise<void> {
       await page.evaluate((text) => {
         if ((window as any).editor && (window as any).editor.setValue) {
           (window as any).editor.setValue(text);
+        } else {
+          // Fallback if editor global is not available
+          const cm = document.querySelector('.CodeMirror') as any;
+          if (cm && cm.CodeMirror) cm.CodeMirror.setValue(text);
         }
       }, content);
       console.log('[zenn-pw] Content filled using CodeMirror API');
@@ -152,17 +156,25 @@ async function fillContent(page: Page, content: string): Promise<void> {
     // Not CodeMirror, continue with other methods
   }
 
-  // Try contenteditable approach
+  // Try contenteditable approach with HTML if possible
   try {
+    // If we have markdown, we might want to convert to simple HTML for contenteditable
+    // But for Zenn, it's usually a markdown editor, so text content is fine.
+    // We use innerText to preserve line breaks better than textContent
     await element.evaluate((el: HTMLElement, text) => {
       el.focus();
-      el.textContent = text;
+      if (el.tagName === 'DIV' && el.getAttribute('contenteditable') === 'true') {
+        el.innerText = text;
+      } else {
+        el.textContent = text;
+      }
       el.dispatchEvent(new Event('input', { bubbles: true }));
     }, content);
-    console.log('[zenn-pw] Content filled using contentEditable');
+    console.log('[zenn-pw] Content filled using contentEditable (innerText)');
     await pwSleep(1000);
     return;
-  } catch {
+  } catch (e) {
+    console.log(`[zenn-pw] contentEditable fill failed: ${e}. Trying Playwright fill...`);
     // Last resort: use Playwright's fill
     await element.fill(content);
     console.log('[zenn-pw] Content filled using Playwright fill');
@@ -347,12 +359,12 @@ export async function publishToZennPlaywright(options: BrowserPublishOptions): P
   const page = context.pages()[0] || await context.newPage();
 
   try {
-    // Navigate to editor
-    await page.goto(articleUrl, { waitUntil: 'networkidle' });
+    // Navigate to home first to ensure we are on a valid page
+    await page.goto(ZENN_URLS.home, { waitUntil: 'networkidle' });
 
     // Check login status
     console.log('[zenn-pw] Checking login status...');
-    const isLoggedIn = await checkLoginStatus(page);
+    let isLoggedIn = await checkLoginStatus(page);
 
     if (!isLoggedIn) {
       console.log('[zenn-pw] Not logged in. Please log in to your Zenn account.');
@@ -366,16 +378,38 @@ export async function publishToZennPlaywright(options: BrowserPublishOptions): P
         const nowLoggedIn = await checkLoginStatus(page);
         if (nowLoggedIn) {
           console.log('[zenn-pw] Login detected! Continuing...');
+          isLoggedIn = true;
           break;
         }
         console.log('[zenn-pw] Still waiting for login...');
       }
 
-      if (!isLoggedIn && Date.now() - start >= loginTimeoutMs) {
+      if (!isLoggedIn) {
         throw new Error('Login timeout. Please run the script again after logging in.');
       }
     } else {
       console.log('[zenn-pw] Already logged in.');
+    }
+
+    // Reach the editor by clicking "投稿する" (Post) button
+    console.log('[zenn-pw] Navigating to editor via "投稿する" button...');
+    const postBtn = await page.locator(':text("投稿する"), .post-button').first();
+    if (await postBtn.isVisible()) {
+      await postBtn.click();
+      await pwSleep(2000);
+
+      // Look for "文章を公表する" (Publish Article) or similar in the dropdown
+      const newArticleLink = await page.locator(':text("文章を執筆する"), [href="/articles/new"], [href*="/articles/new"]').first();
+      if (await newArticleLink.isVisible()) {
+        await newArticleLink.click();
+        await pwSleep(3000);
+      } else {
+        // Just try direct navigation as fallback
+        await page.goto(articleUrl, { waitUntil: 'networkidle' });
+      }
+    } else {
+      // Just try direct navigation as fallback
+      await page.goto(articleUrl, { waitUntil: 'networkidle' });
     }
 
     // Wait for page to be ready
@@ -406,7 +440,7 @@ export async function publishToZennPlaywright(options: BrowserPublishOptions): P
     console.log('[zenn-pw] Press Ctrl+C to close.');
 
     // Keep browser open for manual review
-    await new Promise(() => {}); // Never resolve
+    await new Promise(() => { }); // Never resolve
 
     return resultUrl;
   } catch (error) {
@@ -426,3 +460,73 @@ export async function publishToZennPlaywright(options: BrowserPublishOptions): P
     // User can close the browser manually with Ctrl+C
   }
 }
+
+// ============================================================================
+// CLI
+// ============================================================================
+
+function printUsage(): never {
+  console.log(`Post articles to Zenn via browser automation (Playwright)
+
+Usage:
+  bun run zenn-playwright.ts [options]
+
+Options:
+  --markdown <path>         Markdown file to post (recommended)
+  --title <text>            Article title
+  --content <text>          Article content
+  --slug <text>             Article slug
+  --type <tech|idea>        Article type
+  --topics <topic1,topic2>  Comma-separated topics
+  --publish                 Publish immediately (default: draft)
+  --draft                   Save as draft
+  --profile <dir>           Custom browser profile directory
+`);
+  process.exit(0);
+}
+
+async function main(): Promise<void> {
+  const args = process.argv.slice(2);
+  if (args.includes('--help') || args.includes('-h')) printUsage();
+
+  let markdownFile: string | undefined;
+  let title: string | undefined;
+  let content: string | undefined;
+  let slug: string | undefined;
+  let type: 'tech' | 'idea' | undefined;
+  let topics: string[] = [];
+  let published: boolean | undefined;
+  let profileDir: string | undefined;
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!;
+    if (arg === '--markdown' && args[i + 1]) markdownFile = args[++i];
+    else if (arg === '--title' && args[i + 1]) title = args[++i];
+    else if (arg === '--content' && args[i + 1]) content = args[++i];
+    else if (arg === '--slug' && args[i + 1]) slug = args[++i];
+    else if (arg === '--type' && args[i + 1]) type = args[++i] as any;
+    else if (arg === '--topics' && args[i + 1]) {
+      const topicStr = args[++i]!;
+      topics.push(...topicStr.split(',').map((t) => t.trim()).filter((t) => t));
+    }
+    else if (arg === '--publish') published = true;
+    else if (arg === '--draft') published = false;
+    else if (arg === '--profile' && args[i + 1]) profileDir = args[++i];
+  }
+
+  await publishToZennPlaywright({
+    markdownFile,
+    title,
+    content,
+    slug,
+    type,
+    topics,
+    published,
+    profileDir,
+  });
+}
+
+await main().catch((err) => {
+  console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+  process.exit(1);
+});
