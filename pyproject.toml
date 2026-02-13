@@ -28,3 +28,8 @@ extraPaths = [
 ]
 stubPath = "./stubs"
 typeCheckingMode = "standard"
+
+[dependency-groups]
+dev = [
+    "freezegun>=1.5.5",
+]

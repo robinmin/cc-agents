@@ -49,9 +49,11 @@ discover-scripts: list-scripts
 test: notify-start
 	@echo "🧪 Running all tests..."
 	@source $(VENV_DIR)/bin/activate && for script_dir in $(SCRIPT_DIRS); do \
-		echo ""; \
-		echo "📦 Testing $$script_dir..."; \
-		pytest $$script_dir/tests -v --cov=$$script_dir/scripts --cov-report=term-missing --cov-report=html:$$script_dir/htmlcov || exit 1; \
+		if ls $$script_dir/tests/*.py 1> /dev/null 2>&1; then \
+			echo ""; \
+			echo "📦 Testing $$script_dir..."; \
+			pytest $$script_dir/tests -v --cov=$$script_dir/scripts --cov-report=term-missing --cov-report=html:$$script_dir/htmlcov || exit 1; \
+		fi; \
 	done
 	@$(MAKE) notify-end
 

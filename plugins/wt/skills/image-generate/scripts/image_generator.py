@@ -1004,7 +1004,10 @@ Environment Variables:
 
             # Use template config
             resolution = template.config.resolution
-            if args.steps == 50:  # Only use template steps if not overridden
+            # Check if user explicitly set steps (default is 8 for Z-Image Turbo)
+            # Use template steps only if user didn't override
+            default_steps = get_wt_config().get("image_generation", {}).get("default_steps", 8) if _WT_CONFIG_LOADED else 8
+            if args.steps == default_steps:  # Only use template steps if not overridden
                 steps = template.config.steps
             if not backend and template.config.backend:
                 backend = template.config.backend
