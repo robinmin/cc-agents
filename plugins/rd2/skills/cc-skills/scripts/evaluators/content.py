@@ -125,98 +125,68 @@ class ContentEvaluator:
         has_quick_start = re.search(r"^#{1,3}\s+Quick\s+Start", content_body, re.MULTILINE | re.IGNORECASE)
         has_todo = "[TODO:" in content
 
-        # Check content length level
-        def eval_content_length(criterion: RubricCriterion) -> tuple[str, str]:
-            line_count = len(lines)
-            if 20 <= line_count <= 500:
-                return "optimal", f"{line_count} lines (appropriate length)"
-            elif 10 <= line_count < 20:
-                return "adequate", f"{line_count} lines (brief but present)"
-            elif line_count < 10:
-                return "brief", f"{line_count} lines (very minimal)"
-            elif line_count > 500:
-                return "minimal", f"{line_count} lines (excessive, consider splitting)"
-            return "empty", "no content"
+        # Evaluate all criteria with a single function
+        def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
+            if criterion.name == "content_length":
+                line_count = len(lines)
+                if 20 <= line_count <= 500:
+                    return "optimal", f"{line_count} lines (appropriate length)"
+                elif 10 <= line_count < 20:
+                    return "adequate", f"{line_count} lines (brief but present)"
+                elif line_count < 10:
+                    return "brief", f"{line_count} lines (very minimal)"
+                elif line_count > 500:
+                    return "minimal", f"{line_count} lines (excessive, consider splitting)"
+                return "empty", "no content"
+            elif criterion.name == "core_sections":
+                sections = sum([bool(has_overview), bool(has_examples), bool(has_when_to_use)])
+                if sections >= 3:
+                    return "complete", f"Overview, Examples, and Workflow sections present"
+                elif sections == 2:
+                    return "good", f"Two core sections present"
+                elif sections == 1:
+                    return "fair", f"One core section present"
+                elif has_overview:
+                    return "poor", "Only Overview present"
+                return "missing", "Missing core sections"
+            elif criterion.name == "workflow_quality":
+                workflow_pattern = re.search(
+                    r"^#{1,3}\s+(workflow|Workflows|Usage|When to use)",
+                    content_body, re.MULTILINE | re.IGNORECASE
+                )
+                if not workflow_pattern:
+                    if has_when_to_use:
+                        return "minimal", "Has 'When to use' guidance but no detailed workflow"
+                    return "minimal", "No workflow or usage guidance section"
+                workflow_start = workflow_pattern.end()
+                workflow_section = content_body[workflow_start : workflow_start + 2000]
+                link_pattern = re.search(r"^\s*\[.*?\]\(.*?\)\s*$", workflow_section, re.MULTILINE)
+                if link_pattern and not any(p in workflow_section for p in ["step", "Step", "1.", "2.", "- ["]):
+                    return "external_only", "Workflow only references external files"
+                substantive_patterns = [
+                    r"step\s+\d+", r"Step\s+\d+", r"\d+\.\s+", r"- \[\*",
+                ]
+                has_substantive = any(re.search(p, workflow_section, re.IGNORECASE) for p in substantive_patterns)
+                if has_substantive:
+                    return "excellent", "Workflow has detailed step-by-step guidance"
+                return "good", "Workflow section has meaningful content"
+            elif criterion.name == "documentation_completeness":
+                if not has_todo and has_quick_start and has_examples:
+                    return "complete", "Quick Start, Examples, and no TODOs"
+                elif has_quick_start and has_examples and not has_todo:
+                    return "good", "Quick Start and Examples present"
+                elif has_quick_start or has_examples:
+                    return "fair", "One of Quick Start or Examples present"
+                elif has_todo:
+                    return "incomplete", "Contains unresolved TODOs"
+                return "poor", "Missing both Quick Start and Examples"
+            return "poor", "Unknown criterion"
 
-        # Check core sections level
-        def eval_core_sections(criterion: RubricCriterion) -> tuple[str, str]:
-            sections = sum([bool(has_overview), bool(has_examples), bool(has_when_to_use)])
-            if sections >= 3:
-                return "complete", f"Overview, Examples, and Workflow sections present"
-            elif sections == 2:
-                return "good", f"Two core sections present"
-            elif sections == 1:
-                return "fair", f"One core section present"
-            elif has_overview:
-                return "poor", "Only Overview present"
-            return "missing", "Missing core sections"
-
-        # Check workflow quality
-        def eval_workflow_quality(criterion: RubricCriterion) -> tuple[str, str]:
-            # Check for workflow section
-            workflow_pattern = re.search(
-                r"^#{1,3}\s+(workflow|Workflows|Usage|When to use)",
-                content_body, re.MULTILINE | re.IGNORECASE
-            )
-
-            if not workflow_pattern:
-                if has_when_to_use:
-                    return "minimal", "Has 'When to use' guidance but no detailed workflow"
-                return "minimal", "No workflow or usage guidance section"
-
-            # Extract workflow section
-            workflow_start = workflow_pattern.end()
-            workflow_section = content_body[workflow_start : workflow_start + 2000]
-
-            # Check for external-only references
-            link_pattern = re.search(r"^\s*\[.*?\]\(.*?\)\s*$", workflow_section, re.MULTILINE)
-            if link_pattern and not any(p in workflow_section for p in ["step", "Step", "1.", "2.", "- ["]):
-                return "external_only", "Workflow only references external files"
-
-            # Check for substantive content
-            substantive_patterns = [
-                r"step\s+\d+", r"Step\s+\d+", r"\d+\.\s+", r"- \[\*",
-            ]
-            has_substantive = any(re.search(p, workflow_section, re.IGNORECASE) for p in substantive_patterns)
-
-            if has_substantive:
-                return "excellent", "Workflow has detailed step-by-step guidance"
-            return "good", "Workflow section has meaningful content"
-
-        # Check documentation completeness
-        def eval_doc_completeness(criterion: RubricCriterion) -> tuple[str, str]:
-            if not has_todo and has_quick_start and has_examples:
-                return "complete", "Quick Start, Examples, and no TODOs"
-            elif has_quick_start and has_examples and not has_todo:
-                return "good", "Quick Start and Examples present"
-            elif has_quick_start or has_examples:
-                return "fair", "One of Quick Start or Examples present"
-            elif has_todo:
-                return "incomplete", "Contains unresolved TODOs"
-            return "poor", "Missing both Quick Start and Examples"
-
-        # Evaluate each criterion
-        score1, findings1, recs1 = self.RUBRIC_SCORER.evaluate(eval_content_length)
-        score2, findings2, recs2 = self.RUBRIC_SCORER.evaluate(eval_core_sections)
-        score3, findings3, recs3 = self.RUBRIC_SCORER.evaluate(eval_workflow_quality)
-        score4, findings4, recs4 = self.RUBRIC_SCORER.evaluate(eval_doc_completeness)
-
-        # Combine scores (average of four rubric scores)
-        combined_score = (score1 + score2 + score3 + score4) / 4.0
-
-        findings.extend(findings1)
-        findings.extend(findings2)
-        findings.extend(findings3)
-        findings.extend(findings4)
-
-        recommendations.extend(recs1)
-        recommendations.extend(recs2)
-        recommendations.extend(recs3)
-        recommendations.extend(recs4)
+        score, findings, recommendations = self.RUBRIC_SCORER.evaluate(evaluate_criterion)
 
         return DimensionScore(
             name=self.name,
-            score=combined_score,
+            score=score,
             weight=self.weight,
             findings=findings,
             recommendations=recommendations if recommendations else ["Content is comprehensive"],
