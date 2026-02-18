@@ -31,8 +31,21 @@ Thin wrapper command for `rd2:skill-expert` agent. Creates skill directories wit
 | `technique` | Concrete steps, debugging methods, repeatable processes | `skill-template-technique.md` |
 | `pattern` | Mental models, architectural decisions, ways of thinking | `skill-template-pattern.md` |
 | `reference` | API docs, syntax guides, tool documentation | `skill-template-reference.md` |
+| `mcp` | Skills that enhance MCP tool access with workflow guidance | `skill-template-mcp.md` |
 
 If `--type` is omitted, the generic `skill-template.md` is used.
+
+### 5 Official Skill Patterns
+
+The official Claude Skills Guide documents 5 proven patterns (see `references/skill-patterns.md`):
+
+| Pattern | Use Case |
+| ------- | -------- |
+| Sequential Workflow | Multi-step processes in specific order |
+| Multi-MCP Coordination | Workflows spanning multiple services |
+| Iterative Refinement | Quality loops with validation scripts |
+| Context-Aware Tool Selection | Decision trees for tool choice |
+| Domain-Specific Intelligence | Embedded compliance, audit trails |
 
 ## Workflow
 
@@ -94,7 +107,7 @@ Follow the official 6-step skill creation process:
 6. Iterate
 
 Initialize with:
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init {skill_name} --path {plugin_path}/skills [--type {type}]
+python3 plugins/rd2/skills/cc-skills/scripts/skills.py init {skill_name} --path {plugin_path}/skills [--type {type}]
 
 Follow rd2:cc-skills best practices.
    """,
