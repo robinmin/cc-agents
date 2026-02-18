@@ -43,7 +43,8 @@ class TestFrontmatterEvaluator:
         evaluator = FrontmatterEvaluator()
 
         assert evaluator.name == "frontmatter"
-        assert 0 < evaluator.weight <= 1.0
+        # Weight is 0 in Tier 2 model - now validated in Tier 1
+        assert 0 <= evaluator.weight <= 1.0
 
     def test_complete_frontmatter_score(self):
         """Test skill with complete frontmatter."""
