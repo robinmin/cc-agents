@@ -33,6 +33,7 @@ Evaluate skills against 12 dimensions and provide actionable improvement recomme
 ## Evaluation Workflow
 
 **Delegate to rd2:cc-skills for:**
+
 - Complete evaluation criteria (see `references/evaluation.md`)
 - Security assessment patterns (see `references/security.md`)
 - Progressive disclosure requirements (see `references/anatomy.md`)
@@ -44,7 +45,7 @@ Evaluate skills against 12 dimensions and provide actionable improvement recomme
 1. **Locate skill** - Use Glob to find SKILL.md and supporting files
 2. **Run programmatic validation** - Invoke validation script to catch frontmatter and structure issues:
    ```bash
-   python3 plugins/rd2/skills/cc-skills/scripts/skills.py evaluate {skill_path}
+   python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate {skill_path}
    ```
 3. **Read content** - Read SKILL.md, references/, examples/, scripts/
 4. **Apply rd2:cc-skills criteria** - Follow evaluation framework from skill
@@ -53,20 +54,20 @@ Evaluate skills against 12 dimensions and provide actionable improvement recomme
 
 ## Scoring Dimensions (12 Dimensions)
 
-| Dimension             | Weight | Description                              |
+| Dimension            | Weight | Description                              |
 | -------------------- | ------ | ---------------------------------------- |
 | Behavioral           | 10%    | Scenario-based behavior validation       |
-| Behavioral Readiness | 8%     | Examples, anti-patterns, error handling |
-| Best Practices       | 4%     | Naming, docs, TODOs, script standards   |
-| Code Quality         | 7%     | Type hints, error handling, docstrings  |
-| Content              | 17%    | Length, core sections, workflow quality |
-| Efficiency           | 5%     | Token usage, conciseness                |
-| Frontmatter          | 0%     | Validated in Phase 1 (structural)       |
-| Instruction Clarity  | 11%    | Imperative form, actionability          |
-| Security             | 14%    | AST-based dangerous pattern detection   |
-| Structure            | 0%     | Validated in Phase 1 (structural)       |
-| Trigger Design       | 14%    | Trigger phrases, CSO coverage          |
-| Value Add            | 10%    | Artifacts, specificity, custom workflows|
+| Behavioral Readiness | 8%     | Examples, anti-patterns, error handling  |
+| Best Practices       | 4%     | Naming, docs, TODOs, script standards    |
+| Code Quality         | 7%     | Type hints, error handling, docstrings   |
+| Content              | 17%    | Length, core sections, workflow quality  |
+| Efficiency           | 5%     | Token usage, conciseness                 |
+| Frontmatter          | 0%     | Validated in Phase 1 (structural)        |
+| Instruction Clarity  | 11%    | Imperative form, actionability           |
+| Security             | 14%    | AST-based dangerous pattern detection    |
+| Structure            | 0%     | Validated in Phase 1 (structural)        |
+| Trigger Design       | 14%    | Trigger phrases, CSO coverage            |
+| Value Add            | 10%    | Artifacts, specificity, custom workflows |
 
 **Note:** Frontmatter and Structure have 0% weight in Phase 2 (quality scoring) as they are validated in Phase 1 (structural validation).
 
@@ -90,29 +91,30 @@ Evaluate skills against 12 dimensions and provide actionable improvement recomme
 **Overall Score:** {X}/100 ({Grade})
 
 ## Phase 1: Structural Validation
+
 [Pass/Fail] - Frontmatter, SKILL.md presence, directory structure
 
 ## Phase 2: Quality Scoring (12 Dimensions)
 
-| Dimension             | Score  | Weighted | Notes |
-| -------------------- | ------ | -------- | ------|
-| Behavioral           | X/100  | X.XX     | {notes} |
-| Behavioral Readiness | X/100  | X.XX     | {notes} |
-| Best Practices       | X/100  | X.XX     | {notes} |
-| Code Quality         | X/100  | X.XX     | {notes} |
-| Content              | X/100  | X.XX     | {notes} |
-| Efficiency           | X/100  | X.XX     | {notes} |
-| Frontmatter          | X/100  | X.XX     | {notes} |
-| Instruction Clarity  | X/100  | X.XX     | {notes} |
-| Security             | X/100  | X.XX     | {notes} |
-| Structure            | X/100  | X.XX     | {notes} |
-| Trigger Design       | X/100  | X.XX     | {notes} |
-| Value Add            | X/100  | X.XX     | {notes} |
+| Dimension            | Score | Weighted | Notes   |
+| -------------------- | ----- | -------- | ------- |
+| Behavioral           | X/100 | X.XX     | {notes} |
+| Behavioral Readiness | X/100 | X.XX     | {notes} |
+| Best Practices       | X/100 | X.XX     | {notes} |
+| Code Quality         | X/100 | X.XX     | {notes} |
+| Content              | X/100 | X.XX     | {notes} |
+| Efficiency           | X/100 | X.XX     | {notes} |
+| Frontmatter          | X/100 | X.XX     | {notes} |
+| Instruction Clarity  | X/100 | X.XX     | {notes} |
+| Security             | X/100 | X.XX     | {notes} |
+| Structure            | X/100 | X.XX     | {notes} |
+| Trigger Design       | X/100 | X.XX     | {notes} |
+| Value Add            | X/100 | X.XX     | {notes} |
 
 ## Issues Found
 
-| Priority | Issue | Location |
-| -------- | ----- | -------- |
+| Priority | Issue   | Location    |
+| -------- | ------- | ----------- |
 | Critical | {issue} | {file:line} |
 | High     | {issue} | {file:line} |
 | Medium   | {issue} | {file:line} |
@@ -124,6 +126,7 @@ Evaluate skills against 12 dimensions and provide actionable improvement recomme
 ```
 
 **Grading Scale:**
+
 - A (90-100): Production ready
 - B (70-89): Minor fixes needed
 - C (50-69): Moderate revision
