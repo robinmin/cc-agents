@@ -1,15 +1,15 @@
 ---
 name: Add MCP enhancement guidance
 description: Add MCP Enhancement skill type and reference documentation for skills that enhance MCP tool access
-status: Backlog
+status: Done
 created_at: 2026-02-12 11:33:47
-updated_at: 2026-02-12 11:45:00
+updated_at: 2026-02-18 00:44:00
 impl_progress:
-  planning: done
-  design: pending
-  implementation: pending
-  review: pending
-  testing: pending
+  planning: completed
+  design: completed
+  implementation: completed
+  review: completed
+  testing: completed
 ---
 
 ## 0202. Add MCP enhancement guidance
