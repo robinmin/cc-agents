@@ -1618,24 +1618,23 @@ ASSETS_DIR = SKILL_ROOT / "assets"
 ###############################################################################
 
 # Scoring dimension weights (must sum to 1.0)
-# New 11-dimension model with enhanced behavioral evaluation
+# Two-tier model: Tier 1 handles structure/frontmatter, Tier 2 handles quality
+# Removed frontmatter and structure - now validated in Tier 1
 DIMENSION_WEIGHTS: dict[str, float] = {
-    # Core structural dimensions
-    "frontmatter": 0.05,          # YAML frontmatter quality
-    "structure": 0.10,             # Directory organization
     # Content dimensions
-    "content": 0.15,              # SKILL.md content quality
-    # NEW: Behavioral/Quality dimensions
-    "trigger_design": 0.15,       # Skill discovery/trigger quality
-    "instruction_clarity": 0.10, # Instruction unambiguity
+    "content": 0.17,              # SKILL.md content quality
+    # Behavioral dimensions
+    "behavioral": 0.10,           # Scenario testing quality
+    "trigger_design": 0.14,       # Skill discovery/trigger quality
+    "instruction_clarity": 0.11,  # Instruction unambiguity
     "value_add": 0.10,            # Beyond-base-capability value
-    "behavioral_readiness": 0.05, # Error handling, edge cases
+    "behavioral_readiness": 0.08,  # Error handling, edge cases
     # Technical dimensions
-    "security": 0.15,             # Security considerations
-    "code_quality": 0.05,         # Script code quality
+    "security": 0.14,             # Security considerations
+    "code_quality": 0.07,         # Script code quality
     # Efficiency/Process
     "efficiency": 0.05,           # Token efficiency
-    "best_practices": 0.05,        # Naming conventions, guidance
+    "best_practices": 0.04,       # Naming conventions, guidance
 }
 
 
