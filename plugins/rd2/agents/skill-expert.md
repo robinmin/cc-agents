@@ -50,10 +50,23 @@ Choose template based on skill purpose:
 | `technique` | Concrete steps, debugging methods, repeatable processes | `--type technique` |
 | `pattern` | Mental models, architectural decisions, ways of thinking | `--type pattern` |
 | `reference` | API docs, syntax guides, tool documentation | `--type reference` |
+| `mcp` | Skills that enhance MCP tool access with workflow guidance | `--type mcp` |
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py init my-skill --path ${CLAUDE_PLUGIN_ROOT}/skills --type technique
+python3 plugins/rd2/skills/cc-skills/scripts/skills.py init my-skill --path plugins/rd2/skills --type technique
 ```
+
+### 5 Official Skill Patterns
+
+The official Claude Skills Guide documents 5 proven patterns. See `references/skill-patterns.md`:
+
+| Pattern | Use Case |
+| ------- | -------- |
+| Sequential Workflow | Multi-step processes in specific order |
+| Multi-MCP Coordination | Workflows spanning multiple services |
+| Iterative Refinement | Quality loops with validation scripts |
+| Context-Aware Tool Selection | Decision trees for tool choice |
+| Domain-Specific Intelligence | Embedded compliance, audit trails |
 
 Templates in `assets/skill-template-{type}.md` include TODO markers guiding what to fill in.
 
@@ -66,12 +79,16 @@ Templates in `assets/skill-template-{type}.md` include TODO markers guiding what
 | Writing style        | `references/writing-style.md`   |
 | Best practices       | `references/best-practices.md`  |
 | Common mistakes      | `references/common-mistakes.md` |
+| Skill patterns       | `references/skill-patterns.md`  |
+| Troubleshooting      | `references/troubleshooting.md` |
+| MCP integration     | `references/mcp-integration.md` |
+| Distribution        | `references/distribution.md`     |
 
 ## Skill Refinement Workflow
 
 1. **Validate** - Run programmatic validation first to catch structural issues:
    ```bash
-   python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate {skill_path}
+   python3 plugins/rd2/skills/cc-skills/scripts/skills.py evaluate {skill_path}
    ```
 2. **Evaluate** - Use skill-doctor for current quality assessment
 3. **Review** - Check all dimensions, especially low scores
