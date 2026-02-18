@@ -71,7 +71,8 @@ class TestStructureEvaluator:
         evaluator = StructureEvaluator()
 
         assert evaluator.name == "structure"
-        assert 0 < evaluator.weight <= 1.0
+        # Weight is 0 in Tier 2 model - now validated in Tier 1
+        assert 0 <= evaluator.weight <= 1.0
 
     def test_well_structured_skill_score(self):
         """Test skill with good structure."""
