@@ -81,7 +81,8 @@ class StructureEvaluator:
 
     def __init__(self):
         self._name = "structure"
-        self._weight = DIMENSION_WEIGHTS.get("structure", 0.10)  # Updated weight
+        # Weight 0 - validated in Phase 1 (structural validation), not Phase 2 (quality scoring)
+        self._weight = DIMENSION_WEIGHTS.get("structure", 0.0)
 
     @property
     def name(self) -> str:
@@ -123,66 +124,46 @@ class StructureEvaluator:
                     if level <= 3:
                         heading_levels.append(level)
 
-        # Evaluate SKILL.md presence
-        def eval_skill_md(criterion: RubricCriterion) -> tuple[str, str]:
-            if has_skill_md:
-                return "present", "SKILL.md exists"
-            return "missing", "SKILL.md is missing"
+        # Evaluate all criteria with a single function
+        def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
+            if criterion.name == "skill_md_presence":
+                if has_skill_md:
+                    return "present", "SKILL.md exists"
+                return "missing", "SKILL.md is missing"
+            elif criterion.name == "progressive_disclosure":
+                if not has_skill_md:
+                    return "none", "SKILL.md missing"
+                if has_quick_start and has_overview:
+                    return "complete", "Has Quick Start and Overview"
+                elif has_quick_start:
+                    return "good", "Has Quick Start"
+                elif has_overview:
+                    return "fair", "Has Overview but no Quick Start"
+                return "poor", "Missing progressive disclosure sections"
+            elif criterion.name == "heading_hierarchy":
+                if not heading_levels:
+                    return "missing", "No heading structure"
+                if heading_levels[0] > 3:
+                    return "deep_start", f"Starts with level {heading_levels[0]} heading"
+                elif heading_levels[0] > 2:
+                    return "acceptable", f"Starts with level {heading_levels[0]} heading"
+                return "proper", "Good heading hierarchy"
+            elif criterion.name == "resource_directories":
+                dirs = sum([has_scripts, has_references, has_assets])
+                if dirs == 3:
+                    return "complete", "Has scripts/, references/, assets/"
+                elif dirs == 2:
+                    return "good", "Has 2 resource directories"
+                elif dirs == 1:
+                    return "adequate", "Has 1 resource directory"
+                return "none", "No resource directories"
+            return "missing", "Unknown criterion"
 
-        # Evaluate progressive disclosure
-        def eval_progressive(criterion: RubricCriterion) -> tuple[str, str]:
-            if not has_skill_md:
-                return "none", "SKILL.md missing"
-            if has_quick_start and has_overview:
-                return "complete", "Has Quick Start and Overview"
-            elif has_quick_start:
-                return "good", "Has Quick Start"
-            elif has_overview:
-                return "fair", "Has Overview but no Quick Start"
-            return "poor", "Missing progressive disclosure sections"
-
-        # Evaluate heading hierarchy
-        def eval_heading(criterion: RubricCriterion) -> tuple[str, str]:
-            if not heading_levels:
-                return "missing", "No heading structure"
-            if heading_levels[0] > 3:
-                return "deep_start", f"Starts with level {heading_levels[0]} heading"
-            elif heading_levels[0] > 2:
-                return "acceptable", f"Starts with level {heading_levels[0]} heading"
-            return "proper", "Good heading hierarchy"
-
-        # Evaluate resource directories
-        def eval_resources(criterion: RubricCriterion) -> tuple[str, str]:
-            dirs = sum([has_scripts, has_references, has_assets])
-            if dirs == 3:
-                return "complete", "Has scripts/, references/, assets/"
-            elif dirs == 2:
-                return "good", "Has 2 resource directories"
-            elif dirs == 1:
-                return "adequate", "Has 1 resource directory"
-            return "none", "No resource directories"
-
-        # Evaluate all criteria
-        score1, findings1, recs1 = self.RUBRIC_SCORER.evaluate(eval_skill_md)
-        score2, findings2, recs2 = self.RUBRIC_SCORER.evaluate(eval_progressive)
-        score3, findings3, recs3 = self.RUBRIC_SCORER.evaluate(eval_heading)
-        score4, findings4, recs4 = self.RUBRIC_SCORER.evaluate(eval_resources)
-
-        # Combine scores
-        combined_score = (score1 + score2 + score3 + score4) / 4.0
-
-        findings.extend(findings1)
-        findings.extend(findings2)
-        findings.extend(findings3)
-        findings.extend(findings4)
-        recommendations.extend(recs1)
-        recommendations.extend(recs2)
-        recommendations.extend(recs3)
-        recommendations.extend(recs4)
+        score, findings, recommendations = self.RUBRIC_SCORER.evaluate(evaluate_criterion)
 
         return DimensionScore(
             name=self.name,
-            score=combined_score,
+            score=score,
             weight=self.weight,
             findings=findings,
             recommendations=recommendations if recommendations else ["Structure is well-organized"],
