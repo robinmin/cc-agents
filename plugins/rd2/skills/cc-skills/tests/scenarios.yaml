@@ -2,6 +2,20 @@
 # This file defines test scenarios for evaluating cc-skills quality
 
 version: "1.0"
+
+trigger_tests:
+  should_trigger:
+    - "create a skill"
+    - "write SKILL.md"
+    - "evaluate skill quality"
+    - "package a skill"
+    - "initialize a new skill"
+    - "skill development"
+  should_not_trigger:
+    - "build a website"
+    - "deploy to production"
+    - "write unit tests"
+
 scenarios:
   - name: "Basic skill evaluation"
     input: "Evaluate a skill at plugins/rd2/skills/my-skill/"
