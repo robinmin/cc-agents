@@ -24,6 +24,7 @@ kanban-plugin: board
 - [ ] 0161_edge-case-testing
 - [ ] 0162_final-review
 - [ ] 0177_enhance_unit_tests_for_WT_publish_to_skills
+- [ ] 0178_test_all_publish-to-_agent_skills_one_by_one
 
 ## Todo
 
