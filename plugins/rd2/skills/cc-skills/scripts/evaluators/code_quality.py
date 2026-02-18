@@ -137,6 +137,10 @@ class CodeQualityEvaluator:
         total_bare_excepts = 0
 
         for script_file in script_files:
+            # Skip __init__.py files - they're package markers, not executable scripts
+            if script_file.name == "__init__.py":
+                continue
+
             script_content = get_file_content(script_file) or ""
 
             # Check error handling
@@ -160,7 +164,8 @@ class CodeQualityEvaluator:
             exception_issues = analyze_exception_handlers(script_file)
             total_bare_excepts += sum(1 for i in exception_issues if i.issue_type == "bare_except")
 
-        script_count = len(script_files)
+        # Count only non-__init__.py scripts for percentage calculation
+        script_count = sum(1 for f in script_files if f.name != "__init__.py")
 
         # Calculate percentages
         error_pct = scripts_with_error_handling / script_count if script_count > 0 else 0
@@ -168,71 +173,51 @@ class CodeQualityEvaluator:
         type_pct = scripts_with_type_hints / script_count if script_count > 0 else 0
         doc_pct = scripts_with_docstrings / script_count if script_count > 0 else 0
 
-        # Evaluate error handling
-        def eval_error_handling(criterion: RubricCriterion) -> tuple[str, str]:
-            if error_pct == 1.0:
-                return "excellent", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
-            elif error_pct >= 0.75:
-                return "good", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
-            elif error_pct >= 0.5:
-                return "fair", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
-            elif error_pct >= 0.25:
-                return "poor", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
-            return "none", f"No scripts have error handling"
+        # Evaluate all criteria with a single function
+        def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
+            if criterion.name == "error_handling":
+                if error_pct == 1.0:
+                    return "excellent", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
+                elif error_pct >= 0.75:
+                    return "good", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
+                elif error_pct >= 0.5:
+                    return "fair", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
+                elif error_pct >= 0.25:
+                    return "poor", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
+                return "none", f"No scripts have error handling"
+            elif criterion.name == "main_guard":
+                if guard_pct == 1.0:
+                    return "complete", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
+                elif guard_pct >= 0.75:
+                    return "good", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
+                elif guard_pct >= 0.5:
+                    return "partial", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
+                elif guard_pct >= 0.25:
+                    return "minimal", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
+                return "none", "No scripts have main guard"
+            elif criterion.name == "type_hints":
+                if type_pct == 1.0:
+                    return "complete", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
+                elif type_pct >= 0.75:
+                    return "good", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
+                elif type_pct >= 0.5:
+                    return "fair", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
+                elif type_pct >= 0.25:
+                    return "minimal", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
+                return "none", "No type hints present"
+            elif criterion.name == "documentation":
+                if doc_pct == 1.0:
+                    return "well_documented", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
+                elif doc_pct >= 0.75:
+                    return "good", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
+                elif doc_pct >= 0.5:
+                    return "fair", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
+                elif doc_pct >= 0.25:
+                    return "minimal", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
+                return "none", "No docstrings present"
+            return "none", "Unknown criterion"
 
-        # Evaluate main guard
-        def eval_main_guard(criterion: RubricCriterion) -> tuple[str, str]:
-            if guard_pct == 1.0:
-                return "complete", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
-            elif guard_pct >= 0.75:
-                return "good", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
-            elif guard_pct >= 0.5:
-                return "partial", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
-            elif guard_pct >= 0.25:
-                return "minimal", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
-            return "none", "No scripts have main guard"
-
-        # Evaluate type hints
-        def eval_type_hints(criterion: RubricCriterion) -> tuple[str, str]:
-            if type_pct == 1.0:
-                return "complete", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
-            elif type_pct >= 0.75:
-                return "good", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
-            elif type_pct >= 0.5:
-                return "fair", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
-            elif type_pct >= 0.25:
-                return "minimal", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
-            return "none", "No type hints present"
-
-        # Evaluate documentation
-        def eval_documentation(criterion: RubricCriterion) -> tuple[str, str]:
-            if doc_pct == 1.0:
-                return "well_documented", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
-            elif doc_pct >= 0.75:
-                return "good", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
-            elif doc_pct >= 0.5:
-                return "fair", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
-            elif doc_pct >= 0.25:
-                return "minimal", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
-            return "none", "No docstrings present"
-
-        # Evaluate all criteria
-        score1, findings1, recs1 = self.RUBRIC_SCORER.evaluate(eval_error_handling)
-        score2, findings2, recs2 = self.RUBRIC_SCORER.evaluate(eval_main_guard)
-        score3, findings3, recs3 = self.RUBRIC_SCORER.evaluate(eval_type_hints)
-        score4, findings4, recs4 = self.RUBRIC_SCORER.evaluate(eval_documentation)
-
-        # Combine scores
-        combined_score = (score1 + score2 + score3 + score4) / 4.0
-
-        findings.extend(findings1)
-        findings.extend(findings2)
-        findings.extend(findings3)
-        findings.extend(findings4)
-        recommendations.extend(recs1)
-        recommendations.extend(recs2)
-        recommendations.extend(recs3)
-        recommendations.extend(recs4)
+        score, findings, recommendations = self.RUBRIC_SCORER.evaluate(evaluate_criterion)
 
         # Add bare except findings
         if total_bare_excepts > 0:
@@ -240,7 +225,7 @@ class CodeQualityEvaluator:
 
         return DimensionScore(
             name=self.name,
-            score=combined_score,
+            score=score,
             weight=self.weight,
             findings=findings,
             recommendations=recommendations if recommendations else ["Code quality is good"],
