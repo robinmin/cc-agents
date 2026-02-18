@@ -101,6 +101,10 @@ class InstructionClarityEvaluator:
         "parse", "extract", "validate", "follow", "ensure", "return",
         "invoke", "call", "execute", "import", "export", "handle",
         "catch", "raise", "throw", "log", "print", "display", "show",
+        "apply", "choose", "select", "delegate", "implement", "determine",
+        "prevent", "audit", "scan", "measure", "prune", "organize",
+        "separate", "document", "include", "match", "align", "consider",
+        "explore", "refine", "verify", "leverage", "iterate",
     ]
 
     def __init__(self):
@@ -164,7 +168,9 @@ class InstructionClarityEvaluator:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
-            first_word = re.split(r"[\s\-*]+", line.lower())[0] if line else ""
+            # Strip markdown formatting (bold, italic) before checking
+            cleaned_line = re.sub(r'\*\*|\*|`', '', line)
+            first_word = re.split(r"[\s\-*]+", cleaned_line.lower())[0] if cleaned_line else ""
             if first_word in self.IMPERATIVE_VERBS:
                 instruction_lines.append(line)
         imperative_ratio = len(instruction_lines) / max(total_instruction_like, 1)
