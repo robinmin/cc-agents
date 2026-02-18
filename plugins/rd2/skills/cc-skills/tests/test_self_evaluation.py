@@ -76,17 +76,22 @@ class TestSelfEvaluation:
         )
 
     def test_all_dimensions_evaluated(self, skill_path):
-        """All 7 dimensions should be evaluated."""
+        """All 12 dimensions should be evaluated."""
         dimensions = run_quality_assessment(skill_path)
 
         expected_dimensions = [
-            "frontmatter",
-            "content",
-            "security",
-            "structure",
-            "efficiency",
+            "behavioral",
+            "behavioral_readiness",
             "best_practices",
             "code_quality",
+            "content",
+            "efficiency",
+            "frontmatter",
+            "instruction_clarity",
+            "security",
+            "structure",
+            "trigger_design",
+            "value_add",
         ]
 
         for dim in expected_dimensions:
