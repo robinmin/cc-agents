@@ -129,6 +129,9 @@ class BestPracticesEvaluator:
 
         if scripts_dir.exists():
             for script_file in scripts_dir.glob("*.py"):
+                # Skip __init__.py - it's a package marker, not a script
+                if script_file.name == "__init__.py":
+                    continue
                 script_count += 1
                 script_content = script_file.read_text()
                 if script_content.startswith("#!/usr/bin/env python3"):
@@ -136,75 +139,55 @@ class BestPracticesEvaluator:
                 if "from __future__ import" in script_content:
                     scripts_with_future += 1
 
-        # Evaluate naming convention
-        def eval_naming(criterion: RubricCriterion) -> tuple[str, str]:
-            if not name:
-                return "poor", "No name in frontmatter"
-            is_valid = bool(re.match(r"^[a-z0-9-]+$", name))
-            has_invalid = name.startswith("-") or name.endswith("-") or "--" in name
-            if is_valid and not has_invalid:
-                return "perfect", f"'{name}' follows hyphen-case"
-            elif is_valid:
-                return "good", f"'{name}' mostly valid"
-            return "poor", f"'{name}' does not follow hyphen-case"
+        # Evaluate all criteria with a single function
+        def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
+            if criterion.name == "naming_convention":
+                if not name:
+                    return "poor", "No name in frontmatter"
+                is_valid = bool(re.match(r"^[a-z0-9-]+$", name))
+                has_invalid = name.startswith("-") or name.endswith("-") or "--" in name
+                if is_valid and not has_invalid:
+                    return "perfect", f"'{name}' follows hyphen-case"
+                elif is_valid:
+                    return "good", f"'{name}' mostly valid"
+                return "poor", f"'{name}' does not follow hyphen-case"
+            elif criterion.name == "documentation_completeness":
+                has_when_to_use = "when to use" in content.lower()
+                desc_len = len(description) if description else 0
+                if 20 <= desc_len <= 1024 and has_when_to_use:
+                    return "complete", "Good description with 'when to use'"
+                elif 20 <= desc_len <= 1024:
+                    return "good", "Good description length"
+                elif desc_len > 0:
+                    return "fair", f"Description present ({desc_len} chars)"
+                return "poor", "No description"
+            elif criterion.name == "todo_resolution":
+                if todo_count == 0:
+                    return "clean", "No TODO placeholders"
+                elif todo_count <= 2:
+                    return "minor", f"{todo_count} TODO(s)"
+                elif todo_count <= 4:
+                    return "moderate", f"{todo_count} TODOs"
+                return "extensive", f"{todo_count} TODOs"
+            elif criterion.name == "script_best_practices":
+                if script_count == 0:
+                    return "none", "No scripts directory"
+                shebang_ratio = scripts_with_shebang / script_count if script_count > 0 else 0
+                future_ratio = scripts_with_future / script_count if script_count > 0 else 0
+                if shebang_ratio == 1.0 and future_ratio == 1.0:
+                    return "excellent", "All scripts follow best practices"
+                elif shebang_ratio >= 0.5:
+                    return "good", f"{scripts_with_shebang}/{script_count} have shebang"
+                elif shebang_ratio > 0:
+                    return "fair", "Some scripts have shebang"
+                return "poor", "Scripts missing best practices"
+            return "poor", "Unknown criterion"
 
-        # Evaluate documentation
-        def eval_documentation(criterion: RubricCriterion) -> tuple[str, str]:
-            has_when_to_use = "when to use" in content.lower()
-            desc_len = len(description) if description else 0
-            if 20 <= desc_len <= 1024 and has_when_to_use:
-                return "complete", "Good description with 'when to use'"
-            elif 20 <= desc_len <= 1024:
-                return "good", "Good description length"
-            elif desc_len > 0:
-                return "fair", f"Description present ({desc_len} chars)"
-            return "poor", "No description"
-
-        # Evaluate TODOs
-        def eval_todos(criterion: RubricCriterion) -> tuple[str, str]:
-            if todo_count == 0:
-                return "clean", "No TODO placeholders"
-            elif todo_count <= 2:
-                return "minor", f"{todo_count} TODO(s)"
-            elif todo_count <= 4:
-                return "moderate", f"{todo_count} TODOs"
-            return "extensive", f"{todo_count} TODOs"
-
-        # Evaluate script best practices
-        def eval_scripts(criterion: RubricCriterion) -> tuple[str, str]:
-            if script_count == 0:
-                return "none", "No scripts directory"
-            shebang_ratio = scripts_with_shebang / script_count if script_count > 0 else 0
-            future_ratio = scripts_with_future / script_count if script_count > 0 else 0
-            if shebang_ratio == 1.0 and future_ratio == 1.0:
-                return "excellent", "All scripts follow best practices"
-            elif shebang_ratio >= 0.5:
-                return "good", f"{scripts_with_shebang}/{script_count} have shebang"
-            elif shebang_ratio > 0:
-                return "fair", "Some scripts have shebang"
-            return "poor", "Scripts missing best practices"
-
-        # Evaluate all criteria
-        score1, findings1, recs1 = self.RUBRIC_SCORER.evaluate(eval_naming)
-        score2, findings2, recs2 = self.RUBRIC_SCORER.evaluate(eval_documentation)
-        score3, findings3, recs3 = self.RUBRIC_SCORER.evaluate(eval_todos)
-        score4, findings4, recs4 = self.RUBRIC_SCORER.evaluate(eval_scripts)
-
-        # Combine scores
-        combined_score = (score1 + score2 + score3 + score4) / 4.0
-
-        findings.extend(findings1)
-        findings.extend(findings2)
-        findings.extend(findings3)
-        findings.extend(findings4)
-        recommendations.extend(recs1)
-        recommendations.extend(recs2)
-        recommendations.extend(recs3)
-        recommendations.extend(recs4)
+        score, findings, recommendations = self.RUBRIC_SCORER.evaluate(evaluate_criterion)
 
         return DimensionScore(
             name=self.name,
-            score=combined_score,
+            score=score,
             weight=self.weight,
             findings=findings,
             recommendations=recommendations if recommendations else ["Follows best practices"],
