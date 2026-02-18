@@ -1,3 +1,74 @@
+## [0.7.4] - 2026-02-18
+
+### Summary
+
+**cc-skills v2.1: 12-Dimension Evaluation, Code Review Fixes, Enhanced References**
+
+Enhanced the cc-skills meta-skill with 12-dimension evaluation framework, fixed code review issues achieving 90.90/100 Grade A, added new reference documentation, and aligned agents/commands with latest framework.
+
+### Added
+
+- **2 New Reference Files** (`references/`):
+  - **skill-patterns.md**: 5 official skill patterns (Sequential Workflow, Multi-MCP Coordination, Iterative Refinement, Context-Aware Tool Selection, Domain-Specific Intelligence)
+  - **troubleshooting.md**: Systematic troubleshooting guide with symptom → diagnosis → solution format
+
+- **MCP Integration Reference** (`references/mcp-integration.md`):
+  - When to create MCP Enhancement skills
+  - Multi-MCP coordination patterns
+  - Error handling for MCP issues
+
+- **Distribution Guide** (`references/distribution.md`):
+  - GitHub hosting best practices
+  - API usage (`container.skills`)
+  - Skill positioning tips
+
+### Changed
+
+- **12-Dimension Evaluation Framework** (`scripts/skills.py`):
+  - Expanded from 10 to 12 dimensions
+  - Added Behavioral Readiness (8%) and Instruction Clarity (11%)
+  - Frontmatter and Structure now 0% weight (validated in Phase 1)
+
+- **Trigger Design Fix** (`scripts/evaluators/trigger_design.py`):
+  - Fixed false positive workflow detection
+  - Changed regex from `\bfirst\s+` to `(?<!-)first\s+` to avoid matching "evaluation-first"
+
+- **Test Coverage** (`tests/test_self_evaluation.py`):
+  - Updated to include all 12 dimension names
+
+- **SKILL.md Optimization**:
+  - Reduced token count from ~3273 to ~2886
+  - Combined duplicate sections for efficiency
+  - Added CSO categories to description (error messages, symptoms, tools)
+
+- **Code Clarity** (`scripts/evaluators/frontmatter.py`, `structure.py`):
+  - Added clarifying comments about dimension weights
+  - Documented Phase 1 vs Phase 2 validation
+
+### Agents & Commands Updated
+
+- **skill-doctor.md**: Updated to 12 dimensions, added Phase 1/2 structure
+- **skill-expert.md**: Added MCP skill type, 5 official patterns
+- **skill-add.md**: Added MCP type, skill patterns section
+- **skill-evaluate.md**: Updated to 12 dimensions
+- **skill-refine.md**: Updated command paths
+
+### Fixed
+
+- False positive workflow detection in trigger_design.py
+- Test coverage for all 12 dimensions
+- Token efficiency (75% score)
+- CSO category coverage in descriptions
+
+### Test Results
+
+- All 200 tests passing
+- Phase 1 (structural validation): 7/7 evaluators working
+- Phase 2 (quality scoring): 12 dimensions scoring properly
+- Final Score: 90.90/100 (Grade A - Production ready)
+
+---
+
 ## [0.7.2] - 2026-02-12
 
 ### Summary
