@@ -221,11 +221,11 @@ class TriggerDesignEvaluator:
 
             elif criterion.name == "anti_patterns":
                 workflow_indicators = [
-                    r"first\s+",
-                    r"then\s+",
-                    r"finally\s+",
+                    r"(?<!-)first\s+",  # first not preceded by hyphen
+                    r"\bthen\s+",
+                    r"\bfinally\s+",
                     r"analyzes?\s+.*\s+identifies?\s+.*\s+applies?",
-                    r"step\s+\d+",
+                    r"\bstep\s+\d+",
                 ]
                 has_workflow_summary = any(
                     re.search(p, description, re.IGNORECASE) for p in workflow_indicators
