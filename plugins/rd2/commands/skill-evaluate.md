@@ -1,5 +1,5 @@
 ---
-description: Evaluate skill quality across 7 dimensions with actionable recommendations
+description: Evaluate skill quality across 12 dimensions with actionable recommendations
 argument-hint: <skill-folder>
 ---
 
@@ -23,7 +23,9 @@ Thin wrapper for `rd2:skill-doctor` agent. Read-only quality assessment.
 ## What It Does
 
 Delegates to `rd2:skill-doctor` for comprehensive evaluation:
-- 7 dimensions: Frontmatter, Content, Security, Structure, Efficiency, Best Practices, Code Quality
+- 12 dimensions: Behavioral, Behavioral Readiness, Best Practices, Code Quality, Content, Efficiency, Frontmatter, Instruction Clarity, Security, Structure, Trigger Design, Value Add
+- Phase 1: Structural validation (frontmatter, SKILL.md presence, directory structure)
+- Phase 2: Quality scoring with weighted totals
 - Scoring with grades A-F (90-100 = A, 70-89 = B, etc.)
 - Priority-ranked recommendations (Critical → High → Medium)
 
@@ -33,7 +35,7 @@ Delegates to `rd2:skill-doctor` for comprehensive evaluation:
 
 ```bash
 # Step 1: Run programmatic validation to catch structural issues
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/skills.py evaluate {skill_folder}
+python3 plugins/rd2/skills/cc-skills/scripts/skills.py evaluate {skill_folder}
 
 # Step 2: Delegate to skill-doctor for qualitative assessment
 Task(
