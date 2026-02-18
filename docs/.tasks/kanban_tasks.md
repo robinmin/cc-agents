@@ -44,4 +44,10 @@ kanban-plugin: board
 - [x] 0197_Add_behavioral_test_scenario_format_and_runner
 - [x] 0198_Update_cc-skills_SKILL.md_and_references_for_new_dimensions
 - [x] 0199_simplify_the_output_of_command_tasks_list
+- [x] 0204_Fix_false_positive_workflow_detection_in_trigger_design.py
+- [x] 0205_Update_test_all_dimensions_evaluated_for_12_dimensions
+- [x] 0206_Reduce_SKILL.md_token_count_from_~3273_to_under_3000
+- [x] 0207_Add_CSO_categories_to_SKILL.md_description
+- [x] 0208_Add_trigger_testing_to_tests_scenarios.yaml
+- [x] 0209_Add_dimension_weight_comments_in_frontmatter.py_structure.py
 
