@@ -118,60 +118,45 @@ class EfficiencyEvaluator:
         word_counts = [len(line.split()) for line in non_empty_lines if line]
         avg_words_per_line = sum(word_counts) / len(word_counts) if word_counts else 0
 
-        # Evaluate token efficiency
-        def eval_tokens(criterion: RubricCriterion) -> tuple[str, str]:
-            if token_estimate < 500:
-                return "efficient", f"~{int(token_estimate)} tokens (efficient)"
-            elif token_estimate < 1500:
-                return "reasonable", f"~{int(token_estimate)} tokens (reasonable)"
-            elif token_estimate < 3000:
-                return "large", f"~{int(token_estimate)} tokens (large)"
-            elif token_estimate < 5000:
-                return "excessive", f"~{int(token_estimate)} tokens (excessive)"
-            return "bloated", f"~{int(token_estimate)} tokens (must split)"
+        # Evaluate all criteria with a single function
+        def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
+            if criterion.name == "token_efficiency":
+                if token_estimate < 500:
+                    return "efficient", f"~{int(token_estimate)} tokens (efficient)"
+                elif token_estimate < 1500:
+                    return "reasonable", f"~{int(token_estimate)} tokens (reasonable)"
+                elif token_estimate < 3000:
+                    return "large", f"~{int(token_estimate)} tokens (large)"
+                elif token_estimate < 5000:
+                    return "excessive", f"~{int(token_estimate)} tokens (excessive)"
+                return "bloated", f"~{int(token_estimate)} tokens (must split)"
+            elif criterion.name == "content_redundancy":
+                if duplicates == 0:
+                    return "clean", "No duplicate lines"
+                elif duplicates <= 2:
+                    return "minimal", f"{duplicates} duplicate line(s)"
+                elif duplicates <= 5:
+                    return "moderate", f"{duplicates} duplicate lines"
+                elif duplicates <= 10:
+                    return "redundant", f"{duplicates} duplicate lines"
+                return "severe", f"{duplicates} duplicate lines"
+            elif criterion.name == "conciseness":
+                if avg_words_per_line < 20:
+                    return "concise", f"{avg_words_per_line:.1f} words/line (concise)"
+                elif avg_words_per_line < 30:
+                    return "clear", f"{avg_words_per_line:.1f} words/line (clear)"
+                elif avg_words_per_line < 40:
+                    return "verbose", f"{avg_words_per_line:.1f} words/line (verbose)"
+                elif avg_words_per_line < 50:
+                    return "wordy", f"{avg_words_per_line:.1f} words/line (wordy)"
+                return "bloated", f"{avg_words_per_line:.1f} words/line (bloated)"
+            return "bloated", "Unknown criterion"
 
-        # Evaluate redundancy
-        def eval_redundancy(criterion: RubricCriterion) -> tuple[str, str]:
-            if duplicates == 0:
-                return "clean", "No duplicate lines"
-            elif duplicates <= 2:
-                return "minimal", f"{duplicates} duplicate line(s)"
-            elif duplicates <= 5:
-                return "moderate", f"{duplicates} duplicate lines"
-            elif duplicates <= 10:
-                return "redundant", f"{duplicates} duplicate lines"
-            return "severe", f"{duplicates} duplicate lines"
-
-        # Evaluate conciseness
-        def eval_conciseness(criterion: RubricCriterion) -> tuple[str, str]:
-            if avg_words_per_line < 20:
-                return "concise", f"{avg_words_per_line:.1f} words/line (concise)"
-            elif avg_words_per_line < 30:
-                return "clear", f"{avg_words_per_line:.1f} words/line (clear)"
-            elif avg_words_per_line < 40:
-                return "verbose", f"{avg_words_per_line:.1f} words/line (verbose)"
-            elif avg_words_per_line < 50:
-                return "wordy", f"{avg_words_per_line:.1f} words/line (wordy)"
-            return "bloated", f"{avg_words_per_line:.1f} words/line (bloated)"
-
-        # Evaluate all criteria
-        score1, findings1, recs1 = self.RUBRIC_SCORER.evaluate(eval_tokens)
-        score2, findings2, recs2 = self.RUBRIC_SCORER.evaluate(eval_redundancy)
-        score3, findings3, recs3 = self.RUBRIC_SCORER.evaluate(eval_conciseness)
-
-        # Combine scores
-        combined_score = (score1 + score2 + score3) / 3.0
-
-        findings.extend(findings1)
-        findings.extend(findings2)
-        findings.extend(findings3)
-        recommendations.extend(recs1)
-        recommendations.extend(recs2)
-        recommendations.extend(recs3)
+        score, findings, recommendations = self.RUBRIC_SCORER.evaluate(evaluate_criterion)
 
         return DimensionScore(
             name=self.name,
-            score=combined_score,
+            score=score,
             weight=self.weight,
             findings=findings,
             recommendations=recommendations if recommendations else ["Content is efficient"],
