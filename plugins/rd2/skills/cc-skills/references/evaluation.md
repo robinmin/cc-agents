@@ -185,25 +185,48 @@ python3 scripts/skills.py evaluate /path/to/skill --format json
 python3 scripts/skills.py evaluate /path/to/skill --format markdown
 ```
 
-### Two-Phase Evaluation
+### Two-Tier Evaluation Architecture
 
-**Phase 1: Structural Validation**
+The evaluation system uses a Two-tier architecture for robust skill validation:
+
+**Tier 1: Structural Validation (Deterministic)**
 - Verifies SKILL.md exists
 - Validates YAML frontmatter syntax
 - Checks required fields (name, description)
-- Pass/Fail result
+- Validates naming conventions (hyphen-case)
+- Detects optional directories (scripts/, references/, assets/)
+- Each check returns: **STOP** (critical) or **SUGGEST** (warning)
+- If STOP action triggered, quality assessment still runs for diagnostics
 
-**Phase 2: Quality Assessment**
+**Tier 2: Quality Scoring (Subjective)**
 - Scores 7 dimensions (see below)
 - Weighted scoring for overall grade
 - Findings with specific file:line references
 - Actionable recommendations
 
+#### Tier 1 Action Types
+
+| Action | Icon | Meaning | Evaluation Continues? |
+|--------|------|---------|----------------------|
+| **STOP** | ⏹ | Critical failure - skill cannot function | Yes (for diagnostics) |
+| **SUGGEST** | 💡 | Warning - improvement suggested | Yes |
+
+**Example Tier 1 Output:**
+```
+Phase 1: Running Tier 1 (Structural Validation)...
+  ✓ SKILL.md exists: SKILL.md exists
+  ✓ Name format: Name 'my-skill' is valid
+  ✓ Directory: references/: references/ directory exists
+  ⏹ [STOP] Name field type: Name must be a string, got NoneType
+
+⚠ STOP action(s) triggered. Quality assessment will still run for diagnostics.
+```
+
 ### Scoring Dimensions
 
 | Dimension | Weight | What It Measures |
 |-----------|--------|------------------|
-| **Frontmatter** | 10% | YAML validity, required fields, allowed-tools |
+| **Frontmatter** | 10% | YAML validity, required fields, version |
 | **Content** | 25% | Length, sections (Overview, Quick Start), examples |
 | **Security** | 20% | AST-based dangerous pattern detection |
 | **Structure** | 15% | Directory organization, progressive disclosure |
@@ -215,11 +238,11 @@ python3 scripts/skills.py evaluate /path/to/skill --format markdown
 
 | Grade | Score Range | Meaning |
 |-------|-------------|---------|
-| **A** | 9.0 - 10.0 | Production ready |
-| **B** | 7.0 - 8.9 | Minor fixes needed |
-| **C** | 5.0 - 6.9 | Moderate revision |
-| **D** | 3.0 - 4.9 | Major revision |
-| **F** | 0.0 - 2.9 | Rewrite needed |
+| **A** | 90.0 - 100.0 | Production ready |
+| **B** | 70.0 - 89.9 | Minor fixes needed |
+| **C** | 50.0 - 69.9 | Moderate revision |
+| **D** | 30.0 - 49.9 | Major revision |
+| **F** | 0.0 - 29.9 | Rewrite needed |
 
 ### AST-Based Security Analysis
 
@@ -250,22 +273,22 @@ SKILL EVALUATION REPORT
 Path: /path/to/your-skill
 ======================================================================
 
-## Phase 1: Structural Validation
+## Tier 1: Structural Validation
 ----------------------------------------------------------------------
-✓ PASSED: Skill is valid!
+✓ PASSED: All Tier 1 checks passed
 
-## Phase 2: Quality Assessment
+## Tier 2: Quality Assessment
 ----------------------------------------------------------------------
 
 ### Security
-Score: 10.0/10 | Weight: 20% | Weighted: 2.00
+Score: 100.0/100 | Weight: 20% | Weighted: 20.00
 
 Findings:
   • Mentions security considerations
   • No obvious security issues detected
 
 ### Code Quality
-Score: 10.0/10 | Weight: 10% | Weighted: 1.00
+Score: 100.0/100 | Weight: 10% | Weighted: 10.00
 
 Findings:
   • scripts/main.py: Has error handling
@@ -274,7 +297,7 @@ Findings:
 
 ## Overall Score
 ----------------------------------------------------------------------
-Total Score: 9.43/10
+Total Score: 94.3/100
 Grade: A - Production ready
 ```
 
