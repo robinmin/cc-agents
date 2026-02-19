@@ -1,0 +1,36 @@
+# Behavioral test scenarios for cc-commands skill
+# Tests verify skill correctly handles various command creation/evaluation scenarios
+
+scenarios:
+  - name: Create simple command
+    description: Skill should guide creating a basic slash command with frontmatter
+    input: "Create a /hello command"
+    trigger: "create a slash command"
+    expected_behaviors:
+      - "Design frontmatter with description, allowed-tools"
+      - "Write command body with clear instructions"
+      - "Include argument-hint if needed"
+    tags: [creation, beginner]
+
+  - name: Evaluate existing command
+    description: Skill should evaluate command quality across all dimensions
+    input: "Check if my command is production-ready"
+    trigger: "evaluate command quality"
+    expected_behaviors:
+      - "Run quality assessment across 6 dimensions"
+      - "Identify gaps and issues"
+      - "Provide score and recommendations"
+    tags: [evaluation, quality]
+
+  - name: Fix command issues
+    description: Skill should help refine and fix command problems
+    input: "Fix my command that doesn't appear in /help"
+    trigger: "fix command issues"
+    expected_behaviors:
+      - "Diagnose frontmatter issues"
+      - "Check naming conventions"
+      - "Identify missing required fields"
+    tags: [debugging, refinement]
+    anti_behaviors:
+      - "Skip frontmatter validation"
+      - "Ignore naming conventions"
