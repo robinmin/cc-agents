@@ -5,20 +5,20 @@ argument-hint: <plugin-name> <agent-name>
 
 # Add New Agent
 
-Thin wrapper for `rd2:cc-agents` skill. Creates production-ready agent skeletons with 8-section anatomy.
+Create production-ready agent subagents with 8-section anatomy. Use this command when the user asks to "create an agent", "build an agent", "make a new agent", "generate an agent", "add a new agent", "write an agent", "define an agent", "scaffold an agent".
 
 ## Quick Start
 
 ```bash
 /rd2:agent-add rd2 rust-expert        # Create agent in rd2 plugin
-/rd2:agent-add rd2 ml-architect        # Create agent in rd2 plugin
+/rd2:agent-add rd2 ml-architect       # Create agent in rd2 plugin
 ```
 
 ## Arguments
 
 | Argument      | Required | Description                            |
 | ------------- | -------- | -------------------------------------- |
-| `plugin-name` | Yes      | Target plugin (e.g., "rd", "rd2")      |
+| `plugin-name` | Yes      | Target plugin (e.g., "rd", "rd2")    |
 | `agent-name`  | Yes      | Agent name (lowercase-hyphens, max 64) |
 
 ## Workflow
@@ -62,7 +62,7 @@ Thin wrapper for `rd2:cc-agents` skill. Creates production-ready agent skeletons
 | Language experts  | `blue`, `cyan`      |
 | Framework experts | `green`, `teal`     |
 | Domain experts    | `magenta`, `purple` |
-| Task experts      | `yellow`, `orange`  |
+| Task experts      | `yellow`, `orange` |
 | Quality/Security  | `red`, `crimson`    |
 
 ## Frontmatter Validation
