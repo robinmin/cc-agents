@@ -141,14 +141,13 @@ def validate_frontmatter(frontmatter: dict[str, Any], skill_type: SkillType) -> 
 
     # Agent-specific validation
     if skill_type == SkillType.AGENT:
-        if "model" not in frontmatter:
-            issues.append(ValidationIssue("error", "frontmatter", "model required for agents", field="model"))
-        else:
+        # model is optional - defaults to inherit if not specified
+        if "model" in frontmatter:
             issues.extend(validate_model(frontmatter.get("model")))
 
-        if "color" not in frontmatter:
-            issues.append(ValidationIssue("error", "frontmatter", "color required for agents", field="color"))
-        else:
+        # color is NOT in official Claude Code schema - it's a UI enhancement
+        # Validate it if present but don't require it
+        if "color" in frontmatter:
             issues.extend(validate_color(frontmatter.get("color")))
 
         issues.extend(validate_tools(frontmatter.get("tools")))
