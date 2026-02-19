@@ -176,24 +176,39 @@ class TestValidateFrontmatter:
         assert any("Invalid field" in i.message for i in issues)
 
     def test_agent_missing_model(self):
-        """Test agent missing model."""
+        """Test agent missing model is valid (optional, defaults to inherit)."""
         fm = {
             "name": "test-agent",
             "description": "test",
             "color": "blue"
         }
         issues = validate_frontmatter(fm, SkillType.AGENT)
-        assert any("model required" in i.message for i in issues)
+        # model is optional - no error should be raised
+        model_errors = [i for i in issues if i.field == "model" and i.severity == "error"]
+        assert len(model_errors) == 0, f"Expected no model errors, got: {model_errors}"
 
     def test_agent_missing_color(self):
-        """Test agent missing color."""
+        """Test agent missing color is valid (not in official schema)."""
         fm = {
             "name": "test-agent",
             "description": "test",
             "model": "sonnet"
         }
         issues = validate_frontmatter(fm, SkillType.AGENT)
-        assert any("color required" in i.message for i in issues)
+        # color is NOT in official schema - no error should be raised
+        color_errors = [i for i in issues if i.field == "color" and i.severity == "error"]
+        assert len(color_errors) == 0, f"Expected no color errors, got: {color_errors}"
+
+    def test_agent_minimal_valid(self):
+        """Test agent with only required fields (name, description) is valid."""
+        fm = {
+            "name": "test-agent",
+            "description": "Test agent for something"
+        }
+        issues = validate_frontmatter(fm, SkillType.AGENT)
+        # Only name and description are required - should pass
+        errors = [i for i in issues if i.severity == "error"]
+        assert len(errors) == 0, f"Expected no errors for minimal agent, got: {errors}"
 
 
 class TestParseFrontmatter:
