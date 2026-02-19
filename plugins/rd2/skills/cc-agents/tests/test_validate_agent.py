@@ -177,25 +177,29 @@ def test_validate_frontmatter_agent_valid():
 
 
 def test_validate_frontmatter_agent_missing_model():
-    """Test agent missing model."""
+    """Test agent missing model is valid (optional per official schema)."""
     fm = {
         "name": "test-agent",
         "description": "Test",
         "color": "blue",
     }
     issues = validate_frontmatter(fm, SkillType.AGENT)
-    assert any("model required" in i.message for i in issues)
+    # model is optional - should have no errors
+    model_errors = [i for i in issues if i.field == "model" and i.severity == "error"]
+    assert len(model_errors) == 0, f"Expected no model errors, got: {model_errors}"
 
 
 def test_validate_frontmatter_agent_missing_color():
-    """Test agent missing color."""
+    """Test agent missing color is valid (not in official schema)."""
     fm = {
         "name": "test-agent",
         "description": "Test",
         "model": "sonnet",
     }
     issues = validate_frontmatter(fm, SkillType.AGENT)
-    assert any("color required" in i.message for i in issues)
+    # color is NOT in official schema - should have no errors
+    color_errors = [i for i in issues if i.field == "color" and i.severity == "error"]
+    assert len(color_errors) == 0, f"Expected no color errors, got: {color_errors}"
 
 
 def test_validate_frontmatter_skill_valid():
