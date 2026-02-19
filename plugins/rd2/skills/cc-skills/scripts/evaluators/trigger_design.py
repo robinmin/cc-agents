@@ -4,6 +4,7 @@ Evaluates how well a skill defines its activation triggers - the phrases,
 keywords, and signals that cause Claude to discover and invoke the skill.
 
 Uses rubric-based scoring with clear criteria for each level.
+Now uses common validation framework from plugins/rd2/scripts.
 """
 
 from __future__ import annotations
@@ -19,10 +20,24 @@ try:
 except ImportError:
     from skills import DIMENSION_WEIGHTS  # type: ignore[no-redef, import-not-found]
 
+# Try to use common validation framework, fall back to local implementation
 try:
-    from ..skills import parse_frontmatter
+    # Add common library to path
+    _common_lib_path = Path(__file__).parent.parent.parent.parent.parent / "scripts"
+    if _common_lib_path.exists():
+        import sys
+        if str(_common_lib_path) not in sys.path:
+            sys.path.insert(0, str(_common_lib_path))
+
+    from schema.frontmatter import parse_frontmatter as common_parse_frontmatter
+    HAS_COMMON = True
 except ImportError:
-    from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
+    HAS_COMMON = False
+    # Fall back to local parse_frontmatter
+    try:
+        from ..skills import parse_frontmatter
+    except ImportError:
+        from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
 
 
 # =============================================================================
@@ -142,9 +157,16 @@ class TriggerDesignEvaluator:
             )
 
         content = skill_md.read_text()
-        frontmatter, _ = parse_frontmatter(content)
 
-        if frontmatter is None:
+        # Use common parser if available
+        if HAS_COMMON:
+            frontmatter, body = common_parse_frontmatter(content)
+        else:
+            frontmatter, _ = parse_frontmatter(content)
+            body = ""
+
+        # Handle both None (local parser) and empty dict (common parser)
+        if frontmatter is None or (isinstance(frontmatter, dict) and not frontmatter):
             return DimensionScore(
                 name=self.name,
                 score=0.0,
@@ -153,7 +175,16 @@ class TriggerDesignEvaluator:
                 recommendations=["Fix YAML frontmatter syntax"],
             )
 
+        # Check for missing description (required for trigger design)
         description = frontmatter.get("description", "") or ""
+        if not description:
+            return DimensionScore(
+                name=self.name,
+                score=0.0,
+                weight=self.weight,
+                findings=["Invalid frontmatter - description missing or empty"],
+                recommendations=["Add description field to frontmatter"],
+            )
         desc_len = len(description.strip())
 
         # Count trigger phrases (used by multiple criteria)

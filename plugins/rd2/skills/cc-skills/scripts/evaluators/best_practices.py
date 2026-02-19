@@ -1,6 +1,7 @@
 """Best practices evaluation module.
 
 Evaluates adherence to coding and documentation best practices using rubric-based scoring.
+Now uses common validation framework from plugins/rd2/scripts.
 """
 
 from pathlib import Path
@@ -8,11 +9,24 @@ import re
 
 from .base import DimensionScore, RubricLevel, RubricCriterion, RubricScorer, DIMENSION_WEIGHTS
 
-# Handle both package import and direct execution
+# Try to use common validation framework, fall back to local implementation
 try:
-    from ..skills import parse_frontmatter
+    # Add common library to path
+    _common_lib_path = Path(__file__).parent.parent.parent.parent.parent / "scripts"
+    if _common_lib_path.exists():
+        import sys
+        if str(_common_lib_path) not in sys.path:
+            sys.path.insert(0, str(_common_lib_path))
+
+    from schema.frontmatter import parse_frontmatter as common_parse_frontmatter
+    HAS_COMMON = True
 except ImportError:
-    from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
+    HAS_COMMON = False
+    # Fall back to local parse_frontmatter
+    try:
+        from ..skills import parse_frontmatter
+    except ImportError:
+        from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
 
 
 # =============================================================================
@@ -114,7 +128,12 @@ class BestPracticesEvaluator:
             )
 
         content = skill_md.read_text()
-        frontmatter, _ = parse_frontmatter(content)
+
+        # Use common parser if available
+        if HAS_COMMON:
+            frontmatter, _ = common_parse_frontmatter(content)
+        else:
+            frontmatter, _ = parse_frontmatter(content)
 
         # Extract data
         name = frontmatter.get("name", "") if frontmatter else ""

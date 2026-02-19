@@ -3,6 +3,7 @@
 Evaluates the quality of YAML frontmatter in SKILL.md files.
 
 Uses rubric-based scoring with clear criteria for each level.
+Now uses common validation framework from plugins/rd2/scripts.
 """
 
 import re
@@ -10,11 +11,30 @@ from pathlib import Path
 
 from .base import DimensionScore, RubricLevel, RubricCriterion, RubricScorer, DIMENSION_WEIGHTS
 
-# Handle both package import and direct execution
+# Try to use common validation framework, fall back to local implementation
 try:
-    from ..skills import parse_frontmatter
+    # Add common library to path
+    _common_lib_path = Path(__file__).parent.parent.parent.parent.parent / "scripts"
+    if _common_lib_path.exists():
+        import sys
+        if str(_common_lib_path) not in sys.path:
+            sys.path.insert(0, str(_common_lib_path))
+
+    from schema.frontmatter import (
+        parse_frontmatter as common_parse_frontmatter,
+        validate_name,
+        validate_description,
+    )
+    from schema.base import SkillType
+
+    HAS_COMMON = True
 except ImportError:
-    from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
+    HAS_COMMON = False
+    # Fall back to local parse_frontmatter
+    try:
+        from ..skills import parse_frontmatter
+    except ImportError:
+        from skills import parse_frontmatter  # type: ignore[no-redef, import-not-found]
 
 
 # =============================================================================
@@ -108,16 +128,28 @@ class FrontmatterEvaluator:
             )
 
         content = skill_md.read_text()
-        frontmatter, error = parse_frontmatter(content)
 
-        if frontmatter is None:
-            return DimensionScore(
-                name=self.name,
-                score=0.0,
-                weight=self.weight,
-                findings=[f"Frontmatter error: {error}"],
-                recommendations=["Fix YAML frontmatter syntax"],
-            )
+        # Use common parser if available
+        if HAS_COMMON:
+            frontmatter, body = common_parse_frontmatter(content)
+            if not frontmatter:
+                return DimensionScore(
+                    name=self.name,
+                    score=0.0,
+                    weight=self.weight,
+                    findings=["No valid frontmatter found"],
+                    recommendations=["Fix YAML frontmatter syntax"],
+                )
+        else:
+            frontmatter, error = parse_frontmatter(content)
+            if frontmatter is None:
+                return DimensionScore(
+                    name=self.name,
+                    score=0.0,
+                    weight=self.weight,
+                    findings=[f"Frontmatter error: {error}"],
+                    recommendations=["Fix YAML frontmatter syntax"],
+                )
 
         # Evaluate all criteria with a single function
         def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
