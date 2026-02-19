@@ -5,6 +5,8 @@ argument-hint: <agent-file>
 
 # Refine Agent
 
+Use this command when the user asks to "refine an agent", "improve an agent", "fix an agent", "enhance an agent", "update an agent", "polish an agent", "upgrade an agent", "revise an agent", "fix agent quality", "improve agent score", "agent refinement", "agent improvement".
+
 Thin wrapper for `rd2:cc-agents` skill. Improves agent quality based on evaluation findings.
 
 ## Quick Start
