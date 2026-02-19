@@ -1,0 +1,140 @@
+# Behavioral Test Scenarios for cc-agents skill
+# Version: 1.0
+# Purpose: Define test scenarios for cc-agents behavioral validation
+
+version: "1.0"
+
+# Trigger Tests: Verify skill activates on correct queries
+trigger_tests:
+  should_trigger:
+    - query: "Create a new Claude Code subagent"
+      confidence: 0.95
+      notes: "Direct request for agent creation"
+
+    - query: "Build an agent with specialized knowledge"
+      confidence: 0.90
+      notes: "Agent development context"
+
+    - query: "How do I make a new agent in Claude Code?"
+      confidence: 0.90
+      notes: "Question about agent creation"
+
+    - query: "Evaluate my agent quality"
+      confidence: 0.85
+      notes: "Agent evaluation request"
+
+    - query: "Improve my existing agent"
+      confidence: 0.85
+      notes: "Agent refinement request"
+
+    - query: "Write an agent definition file"
+      confidence: 0.90
+      notes: "Direct agent file creation"
+
+    - query: "My agent keeps failing validation, help fix it"
+      confidence: 0.80
+      notes: "Agent troubleshooting"
+
+  should_not_trigger:
+    - query: "Create a new skill"
+      reason: "This is skill creation, not agent creation"
+
+    - query: "Build a website"
+      reason: "Unrelated to agent development"
+
+    - query: "Write unit tests"
+      reason: "Testing task, not agent task"
+
+    - query: "Deploy to production"
+      reason: "Deployment, not agent work"
+
+  pass_criteria:
+    min_trigger_rate: 0.85
+    max_false_positive_rate: 0.15
+
+# Behavioral Scenarios: Test skill behavior in specific contexts
+scenarios:
+  - name: "Agent Creation Workflow"
+    description: "Creating a new agent from template"
+    input: "Create a code review agent for Python projects"
+    expected_behaviors:
+      - Uses 8-section anatomy template
+      - Includes verification protocol section
+      - Has 50+ competency items
+      - Defines proper persona
+      - Sets appropriate color
+    anti_behaviors:
+      - Skips verification section
+      - Uses generic persona
+      - Copies existing content verbatim
+    context:
+      domain: agent-development
+      complexity: medium
+      difficulty: intermediate
+
+  - name: "Agent Quality Evaluation"
+    description: "Evaluating existing agent quality"
+    input: "Evaluate my agent at plugins/rd2/agents/skill-doctor"
+    expected_behaviors:
+      - Runs programmatic validation
+      - Scores all 8 dimensions
+      - Provides grade (A-F)
+      - Lists specific issues
+      - Recommends fixes
+    anti_behaviors:
+      - Skips low-scoring dimensions
+      - Provides generic advice
+      - Omits actionable fixes
+    context:
+      domain: agent-evaluation
+      complexity: low
+      difficulty: beginner
+
+  - name: "Agent Refinement"
+    description: "Improving existing agent"
+    input: "Refine my agent to add more competencies"
+    expected_behaviors:
+      - Evaluates current state
+      - Identifies gaps
+      - Proposes improvements
+      - Applies fixes
+      - Re-evaluates
+    anti_behaviors:
+      - Makes random changes
+      - Ignores evaluation feedback
+      - Removes existing structure
+    context:
+      domain: agent-improvement
+      complexity: high
+      difficulty: advanced
+
+  - name: "Agent Structure Validation"
+    description: "Checking agent has all sections"
+    input: "Check if my agent has all 8 sections"
+    expected_behaviors:
+      - Identifies METADATA section
+      - Checks PERSONA section
+      - Verifies PHILOSOPHY section
+      - Validates VERIFICATION section
+      - Counts COMPETENCIES items
+      - Reviews RULES section
+    context:
+      domain: agent-validation
+      complexity: low
+
+# Performance Tests: Compare with/without skill
+performance_tests:
+  - name: "Agent Creation Speed"
+    description: "Time to create agent with vs without skill"
+    baseline_without_skill:
+      estimated_minutes: 30
+      common_errors:
+        - Missing sections
+        - Invalid format
+        - Poor competencies
+    with_skill:
+      estimated_minutes: 10
+      improvements:
+        - Template provides structure
+        - Checklist ensures completeness
+        - Examples guide implementation
