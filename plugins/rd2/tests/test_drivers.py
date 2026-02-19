@@ -102,7 +102,7 @@ description: No name field
         assert len(result.errors) > 0
 
     def test_agent_missing_required_fields(self):
-        """Test agent missing model/color."""
+        """Test agent with only required fields is valid per official schema."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
             f.write("""---
 name: test-agent
@@ -114,8 +114,9 @@ description: Use this agent when testing
             result = validate_structure(Path(f.name), SkillType.AGENT)
             Path(f.name).unlink()
 
-        # Should have errors for missing model/color
-        assert len(result.errors) > 0
+        # According to official Claude Code schema, only name and description are required
+        # model and color are optional - this should pass
+        assert len(result.errors) == 0, f"Expected no errors for minimal agent, got: {result.errors}"
 
 
 class TestValidateNaming:
