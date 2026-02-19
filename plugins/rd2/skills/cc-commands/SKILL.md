@@ -1,6 +1,6 @@
 ---
 name: cc-commands
-description: "Meta-skill for creating, evaluating, and refining Claude Code slash commands. Use when: building new slash commands, writing command frontmatter, designing command workflows, or packaging commands for plugins. Follows progressive disclosure, evaluation-first development, and plugin-based quality assessment."
+description: "This skill should be used when the user mentions creating slash commands, evaluating command quality, fixing command issues, or designing command workflows. Use when: 'creates slash commands', 'writes command frontmatter', 'evaluates command quality', 'fixes command issues'. Common errors: invalid YAML, missing description, command not discovered in plugins."
 ---
 
 # cc-commands: Claude Code Slash Commands
@@ -9,90 +9,85 @@ description: "Meta-skill for creating, evaluating, and refining Claude Code slas
 
 Create, evaluate, and refine Claude Code slash commands that extend AI capabilities with reusable workflows.
 
+## When to Use
+
+Create a new slash command → Invoke command creation
+Build a command that does Y → Invoke command creation
+Evaluate if a command is production-ready → Invoke quality assessment
+Fix command `/xyz` that isn't working → Invoke debugging
+
+Test skill invocation:
+Create command → Invoke command creation workflow
+Evaluate command → Invoke quality assessment
+Fix command → Invoke debugging workflow
+Don't trigger on "fix bug" for creation workflows
+Don't trigger on "delete command" for evaluation
+
+Use examples:
+Create new command: `cp assets/command-template.md plugins/my-plugin/commands/my-command.md`
+Evaluate existing command: `rd2:command-evaluate plugins/my-plugin/commands/my-command`
+Validate YAML: Check frontmatter syntax
+
 ## Quick Start
 
-```bash
-# 1. Create command from template
-cp ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/assets/command-template.md \
-   your-plugin/commands/your-command.md
+Create command from template
+Apply key quality checks
+Consult detailed references
 
-# 2. Key quality checks:
-# - Frontmatter: Valid YAML, proper fields only
-# - Description: Clear, under 60 characters
-# - Content: Imperative form, clear instructions
-# - Structure: Keep under ~150 lines (thin wrapper!)
+Validate frontmatter - Use valid YAML, proper fields only
+Write description - Keep clear, under 60 characters
+Format content - Use imperative form, clear instructions
+Limit structure - Keep under ~150 lines (thin wrapper!)
+Add argument-hint - Document expected arguments
 
-# 3. For detailed reference, see:
-# - references/frontmatter-reference.md
-# - references/ClaudeCodeBuilt-inTools.md
-# - references/plugin-features-reference.md
-```
+Read `references/frontmatter-reference.md` for field specs
+Read `references/ClaudeCodeBuilt-inTools.md` for tools
 
 ## Workflows
 
 ### Creating a Command
 
-Follow these steps:
-
-1. **Define Purpose** - Identify command scope, arguments, target use case
-2. **Design Interface** - Choose frontmatter fields, argument pattern (see `references/frontmatter-reference.md`)
-3. **Write Command** - Create prompt with clear instructions for Claude
-4. **Add Validation** - Include input checks, error handling
-5. **Test** - Verify command works with various inputs
-6. **Evaluate** - Run quality assessment
-7. **Iterate** - Address findings until Grade A/B
+Define Purpose - Identify command scope, arguments, target use case
+Design Interface - Choose frontmatter fields, argument pattern
+Write Command - Create prompt with clear instructions for Claude
+Add Validation - Include input checks, error handling
+Test - Verify command works with various inputs
+Evaluate - Run quality assessment
+Iterate - Address findings until Grade A/B
 
 ### Evaluating a Command
 
-**Evaluation Dimensions:**
+Validate Frontmatter - Verify YAML syntax, check valid fields
+Check Description - Confirm clear, under 60 chars, specific triggers
+Review Content - Ensure imperative form, clear instructions
+Measure Structure - Confirm ~150 lines max, progressive disclosure
 
-| Dimension | Weight | Focus |
-|-----------|--------|-------|
-| Frontmatter | 20% | Valid YAML, proper fields only |
-| Description | 25% | Clear, under 60 chars, specific triggers |
-| Content | 25% | Imperative form, clear instructions |
-| Structure | 15% | **~150 lines max**, progressive disclosure |
-| Validation | 10% | Input checks, error handling |
-| Best Practices | 5% | Naming, no circular references |
-
-**Passing Score:** >= 80/100
+Apply passing score: >= 80/100
 
 ### Refining a Command
 
-1. **Evaluate** - Identify gaps and issues
-2. **Review** - Check all dimensions, especially low scores
-3. **Fix** based on findings:
-   - Frontmatter issues? → Fix YAML, use valid fields only
-   - Description weak? → Add specific trigger phrases
-   - Content issues? → Use imperative form, add clarity
-   - Too long? → Move details to skill/references
-   - Missing validation? → Add input checks
-4. **Re-evaluate** - Run evaluation again
-5. **Repeat** - Until Grade A/B achieved
+Evaluate - Identify gaps and issues
+Review - Check all dimensions, especially low scores
+Fix Frontmatter issues - Fix YAML, use valid fields only
+Fix Description weak - Add specific trigger phrases
+Fix Content issues - Use imperative form, add clarity
+Re-evaluate - Run evaluation again
+Repeat - Continue until Grade A/B achieved
 
 ## Architecture: Fat Skills, Thin Wrappers
 
-Follow **Fat Skills, Thin Wrappers**:
+Apply Fat Skills, Thin Wrappers principle:
+Design skills as core logic, workflows, domain knowledge (1,500-2,000 words)
+Keep commands as minimal wrappers (~150 lines)
+Use agents as minimal orchestrators (~100-150 lines)
 
-- **Skills** = Core logic, workflows, domain knowledge (1,500-2,000 words)
-- **Commands** = Minimal wrappers (~150 lines) for human users
-- **Agents** = Minimal wrappers (~100-150 lines) for AI workflows
-
-**For detailed patterns**, see `references/ClaudeCodeBuilt-inTools.md`
-
-### Key Rule
-
-**Commands MUST NOT exceed ~150 lines**. If longer:
-1. Move detailed workflows to `references/`
-2. Delegate complex logic to skills
-3. Use templates for reusable patterns
+If command >150 lines:
+Move detailed workflows to `references/`
+Delegate complex logic to skills
 
 ## Command Structure
 
-### File Format
-
-Markdown files with optional YAML frontmatter:
-
+Structure commands using this format:
 ```markdown
 ---
 description: Review code for security issues
@@ -103,221 +98,60 @@ argument-hint: [file-path]
 Review this code for security vulnerabilities.
 ```
 
-**For complete frontmatter reference**, see `references/frontmatter-reference.md`
-
-### Valid Fields (Quick Reference)
-
-| Field | Purpose |
-|-------|---------|
-| `description` | Brief text for `/help` (~60 chars) |
-| `allowed-tools` | Restrict tool access |
-| `model` | Specify model: `haiku`, `sonnet`, `opus` |
-| `argument-hint` | Document expected arguments |
-| `disable-model-invocation` | Prevent programmatic invocation |
-
-**Invalid fields** (DO NOT USE): `skills`, `subagents`, `name`, `version`, `agent`, `context`, `user-invocable`, `triggers`, `examples`
-
-### Dynamic Arguments
-
-```markdown
----
-argument-hint: [pr-number] [priority]
----
-
-Review PR #$1 with priority $2.
-```
-
-- `$ARGUMENTS` - All arguments as string
-- `$1`, `$2`, `$3` - Positional arguments
-- `@$1`, `@$2` - File references (auto-read)
-
-## Plugin-Specific Features
-
-**For complete plugin patterns**, see `references/plugin-features-reference.md`
-
-### CLAUDE_PLUGIN_ROOT Variable
-
-Available in plugin commands - resolves to plugin directory:
-
-```markdown
----
-description: Run plugin script
-allowed-tools: Bash(node:*)
----
-
-Template: @${CLAUDE_PLUGIN_ROOT}/templates/report.md
-Script: !`node ${CLAUDE_PLUGIN_ROOT}/bin/process.js $1`
-```
-
-**Use for:** Plugin scripts, templates, configuration, resources
-
-### Plugin Discovery
-
-Commands in `plugin-name/commands/` are auto-discovered:
-
-```
-plugin-name/
-└── commands/
-    ├── foo.md              # /foo (plugin:plugin-name)
-    └── utils/
-        └── helper.md       # /helper (plugin:plugin-name:utils)
-```
+Validate frontmatter fields
+Use dynamic arguments ($1, $2, @$1)
+Apply CLAUDE_PLUGIN_ROOT variable
 
 ## Best Practices
 
-### Naming Conventions
+Apply naming conventions:
+Use full namespace: `plugin-name:command-name`
+Never reuse names across commands/skills/agents
 
-1. **ALWAYS use full namespace**: `plugin-name:command-name`
-2. **NEVER reuse names** across commands/skills/agents
+Follow component patterns:
+Slash Command (simple): verb-noun → `code-review`
+Slash Command (grouped): noun-verb → `agent-add`
 
-| Component | Pattern | Example |
-|-----------|---------|---------|
-| Slash Command (simple) | `verb-noun` | `code-review`, `deploy-app` |
-| Slash Command (grouped) | `noun-verb` | `agent-add`, `task-create` |
-| Skill | `verb-ing-noun` | `reviewing-code` |
-| Subagent | `role-agent` | `code-reviewer-agent` |
+## Common Issues
 
-### Command Length (CRITICAL)
+Detect and fix issues:
+Detect missing frontmatter - Add required frontmatter
+Detect second person - Rewrite using imperative form
+Detect missing argument-hint - Add argument-hint for $1, $2
+Detect commands too long - Move details to references/
 
-**Commands are thin wrappers (~150 lines maximum)**
+Apply fixes:
+Fix messages to user - Write FOR Claude
+Fix too long description - Keep under 60 chars
+Fix second person - Use imperative form
+Fix missing validation - Add input checks
 
-| Component | Size | Purpose |
-|-----------|------|---------|
-| Command | ~150 lines | Frontmatter + instructions |
-| Skill | 1,500-2,000 words | Core knowledge, workflows |
-| Agent | ~100-150 lines | Orchestration, delegates to skill |
+Handle edge cases:
+Handle empty args - Provide graceful fallback
+Handle long args - Validate input length
 
-**If command >150 lines:**
-1. Move detailed workflows to `references/`
-2. Delegate complex logic to skills
-3. Use templates for reusable patterns
-
-**Example - Too Long (❌):**
-```markdown
----
-description: Complex deployment workflow
----
-[200 lines of detailed instructions...]
-```
-
-**Example - Lean (✅):**
-```markdown
----
-description: Deploy with validation
-allowed-tools: Bash(*), Read
----
-
-Deploy to $1:
-1. Validate: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/validate.sh $1`
-2. Deploy: !`bash ${CLAUDE_PLUGIN_ROOT}/scripts/deploy.sh $1`
-
-See `deployment-workflow` skill for patterns.
-```
-
-### Writing Guidelines
-
-- Use imperative form: "Review code" not "You should review"
-- Description: Clear, actionable, under 60 characters
-- Body: Instructions FOR Claude, not messages TO user
-- Add usage examples in comments
-- Validate inputs, handle errors gracefully
-
-## Quality Checklist
-
-**Frontmatter:**
-- [ ] Valid YAML (if used)
-- [ ] Description under 60 characters
-- [ ] Only valid fields (no skills, subagents, etc.)
-
-**Command Length (CRITICAL):**
-- [ ] Under ~150 lines total
-- [ ] Detailed content in references/
-- [ ] Complex workflows delegated to skills
-
-**Content:**
-- [ ] argument-hint matches positional args
-- [ ] Imperative form throughout
-- [ ] Instructions FOR Claude, not TO user
-- [ ] Input validation included
-- [ ] Usage examples provided
-
-**Quality:**
-- [ ] Score >= 80/100
-- [ ] No circular references
-- [ ] Follows naming conventions
-
-## Progressive Disclosure
-
-Three-level loading:
-
-1. **Metadata** (description) - Always loaded (~50 words)
-2. **Command body** - When invoked (<1k words ideal)
-3. **Resources** - Templates, scripts, references (as needed)
-
-**Key pattern:** Keep command lean, move details to references/.
-
-## Evaluation Principles
-
-**Design Principles:**
-
-1. Commands are Code - Quality standards apply
-2. Instructions FOR Claude - Not messages TO user
-3. Progressive Disclosure - Lean commands, detailed references
-4. Validation First - Check inputs before processing
-5. Consistent Patterns - Follow conventions
-6. Plugin Awareness - Use `${CLAUDE_PLUGIN_ROOT}`
-7. Quality Focus - Target >= 80/100
-
-## Red Flags (Stop and Investigate)
-
-- Missing frontmatter when command needs arguments
-- Description uses second person ("You should...")
-- Command body addresses user instead of Claude
-- No argument-hint when using $1, $2
-- Destructive operations without disable-model-invocation
-- Commands too long (>200 lines signals problem)
-- Missing validation for user arguments
-
-## Anti-Patterns
-
-| Anti-Pattern | Fix |
-|--------------|-----|
-| Messages to user | Write instructions FOR Claude |
-| Too long description | Keep under 60 characters |
-| Second person | Use imperative form |
-| No argument-hint | Document arguments |
-| Command too long | Move details to skill |
-| Missing validation | Add input checks |
-| Generic names | Use specific names |
+Handle errors:
+Handle invalid YAML - Validate frontmatter syntax
+Handle missing fields - Always include description
+Handle not discovered - Place in commands/ directory
+Handle args not parsed - Use $1, $2 with argument-hint
 
 ## DO and DON'T
 
-**DO:**
-- Use imperative form: "Review code" not "You should review"
-- Write FOR Claude, not TO user
-- Keep descriptions under 60 characters
-- Include argument-hint for arguments
-- Add validation for inputs
-- Keep commands lean (~150 lines max)
-- Delegate to skills for complex workflows
+DO:
+Use imperative form
+Write FOR Claude
+Keep descriptions under 60 chars
+Include argument-hint
+Add validation
+Keep commands lean
+Delegate to skills
 
-**DON'T:**
-- Use second person ("You should...")
-- Write messages to user in command body
-- Exceed 60 chars in description
-- Omit argument-hint when using $1, $2
-- Skip validation for user arguments
-- Include detailed explanations (move to skill)
-- Reference commands/skills that use this (circular)
-
-## References
-
-**Detailed guidance in bundled resources:**
-
-- **`references/frontmatter-reference.md`** - Complete frontmatter field specifications
-- **`references/ClaudeCodeBuilt-inTools.md`** - Built-in tools (Task, Bash, SlashCommand, AskUserQuestion)
-- **`references/plugin-features-reference.md`** - Plugin-specific features and patterns
-
-**External:**
-- [Claude Code Commands Docs](https://code.claude.com/docs/en/commands)
-- [GitHub #14945](https://github.com/anthropics/claude-code/issues/14945) - Name collision issues
+DON'T:
+Use second person
+Write messages to user
+Exceed 60 chars
+Omit argument-hint
+Skip validation
+Create circular references
+Use invalid frontmatter fields
