@@ -5,7 +5,7 @@ argument-hint: <agent-file>
 
 # Evaluate Agent
 
-Thin wrapper for `rd2:cc-agents` skill. Assesses agent quality across 6 dimensions with scoring.
+Evaluate agent quality across 6 dimensions with scoring. Use this command when the user asks to "evaluate an agent", "check agent quality", "validate agent structure", "assess agent score", "grade agent", "test agent", "review agent", "audit agent", "agent checklist", "agent validation".
 
 ## Quick Start
 
@@ -38,11 +38,11 @@ The evaluation checks for valid frontmatter fields per official Claude Code sche
 
 | Valid Fields | Invalid Fields (causes failure) |
 |--------------|----------------------------------|
-| `name:` ✅ | `agent:` ❌ |
-| `description:` ✅ | `subagents:` ❌ |
-| `model:` ✅ | `orchestrates:` ❌ |
-| `color:` ✅ | `skills:` ❌ |
-| `tools:` ✅ | |
+| `name:` | `agent:` |
+| `description:` | `subagents:` |
+| `model:` | `orchestrates:` |
+| `color:` | `skills:` |
+| `tools:` | |
 
 ## Output
 
