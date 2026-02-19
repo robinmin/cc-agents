@@ -1,16 +1,42 @@
 # Agent Frontmatter Validation Schema
 
 Reference for validating Claude Code agent frontmatter fields.
+Based on official Claude Code documentation: https://code.claude.com/docs/en/subagents
 
-## Required Fields
+## Official Schema (from Claude Code docs)
+
+### Required Fields
+
+Only these two fields are required by the official schema:
 
 | Field | Required | Format | Example |
 |-------|----------|--------|---------|
 | `name` | Yes | lowercase-hyphens, 3-50 chars | code-reviewer |
-| `description` | Yes | Text + examples | Use when... `<example>`... |
-| `model` | Yes | inherit/sonnet/opus/haiku | inherit |
-| `color` | Yes | Color name | blue |
-| `tools` | No | Array of tool names | ["Read", "Grep"] |
+| `description` | Yes | Text with trigger conditions | Use when... `<example>`... |
+
+### Optional Fields (with defaults)
+
+| Field | Required | Default | Format | Example |
+|-------|----------|---------|--------|---------|
+| `model` | No | inherit | inherit/sonnet/opus/haiku | inherit |
+| `tools` | No | All tools | Array of tool names | ["Read", "Grep"] |
+| `disallowedTools` | No | None | Array of tool names | ["Write", "Edit"] |
+| `permissionMode` | No | default | default/acceptEdits/dontAsk/bypassPermissions/plan | default |
+| `maxTurns` | No | None | Number | 10 |
+| `skills` | No | None | Array of skill names | ["my-skill"] |
+| `mcpServers` | No | None | Object | {"slack": {...}} |
+| `hooks` | No | None | Object | {PreToolUse: [...]} |
+| `memory` | No | None | user/project/local | user |
+
+### Extended Fields (UI-enhanced)
+
+These fields are not in the official YAML schema but are used by the Claude Code UI:
+
+| Field | UI Purpose | Format | Example |
+|-------|-----------|--------|---------|
+| `color` | Background color in UI | Color name | blue |
+
+**Note:** The `color` field is used by the interactive UI but is not part of the official YAML frontmatter schema. It may be ignored by some tools.
 
 ## name Field Validation
 
@@ -67,14 +93,18 @@ assistant: "[How Claude should respond]"
 ## model Field Validation
 
 **Options:**
-- `inherit` - Use same model as parent (recommended)
+- `inherit` - Use same model as parent (default if omitted)
 - `sonnet` - Claude Sonnet (balanced)
 - `opus` - Claude Opus (most capable, expensive)
 - `haiku` - Claude Haiku (fast, cheap)
 
+**Note:** If `model` field is omitted, it defaults to `inherit`. This field is optional.
+
 **Recommendation:** Use `inherit` unless agent needs specific model capabilities.
 
-## color Field Validation
+## color Field Validation (Extended/UI Field)
+
+**Note:** This field is NOT in the official Claude Code YAML schema but is used by the interactive UI.
 
 **Options:** `blue`, `cyan`, `green`, `yellow`, `magenta`, `red`
 
@@ -86,6 +116,8 @@ assistant: "[How Claude should respond]"
 - Yellow: Caution, validation
 - Red: Critical, security
 - Magenta: Creative, generation
+
+**Validation Note:** The validator should treat `color` as optional - it will be ignored by some tools that only support the official schema.
 
 ## tools Field Validation
 
@@ -110,12 +142,21 @@ tools: []
 ## Invalid Fields
 
 **These fields are NOT valid for agent frontmatter:**
-- `agent:` - Use body instead
-- `subagents:` - Use body instead
-- `orchestrates:` - Use body instead
-- `skills:` - Use body instead
+- `agent:` - Use `name:` instead
+- `subagents:` - Not a valid field
+- `orchestrates:` - Not a valid field
+- `skills:` - Use `skills:` array field (valid in official schema)
+- `prompt:` - Use body instead (system prompt)
 
-These should be documented in the body of the agent file, not in frontmatter.
+## Additional Valid Fields from Official Schema
+
+The official schema also supports these fields not mentioned above:
+- `disallowedTools` - Tools to deny access
+- `permissionMode` - Control permission prompts
+- `maxTurns` - Limit agentic turns
+- `mcpServers` - MCP server configurations
+- `hooks` - Lifecycle hooks
+- `memory` - Persistent memory scope
 
 ## System Prompt Validation
 
