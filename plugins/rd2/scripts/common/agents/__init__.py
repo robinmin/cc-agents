@@ -79,9 +79,9 @@ def validate_agent(agent_path: Path) -> ValidationResult:
     issues: list[ValidationIssue] = []
 
     if not agent_path.exists():
-        issues.append(ValidationIssue(
-            "error", "file", f"File not found: {agent_path}", field="file"
-        ))
+        issues.append(
+            ValidationIssue("error", "file", f"File not found: {agent_path}", field="file")
+        )
         return ValidationResult(path=agent_path, valid=False, issues=issues)
 
     content = agent_path.read_text()
@@ -92,9 +92,9 @@ def validate_agent(agent_path: Path) -> ValidationResult:
         frontmatter, body = common_parse_frontmatter(content)
         issues.extend(validate_agent_frontmatter(frontmatter))
     else:
-        issues.append(ValidationIssue(
-            "warning", "frontmatter", "No frontmatter found", field="frontmatter"
-        ))
+        issues.append(
+            ValidationIssue("warning", "frontmatter", "No frontmatter found", field="frontmatter")
+        )
 
     # Validate sections
     issues.extend(validate_agent_sections(lines))
