@@ -15,14 +15,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-# Add scripts directory to path for imports
-scripts_dir = Path(__file__).parent
-sys.path.insert(0, str(scripts_dir))
-
 from schema.base import SkillType
 from drivers.structural import validate_structure, print_validation_result
 from drivers.behavioral import load_scenarios, run_trigger_tests, print_behavioral_results
-from scoring.grader import Grade
+
+# Add scripts directory to path for local imports (after standard imports)
+scripts_dir = Path(__file__).parent
+sys.path.insert(0, str(scripts_dir))
 
 
 def detect_skill_type(path: Path) -> SkillType:
