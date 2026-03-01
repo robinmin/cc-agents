@@ -76,7 +76,7 @@ def validate_skill(skill_path: Path) -> ValidationResult:
         issues.append(ValidationIssue(
             "error", "file", f"File not found: {skill_path}", field="file"
         ))
-        return ValidationResult(valid=False, issues=issues)
+        return ValidationResult(path=skill_path, valid=False, issues=issues)
 
     content = skill_path.read_text()
     lines = content.split("\n")
@@ -97,6 +97,7 @@ def validate_skill(skill_path: Path) -> ValidationResult:
     has_errors = any(i.severity == "error" for i in issues)
 
     return ValidationResult(
+        path=skill_path,
         valid=not has_errors,
         issues=issues,
     )
