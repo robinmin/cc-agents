@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 # Handle both package import and direct execution
 try:
@@ -110,7 +110,7 @@ class RubricScorer:
             for c in criteria
         ]
 
-    def evaluate(self, evaluator_fn: callable) -> tuple[float, list[str], list[str]]:
+    def evaluate(self, evaluator_fn: Callable[[Any], tuple[str, str]]) -> tuple[float, list[str], list[str]]:
         """Evaluate using the rubric.
 
         Args:
