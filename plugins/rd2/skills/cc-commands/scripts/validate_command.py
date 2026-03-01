@@ -70,9 +70,9 @@ def check_imperative_form(content: str) -> dict:
     }
 
 
-def validate_command(path: str) -> dict:
+def validate_command(file_path: str) -> dict:
     """Validate a command file."""
-    path = Path(path)
+    path = Path(file_path)
 
     if not path.exists():
         return {'valid': False, 'errors': [f'File not found: {path}'], 'warnings': []}
