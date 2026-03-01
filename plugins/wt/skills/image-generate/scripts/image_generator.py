@@ -36,7 +36,7 @@ import sys
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Tuple, Dict, Any
 from dataclasses import dataclass
 
 # Add scripts directory to path for imports
@@ -57,8 +57,8 @@ except ImportError as e:
 try:
     from template_engine import (
         TemplateEngine,
-        Template,
-        TemplateConfig,
+        Template,  # noqa: F401 - imported for module availability check
+        TemplateConfig,  # noqa: F401 - imported for module availability check
         TemplateError,
         TemplateNotFoundError,
         TemplateParseError,
@@ -237,7 +237,7 @@ class GeminiBackend(ImageGeneratorBackend):
         if not self.api_key:
             return False
         try:
-            from google import genai
+            from google import genai  # noqa: F401 - imported for availability check
             return True
         except ImportError:
             return False
@@ -663,7 +663,7 @@ def _validate_output_path(output_path: Path) -> None:
     """
     # Convert to absolute path to detect traversal attempts
     try:
-        resolved_path = output_path.resolve()
+        output_path.resolve()
     except Exception as e:
         raise ValueError(f"Invalid path: {e}")
 
@@ -778,8 +778,8 @@ def load_content(content_input: Optional[str]) -> Optional[str]:
 
     if looks_like_file:
         print(f"Warning: Input '{content_input}' looks like a file path but file not found.")
-        print(f"  Using as raw text content instead.")
-        print(f"  If this was a typo, please check the filename.")
+        print("  Using as raw text content instead.")
+        print("  If this was a typo, please check the filename.")
         print(f"  To pass raw text with spaces, quote it: '{content_input}'")
         print()
 
@@ -928,7 +928,7 @@ Environment Variables:
                     print(f"    Resolution: {template.config.width}x{template.config.height}")
                     print(f"    Style: {template.config.style}")
                     if template.config.variables:
-                        print(f"    Variables:")
+                        print("    Variables:")
                         for var_name, var_info in template.config.variables.items():
                             if isinstance(var_info, dict):
                                 default = var_info.get("default", "")
@@ -1079,7 +1079,7 @@ Environment Variables:
         # Save image (verify image_bytes is not None, even in production)
         # This is an explicit check (not assert) to catch backend bugs even with python -O
         if result.image_bytes is None:
-            print(f"\n✗ Internal error: Backend returned success=True but image_bytes is None")
+            print("\n✗ Internal error: Backend returned success=True but image_bytes is None")
             print(f"  This indicates a bug in the {result.method} backend implementation.")
             print(f"  Please report this issue with the backend details: {result.method}")
             sys.exit(1)
