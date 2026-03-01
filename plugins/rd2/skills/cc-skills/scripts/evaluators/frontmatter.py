@@ -22,10 +22,7 @@ try:
 
     from schema.frontmatter import (
         parse_frontmatter as common_parse_frontmatter,
-        validate_name,
-        validate_description,
     )
-    from schema.base import SkillType
 
     HAS_COMMON = True
 except ImportError:
