@@ -15,22 +15,19 @@ from __future__ import annotations
 
 import json
 import os
-import time
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 # Handle both package import and direct execution
-try:
-    from ..skills import get_file_content
-except ImportError:
-    from skills import get_file_content  # type: ignore[no-redef, import-not-found]
+# Note: get_file_content import removed - not used in this module
 
 # Import rubric components
 try:
-    from .base import DimensionScore, RubricLevel, RubricCriterion
+    from .base import RubricLevel, RubricCriterion
 except ImportError:
-    from base import DimensionScore, RubricLevel, RubricCriterion  # type: ignore[no-redef, import-not-found]
+    from base import RubricLevel, RubricCriterion  # type: ignore[no-redef, import-not-found]
 
 
 # =============================================================================
@@ -278,14 +275,14 @@ class OpenAIClient(LLMClient):
 def get_llm_client(model: str = DEFAULT_MODEL) -> LLMClient | None:
     """Get available LLM client."""
     # Try Anthropic first
-    client = AnthropicClient(model)
-    if client.is_available():
-        return client
+    anthropic_client = AnthropicClient(model)
+    if anthropic_client.is_available():
+        return anthropic_client
 
     # Try OpenAI as fallback
-    client = OpenAIClient(model)
-    if client.is_available():
-        return client
+    openai_client = OpenAIClient(model)
+    if openai_client.is_available():
+        return openai_client
 
     return None
 
@@ -420,7 +417,17 @@ class LLMJudgeEvaluator:
         skill_content: str,
     ) -> LLMEvaluationResult:
         """Evaluate using LLM API with pass@k support."""
-        total_cost = 0.0
+        if self.client is None:
+            return LLMEvaluationResult(
+                dimension=dimension,
+                score=0.0,
+                level_name="unknown",
+                reasoning="LLM client not available",
+                rubric_criterion=rubric.name,
+                is_fallback=True,
+                error_message="LLM client not available",
+            )
+
         total_input_tokens = 0
         total_output_tokens = 0
         scores: list[float] = []
@@ -445,7 +452,7 @@ class LLMJudgeEvaluator:
                 if result is None:
                     # Parsing failed, use fallback
                     if self.verbose:
-                        print(f"  Warning: Failed to parse LLM response", file=sys.stderr)
+                        print("  Warning: Failed to parse LLM response", file=sys.stderr)
                     continue
 
                 level_names.append(result["level_name"])
@@ -614,7 +621,3 @@ def evaluate_with_llm(
     evaluator = LLMJudgeEvaluator(model=model, pass_k=pass_k, verbose=verbose)
 
     return evaluator.evaluate_dimension(skill_path, dimension, rubric)
-
-
-# For stderr access in the module
-import sys
