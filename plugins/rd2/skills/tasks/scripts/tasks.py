@@ -569,7 +569,7 @@ class TaskFile:
 
     def get_impl_progress(self) -> dict[str, str]:
         """Read impl_progress from frontmatter."""
-        result = {}
+        result: dict[str, str] = {}
         content = self.path.read_text()
         fm_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
         if not fm_match:
@@ -676,12 +676,18 @@ def compute_status_from_progress(progress: dict[str, str]) -> TaskStatus | None:
 class ValidationResult:
     """Tiered validation result for task transitions."""
 
-    def __init__(self):
-        self.errors: list[str] = []  # Tier 1: always block
-        self.warnings: list[str] = []  # Tier 2: block unless --force
-        self.suggestions: list[str] = []  # Tier 3: informational
+    def __init__(self) -> None:
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
+        self.suggestions: list[str] = []
 
-    @property
+        @property
+        def has_errors(self) -> bool:
+            return len(self.errors) > 0
+
+        @property
+        def has_warnings(self) -> bool:
+            return len(self.warnings) > 0    @property
     def has_errors(self) -> bool:
         return len(self.errors) > 0
 
@@ -1859,14 +1865,14 @@ impl_progress:
             if not args:
                 print("[ERROR] Usage: tasks config set-active <folder>", file=sys.stderr)
                 return 1
-            folder = args[0]
-            if folder not in config_data.get("folders", {}):
+            folder_name = args[0]
+            if folder_name not in config_data.get("folders", {}):
                 print(
-                    f"[ERROR] Folder '{folder}' not in config. Add it first with 'tasks config add-folder'.",
+                    f"[ERROR] Folder '{folder_name}' not in config. Add it first with 'tasks config add-folder'.",
                     file=sys.stderr,
                 )
                 return 1
-            config_data["active_folder"] = folder
+            config_data["active_folder"] = folder_name
             config_text = (
                 "// Tasks CLI configuration — managed by `tasks init`\n"
                 "// See: plugins/rd2/skills/tasks/SKILL.md\n"
@@ -1875,7 +1881,7 @@ impl_progress:
             )
             config_path.write_text(config_text)
             self.config._load_config()
-            print(f"[INFO] Active folder set to: {folder}")
+            print(f"[INFO] Active folder set to: {folder_name}")
             return 0
 
         elif subcommand == "add-folder":
@@ -1885,7 +1891,7 @@ impl_progress:
                     file=sys.stderr,
                 )
                 return 1
-            folder = args[0]
+            folder_name = args[0]
             base_counter = 0
             label = ""
             # Parse optional flags
@@ -1905,7 +1911,7 @@ impl_progress:
                     i += 1
 
             folders = config_data.setdefault("folders", {})
-            folders[folder] = {"base_counter": base_counter, "label": label}
+            folders[folder_name] = {"base_counter": base_counter, "label": label}
             config_text = (
                 "// Tasks CLI configuration — managed by `tasks init`\n"
                 "// See: plugins/rd2/skills/tasks/SKILL.md\n"
@@ -1914,10 +1920,10 @@ impl_progress:
             )
             config_path.write_text(config_text)
             # Create the folder directory
-            folder_path = self.config.project_root / folder
+            folder_path = self.config.project_root / folder_name
             folder_path.mkdir(parents=True, exist_ok=True)
             self.config._load_config()
-            print(f"[INFO] Added folder: {folder} (base_counter={base_counter}, label='{label}')")
+            print(f"[INFO] Added folder: {folder_name} (base_counter={base_counter}, label='{label}')")
             return 0
 
         else:
