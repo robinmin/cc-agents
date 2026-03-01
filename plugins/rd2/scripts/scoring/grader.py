@@ -1,5 +1,8 @@
 """Common grading logic for rd2 skills."""
 
+from __future__ import annotations
+from typing import ClassVar
+
 
 class Grade:
     """Letter grade with score ranges."""
@@ -11,11 +14,11 @@ class Grade:
         self.description = description
 
     # Pre-create all grade instances
-    A = None
-    B = None
-    C = None
-    D = None
-    F = None
+    A: ClassVar[Grade | None] = None
+    B: ClassVar[Grade | None] = None
+    C: ClassVar[Grade | None] = None
+    D: ClassVar[Grade | None] = None
+    F: ClassVar[Grade | None] = None
 
     @classmethod
     def _init_class(cls):
@@ -31,6 +34,13 @@ class Grade:
     def from_score(cls, score: float) -> "Grade":
         """Convert numeric score to letter grade."""
         cls._init_class()
+        # After _init_class(), these are guaranteed to be Grade instances
+        assert cls.A is not None
+        assert cls.B is not None
+        assert cls.C is not None
+        assert cls.D is not None
+        assert cls.F is not None
+
         if score >= 90.0:
             return cls.A
         if score >= 70.0:
