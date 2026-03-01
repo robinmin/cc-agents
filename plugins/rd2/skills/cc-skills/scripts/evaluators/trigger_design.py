@@ -163,7 +163,6 @@ class TriggerDesignEvaluator:
             frontmatter, body = common_parse_frontmatter(content)
         else:
             frontmatter, _ = parse_frontmatter(content)
-            body = ""
 
         # Handle both None (local parser) and empty dict (common parser)
         if frontmatter is None or (isinstance(frontmatter, dict) and not frontmatter):
@@ -262,7 +261,6 @@ class TriggerDesignEvaluator:
                     re.search(p, description, re.IGNORECASE) for p in workflow_indicators
                 )
 
-                length_ok = 50 <= desc_len <= 500 or (desc_len >= 50 and trigger_phrase_count >= 1)
                 too_short = desc_len < 50
                 too_long = desc_len > 500 and trigger_phrase_count == 0
 
