@@ -5,7 +5,6 @@ Evaluates security considerations in SKILL.md and scripts using rubric-based sco
 
 import ast
 from pathlib import Path
-from typing import Any
 
 from .base import DimensionScore, RubricLevel, RubricCriterion, RubricScorer, DIMENSION_WEIGHTS
 
@@ -205,9 +204,9 @@ class SecurityEvaluator:
             """Evaluate a single criterion by name."""
             if criterion.name == "skill_md_security":
                 if md_issue_count == 0:
-                    return "clean", f"No security issues in SKILL.md code blocks"
+                    return "clean", "No security issues in SKILL.md code blocks"
                 elif md_issue_count == 1:
-                    return "minor", f"1 security issue in SKILL.md"
+                    return "minor", "1 security issue in SKILL.md"
                 elif md_issue_count <= 3:
                     return "moderate", f"{md_issue_count} security issues in SKILL.md"
                 elif md_issue_count <= 5:
@@ -216,9 +215,9 @@ class SecurityEvaluator:
 
             elif criterion.name == "script_security":
                 if script_issues == 0:
-                    return "clean", f"No security issues in scripts"
+                    return "clean", "No security issues in scripts"
                 elif script_issues == 1:
-                    return "minor", f"1 security issue in scripts"
+                    return "minor", "1 security issue in scripts"
                 elif script_issues <= 3:
                     return "moderate", f"{script_issues} security issues in scripts"
                 elif script_issues <= 5:
