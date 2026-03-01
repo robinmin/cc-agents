@@ -83,7 +83,7 @@ class TestLLMRubrics:
     def test_instruction_clarity_rubric_has_6_levels(self):
         """Instruction clarity rubric should have 6 levels including unknown."""
         assert len(INSTRUCTION_CLARITY_RUBRIC.levels) == 6
-        level_names = [l.name for l in INSTRUCTION_CLARITY_RUBRIC.levels]
+        level_names = [level.name for level in INSTRUCTION_CLARITY_RUBRIC.levels]
         assert "excellent" in level_names
         assert "good" in level_names
         assert "fair" in level_names
@@ -94,7 +94,7 @@ class TestLLMRubrics:
     def test_value_add_rubric_has_6_levels(self):
         """Value add rubric should have 6 levels including unknown."""
         assert len(VALUE_ADD_RUBRIC.levels) == 6
-        level_names = [l.name for l in VALUE_ADD_RUBRIC.levels]
+        level_names = [level.name for level in VALUE_ADD_RUBRIC.levels]
         assert "exceptional" in level_names
         assert "significant" in level_names
         assert "moderate" in level_names
