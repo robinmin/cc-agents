@@ -1,6 +1,5 @@
 """Tests for schema/base.py - common data classes."""
 
-import pytest
 from pathlib import Path
 
 from schema.base import (
