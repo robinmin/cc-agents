@@ -17,7 +17,7 @@ Tests cover:
 import json
 import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from datetime import datetime
 
 from shared.config import (
@@ -30,8 +30,7 @@ from shared.config import (
     set_tcc_config,
     get_tcc_repo_root,
     set_tcc_repo_root,
-    print_config,
-    HAS_JSON_COMMENT
+    print_config
 )
 
 
@@ -145,7 +144,7 @@ class TestSaveJsonc:
         content = test_file.read_text()
         # Find the JSON line (after header comments)
         lines = content.split('\n')
-        json_line = [l for l in lines if l.strip().startswith('{"')][0]
+        json_line = [line for line in lines if line.strip().startswith('{"')][0]
         # Compact JSON should not have 2-space indentation
         assert not json_line.startswith('  ')  # No "pretty" indentation
         # And should contain our data (JSON has spaces after colons)
@@ -301,7 +300,7 @@ class TestGetTccConfig:
             tcc_config = get_tcc_config()
             assert "default_collection" in tcc_config
             assert "auto_create_collections" in tcc_config
-            assert tcc_config["auto_create_collections"] == True  # Default value
+            assert tcc_config["auto_create_collections"]  # Default value
 
     def test_handles_empty_tcc_section(self, mock_config_dir):
         """Test handling of empty TCC section."""
@@ -311,7 +310,7 @@ class TestGetTccConfig:
         with patch.object(WTConfigPath, 'CONFIG_FILE', empty_tcc_file):
             tcc_config = get_tcc_config()
             assert tcc_config["tcc_repo_root"] is None
-            assert tcc_config["auto_create_collections"] == True
+            assert tcc_config["auto_create_collections"]
 
 
 # ============================================================================
@@ -348,9 +347,9 @@ class TestSetTccConfig:
     def test_updates_last_updated_timestamp(self, mock_jsonc_file):
         """Test that last_updated timestamp is updated."""
         with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
-            before = datetime.now().isoformat()
+            datetime.now().isoformat()
             set_tcc_config("default_collection", "test")
-            after = datetime.now().isoformat()
+            datetime.now().isoformat()
 
             tcc_config = get_tcc_config()
             last_updated = tcc_config.get("last_updated")
@@ -552,9 +551,9 @@ class TestAdditionalCoverage:
         """Test set_tcc_config updates last_updated timestamp."""
         with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
             import time
-            before = time.time()
+            time.time()
             set_tcc_config("tcc_repo_root", "/new/path")
-            after = time.time()
+            time.time()
 
             tcc_config = get_tcc_config()
             last_updated = tcc_config.get("last_updated")
@@ -579,7 +578,7 @@ class TestAdditionalCoverage:
             tcc_config = get_tcc_config()
             assert "tcc_repo_root" in tcc_config
             assert "auto_create_collections" in tcc_config
-            assert tcc_config["auto_create_collections"] == True  # Default value
+            assert tcc_config["auto_create_collections"]  # Default value
 
     def test_load_jsonc_without_json_comment_library_fallback(self, mock_config_dir):
         """Test load_jsonc fallback when json-comment library unavailable."""
@@ -633,7 +632,7 @@ class TestAdditionalCoverage:
         content = test_file.read_text()
         # Find the JSON line
         lines = content.split('\n')
-        json_line = [l for l in lines if l.strip().startswith('{"')][0]
+        json_line = [line for line in lines if line.strip().startswith('{"')][0]
         # Compact JSON should not have 2-space indentation
         assert not json_line.startswith('  ')
 
