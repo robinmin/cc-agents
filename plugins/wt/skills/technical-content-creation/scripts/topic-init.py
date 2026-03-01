@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from shared.config import (
     get_tcc_config,
     get_tcc_repo_root,
-    set_tcc_config,
 )
 
 
@@ -416,7 +415,7 @@ def cmd_init(args) -> None:
     register_topic(repo_root, collection_id, topic_id)
 
     # Success
-    print(f"Topic created successfully!")
+    print("Topic created successfully!")
     print(f"  Topic ID: {topic_id}")
     print(f"  Title: {topic_data['title']}")
     print(f"  Collection: {collection['name']} ({collection_id})")
@@ -426,7 +425,7 @@ def cmd_init(args) -> None:
     for stage in STAGE_FOLDERS:
         print(f"  - {stage}/")
     print()
-    print(f"Topic metadata: topic.md")
+    print("Topic metadata: topic.md")
 
 
 def main():
