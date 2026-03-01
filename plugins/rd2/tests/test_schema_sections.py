@@ -1,6 +1,5 @@
 """Tests for schema/sections.py - section validation."""
 
-import pytest
 
 from schema.sections import (
     SectionDefinition,
@@ -9,7 +8,6 @@ from schema.sections import (
     AGENT_SECTIONS,
     SKILL_SECTIONS,
 )
-from schema.base import ValidationIssue
 
 
 class TestSectionDefinition:
