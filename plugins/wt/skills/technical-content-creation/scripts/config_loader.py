@@ -140,10 +140,10 @@ def get_wt_config() -> Dict[str, Any]:
 
         except json.JSONDecodeError as e:
             print(f"Warning: Failed to parse WT config file: {e}")
-            print(f"  Using default configuration")
+            print("  Using default configuration")
         except Exception as e:
             print(f"Warning: Error loading WT config file: {e}")
-            print(f"  Using default configuration")
+            print("  Using default configuration")
     else:
         # Config file doesn't exist, that's okay
         pass
@@ -429,7 +429,6 @@ def get_translation_targets(source_lang: str = "en") -> list:
     # Priority mapping based on global speakers and tech adoption
     HIGH_PRIORITY = ["es", "zh", "hi", "ar", "pt", "ko"]
     MEDIUM_PRIORITY = ["fr", "de", "ru", "ja", "it"]
-    LOW_PRIORITY = ["tr", "vi", "th", "id", "nl", "pl"]
 
     targets = []
     for code, info in LANGUAGE_CODES.items():
@@ -536,14 +535,14 @@ Examples:
         config_path = get_config_path()
         print(f"Config file: {config_path}")
         if config_path.exists():
-            print(f"Status: Exists")
+            print("Status: Exists")
         else:
-            print(f"Status: Not found (will use defaults)")
+            print("Status: Not found (will use defaults)")
 
     elif args.command == "validate":
         config_path = get_config_path()
         if not config_path.exists():
-            print(f"✓ Config file does not exist (defaults will be used)")
+            print("✓ Config file does not exist (defaults will be used)")
             sys.exit(0)
 
         try:
@@ -553,7 +552,7 @@ Examples:
             content = _strip_json_comments(content)
             json.loads(content)
 
-            print(f"✓ Config file is valid")
+            print("✓ Config file is valid")
             print(f"  Location: {config_path}")
 
         except json.JSONDecodeError as e:
