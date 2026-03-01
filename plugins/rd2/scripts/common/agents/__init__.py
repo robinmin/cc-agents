@@ -82,7 +82,7 @@ def validate_agent(agent_path: Path) -> ValidationResult:
         issues.append(ValidationIssue(
             "error", "file", f"File not found: {agent_path}", field="file"
         ))
-        return ValidationResult(valid=False, issues=issues)
+        return ValidationResult(path=agent_path, valid=False, issues=issues)
 
     content = agent_path.read_text()
     lines = content.split("\n")
@@ -103,6 +103,7 @@ def validate_agent(agent_path: Path) -> ValidationResult:
     has_errors = any(i.severity == "error" for i in issues)
 
     return ValidationResult(
+        path=agent_path,
         valid=not has_errors,
         issues=issues,
     )
