@@ -10,8 +10,7 @@ import json
 import sys
 import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-from datetime import datetime
+from unittest.mock import MagicMock
 
 # Add scripts directory to Python path for imports
 _scripts_dir = Path(__file__).parent.parent / "scripts"
