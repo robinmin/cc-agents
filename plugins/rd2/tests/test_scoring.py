@@ -1,6 +1,5 @@
 """Tests for scoring module."""
 
-import pytest
 
 from scoring.grader import Grade
 from scoring import get_weights, calculate_weighted_score, DimensionWeights
