@@ -160,6 +160,8 @@ lint-one:
 		echo "   Run 'make list-scripts' to see available directories"; \
 		exit 1; \
 	fi
+	@echo "🔍 Formatting $(DIR)..."
+	@source $(VENV_DIR)/bin/activate && ruff format $(DIR)/scripts $(DIR)/tests
 	@echo "🔍 Linting $(DIR)..."
 	@source $(VENV_DIR)/bin/activate && ruff check $(DIR)/scripts $(DIR)/tests
 	@source $(VENV_DIR)/bin/activate && (cd $(DIR) && mypy scripts --config-file $(PWD)/pyproject.toml)
@@ -171,11 +173,11 @@ lint-one2:
 		echo "   Available TypeScript skills: publish-to-xhs, publish-to-medium, etc."; \
 		exit 1; \
 	fi
-	@echo "🔍 Linting $(DIR) with bun..."
 	@if [ -d "$(DIR)/scripts" ]; then \
 		has_ts=$$(find $(DIR)/scripts -maxdepth 1 -name "*.ts" -o -name "*.js" 2>/dev/null | head -1); \
 		if [ -n "$$has_ts" ]; then \
-			cd $(DIR) && { \
+			echo "🎨 Formatting $(DIR) with biome..."; \
+			cd $(DIR) && biome format --write && echo "🔍 Linting $(DIR) with bun..." && { \
 				(bun run lint 2>&1 || true) | grep -v 'error: Script not found' | tee /tmp/lint-output.txt; \
 				if grep -qE "^Found [0-9]+ error" /tmp/lint-output.txt; then \
 					echo "❌ npm lint found errors"; \
