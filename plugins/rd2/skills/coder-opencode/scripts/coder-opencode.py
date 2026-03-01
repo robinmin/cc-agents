@@ -305,7 +305,7 @@ def run_opencode_file(
 
 def cmd_run(args: argparse.Namespace) -> int:
     """Handle run command."""
-    model = getattr(args, 'model', None)
+    model = getattr(args, "model", None)
     result = run_opencode_prompt(args.prompt, model)
 
     if result.success:
@@ -319,7 +319,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 def cmd_run_file(args: argparse.Namespace) -> int:
     """Handle run-file command."""
     prompt_file = Path(args.prompt_file)
-    model = getattr(args, 'model', None)
+    model = getattr(args, "model", None)
     result = run_opencode_file(prompt_file, model)
 
     if result.success:
@@ -516,7 +516,8 @@ def main() -> int:
         epilog=__doc__,
     )
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose output",
     )
@@ -537,9 +538,15 @@ def main() -> int:
     run_file_parser.set_defaults(func=cmd_run_file)
 
     gen_parser = subparsers.add_parser("generate", help="Generate code")
-    gen_parser.add_argument("task_content", help="Task specification (file content or requirements)")
+    gen_parser.add_argument(
+        "task_content", help="Task specification (file content or requirements)"
+    )
     gen_parser.add_argument("-m", "--model", help="Model to use")
-    gen_parser.add_argument("--no-tdd", action="store_true", help="Disable TDD mode (opt-out from rd2:tdd-workflow default)")
+    gen_parser.add_argument(
+        "--no-tdd",
+        action="store_true",
+        help="Disable TDD mode (opt-out from rd2:tdd-workflow default)",
+    )
     gen_parser.add_argument("-o", "--output", help="Output file name")
     gen_parser.add_argument("-c", "--context", help="Path to context file")
     gen_parser.set_defaults(func=cmd_generate)

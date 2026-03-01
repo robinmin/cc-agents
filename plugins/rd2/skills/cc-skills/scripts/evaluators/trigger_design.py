@@ -26,10 +26,12 @@ try:
     _common_lib_path = Path(__file__).parent.parent.parent.parent.parent / "scripts"
     if _common_lib_path.exists():
         import sys
+
         if str(_common_lib_path) not in sys.path:
             sys.path.insert(0, str(_common_lib_path))
 
     from schema.frontmatter import parse_frontmatter as common_parse_frontmatter
+
     HAS_COMMON = True
 except ImportError:
     HAS_COMMON = False
@@ -88,7 +90,9 @@ ANTI_PATTERNS_RUBRIC = RubricCriterion(
     description="Absence of workflow summaries and description length issues",
     weight=0.15,
     levels=[
-        RubricLevel("excellent", 100, "No workflow summary, appropriate description length (50-500 chars)"),
+        RubricLevel(
+            "excellent", 100, "No workflow summary, appropriate description length (50-500 chars)"
+        ),
         RubricLevel("good", 75, "Minor issues only (slightly short/long description)"),
         RubricLevel("fair", 50, "Has workflow summary (CSO violation) OR length issues"),
         RubricLevel("poor", 25, "Has workflow summary AND length issues"),
@@ -115,13 +119,15 @@ class TriggerDesignEvaluator:
     """Evaluates trigger/discovery quality in skill descriptions using rubric-based scoring."""
 
     # Pre-configured rubric scorer for trigger design evaluation
-    RUBRIC_SCORER = RubricScorer([
-        TRIGGER_PHRASES_RUBRIC,
-        THIRD_PERSON_RUBRIC,
-        KEYWORD_SPECIFICITY_RUBRIC,
-        ANTI_PATTERNS_RUBRIC,
-        CSO_COVERAGE_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            TRIGGER_PHRASES_RUBRIC,
+            THIRD_PERSON_RUBRIC,
+            KEYWORD_SPECIFICITY_RUBRIC,
+            ANTI_PATTERNS_RUBRIC,
+            CSO_COVERAGE_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "trigger_design"
@@ -286,7 +292,9 @@ class TriggerDesignEvaluator:
                 symptom_patterns = [
                     r"\b(failed|error|timeout|hang|freeze|slow|flaky|crash|exception)\b"
                 ]
-                has_symptoms = any(re.search(p, description, re.IGNORECASE) for p in symptom_patterns)
+                has_symptoms = any(
+                    re.search(p, description, re.IGNORECASE) for p in symptom_patterns
+                )
                 if has_symptoms:
                     categories_found += 1
 

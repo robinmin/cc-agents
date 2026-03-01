@@ -1,4 +1,5 @@
 """Tests for template formatting in code-review-claude.py."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -86,9 +87,7 @@ class TestFormatReviewWithTemplate:
     """Tests for format_review_with_template function."""
 
     @patch("code_review_claude.load_prompt_template")
-    def test_format_review_with_template(
-        self, mock_load_template: Mock
-    ) -> None:
+    def test_format_review_with_template(self, mock_load_template: Mock) -> None:
         """Test formatting review with template."""
         mock_load_template.return_value = """---
 type: claude-code-review
@@ -109,7 +108,7 @@ mode: {{MODE}}
             mode="review",
             focus_areas=None,
             files_count=1,
-            duration="300s timeout"
+            duration="300s timeout",
         )
 
         assert "src/auth.py" in result
@@ -117,9 +116,7 @@ mode: {{MODE}}
         assert "Test review content" in result
 
     @patch("code_review_claude.load_prompt_template")
-    def test_format_review_without_template(
-        self, mock_load_template: Mock
-    ) -> None:
+    def test_format_review_without_template(self, mock_load_template: Mock) -> None:
         """Test formatting review without template (fallback)."""
         mock_load_template.return_value = None
 
@@ -129,7 +126,7 @@ mode: {{MODE}}
             mode="review",
             focus_areas=None,
             files_count=1,
-            duration="300s timeout"
+            duration="300s timeout",
         )
 
         assert "Test review content" in result
@@ -141,9 +138,7 @@ class TestBuildReviewPrompt:
     """Tests for build_review_prompt function."""
 
     @patch("code_review_claude.load_prompt_template")
-    def test_build_review_prompt_with_template(
-        self, mock_load_template: Mock
-    ) -> None:
+    def test_build_review_prompt_with_template(self, mock_load_template: Mock) -> None:
         """Test building review prompt with template."""
         mock_load_template.return_value = """Target: {{TARGET}}
 Code: {{CODE_CONTENT}}
@@ -154,7 +149,7 @@ Focus: {{FOCUS_AREAS}}
             target="src/auth.py",
             code_content="def foo(): pass",
             mode="review",
-            focus_areas=["security", "performance"]
+            focus_areas=["security", "performance"],
         )
 
         assert "src/auth.py" in result
@@ -163,17 +158,12 @@ Focus: {{FOCUS_AREAS}}
         assert "performance" in result
 
     @patch("code_review_claude.load_prompt_template")
-    def test_build_review_prompt_without_template(
-        self, mock_load_template: Mock
-    ) -> None:
+    def test_build_review_prompt_without_template(self, mock_load_template: Mock) -> None:
         """Test building review prompt without template (fallback)."""
         mock_load_template.return_value = None
 
         result = crc.build_review_prompt(
-            target="src/auth.py",
-            code_content="def foo(): pass",
-            mode="review",
-            focus_areas=None
+            target="src/auth.py", code_content="def foo(): pass", mode="review", focus_areas=None
         )
 
         assert "src/auth.py" in result
@@ -181,17 +171,12 @@ Focus: {{FOCUS_AREAS}}
         assert "code reviewer" in result.lower()
 
     @patch("code_review_claude.load_prompt_template")
-    def test_build_planning_prompt(
-        self, mock_load_template: Mock
-    ) -> None:
+    def test_build_planning_prompt(self, mock_load_template: Mock) -> None:
         """Test building planning prompt."""
         mock_load_template.return_value = None
 
         result = crc.build_review_prompt(
-            target="src/auth.py",
-            code_content="def foo(): pass",
-            mode="planning",
-            focus_areas=None
+            target="src/auth.py", code_content="def foo(): pass", mode="planning", focus_areas=None
         )
 
         assert "src/auth.py" in result

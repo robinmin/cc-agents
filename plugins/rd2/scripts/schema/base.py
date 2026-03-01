@@ -8,6 +8,7 @@ from typing import Any
 
 class SkillType(Enum):
     """Supported skill types in rd2 plugin."""
+
     SKILL = "skill"
     AGENT = "agent"
     COMMAND = "command"
@@ -17,8 +18,9 @@ class SkillType(Enum):
 @dataclass
 class ValidationIssue:
     """A single validation issue (error or warning)."""
+
     severity: str  # "error" or "warning"
-    category: str   # "frontmatter", "section", "content", "naming"
+    category: str  # "frontmatter", "section", "content", "naming"
     message: str
     line: int | None = None
     field: str | None = None
@@ -27,6 +29,7 @@ class ValidationIssue:
 @dataclass
 class ValidationResult:
     """Complete validation result for a skill/agent."""
+
     path: Path
     valid: bool
     issues: list[ValidationIssue] = field(default_factory=list)
@@ -44,6 +47,7 @@ class ValidationResult:
 @dataclass
 class DimensionScore:
     """Score for a single quality dimension."""
+
     name: str
     raw_score: float
     max_score: float = 100.0
@@ -56,6 +60,7 @@ class DimensionScore:
 @dataclass
 class ScoreBreakdown:
     """Detailed score breakdown by dimension."""
+
     total_score: float
     grade: str
     dimension_scores: dict[str, float]

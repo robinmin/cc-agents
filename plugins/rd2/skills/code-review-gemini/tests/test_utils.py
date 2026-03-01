@@ -1,4 +1,5 @@
 """Tests for utility functions in code-review-gemini.py."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -50,7 +51,9 @@ class TestEnsurePlansDir:
         assert plans_dir.exists()
         assert plans_dir.is_dir()
 
-    def test_returns_existing_directory(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_returns_existing_directory(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that ensure_plans_dir returns existing directory."""
         plans_dir = tmp_path / ".claude" / "plans"
         plans_dir.mkdir(parents=True, exist_ok=True)
@@ -99,7 +102,9 @@ class TestLoadPromptTemplate:
 
         assert result == template_content
 
-    def test_returns_none_for_missing_template(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_returns_none_for_missing_template(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that missing template returns None."""
         assets_dir = tmp_path / "assets"
         assets_dir.mkdir()

@@ -1,4 +1,5 @@
 """Tests for review command in code-review-gemini.py."""
+
 from __future__ import annotations
 
 from argparse import Namespace
@@ -13,9 +14,7 @@ import code_review_gemini as crg
 class TestSaveToPlan:
     """Tests for save_to_plan function."""
 
-    def test_saves_content_to_plan_file(
-        self, mock_plans_dir: Path
-    ) -> None:
+    def test_saves_content_to_plan_file(self, mock_plans_dir: Path) -> None:
         """Test saving content to plan file."""
         content = "# Review\nThis is the review content"
         plan_name = "test-review"
@@ -91,9 +90,7 @@ class TestBuildReviewPrompt:
         assert "architect" in prompt.lower()
         assert "implementation" in prompt.lower()
 
-    def test_build_prompt_with_focus_areas(
-        self, sample_code: str
-    ) -> None:
+    def test_build_prompt_with_focus_areas(self, sample_code: str) -> None:
         """Test building prompt with focus areas."""
         focus_areas = ["security", "performance"]
 
@@ -108,30 +105,22 @@ class TestBuildReviewPrompt:
         assert "performance" in prompt.lower()
 
     @patch("code_review_gemini.load_prompt_template")
-    def test_uses_template_when_available(
-        self, mock_load: Mock, sample_code: str
-    ) -> None:
+    def test_uses_template_when_available(self, mock_load: Mock, sample_code: str) -> None:
         """Test using template when available."""
         mock_load.return_value = "Template: {{TARGET}} {{CODE_CONTENT}}"
 
-        prompt = crg.build_review_prompt(
-            target="test.py", code_content=sample_code, mode="review"
-        )
+        prompt = crg.build_review_prompt(target="test.py", code_content=sample_code, mode="review")
 
         assert "Template:" in prompt
         assert "test.py" in prompt
         mock_load.assert_called_once_with("review_prompt")
 
     @patch("code_review_gemini.load_prompt_template")
-    def test_uses_fallback_when_no_template(
-        self, mock_load: Mock, sample_code: str
-    ) -> None:
+    def test_uses_fallback_when_no_template(self, mock_load: Mock, sample_code: str) -> None:
         """Test using fallback when template not available."""
         mock_load.return_value = None
 
-        prompt = crg.build_review_prompt(
-            target="test.py", code_content=sample_code, mode="review"
-        )
+        prompt = crg.build_review_prompt(target="test.py", code_content=sample_code, mode="review")
 
         assert "test.py" in prompt
         assert sample_code in prompt
@@ -207,9 +196,7 @@ class TestCmdReview:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test successful review command."""
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_gather.return_value = (
             "Code content",
             [tmp_path / "test.py"],
@@ -242,9 +229,7 @@ class TestCmdReview:
         self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test review when Gemini is not available."""
-        mock_check.return_value = crg.CheckResult(
-            available=False, message="Not installed"
-        )
+        mock_check.return_value = crg.CheckResult(available=False, message="Not installed")
         args = Namespace(
             target="test.py",
             model="gemini-2.5-pro",
@@ -269,9 +254,7 @@ class TestCmdReview:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test review when no files are found."""
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_gather.return_value = ("", [])
         args = Namespace(
             target="nonexistent.py",
@@ -301,9 +284,7 @@ class TestCmdReview:
         tmp_path: Path,
     ) -> None:
         """Test review in planning mode."""
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_gather.return_value = (
             "Code content",
             [tmp_path / "test.py"],
@@ -343,16 +324,12 @@ class TestCmdReview:
         tmp_path: Path,
     ) -> None:
         """Test review with specific focus areas."""
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_gather.return_value = (
             "Code",
             [tmp_path / "test.py"],
         )
-        mock_run.return_value = crg.RunResult(
-            success=True, output="Review", model="gemini-2.5-pro"
-        )
+        mock_run.return_value = crg.RunResult(success=True, output="Review", model="gemini-2.5-pro")
         mock_build_prompt.return_value = "Prompt with security and performance"
 
         args = Namespace(
@@ -383,15 +360,11 @@ class TestCmdReview:
         tmp_path: Path,
     ) -> None:
         """Test that timeout is adjusted based on number of files."""
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         # More than 10 files should use TIMEOUT_COMPLEX
         many_files = [tmp_path / f"test{i}.py" for i in range(15)]
         mock_gather.return_value = ("Code", many_files)
-        mock_run.return_value = crg.RunResult(
-            success=True, output="Review", model="gemini-2.5-pro"
-        )
+        mock_run.return_value = crg.RunResult(success=True, output="Review", model="gemini-2.5-pro")
 
         args = Namespace(
             target="src/",

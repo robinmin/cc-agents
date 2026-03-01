@@ -31,14 +31,14 @@ from repo_config import (
     cmd_list_topics,
     cmd_set_default_collection,
     REQUIRED_FOLDERS,
-    COLLECTIONS_FILE
+    COLLECTIONS_FILE,
 )
-
 
 
 # ============================================================================
 # RepoValidator Tests
 # ============================================================================
+
 
 class TestRepoValidator:
     """Tests for RepoValidator class."""
@@ -116,6 +116,7 @@ class TestRepoValidator:
 # load_collections_json() Tests
 # ============================================================================
 
+
 class TestLoadCollectionsJson:
     """Tests for load_collections_json() function."""
 
@@ -147,6 +148,7 @@ class TestLoadCollectionsJson:
 # list_collections() Tests
 # ============================================================================
 
+
 class TestListCollections:
     """Tests for list_collections() function."""
 
@@ -168,13 +170,13 @@ class TestListCollections:
 
     def test_uses_configured_repo_root(self, mock_valid_repo):
         """Test using configured repo root when not provided."""
-        with patch('repo_config.get_tcc_repo_root', return_value=mock_valid_repo):
+        with patch("repo_config.get_tcc_repo_root", return_value=mock_valid_repo):
             collections = list_collections()
             assert isinstance(collections, list)
 
     def test_raises_error_when_no_repo_root(self):
         """Test error when repo root not configured."""
-        with patch('repo_config.get_tcc_repo_root', return_value=None):
+        with patch("repo_config.get_tcc_repo_root", return_value=None):
             with pytest.raises(FileNotFoundError, match="Repository root not configured"):
                 list_collections()
 
@@ -182,6 +184,7 @@ class TestListCollections:
 # ============================================================================
 # list_topics_in_collection() Tests
 # ============================================================================
+
 
 class TestListTopicsInCollection:
     """Tests for list_topics_in_collection() function."""
@@ -196,7 +199,7 @@ class TestListTopicsInCollection:
             "---\nname: test-topic\ntitle: Test Topic\nstatus: draft\n---\n"
         )
 
-        with patch('repo_config.get_tcc_config', return_value={"collections_path": "collections"}):
+        with patch("repo_config.get_tcc_config", return_value={"collections_path": "collections"}):
             topics = list_topics_in_collection("test-collection", mock_valid_repo)
             assert len(topics) >= 1
             assert all("id" in topic for topic in topics)
@@ -224,7 +227,7 @@ class TestListTopicsInCollection:
         topic_dir = collection_dir / "no-md"
         topic_dir.mkdir()
 
-        with patch('repo_config.get_tcc_config', return_value={"collections_path": "collections"}):
+        with patch("repo_config.get_tcc_config", return_value={"collections_path": "collections"}):
             # Topics without topic.md should be skipped
             topics = list_topics_in_collection("test", repo_root)
             assert len(topics) == 0
@@ -239,7 +242,7 @@ class TestListTopicsInCollection:
         collection_dir = collections_dir / "empty"
         collection_dir.mkdir()
 
-        with patch('repo_config.get_tcc_config', return_value={"collections_path": "collections"}):
+        with patch("repo_config.get_tcc_config", return_value={"collections_path": "collections"}):
             topics = list_topics_in_collection("empty", repo_root)
             assert topics == []
 
@@ -259,24 +262,25 @@ class TestListTopicsInCollection:
 # set_default_collection() Tests
 # ============================================================================
 
+
 class TestSetDefaultCollection:
     """Tests for set_default_collection() function."""
 
     def test_sets_valid_collection(self, mock_valid_repo):
         """Test setting a valid collection as default."""
-        with patch('repo_config.get_tcc_repo_root', return_value=mock_valid_repo):
+        with patch("repo_config.get_tcc_repo_root", return_value=mock_valid_repo):
             set_default_collection("test-collection")
             # Should not raise
 
     def test_raises_value_error_for_invalid_collection(self, mock_valid_repo):
         """Test ValueError for non-existent collection."""
-        with patch('repo_config.get_tcc_repo_root', return_value=mock_valid_repo):
+        with patch("repo_config.get_tcc_repo_root", return_value=mock_valid_repo):
             with pytest.raises(ValueError, match="Collection .* not found"):
                 set_default_collection("nonexistent-collection")
 
     def test_raises_error_when_no_repo_root(self):
         """Test error when repo root not configured."""
-        with patch('repo_config.get_tcc_repo_root', return_value=None):
+        with patch("repo_config.get_tcc_repo_root", return_value=None):
             with pytest.raises(FileNotFoundError, match="Repository root not configured"):
                 set_default_collection("test")
 
@@ -285,6 +289,7 @@ class TestSetDefaultCollection:
 # CLI Commands Tests
 # ============================================================================
 
+
 class TestCmdDetect:
     """Tests for cmd_detect() function."""
 
@@ -292,7 +297,7 @@ class TestCmdDetect:
         """Test printing configured repository root."""
         args = MagicMock()
 
-        with patch('repo_config.get_tcc_repo_root', return_value=Path("/mock/root")):
+        with patch("repo_config.get_tcc_repo_root", return_value=Path("/mock/root")):
             cmd_detect(args)
             captured = capsys.readouterr()
             assert "Repository root:" in captured.out
@@ -302,7 +307,7 @@ class TestCmdDetect:
         """Test message when root not configured."""
         args = MagicMock()
 
-        with patch('repo_config.get_tcc_repo_root', return_value=None):
+        with patch("repo_config.get_tcc_repo_root", return_value=None):
             with pytest.raises(SystemExit):
                 cmd_detect(args)
             captured = capsys.readouterr()
@@ -313,8 +318,10 @@ class TestCmdDetect:
         args = MagicMock()
         mock_root = Path("/mock/root")
 
-        with patch('repo_config.get_tcc_repo_root', return_value=mock_root), \
-             patch('repo_config.RepoValidator') as mock_validator:
+        with (
+            patch("repo_config.get_tcc_repo_root", return_value=mock_root),
+            patch("repo_config.RepoValidator") as mock_validator,
+        ):
             mock_v = MagicMock()
             mock_v.validate_repo_root.return_value = (True, [])
             mock_validator.return_value = mock_v
@@ -332,13 +339,12 @@ class TestCmdSetRoot:
         args = MagicMock()
         args.path = str(mock_valid_repo)
 
-        with patch('repo_config.Path') as mock_path, \
-             patch('repo_config.set_tcc_repo_root'):
+        with patch("repo_config.Path") as mock_path, patch("repo_config.set_tcc_repo_root"):
             mock_path.return_value = mock_valid_repo
             mock_v = MagicMock()
             mock_v.validate_repo_root.return_value = (True, [])
 
-            with patch('repo_config.RepoValidator', return_value=mock_v):
+            with patch("repo_config.RepoValidator", return_value=mock_v):
                 cmd_set_root(args)
                 captured = capsys.readouterr()
                 assert "Repository root set to:" in captured.out
@@ -348,13 +354,12 @@ class TestCmdSetRoot:
         args = MagicMock()
         invalid_path = tmp_path / "invalid"
 
-        with patch('repo_config.Path') as mock_path, \
-             patch('repo_config.RepoValidator'):
+        with patch("repo_config.Path") as mock_path, patch("repo_config.RepoValidator"):
             mock_path.return_value.expanduser.resolve.return_value = invalid_path
             mock_v = MagicMock()
             mock_v.validate_repo_root.return_value = (False, ["Missing required"])
 
-            with patch('repo_config.RepoValidator', return_value=mock_v):
+            with patch("repo_config.RepoValidator", return_value=mock_v):
                 with pytest.raises(SystemExit):
                     cmd_set_root(args)
 
@@ -366,7 +371,7 @@ class TestCmdValidate:
         """Test exits 0 for valid repository."""
         args = MagicMock()
 
-        with patch('repo_config.get_tcc_repo_root', return_value=mock_valid_repo):
+        with patch("repo_config.get_tcc_repo_root", return_value=mock_valid_repo):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_validate(args)
             assert exc_info.value.code == 0
@@ -377,7 +382,7 @@ class TestCmdValidate:
         invalid_repo = tmp_path / "invalid"
         invalid_repo.mkdir()
 
-        with patch('repo_config.get_tcc_repo_root', return_value=invalid_repo):
+        with patch("repo_config.get_tcc_repo_root", return_value=invalid_repo):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_validate(args)
             assert exc_info.value.code == 1
@@ -390,9 +395,10 @@ class TestCmdListCollections:
         """Test listing all collections."""
         args = MagicMock()
 
-        with patch('repo_config.list_collections', return_value=[
-            {"id": "test", "name": "Test", "topic_count": 1}
-        ]):
+        with patch(
+            "repo_config.list_collections",
+            return_value=[{"id": "test", "name": "Test", "topic_count": 1}],
+        ):
             cmd_list_collections(args)
             captured = capsys.readouterr()
             assert "test" in captured.out
@@ -402,7 +408,7 @@ class TestCmdListCollections:
         """Test handling empty collections list."""
         args = MagicMock()
 
-        with patch('repo_config.list_collections', return_value=[]):
+        with patch("repo_config.list_collections", return_value=[]):
             cmd_list_collections(args)
             captured = capsys.readouterr()
             assert "No collections found" in captured.out
@@ -416,9 +422,10 @@ class TestCmdListTopics:
         args = MagicMock()
         args.collection = "test-collection"
 
-        with patch('repo_config.list_topics_in_collection', return_value=[
-            {"id": "topic-1", "title": "Topic 1", "status": "draft"}
-        ]):
+        with patch(
+            "repo_config.list_topics_in_collection",
+            return_value=[{"id": "topic-1", "title": "Topic 1", "status": "draft"}],
+        ):
             cmd_list_topics(args)
             captured = capsys.readouterr()
             assert "topic-1" in captured.out
@@ -428,7 +435,7 @@ class TestCmdListTopics:
         args = MagicMock()
         args.collection = "test"
 
-        with patch('repo_config.list_topics_in_collection', return_value=[]):
+        with patch("repo_config.list_topics_in_collection", return_value=[]):
             cmd_list_topics(args)
             captured = capsys.readouterr()
             assert "No topics found" in captured.out
@@ -442,7 +449,7 @@ class TestCmdSetDefaultCollection:
         args = MagicMock()
         args.name = "test-collection"
 
-        with patch('repo_config.set_default_collection'):
+        with patch("repo_config.set_default_collection"):
             cmd_set_default_collection(args)
             captured = capsys.readouterr()
             assert "Default collection set to:" in captured.out
@@ -452,13 +459,12 @@ class TestCmdSetDefaultCollection:
         args = MagicMock()
         args.name = "test-collection"
 
-        mock_config = {
-            "tcc_repo_root": "/mock/root",
-            "default_collection": "test-collection"
-        }
+        mock_config = {"tcc_repo_root": "/mock/root", "default_collection": "test-collection"}
 
-        with patch('repo_config.set_default_collection'), \
-             patch('repo_config.get_tcc_config', return_value=mock_config):
+        with (
+            patch("repo_config.set_default_collection"),
+            patch("repo_config.get_tcc_config", return_value=mock_config),
+        ):
             cmd_set_default_collection(args)
             captured = capsys.readouterr()
             assert "Current TCC configuration:" in captured.out
@@ -467,6 +473,7 @@ class TestCmdSetDefaultCollection:
 # ============================================================================
 # Constants Tests
 # ============================================================================
+
 
 class TestConstants:
     """Tests for module constants."""
@@ -485,6 +492,7 @@ class TestConstants:
 # ============================================================================
 # Edge Cases Tests
 # ============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases and special scenarios."""
@@ -528,7 +536,7 @@ class TestAdditionalCoverage:
         """Test cmd_list_collections with malformed JSON."""
         args = MagicMock()
 
-        with patch('repo_config.list_collections', side_effect=json.JSONDecodeError("test", "", 0)):
+        with patch("repo_config.list_collections", side_effect=json.JSONDecodeError("test", "", 0)):
             with pytest.raises(SystemExit):
                 cmd_list_collections(args)
             captured = capsys.readouterr()
@@ -539,7 +547,9 @@ class TestAdditionalCoverage:
         args = MagicMock()
         args.collection = "nonexistent"
 
-        with patch('repo_config.list_topics_in_collection', side_effect=FileNotFoundError("Not found")):
+        with patch(
+            "repo_config.list_topics_in_collection", side_effect=FileNotFoundError("Not found")
+        ):
             with pytest.raises(SystemExit):
                 cmd_list_topics(args)
             captured = capsys.readouterr()
@@ -550,7 +560,9 @@ class TestAdditionalCoverage:
         args = MagicMock()
         args.name = "test"
 
-        with patch('repo_config.set_default_collection', side_effect=FileNotFoundError("Not configured")):
+        with patch(
+            "repo_config.set_default_collection", side_effect=FileNotFoundError("Not configured")
+        ):
             with pytest.raises(SystemExit):
                 cmd_set_default_collection(args)
             captured = capsys.readouterr()
@@ -561,7 +573,9 @@ class TestAdditionalCoverage:
         args = MagicMock()
         args.name = "invalid"
 
-        with patch('repo_config.set_default_collection', side_effect=ValueError("Invalid collection")):
+        with patch(
+            "repo_config.set_default_collection", side_effect=ValueError("Invalid collection")
+        ):
             with pytest.raises(SystemExit):
                 cmd_set_default_collection(args)
             captured = capsys.readouterr()
@@ -572,8 +586,10 @@ class TestAdditionalCoverage:
         args = MagicMock()
         mock_root = Path("/nonexistent/root")
 
-        with patch('repo_config.get_tcc_repo_root', return_value=mock_root), \
-             patch('repo_config.RepoValidator') as mock_validator:
+        with (
+            patch("repo_config.get_tcc_repo_root", return_value=mock_root),
+            patch("repo_config.RepoValidator") as mock_validator,
+        ):
             mock_v = MagicMock()
             mock_v.validate_repo_root.return_value = (False, ["Does not exist"])
             mock_validator.return_value = mock_v
@@ -592,7 +608,7 @@ class TestAdditionalCoverage:
         non_topic_dir.mkdir()
         (non_topic_dir / "some-file.txt").write_text("test")
 
-        with patch('repo_config.get_tcc_config', return_value={"collections_path": "collections"}):
+        with patch("repo_config.get_tcc_config", return_value={"collections_path": "collections"}):
             topics = list_topics_in_collection("test-collection", mock_valid_repo)
             # Should not include the non-topic directory
             assert not any(t["id"] == "not-a-topic" for t in topics)
@@ -618,8 +634,10 @@ class TestAdditionalCoverage:
         args = MagicMock()
         invalid_repo = Path("/invalid/path")
 
-        with patch('repo_config.get_tcc_repo_root', return_value=invalid_repo), \
-             patch('repo_config.RepoValidator') as mock_validator:
+        with (
+            patch("repo_config.get_tcc_repo_root", return_value=invalid_repo),
+            patch("repo_config.RepoValidator") as mock_validator,
+        ):
             mock_v = MagicMock()
             mock_v.validate_repo_root.return_value = (False, ["Error 1", "Error 2"])
             mock_validator.return_value = mock_v
@@ -627,9 +645,11 @@ class TestAdditionalCoverage:
             with pytest.raises(SystemExit):
                 cmd_validate(args)
 
-    def test_set_default_collection_with_available_collections_message(self, mock_valid_repo, capsys):
+    def test_set_default_collection_with_available_collections_message(
+        self, mock_valid_repo, capsys
+    ):
         """Test set_default_collection shows available collections on error."""
-        with patch('repo_config.get_tcc_repo_root', return_value=mock_valid_repo):
+        with patch("repo_config.get_tcc_repo_root", return_value=mock_valid_repo):
             try:
                 set_default_collection("nonexistent-collection")
             except ValueError as e:
@@ -639,43 +659,56 @@ class TestAdditionalCoverage:
 
     def test_main_no_command_shows_help(self, capsys):
         """Test main() with no command shows help."""
-        with patch('sys.argv', ['repo-config.py']):
+        with patch("sys.argv", ["repo-config.py"]):
             with pytest.raises(SystemExit):
                 from repo_config import main
+
                 main()
 
     def test_main_with_detect_command(self, capsys):
         """Test main() with --detect command."""
-        with patch('sys.argv', ['repo-config.py', '--detect']), \
-             patch('repo_config.get_tcc_repo_root', return_value=Path("/mock/root")):
+        with (
+            patch("sys.argv", ["repo-config.py", "--detect"]),
+            patch("repo_config.get_tcc_repo_root", return_value=Path("/mock/root")),
+        ):
             from repo_config import main
+
             main()
             captured = capsys.readouterr()
             assert "Repository root:" in captured.out
 
     def test_main_with_list_collections_command(self, capsys):
         """Test main() with --list-collections command."""
-        with patch('sys.argv', ['repo-config.py', '--list-collections']), \
-             patch('repo_config.list_collections', return_value=[]):
+        with (
+            patch("sys.argv", ["repo-config.py", "--list-collections"]),
+            patch("repo_config.list_collections", return_value=[]),
+        ):
             from repo_config import main
+
             main()
             captured = capsys.readouterr()
             assert "No collections found" in captured.out
 
     def test_main_with_validate_command(self, mock_valid_repo, capsys):
         """Test main() with --validate command."""
-        with patch('sys.argv', ['repo-config.py', '--validate']), \
-             patch('repo_config.get_tcc_repo_root', return_value=mock_valid_repo):
+        with (
+            patch("sys.argv", ["repo-config.py", "--validate"]),
+            patch("repo_config.get_tcc_repo_root", return_value=mock_valid_repo),
+        ):
             with pytest.raises(SystemExit) as exc_info:
                 from repo_config import main
+
                 main()
             assert exc_info.value.code == 0
 
     def test_main_with_list_topics_command(self, capsys):
         """Test main() with --list-topics command."""
-        with patch('sys.argv', ['repo-config.py', '--list-topics', 'test']), \
-             patch('repo_config.list_topics_in_collection', return_value=[]):
+        with (
+            patch("sys.argv", ["repo-config.py", "--list-topics", "test"]),
+            patch("repo_config.list_topics_in_collection", return_value=[]),
+        ):
             from repo_config import main
+
             main()
             captured = capsys.readouterr()
             assert "No topics found" in captured.out

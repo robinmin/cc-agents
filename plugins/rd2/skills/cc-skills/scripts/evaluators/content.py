@@ -49,7 +49,11 @@ WORKFLOW_QUALITY_RUBRIC = RubricCriterion(
     description="Quality of workflow/usage guidance within SKILL.md",
     weight=0.30,
     levels=[
-        RubricLevel("excellent", 100, "Substantive workflow with numbered steps, checklists, or detailed guidance"),
+        RubricLevel(
+            "excellent",
+            100,
+            "Substantive workflow with numbered steps, checklists, or detailed guidance",
+        ),
         RubricLevel("good", 75, "Has workflow section with meaningful content (not just links)"),
         RubricLevel("acceptable", 50, "Has workflow section with basic details"),
         RubricLevel("minimal", 25, "Has 'When to use' guidance but no detailed workflow"),
@@ -76,12 +80,14 @@ class ContentEvaluator:
     """Evaluates content quality in SKILL.md files using rubric-based scoring."""
 
     # Pre-configured rubric scorer for content evaluation
-    RUBRIC_SCORER = RubricScorer([
-        CONTENT_LENGTH_RUBRIC,
-        CORE_SECTIONS_RUBRIC,
-        WORKFLOW_QUALITY_RUBRIC,
-        DOC_COMPLETENESS_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            CONTENT_LENGTH_RUBRIC,
+            CORE_SECTIONS_RUBRIC,
+            WORKFLOW_QUALITY_RUBRIC,
+            DOC_COMPLETENESS_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "content"
@@ -120,9 +126,16 @@ class ContentEvaluator:
 
         # Check for sections
         has_overview = re.search(r"^#{1,3}\s+Overview", content_body, re.MULTILINE | re.IGNORECASE)
-        has_examples = re.search(r"^#{1,3}\s+Example", content_body, re.MULTILINE | re.IGNORECASE) or "```" in content_body
-        has_when_to_use = re.search(r"^#{1,3}\s+(When to use|Usage)", content_body, re.MULTILINE | re.IGNORECASE)
-        has_quick_start = re.search(r"^#{1,3}\s+Quick\s+Start", content_body, re.MULTILINE | re.IGNORECASE)
+        has_examples = (
+            re.search(r"^#{1,3}\s+Example", content_body, re.MULTILINE | re.IGNORECASE)
+            or "```" in content_body
+        )
+        has_when_to_use = re.search(
+            r"^#{1,3}\s+(When to use|Usage)", content_body, re.MULTILINE | re.IGNORECASE
+        )
+        has_quick_start = re.search(
+            r"^#{1,3}\s+Quick\s+Start", content_body, re.MULTILINE | re.IGNORECASE
+        )
         has_todo = "[TODO:" in content
 
         # Evaluate all criteria with a single function
@@ -152,7 +165,8 @@ class ContentEvaluator:
             elif criterion.name == "workflow_quality":
                 workflow_pattern = re.search(
                     r"^#{1,3}\s+(workflow|Workflows|Usage|When to use)",
-                    content_body, re.MULTILINE | re.IGNORECASE
+                    content_body,
+                    re.MULTILINE | re.IGNORECASE,
                 )
                 if not workflow_pattern:
                     if has_when_to_use:
@@ -161,12 +175,19 @@ class ContentEvaluator:
                 workflow_start = workflow_pattern.end()
                 workflow_section = content_body[workflow_start : workflow_start + 2000]
                 link_pattern = re.search(r"^\s*\[.*?\]\(.*?\)\s*$", workflow_section, re.MULTILINE)
-                if link_pattern and not any(p in workflow_section for p in ["step", "Step", "1.", "2.", "- ["]):
+                if link_pattern and not any(
+                    p in workflow_section for p in ["step", "Step", "1.", "2.", "- ["]
+                ):
                     return "external_only", "Workflow only references external files"
                 substantive_patterns = [
-                    r"step\s+\d+", r"Step\s+\d+", r"\d+\.\s+", r"- \[\*",
+                    r"step\s+\d+",
+                    r"Step\s+\d+",
+                    r"\d+\.\s+",
+                    r"- \[\*",
                 ]
-                has_substantive = any(re.search(p, workflow_section, re.IGNORECASE) for p in substantive_patterns)
+                has_substantive = any(
+                    re.search(p, workflow_section, re.IGNORECASE) for p in substantive_patterns
+                )
                 if has_substantive:
                     return "excellent", "Workflow has detailed step-by-step guidance"
                 return "good", "Workflow section has meaningful content"

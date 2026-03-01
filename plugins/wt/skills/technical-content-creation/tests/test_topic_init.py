@@ -30,14 +30,14 @@ from topic_init import (
     cmd_init,
     STAGE_FOLDERS,
     STAGE_SUBFOLDERS,
-    TOPIC_TEMPLATE
+    TOPIC_TEMPLATE,
 )
-
 
 
 # ============================================================================
 # slugify() Tests
 # ============================================================================
+
 
 class TestSlugify:
     """Tests for slugify() function."""
@@ -84,13 +84,16 @@ class TestSlugify:
 
     def test_complex_real_world_example(self):
         """Test a complex real-world example."""
-        assert slugify("How to Build Microservices with Python & Docker!") == \
-            "how-to-build-microservices-with-python-docker"
+        assert (
+            slugify("How to Build Microservices with Python & Docker!")
+            == "how-to-build-microservices-with-python-docker"
+        )
 
 
 # ============================================================================
 # load_collections_json() / save_collections_json() Tests
 # ============================================================================
+
 
 class TestCollectionsJson:
     """Tests for collections.json loading and saving."""
@@ -120,11 +123,7 @@ class TestCollectionsJson:
         repo_root.mkdir()
         (repo_root / "collections.json").write_text('{"collections": []}')
 
-        data = {
-            "collections": [
-                {"id": "test", "name": "Test"}
-            ]
-        }
+        data = {"collections": [{"id": "test", "name": "Test"}]}
         save_collections_json(repo_root, data)
 
         content = (repo_root / "collections.json").read_text()
@@ -152,6 +151,7 @@ class TestCollectionsJson:
 # ============================================================================
 # find_collection_by_id_or_name() Tests
 # ============================================================================
+
 
 class TestFindCollectionByIdOrName:
     """Tests for find_collection_by_id_or_name() function."""
@@ -187,6 +187,7 @@ class TestFindCollectionByIdOrName:
 # ============================================================================
 # create_collection() Tests
 # ============================================================================
+
 
 class TestCreateCollection:
     """Tests for create_collection() function."""
@@ -232,6 +233,7 @@ class TestCreateCollection:
 # register_topic() Tests
 # ============================================================================
 
+
 class TestRegisterTopic:
     """Tests for register_topic() function."""
 
@@ -260,6 +262,7 @@ class TestRegisterTopic:
 # ============================================================================
 # create_topic_structure() Tests
 # ============================================================================
+
 
 class TestCreateTopicStructure:
     """Tests for create_topic_structure() function."""
@@ -314,7 +317,7 @@ class TestCreateTopicStructure:
             "author_email": "custom@example.com",
             "primary_tag": "custom-tag",
             "primary_keyword": "custom-keyword",
-            "notes": "Custom notes"
+            "notes": "Custom notes",
         }
         topic_dir = create_topic_structure(
             mock_repo_root, "test-collection", "custom-topic", custom_data
@@ -339,6 +342,7 @@ class TestCreateTopicStructure:
 # cmd_init() Tests
 # ============================================================================
 
+
 class TestCmdInit:
     """Tests for cmd_init() CLI command."""
 
@@ -354,7 +358,7 @@ class TestCmdInit:
         args.tag = "technical"
         args.notes = ""
 
-        with patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root):
+        with patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root):
             cmd_init(args)
             captured = capsys.readouterr()
 
@@ -373,12 +377,17 @@ class TestCmdInit:
         args.tag = "test"
         args.notes = ""
 
-        with patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root), \
-             patch('topic_init.get_tcc_config', return_value={"auto_create_collections": True}):
+        with (
+            patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root),
+            patch("topic_init.get_tcc_config", return_value={"auto_create_collections": True}),
+        ):
             cmd_init(args)
             captured = capsys.readouterr()
 
-        assert "Creating new collection" in captured.out or "Topic created successfully" in captured.out
+        assert (
+            "Creating new collection" in captured.out
+            or "Topic created successfully" in captured.out
+        )
 
     def test_errors_if_collection_not_found_and_disabled(self, mock_repo_root, capsys):
         """Test error when collection not found and auto-create disabled."""
@@ -392,8 +401,10 @@ class TestCmdInit:
         args.tag = "test"
         args.notes = ""
 
-        with patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root), \
-             patch('topic_init.get_tcc_config', return_value={"auto_create_collections": False}):
+        with (
+            patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root),
+            patch("topic_init.get_tcc_config", return_value={"auto_create_collections": False}),
+        ):
             try:
                 cmd_init(args)
             except SystemExit:
@@ -411,7 +422,7 @@ class TestCmdInit:
         args.tag = "test"
         args.notes = ""
 
-        with patch('topic_init.get_tcc_repo_root', return_value=None):
+        with patch("topic_init.get_tcc_repo_root", return_value=None):
             with pytest.raises(SystemExit):
                 cmd_init(args)
 
@@ -419,6 +430,7 @@ class TestCmdInit:
 # ============================================================================
 # STAGE_FOLDERS and STAGE_SUBFOLDERS Tests
 # ============================================================================
+
 
 class TestStageConstants:
     """Tests for stage folder constants."""
@@ -436,7 +448,7 @@ class TestStageConstants:
             "3-draft",
             "4-illustration",
             "5-adaptation",
-            "6-publish"
+            "6-publish",
         ]
         assert STAGE_FOLDERS == expected
 
@@ -451,6 +463,7 @@ class TestStageConstants:
 # ============================================================================
 # TOPIC_TEMPLATE Tests
 # ============================================================================
+
 
 class TestTopicTemplate:
     """Tests for TOPIC_TEMPLATE constant."""
@@ -473,7 +486,7 @@ class TestTopicTemplate:
             "{author_email}",
             "{primary_tag}",
             "{primary_keyword}",
-            "{notes}"
+            "{notes}",
         ]
         template = TOPIC_TEMPLATE
         for placeholder in placeholders:
@@ -484,14 +497,13 @@ class TestTopicTemplate:
 # Edge Cases Tests
 # ============================================================================
 
+
 class TestEdgeCases:
     """Tests for edge cases and special scenarios."""
 
     def test_collection_name_with_special_characters(self, mock_repo_root, mock_collections_data):
         """Test handling collection names with special characters."""
-        new_col = create_collection(
-            mock_repo_root, mock_collections_data, "Test@Collection#Name!"
-        )
+        new_col = create_collection(mock_repo_root, mock_collections_data, "Test@Collection#Name!")
         assert new_col["id"] == "testcollectionname"
 
     def test_topic_id_with_unicode(self, mock_repo_root, mock_topic_data):
@@ -503,18 +515,13 @@ class TestEdgeCases:
 
     def test_empty_topic_data(self, mock_repo_root):
         """Test handling empty topic data."""
-        topic_dir = create_topic_structure(
-            mock_repo_root, "test-collection", "test-topic", {}
-        )
+        topic_dir = create_topic_structure(mock_repo_root, "test-collection", "test-topic", {})
         assert topic_dir.exists()
         assert (topic_dir / "topic.md").exists()
 
     def test_very_long_topic_name(self, mock_repo_root):
         """Test handling very long topic names."""
-        long_data = {
-            "title": "A" * 200,
-            "description": "B" * 500
-        }
+        long_data = {"title": "A" * 200, "description": "B" * 500}
         topic_dir = create_topic_structure(
             mock_repo_root, "test-collection", "test-topic", long_data
         )
@@ -539,7 +546,7 @@ class TestAdditionalCoverage:
         args.tag = "test"
         args.notes = ""
 
-        with patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root):
+        with patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root):
             with pytest.raises(SystemExit):
                 cmd_init(args)
             captured = capsys.readouterr()
@@ -563,11 +570,16 @@ class TestAdditionalCoverage:
         args.tag = "test"
         args.notes = ""
 
-        with patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root), \
-             patch('topic_init.get_tcc_config', return_value={"auto_create_collections": True}):
+        with (
+            patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root),
+            patch("topic_init.get_tcc_config", return_value={"auto_create_collections": True}),
+        ):
             cmd_init(args)
             captured = capsys.readouterr()
-            assert "Creating new collection" in captured.out or "Topic created successfully" in captured.out
+            assert (
+                "Creating new collection" in captured.out
+                or "Topic created successfully" in captured.out
+            )
 
     def test_cmdinit_shows_available_collections_on_error(self, mock_repo_root, capsys):
         """Test cmd_init shows available collections when collection not found."""
@@ -581,8 +593,10 @@ class TestAdditionalCoverage:
         args.tag = "test"
         args.notes = ""
 
-        with patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root), \
-             patch('topic_init.get_tcc_config', return_value={"auto_create_collections": False}):
+        with (
+            patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root),
+            patch("topic_init.get_tcc_config", return_value={"auto_create_collections": False}),
+        ):
             with pytest.raises(SystemExit):
                 cmd_init(args)
             captured = capsys.readouterr()
@@ -597,10 +611,10 @@ class TestAdditionalCoverage:
             "author_email": "author@example.com",
             "primary_tag": "test",
             "primary_keyword": "test",
-            "notes": ""
+            "notes": "",
         }
 
-        with patch('topic_init.get_tcc_config', return_value={"collections_path": "collections"}):
+        with patch("topic_init.get_tcc_config", return_value={"collections_path": "collections"}):
             topic_dir = create_topic_structure(
                 mock_repo_root, "test-collection", "custom-path-topic", custom_data
             )
@@ -630,6 +644,7 @@ class TestAdditionalCoverage:
     def test_save_collections_json_updates_timestamp(self, mock_repo_root):
         """Test save_collections_json updates last_updated timestamp."""
         from datetime import datetime
+
         datetime.now().isoformat()
 
         data = {"collections": [{"id": "test"}]}
@@ -651,11 +666,14 @@ class TestAdditionalCoverage:
         args.tag = "test"
         args.notes = ""
 
-        with patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root):
+        with patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root):
             cmd_init(args)
             captured = capsys.readouterr()
             # Topic ID should be slugified
-            assert "test-topic-with-spaces" in captured.out or "Topic created successfully" in captured.out
+            assert (
+                "test-topic-with-spaces" in captured.out
+                or "Topic created successfully" in captured.out
+            )
 
     def test_create_collection_sets_description(self, mock_repo_root, mock_collections_data):
         """Test create_collection sets proper description."""
@@ -666,41 +684,62 @@ class TestAdditionalCoverage:
 
     def test_create_collection_initializes_with_zeros(self, mock_repo_root, mock_collections_data):
         """Test create_collection initializes counts to zero."""
-        new_col = create_collection(
-            mock_repo_root, mock_collections_data, "New Collection"
-        )
+        new_col = create_collection(mock_repo_root, mock_collections_data, "New Collection")
         assert new_col["topic_count"] == 0
         assert new_col["published_count"] == 0
 
     def test_main_with_required_arguments(self, mock_repo_root, capsys):
         """Test main() with required arguments."""
-        with patch('sys.argv', [
-            'topic-init.py',
-            '--topic', 'test-topic',
-            '--collection', 'test-collection',
-            '--title', 'Test Topic'
-        ]), \
-        patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root):
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "topic-init.py",
+                    "--topic",
+                    "test-topic",
+                    "--collection",
+                    "test-collection",
+                    "--title",
+                    "Test Topic",
+                ],
+            ),
+            patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root),
+        ):
             from topic_init import main
+
             main()
             captured = capsys.readouterr()
             assert "Topic created successfully" in captured.out
 
     def test_main_with_all_arguments(self, mock_repo_root, capsys):
         """Test main() with all arguments provided."""
-        with patch('sys.argv', [
-            'topic-init.py',
-            '--topic', 'full-test-topic',
-            '--collection', 'test-collection',
-            '--title', 'Full Test Topic',
-            '--description', 'A complete test topic',
-            '--author', 'Test Author',
-            '--email', 'test@example.com',
-            '--tag', 'testing',
-            '--notes', 'Test notes for full coverage'
-        ]), \
-        patch('topic_init.get_tcc_repo_root', return_value=mock_repo_root):
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "topic-init.py",
+                    "--topic",
+                    "full-test-topic",
+                    "--collection",
+                    "test-collection",
+                    "--title",
+                    "Full Test Topic",
+                    "--description",
+                    "A complete test topic",
+                    "--author",
+                    "Test Author",
+                    "--email",
+                    "test@example.com",
+                    "--tag",
+                    "testing",
+                    "--notes",
+                    "Test notes for full coverage",
+                ],
+            ),
+            patch("topic_init.get_tcc_repo_root", return_value=mock_repo_root),
+        ):
             from topic_init import main
+
             main()
             captured = capsys.readouterr()
             assert "Topic created successfully" in captured.out

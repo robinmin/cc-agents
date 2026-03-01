@@ -8,6 +8,7 @@ from pathlib import Path
 scripts_dir = Path(__file__).parent
 sys.path.insert(0, str(scripts_dir))
 
+
 def test_config_module():
     """Test config module imports and basic functions."""
     print("Testing config module...")
@@ -18,17 +19,18 @@ def test_config_module():
             WTConfigPath,
             strip_json_comments,
         )
+
         print("  [PASS] All imports successful")
 
         # Test JSONC comment stripping
-        test_jsonc = '''
+        test_jsonc = """
         // This is a comment
         {"key": "value", /* another comment */
         "array": [1, 2, 3,],} // trailing comma
-        '''
+        """
         result = strip_json_comments(test_jsonc)
-        assert '//' not in result
-        assert '/*' not in result
+        assert "//" not in result
+        assert "/*" not in result
         print("  [PASS] JSONC comment stripping works")
 
         # Test config path
@@ -99,6 +101,7 @@ def test_jsonc_functionality():
         test_trailing = '{"arr": [1, 2,], "obj": {"a": 1,},}'
         result = strip_json_comments(test_trailing)
         import json
+
         parsed = json.loads(result)
         assert parsed["arr"] == [1, 2]
         assert parsed["obj"]["a"] == 1
@@ -108,6 +111,7 @@ def test_jsonc_functionality():
     except Exception as e:
         print(f"  [FAIL] {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

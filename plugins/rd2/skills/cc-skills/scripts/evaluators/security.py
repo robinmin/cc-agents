@@ -111,7 +111,11 @@ def _is_within_rule_definition_context(script_file: Path, target_line: int) -> b
         if isinstance(node, ast.ClassDef):
             is_dataclass = any(
                 (isinstance(d, ast.Name) and d.id == "dataclass")
-                or (isinstance(d, ast.Call) and isinstance(d.func, ast.Name) and d.func.id == "dataclass")
+                or (
+                    isinstance(d, ast.Call)
+                    and isinstance(d.func, ast.Name)
+                    and d.func.id == "dataclass"
+                )
                 for d in node.decorator_list
             )
             if is_dataclass and node.name == "Rule":
@@ -141,12 +145,14 @@ class SecurityEvaluator:
 
     def _create_scorer(self) -> RubricScorer:
         """Create a fresh rubric scorer for each evaluation."""
-        return RubricScorer([
-            SKILL_MD_SECURITY_RUBRIC,
-            SCRIPT_SECURITY_RUBRIC,
-            SECURITY_AWARENESS_RUBRIC,
-            SECURITY_DOCS_RUBRIC,
-        ])
+        return RubricScorer(
+            [
+                SKILL_MD_SECURITY_RUBRIC,
+                SCRIPT_SECURITY_RUBRIC,
+                SECURITY_AWARENESS_RUBRIC,
+                SECURITY_DOCS_RUBRIC,
+            ]
+        )
 
     def evaluate(self, skill_path: Path) -> DimensionScore:
         """Evaluate security considerations using rubric-based scoring."""
@@ -257,7 +263,9 @@ class SecurityEvaluator:
             score=score,
             weight=self.weight,
             findings=findings,
-            recommendations=recommendations if recommendations else ["Security considerations are adequate"],
+            recommendations=recommendations
+            if recommendations
+            else ["Security considerations are adequate"],
         )
 
 

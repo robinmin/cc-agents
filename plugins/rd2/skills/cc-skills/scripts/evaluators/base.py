@@ -31,6 +31,7 @@ __all__ = [
 # RUBRIC-BASED SCORING SYSTEM
 # =============================================================================
 
+
 @dataclass
 class RubricLevel:
     """A single level in a rubric criterion with description and score."""
@@ -110,7 +111,9 @@ class RubricScorer:
             for c in criteria
         ]
 
-    def evaluate(self, evaluator_fn: Callable[[Any], tuple[str, str]]) -> tuple[float, list[str], list[str]]:
+    def evaluate(
+        self, evaluator_fn: Callable[[Any], tuple[str, str]]
+    ) -> tuple[float, list[str], list[str]]:
         """Evaluate using the rubric.
 
         Args:
@@ -138,15 +141,11 @@ class RubricScorer:
             weighted_score = level_score * criterion.weight
             score += weighted_score
 
-            findings.append(
-                f"{criterion.name}: {level_name} ({level_score:.0f}%) - {evidence}"
-            )
+            findings.append(f"{criterion.name}: {level_name} ({level_score:.0f}%) - {evidence}")
 
             if level_score < 50:
                 # Get recommendation from level description
-                recommendations.append(
-                    f"{criterion.name}: {level_desc}"
-                )
+                recommendations.append(f"{criterion.name}: {level_desc}")
 
         # Clamp score
         score = max(0.0, min(100.0, score))
@@ -185,9 +184,7 @@ class Grade(Enum):
         # Scores below 0 get F
         return cls.F
 
-    def __init__(
-        self, letter: str, min_score: float, max_score: float, description: str
-    ):
+    def __init__(self, letter: str, min_score: float, max_score: float, description: str):
         self.letter = letter
         self.min_score = min_score
         self.max_score = max_score
@@ -226,9 +223,7 @@ class EvaluationResult:
         return {
             "skill_path": str(self.skill_path),
             "validation": {
-                "result": self.validation_result.value
-                if self.validation_result
-                else None,
+                "result": self.validation_result.value if self.validation_result else None,
                 "message": self.validation_message,
             },
             "dimensions": {

@@ -37,7 +37,7 @@ DEFAULT_CONFIG = {
     },
     "content_generation": {
         "default_language": "en",  # Default language for content
-    }
+    },
 }
 
 
@@ -50,7 +50,6 @@ LANGUAGE_CODES = {
     "jp": {"suffix": "jp", "name": "Japanese", "emoji": "🇯🇵"},
     "zh": {"suffix": "cn", "name": "Chinese (Simplified)", "emoji": "🇨🇳"},  # Alias for cn
     "ja": {"suffix": "jp", "name": "Japanese", "emoji": "🇯🇵"},  # Alias for jp
-
     # NEW LANGUAGES - Add additional languages here
     "ko": {"suffix": "ko", "name": "Korean", "emoji": "🇰🇷"},
     "es": {"suffix": "es", "name": "Spanish", "emoji": "🇪🇸"},
@@ -93,12 +92,12 @@ def _strip_json_comments(json_str: str) -> str:
         JSON string with comments removed
     """
     # Remove single-line comments (//...)
-    pattern = r'//.*?$'
-    json_str = re.sub(pattern, '', json_str, flags=re.MULTILINE)
+    pattern = r"//.*?$"
+    json_str = re.sub(pattern, "", json_str, flags=re.MULTILINE)
 
     # Remove multi-line comments (/* ... */)
-    pattern = r'/\*.*?\*/'
-    json_str = re.sub(pattern, '', json_str, flags=re.DOTALL)
+    pattern = r"/\*.*?\*/"
+    json_str = re.sub(pattern, "", json_str, flags=re.DOTALL)
 
     return json_str
 
@@ -126,7 +125,7 @@ def get_wt_config() -> Dict[str, Any]:
     # Load user config if it exists
     if config_path.exists():
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
             # Strip comments (support JSONC format)
@@ -239,6 +238,7 @@ def get_env_var(key: str, default: Optional[str] = None) -> Optional[str]:
 # Language Support Functions
 # =============================================================================
 
+
 def get_language_suffix(language_code: str) -> str:
     """Get the filename suffix for a given language code.
 
@@ -328,15 +328,11 @@ def parse_article_filename(filename: str) -> dict:
             return {
                 "base_name": parts[0],
                 "language_code": potential_code,
-                "language_name": LANGUAGE_CODES[potential_code]["name"]
+                "language_name": LANGUAGE_CODES[potential_code]["name"],
             }
 
     # No language suffix found, default to English
-    return {
-        "base_name": name,
-        "language_code": "en",
-        "language_name": "English"
-    }
+    return {"base_name": name, "language_code": "en", "language_name": "English"}
 
 
 # =============================================================================
@@ -365,12 +361,9 @@ def get_supported_languages() -> list:
             continue
         seen.add(info["suffix"])
 
-        languages.append({
-            "code": code,
-            "suffix": info["suffix"],
-            "name": info["name"],
-            "emoji": info["emoji"]
-        })
+        languages.append(
+            {"code": code, "suffix": info["suffix"], "name": info["name"], "emoji": info["emoji"]}
+        )
 
     # Sort by name alphabetically
     languages.sort(key=lambda x: x["name"])
@@ -387,28 +380,25 @@ def get_language_variants(base_code: str) -> list:
         List of variant dicts with code, suffix, name, emoji
 
     Examples:
-        >>> get_language_variants('zh')
+        >>> get_language_variants("zh")
         # Returns variants for Chinese (Simplified, Traditional, Hong Kong)
     """
     if base_code not in LANGUAGE_FAMILIES:
         # Return base language if no variants defined
         if base_code in LANGUAGE_CODES:
             info = LANGUAGE_CODES[base_code]
-            return [{
-                "code": base_code,
-                "suffix": info["suffix"],
-                "name": info["name"],
-                "emoji": info["emoji"]
-            }]
+            return [
+                {
+                    "code": base_code,
+                    "suffix": info["suffix"],
+                    "name": info["name"],
+                    "emoji": info["emoji"],
+                }
+            ]
         return []
 
     return [
-        {
-            "code": code,
-            "suffix": info["suffix"],
-            "name": info["name"],
-            "emoji": info["emoji"]
-        }
+        {"code": code, "suffix": info["suffix"], "name": info["name"], "emoji": info["emoji"]}
         for code, info in LANGUAGE_FAMILIES[base_code].items()
     ]
 
@@ -423,7 +413,7 @@ def get_translation_targets(source_lang: str = "en") -> list:
         List of recommended target languages with priority
 
     Examples:
-        >>> targets = get_translation_targets('en')
+        >>> targets = get_translation_targets("en")
         >>> # Returns high-priority languages like Spanish, Chinese, etc.
     """
     # Priority mapping based on global speakers and tech adoption
@@ -446,13 +436,15 @@ def get_translation_targets(source_lang: str = "en") -> list:
         else:
             priority = "low"
 
-        targets.append({
-            "code": code,
-            "suffix": info["suffix"],
-            "name": info["name"],
-            "emoji": info["emoji"],
-            "priority": priority
-        })
+        targets.append(
+            {
+                "code": code,
+                "suffix": info["suffix"],
+                "name": info["name"],
+                "emoji": info["emoji"],
+                "priority": priority,
+            }
+        )
 
     # Sort by priority then by name
     priority_order = {"high": 0, "medium": 1, "low": 2}
@@ -471,13 +463,13 @@ def validate_language_code(code: str) -> tuple:
         Tuple of (is_valid, normalized_code, language_info)
 
     Examples:
-        >>> validate_language_code('zh')
+        >>> validate_language_code("zh")
         (True, 'cn', {'suffix': 'cn', 'name': 'Chinese (Simplified)', 'emoji': '🇨🇳'})
 
-        >>> validate_language_code('ko')
+        >>> validate_language_code("ko")
         (True, 'ko', {'suffix': 'ko', 'name': 'Korean', 'emoji': '🇰🇷'})
 
-        >>> validate_language_code('xx')
+        >>> validate_language_code("xx")
         (False, 'xx', {})
     """
     if code in LANGUAGE_CODES:
@@ -497,6 +489,7 @@ def validate_language_code(code: str) -> tuple:
 # CLI Utility
 # =============================================================================
 
+
 def main():
     """CLI utility for managing WT configuration."""
     import argparse
@@ -515,14 +508,10 @@ Examples:
 
   # Validate config file
   python config_loader.py validate
-        """
+        """,
     )
 
-    parser.add_argument(
-        "command",
-        choices=["show", "path", "validate"],
-        help="Command to execute"
-    )
+    parser.add_argument("command", choices=["show", "path", "validate"], help="Command to execute")
 
     args = parser.parse_args()
 
@@ -546,7 +535,7 @@ Examples:
             sys.exit(0)
 
         try:
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 content = f.read()
 
             content = _strip_json_comments(content)

@@ -13,6 +13,7 @@ from pathlib import Path
 
 # Import template engine components
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from template_engine import (
@@ -23,13 +24,14 @@ from template_engine import (
     TemplateParseError,
     TemplateValidationError,
     CircularReferenceError,
-    create_template
+    create_template,
 )
 
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def temp_dir():
@@ -42,10 +44,7 @@ def temp_dir():
 @pytest.fixture
 def template_engine(temp_dir):
     """Create a template engine with a temporary templates directory."""
-    return TemplateEngine(
-        project_templates_dir=temp_dir,
-        skill_templates_dir=temp_dir
-    )
+    return TemplateEngine(project_templates_dir=temp_dir, skill_templates_dir=temp_dir)
 
 
 @pytest.fixture
@@ -94,6 +93,7 @@ Simple {{subject | landscape}} image.
 # TemplateConfig Tests
 # =============================================================================
 
+
 class TestTemplateConfig:
     """Tests for TemplateConfig dataclass."""
 
@@ -104,7 +104,7 @@ class TestTemplateConfig:
             "description": "Test template",
             "width": 1024,
             "height": 768,
-            "style": "vibrant"
+            "style": "vibrant",
         }
         config = TemplateConfig.from_dict(data)
 
@@ -134,7 +134,7 @@ class TestTemplateConfig:
             "description": "Test template",
             "width": "1024",  # String instead of int
             "height": 768,
-            "style": "vibrant"
+            "style": "vibrant",
         }
         with pytest.raises(TemplateValidationError) as exc_info:
             TemplateConfig.from_dict(data)
@@ -147,7 +147,7 @@ class TestTemplateConfig:
             "description": "Test template",
             "width": -100,
             "height": 768,
-            "style": "vibrant"
+            "style": "vibrant",
         }
         with pytest.raises(TemplateValidationError) as exc_info:
             TemplateConfig.from_dict(data)
@@ -156,11 +156,7 @@ class TestTemplateConfig:
     def test_resolution_property(self):
         """Test resolution property returns correct tuple."""
         config = TemplateConfig(
-            name="test",
-            description="Test",
-            width=1920,
-            height=817,
-            style="vibrant"
+            name="test", description="Test", width=1920, height=817, style="vibrant"
         )
         assert config.resolution == (1920, 817)
 
@@ -175,8 +171,8 @@ class TestTemplateConfig:
             variables={
                 "title": {"default": "Default Title"},
                 "mood": {"default": "peaceful"},
-                "custom": {"default": "value"}
-            }
+                "custom": {"default": "value"},
+            },
         )
 
         # Merge with user variables
@@ -194,10 +190,7 @@ class TestTemplateConfig:
             width=1024,
             height=768,
             style="vibrant",
-            variables={
-                "title": "Direct Value",
-                "mood": "Direct Mood"
-            }
+            variables={"title": "Direct Value", "mood": "Direct Mood"},
         )
 
         merged = config.merge_variables({"title": "Override"})
@@ -210,24 +203,27 @@ class TestTemplateConfig:
 # Template Tests
 # =============================================================================
 
+
 class TestTemplate:
     """Tests for Template class."""
 
     def test_render_prompt_basic(self):
         """Test basic prompt rendering with variables."""
-        config = TemplateConfig.from_dict({
-            "name": "test",
-            "description": "Test",
-            "width": 1024,
-            "height": 768,
-            "style": "vibrant",
-            "keywords": ["8K", "high-quality"]
-        })
+        config = TemplateConfig.from_dict(
+            {
+                "name": "test",
+                "description": "Test",
+                "width": 1024,
+                "height": 768,
+                "style": "vibrant",
+                "keywords": ["8K", "high-quality"],
+            }
+        )
 
         template = Template(
             config=config,
             body="Test of {{title}} with {{mood}} mood.",
-            source_path=Path("test.tpl.md")
+            source_path=Path("test.tpl.md"),
         )
 
         rendered = template.render_prompt({"title": "My Title", "mood": "happy"})
@@ -238,18 +234,20 @@ class TestTemplate:
 
     def test_render_prompt_with_defaults(self):
         """Test rendering with default variable values."""
-        config = TemplateConfig.from_dict({
-            "name": "test",
-            "description": "Test",
-            "width": 1024,
-            "height": 768,
-            "style": "vibrant"
-        })
+        config = TemplateConfig.from_dict(
+            {
+                "name": "test",
+                "description": "Test",
+                "width": 1024,
+                "height": 768,
+                "style": "vibrant",
+            }
+        )
 
         template = Template(
             config=config,
             body="{{title | Default Title}} and {{mood | calm}}",
-            source_path=Path("test.tpl.md")
+            source_path=Path("test.tpl.md"),
         )
 
         rendered = template.render_prompt({})
@@ -258,18 +256,20 @@ class TestTemplate:
 
     def test_render_prompt_missing_variable(self):
         """Test that missing variables are left as-is."""
-        config = TemplateConfig.from_dict({
-            "name": "test",
-            "description": "Test",
-            "width": 1024,
-            "height": 768,
-            "style": "vibrant"
-        })
+        config = TemplateConfig.from_dict(
+            {
+                "name": "test",
+                "description": "Test",
+                "width": 1024,
+                "height": 768,
+                "style": "vibrant",
+            }
+        )
 
         template = Template(
             config=config,
             body="Test {{title}} and {{missing_var}}",
-            source_path=Path("test.tpl.md")
+            source_path=Path("test.tpl.md"),
         )
 
         rendered = template.render_prompt({"title": "Present"})
@@ -278,40 +278,36 @@ class TestTemplate:
 
     def test_render_output_filename(self):
         """Test output filename rendering."""
-        config = TemplateConfig.from_dict({
-            "name": "test",
-            "description": "Test",
-            "width": 1024,
-            "height": 768,
-            "style": "vibrant",
-            "output_filename": "{{title}}_{{index | 001}}.png"
-        })
-
-        template = Template(
-            config=config,
-            body="Test",
-            source_path=Path("test.tpl.md")
+        config = TemplateConfig.from_dict(
+            {
+                "name": "test",
+                "description": "Test",
+                "width": 1024,
+                "height": 768,
+                "style": "vibrant",
+                "output_filename": "{{title}}_{{index | 001}}.png",
+            }
         )
+
+        template = Template(config=config, body="Test", source_path=Path("test.tpl.md"))
 
         filename = template.render_output_filename({"title": "Image", "index": "042"})
         assert filename == "Image_042.png"
 
     def test_render_output_filename_with_defaults(self):
         """Test output filename with default values."""
-        config = TemplateConfig.from_dict({
-            "name": "test",
-            "description": "Test",
-            "width": 1024,
-            "height": 768,
-            "style": "vibrant",
-            "output_filename": "{{title | cover}}.png"
-        })
-
-        template = Template(
-            config=config,
-            body="Test",
-            source_path=Path("test.tpl.md")
+        config = TemplateConfig.from_dict(
+            {
+                "name": "test",
+                "description": "Test",
+                "width": 1024,
+                "height": 768,
+                "style": "vibrant",
+                "output_filename": "{{title | cover}}.png",
+            }
         )
+
+        template = Template(config=config, body="Test", source_path=Path("test.tpl.md"))
 
         # No user variables
         filename = template.render_output_filename({})
@@ -328,14 +324,10 @@ class TestTemplate:
             ("minimalist", "minimalist design"),
             ("vibrant", "bold colors"),
             ("sketch", "hand-drawn"),
-            ("photorealistic", "photorealistic")
+            ("photorealistic", "photorealistic"),
         ]:
             config = TemplateConfig(
-                name="test",
-                description="Test",
-                width=1024,
-                height=768,
-                style=style
+                name="test", description="Test", width=1024, height=768, style=style
             )
             template = Template(config=config, body="Test", source_path=Path("test.tpl.md"))
             style_prompt = template.get_style_prompt()
@@ -344,11 +336,7 @@ class TestTemplate:
     def test_get_style_prompt_unknown_style(self):
         """Test getting style prompt for unknown style returns empty string."""
         config = TemplateConfig(
-            name="test",
-            description="Test",
-            width=1024,
-            height=768,
-            style="unknown-style"
+            name="test", description="Test", width=1024, height=768, style="unknown-style"
         )
         template = Template(config=config, body="Test", source_path=Path("test.tpl.md"))
         style_prompt = template.get_style_prompt()
@@ -366,11 +354,7 @@ styles:
 
         # Create template with custom style
         config = TemplateConfig(
-            name="test",
-            description="Test",
-            width=1024,
-            height=768,
-            style="custom-style"
+            name="test", description="Test", width=1024, height=768, style="custom-style"
         )
 
         # Mock the style loading to use our temp directory
@@ -379,7 +363,7 @@ styles:
         # Mock _load_styles to return custom styles
         template._load_styles = lambda: {
             "custom-style": "custom modifiers, unique look, special style",
-            "technical-diagram": "overridden technical style"
+            "technical-diagram": "overridden technical style",
         }
 
         style_prompt = template.get_style_prompt()
@@ -395,11 +379,7 @@ styles:
     def test_load_styles_fallback_to_defaults(self):
         """Test that built-in defaults are used when YAML file not found."""
         config = TemplateConfig(
-            name="test",
-            description="Test",
-            width=1024,
-            height=768,
-            style="vibrant"
+            name="test", description="Test", width=1024, height=768, style="vibrant"
         )
 
         template = Template(config=config, body="Test", source_path=Path("test.tpl.md"))
@@ -416,6 +396,7 @@ styles:
 # =============================================================================
 # TemplateEngine Tests
 # =============================================================================
+
 
 class TestTemplateEngine:
     """Tests for TemplateEngine class."""
@@ -507,8 +488,7 @@ Bad YAML
         template_path.write_text(valid_template_content())
 
         prompt, config = template_engine.render_template(
-            "test",
-            variables={"title": "Custom Title"}
+            "test", variables={"title": "Custom Title"}
         )
 
         assert "Custom Title" in prompt
@@ -518,6 +498,7 @@ Bad YAML
 # =============================================================================
 # Error Handling Tests
 # =============================================================================
+
 
 class TestErrorHandling:
     """Tests for error handling and edge cases."""
@@ -632,6 +613,7 @@ Test {{subject | image}}
 # Integration Tests
 # =============================================================================
 
+
 class TestIntegration:
     """Integration tests for complete workflows."""
 
@@ -647,7 +629,7 @@ class TestIntegration:
             style="technical-diagram",
             body="{{concept}} diagram with {{style_detail | clean}} lines.",
             output_path=template_path,
-            steps=40
+            steps=40,
         )
 
         # Load and verify
@@ -656,10 +638,7 @@ class TestIntegration:
         assert template.config.steps == 40
 
         # Render with variables
-        rendered = template.render_prompt({
-            "concept": "Architecture",
-            "style_detail": "precise"
-        })
+        rendered = template.render_prompt({"concept": "Architecture", "style_detail": "precise"})
         assert "Architecture diagram" in rendered
         assert "precise lines" in rendered
 
@@ -685,11 +664,13 @@ Cover for "{{title}}"{{subtitle | - {{subtitle}}}}.
         template = template_engine.load_template("cover")
 
         # Render with variables
-        rendered = template.render_prompt({
-            "title": "Microservices Architecture",
-            "subtitle": "A Complete Guide",
-            "topics": "cloud computing"
-        })
+        rendered = template.render_prompt(
+            {
+                "title": "Microservices Architecture",
+                "subtitle": "A Complete Guide",
+                "topics": "cloud computing",
+            }
+        )
 
         assert "Microservices Architecture" in rendered
         assert "A Complete Guide" in rendered
@@ -703,6 +684,7 @@ Cover for "{{title}}"{{subtitle | - {{subtitle}}}}.
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def make_valid_template_content():
     """Helper to generate valid template content."""

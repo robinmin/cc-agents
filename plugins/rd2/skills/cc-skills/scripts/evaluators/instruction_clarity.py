@@ -86,25 +86,80 @@ class InstructionClarityEvaluator:
     """Evaluates instruction clarity in SKILL.md content using rubric-based scoring."""
 
     # Pre-configured rubric scorer for instruction clarity evaluation
-    RUBRIC_SCORER = RubricScorer([
-        AMBIGUITY_RUBRIC,
-        IMPERATIVE_RUBRIC,
-        ACTIONABLE_RUBRIC,
-        CONTRADICTION_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            AMBIGUITY_RUBRIC,
+            IMPERATIVE_RUBRIC,
+            ACTIONABLE_RUBRIC,
+            CONTRADICTION_RUBRIC,
+        ]
+    )
 
     # Common imperative verbs for instruction detection
     IMPERATIVE_VERBS = [
-        "create", "add", "run", "use", "check", "verify", "configure",
-        "install", "define", "set", "read", "write", "update", "remove",
-        "build", "test", "deploy", "start", "stop", "open", "close",
-        "parse", "extract", "validate", "follow", "ensure", "return",
-        "invoke", "call", "execute", "import", "export", "handle",
-        "catch", "raise", "throw", "log", "print", "display", "show",
-        "apply", "choose", "select", "delegate", "implement", "determine",
-        "prevent", "audit", "scan", "measure", "prune", "organize",
-        "separate", "document", "include", "match", "align", "consider",
-        "explore", "refine", "verify", "leverage", "iterate",
+        "create",
+        "add",
+        "run",
+        "use",
+        "check",
+        "verify",
+        "configure",
+        "install",
+        "define",
+        "set",
+        "read",
+        "write",
+        "update",
+        "remove",
+        "build",
+        "test",
+        "deploy",
+        "start",
+        "stop",
+        "open",
+        "close",
+        "parse",
+        "extract",
+        "validate",
+        "follow",
+        "ensure",
+        "return",
+        "invoke",
+        "call",
+        "execute",
+        "import",
+        "export",
+        "handle",
+        "catch",
+        "raise",
+        "throw",
+        "log",
+        "print",
+        "display",
+        "show",
+        "apply",
+        "choose",
+        "select",
+        "delegate",
+        "implement",
+        "determine",
+        "prevent",
+        "audit",
+        "scan",
+        "measure",
+        "prune",
+        "organize",
+        "separate",
+        "document",
+        "include",
+        "match",
+        "align",
+        "consider",
+        "explore",
+        "refine",
+        "verify",
+        "leverage",
+        "iterate",
     ]
 
     def __init__(self):
@@ -147,16 +202,26 @@ class InstructionClarityEvaluator:
         lines = body.split("\n")
 
         # Count meaningful lines (non-header, non-empty)
-        total_instruction_like = len([line for line in lines if line.strip() and not line.strip().startswith("#")])
+        total_instruction_like = len(
+            [line for line in lines if line.strip() and not line.strip().startswith("#")]
+        )
 
         # Pre-compute metrics used by multiple criteria
 
         # 1. Hedging count
         hedging_patterns = [
-            r"\bmight\b", r"\bcould\b", r"\bmaybe\b", r"\bperhaps\b",
-            r"\bas needed\b", r"\bif appropriate\b", r"\bwhen necessary\b",
-            r"\bas applicable\b", r"\bif desired\b", r"\boptionally\b",
-            r"\bmight want to\b", r"\bmight consider\b",
+            r"\bmight\b",
+            r"\bcould\b",
+            r"\bmaybe\b",
+            r"\bperhaps\b",
+            r"\bas needed\b",
+            r"\bif appropriate\b",
+            r"\bwhen necessary\b",
+            r"\bas applicable\b",
+            r"\bif desired\b",
+            r"\boptionally\b",
+            r"\bmight want to\b",
+            r"\bmight consider\b",
         ]
         hedging_count = 0
         for pattern in hedging_patterns:
@@ -169,7 +234,7 @@ class InstructionClarityEvaluator:
             if not line or line.startswith("#"):
                 continue
             # Strip markdown formatting (bold, italic) before checking
-            cleaned_line = re.sub(r'\*\*|\*|`', '', line)
+            cleaned_line = re.sub(r"\*\*|\*|`", "", line)
             first_word = re.split(r"[\s\-*]+", cleaned_line.lower())[0] if cleaned_line else ""
             if first_word in self.IMPERATIVE_VERBS:
                 instruction_lines.append(line)
@@ -265,7 +330,9 @@ class InstructionClarityEvaluator:
             score=score,
             weight=self.weight,
             findings=findings,
-            recommendations=recommendations if recommendations else ["Instruction clarity is adequate"],
+            recommendations=recommendations
+            if recommendations
+            else ["Instruction clarity is adequate"],
         )
 
 

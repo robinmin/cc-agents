@@ -293,7 +293,7 @@ class TasksConfig:
             raise ValueError(
                 f"Folder '{folder}' not configured.\n"
                 f"Available: {', '.join(available)}\n"
-                f"Use: tasks create \"<name>\" --folder <folder>"
+                f'Use: tasks create "<name>" --folder <folder>'
             )
 
         # Legacy mode: just use as-is
@@ -450,7 +450,7 @@ class TasksConfig:
             raise RuntimeError(
                 f"Tasks directory not found: {self.prompts_dir}\n"
                 f"Available folders: {', '.join(available_folders)}\n"
-                f"Use: tasks create \"<name>\" --folder <folder>"
+                f'Use: tasks create "<name>" --folder <folder>'
             )
         if not self.kanban_file.exists():
             raise RuntimeError(f"Kanban file not found: {self.kanban_file}. Run 'init' first.")
@@ -1452,7 +1452,9 @@ class TasksManager:
 
         # Only validate prompts_dir exists, not kanban (we're creating it)
         if not self.config.prompts_dir.exists():
-            available_folders = [str(f.relative_to(self.config.project_root)) for f in self.config.all_folders]
+            available_folders = [
+                str(f.relative_to(self.config.project_root)) for f in self.config.all_folders
+            ]
             print(
                 f"[ERROR] Tasks directory not found: {self.config.prompts_dir}",
                 file=sys.stderr,
@@ -1736,7 +1738,9 @@ impl_progress:
 
         # Check prompts directory
         if not self.config.prompts_dir.exists():
-            available_folders = [str(f.relative_to(self.config.project_root)) for f in self.config.all_folders]
+            available_folders = [
+                str(f.relative_to(self.config.project_root)) for f in self.config.all_folders
+            ]
             issues.append(
                 f"Tasks directory not found: {self.config.prompts_dir}\n"
                 f"  Available: {', '.join(available_folders)}"
@@ -1921,7 +1925,9 @@ impl_progress:
             folder_path = self.config.project_root / folder_name
             folder_path.mkdir(parents=True, exist_ok=True)
             self.config._load_config()
-            print(f"[INFO] Added folder: {folder_name} (base_counter={base_counter}, label='{label}')")
+            print(
+                f"[INFO] Added folder: {folder_name} (base_counter={base_counter}, label='{label}')"
+            )
             return 0
 
         else:

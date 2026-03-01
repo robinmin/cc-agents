@@ -11,25 +11,25 @@
  *   import { getWtConfig, getAutoSubmitPreference, copyImageToClipboard } from './x-utils.js';
  */
 
-import path from 'node:path';
-import os from 'node:os';
-import { getWtConfig } from '@wt/web-automation/config';
+import os from "node:os";
+import path from "node:path";
+import { getWtConfig } from "@wt/web-automation/config";
 
 // ============================================================================
 // WT Configuration
 // ============================================================================
 
 interface XConfig {
-  profile_dir?: string;
-  auto_submit?: boolean;
+	profile_dir?: string;
+	auto_submit?: boolean;
 }
 
 /**
  * Get X (Twitter) config from WT config
  */
 function getXConfig(): XConfig {
-  const wtConfig = getWtConfig();
-  return (wtConfig['publish-to-x'] as XConfig) || {};
+	const wtConfig = getWtConfig();
+	return (wtConfig["publish-to-x"] as XConfig) || {};
 }
 
 /**
@@ -37,8 +37,8 @@ function getXConfig(): XConfig {
  * @returns true if auto-submit is enabled (posts immediately without preview)
  */
 export function getAutoSubmitPreference(): boolean {
-  const config = getXConfig();
-  return config.auto_submit ?? false;
+	const config = getXConfig();
+	return config.auto_submit ?? false;
 }
 
 /**
@@ -52,22 +52,27 @@ export function getAutoSubmitPreference(): boolean {
  * @param skillName - The skill/agent name (e.g., 'publish-to-x', 'publish-to-infoq')
  * @returns Profile directory path
  */
-export function getDefaultProfileDir(skillName: string = 'publish-to-x'): string {
-  // Try to read from WT config
-  const wtConfig = getWtConfig();
-  const configProfileDir = (wtConfig[skillName] as { profile_dir?: string } | undefined)?.profile_dir;
+export function getDefaultProfileDir(
+	skillName: string = "publish-to-x",
+): string {
+	// Try to read from WT config
+	const wtConfig = getWtConfig();
+	const configProfileDir = (
+		wtConfig[skillName] as { profile_dir?: string } | undefined
+	)?.profile_dir;
 
-  if (configProfileDir) {
-    // Expand tilde in path
-    if (configProfileDir.startsWith('~/')) {
-      return path.join(os.homedir(), configProfileDir.slice(2));
-    }
-    return configProfileDir;
-  }
+	if (configProfileDir) {
+		// Expand tilde in path
+		if (configProfileDir.startsWith("~/")) {
+			return path.join(os.homedir(), configProfileDir.slice(2));
+		}
+		return configProfileDir;
+	}
 
-  // Fall back to default location
-  const base = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
-  return path.join(base, `${skillName}-profile`);
+	// Fall back to default location
+	const base =
+		process.env.XDG_DATA_HOME || path.join(os.homedir(), ".local", "share");
+	return path.join(base, `${skillName}-profile`);
 }
 
 // ============================================================================
@@ -75,30 +80,31 @@ export function getDefaultProfileDir(skillName: string = 'publish-to-x'): string
 // ============================================================================
 
 export {
-  copyImageToClipboard,
-  copyHtmlFileToClipboard,
-  copyHtmlToClipboard,
-  inferImageMimeType,
-} from '../../../scripts/web-automation/dist/clipboard.js';
-
+	CHROME_CANDIDATES_BASIC,
+	CHROME_CANDIDATES_FULL,
+	findChromeExecutable,
+} from "../../../scripts/web-automation/dist/browser.js";
 export {
-  CHROME_CANDIDATES_BASIC,
-  CHROME_CANDIDATES_FULL,
-  findChromeExecutable,
-} from '../../../scripts/web-automation/dist/browser.js';
-
+	copyHtmlFileToClipboard,
+	copyHtmlToClipboard,
+	copyImageToClipboard,
+	inferImageMimeType,
+} from "../../../scripts/web-automation/dist/clipboard.js";
 export {
-  pwSleep as sleep,
-  getFreePort,
-} from '../../../scripts/web-automation/dist/playwright.js';
-
+	paste,
+	pasteToApp,
+	pasteWithRetries,
+} from "../../../scripts/web-automation/dist/paste.js";
 export {
-  paste,
-  pasteWithRetries,
-  pasteToApp,
-} from '../../../scripts/web-automation/dist/paste.js';
+	getFreePort,
+	pwSleep as sleep,
+} from "../../../scripts/web-automation/dist/playwright.js";
 
 // Legacy wrapper for backward compatibility
-export function pasteFromClipboard(targetApp?: string, retries = 3, delayMs = 500): boolean {
-  return paste({ targetApp, retries, delayMs });
+export function pasteFromClipboard(
+	targetApp?: string,
+	retries = 3,
+	delayMs = 500,
+): boolean {
+	return paste({ targetApp, retries, delayMs });
 }

@@ -6,6 +6,7 @@ import tempfile
 
 # Add scripts directory to path
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from evaluators.security import SecurityEvaluator, evaluate_security
@@ -325,7 +326,7 @@ def hash_password(password: str) -> str:
 
 if __name__ == "__main__":
     print("Running secure script")
-'''
+''',
         )
 
         evaluator = SecurityEvaluator()
@@ -355,7 +356,7 @@ def run_command(cmd: str) -> str:
     # This should be flagged
     result = subprocess.run(cmd, shell=True, capture_output=True)
     return result.stdout.decode()
-'''
+''',
         )
 
         evaluator = SecurityEvaluator()

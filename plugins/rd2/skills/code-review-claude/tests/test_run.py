@@ -1,4 +1,5 @@
 """Tests for run command in code-review-claude.py."""
+
 from __future__ import annotations
 
 from argparse import Namespace
@@ -19,11 +20,7 @@ class TestRunClaudePrompt:
     @patch("code_review_claude.subprocess.run")
     def test_run_prompt_success(self, mock_run: Mock) -> None:
         """Test successful prompt execution."""
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="Test response from Claude",
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Test response from Claude", stderr="")
 
         result = crc.run_claude_prompt("Test prompt")
 
@@ -35,11 +32,7 @@ class TestRunClaudePrompt:
     @patch("code_review_claude.subprocess.run")
     def test_run_prompt_failure(self, mock_run: Mock) -> None:
         """Test prompt execution failure."""
-        mock_run.return_value = Mock(
-            returncode=1,
-            stdout="Partial output",
-            stderr="Error occurred"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="Partial output", stderr="Error occurred")
 
         result = crc.run_claude_prompt("Test prompt")
 
@@ -50,9 +43,7 @@ class TestRunClaudePrompt:
     @patch("code_review_claude.subprocess.run")
     def test_run_prompt_timeout(self, mock_run: Mock) -> None:
         """Test prompt execution timeout."""
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["claude", "ask", "test"], timeout=300
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["claude", "ask", "test"], timeout=300)
 
         result = crc.run_claude_prompt("Test prompt")
 
@@ -78,19 +69,11 @@ class TestCmdRun:
     @patch("code_review_claude.run_claude_prompt")
     @patch("code_review_claude.check_claude_availability")
     def test_run_success(
-        self,
-        mock_check: Mock,
-        mock_run: Mock,
-        capsys: pytest.CaptureFixture[str]
+        self, mock_check: Mock, mock_run: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test successful run command."""
-        mock_check.return_value = crc.CheckResult(
-            available=True, message="claude ready"
-        )
-        mock_run.return_value = crc.RunResult(
-            success=True,
-            output="Test response"
-        )
+        mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
+        mock_run.return_value = crc.RunResult(success=True, output="Test response")
         args = Namespace(prompt="Test prompt", timeout=None, save=None)
 
         exit_code = crc.cmd_run(args)
@@ -104,19 +87,12 @@ class TestCmdRun:
     @patch("code_review_claude.run_claude_prompt")
     @patch("code_review_claude.check_claude_availability")
     def test_run_failure(
-        self,
-        mock_check: Mock,
-        mock_run: Mock,
-        capsys: pytest.CaptureFixture[str]
+        self, mock_check: Mock, mock_run: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test run command failure."""
-        mock_check.return_value = crc.CheckResult(
-            available=True, message="claude ready"
-        )
+        mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
         mock_run.return_value = crc.RunResult(
-            success=False,
-            output="Partial output",
-            error="Error occurred"
+            success=False, output="Partial output", error="Error occurred"
         )
         args = Namespace(prompt="Test prompt", timeout=None, save=None)
 
@@ -129,14 +105,11 @@ class TestCmdRun:
 
     @patch("code_review_claude.check_claude_availability")
     def test_run_claude_not_available(
-        self,
-        mock_check: Mock,
-        capsys: pytest.CaptureFixture[str]
+        self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test run command when Claude is not available."""
         mock_check.return_value = crc.CheckResult(
-            available=False,
-            message="ERROR: Claude not installed"
+            available=False, message="ERROR: Claude not installed"
         )
         args = Namespace(prompt="Test prompt", timeout=None, save=None)
 
@@ -150,20 +123,11 @@ class TestCmdRun:
     @patch("code_review_claude.check_claude_availability")
     @patch("code_review_claude.save_to_plan")
     def test_run_with_save(
-        self,
-        mock_save: Mock,
-        mock_check: Mock,
-        mock_run: Mock,
-        mock_plans_dir: Path
+        self, mock_save: Mock, mock_check: Mock, mock_run: Mock, mock_plans_dir: Path
     ) -> None:
         """Test run command with save option."""
-        mock_check.return_value = crc.CheckResult(
-            available=True, message="claude ready"
-        )
-        mock_run.return_value = crc.RunResult(
-            success=True,
-            output="Test response"
-        )
+        mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
+        mock_run.return_value = crc.RunResult(success=True, output="Test response")
         mock_save.return_value = mock_plans_dir / "test-plan.md"
         args = Namespace(prompt="Test prompt", timeout=None, save="test-plan")
 

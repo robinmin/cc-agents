@@ -15,6 +15,7 @@ from unittest.mock import MagicMock
 
 # Add scripts directory to path
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from evaluators.llm_judge import (
@@ -203,13 +204,13 @@ class TestResponseParsing:
     def test_parse_markdown_json_response(self):
         """Should parse JSON in markdown code blocks."""
         evaluator = LLMJudgeEvaluator()
-        response = '''```json
+        response = """```json
 {
     "level_name": "significant",
     "reasoning": "Good value",
     "confidence": 0.8
 }
-```'''
+```"""
         result = evaluator._parse_response(response, VALUE_ADD_RUBRIC)
 
         assert result is not None
@@ -316,7 +317,11 @@ class TestLLMEvaluationResult:
     def test_defaults(self):
         """Should have sensible defaults."""
         result = LLMEvaluationResult(
-            dimension="test", score=75.0, level_name="good", reasoning="Test", rubric_criterion="test"
+            dimension="test",
+            score=75.0,
+            level_name="good",
+            reasoning="Test",
+            rubric_criterion="test",
         )
 
         assert result.is_fallback is False

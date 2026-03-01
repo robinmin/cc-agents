@@ -1,4 +1,5 @@
 """Pytest fixtures for code-review-auggie tests."""
+
 from __future__ import annotations
 
 import importlib.util

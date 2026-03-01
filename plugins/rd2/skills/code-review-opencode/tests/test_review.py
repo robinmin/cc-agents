@@ -1,4 +1,5 @@
 """Tests for review command in code-review-opencode.py."""
+
 from __future__ import annotations
 
 from argparse import Namespace
@@ -256,6 +257,7 @@ class TestGatherCodeContent:
 
         # Change to temp dir for glob to work
         import os
+
         original_cwd = os.getcwd()
         try:
             os.chdir(tmp_path)
@@ -283,9 +285,7 @@ class TestCmdReview:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test successful review command."""
-        mock_check.return_value = cro.CheckResult(
-            available=True, message="opencode ready"
-        )
+        mock_check.return_value = cro.CheckResult(available=True, message="opencode ready")
         mock_gather.return_value = ("code content", [Path("main.py")])
         mock_run.return_value = cro.RunResult(
             success=True,
@@ -313,9 +313,7 @@ class TestCmdReview:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test review when OpenCode is not available."""
-        mock_check.return_value = cro.CheckResult(
-            available=False, message="ERROR: Not installed"
-        )
+        mock_check.return_value = cro.CheckResult(available=False, message="ERROR: Not installed")
 
         args = Namespace(
             target="main.py",
@@ -340,9 +338,7 @@ class TestCmdReview:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test planning mode."""
-        mock_check.return_value = cro.CheckResult(
-            available=True, message="opencode ready"
-        )
+        mock_check.return_value = cro.CheckResult(available=True, message="opencode ready")
         mock_gather.return_value = ("code content", [Path("main.py")])
         mock_run.return_value = cro.RunResult(
             success=True,

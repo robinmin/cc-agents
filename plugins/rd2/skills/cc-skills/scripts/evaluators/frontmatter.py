@@ -17,6 +17,7 @@ try:
     _common_lib_path = Path(__file__).parent.parent.parent.parent.parent / "scripts"
     if _common_lib_path.exists():
         import sys
+
         if str(_common_lib_path) not in sys.path:
             sys.path.insert(0, str(_common_lib_path))
 
@@ -44,7 +45,9 @@ REQUIRED_FIELDS_RUBRIC = RubricCriterion(
     description="Presence of required frontmatter fields",
     weight=0.40,
     levels=[
-        RubricLevel("complete", 100, "Both 'name' and 'description' present with meaningful values"),
+        RubricLevel(
+            "complete", 100, "Both 'name' and 'description' present with meaningful values"
+        ),
         RubricLevel("partial", 50, "One required field present, one missing"),
         RubricLevel("missing", 0, "Both required fields missing"),
     ],
@@ -81,11 +84,13 @@ class FrontmatterEvaluator:
     """Evaluates frontmatter quality in SKILL.md files using rubric-based scoring."""
 
     # Pre-configured rubric scorer for frontmatter evaluation
-    RUBRIC_SCORER = RubricScorer([
-        REQUIRED_FIELDS_RUBRIC,
-        DESCRIPTION_RUBRIC,
-        NAMING_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            REQUIRED_FIELDS_RUBRIC,
+            DESCRIPTION_RUBRIC,
+            NAMING_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "frontmatter"
@@ -171,7 +176,10 @@ class FrontmatterEvaluator:
                     specific_patterns = ["when", "use", "skill", "handle", "process"]
                     has_specific = any(p in desc.lower() for p in specific_patterns)
                     if has_specific:
-                        return "excellent", f"description is {desc_len} chars with specific usage context"
+                        return (
+                            "excellent",
+                            f"description is {desc_len} chars with specific usage context",
+                        )
                     return "good", f"description is {desc_len} chars but somewhat generic"
             elif criterion.name == "naming_convention":
                 name = frontmatter.get("name", "")

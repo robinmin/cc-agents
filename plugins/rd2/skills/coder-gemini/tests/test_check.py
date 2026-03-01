@@ -1,4 +1,5 @@
 """Tests for check command in coder-gemini.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -15,14 +16,10 @@ class TestCheckGeminiAvailability:
 
     @patch("coder_gemini.shutil.which")
     @patch("coder_gemini.subprocess.run")
-    def test_gemini_available_with_version(
-        self, mock_run: Mock, mock_which: Mock
-    ) -> None:
+    def test_gemini_available_with_version(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test successful check with version info."""
         mock_which.return_value = "/usr/local/bin/gemini"
-        mock_run.return_value = Mock(
-            returncode=0, stdout="1.2.3\n", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="1.2.3\n", stderr="")
 
         result = cg.check_gemini_availability()
 
@@ -45,14 +42,10 @@ class TestCheckGeminiAvailability:
 
     @patch("coder_gemini.shutil.which")
     @patch("coder_gemini.subprocess.run")
-    def test_gemini_returns_error(
-        self, mock_run: Mock, mock_which: Mock
-    ) -> None:
+    def test_gemini_returns_error(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test when Gemini CLI returns an error."""
         mock_which.return_value = "/usr/local/bin/gemini"
-        mock_run.return_value = Mock(
-            returncode=1, stdout="", stderr="Command failed"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="", stderr="Command failed")
 
         result = cg.check_gemini_availability()
 
@@ -64,9 +57,7 @@ class TestCheckGeminiAvailability:
     def test_gemini_timeout(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test when Gemini CLI times out."""
         mock_which.return_value = "/usr/local/bin/gemini"
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["gemini", "--version"], timeout=5
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["gemini", "--version"], timeout=5)
 
         result = cg.check_gemini_availability()
 
@@ -94,13 +85,9 @@ class TestCmdCheck:
         assert "gemini ready" in captured.out
 
     @patch("coder_gemini.check_gemini_availability")
-    def test_check_failure(
-        self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_check_failure(self, mock_check: Mock, capsys: pytest.CaptureFixture[str]) -> None:
         """Test check failure."""
-        mock_check.return_value = cg.CheckResult(
-            available=False, message="ERROR: Not installed"
-        )
+        mock_check.return_value = cg.CheckResult(available=False, message="ERROR: Not installed")
         args = Namespace(verbose=False)
 
         exit_code = cg.cmd_check(args)

@@ -1,4 +1,5 @@
 """Tests for check command in coder-opencode.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -15,14 +16,10 @@ class TestCheckOpencodeAvailability:
 
     @patch("coder_opencode.shutil.which")
     @patch("coder_opencode.subprocess.run")
-    def test_opencode_available_with_version(
-        self, mock_run: Mock, mock_which: Mock
-    ) -> None:
+    def test_opencode_available_with_version(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test successful check with version info."""
         mock_which.return_value = "/usr/local/bin/opencode"
-        mock_run.return_value = Mock(
-            returncode=0, stdout="1.2.3\n", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="1.2.3\n", stderr="")
 
         result = co.check_opencode_availability()
 
@@ -45,14 +42,10 @@ class TestCheckOpencodeAvailability:
 
     @patch("coder_opencode.shutil.which")
     @patch("coder_opencode.subprocess.run")
-    def test_opencode_returns_error(
-        self, mock_run: Mock, mock_which: Mock
-    ) -> None:
+    def test_opencode_returns_error(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test when OpenCode CLI returns an error."""
         mock_which.return_value = "/usr/local/bin/opencode"
-        mock_run.return_value = Mock(
-            returncode=1, stdout="", stderr="Command failed"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="", stderr="Command failed")
 
         result = co.check_opencode_availability()
 
@@ -64,9 +57,7 @@ class TestCheckOpencodeAvailability:
     def test_opencode_timeout(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test when OpenCode CLI times out."""
         mock_which.return_value = "/usr/local/bin/opencode"
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["opencode", "--version"], timeout=10
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["opencode", "--version"], timeout=10)
 
         result = co.check_opencode_availability()
 
@@ -94,13 +85,9 @@ class TestCmdCheck:
         assert "opencode ready" in captured.out
 
     @patch("coder_opencode.check_opencode_availability")
-    def test_check_failure(
-        self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_check_failure(self, mock_check: Mock, capsys: pytest.CaptureFixture[str]) -> None:
         """Test check failure."""
-        mock_check.return_value = co.CheckResult(
-            available=False, message="ERROR: Not installed"
-        )
+        mock_check.return_value = co.CheckResult(available=False, message="ERROR: Not installed")
         args = Namespace(verbose=False)
 
         exit_code = co.cmd_check(args)

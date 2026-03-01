@@ -4,47 +4,47 @@
  * This module provides shared utilities for Qiita publishing.
  */
 
-import * as fs from 'node:fs';
-import * as process from 'node:process';
-import { getWtConfig } from '@wt/web-automation/config';
+import * as fs from "node:fs";
+import * as process from "node:process";
+import { getWtConfig } from "@wt/web-automation/config";
 
 // ============================================================================
 // WT Configuration
 // ============================================================================
 
 interface QiitaConfig {
-  method?: 'cli' | 'api';
-  access_token?: string;
-  default_private?: boolean;
-  default_slide?: boolean;
-  organization_url_name?: string;
+	method?: "cli" | "api";
+	access_token?: string;
+	default_private?: boolean;
+	default_slide?: boolean;
+	organization_url_name?: string;
 }
 
 interface WtConfig {
-  version?: string;
-  env?: Record<string, string>;
-  'publish-to-qiita'?: QiitaConfig;
+	version?: string;
+	env?: Record<string, string>;
+	"publish-to-qiita"?: QiitaConfig;
 }
 
 function getQiitaConfig(): QiitaConfig {
-  const wtConfig = getWtConfig();
-  return (wtConfig['publish-to-qiita'] as QiitaConfig) || {};
+	const wtConfig = getWtConfig();
+	return (wtConfig["publish-to-qiita"] as QiitaConfig) || {};
 }
 
 /**
  * Get method preference
  */
-export function getMethodPreference(): 'cli' | 'api' {
-  const config = getQiitaConfig();
-  return config.method ?? 'cli';
+export function getMethodPreference(): "cli" | "api" {
+	const config = getQiitaConfig();
+	return config.method ?? "cli";
 }
 
 /**
  * Get default private preference
  */
 export function getDefaultPrivatePreference(): boolean {
-  const config = getQiitaConfig();
-  return config.default_private ?? false;
+	const config = getQiitaConfig();
+	return config.default_private ?? false;
 }
 
 /**
@@ -52,14 +52,14 @@ export function getDefaultPrivatePreference(): boolean {
  * This implements the WT plugin pattern where env vars are auto-injected
  */
 function loadEnvFromConfig(): void {
-  const wtConfig = getWtConfig() as WtConfig;
-  if (wtConfig.env) {
-    for (const [key, value] of Object.entries(wtConfig.env)) {
-      if (value && !process.env[key]) {
-        process.env[key] = value;
-      }
-    }
-  }
+	const wtConfig = getWtConfig() as WtConfig;
+	if (wtConfig.env) {
+		for (const [key, value] of Object.entries(wtConfig.env)) {
+			if (value && !process.env[key]) {
+				process.env[key] = value;
+			}
+		}
+	}
 }
 
 /**
@@ -67,25 +67,25 @@ function loadEnvFromConfig(): void {
  * Priority: 1) process.env.QIITA_TOKEN, 2) config.jsonc env, 3) deprecated access_token field
  */
 export function getAccessToken(): string | undefined {
-  // First, load env from config.jsonc (WT pattern)
-  loadEnvFromConfig();
+	// First, load env from config.jsonc (WT pattern)
+	loadEnvFromConfig();
 
-  // Priority 1: Environment variable (already set or loaded from config.jsonc env)
-  if (process.env.QIITA_TOKEN) {
-    return process.env.QIITA_TOKEN;
-  }
+	// Priority 1: Environment variable (already set or loaded from config.jsonc env)
+	if (process.env.QIITA_TOKEN) {
+		return process.env.QIITA_TOKEN;
+	}
 
-  // Priority 2: Deprecated access_token field (backward compatibility)
-  const config = getQiitaConfig();
-  return config.access_token;
+	// Priority 2: Deprecated access_token field (backward compatibility)
+	const config = getQiitaConfig();
+	return config.access_token;
 }
 
 /**
  * Get organization URL name
  */
 export function getOrganizationUrlName(): string | undefined {
-  const config = getQiitaConfig();
-  return config.organization_url_name;
+	const config = getQiitaConfig();
+	return config.organization_url_name;
 }
 
 // ============================================================================
@@ -93,11 +93,11 @@ export function getOrganizationUrlName(): string | undefined {
 // ============================================================================
 
 export const QIITA_URLS = {
-  home: 'https://qiita.com',
-  login: 'https://qiita.com/login',
-  tokenNew: 'https://qiita.com/settings/tokens/new',
-  apiBase: 'https://qiita.com/api/v2',
-  items: 'https://qiita.com/api/v2/items',
+	home: "https://qiita.com",
+	login: "https://qiita.com/login",
+	tokenNew: "https://qiita.com/settings/tokens/new",
+	apiBase: "https://qiita.com/api/v2",
+	items: "https://qiita.com/api/v2/items",
 } as const;
 
 // ============================================================================
@@ -105,15 +105,15 @@ export const QIITA_URLS = {
 // ============================================================================
 
 export interface ParsedArticle {
-  title: string;
-  content: string;
-  tags: string[];
-  private: boolean;
-  slide?: boolean;
-  organization_url_name?: string;
-  tweet?: boolean;
-  id?: string;
-  updated_at?: string;
+	title: string;
+	content: string;
+	tags: string[];
+	private: boolean;
+	slide?: boolean;
+	organization_url_name?: string;
+	tweet?: boolean;
+	id?: string;
+	updated_at?: string;
 }
 
 // ============================================================================
@@ -123,80 +123,101 @@ export interface ParsedArticle {
 /**
  * Extract YAML frontmatter from markdown content
  */
-function extractFrontmatter(content: string): { frontmatter: Record<string, unknown>; body: string } {
-  const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
-  const match = content.match(frontmatterRegex);
+function extractFrontmatter(content: string): {
+	frontmatter: Record<string, unknown>;
+	body: string;
+} {
+	const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+	const match = content.match(frontmatterRegex);
 
-  if (!match) {
-    return { frontmatter: {}, body: content };
-  }
+	if (!match) {
+		return { frontmatter: {}, body: content };
+	}
 
-  const frontmatterLines = match[1]!.split('\n');
-  const frontmatter: Record<string, unknown> = {};
+	const frontmatterLines = (match[1] ?? "").split("\n");
+	const frontmatter: Record<string, unknown> = {};
 
-  for (const line of frontmatterLines) {
-    const colonIndex = line.indexOf(':');
-    if (colonIndex === -1) continue;
+	for (const line of frontmatterLines) {
+		const colonIndex = line.indexOf(":");
+		if (colonIndex === -1) continue;
 
-    const key = line.slice(0, colonIndex).trim();
-    let value: unknown = line.slice(colonIndex + 1).trim();
+		const key = line.slice(0, colonIndex).trim();
+		let value: unknown = line.slice(colonIndex + 1).trim();
 
-    // Handle boolean and number types
-    if (value === 'true') value = true;
-    else if (value === 'false') value = false;
-    else if (!isNaN(Number(value))) value = Number(value);
-    // Handle array syntax (YAML block style)
-    else if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
-      value = value.slice(1, -1).split(',').map((v: string) => v.trim()).filter((v) => v).map((v: string) => {
-      // Remove quotes if present
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
-        return v.slice(1, -1);
-      }
-      return v;
-    });
-    }
+		// Handle boolean and number types
+		if (value === "true") value = true;
+		else if (value === "false") value = false;
+		else if (!Number.isNaN(Number(value))) value = Number(value);
+		// Handle array syntax (YAML block style)
+		else if (
+			typeof value === "string" &&
+			value.startsWith("[") &&
+			value.endsWith("]")
+		) {
+			value = value
+				.slice(1, -1)
+				.split(",")
+				.map((v: string) => v.trim())
+				.filter((v) => v)
+				.map((v: string) => {
+					// Remove quotes if present
+					if (
+						(v.startsWith('"') && v.endsWith('"')) ||
+						(v.startsWith("'") && v.endsWith("'"))
+					) {
+						return v.slice(1, -1);
+					}
+					return v;
+				});
+		}
 
-    frontmatter[key] = value;
-  }
+		frontmatter[key] = value;
+	}
 
-  return { frontmatter, body: match[2]! };
+	return { frontmatter, body: match[2] ?? "" };
 }
 
 /**
  * Parse markdown file and extract article data
  */
 export function parseMarkdownFile(filePath: string): ParsedArticle {
-  const content = fs.readFileSync(filePath, 'utf-8');
-  const { frontmatter, body } = extractFrontmatter(content);
+	const content = fs.readFileSync(filePath, "utf-8");
+	const { frontmatter, body } = extractFrontmatter(content);
 
-  const title = (frontmatter.title as string) || '';
-  const tags = frontmatter.tags as string[] || [];
-  const privateArticle = frontmatter.private as boolean | undefined;
-  const slide = frontmatter.slide as boolean | undefined;
-  const organizationUrlName = frontmatter.organization_url_name as string | undefined;
-  const tweet = frontmatter.tweet as boolean | undefined;
-  const id = frontmatter.id as string | undefined;
-  const updatedAt = frontmatter.updated_at as string | undefined;
+	const title = (frontmatter.title as string) || "";
+	const tags = (frontmatter.tags as string[]) || [];
+	const privateArticle = frontmatter.private as boolean | undefined;
+	const slide = frontmatter.slide as boolean | undefined;
+	const organizationUrlName = frontmatter.organization_url_name as
+		| string
+		| undefined;
+	const tweet = frontmatter.tweet as boolean | undefined;
+	const id = frontmatter.id as string | undefined;
+	const updatedAt = frontmatter.updated_at as string | undefined;
 
-  if (!title) {
-    throw new Error('Title is required. Add "title: Your Title" to frontmatter or use --title flag.');
-  }
+	if (!title) {
+		throw new Error(
+			'Title is required. Add "title: Your Title" to frontmatter or use --title flag.',
+		);
+	}
 
-  if (!tags || tags.length === 0) {
-    throw new Error('Tags are required. Add "tags: ["tag1", "tag2"]" to frontmatter or use --tags flag.');
-  }
+	if (!tags || tags.length === 0) {
+		throw new Error(
+			'Tags are required. Add "tags: ["tag1", "tag2"]" to frontmatter or use --tags flag.',
+		);
+	}
 
-  return {
-    title,
-    content: body,
-    tags,
-    private: privateArticle ?? false,
-    slide,
-    organization_url_name: organizationUrlName,
-    tweet,
-    id,
-    updated_at: updatedAt,
-  };
+	return {
+		title,
+		content: body,
+		tags,
+		private: privateArticle ?? false,
+		slide,
+		organization_url_name: organizationUrlName,
+		tweet,
+		id,
+		updated_at: updatedAt,
+	};
 }
 
 // ============================================================================
@@ -207,62 +228,65 @@ export function parseMarkdownFile(filePath: string): ParsedArticle {
  * Build API request headers
  */
 export function buildApiHeaders(accessToken: string): Record<string, string> {
-  return {
-    'Authorization': `Bearer ${accessToken}`,
-    'Content-Type': 'application/json',
-  };
+	return {
+		Authorization: `Bearer ${accessToken}`,
+		"Content-Type": "application/json",
+	};
 }
 
 /**
  * Build API request payload
  */
-export function buildApiPayload(article: ParsedArticle): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
-    title: article.title,
-    body: article.content,
-    tags: article.tags.map((name) => ({ name })),
-    private: article.private,
-  };
+export function buildApiPayload(
+	article: ParsedArticle,
+): Record<string, unknown> {
+	const payload: Record<string, unknown> = {
+		title: article.title,
+		body: article.content,
+		tags: article.tags.map((name) => ({ name })),
+		private: article.private,
+	};
 
-  if (article.slide !== undefined) payload.slide = article.slide;
-  if (article.organization_url_name !== undefined) payload.organization_url_name = article.organization_url_name;
-  if (article.tweet !== undefined) payload.tweet = article.tweet;
+	if (article.slide !== undefined) payload.slide = article.slide;
+	if (article.organization_url_name !== undefined)
+		payload.organization_url_name = article.organization_url_name;
+	if (article.tweet !== undefined) payload.tweet = article.tweet;
 
-  return payload;
+	return payload;
 }
 
 /**
  * Parse API response
  */
 export interface QiitaArticleResponse {
-  id: string;
-  title: string;
-  url: string;
-  rendered_body: string;
-  body: string;
-  private: boolean;
-  slide: boolean;
-  tags: Array<{ name: string; versions?: string[] }>;
-  created_at: string;
-  updated_at: string;
-  user: {
-    id: string;
-    name: string;
-    profile_image_url: string;
-  };
-  organization_url_name?: string;
+	id: string;
+	title: string;
+	url: string;
+	rendered_body: string;
+	body: string;
+	private: boolean;
+	slide: boolean;
+	tags: Array<{ name: string; versions?: string[] }>;
+	created_at: string;
+	updated_at: string;
+	user: {
+		id: string;
+		name: string;
+		profile_image_url: string;
+	};
+	organization_url_name?: string;
 }
 
 export function parseApiResponse(response: unknown): QiitaArticleResponse {
-  if (!response || typeof response !== 'object') {
-    throw new Error('Invalid API response');
-  }
+	if (!response || typeof response !== "object") {
+		throw new Error("Invalid API response");
+	}
 
-  const data = response as Record<string, unknown>;
+	const data = response as Record<string, unknown>;
 
-  if (!data.id || !data.url) {
-    throw new Error('API response missing required fields');
-  }
+	if (!data.id || !data.url) {
+		throw new Error("API response missing required fields");
+	}
 
-  return data as unknown as QiitaArticleResponse;
+	return data as unknown as QiitaArticleResponse;
 }

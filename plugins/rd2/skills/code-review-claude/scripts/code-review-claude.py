@@ -77,6 +77,7 @@ class RunResult(NamedTuple):
 def generate_temp_path(prefix: str = "claude") -> Path:
     """Generate a unique temporary file path."""
     import random
+
     random_suffix = f"{random.randint(10000, 99999)}{random.randint(10000, 99999)}"
     return Path(tempfile.gettempdir()) / f"{prefix}-{random_suffix}.txt"
 
@@ -419,7 +420,10 @@ def extract_review_sections(content: str) -> dict[str, str]:
         # Detect sections - only trigger on markdown headers (##) or specific keywords
         is_header = line_stripped.startswith("##")
 
-        if is_header and ("executive summary" in line_lower or ("summary" in line_lower and current_section is None)):
+        if is_header and (
+            "executive summary" in line_lower
+            or ("summary" in line_lower and current_section is None)
+        ):
             if current_section and current_content:
                 sections[current_section] = "\n".join(current_content).strip()
             current_section = "executive_summary"
@@ -488,7 +492,9 @@ def extract_review_sections(content: str) -> dict[str, str]:
             match = re.search(r"(\d+(?:\.\d+)?)\s*/\s*10", line)
             if match:
                 sections["quality_score"] = match.group(1)
-        elif "recommendation" in line_lower and ("approve" in line_lower or "request" in line_lower or "block" in line_lower):
+        elif "recommendation" in line_lower and (
+            "approve" in line_lower or "request" in line_lower or "block" in line_lower
+        ):
             if "approve" in line_lower and "request" not in line_lower:
                 sections["recommendation"] = "Approve"
             elif "request" in line_lower and "change" in line_lower:
@@ -569,11 +575,16 @@ mode: {mode}
         "{{RECOMMENDATION}}": sections["recommendation"],
         "{{EXECUTIVE_SUMMARY}}": sections["executive_summary"] or "No summary provided.",
         "{{CRITICAL_ISSUES}}": sections["critical_issues"] or "No critical issues identified.",
-        "{{HIGH_PRIORITY_ISSUES}}": sections["high_priority_issues"] or "No high priority issues identified.",
-        "{{MEDIUM_PRIORITY_ISSUES}}": sections["medium_priority_issues"] or "No medium priority issues identified.",
-        "{{LOW_PRIORITY_ISSUES}}": sections["low_priority_issues"] or "No low priority issues identified.",
-        "{{SECURITY_ANALYSIS}}": sections["security_analysis"] or "No specific security concerns identified.",
-        "{{PERFORMANCE_REVIEW}}": sections["performance_review"] or "No significant performance issues identified.",
+        "{{HIGH_PRIORITY_ISSUES}}": sections["high_priority_issues"]
+        or "No high priority issues identified.",
+        "{{MEDIUM_PRIORITY_ISSUES}}": sections["medium_priority_issues"]
+        or "No medium priority issues identified.",
+        "{{LOW_PRIORITY_ISSUES}}": sections["low_priority_issues"]
+        or "No low priority issues identified.",
+        "{{SECURITY_ANALYSIS}}": sections["security_analysis"]
+        or "No specific security concerns identified.",
+        "{{PERFORMANCE_REVIEW}}": sections["performance_review"]
+        or "No significant performance issues identified.",
         "{{CODE_QUALITY}}": sections["code_quality"] or "Code quality is acceptable.",
         "{{TESTING_GAPS}}": sections["testing_gaps"] or "No specific testing gaps identified.",
         "{{STRENGTHS}}": sections["strengths"] or "- Code follows standard conventions",
@@ -635,7 +646,9 @@ def build_review_prompt(
         prompt = template.replace("{{TARGET}}", target)
         prompt = prompt.replace("{{CODE_CONTENT}}", code_content)
         if focus_areas:
-            prompt = prompt.replace("{{FOCUS_AREAS}}", "\n".join(f"- {area}" for area in focus_areas))
+            prompt = prompt.replace(
+                "{{FOCUS_AREAS}}", "\n".join(f"- {area}" for area in focus_areas)
+            )
         else:
             prompt = prompt.replace("{{FOCUS_AREAS}}", "")
         return prompt
@@ -766,7 +779,21 @@ def gather_code_content(target: str) -> tuple[str, list[Path]]:
         files = [target_path]
     elif target_path.is_dir():
         # Gather relevant source files
-        extensions = {".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs", ".java", ".kt", ".swift", ".c", ".cpp", ".h"}
+        extensions = {
+            ".py",
+            ".ts",
+            ".tsx",
+            ".js",
+            ".jsx",
+            ".go",
+            ".rs",
+            ".java",
+            ".kt",
+            ".swift",
+            ".c",
+            ".cpp",
+            ".h",
+        }
         for ext in extensions:
             files.extend(target_path.rglob(f"*{ext}"))
         # Limit to reasonable size
@@ -972,12 +999,14 @@ def extract_issues_from_section(section_content: str, priority: str) -> list[Rev
         # Detect structured issue format: **[CRITICAL-001]**
         if line_stripped.startswith("**[") and "]**" in line_stripped:
             if current_issue or current_lines:
-                issues.append(_build_issue_from_dict(current_issue, current_lines, priority, issue_counter))
+                issues.append(
+                    _build_issue_from_dict(current_issue, current_lines, priority, issue_counter)
+                )
                 issue_counter += 1
 
             identifier_end = line_stripped.find("]**")
             identifier = line_stripped[3:identifier_end]
-            title = line_stripped[identifier_end + 3:].strip()
+            title = line_stripped[identifier_end + 3 :].strip()
             current_issue = {
                 "identifier": identifier,
                 "title": title,
@@ -988,13 +1017,15 @@ def extract_issues_from_section(section_content: str, priority: str) -> list[Rev
         elif line_stripped.startswith("- **") and "**:" in line_stripped:
             field_end = line_stripped.find("**:", 4)
             field_name = line_stripped[4:field_end].lower()
-            field_value = line_stripped[field_end + 3:].strip()
+            field_value = line_stripped[field_end + 3 :].strip()
             current_issue[field_name] = field_value
 
         # Detect simple list item
         elif line_stripped.startswith("-") and not line_stripped.startswith("- **"):
             if current_issue or current_lines:
-                issues.append(_build_issue_from_dict(current_issue, current_lines, priority, issue_counter))
+                issues.append(
+                    _build_issue_from_dict(current_issue, current_lines, priority, issue_counter)
+                )
                 issue_counter += 1
 
             issue_text = line_stripped[1:].strip()
@@ -1137,7 +1168,11 @@ def create_task_from_issue(issue: ReviewIssue, review_metadata: dict[str, str]) 
     if issue.raw_content:
         requirements_parts.append(f"\n**Additional Context**:\n{issue.raw_content}")
 
-    requirements_section = "\n".join(requirements_parts) if requirements_parts else "Address the issue described in the Background section."
+    requirements_section = (
+        "\n".join(requirements_parts)
+        if requirements_parts
+        else "Address the issue described in the Background section."
+    )
 
     try:
         result = subprocess.run(
@@ -1160,18 +1195,15 @@ def create_task_from_issue(issue: ReviewIssue, review_metadata: dict[str, str]) 
 
         if "# Background" in task_content:
             task_content = re.sub(
-                r'(#+ Background)\s*\n+',
-                rf'\1\n\n{background_section}\n\n',
-                task_content,
-                count=1
+                r"(#+ Background)\s*\n+", rf"\1\n\n{background_section}\n\n", task_content, count=1
             )
 
         if "# Requirements" in task_content or "## Requirements" in task_content:
             task_content = re.sub(
-                r'(#+ Requirements(?: / Objectives)?)\s*\n+',
-                rf'\1\n\n{requirements_section}\n\n',
+                r"(#+ Requirements(?: / Objectives)?)\s*\n+",
+                rf"\1\n\n{requirements_section}\n\n",
                 task_content,
-                count=1
+                count=1,
             )
 
         task_file.write_text(task_content)
@@ -1213,7 +1245,9 @@ def cmd_import(args: argparse.Namespace) -> int:
         failed_issues: list[str] = []
 
         for i, issue in enumerate(issues, 1):
-            print(f"\n[{i}/{len(issues)}] Creating task for: {issue.identifier} - {issue.title[:50]}")
+            print(
+                f"\n[{i}/{len(issues)}] Creating task for: {issue.identifier} - {issue.title[:50]}"
+            )
 
             success, message = create_task_from_issue(issue, metadata)
 
@@ -1234,7 +1268,10 @@ def cmd_import(args: argparse.Namespace) -> int:
             print(f"Successfully created {created_count} task{'s' if created_count != 1 else ''}")
 
         if failed_count > 0:
-            print(f"Failed to create {failed_count} task{'s' if failed_count != 1 else ''}", file=sys.stderr)
+            print(
+                f"Failed to create {failed_count} task{'s' if failed_count != 1 else ''}",
+                file=sys.stderr,
+            )
             print("\nFailed issues:", file=sys.stderr)
             for failure in failed_issues:
                 print(f"  - {failure}", file=sys.stderr)
@@ -1289,12 +1326,14 @@ Examples:
     run_parser = subparsers.add_parser("run", help="Run a short prompt via Claude CLI")
     run_parser.add_argument("prompt", help="The prompt to send to Claude")
     run_parser.add_argument(
-        "-t", "--timeout",
+        "-t",
+        "--timeout",
         type=int,
         help="Timeout in seconds",
     )
     run_parser.add_argument(
-        "-s", "--save",
+        "-s",
+        "--save",
         help="Save output to plan file with this name",
     )
 
@@ -1302,11 +1341,13 @@ Examples:
     run_file_parser = subparsers.add_parser("run-file", help="Run a long prompt from a file")
     run_file_parser.add_argument("prompt_file", help="Path to the prompt file")
     run_file_parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         help="Output file path",
     )
     run_file_parser.add_argument(
-        "-t", "--timeout",
+        "-t",
+        "--timeout",
         type=int,
         help="Timeout in seconds",
     )
@@ -1315,20 +1356,24 @@ Examples:
     review_parser = subparsers.add_parser("review", help="Comprehensive code review")
     review_parser.add_argument("target", help="File, directory, or glob pattern to review")
     review_parser.add_argument(
-        "-p", "--plan",
+        "-p",
+        "--plan",
         action="store_true",
         help="Planning mode (architecture/implementation plan instead of code review)",
     )
     review_parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         help="Output plan file name",
     )
     review_parser.add_argument(
-        "-f", "--focus",
+        "-f",
+        "--focus",
         help="Comma-separated focus areas (e.g., security,performance,testing,comprehensive)",
     )
     review_parser.add_argument(
-        "-t", "--timeout",
+        "-t",
+        "--timeout",
         type=int,
         help="Timeout in seconds",
     )
@@ -1337,7 +1382,8 @@ Examples:
     import_parser = subparsers.add_parser("import", help="Import review results as task files")
     import_parser.add_argument("review_file", help="Path to code review result file")
     import_parser.add_argument(
-        "-p", "--priority",
+        "-p",
+        "--priority",
         choices=["critical", "high", "medium", "low"],
         help="Only import issues of this priority level",
     )

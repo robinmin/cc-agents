@@ -100,16 +100,16 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
     Returns:
         Tuple of (frontmatter dict, body content)
     """
-    frontmatter_match = re.match(r'^---\n(.*?)\n---\n(.*)$', content, re.DOTALL)
+    frontmatter_match = re.match(r"^---\n(.*?)\n---\n(.*)$", content, re.DOTALL)
     if frontmatter_match:
         frontmatter_str = frontmatter_match.group(1)
         body = frontmatter_match.group(2)
 
         # Parse simple YAML-like frontmatter
         frontmatter = {}
-        for line in frontmatter_str.split('\n'):
-            if ':' in line:
-                key, value = line.split(':', 1)
+        for line in frontmatter_str.split("\n"):
+            if ":" in line:
+                key, value = line.split(":", 1)
                 frontmatter[key.strip()] = value.strip()
 
         return frontmatter, body
@@ -127,33 +127,26 @@ def read_research_brief(research_brief_path: Path) -> dict:
         Dictionary with title, content, and metadata
     """
     if not research_brief_path.exists():
-        raise FileNotFoundError(
-            f"Research brief not found: {research_brief_path}"
-        )
+        raise FileNotFoundError(f"Research brief not found: {research_brief_path}")
 
-    content = research_brief_path.read_text(encoding='utf-8')
+    content = research_brief_path.read_text(encoding="utf-8")
     frontmatter, body = parse_frontmatter(content)
 
-    title = frontmatter.get('title', '')
+    title = frontmatter.get("title", "")
     if not title:
         # Try to extract title from body
-        title_match = re.search(r'^#\s+(.+)$', body, re.MULTILINE)
-        title = title_match.group(1) if title_match else 'Untitled Topic'
+        title_match = re.search(r"^#\s+(.+)$", body, re.MULTILINE)
+        title = title_match.group(1) if title_match else "Untitled Topic"
 
     return {
-        'title': title,
-        'content': body,
-        'frontmatter': frontmatter,
-        'path': str(research_brief_path),
+        "title": title,
+        "content": body,
+        "frontmatter": frontmatter,
+        "path": str(research_brief_path),
     }
 
 
-def generate_outline_prompt(
-    option: str,
-    topic: str,
-    length: str,
-    research_brief: dict
-) -> str:
+def generate_outline_prompt(option: str, topic: str, length: str, research_brief: dict) -> str:
     """
     Generate the prompt for creating an outline option.
 
@@ -166,21 +159,14 @@ def generate_outline_prompt(
     Returns:
         Prompt string for outline generation
     """
-    template = PROMPT_TEMPLATES.get(option, PROMPT_TEMPLATES['a'])
-    research_brief_path = research_brief.get('path', '1-research/research-brief.md')
+    template = PROMPT_TEMPLATES.get(option, PROMPT_TEMPLATES["a"])
+    research_brief_path = research_brief.get("path", "1-research/research-brief.md")
 
-    return template.format(
-        topic=topic,
-        length=length,
-        research_brief=research_brief_path
-    )
+    return template.format(topic=topic, length=length, research_brief=research_brief_path)
 
 
 def create_outline_option_frontmatter(
-    option: str,
-    topic: str,
-    research_brief_path: str,
-    confidence: str = "MEDIUM"
+    option: str, topic: str, research_brief_path: str, confidence: str = "MEDIUM"
 ) -> str:
     """
     Create frontmatter for an outline option.
@@ -198,22 +184,17 @@ def create_outline_option_frontmatter(
     now = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
     return f"""---
-title: Outline Option {option.upper()} - {style['name']}
+title: Outline Option {option.upper()} - {style["name"]}
 source_research: {research_brief_path}
 option: {option}
-style: {style['id']}
+style: {style["id"]}
 created_at: {now}
 status: draft
 confidence: {confidence}
 ---"""
 
 
-def create_outline_content(
-    option: str,
-    topic: str,
-    length: str,
-    research_brief: dict
-) -> str:
+def create_outline_content(option: str, topic: str, length: str, research_brief: dict) -> str:
     """
     Generate the outline content for an option.
 
@@ -233,13 +214,17 @@ def create_outline_content(
     OUTLINE_STYLES[option]
 
     # Extract key themes from research brief
-    brief_content = research_brief['content']
-    theme_match = re.findall(r'##\s+(.+)', brief_content)
-    themes = [t.strip() for t in theme_match if t.strip()] if theme_match else [
-        "Key Theme 1",
-        "Key Theme 2",
-        "Key Theme 3",
-    ]
+    brief_content = research_brief["content"]
+    theme_match = re.findall(r"##\s+(.+)", brief_content)
+    themes = (
+        [t.strip() for t in theme_match if t.strip()]
+        if theme_match
+        else [
+            "Key Theme 1",
+            "Key Theme 2",
+            "Key Theme 3",
+        ]
+    )
 
     # Build outline based on style and length
     if option == "a":
@@ -255,12 +240,14 @@ def create_outline_content(
             ]
             for i, theme in enumerate(themes[:2], 1):
                 sections.append(f"   - {theme}")
-            sections.extend([
-                "",
-                "## 3. Conclusion",
-                "   - Key takeaways",
-                "   - Next steps",
-            ])
+            sections.extend(
+                [
+                    "",
+                    "## 3. Conclusion",
+                    "   - Key takeaways",
+                    "   - Next steps",
+                ]
+            )
         else:  # long
             sections = [
                 "## 1. Introduction",
@@ -275,22 +262,26 @@ def create_outline_content(
                 "## 3. Core Topics",
             ]
             for i, theme in enumerate(themes[:3], 1):
-                sections.extend([
-                    f"## {3+i}. {theme}",
-                    f"   - Key concept {i}",
-                    "   - Practical application",
-                    "   - Common considerations",
-                ])
-            sections.extend([
-                "",
-                "## 7. Best Practices",
-                "   - Recommended approaches",
-                "   - Industry standards",
-                "",
-                "## 8. Conclusion",
-                "   - Summary of key points",
-                "   - Future considerations",
-            ])
+                sections.extend(
+                    [
+                        f"## {3 + i}. {theme}",
+                        f"   - Key concept {i}",
+                        "   - Practical application",
+                        "   - Common considerations",
+                    ]
+                )
+            sections.extend(
+                [
+                    "",
+                    "## 7. Best Practices",
+                    "   - Recommended approaches",
+                    "   - Industry standards",
+                    "",
+                    "## 8. Conclusion",
+                    "   - Summary of key points",
+                    "   - Future considerations",
+                ]
+            )
 
     elif option == "b":
         # Narrative/Story-driven
@@ -321,21 +312,25 @@ def create_outline_content(
                 "## 3. The Journey Begins",
             ]
             for i, theme in enumerate(themes[:3], 1):
-                sections.extend([
-                    f"## {3+i}. Exploring {theme}",
-                    "   - Real-world example",
-                    "   - What I learned",
-                ])
-            sections.extend([
-                "",
-                "## 7. The Turning Point",
-                "   - Key insights",
-                "   - Aha moments",
-                "",
-                "## 8. The Takeaway",
-                "   - Final lessons",
-                "   - Call to action",
-            ])
+                sections.extend(
+                    [
+                        f"## {3 + i}. Exploring {theme}",
+                        "   - Real-world example",
+                        "   - What I learned",
+                    ]
+                )
+            sections.extend(
+                [
+                    "",
+                    "## 7. The Turning Point",
+                    "   - Key insights",
+                    "   - Aha moments",
+                    "",
+                    "## 8. The Takeaway",
+                    "   - Final lessons",
+                    "   - Call to action",
+                ]
+            )
 
     else:  # option == "c"
         # Technical/Deep-dive
@@ -368,25 +363,29 @@ def create_outline_content(
                 "## 3. Implementation Details",
             ]
             for i, theme in enumerate(themes[:3], 1):
-                sections.extend([
-                    f"## {3+i}. {theme}: Technical Analysis",
-                    "   - Technical specifications",
-                    "   - Edge cases and considerations",
-                    "   - Performance implications",
-                ])
-            sections.extend([
-                "",
-                "## 7. Advanced Topics",
-                "   - Optimization techniques",
-                "   - Scalability considerations",
-                "",
-                "## 8. Technical Summary",
-                "   - Best practices",
-                "   - Common pitfalls",
-                "   - Future developments",
-            ])
+                sections.extend(
+                    [
+                        f"## {3 + i}. {theme}: Technical Analysis",
+                        "   - Technical specifications",
+                        "   - Edge cases and considerations",
+                        "   - Performance implications",
+                    ]
+                )
+            sections.extend(
+                [
+                    "",
+                    "## 7. Advanced Topics",
+                    "   - Optimization techniques",
+                    "   - Scalability considerations",
+                    "",
+                    "## 8. Technical Summary",
+                    "   - Best practices",
+                    "   - Common pitfalls",
+                    "   - Future developments",
+                ]
+            )
 
-    return '\n'.join(sections)
+    return "\n".join(sections)
 
 
 def save_outline_option(
@@ -395,7 +394,7 @@ def save_outline_option(
     length: str,
     research_brief: dict,
     outline_dir: Path,
-    confidence: str = "MEDIUM"
+    confidence: str = "MEDIUM",
 ) -> Path:
     """
     Generate and save an outline option file.
@@ -411,12 +410,10 @@ def save_outline_option(
     Returns:
         Path to saved outline file
     """
-    research_brief_path = research_brief.get('path', '1-research/research-brief.md')
+    research_brief_path = research_brief.get("path", "1-research/research-brief.md")
 
     # Create frontmatter
-    frontmatter = create_outline_option_frontmatter(
-        option, topic, research_brief_path, confidence
-    )
+    frontmatter = create_outline_option_frontmatter(option, topic, research_brief_path, confidence)
 
     # Generate outline content
     content = create_outline_content(option, topic, length, research_brief)
@@ -426,20 +423,16 @@ def save_outline_option(
     header = f"# Outline Option {option.upper()}: {style['name']} Approach\n"
 
     # Combine and save
-    full_content = frontmatter + '\n' + header + content
+    full_content = frontmatter + "\n" + header + content
 
     outline_file = outline_dir / f"outline-option-{option}.md"
-    outline_file.write_text(full_content, encoding='utf-8')
+    outline_file.write_text(full_content, encoding="utf-8")
 
     return outline_file
 
 
 def save_generation_materials(
-    topic: str,
-    length: str,
-    options: list[str],
-    research_brief: dict,
-    materials_dir: Path
+    topic: str, length: str, options: list[str], research_brief: dict, materials_dir: Path
 ) -> None:
     """
     Save generation materials (prompts and parameters).
@@ -460,7 +453,7 @@ def save_generation_materials(
     prompts_content = f"""# Outline Generation Prompts
 
 **Generated**: {now}
-**Research Brief**: {research_brief.get('path', '1-research/research-brief.md')}
+**Research Brief**: {research_brief.get("path", "1-research/research-brief.md")}
 **Topic**: {topic}
 **Length**: {length}
 
@@ -471,10 +464,10 @@ def save_generation_materials(
         style = OUTLINE_STYLES[opt]
         prompt = generate_outline_prompt(opt, topic, length, research_brief)
 
-        prompts_content += f"""## Option {opt.upper()}: {style['name']}
+        prompts_content += f"""## Option {opt.upper()}: {style["name"]}
 
-**Style ID**: {style['id']}
-**Description**: {style['description']}
+**Style ID**: {style["id"]}
+**Description**: {style["description"]}
 
 **Prompt Template**:
 ```
@@ -491,7 +484,7 @@ def save_generation_materials(
 """
 
     prompts_file = materials_dir / "prompts-used.md"
-    prompts_file.write_text(prompts_content, encoding='utf-8')
+    prompts_file.write_text(prompts_content, encoding="utf-8")
 
     # Save generation-params.json
     params = {
@@ -499,26 +492,24 @@ def save_generation_materials(
         "topic": topic,
         "length": length,
         "options_generated": options,
-        "source_research": research_brief.get('path'),
+        "source_research": research_brief.get("path"),
         "styles": [
             {
                 "option": opt,
-                "name": OUTLINE_STYLES[opt]['name'],
-                "id": OUTLINE_STYLES[opt]['id'],
+                "name": OUTLINE_STYLES[opt]["name"],
+                "id": OUTLINE_STYLES[opt]["id"],
             }
             for opt in options
         ],
-        "research_brief_frontmatter": research_brief.get('frontmatter', {}),
+        "research_brief_frontmatter": research_brief.get("frontmatter", {}),
     }
 
     params_file = materials_dir / "generation-params.json"
-    params_file.write_text(json.dumps(params, indent=2, ensure_ascii=False), encoding='utf-8')
+    params_file.write_text(json.dumps(params, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 def copy_approved_outline(
-    outline_dir: Path,
-    selected_option: str,
-    approved_by: str = "user"
+    outline_dir: Path, selected_option: str, approved_by: str = "user"
 ) -> Path:
     """
     Copy the selected option to outline-approved.md with updated frontmatter.
@@ -538,7 +529,7 @@ def copy_approved_outline(
         raise FileNotFoundError(f"Source outline not found: {source_file}")
 
     # Read source content
-    content = source_file.read_text(encoding='utf-8')
+    content = source_file.read_text(encoding="utf-8")
     frontmatter, body = parse_frontmatter(content)
 
     # Update frontmatter for approved version
@@ -546,20 +537,20 @@ def copy_approved_outline(
     style = OUTLINE_STYLES[selected_option]
 
     approved_frontmatter = f"""---
-title: Outline Approved: {frontmatter.get('title', 'Topic')}
-source_research: {frontmatter.get('source_research', '1-research/research-brief.md')}
+title: Outline Approved: {frontmatter.get("title", "Topic")}
+source_research: {frontmatter.get("source_research", "1-research/research-brief.md")}
 selected_option: {selected_option}
-selected_style: {style['id']}
+selected_style: {style["id"]}
 approved_at: {now}
 approved_by: {approved_by}
 status: approved
-confidence: {frontmatter.get('confidence', 'MEDIUM')}
+confidence: {frontmatter.get("confidence", "MEDIUM")}
 ---
 """
 
     # Combine and save
     approved_content = approved_frontmatter + body
-    approved_file.write_text(approved_content, encoding='utf-8')
+    approved_file.write_text(approved_content, encoding="utf-8")
 
     return approved_file
 
@@ -602,7 +593,7 @@ def cmd_generate(args) -> None:
         sys.exit(1)
 
     # Validate we're in a topic folder
-    if not rel_path.parts or 'collections' not in str(rel_path):
+    if not rel_path.parts or "collections" not in str(rel_path):
         print("Error: Please run this command from within a topic folder")
         print("Expected path structure: <repo>/collections/<collection>/<topic>/")
         sys.exit(1)
@@ -621,11 +612,11 @@ def cmd_generate(args) -> None:
 
     # Read research brief
     research_brief = read_research_brief(research_brief_path)
-    topic = research_brief['title']
+    topic = research_brief["title"]
 
     # Determine options to generate
     num_options = args.options
-    options_list = ['a', 'b', 'c'][:num_options]
+    options_list = ["a", "b", "c"][:num_options]
     length = args.length
 
     print(f"Generating {num_options} outline option(s) for: {topic}")
@@ -698,7 +689,7 @@ def cmd_approve(args) -> None:
 
     # Validate selection
     selection = args.approve.lower()
-    if selection not in ['a', 'b', 'c']:
+    if selection not in ["a", "b", "c"]:
         print("Error: Invalid option. Must be 'a', 'b', or 'c'")
         sys.exit(1)
 
@@ -713,9 +704,13 @@ def cmd_approve(args) -> None:
     approved_file = copy_approved_outline(outline_dir, selection, args.approved_by)
 
     # Read style name for confirmation
-    content = source_file.read_text(encoding='utf-8')
+    content = source_file.read_text(encoding="utf-8")
     frontmatter, _ = parse_frontmatter(content)
-    style_name = frontmatter.get('title', '').split(' - ')[1] if ' - ' in frontmatter.get('title', '') else OUTLINE_STYLES[selection]['name']
+    style_name = (
+        frontmatter.get("title", "").split(" - ")[1]
+        if " - " in frontmatter.get("title", "")
+        else OUTLINE_STYLES[selection]["name"]
+    )
 
     print(f"Approved Outline Option {selection.upper()}: {style_name}")
     print(f"Saved to: {approved_file.relative_to(cwd)}")
@@ -738,20 +733,20 @@ def cmd_list(args) -> None:
     print("Outline Options:")
     print()
 
-    for opt in ['a', 'b', 'c']:
+    for opt in ["a", "b", "c"]:
         opt_file = outline_dir / f"outline-option-{opt}.md"
         if opt_file.exists():
-            content = opt_file.read_text(encoding='utf-8')
+            content = opt_file.read_text(encoding="utf-8")
             frontmatter, _ = parse_frontmatter(content)
-            status = frontmatter.get('status', 'draft')
-            style = frontmatter.get('style', OUTLINE_STYLES[opt]['id'])
+            status = frontmatter.get("status", "draft")
+            style = frontmatter.get("style", OUTLINE_STYLES[opt]["id"])
             print(f"  [Option {opt.upper()}] {style}")
             print(f"               Status: {status}")
 
     if approved_file.exists():
-        content = approved_file.read_text(encoding='utf-8')
+        content = approved_file.read_text(encoding="utf-8")
         frontmatter, _ = parse_frontmatter(content)
-        selected = frontmatter.get('selected_option', '?')
+        selected = frontmatter.get("selected_option", "?")
         print(f"\n  Approved: Option {selected.upper()}")
     else:
         print("\n  No approved outline")
@@ -780,47 +775,43 @@ Outline Styles:
   [A] Traditional/Structured - Hierarchical, logical progression
   [B] Narrative/Story-driven  - Storytelling, engaging flow
   [C] Technical/Deep-dive     - Comprehensive, detail-oriented
-        """
+        """,
     )
 
     parser.add_argument(
-        "--options", "-o",
+        "--options",
+        "-o",
         type=int,
         choices=[2, 3],
         default=3,
-        help="Number of outline options to generate (default: 3)"
+        help="Number of outline options to generate (default: 3)",
     )
     parser.add_argument(
-        "--length", "-l",
+        "--length",
+        "-l",
         choices=["short", "long"],
         default="long",
-        help="Outline length (default: long)"
+        help="Outline length (default: long)",
     )
     parser.add_argument(
-        "--interactive", "-i",
+        "--interactive",
+        "-i",
         action="store_true",
-        help="Interactive mode - prompt for option selection"
+        help="Interactive mode - prompt for option selection",
     )
     parser.add_argument(
-        "--approve",
-        metavar="OPTION",
-        help="Approve a specific option (a, b, or c)"
+        "--approve", metavar="OPTION", help="Approve a specific option (a, b, or c)"
     )
+    parser.add_argument("--list", action="store_true", help="List existing outline options")
     parser.add_argument(
-        "--list",
-        action="store_true",
-        help="List existing outline options"
-    )
-    parser.add_argument(
-        "--confidence", "-c",
+        "--confidence",
+        "-c",
         choices=["HIGH", "MEDIUM", "LOW"],
         default="MEDIUM",
-        help="Confidence level for generated outlines (default: MEDIUM)"
+        help="Confidence level for generated outlines (default: MEDIUM)",
     )
     parser.add_argument(
-        "--approved-by",
-        default="user",
-        help="Who is approving the outline (for --approve mode)"
+        "--approved-by", default="user", help="Who is approving the outline (for --approve mode)"
     )
 
     args = parser.parse_args()

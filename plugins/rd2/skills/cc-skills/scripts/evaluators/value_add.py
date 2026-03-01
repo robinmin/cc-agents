@@ -86,12 +86,14 @@ class ValueAddEvaluator:
     """Evaluates value-add assessment of a skill using rubric-based scoring."""
 
     # Pre-configured rubric scorer for value-add evaluation
-    RUBRIC_SCORER = RubricScorer([
-        ARTIFACTS_RUBRIC,
-        SPECIFICITY_RUBRIC,
-        WORKFLOW_RUBRIC,
-        ANTI_PATTERNS_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            ARTIFACTS_RUBRIC,
+            SPECIFICITY_RUBRIC,
+            WORKFLOW_RUBRIC,
+            ANTI_PATTERNS_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "value_add"
@@ -188,15 +190,25 @@ class ValueAddEvaluator:
         specificity_ratio = specific_count / max(specific_count + generic_count + 1, 1)
 
         # Pre-compute workflow metrics
-        script_invocations = len(re.findall(r"(python3?\s+.*scripts?|bash\s+.*scripts?|sh\s+)", body))
-        numbered_steps = len(re.findall(r"\b(step\s+\d+|^\d+\.|first\s+,?\s*second\s+,?\s*third)", body, re.MULTILINE | re.IGNORECASE))
+        script_invocations = len(
+            re.findall(r"(python3?\s+.*scripts?|bash\s+.*scripts?|sh\s+)", body)
+        )
+        numbered_steps = len(
+            re.findall(
+                r"\b(step\s+\d+|^\d+\.|first\s+,?\s*second\s+,?\s*third)",
+                body,
+                re.MULTILINE | re.IGNORECASE,
+            )
+        )
         custom_patterns = [
             r"\b(?:my|our|this)\s+(?:project|plugin|tool|skill|system)\b",
             r"\bspecific(?:ly)?\s+(?:to|for|project|domain)\b",
             r"\bcustom(?:ized)?\s+\w+\b",
         ]
         custom_matches = len(re.findall(r"|".join(custom_patterns), body, re.IGNORECASE))
-        error_guides = len(re.findall(r"(error|exception|fail|timeout|crash)\s*[:\-]\s*\S+", body, re.IGNORECASE))
+        error_guides = len(
+            re.findall(r"(error|exception|fail|timeout|crash)\s*[:\-]\s*\S+", body, re.IGNORECASE)
+        )
         command_patterns = [
             r"python3?\s+\${?\w+}?\s+\w+",
             r"npm\s+(run|exec|start|test)",
@@ -204,29 +216,44 @@ class ValueAddEvaluator:
             r"cargo\s+(run|build|test)",
         ]
         commands_found = len(re.findall(r"|".join(command_patterns), body))
-        workflow_score_raw = (1 if script_invocations else 0) + (1 if numbered_steps else 0) + (1 if custom_matches else 0) + (1 if error_guides else 0) + (1 if commands_found else 0)
+        workflow_score_raw = (
+            (1 if script_invocations else 0)
+            + (1 if numbered_steps else 0)
+            + (1 if custom_matches else 0)
+            + (1 if error_guides else 0)
+            + (1 if commands_found else 0)
+        )
 
         # Pre-compute anti-pattern metrics
         frontmatter_match = re.search(r"^---\n.*?\n---", content, re.DOTALL)
         frontmatter_len = len(frontmatter_match.group(0)) if frontmatter_match else 0
         body_len = len(body)
 
-        generic_advice_count = len(re.findall(
-            r"\b(choose the right|use best practices|follow standards|"
-            r"write clean code|be consistent|keep it simple|"
-            r"think about|consider the|make informed)\b",
-            body, re.IGNORECASE
-        ))
-        concept_explanations = len(re.findall(
-            r"\b(is a|are |refers to|means|defined as)\b.*\b(which|that|this)\b",
-            body, re.IGNORECASE
-        ))
+        generic_advice_count = len(
+            re.findall(
+                r"\b(choose the right|use best practices|follow standards|"
+                r"write clean code|be consistent|keep it simple|"
+                r"think about|consider the|make informed)\b",
+                body,
+                re.IGNORECASE,
+            )
+        )
+        concept_explanations = len(
+            re.findall(
+                r"\b(is a|are |refers to|means|defined as)\b.*\b(which|that|this)\b",
+                body,
+                re.IGNORECASE,
+            )
+        )
 
         # Single evaluator function for all criteria
         def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
             if criterion.name == "artifacts":
                 if has_scripts and has_references and has_assets:
-                    return "excellent", f"Has scripts/ ({script_count}), references/ ({ref_count}), assets/ ({asset_count})"
+                    return (
+                        "excellent",
+                        f"Has scripts/ ({script_count}), references/ ({ref_count}), assets/ ({asset_count})",
+                    )
                 elif has_scripts and has_references:
                     return "good", f"Has scripts/ ({script_count}) and references/ ({ref_count})"
                 elif has_scripts or has_references:
@@ -251,9 +278,15 @@ class ValueAddEvaluator:
 
             elif criterion.name == "custom_workflows":
                 if workflow_score_raw >= 4:
-                    return "excellent", f"Has scripts ({script_invocations}), steps ({numbered_steps}), custom ({custom_matches}), errors ({error_guides})"
+                    return (
+                        "excellent",
+                        f"Has scripts ({script_invocations}), steps ({numbered_steps}), custom ({custom_matches}), errors ({error_guides})",
+                    )
                 elif workflow_score_raw >= 2:
-                    return "good", f"Has custom scripts ({script_invocations}) and steps ({numbered_steps})"
+                    return (
+                        "good",
+                        f"Has custom scripts ({script_invocations}) and steps ({numbered_steps})",
+                    )
                 elif workflow_score_raw >= 1:
                     return "fair", "Has some custom patterns"
                 elif body_len > 0:
@@ -263,10 +296,10 @@ class ValueAddEvaluator:
             elif criterion.name == "anti_patterns":
                 if body_len == 0:
                     return "missing", "No content or major anti-patterns"
-                
+
                 issues = 0
                 issue_list = []
-                
+
                 if frontmatter_len > body_len and frontmatter_len > 500:
                     issues += 1
                     issue_list.append("description-heavy")
@@ -276,7 +309,7 @@ class ValueAddEvaluator:
                 if concept_explanations >= 3:
                     issues += 1
                     issue_list.append("concept explanations")
-                
+
                 if issues == 0:
                     return "excellent", "No anti-patterns detected"
                 elif issues == 1:
@@ -295,7 +328,9 @@ class ValueAddEvaluator:
             score=score,
             weight=self.weight,
             findings=findings,
-            recommendations=recommendations if recommendations else ["Value-add assessment is adequate"],
+            recommendations=recommendations
+            if recommendations
+            else ["Value-add assessment is adequate"],
         )
 
 

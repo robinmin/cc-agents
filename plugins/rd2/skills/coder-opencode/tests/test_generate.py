@@ -1,4 +1,5 @@
 """Tests for generate command in coder-opencode.py."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -51,10 +52,7 @@ class TestBuildTaskPrompt:
 
     def test_context_inclusion(self) -> None:
         """Test context inclusion."""
-        prompt = co.build_task_prompt(
-            "Create a function",
-            context="This is for a web application"
-        )
+        prompt = co.build_task_prompt("Create a function", context="This is for a web application")
         assert "web application" in prompt
 
 
@@ -68,16 +66,9 @@ class TestGenerateCode:
     ) -> None:
         """Test successful code generation."""
         mock_ensure.return_value = mock_plans_dir
-        mock_run.return_value = Mock(
-            success=True,
-            output="Generated code here",
-            model="gpt-4o"
-        )
+        mock_run.return_value = Mock(success=True, output="Generated code here", model="gpt-4o")
 
-        result = co.generate_code(
-            task_content="Create a hello function",
-            output="test-output"
-        )
+        result = co.generate_code(task_content="Create a hello function", output="test-output")
 
         assert result.success
         assert result.output_path is not None
@@ -85,11 +76,7 @@ class TestGenerateCode:
     @patch("coder_opencode.run_opencode_file")
     def test_failed_generation(self, mock_run: Mock) -> None:
         """Test failed code generation."""
-        mock_run.return_value = Mock(
-            success=False,
-            output="",
-            error="CLI error"
-        )
+        mock_run.return_value = Mock(success=False, output="", error="CLI error")
 
         result = co.generate_code(task_content="Create a function")
 
@@ -104,15 +91,10 @@ class TestGenerateCode:
         """Test code generation with specific model."""
         mock_ensure.return_value = mock_plans_dir
         mock_run.return_value = Mock(
-            success=True,
-            output="Generated code here",
-            model="claude-3-opus"
+            success=True, output="Generated code here", model="claude-3-opus"
         )
 
-        result = co.generate_code(
-            task_content="Create a function",
-            model="claude-3-opus"
-        )
+        result = co.generate_code(task_content="Create a function", model="claude-3-opus")
 
         assert result.success
         assert result.model == "claude-3-opus"
@@ -140,11 +122,7 @@ class TestCheckOpenCodeAvailability:
     def test_opencode_available(self, mock_which: Mock, mock_run: Mock) -> None:
         """Test when OpenCode CLI is available."""
         mock_which.return_value = "/usr/bin/opencode"
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="opencode version 2.0.0",
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="opencode version 2.0.0", stderr="")
         result = co.check_opencode_availability()
         assert result.available
         assert "ready" in result.message.lower()
@@ -156,11 +134,7 @@ class TestRunOpenCodePrompt:
     @patch("subprocess.run")
     def test_successful_prompt(self, mock_run: Mock) -> None:
         """Test successful prompt execution."""
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="Response here",
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Response here", stderr="")
         result = co.run_opencode_prompt("test prompt")
         assert result.success
         assert "Response here" in result.output
@@ -168,11 +142,7 @@ class TestRunOpenCodePrompt:
     @patch("subprocess.run")
     def test_failed_prompt(self, mock_run: Mock) -> None:
         """Test failed prompt execution."""
-        mock_run.return_value = Mock(
-            returncode=1,
-            stdout="",
-            stderr="Error occurred"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="", stderr="Error occurred")
         result = co.run_opencode_prompt("test prompt")
         assert not result.success
         assert result.error == "Error occurred"
@@ -180,11 +150,7 @@ class TestRunOpenCodePrompt:
     @patch("subprocess.run")
     def test_with_model(self, mock_run: Mock) -> None:
         """Test prompt execution with specific model."""
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="Response from model",
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Response from model", stderr="")
         result = co.run_opencode_prompt("test prompt", model="gpt-4o")
         assert result.success
         assert result.model == "gpt-4o"
@@ -203,15 +169,14 @@ class TestRunOpenCodeFile:
     def test_successful_file_run(self, mock_prompt: Mock) -> None:
         """Test successful file-based prompt."""
         import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".txt") as f:
             f.write("test prompt from file")
             temp_path = Path(f.name)
 
         try:
             mock_prompt.return_value = Mock(
-                success=True,
-                output="Response from file",
-                model="gpt-4o"
+                success=True, output="Response from file", model="gpt-4o"
             )
             result = co.run_opencode_file(temp_path, model="gpt-4o")
             assert result.success

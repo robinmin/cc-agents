@@ -6,6 +6,7 @@ import tempfile
 
 # Add scripts directory to path
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from evaluators.content import ContentEvaluator, evaluate_content

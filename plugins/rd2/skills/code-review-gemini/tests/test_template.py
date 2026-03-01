@@ -1,4 +1,5 @@
 """Tests for template formatting in code-review-gemini.py."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -63,9 +64,7 @@ Recommendation: Request Changes
 class TestFormatReviewWithTemplate:
     """Tests for format_review_with_template function."""
 
-    def test_formats_with_all_sections(
-        self, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_formats_with_all_sections(self, tmp_path: Path, monkeypatch) -> None:
         """Test formatting with all sections present."""
         # Create a simple template
         assets_dir = tmp_path / "assets"
@@ -175,9 +174,7 @@ target: {{TARGET}}
 class TestSaveToPlanUpdated:
     """Tests for updated save_to_plan function."""
 
-    def test_saves_without_adding_duplicate_metadata(
-        self, mock_plans_dir: Path
-    ) -> None:
+    def test_saves_without_adding_duplicate_metadata(self, mock_plans_dir: Path) -> None:
         """Test that save_to_plan doesn't add duplicate headers."""
         content = """---
 type: gemini-review

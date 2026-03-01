@@ -3,6 +3,7 @@
 import sys
 from pathlib import Path
 
+
 def test_path_check():
     """Check sys.path and scripts directory."""
     print("sys.path entries:")
@@ -20,10 +21,12 @@ def test_path_check():
     for f in sorted(scripts_dir.glob("*.py")):
         print(f"  - {f.name}")
 
+
 def test_import_context_validator():
     """Test that context_validator can be imported."""
     try:
         import context_validator
+
         print("context_validator imported successfully")
         print(f"context_validator.STAGES: {list(context_validator.STAGES.keys())[:3]}...")
     except Exception as e:

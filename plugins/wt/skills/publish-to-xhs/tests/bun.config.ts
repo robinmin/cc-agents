@@ -8,11 +8,11 @@
  */
 
 export default {
-  test: {
-    coverage: {
-      enabled: true,
-    },
-    // Preload files for test setup
-    preload: [],
-  },
+	test: {
+		coverage: {
+			enabled: true,
+		},
+		// Preload files for test setup
+		preload: [],
+	},
 };

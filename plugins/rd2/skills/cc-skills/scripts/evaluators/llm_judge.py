@@ -48,6 +48,7 @@ CLAUDE_COSTS = {
 @dataclass
 class CostReport:
     """Token usage and cost report for LLM evaluation."""
+
     model: str = ""
     input_tokens: int = 0
     output_tokens: int = 0
@@ -71,6 +72,7 @@ class CostReport:
 @dataclass
 class LLMEvaluationResult:
     """Result of LLM-based evaluation."""
+
     dimension: str
     score: float  # 0-100 scale
     level_name: str  # e.g., "excellent", "good", "fair", "poor", "unknown"
@@ -95,37 +97,37 @@ INSTRUCTION_CLARITY_RUBRIC = RubricCriterion(
             "excellent",
             100,
             "Instructions are crystal clear with specific examples, exact triggers, "
-            "and unambiguous guidance. No interpretation needed."
+            "and unambiguous guidance. No interpretation needed.",
         ),
         RubricLevel(
             "good",
             75,
             "Instructions are mostly clear with good detail. Minor vagueness in "
-            "some areas but overall understandable."
+            "some areas but overall understandable.",
         ),
         RubricLevel(
             "fair",
             50,
             "Instructions are somewhat unclear in places. Some interpretation "
-            "required to understand expected behavior."
+            "required to understand expected behavior.",
         ),
         RubricLevel(
             "poor",
             25,
             "Instructions are confusing or incomplete. Multiple interpretations "
-            "possible; guidance is vague or missing key details."
+            "possible; guidance is vague or missing key details.",
         ),
         RubricLevel(
             "missing",
             0,
             "Instructions are absent or completely unclear. Cannot determine "
-            "what the skill does or how to use it."
+            "what the skill does or how to use it.",
         ),
         RubricLevel(
             "unknown",
             50,
             "Cannot determine due to missing context or skill content. "
-            "Grading skipped - requires manual review."
+            "Grading skipped - requires manual review.",
         ),
     ],
 )
@@ -140,37 +142,37 @@ VALUE_ADD_RUBRIC = RubricCriterion(
             "exceptional",
             100,
             "Skill provides unique, hard-to-build capabilities that would require "
-            "significant expertise to replicate. Substantially extends Claude's base abilities."
+            "significant expertise to replicate. Substantially extends Claude's base abilities.",
         ),
         RubricLevel(
             "significant",
             75,
             "Skill adds notable value beyond Claude's defaults. Provides useful "
-            "abstractions or workflows that save substantial effort."
+            "abstractions or workflows that save substantial effort.",
         ),
         RubricLevel(
             "moderate",
             50,
             "Skill provides some value but overlaps with Claude's existing "
-            "capabilities. Offers convenience or organization but not unique power."
+            "capabilities. Offers convenience or organization but not unique power.",
         ),
         RubricLevel(
             "minimal",
             25,
             "Skill offers minimal value beyond what Claude already does well. "
-            "Mostly reorganizes basic functionality."
+            "Mostly reorganizes basic functionality.",
         ),
         RubricLevel(
             "none",
             0,
             "Skill provides no apparent value. Content could be replaced by "
-            "standard Claude interactions without loss."
+            "standard Claude interactions without loss.",
         ),
         RubricLevel(
             "unknown",
             50,
             "Cannot assess value due to missing context or skill content. "
-            "Grading skipped - requires manual review."
+            "Grading skipped - requires manual review.",
         ),
     ],
 )
@@ -185,6 +187,7 @@ LLM_RUBRICS: dict[str, RubricCriterion] = {
 # =============================================================================
 # LLM CLIENT ABSTRACTION
 # =============================================================================
+
 
 class LLMClient:
     """Abstract interface for LLM API calls."""
@@ -205,9 +208,9 @@ class LLMClient:
     def estimate_cost(self, input_tokens: int, output_tokens: int) -> float:
         """Estimate cost in USD."""
         costs = CLAUDE_COSTS.get(self.model, {"input": 3.00, "output": 15.00})
-        return (input_tokens / 1_000_000) * costs["input"] + (
-            output_tokens / 1_000_000
-        ) * costs["output"]
+        return (input_tokens / 1_000_000) * costs["input"] + (output_tokens / 1_000_000) * costs[
+            "output"
+        ]
 
     def call(self, prompt: str, max_tokens: int = 1000) -> tuple[str, int, int]:
         """Call LLM API and return (response, input_tokens, output_tokens)."""
@@ -226,9 +229,7 @@ class AnthropicClient(LLMClient):
         try:
             import anthropic
         except ImportError:
-            raise ImportError(
-                "Anthropic SDK not installed. Install with: pip install anthropic"
-            )
+            raise ImportError("Anthropic SDK not installed. Install with: pip install anthropic")
 
         client = anthropic.Anthropic()
         input_tokens = self.count_tokens(prompt)
@@ -255,9 +256,7 @@ class OpenAIClient(LLMClient):
         try:
             from openai import OpenAI
         except ImportError:
-            raise ImportError(
-                "OpenAI SDK not installed. Install with: pip install openai"
-            )
+            raise ImportError("OpenAI SDK not installed. Install with: pip install openai")
 
         client = OpenAI()
         input_tokens = self.count_tokens(prompt)
@@ -290,6 +289,7 @@ def get_llm_client(model: str = DEFAULT_MODEL) -> LLMClient | None:
 # =============================================================================
 # PROMPT BUILDERS
 # =============================================================================
+
 
 def build_evaluation_prompt(
     skill_name: str,
@@ -331,6 +331,7 @@ Respond ONLY with the JSON object, no additional text."""
 # =============================================================================
 # LLM JUDGE EVALUATOR
 # =============================================================================
+
 
 class LLMJudgeEvaluator:
     """LLM-based evaluator for subjective dimensions.
@@ -401,9 +402,7 @@ class LLMJudgeEvaluator:
 
         # Try LLM evaluation
         if self.client and self.client.is_available():
-            return self._evaluate_with_llm(
-                skill_path, dimension, rubric, prompt, skill_content
-            )
+            return self._evaluate_with_llm(skill_path, dimension, rubric, prompt, skill_content)
 
         # Fallback to static analysis
         return self._evaluate_fallback(skill_path, dimension, rubric, skill_content)
@@ -439,9 +438,7 @@ class LLMJudgeEvaluator:
                 print(f"  Pass {pass_idx + 1}/{self.pass_k}...", file=sys.stderr)
 
             try:
-                response, input_tokens, output_tokens = self.client.call(
-                    prompt, max_tokens=500
-                )
+                response, input_tokens, output_tokens = self.client.call(prompt, max_tokens=500)
 
                 total_input_tokens += input_tokens
                 total_output_tokens += output_tokens
@@ -473,9 +470,7 @@ class LLMJudgeEvaluator:
             consistency = max(0.0, 100.0 - variance)
 
         # Calculate cost
-        estimated_cost = self.client.estimate_cost(
-            total_input_tokens, total_output_tokens
-        )
+        estimated_cost = self.client.estimate_cost(total_input_tokens, total_output_tokens)
 
         # Determine final result
         if scores:
@@ -564,9 +559,7 @@ class LLMJudgeEvaluator:
             is_fallback=True,
         )
 
-    def _parse_response(
-        self, response: str, rubric: RubricCriterion
-    ) -> dict[str, Any] | None:
+    def _parse_response(self, response: str, rubric: RubricCriterion) -> dict[str, Any] | None:
         """Parse LLM response into structured result."""
         try:
             # Try to extract JSON

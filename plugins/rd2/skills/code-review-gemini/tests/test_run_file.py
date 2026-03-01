@@ -1,4 +1,5 @@
 """Tests for run-file command in code-review-gemini.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -15,18 +16,12 @@ class TestRunGeminiFromFile:
     """Tests for run_gemini_from_file function."""
 
     @patch("code_review_gemini.subprocess.run")
-    def test_successful_run_from_file(
-        self, mock_run: Mock, temp_file: Path
-    ) -> None:
+    def test_successful_run_from_file(self, mock_run: Mock, temp_file: Path) -> None:
         """Test successful execution from file."""
         temp_file.write_text("Long prompt content")
-        mock_run.return_value = Mock(
-            returncode=0, stdout="Gemini response", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Gemini response", stderr="")
 
-        result = crg.run_gemini_from_file(
-            prompt_file=temp_file, model="gemini-2.5-pro"
-        )
+        result = crg.run_gemini_from_file(prompt_file=temp_file, model="gemini-2.5-pro")
 
         assert result.success is True
         assert result.output == "Gemini response"
@@ -40,9 +35,7 @@ class TestRunGeminiFromFile:
         """Test execution with output file."""
         temp_file.write_text("Prompt content")
         output_file = tmp_path / "output.txt"
-        mock_run.return_value = Mock(
-            returncode=0, stdout="Response", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Response", stderr="")
 
         result = crg.run_gemini_from_file(
             prompt_file=temp_file,
@@ -64,14 +57,10 @@ class TestRunGeminiFromFile:
         assert "not found" in result.error.lower()
 
     @patch("code_review_gemini.subprocess.run")
-    def test_run_from_file_failure(
-        self, mock_run: Mock, temp_file: Path
-    ) -> None:
+    def test_run_from_file_failure(self, mock_run: Mock, temp_file: Path) -> None:
         """Test execution failure."""
         temp_file.write_text("Prompt")
-        mock_run.return_value = Mock(
-            returncode=1, stdout="", stderr="Error occurred"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="", stderr="Error occurred")
 
         result = crg.run_gemini_from_file(prompt_file=temp_file)
 
@@ -79,26 +68,18 @@ class TestRunGeminiFromFile:
         assert result.error == "Error occurred"
 
     @patch("code_review_gemini.subprocess.run")
-    def test_run_from_file_timeout(
-        self, mock_run: Mock, temp_file: Path
-    ) -> None:
+    def test_run_from_file_timeout(self, mock_run: Mock, temp_file: Path) -> None:
         """Test execution timeout."""
         temp_file.write_text("Prompt")
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["gemini"], timeout=600
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["gemini"], timeout=600)
 
-        result = crg.run_gemini_from_file(
-            prompt_file=temp_file, timeout=600
-        )
+        result = crg.run_gemini_from_file(prompt_file=temp_file, timeout=600)
 
         assert result.success is False
         assert "timed out" in result.error.lower()
 
     @patch("code_review_gemini.subprocess.run")
-    def test_run_from_file_exception(
-        self, mock_run: Mock, temp_file: Path
-    ) -> None:
+    def test_run_from_file_exception(self, mock_run: Mock, temp_file: Path) -> None:
         """Test unexpected exception."""
         temp_file.write_text("Prompt")
         mock_run.side_effect = Exception("Unexpected error")
@@ -123,9 +104,7 @@ class TestCmdRunFile:
     ) -> None:
         """Test successful run-file command."""
         temp_file.write_text("Prompt content")
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_run.return_value = crg.RunResult(
             success=True, output="Response", model="gemini-2.5-pro"
         )
@@ -148,9 +127,7 @@ class TestCmdRunFile:
         self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test run-file when Gemini is not available."""
-        mock_check.return_value = crg.CheckResult(
-            available=False, message="Not installed"
-        )
+        mock_check.return_value = crg.CheckResult(available=False, message="Not installed")
         args = Namespace(
             prompt_file="test.txt",
             model="gemini-2.5-pro",
@@ -178,9 +155,7 @@ class TestCmdRunFile:
         """Test run-file with output file."""
         temp_file.write_text("Prompt")
         output_file = tmp_path / "output.txt"
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_run.return_value = crg.RunResult(
             success=True, output="Response", model="gemini-2.5-flash"
         )
@@ -210,9 +185,7 @@ class TestCmdRunFile:
     ) -> None:
         """Test run-file failure."""
         temp_file.write_text("Prompt")
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_run.return_value = crg.RunResult(
             success=False, output="", error="File error", model=None
         )

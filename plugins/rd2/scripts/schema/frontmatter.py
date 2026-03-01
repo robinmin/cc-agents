@@ -5,6 +5,7 @@ from typing import Any
 
 from schema.base import ValidationIssue, SkillType
 
+
 # Common field validators
 def validate_name(name: Any, context: str = "skill") -> list[ValidationIssue]:
     """Validate name field (common rules for all types)."""
@@ -19,13 +20,28 @@ def validate_name(name: Any, context: str = "skill") -> list[ValidationIssue]:
 
     # Length: 3-50 chars
     if len(name) < 3:
-        issues.append(ValidationIssue("error", "frontmatter", f"name '{name}' too short (min 3 chars)", field="name"))
+        issues.append(
+            ValidationIssue(
+                "error", "frontmatter", f"name '{name}' too short (min 3 chars)", field="name"
+            )
+        )
     if len(name) > 50:
-        issues.append(ValidationIssue("error", "frontmatter", f"name '{name}' too long (max 50 chars)", field="name"))
+        issues.append(
+            ValidationIssue(
+                "error", "frontmatter", f"name '{name}' too long (max 50 chars)", field="name"
+            )
+        )
 
     # Pattern: lowercase, numbers, hyphens only
     if not re.match(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$", name):
-        issues.append(ValidationIssue("warning", "frontmatter", f"name '{name}' should be lowercase with hyphens", field="name"))
+        issues.append(
+            ValidationIssue(
+                "warning",
+                "frontmatter",
+                f"name '{name}' should be lowercase with hyphens",
+                field="name",
+            )
+        )
 
     return issues
 
@@ -34,26 +50,57 @@ def validate_description(description: Any, context: str = "skill") -> list[Valid
     """Validate description field."""
     issues: list[ValidationIssue] = []
     if description is None:
-        issues.append(ValidationIssue("error", "frontmatter", "description required", field="description"))
+        issues.append(
+            ValidationIssue("error", "frontmatter", "description required", field="description")
+        )
         return issues
 
     if not isinstance(description, str):
-        issues.append(ValidationIssue("error", "frontmatter", "description must be string", field="description"))
+        issues.append(
+            ValidationIssue(
+                "error", "frontmatter", "description must be string", field="description"
+            )
+        )
         return issues
 
     # Length check
     if len(description) < 10:
-        issues.append(ValidationIssue("error", "frontmatter", "description too short (min 10 chars)", field="description"))
+        issues.append(
+            ValidationIssue(
+                "error", "frontmatter", "description too short (min 10 chars)", field="description"
+            )
+        )
     if len(description) > 5000:
-        issues.append(ValidationIssue("warning", "frontmatter", "description too long (max 5000 chars)", field="description"))
+        issues.append(
+            ValidationIssue(
+                "warning",
+                "frontmatter",
+                "description too long (max 5000 chars)",
+                field="description",
+            )
+        )
 
     # Skill requires "Use this skill when"
     if context == "skill" and "use this skill when" not in description.lower():
-        issues.append(ValidationIssue("warning", "frontmatter", "description should include 'Use this skill when' trigger", field="description"))
+        issues.append(
+            ValidationIssue(
+                "warning",
+                "frontmatter",
+                "description should include 'Use this skill when' trigger",
+                field="description",
+            )
+        )
 
     # Agent requires "Use this agent when"
     if context == "agent" and "use this agent when" not in description.lower():
-        issues.append(ValidationIssue("warning", "frontmatter", "description should include 'Use this agent when' trigger", field="description"))
+        issues.append(
+            ValidationIssue(
+                "warning",
+                "frontmatter",
+                "description should include 'Use this agent when' trigger",
+                field="description",
+            )
+        )
 
     return issues
 
@@ -66,9 +113,23 @@ VALID_COLORS_STANDARD = {"blue", "cyan", "green", "yellow", "magenta", "red"}
 
 # Extended colors (for rd2 agents)
 VALID_COLORS_EXTENDED = {
-    "blue", "cyan", "green", "yellow", "magenta", "red",
-    "teal", "coral", "crimson", "lavender", "purple", "pink",
-    "azure", "gold", "orange", "aquamarine", "orange",
+    "blue",
+    "cyan",
+    "green",
+    "yellow",
+    "magenta",
+    "red",
+    "teal",
+    "coral",
+    "crimson",
+    "lavender",
+    "purple",
+    "pink",
+    "azure",
+    "gold",
+    "orange",
+    "aquamarine",
+    "orange",
 }
 
 VALID_COLORS = VALID_COLORS_STANDARD | VALID_COLORS_EXTENDED
@@ -83,11 +144,20 @@ def validate_model(model: Any) -> list[ValidationIssue]:
         return issues  # Optional for skills
 
     if not isinstance(model, str):
-        issues.append(ValidationIssue("error", "frontmatter", "model must be string", field="model"))
+        issues.append(
+            ValidationIssue("error", "frontmatter", "model must be string", field="model")
+        )
         return issues
 
     if model.lower() not in VALID_MODELS:
-        issues.append(ValidationIssue("error", "frontmatter", f"model must be one of: {', '.join(sorted(VALID_MODELS))}", field="model"))
+        issues.append(
+            ValidationIssue(
+                "error",
+                "frontmatter",
+                f"model must be one of: {', '.join(sorted(VALID_MODELS))}",
+                field="model",
+            )
+        )
 
     return issues
 
@@ -99,11 +169,20 @@ def validate_color(color: Any) -> list[ValidationIssue]:
         return issues  # Optional for skills
 
     if not isinstance(color, str):
-        issues.append(ValidationIssue("error", "frontmatter", "color must be string", field="color"))
+        issues.append(
+            ValidationIssue("error", "frontmatter", "color must be string", field="color")
+        )
         return issues
 
     if color.lower() not in VALID_COLORS:
-        issues.append(ValidationIssue("error", "frontmatter", f"color must be one of: {', '.join(sorted(VALID_COLORS))}", field="color"))
+        issues.append(
+            ValidationIssue(
+                "error",
+                "frontmatter",
+                f"color must be one of: {', '.join(sorted(VALID_COLORS))}",
+                field="color",
+            )
+        )
 
     return issues
 
@@ -120,18 +199,23 @@ def validate_tools(tools: Any) -> list[ValidationIssue]:
     return issues
 
 
-def validate_frontmatter(frontmatter: dict[str, Any], skill_type: SkillType) -> list[ValidationIssue]:
+def validate_frontmatter(
+    frontmatter: dict[str, Any], skill_type: SkillType
+) -> list[ValidationIssue]:
     """Validate frontmatter based on skill type."""
     issues: list[ValidationIssue] = []
 
     # Check for invalid fields
     for field_name in INVALID_FRONTMATTER_FIELDS:
         if field_name in frontmatter:
-            issues.append(ValidationIssue(
-                "error", "frontmatter",
-                f"Invalid field '{field_name}' - document in body instead",
-                field=field_name
-            ))
+            issues.append(
+                ValidationIssue(
+                    "error",
+                    "frontmatter",
+                    f"Invalid field '{field_name}' - document in body instead",
+                    field=field_name,
+                )
+            )
 
     # Validate name (common)
     issues.extend(validate_name(frontmatter.get("name"), skill_type.value))
@@ -177,6 +261,7 @@ def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
 
     try:
         import yaml
+
         fm = yaml.safe_load(frontmatter_str) or {}
     except Exception:
         fm = _simple_yaml_parse(frontmatter_str)
@@ -197,7 +282,7 @@ def _simple_yaml_parse(yaml_str: str) -> dict[str, Any]:
         if ":" in line:
             colon_idx = line.index(":")
             key = line[:colon_idx].strip()
-            value = line[colon_idx + 1:].strip()
+            value = line[colon_idx + 1 :].strip()
 
             if not value:
                 if key == "tools":
@@ -207,13 +292,18 @@ def _simple_yaml_parse(yaml_str: str) -> dict[str, Any]:
                     result[key] = ""
             else:
                 # Remove quotes
-                if (value.startswith('"') and value.endswith('"')) or \
-                   (value.startswith("'") and value.endswith("'")):
+                if (value.startswith('"') and value.endswith('"')) or (
+                    value.startswith("'") and value.endswith("'")
+                ):
                     value = value[1:-1]
 
                 if key == "tools" and value.startswith("["):
                     arr_content = value.strip("[]")
-                    result[key] = [t.strip().strip('"').strip("'") for t in arr_content.split(",")] if arr_content else []
+                    result[key] = (
+                        [t.strip().strip('"').strip("'") for t in arr_content.split(",")]
+                        if arr_content
+                        else []
+                    )
                 else:
                     result[key] = value
         elif current_list is not None and line.strip().startswith("-"):

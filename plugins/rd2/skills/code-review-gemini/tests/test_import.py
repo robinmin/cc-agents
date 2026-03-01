@@ -1,4 +1,5 @@
 """Tests for import command in code-review-gemini.py."""
+
 from __future__ import annotations
 
 from argparse import Namespace
@@ -241,9 +242,7 @@ quality_score: 7
         assert sum(1 for i in issues if i.priority == "medium") == 1
         assert sum(1 for i in issues if i.priority == "low") == 1
 
-    def test_extracts_issues_from_all_priorities(
-        self, tmp_path: Path
-    ) -> None:
+    def test_extracts_issues_from_all_priorities(self, tmp_path: Path) -> None:
         """Test extracting issues from all priority sections."""
         review_file = tmp_path / "review.md"
         review_file.write_text("""---
@@ -330,9 +329,7 @@ class TestCreateTaskFromIssue:
     """Tests for create_task_from_issue function."""
 
     @patch("subprocess.run")
-    def test_creates_task_successfully(
-        self, mock_run: Mock, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_creates_task_successfully(self, mock_run: Mock, tmp_path: Path, monkeypatch) -> None:
         """Test successful task creation."""
         # Mock tasks CLI success
         mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
@@ -340,9 +337,7 @@ class TestCreateTaskFromIssue:
         # Mock tasks directory
         tasks_dir = tmp_path / "docs" / "prompts"
         tasks_dir.mkdir(parents=True)
-        monkeypatch.setattr(
-            crg, "get_tasks_dir", lambda: tasks_dir
-        )
+        monkeypatch.setattr(crg, "get_tasks_dir", lambda: tasks_dir)
 
         # Create a task file that would be created by tasks CLI
         task_file = tasks_dir / "0001_CRITICAL-001_SQL_Injection.md"
@@ -382,9 +377,7 @@ stage: backlog
     @patch("subprocess.run")
     def test_handles_tasks_cli_failure(self, mock_run: Mock) -> None:
         """Test handling tasks CLI failure."""
-        mock_run.return_value = Mock(
-            returncode=1, stdout="", stderr="Error creating task"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="", stderr="Error creating task")
 
         issue = crg.ReviewIssue(
             priority="high",
@@ -414,9 +407,7 @@ stage: backlog
         assert len(issue.title) > 50
 
     @patch("subprocess.run")
-    def test_builds_background_section(
-        self, mock_run: Mock, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_builds_background_section(self, mock_run: Mock, tmp_path: Path, monkeypatch) -> None:
         """Test building comprehensive background section."""
         mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 
@@ -461,9 +452,7 @@ wbs: 0001
         assert "gemini-2.5-pro" in updated_content
 
     @patch("subprocess.run")
-    def test_updates_task_file_content(
-        self, mock_run: Mock, tmp_path: Path, monkeypatch
-    ) -> None:
+    def test_updates_task_file_content(self, mock_run: Mock, tmp_path: Path, monkeypatch) -> None:
         """Test that task file content is properly updated."""
         mock_run.return_value = Mock(returncode=0, stdout="", stderr="")
 

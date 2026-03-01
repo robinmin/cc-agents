@@ -1,4 +1,5 @@
 """Tests for template-related functions in code-review-opencode.py."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -49,7 +50,9 @@ class TestSaveToPlan:
 
         assert result.suffix == ".md"
 
-    def test_save_creates_directory_if_needed(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_save_creates_directory_if_needed(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that save_to_plan creates directory if needed."""
         # Set PLANS_DIR to a non-existent directory
         plans_dir = tmp_path / ".claude" / "plans" / "nested"

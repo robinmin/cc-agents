@@ -72,12 +72,14 @@ class StructureEvaluator:
     """Evaluates structural organization in skills using rubric-based scoring."""
 
     # Pre-configured rubric scorer
-    RUBRIC_SCORER = RubricScorer([
-        SKILL_MD_RUBRIC,
-        PROGRESSIVE_DISCLOSURE_RUBRIC,
-        HEADING_HIERARCHY_RUBRIC,
-        RESOURCE_DIRS_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            SKILL_MD_RUBRIC,
+            PROGRESSIVE_DISCLOSURE_RUBRIC,
+            HEADING_HIERARCHY_RUBRIC,
+            RESOURCE_DIRS_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "structure"
@@ -114,8 +116,12 @@ class StructureEvaluator:
 
         if has_skill_md:
             content = skill_md.read_text()
-            has_quick_start = bool(re.search(r"^#{1,3}\s+Quick\s+Start", content, re.MULTILINE | re.IGNORECASE))
-            has_overview = bool(re.search(r"^#{1,3}\s+Overview", content, re.MULTILINE | re.IGNORECASE))
+            has_quick_start = bool(
+                re.search(r"^#{1,3}\s+Quick\s+Start", content, re.MULTILINE | re.IGNORECASE)
+            )
+            has_overview = bool(
+                re.search(r"^#{1,3}\s+Overview", content, re.MULTILINE | re.IGNORECASE)
+            )
 
             # Analyze heading hierarchy
             for line in content.split("\n"):

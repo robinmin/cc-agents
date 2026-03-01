@@ -6,9 +6,13 @@ import tempfile
 
 # Add scripts directory to path
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-from evaluators.behavioral_readiness import BehavioralReadinessEvaluator, evaluate_behavioral_readiness
+from evaluators.behavioral_readiness import (
+    BehavioralReadinessEvaluator,
+    evaluate_behavioral_readiness,
+)
 
 
 def create_skill_md(content: str) -> Path:
@@ -76,8 +80,10 @@ description: Test skill
         evaluator = BehavioralReadinessEvaluator()
         result = evaluator.evaluate(skill)
 
-        assert any("don't" in f.lower() or "mistake" in f.lower() or "anti" in f.lower()
-                    for f in result.findings)
+        assert any(
+            "don't" in f.lower() or "mistake" in f.lower() or "anti" in f.lower()
+            for f in result.findings
+        )
 
     def test_error_handling_guidance(self):
         """Test skill with error handling guidance."""
@@ -186,7 +192,9 @@ Run `pytest tests/` to verify.
         evaluator = BehavioralReadinessEvaluator()
         result = evaluator.evaluate(skill)
 
-        assert "tests/" in str(result.findings) or any("scenario" in f.lower() for f in result.findings)
+        assert "tests/" in str(result.findings) or any(
+            "scenario" in f.lower() for f in result.findings
+        )
 
     def test_backward_compat_function(self):
         """Test standalone function works."""
@@ -290,7 +298,9 @@ performance_tests:
         result = evaluator.evaluate(skill)
 
         # Performance tests contribute to test infrastructure
-        assert any("test_infrastructure" in f.lower() or "scenario" in f.lower() for f in result.findings)
+        assert any(
+            "test_infrastructure" in f.lower() or "scenario" in f.lower() for f in result.findings
+        )
 
     def test_token_efficiency_guidance(self):
         """Test skill with token efficiency guidance (checks edge cases/boundaries)."""
@@ -311,9 +321,13 @@ This reduces context window usage.
 
         # Token guidance relates to boundaries/limits which is an edge case concern
         # Also check for test_infrastructure or trigger_testing which may appear
-        assert any("edge" in f.lower() or "boundary" in f.lower() or 
-                   "test_infrastructure" in f.lower() or "trigger" in f.lower() 
-                   for f in result.findings)
+        assert any(
+            "edge" in f.lower()
+            or "boundary" in f.lower()
+            or "test_infrastructure" in f.lower()
+            or "trigger" in f.lower()
+            for f in result.findings
+        )
 
     def test_comprehensive_behavioral_readiness(self):
         """Test skill with all behavioral readiness components."""

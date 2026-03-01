@@ -1,62 +1,58 @@
-import { mkdir } from 'node:fs/promises';
-import * as process from 'node:process';
-import * as path from 'node:path';
-import * as os from 'node:os';
-import { chromium, type Page } from 'playwright';
-import { trySelectors, buildInputSelectors, buildEditorSelectors, buildSelectSelectors, buildButtonSelectors } from '@wt/web-automation/selectors';
-import { pwSleep } from '@wt/web-automation/playwright';
-import { copyHtmlToClipboard } from '@wt/web-automation/clipboard';
-import { marked } from 'marked';
+import { mkdir } from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
+import * as process from "node:process";
+import { copyHtmlToClipboard } from "@wt/web-automation/clipboard";
+import { pwSleep } from "@wt/web-automation/playwright";
+import { trySelectors } from "@wt/web-automation/selectors";
+import { marked } from "marked";
+import { chromium, type Page } from "playwright";
 import {
-  getWtProfileDir,
-  getAutoPublishPreference,
-  getNewArticleUrl,
-  parseMarkdownFile,
-  normalizeCategory,
-  type ParsedArticle,
-} from './xhs-utils.js';
+	getAutoPublishPreference,
+	getNewArticleUrl,
+	getWtProfileDir,
+	normalizeCategory,
+	type ParsedArticle,
+	parseMarkdownFile,
+} from "./xhs-utils.js";
 
 // ============================================================================
 // XHS DOM Selectors (built using common utilities)
 // ============================================================================
 
 const XHS_SELECTORS = {
-  // Title input field
-  titleInput: [
-    '.input-title',
-    '.input-title-input',
-    'input[placeholder="输入标题"]',
-    'div[data-placeholder="输入标题"]'
-  ],
+	// Title input field
+	titleInput: [
+		".input-title",
+		".input-title-input",
+		'input[placeholder="输入标题"]',
+		'div[data-placeholder="输入标题"]',
+	],
 
-  // Content editor
-  contentEditor: [
-    '.ql-editor',
-    '.ProseMirror',
-    '.content-input',
-    'div[data-placeholder*="粘贴到这里"]',
-    'div[data-placeholder*="输入文字"]'
-  ],
+	// Content editor
+	contentEditor: [
+		".ql-editor",
+		".ProseMirror",
+		".content-input",
+		'div[data-placeholder*="粘贴到这里"]',
+		'div[data-placeholder*="输入文字"]',
+	],
 
-  // Optional/Missing in long-form portal editor
-  subtitleInput: ['.input-summary', '[placeholder="简介"]'],
-  categorySelect: ['.category-select'],
-  tagsInput: ['.tag-input', '[placeholder="标签"]'],
+	// Optional/Missing in long-form portal editor
+	subtitleInput: [".input-summary", '[placeholder="简介"]'],
+	categorySelect: [".category-select"],
+	tagsInput: [".tag-input", '[placeholder="标签"]'],
 
-  // Publish button
-  publishButton: [
-    ':text("一键排版")',
-    ':text("下一步")',
-    '.publish-btn',
-    'button:text("下一步")'
-  ],
+	// Publish button
+	publishButton: [
+		':text("一键排版")',
+		':text("下一步")',
+		".publish-btn",
+		'button:text("下一步")',
+	],
 
-  // Draft button
-  draftButton: [
-    ':text("暂存离开")',
-    '.draft-btn',
-    'button:text("暂存离开")'
-  ],
+	// Draft button
+	draftButton: [':text("暂存离开")', ".draft-btn", 'button:text("暂存离开")'],
 };
 
 // ============================================================================
@@ -67,283 +63,330 @@ const XHS_SELECTORS = {
  * Wait for page to be fully loaded and editor to be ready
  */
 async function waitForPageReady(page: Page, timeoutMs = 20000): Promise<void> {
-  const start = Date.now();
+	const start = Date.now();
 
-  while (Date.now() - start < timeoutMs) {
-    try {
-      // Check if any editor is present
-      const editorResult = await trySelectors(page, XHS_SELECTORS.contentEditor, { timeout: 2000, visible: true });
-      if (editorResult.found) {
-        console.log('[xhs-pw] Editor ready');
-        return;
-      }
-    } catch {
-      // Keep trying
-    }
-    await pwSleep(500);
-  }
+	while (Date.now() - start < timeoutMs) {
+		try {
+			// Check if any editor is present
+			const editorResult = await trySelectors(
+				page,
+				XHS_SELECTORS.contentEditor,
+				{ timeout: 2000, visible: true },
+			);
+			if (editorResult.found) {
+				console.log("[xhs-pw] Editor ready");
+				return;
+			}
+		} catch {
+			// Keep trying
+		}
+		await pwSleep(500);
+	}
 
-  // If editor not found, still continue - page might be ready with different selectors
-  console.log('[xhs-pw] Editor not detected via standard selectors, continuing anyway...');
+	// If editor not found, still continue - page might be ready with different selectors
+	console.log(
+		"[xhs-pw] Editor not detected via standard selectors, continuing anyway...",
+	);
 }
 
 /**
  * Check if user is logged in
  */
 async function checkLoginStatus(page: Page): Promise<boolean> {
-  const currentUrl = page.url();
-  console.log(`[xhs-pw] Current URL: ${currentUrl}`);
+	const currentUrl = page.url();
+	console.log(`[xhs-pw] Current URL: ${currentUrl}`);
 
-  // If URL is still homepage and we're supposed to be at editor, not logged in
-  if (currentUrl === 'https://www.xiaohongshu.com/' || currentUrl === 'https://www.xiaohongshu.com') {
-    return false;
-  }
+	// If URL is still homepage and we're supposed to be at editor, not logged in
+	if (
+		currentUrl === "https://www.xiaohongshu.com/" ||
+		currentUrl === "https://www.xiaohongshu.com"
+	) {
+		return false;
+	}
 
-  // Check for logged-in indicators
-  try {
-    // If we see a big "登录" button on the left sidebar, we are NOT logged in
-    const loginBtn = await page.locator('button:text("登录"), a:text("登录"), .login-button').first();
-    const loginVisible = await loginBtn.isVisible();
-    if (loginVisible) {
-      console.log('[xhs-pw] Login button is visible, not logged in');
-      return false;
-    }
+	// Check for logged-in indicators
+	try {
+		// If we see a big "登录" button on the left sidebar, we are NOT logged in
+		const loginBtn = await page
+			.locator('button:text("登录"), a:text("登录"), .login-button')
+			.first();
+		const loginVisible = await loginBtn.isVisible();
+		if (loginVisible) {
+			console.log("[xhs-pw] Login button is visible, not logged in");
+			return false;
+		}
 
-    // Check for user-specific indicators in the header or sidebar
-    const hasUserIndicator = await page.locator('.user-avatar, .avatar, [class*="user"], .creator-info').first().isVisible();
+		// Check for user-specific indicators in the header or sidebar
+		const hasUserIndicator = await page
+			.locator('.user-avatar, .avatar, [class*="user"], .creator-info')
+			.first()
+			.isVisible();
 
-    // Also check if we are on the creator domain
-    const isCreatorDomain = currentUrl.includes('creator.xiaohongshu.com');
+		// Also check if we are on the creator domain
+		const isCreatorDomain = currentUrl.includes("creator.xiaohongshu.com");
 
-    if (isCreatorDomain && hasUserIndicator) {
-      return true;
-    }
+		if (isCreatorDomain && hasUserIndicator) {
+			return true;
+		}
 
-    // If we are on the main domain, look for "创作中心" (Creator Center) or avatar
-    if (currentUrl.includes('xiaohongshu.com')) {
-      const creatorLink = await page.locator(':text("创作中心")').first().isVisible();
-      if (creatorLink || hasUserIndicator) {
-        return true;
-      }
-    }
-  } catch (e) {
-    console.log(`[xhs-pw] Error checking login status: ${e}`);
-  }
-  return false;
+		// If we are on the main domain, look for "创作中心" (Creator Center) or avatar
+		if (currentUrl.includes("xiaohongshu.com")) {
+			const creatorLink = await page
+				.locator(':text("创作中心")')
+				.first()
+				.isVisible();
+			if (creatorLink || hasUserIndicator) {
+				return true;
+			}
+		}
+	} catch (e) {
+		console.log(`[xhs-pw] Error checking login status: ${e}`);
+	}
+	return false;
 }
 
 /**
  * Fill in the title field
  */
 async function fillTitle(page: Page, title: string): Promise<void> {
-  console.log('[xhs-pw] Filling in title...');
+	console.log("[xhs-pw] Filling in title...");
 
-  const result = await trySelectors(page, XHS_SELECTORS.titleInput, { timeout: 5000, visible: true });
-  if (!result.found || !result.locator) {
-    throw new Error('Title input not found');
-  }
+	const result = await trySelectors(page, XHS_SELECTORS.titleInput, {
+		timeout: 5000,
+		visible: true,
+	});
+	if (!result.found || !result.locator) {
+		throw new Error("Title input not found");
+	}
 
-  await result.locator.clear();
-  await result.locator.fill(title);
-  await pwSleep(500);
+	await result.locator.clear();
+	await result.locator.fill(title);
+	await pwSleep(500);
 
-  console.log('[xhs-pw] Title filled');
+	console.log("[xhs-pw] Title filled");
 }
 
 /**
  * Fill in the subtitle field (optional)
  */
 async function fillSubtitle(page: Page, subtitle: string): Promise<void> {
-  console.log('[xhs-pw] Filling in subtitle...');
+	console.log("[xhs-pw] Filling in subtitle...");
 
-  const result = await trySelectors(page, XHS_SELECTORS.subtitleInput, { timeout: 3000, visible: false });
-  if (!result.found || !result.locator) {
-    console.log('[xhs-pw] Subtitle field not found (optional, skipping...)');
-    return;
-  }
+	const result = await trySelectors(page, XHS_SELECTORS.subtitleInput, {
+		timeout: 3000,
+		visible: false,
+	});
+	if (!result.found || !result.locator) {
+		console.log("[xhs-pw] Subtitle field not found (optional, skipping...)");
+		return;
+	}
 
-  await result.locator.clear();
-  await result.locator.fill(subtitle);
-  await pwSleep(500);
+	await result.locator.clear();
+	await result.locator.fill(subtitle);
+	await pwSleep(500);
 
-  console.log('[xhs-pw] Subtitle filled');
+	console.log("[xhs-pw] Subtitle filled");
 }
 
 /**
  * Fill in the content editor
  */
 async function fillContent(page: Page, content: string): Promise<void> {
-  console.log('[xhs-pw] Filling in content...');
+	console.log("[xhs-pw] Filling in content...");
 
-  const result = await trySelectors(page, XHS_SELECTORS.contentEditor, { timeout: 5000, visible: true });
-  if (!result.found || !result.locator) {
-    throw new Error('Content editor not found');
-  }
+	const result = await trySelectors(page, XHS_SELECTORS.contentEditor, {
+		timeout: 5000,
+		visible: true,
+	});
+	if (!result.found || !result.locator) {
+		throw new Error("Content editor not found");
+	}
 
-  const element = result.locator;
+	const element = result.locator;
 
-  // Method 1: HTML Clipboard Pasting (Best for preserving formatting in rich editors)
-  try {
-    console.log('[xhs-pw] Attempting to fill content via HTML clipboard pasting...');
-    const html = await marked.parse(content);
-    await copyHtmlToClipboard(html);
+	// Method 1: HTML Clipboard Pasting (Best for preserving formatting in rich editors)
+	try {
+		console.log(
+			"[xhs-pw] Attempting to fill content via HTML clipboard pasting...",
+		);
+		const html = await marked.parse(content);
+		await copyHtmlToClipboard(html);
 
-    await element.scrollIntoViewIfNeeded();
-    await element.click();
-    await pwSleep(500);
+		await element.scrollIntoViewIfNeeded();
+		await element.click();
+		await pwSleep(500);
 
-    // Paste using keyboard shortcut
-    const isMac = process.platform === 'darwin';
-    const modifier = isMac ? 'Meta' : 'Control';
-    await page.keyboard.press(`${modifier}+v`);
+		// Paste using keyboard shortcut
+		const isMac = process.platform === "darwin";
+		const modifier = isMac ? "Meta" : "Control";
+		await page.keyboard.press(`${modifier}+v`);
 
-    console.log('[xhs-pw] Content pasted from clipboard');
-    await pwSleep(2000); // Wait for paste to process and images to load if any
+		console.log("[xhs-pw] Content pasted from clipboard");
+		await pwSleep(2000); // Wait for paste to process and images to load if any
 
-    // Verify paste result
-    const textLength = await element.evaluate(el => el.textContent?.length || 0);
-    if (textLength > 20) {
-      console.log(`[xhs-pw] Successfully pasted ${textLength} characters`);
-      return;
-    }
-    console.log('[xhs-pw] Clipboard paste produced minimal content, trying fallbacks...');
-  } catch (e) {
-    console.log(`[xhs-pw] Clipboard paste failed: ${e}`);
-  }
+		// Verify paste result
+		const textLength = await element.evaluate(
+			(el) => el.textContent?.length || 0,
+		);
+		if (textLength > 20) {
+			console.log(`[xhs-pw] Successfully pasted ${textLength} characters`);
+			return;
+		}
+		console.log(
+			"[xhs-pw] Clipboard paste produced minimal content, trying fallbacks...",
+		);
+	} catch (e) {
+		console.log(`[xhs-pw] Clipboard paste failed: ${e}`);
+	}
 
-  // Method 2: CodeMirror editor API
-  try {
-    const isCodeMirror = await element.locator('.CodeMirror-code').count() > 0;
-    if (isCodeMirror) {
-      // Use CodeMirror's API
-      await page.evaluate((text) => {
-        if ((window as any).editor && (window as any).editor.setValue) {
-          (window as any).editor.setValue(text);
-        }
-      }, content);
-      console.log('[xhs-pw] Content filled using CodeMirror API');
-      await pwSleep(1000);
-      return;
-    }
-  } catch {
-    // Not CodeMirror, continue with other methods
-  }
+	// Method 2: CodeMirror editor API
+	try {
+		const isCodeMirror =
+			(await element.locator(".CodeMirror-code").count()) > 0;
+		if (isCodeMirror) {
+			// Use CodeMirror's API
+			await page.evaluate((text) => {
+				const win = window as unknown as {
+					editor?: { setValue: (text: string) => void };
+				};
+				if (win.editor?.setValue) {
+					win.editor.setValue(text);
+				}
+			}, content);
+			console.log("[xhs-pw] Content filled using CodeMirror API");
+			await pwSleep(1000);
+			return;
+		}
+	} catch {
+		// Not CodeMirror, continue with other methods
+	}
 
-  // Method 3: contenteditable approach
-  try {
-    await element.evaluate((el: HTMLElement, text) => {
-      el.focus();
-      el.textContent = text;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-      el.dispatchEvent(new Event('change', { bubbles: true }));
-    }, content);
-    console.log('[xhs-pw] Content filled using contentEditable');
-    await pwSleep(1000);
-    return;
-  } catch {
-    // Last resort: use Playwright's fill
-    await element.fill(content);
-    console.log('[xhs-pw] Content filled using Playwright fill');
-    await pwSleep(1000);
-  }
+	// Method 3: contenteditable approach
+	try {
+		await element.evaluate((el: HTMLElement, text) => {
+			el.focus();
+			el.textContent = text;
+			el.dispatchEvent(new Event("input", { bubbles: true }));
+			el.dispatchEvent(new Event("change", { bubbles: true }));
+		}, content);
+		console.log("[xhs-pw] Content filled using contentEditable");
+		await pwSleep(1000);
+		return;
+	} catch {
+		// Last resort: use Playwright's fill
+		await element.fill(content);
+		console.log("[xhs-pw] Content filled using Playwright fill");
+		await pwSleep(1000);
+	}
 }
 
 /**
  * Set article category
  */
 async function setCategory(page: Page, category?: string): Promise<void> {
-  if (!category) {
-    console.log('[xhs-pw] No category specified (optional)...');
-    return;
-  }
+	if (!category) {
+		console.log("[xhs-pw] No category specified (optional)...");
+		return;
+	}
 
-  console.log(`[xhs-pw] Setting category: ${category}...`);
+	console.log(`[xhs-pw] Setting category: ${category}...`);
 
-  const result = await trySelectors(page, XHS_SELECTORS.categorySelect, { timeout: 2000, visible: false });
-  if (!result.found || !result.locator) {
-    console.log('[xhs-pw] Category selector not found (optional, skipping...)');
-    return;
-  }
+	const result = await trySelectors(page, XHS_SELECTORS.categorySelect, {
+		timeout: 2000,
+		visible: false,
+	});
+	if (!result.found || !result.locator) {
+		console.log("[xhs-pw] Category selector not found (optional, skipping...)");
+		return;
+	}
 
-  try {
-    await result.locator.selectOption({ label: category });
-    console.log('[xhs-pw] Category set');
-    await pwSleep(500);
-  } catch {
-    console.log('[xhs-pw] Failed to set category (optional, skipping...)');
-  }
+	try {
+		await result.locator.selectOption({ label: category });
+		console.log("[xhs-pw] Category set");
+		await pwSleep(500);
+	} catch {
+		console.log("[xhs-pw] Failed to set category (optional, skipping...)");
+	}
 }
 
 /**
  * Add tags to the article
  */
 async function addTags(page: Page, tags: string[]): Promise<void> {
-  if (tags.length === 0) {
-    console.log('[xhs-pw] No tags to add...');
-    return;
-  }
+	if (tags.length === 0) {
+		console.log("[xhs-pw] No tags to add...");
+		return;
+	}
 
-  console.log(`[xhs-pw] Setting tags: ${tags.join(', ')}...`);
+	console.log(`[xhs-pw] Setting tags: ${tags.join(", ")}...`);
 
-  const result = await trySelectors(page, XHS_SELECTORS.tagsInput, { timeout: 2000, visible: false });
-  if (!result.found || !result.locator) {
-    console.log('[xhs-pw] Tags input not found (optional, skipping...)');
-    return;
-  }
+	const result = await trySelectors(page, XHS_SELECTORS.tagsInput, {
+		timeout: 2000,
+		visible: false,
+	});
+	if (!result.found || !result.locator) {
+		console.log("[xhs-pw] Tags input not found (optional, skipping...)");
+		return;
+	}
 
-  const input = result.locator;
+	const input = result.locator;
 
-  for (const tag of tags) {
-    try {
-      await input.clear();
-      await input.fill(tag);
-      await pwSleep(300);
+	for (const tag of tags) {
+		try {
+			await input.clear();
+			await input.fill(tag);
+			await pwSleep(300);
 
-      // Press Enter to add the tag
-      await input.press('Enter');
-      await pwSleep(300);
-    } catch {
-      console.log(`[xhs-pw] Failed to add tag: ${tag}`);
-    }
-  }
+			// Press Enter to add the tag
+			await input.press("Enter");
+			await pwSleep(300);
+		} catch {
+			console.log(`[xhs-pw] Failed to add tag: ${tag}`);
+		}
+	}
 
-  console.log('[xhs-pw] Tags added');
-  await pwSleep(500);
+	console.log("[xhs-pw] Tags added");
+	await pwSleep(500);
 }
 
 /**
  * Submit the article or save as draft
  */
 async function submitArticle(page: Page, asDraft: boolean): Promise<string> {
-  const action = asDraft ? 'Saving as draft' : 'Publishing';
-  console.log(`[xhs-pw] ${action}...`);
+	const action = asDraft ? "Saving as draft" : "Publishing";
+	console.log(`[xhs-pw] ${action}...`);
 
-  const buttonSelectors = asDraft ? XHS_SELECTORS.draftButton : XHS_SELECTORS.publishButton;
+	const buttonSelectors = asDraft
+		? XHS_SELECTORS.draftButton
+		: XHS_SELECTORS.publishButton;
 
-  try {
-    const result = await trySelectors(page, buttonSelectors, { timeout: 3000, visible: true });
-    if (!result.found || !result.locator) {
-      throw new Error('Button not found');
-    }
+	try {
+		const result = await trySelectors(page, buttonSelectors, {
+			timeout: 3000,
+			visible: true,
+		});
+		if (!result.found || !result.locator) {
+			throw new Error("Button not found");
+		}
 
-    await result.locator.click();
-    await pwSleep(3000);
+		await result.locator.click();
+		await pwSleep(3000);
 
-    // Get the current URL (should be the submitted article URL)
-    const url = page.url();
-    return url;
-  } catch (error) {
-    // If button click failed, try keyboard shortcut
-    console.log('[xhs-pw] Button click failed, trying keyboard shortcut...');
+		// Get the current URL (should be the submitted article URL)
+		const url = page.url();
+		return url;
+	} catch (_error) {
+		// If button click failed, try keyboard shortcut
+		console.log("[xhs-pw] Button click failed, trying keyboard shortcut...");
 
-    // Try Ctrl/Cmd + S to save/publish
-    const keyCombo = process.platform === 'darwin' ? 'Meta+s' : 'Control+s';
-    await page.keyboard.press(keyCombo);
-    await pwSleep(3000);
+		// Try Ctrl/Cmd + S to save/publish
+		const keyCombo = process.platform === "darwin" ? "Meta+s" : "Control+s";
+		await page.keyboard.press(keyCombo);
+		await pwSleep(3000);
 
-    const url = page.url();
-    return url;
-  }
+		const url = page.url();
+		return url;
+	}
 }
 
 // ============================================================================
@@ -351,236 +394,267 @@ async function submitArticle(page: Page, asDraft: boolean): Promise<string> {
 // ============================================================================
 
 interface PublishOptions {
-  markdownFile?: string;
-  title?: string;
-  content?: string;
-  subtitle?: string;
-  category?: string;
-  tags?: string[];
-  asDraft?: boolean;
-  profileDir?: string;
+	markdownFile?: string;
+	title?: string;
+	content?: string;
+	subtitle?: string;
+	category?: string;
+	tags?: string[];
+	asDraft?: boolean;
+	profileDir?: string;
 }
 
 /**
  * Publish article to XHS
  */
 export async function publishToXhs(options: PublishOptions): Promise<string> {
-  // Parse article
-  let article: ParsedArticle;
+	// Parse article
+	let article: ParsedArticle;
 
-  if (options.markdownFile) {
-    console.log(`[xhs-pw] Parsing markdown: ${options.markdownFile}`);
-    article = parseMarkdownFile(options.markdownFile);
-  } else if (options.title && options.content) {
-    article = {
-      title: options.title,
-      content: options.content,
-      subtitle: options.subtitle,
-      category: options.category ? normalizeCategory(options.category) : undefined,
-      tags: options.tags,
-    };
-  } else {
-    throw new Error('Error: --markdown is required (or use --title with --content)');
-  }
+	if (options.markdownFile) {
+		console.log(`[xhs-pw] Parsing markdown: ${options.markdownFile}`);
+		article = parseMarkdownFile(options.markdownFile);
+	} else if (options.title && options.content) {
+		article = {
+			title: options.title,
+			content: options.content,
+			subtitle: options.subtitle,
+			category: options.category
+				? normalizeCategory(options.category)
+				: undefined,
+			tags: options.tags,
+		};
+	} else {
+		throw new Error(
+			"Error: --markdown is required (or use --title with --content)",
+		);
+	}
 
-  // Override with CLI options
-  if (options.subtitle) article.subtitle = options.subtitle;
-  if (options.category) article.category = normalizeCategory(options.category);
-  if (options.tags) article.tags = options.tags;
+	// Override with CLI options
+	if (options.subtitle) article.subtitle = options.subtitle;
+	if (options.category) article.category = normalizeCategory(options.category);
+	if (options.tags) article.tags = options.tags;
 
-  // Determine publish status
-  const autoPublish = getAutoPublishPreference();
-  const asDraft = options.asDraft ?? !autoPublish;
+	// Determine publish status
+	const autoPublish = getAutoPublishPreference();
+	const asDraft = options.asDraft ?? !autoPublish;
 
-  console.log(`[xhs-pw] Title: ${article.title}`);
-  console.log(`[xhs-pw] Category: ${article.category || '(not set)'}`);
-  console.log(`[xhs-pw] Tags: ${article.tags?.join(', ') || '(none)'}`);
-  console.log(`[xhs-pw] Status: ${asDraft ? 'draft' : 'publish'}`);
+	console.log(`[xhs-pw] Title: ${article.title}`);
+	console.log(`[xhs-pw] Category: ${article.category || "(not set)"}`);
+	console.log(`[xhs-pw] Tags: ${article.tags?.join(", ") || "(none)"}`);
+	console.log(`[xhs-pw] Status: ${asDraft ? "draft" : "publish"}`);
 
-  // Get profile directory
-  const wtProfileDir = getWtProfileDir();
-  const defaultProfileDir = path.join(os.homedir(), '.local', 'share', 'xhs-browser-profile');
-  const profileDir = options.profileDir ?? wtProfileDir ?? defaultProfileDir;
-  await mkdir(profileDir, { recursive: true });
+	// Get profile directory
+	const wtProfileDir = getWtProfileDir();
+	const defaultProfileDir = path.join(
+		os.homedir(),
+		".local",
+		"share",
+		"xhs-browser-profile",
+	);
+	const profileDir = options.profileDir ?? wtProfileDir ?? defaultProfileDir;
+	await mkdir(profileDir, { recursive: true });
 
-  // Get new article URL
-  const newArticleUrl = getNewArticleUrl();
-  console.log(`[xhs-pw] Navigating to: ${newArticleUrl}`);
+	// Get new article URL
+	const newArticleUrl = getNewArticleUrl();
+	console.log(`[xhs-pw] Navigating to: ${newArticleUrl}`);
 
-  // Launch browser with Playwright
-  console.log(`[xhs-pw] Launching browser (profile: ${profileDir})`);
-  console.log('[xhs-pw] Using Playwright bundled Chromium');
+	// Launch browser with Playwright
+	console.log(`[xhs-pw] Launching browser (profile: ${profileDir})`);
+	console.log("[xhs-pw] Using Playwright bundled Chromium");
 
-  const context = await chromium.launchPersistentContext(profileDir, {
-    headless: false,
-    slowMo: 100,
-    args: ['--disable-blink-features=AutomationControlled'],
-    viewport: { width: 1280, height: 900 },
-  });
+	const context = await chromium.launchPersistentContext(profileDir, {
+		headless: false,
+		slowMo: 100,
+		args: ["--disable-blink-features=AutomationControlled"],
+		viewport: { width: 1280, height: 900 },
+	});
 
-  let page = context.pages()[0] || await context.newPage();
+	let page = context.pages()[0] || (await context.newPage());
 
-  try {
-    // Navigate to editor
-    await page.goto(newArticleUrl, { waitUntil: 'networkidle' });
+	try {
+		// Navigate to editor
+		await page.goto(newArticleUrl, { waitUntil: "networkidle" });
 
-    // Check login status
-    console.log('[xhs-pw] Checking login status...');
-    const isLoggedIn = await checkLoginStatus(page);
+		// Check login status
+		console.log("[xhs-pw] Checking login status...");
+		const isLoggedIn = await checkLoginStatus(page);
 
-    if (!isLoggedIn) {
-      console.log('[xhs-pw] Not logged in. Log in to XHS account.');
-      console.log('[xhs-pw] Waiting for login (manual intervention required)...');
+		if (!isLoggedIn) {
+			console.log("[xhs-pw] Not logged in. Log in to XHS account.");
+			console.log(
+				"[xhs-pw] Waiting for login (manual intervention required)...",
+			);
 
-      // Wait for user to log in (check every 3 seconds, timeout 5 minutes)
-      const loginTimeoutMs = 300_000;
-      const start = Date.now();
-      while (Date.now() - start < loginTimeoutMs) {
-        await pwSleep(3000);
-        const nowLoggedIn = await checkLoginStatus(page);
-        if (nowLoggedIn) {
-          console.log('[xhs-pw] Login detected! Continuing...');
-          break;
-        }
-        console.log('[xhs-pw] Still waiting for login...');
-      }
+			// Wait for user to log in (check every 3 seconds, timeout 5 minutes)
+			const loginTimeoutMs = 300_000;
+			const start = Date.now();
+			while (Date.now() - start < loginTimeoutMs) {
+				await pwSleep(3000);
+				const nowLoggedIn = await checkLoginStatus(page);
+				if (nowLoggedIn) {
+					console.log("[xhs-pw] Login detected! Continuing...");
+					break;
+				}
+				console.log("[xhs-pw] Still waiting for login...");
+			}
 
-      if (!isLoggedIn && Date.now() - start >= loginTimeoutMs) {
-        throw new Error('Login timeout. Please run the script again after logging in.');
-      }
-    } else {
-      console.log('[xhs-pw] Already logged in.');
-    }
+			if (!isLoggedIn && Date.now() - start >= loginTimeoutMs) {
+				throw new Error(
+					"Login timeout. Please run the script again after logging in.",
+				);
+			}
+		} else {
+			console.log("[xhs-pw] Already logged in.");
+		}
 
-    // Wait for page to be ready
-    console.log('[xhs-pw] Waiting for editor to load...');
-    await waitForPageReady(page);
+		// Wait for page to be ready
+		console.log("[xhs-pw] Waiting for editor to load...");
+		await waitForPageReady(page);
 
-    // If we are on creator dashboard but NOT the editor, try to reach the editor
-    const currentUrl = page.url();
-    if (currentUrl.includes('creator.xiaohongshu.com')) {
-      // Check if we need to click "写长文" (Write Long Article)
-      const longArticleTab = await page.locator(':text("写长文")').first();
-      if (await longArticleTab.isVisible()) {
-        console.log('[xhs-pw] Clicking "写长文" (Write Long Article) tab...');
-        await longArticleTab.click();
-        await page.waitForTimeout(3000);
+		// If we are on creator dashboard but NOT the editor, try to reach the editor
+		const currentUrl = page.url();
+		if (currentUrl.includes("creator.xiaohongshu.com")) {
+			// Check if we need to click "写长文" (Write Long Article)
+			const longArticleTab = await page.locator(':text("写长文")').first();
+			if (await longArticleTab.isVisible()) {
+				console.log('[xhs-pw] Clicking "写长文" (Write Long Article) tab...');
+				await longArticleTab.click();
+				await page.waitForTimeout(3000);
 
-        // After clicking "写长文", we might need to click "新的创作" (New Creation)
-        const newCreationBtn = await page.locator(':text("新的创作")').first();
-        if (await newCreationBtn.isVisible()) {
-          console.log('[xhs-pw] Clicking "新的创作" (New Creation) button...');
-          await newCreationBtn.click();
-          await page.waitForTimeout(5000);
+				// After clicking "写长文", we might need to click "新的创作" (New Creation)
+				const newCreationBtn = await page.locator(':text("新的创作")').first();
+				if (await newCreationBtn.isVisible()) {
+					console.log('[xhs-pw] Clicking "新的创作" (New Creation) button...');
+					await newCreationBtn.click();
+					await page.waitForTimeout(5000);
 
-          // Check if a new tab opened
-          const pages = page.context().pages();
-          if (pages.length > 1) {
-            console.log('[xhs-pw] Multiple pages detected after clicking New Creation, switching to newest...');
-            page = pages[pages.length - 1]!;
-            await page.bringToFront();
-            await waitForPageReady(page);
-          }
-        }
-      } else {
-        // Try clicking the big red "发布笔记" button first if we are on home/other page
-        const publishNoteBtn = await page.locator(':text("发布笔记")').first();
-        if (await publishNoteBtn.isVisible()) {
-          console.log('[xhs-pw] Clicking "发布笔记" button...');
-          await publishNoteBtn.click();
-          await page.waitForTimeout(3000);
-          const longArticleTabRetry = await page.locator(':text("写长文")').first();
-          if (await longArticleTabRetry.isVisible()) {
-            await longArticleTabRetry.click();
-            await page.waitForTimeout(3000);
+					// Check if a new tab opened
+					const pages = page.context().pages();
+					if (pages.length > 1) {
+						console.log(
+							"[xhs-pw] Multiple pages detected after clicking New Creation, switching to newest...",
+						);
+						page = pages[pages.length - 1];
+						await page.bringToFront();
+						await waitForPageReady(page);
+					}
+				}
+			} else {
+				// Try clicking the big red "发布笔记" button first if we are on home/other page
+				const publishNoteBtn = await page.locator(':text("发布笔记")').first();
+				if (await publishNoteBtn.isVisible()) {
+					console.log('[xhs-pw] Clicking "发布笔记" button...');
+					await publishNoteBtn.click();
+					await page.waitForTimeout(3000);
+					const longArticleTabRetry = await page
+						.locator(':text("写长文")')
+						.first();
+					if (await longArticleTabRetry.isVisible()) {
+						await longArticleTabRetry.click();
+						await page.waitForTimeout(3000);
 
-            const newCreationBtnRetry = await page.locator(':text("新的创作")').first();
-            if (await newCreationBtnRetry.isVisible()) {
-              await newCreationBtnRetry.click();
-              await page.waitForTimeout(5000);
-            }
-          }
-        }
-      }
-    }
+						const newCreationBtnRetry = await page
+							.locator(':text("新的创作")')
+							.first();
+						if (await newCreationBtnRetry.isVisible()) {
+							await newCreationBtnRetry.click();
+							await page.waitForTimeout(5000);
+						}
+					}
+				}
+			}
+		}
 
-    // Double check if we reached the editor via URL or selectors
-    const titleInputResult = await trySelectors(page, XHS_SELECTORS.titleInput, { timeout: 5000, visible: true });
-    if (!titleInputResult.found) {
-      console.log('[xhs-pw] Title input still not found, checking for alternative tabs or buttons...');
+		// Double check if we reached the editor via URL or selectors
+		const titleInputResult = await trySelectors(
+			page,
+			XHS_SELECTORS.titleInput,
+			{ timeout: 5000, visible: true },
+		);
+		if (!titleInputResult.found) {
+			console.log(
+				"[xhs-pw] Title input still not found, checking for alternative tabs or buttons...",
+			);
 
-      // Look for any contenteditable element that might be the title
-      const editables = await page.locator('[contenteditable="true"]').all();
-      console.log(`[xhs-pw] Found ${editables.length} contenteditable elements`);
+			// Look for any contenteditable element that might be the title
+			const editables = await page.locator('[contenteditable="true"]').all();
+			console.log(
+				`[xhs-pw] Found ${editables.length} contenteditable elements`,
+			);
 
-      // If no title found, try to find "写笔记" as fallback
-      const writeNoteTab = await page.locator(':text("写笔记")').first();
-      if (await writeNoteTab.isVisible()) {
-        console.log('[xhs-pw] Found "写笔记" (Write Note) tab, clicking...');
-        await writeNoteTab.click();
-        await page.waitForTimeout(3000);
-      }
-    }
+			// If no title found, try to find "写笔记" as fallback
+			const writeNoteTab = await page.locator(':text("写笔记")').first();
+			if (await writeNoteTab.isVisible()) {
+				console.log('[xhs-pw] Found "写笔记" (Write Note) tab, clicking...');
+				await writeNoteTab.click();
+				await page.waitForTimeout(3000);
+			}
+		}
 
-    // Fill in the article
-    try {
-      await fillTitle(page, article.title);
-    } catch (e) {
-      console.log(`[xhs-pw] Failed to fill title: ${e}. Trying fallback...`);
-      // Fallback: just find the first contenteditable that has "标题" or is empty
-      const titleCandidate = await page.locator('[contenteditable="true"], .input-title, [placeholder*="标题"]').first();
-      if (await titleCandidate.isVisible()) {
-        await titleCandidate.fill(article.title);
-        console.log('[xhs-pw] Title filled via fallback');
-      } else {
-        throw e;
-      }
-    }
+		// Fill in the article
+		try {
+			await fillTitle(page, article.title);
+		} catch (e) {
+			console.log(`[xhs-pw] Failed to fill title: ${e}. Trying fallback...`);
+			// Fallback: just find the first contenteditable that has "标题" or is empty
+			const titleCandidate = await page
+				.locator(
+					'[contenteditable="true"], .input-title, [placeholder*="标题"]',
+				)
+				.first();
+			if (await titleCandidate.isVisible()) {
+				await titleCandidate.fill(article.title);
+				console.log("[xhs-pw] Title filled via fallback");
+			} else {
+				throw e;
+			}
+		}
 
-    if (article.subtitle) {
-      await fillSubtitle(page, article.subtitle);
-    }
+		if (article.subtitle) {
+			await fillSubtitle(page, article.subtitle);
+		}
 
-    await fillContent(page, article.content);
+		await fillContent(page, article.content);
 
-    if (article.category) {
-      await setCategory(page, article.category);
-    }
+		if (article.category) {
+			await setCategory(page, article.category);
+		}
 
-    if (article.tags && article.tags.length > 0) {
-      await addTags(page, article.tags);
-    }
+		if (article.tags && article.tags.length > 0) {
+			await addTags(page, article.tags);
+		}
 
-    // Submit or save as draft
-    const articleUrl = await submitArticle(page, asDraft);
+		// Submit or save as draft
+		const articleUrl = await submitArticle(page, asDraft);
 
-    console.log('');
-    console.log('[xhs-pw] Article saved successfully!');
-    console.log(`[xhs-pw] URL: ${articleUrl}`);
-    console.log(`[xhs-pw] Status: ${asDraft ? 'draft' : 'published'}`);
-    console.log('[xhs-pw] Browser window remains open for review.');
-    console.log('[xhs-pw] Press Ctrl+C to close.');
+		console.log("");
+		console.log("[xhs-pw] Article saved successfully!");
+		console.log(`[xhs-pw] URL: ${articleUrl}`);
+		console.log(`[xhs-pw] Status: ${asDraft ? "draft" : "published"}`);
+		console.log("[xhs-pw] Browser window remains open for review.");
+		console.log("[xhs-pw] Press Ctrl+C to close.");
 
-    // Keep browser open for manual review
-    await new Promise(() => { }); // Never resolve
+		// Keep browser open for manual review
+		await new Promise(() => {}); // Never resolve
 
-    return articleUrl;
-  } catch (error) {
-    // Take screenshot on error for debugging
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const screenshotPath = path.join(profileDir, `error-${timestamp}.png`);
-    try {
-      await page.screenshot({ path: screenshotPath, fullPage: true });
-      console.log(`[xhs-pw] Error screenshot saved: ${screenshotPath}`);
-    } catch {
-      // Screenshot failed, ignore
-    }
+		return articleUrl;
+	} catch (error) {
+		// Take screenshot on error for debugging
+		const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+		const screenshotPath = path.join(profileDir, `error-${timestamp}.png`);
+		try {
+			await page.screenshot({ path: screenshotPath, fullPage: true });
+			console.log(`[xhs-pw] Error screenshot saved: ${screenshotPath}`);
+		} catch {
+			// Screenshot failed, ignore
+		}
 
-    throw error;
-  } finally {
-    // Note: We don't close the context to allow manual review
-    // User can close the browser manually with Ctrl+C
-  }
+		throw error;
+	} finally {
+		// Note: We don't close the context to allow manual review
+		// User can close the browser manually with Ctrl+C
+	}
 }
 
 // ============================================================================
@@ -588,7 +662,7 @@ export async function publishToXhs(options: PublishOptions): Promise<string> {
 // ============================================================================
 
 function printUsage(): never {
-  console.log(`Post articles to XHS (Xiaohongshu/Little Red Book) via browser automation (Playwright)
+	console.log(`Post articles to XHS (Xiaohongshu/Little Red Book) via browser automation (Playwright)
 
 Usage:
   npx -y bun xhs-playwright.ts [options]
@@ -647,59 +721,63 @@ Setup:
        }
      }
 `);
-  process.exit(0);
+	process.exit(0);
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  if (args.includes('--help') || args.includes('-h')) printUsage();
+	const args = process.argv.slice(2);
+	if (args.includes("--help") || args.includes("-h")) printUsage();
 
-  let markdownFile: string | undefined;
-  let title: string | undefined;
-  let content: string | undefined;
-  let subtitle: string | undefined;
-  let category: string | undefined;
-  let tags: string[] = [];
-  let asDraft: boolean | undefined;
-  let profileDir: string | undefined;
+	let markdownFile: string | undefined;
+	let title: string | undefined;
+	let content: string | undefined;
+	let subtitle: string | undefined;
+	let category: string | undefined;
+	const tags: string[] = [];
+	let asDraft: boolean | undefined;
+	let profileDir: string | undefined;
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]!;
-    if (arg === '--markdown' && args[i + 1]) markdownFile = args[++i];
-    else if (arg === '--title' && args[i + 1]) title = args[++i];
-    else if (arg === '--content' && args[i + 1]) content = args[++i];
-    else if (arg === '--subtitle' && args[i + 1]) subtitle = args[++i];
-    else if (arg === '--category' && args[i + 1]) category = args[++i];
-    else if (arg === '--tags' && args[i + 1]) {
-      const tagStr = args[++i]!;
-      tags.push(...tagStr.split(',').map((t) => t.trim()).filter((t) => t));
-    }
-    else if (arg === '--publish') asDraft = false;
-    else if (arg === '--draft') asDraft = true;
-    else if (arg === '--profile' && args[i + 1]) profileDir = args[++i];
-  }
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (arg === "--markdown" && args[i + 1]) markdownFile = args[++i];
+		else if (arg === "--title" && args[i + 1]) title = args[++i];
+		else if (arg === "--content" && args[i + 1]) content = args[++i];
+		else if (arg === "--subtitle" && args[i + 1]) subtitle = args[++i];
+		else if (arg === "--category" && args[i + 1]) category = args[++i];
+		else if (arg === "--tags" && args[i + 1]) {
+			const tagStr = args[++i];
+			tags.push(
+				...tagStr
+					.split(",")
+					.map((t) => t.trim())
+					.filter((t) => t),
+			);
+		} else if (arg === "--publish") asDraft = false;
+		else if (arg === "--draft") asDraft = true;
+		else if (arg === "--profile" && args[i + 1]) profileDir = args[++i];
+	}
 
-  // Validate input
-  if (!markdownFile && !title) {
-    throw new Error('Error: --title is required (or use --markdown)');
-  }
-  if (!markdownFile && !content) {
-    throw new Error('Error: --content is required when using --title');
-  }
+	// Validate input
+	if (!markdownFile && !title) {
+		throw new Error("Error: --title is required (or use --markdown)");
+	}
+	if (!markdownFile && !content) {
+		throw new Error("Error: --content is required when using --title");
+	}
 
-  await publishToXhs({
-    markdownFile,
-    title,
-    content,
-    subtitle,
-    category,
-    tags,
-    asDraft,
-    profileDir,
-  });
+	await publishToXhs({
+		markdownFile,
+		title,
+		content,
+		subtitle,
+		category,
+		tags,
+		asDraft,
+		profileDir,
+	});
 }
 
 await main().catch((err) => {
-  console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
+	console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+	process.exit(1);
 });

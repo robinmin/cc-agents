@@ -107,11 +107,9 @@ def load_collections_json(repo_root: Path) -> dict:
     collections_file = repo_root / COLLECTIONS_FILE
 
     if not collections_file.exists():
-        raise FileNotFoundError(
-            f"Collections file not found: {collections_file}"
-        )
+        raise FileNotFoundError(f"Collections file not found: {collections_file}")
 
-    with open(collections_file, 'r', encoding='utf-8') as f:
+    with open(collections_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -132,18 +130,13 @@ def list_collections(repo_root: Optional[Path] = None) -> list[dict]:
         repo_root = get_tcc_repo_root()
 
     if repo_root is None:
-        raise FileNotFoundError(
-            "Repository root not configured. Use --set-root to configure."
-        )
+        raise FileNotFoundError("Repository root not configured. Use --set-root to configure.")
 
     collections_data = load_collections_json(repo_root)
     return collections_data.get("collections", [])
 
 
-def list_topics_in_collection(
-    collection_id: str,
-    repo_root: Optional[Path] = None
-) -> list[dict]:
+def list_topics_in_collection(collection_id: str, repo_root: Optional[Path] = None) -> list[dict]:
     """
     List all topics in a specific collection.
 
@@ -170,9 +163,7 @@ def list_topics_in_collection(
     collection_dir = repo_root / collections_path / collection_id
 
     if not collection_dir.exists():
-        raise FileNotFoundError(
-            f"Collection not found: {collection_id}"
-        )
+        raise FileNotFoundError(f"Collection not found: {collection_id}")
 
     topics = []
     for item in collection_dir.iterdir():
@@ -181,27 +172,32 @@ def list_topics_in_collection(
             topic_md = item / "topic.md"
             try:
                 import re
-                content = topic_md.read_text(encoding='utf-8')
-                # Extract basic info from frontmatter
-                name_match = re.search(r'name:\s*(\S+)', content)
-                title_match = re.search(r'title:\s*(.+)', content)
-                status_match = re.search(r'status:\s*(\S+)', content)
 
-                topics.append({
-                    "id": item.name,
-                    "name": name_match.group(1) if name_match else item.name,
-                    "title": title_match.group(1).strip() if title_match else "",
-                    "status": status_match.group(1) if status_match else "unknown",
-                    "path": str(item.relative_to(repo_root)),
-                })
+                content = topic_md.read_text(encoding="utf-8")
+                # Extract basic info from frontmatter
+                name_match = re.search(r"name:\s*(\S+)", content)
+                title_match = re.search(r"title:\s*(.+)", content)
+                status_match = re.search(r"status:\s*(\S+)", content)
+
+                topics.append(
+                    {
+                        "id": item.name,
+                        "name": name_match.group(1) if name_match else item.name,
+                        "title": title_match.group(1).strip() if title_match else "",
+                        "status": status_match.group(1) if status_match else "unknown",
+                        "path": str(item.relative_to(repo_root)),
+                    }
+                )
             except Exception:
-                topics.append({
-                    "id": item.name,
-                    "name": item.name,
-                    "title": "",
-                    "status": "unknown",
-                    "path": str(item.relative_to(repo_root)),
-                })
+                topics.append(
+                    {
+                        "id": item.name,
+                        "name": item.name,
+                        "title": "",
+                        "status": "unknown",
+                        "path": str(item.relative_to(repo_root)),
+                    }
+                )
 
     return sorted(topics, key=lambda t: t["id"])
 
@@ -219,9 +215,7 @@ def set_default_collection(collection_id: str) -> None:
     # Verify collection exists
     repo_root = get_tcc_repo_root()
     if repo_root is None:
-        raise FileNotFoundError(
-            "Repository root not configured. Use --set-root first."
-        )
+        raise FileNotFoundError("Repository root not configured. Use --set-root first.")
 
     collections = list_collections(repo_root)
     collection_ids = {c["id"] for c in collections}
@@ -349,7 +343,7 @@ def cmd_list_topics(args) -> None:
         print(f"Found {len(topics)} topic(s) in '{collection_id}':\n")
         for topic in topics:
             print(f"  {topic['id']}")
-            if topic.get('title'):
+            if topic.get("title"):
                 print(f"    Title: {topic['title']}")
             print(f"    Status: {topic['status']}")
             print()
@@ -402,41 +396,20 @@ Examples:
 
   # Set default collection
   %(prog)s --set-default-collection technical-tutorials
-        """
+        """,
     )
 
     parser.add_argument(
-        "--detect",
-        action="store_true",
-        help="Detect and display current repository root"
+        "--detect", action="store_true", help="Detect and display current repository root"
+    )
+    parser.add_argument("--set-root", metavar="PATH", dest="path", help="Set repository root path")
+    parser.add_argument("--validate", action="store_true", help="Validate repository structure")
+    parser.add_argument("--list-collections", action="store_true", help="List all collections")
+    parser.add_argument(
+        "--list-topics", metavar="COLLECTION", dest="collection", help="List topics in a collection"
     )
     parser.add_argument(
-        "--set-root",
-        metavar="PATH",
-        dest="path",
-        help="Set repository root path"
-    )
-    parser.add_argument(
-        "--validate",
-        action="store_true",
-        help="Validate repository structure"
-    )
-    parser.add_argument(
-        "--list-collections",
-        action="store_true",
-        help="List all collections"
-    )
-    parser.add_argument(
-        "--list-topics",
-        metavar="COLLECTION",
-        dest="collection",
-        help="List topics in a collection"
-    )
-    parser.add_argument(
-        "--set-default-collection",
-        metavar="NAME",
-        dest="name",
-        help="Set default collection"
+        "--set-default-collection", metavar="NAME", dest="name", help="Set default collection"
     )
 
     args = parser.parse_args()

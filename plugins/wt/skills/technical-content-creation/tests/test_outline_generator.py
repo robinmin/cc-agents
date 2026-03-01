@@ -36,14 +36,14 @@ from outline_generator import (
     present_options,
     cmd_generate,
     cmd_approve,
-    cmd_list
+    cmd_list,
 )
-
 
 
 # ============================================================================
 # OUTLINE_STYLES Constant Tests
 # ============================================================================
+
 
 class TestOutlineStylesConstant:
     """Tests for OUTLINE_STYLES constant."""
@@ -51,9 +51,9 @@ class TestOutlineStylesConstant:
     def test_three_styles_defined(self):
         """Test that exactly 3 styles are defined."""
         assert len(OUTLINE_STYLES) == 3
-        assert 'a' in OUTLINE_STYLES
-        assert 'b' in OUTLINE_STYLES
-        assert 'c' in OUTLINE_STYLES
+        assert "a" in OUTLINE_STYLES
+        assert "b" in OUTLINE_STYLES
+        assert "c" in OUTLINE_STYLES
 
     def test_style_structure(self):
         """Test that each style has required keys."""
@@ -63,23 +63,24 @@ class TestOutlineStylesConstant:
 
     def test_style_names(self):
         """Test that style names are correct."""
-        assert OUTLINE_STYLES['a']['name'] == "Traditional/Structured"
-        assert OUTLINE_STYLES['b']['name'] == "Narrative/Story-driven"
-        assert OUTLINE_STYLES['c']['name'] == "Technical/Deep-dive"
+        assert OUTLINE_STYLES["a"]["name"] == "Traditional/Structured"
+        assert OUTLINE_STYLES["b"]["name"] == "Narrative/Story-driven"
+        assert OUTLINE_STYLES["c"]["name"] == "Technical/Deep-dive"
 
 
 # ============================================================================
 # PROMPT_TEMPLATES Constant Tests
 # ============================================================================
 
+
 class TestPromptTemplatesConstant:
     """Tests for PROMPT_TEMPLATES constant."""
 
     def test_templates_for_all_styles(self):
         """Test that templates exist for all 3 styles."""
-        assert 'a' in PROMPT_TEMPLATES
-        assert 'b' in PROMPT_TEMPLATES
-        assert 'c' in PROMPT_TEMPLATES
+        assert "a" in PROMPT_TEMPLATES
+        assert "b" in PROMPT_TEMPLATES
+        assert "c" in PROMPT_TEMPLATES
 
     def test_templates_contain_placeholders(self):
         """Test that templates contain required placeholders."""
@@ -92,6 +93,7 @@ class TestPromptTemplatesConstant:
 # ============================================================================
 # parse_frontmatter() Tests
 # ============================================================================
+
 
 class TestParseFrontmatter:
     """Tests for parse_frontmatter() function."""
@@ -144,6 +146,7 @@ Body."""
 # read_research_brief() Tests
 # ============================================================================
 
+
 class TestReadResearchBrief:
     """Tests for read_research_brief() function."""
 
@@ -185,13 +188,14 @@ class TestReadResearchBrief:
 # generate_outline_prompt() Tests
 # ============================================================================
 
+
 class TestGenerateOutlinePrompt:
     """Tests for generate_outline_prompt() function."""
 
     def test_generate_prompt_option_a(self, mock_research_brief):
         """Test generating prompt for option 'a'."""
         brief = read_research_brief(mock_research_brief)
-        prompt = generate_outline_prompt('a', "Test Topic", "long", brief)
+        prompt = generate_outline_prompt("a", "Test Topic", "long", brief)
         assert "Generate a traditional, structured outline" in prompt
         assert "Test Topic" in prompt
         assert "long" in prompt
@@ -199,21 +203,21 @@ class TestGenerateOutlinePrompt:
     def test_generate_prompt_option_b(self, mock_research_brief):
         """Test generating prompt for option 'b'."""
         brief = read_research_brief(mock_research_brief)
-        prompt = generate_outline_prompt('b', "Test Topic", "short", brief)
+        prompt = generate_outline_prompt("b", "Test Topic", "short", brief)
         assert "narrative, story-driven" in prompt
         assert "Test Topic" in prompt
 
     def test_generate_prompt_option_c(self, mock_research_brief):
         """Test generating prompt for option 'c'."""
         brief = read_research_brief(mock_research_brief)
-        prompt = generate_outline_prompt('c', "Test Topic", "long", brief)
+        prompt = generate_outline_prompt("c", "Test Topic", "long", brief)
         assert "technical, comprehensive" in prompt
         assert "Test Topic" in prompt
 
     def test_defaults_to_option_a(self, mock_research_brief):
         """Test defaulting to option 'a' for invalid option."""
         brief = read_research_brief(mock_research_brief)
-        prompt = generate_outline_prompt('invalid', "Test", "short", brief)
+        prompt = generate_outline_prompt("invalid", "Test", "short", brief)
         # Should use option 'a' template
         assert "Hierarchical" in prompt
 
@@ -222,13 +226,14 @@ class TestGenerateOutlinePrompt:
 # create_outline_option_frontmatter() Tests
 # ============================================================================
 
+
 class TestCreateOutlineOptionFrontmatter:
     """Tests for create_outline_option_frontmatter() function."""
 
     def test_creates_valid_frontmatter(self):
         """Test creating valid frontmatter."""
         frontmatter = create_outline_option_frontmatter(
-            'a', "Test Topic", "1-research/research-brief.md", "HIGH"
+            "a", "Test Topic", "1-research/research-brief.md", "HIGH"
         )
         assert "---" in frontmatter
         assert "title:" in frontmatter
@@ -241,16 +246,12 @@ class TestCreateOutlineOptionFrontmatter:
 
     def test_includes_style_name(self):
         """Test that frontmatter includes style name."""
-        frontmatter = create_outline_option_frontmatter(
-            'b', "Test", "path", "MEDIUM"
-        )
+        frontmatter = create_outline_option_frontmatter("b", "Test", "path", "MEDIUM")
         assert "Narrative/Story-driven" in frontmatter
 
     def test_default_confidence(self):
         """Test default confidence level."""
-        frontmatter = create_outline_option_frontmatter(
-            'c', "Test", "path"
-        )
+        frontmatter = create_outline_option_frontmatter("c", "Test", "path")
         assert "confidence: MEDIUM" in frontmatter
 
 
@@ -258,13 +259,14 @@ class TestCreateOutlineOptionFrontmatter:
 # create_outline_content() Tests
 # ============================================================================
 
+
 class TestCreateOutlineContent:
     """Tests for create_outline_content() function."""
 
     def test_traditional_short_outline(self, mock_research_brief):
         """Test generating traditional short outline."""
         brief = read_research_brief(mock_research_brief)
-        content = create_outline_content('a', "Test Topic", "short", brief)
+        content = create_outline_content("a", "Test Topic", "short", brief)
         assert "## 1. Introduction" in content
         assert "## 2. Main Content" in content
         assert "## 3. Conclusion" in content
@@ -272,7 +274,7 @@ class TestCreateOutlineContent:
     def test_traditional_long_outline(self, mock_research_brief):
         """Test generating traditional long outline."""
         brief = read_research_brief(mock_research_brief)
-        content = create_outline_content('a', "Test Topic", "long", brief)
+        content = create_outline_content("a", "Test Topic", "long", brief)
         assert "## 1. Introduction" in content
         assert "## 2. Background" in content
         assert "## 3. Core Topics" in content
@@ -282,7 +284,7 @@ class TestCreateOutlineContent:
     def test_narrative_short_outline(self, mock_research_brief):
         """Test generating narrative short outline."""
         brief = read_research_brief(mock_research_brief)
-        content = create_outline_content('b', "Test Topic", "short", brief)
+        content = create_outline_content("b", "Test Topic", "short", brief)
         assert "## 1. The Hook" in content
         assert "## 2. The Journey" in content
         assert "## 3. The Takeaway" in content
@@ -290,7 +292,7 @@ class TestCreateOutlineContent:
     def test_narrative_long_outline(self, mock_research_brief):
         """Test generating narrative long outline."""
         brief = read_research_brief(mock_research_brief)
-        content = create_outline_content('b', "Test Topic", "long", brief)
+        content = create_outline_content("b", "Test Topic", "long", brief)
         assert "## 1. The Hook" in content
         assert "## 2. Setting the Scene" in content
         assert "## 7. The Turning Point" in content
@@ -298,7 +300,7 @@ class TestCreateOutlineContent:
     def test_technical_short_outline(self, mock_research_brief):
         """Test generating technical short outline."""
         brief = read_research_brief(mock_research_brief)
-        content = create_outline_content('c', "Test Topic", "short", brief)
+        content = create_outline_content("c", "Test Topic", "short", brief)
         assert "## 1. Technical Overview" in content
         assert "## 2. Technical Details" in content
         assert "## 3. Technical Summary" in content
@@ -306,7 +308,7 @@ class TestCreateOutlineContent:
     def test_technical_long_outline(self, mock_research_brief):
         """Test generating technical long outline."""
         brief = read_research_brief(mock_research_brief)
-        content = create_outline_content('c', "Test Topic", "long", brief)
+        content = create_outline_content("c", "Test Topic", "long", brief)
         assert "## 1. Technical Overview" in content
         assert "## 2. Deep Dive: Foundations" in content
         assert "## 7. Advanced Topics" in content
@@ -314,13 +316,14 @@ class TestCreateOutlineContent:
     def test_includes_topic_name(self, mock_research_brief):
         """Test that topic name is included in outline."""
         brief = read_research_brief(mock_research_brief)
-        content = create_outline_content('a', "Custom Topic", "short", brief)
+        content = create_outline_content("a", "Custom Topic", "short", brief)
         assert "Custom Topic" in content
 
 
 # ============================================================================
 # save_outline_option() Tests
 # ============================================================================
+
 
 class TestSaveOutlineOption:
     """Tests for save_outline_option() function."""
@@ -329,7 +332,7 @@ class TestSaveOutlineOption:
         """Test saving outline option file."""
         brief = read_research_brief(mock_research_brief)
         outline_file = save_outline_option(
-            'a', "Test Topic", "short", brief, mock_outline_dir, "HIGH"
+            "a", "Test Topic", "short", brief, mock_outline_dir, "HIGH"
         )
         assert outline_file.exists()
         assert outline_file.name == "outline-option-a.md"
@@ -337,9 +340,7 @@ class TestSaveOutlineOption:
     def test_creates_frontmatter(self, mock_research_brief, mock_outline_dir):
         """Test that frontmatter is created."""
         brief = read_research_brief(mock_research_brief)
-        outline_file = save_outline_option(
-            'b', "Test", "long", brief, mock_outline_dir
-        )
+        outline_file = save_outline_option("b", "Test", "long", brief, mock_outline_dir)
         content = outline_file.read_text()
         assert "---" in content
         assert "title:" in content
@@ -347,9 +348,7 @@ class TestSaveOutlineOption:
     def test_creates_header(self, mock_research_brief, mock_outline_dir):
         """Test that style header is created."""
         brief = read_research_brief(mock_research_brief)
-        outline_file = save_outline_option(
-            'c', "Test", "short", brief, mock_outline_dir
-        )
+        outline_file = save_outline_option("c", "Test", "short", brief, mock_outline_dir)
         content = outline_file.read_text()
         assert "# Outline Option C" in content
         assert "Technical/Deep-dive" in content
@@ -359,6 +358,7 @@ class TestSaveOutlineOption:
 # save_generation_materials() Tests
 # ============================================================================
 
+
 class TestSaveGenerationMaterials:
     """Tests for save_generation_materials() function."""
 
@@ -366,14 +366,14 @@ class TestSaveGenerationMaterials:
         """Test that materials directory is created."""
         materials_dir = tmp_path / "materials"
         brief = {"path": "1-research/research-brief.md"}
-        save_generation_materials("Test", "long", ['a', 'b'], brief, materials_dir)
+        save_generation_materials("Test", "long", ["a", "b"], brief, materials_dir)
         assert materials_dir.exists()
 
     def test_saves_prompts_used(self, tmp_path):
         """Test that prompts-used.md is saved."""
         materials_dir = tmp_path / "materials"
         brief = {"path": "1-research/research-brief.md"}
-        save_generation_materials("Test", "long", ['a'], brief, materials_dir)
+        save_generation_materials("Test", "long", ["a"], brief, materials_dir)
         prompts_file = materials_dir / "prompts-used.md"
         assert prompts_file.exists()
         content = prompts_file.read_text()
@@ -383,7 +383,7 @@ class TestSaveGenerationMaterials:
         """Test that generation-params.json is saved."""
         materials_dir = tmp_path / "materials"
         brief = {"path": "1-research/research-brief.md", "frontmatter": {}}
-        save_generation_materials("Test", "short", ['a', 'b'], brief, materials_dir)
+        save_generation_materials("Test", "short", ["a", "b"], brief, materials_dir)
         params_file = materials_dir / "generation-params.json"
         assert params_file.exists()
         data = json.loads(params_file.read_text())
@@ -395,6 +395,7 @@ class TestSaveGenerationMaterials:
 # ============================================================================
 # copy_approved_outline() Tests
 # ============================================================================
+
 
 class TestCopyApprovedOutline:
     """Tests for copy_approved_outline() function."""
@@ -411,7 +412,7 @@ title: Option A
 """
         source_file.write_text(source_content)
 
-        approved_file = copy_approved_outline(mock_outline_dir, 'a', "user")
+        approved_file = copy_approved_outline(mock_outline_dir, "a", "user")
         assert approved_file.exists()
         assert approved_file.name == "outline-approved.md"
 
@@ -425,7 +426,7 @@ title: Option B
 Content"""
         source_file.write_text(source_content)
 
-        approved_file = copy_approved_outline(mock_outline_dir, 'b', "reviewer")
+        approved_file = copy_approved_outline(mock_outline_dir, "b", "reviewer")
         content = approved_file.read_text()
         assert "selected_option: b" in content
         assert "approved_by: reviewer" in content
@@ -434,39 +435,41 @@ Content"""
     def test_raises_error_for_missing_source(self, mock_outline_dir):
         """Test error when source file doesn't exist."""
         with pytest.raises(FileNotFoundError, match="Source outline not found"):
-            copy_approved_outline(mock_outline_dir, 'c')
+            copy_approved_outline(mock_outline_dir, "c")
 
 
 # ============================================================================
 # present_options() Tests
 # ============================================================================
 
+
 class TestPresentOptions:
     """Tests for present_options() function."""
 
     def test_presents_single_option(self):
         """Test presenting single option."""
-        prompt = present_options(['a'])
+        prompt = present_options(["a"])
         assert "Which outline option would you like to approve?" in prompt
         assert "[Option A]" in prompt
         assert "Traditional/Structured" in prompt
 
     def test_presents_multiple_options(self):
         """Test presenting multiple options."""
-        prompt = present_options(['a', 'b', 'c'])
+        prompt = present_options(["a", "b", "c"])
         assert "[Option A]" in prompt
         assert "[Option B]" in prompt
         assert "[Option C]" in prompt
 
     def test_includes_selection_prompt(self):
         """Test that selection prompt is included."""
-        prompt = present_options(['a'])
+        prompt = present_options(["a"])
         assert "Please enter your selection" in prompt
 
 
 # ============================================================================
 # CLI Commands Tests
 # ============================================================================
+
 
 class TestCmdGenerate:
     """Tests for cmd_generate() function."""
@@ -495,19 +498,26 @@ class TestCmdGenerate:
         args.interactive = False
         args.confidence = "MEDIUM"
 
-        with patch('outline_generator.Path.cwd', return_value=topic_dir), \
-             patch('outline_generator.get_tcc_repo_root', return_value=mock_repo_root):
+        with (
+            patch("outline_generator.Path.cwd", return_value=topic_dir),
+            patch("outline_generator.get_tcc_repo_root", return_value=mock_repo_root),
+        ):
             cmd_generate(args)
             captured = capsys.readouterr()
 
-        assert "Generating 3 outline option" in captured.out or "Outline Options Generated" in captured.out
+        assert (
+            "Generating 3 outline option" in captured.out
+            or "Outline Options Generated" in captured.out
+        )
 
     def test_error_when_not_in_topic(self, mock_repo_root):
         """Test error when not in a topic folder."""
         args = MagicMock()
 
-        with patch('outline_generator.Path.cwd', return_value=mock_repo_root), \
-             patch('outline_generator.get_tcc_repo_root', return_value=mock_repo_root):
+        with (
+            patch("outline_generator.Path.cwd", return_value=mock_repo_root),
+            patch("outline_generator.get_tcc_repo_root", return_value=mock_repo_root),
+        ):
             with pytest.raises(SystemExit):
                 cmd_generate(args)
 
@@ -523,11 +533,13 @@ class TestCmdApprove:
         source_file.write_text("---\ntitle: Test\n---\n\nContent")
 
         args = MagicMock()
-        args.approve = 'a'
+        args.approve = "a"
         args.approved_by = "user"
 
-        with patch('outline_generator.Path.cwd', return_value=tmp_path), \
-             patch('outline_generator.get_tcc_repo_root', return_value=tmp_path):
+        with (
+            patch("outline_generator.Path.cwd", return_value=tmp_path),
+            patch("outline_generator.get_tcc_repo_root", return_value=tmp_path),
+        ):
             cmd_approve(args)
 
         approved_file = outline_dir / "outline-approved.md"
@@ -536,7 +548,7 @@ class TestCmdApprove:
     def test_errors_for_invalid_option(self, tmp_path):
         """Test error for invalid option."""
         args = MagicMock()
-        args.approve = 'z'
+        args.approve = "z"
 
         with pytest.raises(SystemExit):
             cmd_approve(args)
@@ -551,14 +563,14 @@ class TestCmdList:
         outline_dir.mkdir()
 
         # Create option files
-        for opt in ['a', 'b']:
+        for opt in ["a", "b"]:
             (outline_dir / f"outline-option-{opt}.md").write_text(
                 f"---\nstyle: option-{opt}\nstatus: draft\n---"
             )
 
         args = MagicMock()
 
-        with patch('outline_generator.Path.cwd', return_value=tmp_path):
+        with patch("outline_generator.Path.cwd", return_value=tmp_path):
             cmd_list(args)
             captured = capsys.readouterr()
 
@@ -569,13 +581,11 @@ class TestCmdList:
         """Test showing approved outline status."""
         outline_dir = tmp_path / "2-outline"
         outline_dir.mkdir()
-        (outline_dir / "outline-approved.md").write_text(
-            "---\nselected_option: a\n---"
-        )
+        (outline_dir / "outline-approved.md").write_text("---\nselected_option: a\n---")
 
         args = MagicMock()
 
-        with patch('outline_generator.Path.cwd', return_value=tmp_path):
+        with patch("outline_generator.Path.cwd", return_value=tmp_path):
             cmd_list(args)
             captured = capsys.readouterr()
 
@@ -585,6 +595,7 @@ class TestCmdList:
 # ============================================================================
 # Edge Cases Tests
 # ============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases and special scenarios."""
@@ -610,7 +621,7 @@ class TestEdgeCases:
         brief = {"path": "test", "content": "## Theme 1\n", "frontmatter": {}}
         # Invalid options should raise KeyError
         with pytest.raises(KeyError):
-            create_outline_content('z', "Test", "short", brief)
+            create_outline_content("z", "Test", "short", brief)
 
 
 class TestAdditionalCoverage:
@@ -631,8 +642,10 @@ class TestAdditionalCoverage:
         topic_dir.mkdir(parents=True, exist_ok=True)
         (topic_dir / "2-outline").mkdir(parents=True, exist_ok=True)
 
-        with patch('outline_generator.Path.cwd', return_value=topic_dir), \
-             patch('outline_generator.get_tcc_repo_root', return_value=mock_repo_root):
+        with (
+            patch("outline_generator.Path.cwd", return_value=topic_dir),
+            patch("outline_generator.get_tcc_repo_root", return_value=mock_repo_root),
+        ):
             with pytest.raises(SystemExit):
                 cmd_generate(args)
             captured = capsys.readouterr()
@@ -642,7 +655,7 @@ class TestAdditionalCoverage:
         """Test cmd_generate when repo root is None."""
         args = MagicMock()
 
-        with patch('outline_generator.get_tcc_repo_root', return_value=None):
+        with patch("outline_generator.get_tcc_repo_root", return_value=None):
             with pytest.raises(SystemExit):
                 cmd_generate(args)
             captured = capsys.readouterr()
@@ -654,10 +667,12 @@ class TestAdditionalCoverage:
         outline_dir.mkdir()
 
         args = MagicMock()
-        args.approve = 'a'
+        args.approve = "a"
 
-        with patch('outline_generator.get_tcc_repo_root', return_value=tmp_path), \
-             patch('outline_generator.Path.cwd', return_value=tmp_path):
+        with (
+            patch("outline_generator.get_tcc_repo_root", return_value=tmp_path),
+            patch("outline_generator.Path.cwd", return_value=tmp_path),
+        ):
             with pytest.raises(SystemExit):
                 cmd_approve(args)
             captured = capsys.readouterr()
@@ -666,7 +681,7 @@ class TestAdditionalCoverage:
     def test_cmd_approve_invalid_option(self, tmp_path, capsys):
         """Test cmd_approve with invalid option."""
         args = MagicMock()
-        args.approve = 'z'
+        args.approve = "z"
 
         with pytest.raises(SystemExit):
             cmd_approve(args)
@@ -675,7 +690,7 @@ class TestAdditionalCoverage:
         """Test cmd_list when outline directory doesn't exist."""
         args = MagicMock()
 
-        with patch('outline_generator.Path.cwd', return_value=tmp_path):
+        with patch("outline_generator.Path.cwd", return_value=tmp_path):
             with pytest.raises(SystemExit):
                 cmd_list(args)
             captured = capsys.readouterr()
@@ -684,7 +699,7 @@ class TestAdditionalCoverage:
     def test_generate_outline_prompt_with_all_options(self, mock_research_brief):
         """Test generate_outline_prompt for all three options."""
         brief = read_research_brief(mock_research_brief)
-        for option in ['a', 'b', 'c']:
+        for option in ["a", "b", "c"]:
             prompt = generate_outline_prompt(option, "Test", "long", brief)
             assert "Test" in prompt
             assert "long" in prompt
@@ -695,17 +710,14 @@ class TestAdditionalCoverage:
         source_file.write_text("No frontmatter here\n\nContent")
 
         # Should still work
-        approved_file = copy_approved_outline(mock_outline_dir, 'a', "user")
+        approved_file = copy_approved_outline(mock_outline_dir, "a", "user")
         assert approved_file.exists()
 
     def test_save_generation_materials_with_brief_path(self, tmp_path):
         """Test save_generation_materials preserves brief path."""
         materials_dir = tmp_path / "materials"
-        brief = {
-            "path": "1-research/custom-brief.md",
-            "frontmatter": {"title": "Test"}
-        }
-        save_generation_materials("Topic", "long", ['a'], brief, materials_dir)
+        brief = {"path": "1-research/custom-brief.md", "frontmatter": {"title": "Test"}}
+        save_generation_materials("Topic", "long", ["a"], brief, materials_dir)
 
         params_file = materials_dir / "generation-params.json"
         assert params_file.exists()
@@ -723,14 +735,18 @@ class TestAdditionalCoverage:
         outside_dir = mock_repo_root / "outside"
         outside_dir.mkdir()
 
-        with patch('outline_generator.Path.cwd', return_value=outside_dir), \
-             patch('outline_generator.get_tcc_repo_root', return_value=mock_repo_root):
+        with (
+            patch("outline_generator.Path.cwd", return_value=outside_dir),
+            patch("outline_generator.get_tcc_repo_root", return_value=mock_repo_root),
+        ):
             with pytest.raises(SystemExit):
                 cmd_generate(args)
             captured = capsys.readouterr()
             assert "within a topic folder" in captured.out
 
-    def test_main_no_command_generates_by_default(self, mock_repo_root, mock_research_brief, capsys):
+    def test_main_no_command_generates_by_default(
+        self, mock_repo_root, mock_research_brief, capsys
+    ):
         """Test main() defaults to cmd_generate when no command specified."""
         collection_dir = mock_repo_root / "collections" / "test-collection"
         collection_dir.mkdir(parents=True, exist_ok=True)
@@ -742,10 +758,13 @@ class TestAdditionalCoverage:
         brief_content = mock_research_brief.read_text()
         (research_dir / "research-brief.md").write_text(brief_content)
 
-        with patch('sys.argv', ['outline-generator.py', '--options', '2']), \
-             patch('outline_generator.Path.cwd', return_value=topic_dir), \
-             patch('outline_generator.get_tcc_repo_root', return_value=mock_repo_root):
+        with (
+            patch("sys.argv", ["outline-generator.py", "--options", "2"]),
+            patch("outline_generator.Path.cwd", return_value=topic_dir),
+            patch("outline_generator.get_tcc_repo_root", return_value=mock_repo_root),
+        ):
             from outline_generator import main
+
             main()
             captured = capsys.readouterr()
             assert "Generating" in captured.out or "Outline Options Generated" in captured.out
@@ -755,9 +774,12 @@ class TestAdditionalCoverage:
         outline_dir = tmp_path / "2-outline"
         outline_dir.mkdir()
 
-        with patch('sys.argv', ['outline-generator.py', '--list']), \
-             patch('outline_generator.Path.cwd', return_value=tmp_path):
+        with (
+            patch("sys.argv", ["outline-generator.py", "--list"]),
+            patch("outline_generator.Path.cwd", return_value=tmp_path),
+        ):
             from outline_generator import main
+
             main()
             captured = capsys.readouterr()
             assert "Outline Options:" in captured.out
@@ -769,15 +791,20 @@ class TestAdditionalCoverage:
         source_file = outline_dir / "outline-option-a.md"
         source_file.write_text("---\ntitle: Test\n---\n\nContent")
 
-        with patch('sys.argv', ['outline-generator.py', '--approve', 'a']), \
-             patch('outline_generator.get_tcc_repo_root', return_value=tmp_path), \
-             patch('outline_generator.Path.cwd', return_value=tmp_path):
+        with (
+            patch("sys.argv", ["outline-generator.py", "--approve", "a"]),
+            patch("outline_generator.get_tcc_repo_root", return_value=tmp_path),
+            patch("outline_generator.Path.cwd", return_value=tmp_path),
+        ):
             from outline_generator import main
+
             main()
             captured = capsys.readouterr()
             assert "Approved" in captured.out
 
-    def test_cmd_generate_interactive_with_selection(self, mock_repo_root, mock_research_brief, capsys):
+    def test_cmd_generate_interactive_with_selection(
+        self, mock_repo_root, mock_research_brief, capsys
+    ):
         """Test cmd_generate in interactive mode with user selection."""
         collection_dir = mock_repo_root / "collections" / "test-collection"
         collection_dir.mkdir(parents=True, exist_ok=True)
@@ -796,9 +823,11 @@ class TestAdditionalCoverage:
         args.confidence = "MEDIUM"
 
         # Mock input to select option 'a'
-        with patch('outline_generator.Path.cwd', return_value=topic_dir), \
-             patch('outline_generator.get_tcc_repo_root', return_value=mock_repo_root), \
-             patch('builtins.input', return_value='a'):
+        with (
+            patch("outline_generator.Path.cwd", return_value=topic_dir),
+            patch("outline_generator.get_tcc_repo_root", return_value=mock_repo_root),
+            patch("builtins.input", return_value="a"),
+        ):
             cmd_generate(args)
             captured = capsys.readouterr()
             assert "Generating" in captured.out

@@ -1,4 +1,5 @@
 """Tests for check command in code-review-claude.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -15,14 +16,10 @@ class TestCheckClaudeAvailability:
 
     @patch("code_review_claude.shutil.which")
     @patch("code_review_claude.subprocess.run")
-    def test_claude_available_with_version(
-        self, mock_run: Mock, mock_which: Mock
-    ) -> None:
+    def test_claude_available_with_version(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test successful check with version info."""
         mock_which.return_value = "/usr/local/bin/claude"
-        mock_run.return_value = Mock(
-            returncode=0, stdout="1.2.3\n", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="1.2.3\n", stderr="")
 
         result = crc.check_claude_availability()
 
@@ -46,14 +43,10 @@ class TestCheckClaudeAvailability:
 
     @patch("code_review_claude.shutil.which")
     @patch("code_review_claude.subprocess.run")
-    def test_claude_returns_error(
-        self, mock_run: Mock, mock_which: Mock
-    ) -> None:
+    def test_claude_returns_error(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test when Claude CLI returns an error but command exists."""
         mock_which.return_value = "/usr/local/bin/claude"
-        mock_run.return_value = Mock(
-            returncode=1, stdout="", stderr="Command failed"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="", stderr="Command failed")
 
         result = crc.check_claude_availability()
 
@@ -66,9 +59,7 @@ class TestCheckClaudeAvailability:
     def test_claude_timeout(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test when Claude CLI times out."""
         mock_which.return_value = "/usr/local/bin/claude"
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["claude", "--version"], timeout=10
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["claude", "--version"], timeout=10)
 
         result = crc.check_claude_availability()
 
@@ -126,13 +117,9 @@ class TestCmdCheck:
         assert "1.2.3" in captured.out  # Version shown with verbose
 
     @patch("code_review_claude.check_claude_availability")
-    def test_check_failure(
-        self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_check_failure(self, mock_check: Mock, capsys: pytest.CaptureFixture[str]) -> None:
         """Test check failure."""
-        mock_check.return_value = crc.CheckResult(
-            available=False, message="ERROR: Not installed"
-        )
+        mock_check.return_value = crc.CheckResult(available=False, message="ERROR: Not installed")
         args = Namespace(verbose=False)
 
         exit_code = crc.cmd_check(args)

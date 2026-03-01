@@ -357,9 +357,7 @@ kanban-plugin: board
         # Setup
         prompts_dir = tmp_path / "docs/prompts"
         prompts_dir.mkdir(parents=True)
-        (prompts_dir / ".kanban.md").write_text(
-            "---\nkanban-plugin: board\n---\n\n## Backlog\n\n"
-        )
+        (prompts_dir / ".kanban.md").write_text("---\nkanban-plugin: board\n---\n\n## Backlog\n\n")
         (prompts_dir / "0047_test.md").write_text(
             "---\nname: test\nstatus: Backlog\n---\n\n"
             "### Background\n\nReal context here\n\n"
@@ -383,9 +381,7 @@ kanban-plugin: board
         # Setup
         prompts_dir = tmp_path / "docs/prompts"
         prompts_dir.mkdir(parents=True)
-        (prompts_dir / ".kanban.md").write_text(
-            "---\nkanban-plugin: board\n---\n\n## Backlog\n\n"
-        )
+        (prompts_dir / ".kanban.md").write_text("---\nkanban-plugin: board\n---\n\n## Backlog\n\n")
         (prompts_dir / "0047_test.md").write_text(
             "---\nname: test\nstatus: Backlog\n---\n\n"
             "### Background\n\nReal context here\n\n"
@@ -435,6 +431,7 @@ kanban-plugin: board
         kanban_content = (prompts_dir / ".kanban.md").read_text()
         assert "- [.] 0047_wip_task" in kanban_content
         assert "- [x] 0048_done_task" in kanban_content
+
 
 class TestCmdLog:
     """Tests for the log command."""
@@ -717,7 +714,9 @@ class TestLogRotation:
 
         # Should have 5 most recent logs remaining
         rotated_files = sorted(tmp_path.glob("test.*.log"))
-        assert len(rotated_files) == 5, f"Expected 5 files after cleanup, got {len(rotated_files)}: {[f.name for f in rotated_files]}"
+        assert len(rotated_files) == 5, (
+            f"Expected 5 files after cleanup, got {len(rotated_files)}: {[f.name for f in rotated_files]}"
+        )
 
         # Verify the 2 oldest files (by mtime) were removed
         # Files are sorted by mtime descending, so oldest 2 should be gone
@@ -831,30 +830,32 @@ class TestTasksConfigWithConfig:
         """Helper: create config.jsonc."""
         meta_dir = tmp_path / "docs/.tasks"
         meta_dir.mkdir(parents=True, exist_ok=True)
-        config_text = (
-            "// Test config\n"
-            + json.dumps(config_data, indent=2)
-            + "\n"
-        )
+        config_text = "// Test config\n" + json.dumps(config_data, indent=2) + "\n"
         (meta_dir / "config.jsonc").write_text(config_text)
 
     def test_config_mode_detected(self, tmp_path):
         """Config.jsonc triggers config mode."""
-        self._create_config(tmp_path, {
-            "$schema_version": 1,
-            "active_folder": "docs/prompts",
-            "folders": {"docs/prompts": {"base_counter": 0, "label": "Phase 1"}},
-        })
+        self._create_config(
+            tmp_path,
+            {
+                "$schema_version": 1,
+                "active_folder": "docs/prompts",
+                "folders": {"docs/prompts": {"base_counter": 0, "label": "Phase 1"}},
+            },
+        )
         config = TasksConfig(project_root=tmp_path)
         assert config.mode == "config"
 
     def test_config_paths(self, tmp_path):
         """Config mode uses docs/.tasks/ for metadata with per-folder kanban."""
-        self._create_config(tmp_path, {
-            "$schema_version": 1,
-            "active_folder": "docs/prompts",
-            "folders": {"docs/prompts": {"base_counter": 0, "label": "Phase 1"}},
-        })
+        self._create_config(
+            tmp_path,
+            {
+                "$schema_version": 1,
+                "active_folder": "docs/prompts",
+                "folders": {"docs/prompts": {"base_counter": 0, "label": "Phase 1"}},
+            },
+        )
         config = TasksConfig(project_root=tmp_path)
         # Kanban file is now per-folder: kanban_prompts.md for docs/prompts
         assert config.kanban_file == tmp_path / "docs/.tasks/kanban_prompts.md"
@@ -864,40 +865,49 @@ class TestTasksConfigWithConfig:
 
     def test_config_active_folder(self, tmp_path):
         """Config mode respects active_folder setting."""
-        self._create_config(tmp_path, {
-            "$schema_version": 1,
-            "active_folder": "docs/next-phase",
-            "folders": {
-                "docs/prompts": {"base_counter": 0},
-                "docs/next-phase": {"base_counter": 200},
+        self._create_config(
+            tmp_path,
+            {
+                "$schema_version": 1,
+                "active_folder": "docs/next-phase",
+                "folders": {
+                    "docs/prompts": {"base_counter": 0},
+                    "docs/next-phase": {"base_counter": 200},
+                },
             },
-        })
+        )
         config = TasksConfig(project_root=tmp_path)
         assert config.active_folder == tmp_path / "docs/next-phase"
 
     def test_config_folder_override(self, tmp_path):
         """--folder overrides active_folder."""
-        self._create_config(tmp_path, {
-            "$schema_version": 1,
-            "active_folder": "docs/prompts",
-            "folders": {
-                "docs/prompts": {"base_counter": 0},
-                "docs/next-phase": {"base_counter": 200},
+        self._create_config(
+            tmp_path,
+            {
+                "$schema_version": 1,
+                "active_folder": "docs/prompts",
+                "folders": {
+                    "docs/prompts": {"base_counter": 0},
+                    "docs/next-phase": {"base_counter": 200},
+                },
             },
-        })
+        )
         config = TasksConfig(project_root=tmp_path, folder="docs/next-phase")
         assert config.active_folder == tmp_path / "docs/next-phase"
 
     def test_config_all_folders(self, tmp_path):
         """Config mode lists all folders."""
-        self._create_config(tmp_path, {
-            "$schema_version": 1,
-            "active_folder": "docs/prompts",
-            "folders": {
-                "docs/prompts": {"base_counter": 0},
-                "docs/next-phase": {"base_counter": 200},
+        self._create_config(
+            tmp_path,
+            {
+                "$schema_version": 1,
+                "active_folder": "docs/prompts",
+                "folders": {
+                    "docs/prompts": {"base_counter": 0},
+                    "docs/next-phase": {"base_counter": 200},
+                },
             },
-        })
+        )
         config = TasksConfig(project_root=tmp_path)
         assert len(config.all_folders) == 2
         assert tmp_path / "docs/prompts" in config.all_folders
@@ -908,15 +918,15 @@ class TestTasksConfigWithConfig:
         meta_dir = tmp_path / "docs/.tasks"
         meta_dir.mkdir(parents=True)
         (meta_dir / "config.jsonc").write_text(
-            '// This is a comment\n'
-            '{\n'
-            '  // Another comment\n'
+            "// This is a comment\n"
+            "{\n"
+            "  // Another comment\n"
             '  "$schema_version": 1,\n'
             '  "active_folder": "docs/prompts", // inline comment\n'
             '  "folders": {\n'
             '    "docs/prompts": {"base_counter": 0}\n'
-            '  }\n'
-            '}\n'
+            "  }\n"
+            "}\n"
         )
         config = TasksConfig(project_root=tmp_path)
         assert config.mode == "config"
@@ -1414,14 +1424,11 @@ class TestImplProgress:
         (prompts_dir / ".kanban.md").write_text("---\nkanban-plugin: board\n---\n")
 
         # Task with all completed except testing
-        content = TASK_WITH_IMPL_PROGRESS.replace(
-            "planning: pending", "planning: completed"
-        ).replace(
-            "design: pending", "design: completed"
-        ).replace(
-            "implementation: pending", "implementation: completed"
-        ).replace(
-            "review: pending", "review: completed"
+        content = (
+            TASK_WITH_IMPL_PROGRESS.replace("planning: pending", "planning: completed")
+            .replace("design: pending", "design: completed")
+            .replace("implementation: pending", "implementation: completed")
+            .replace("review: pending", "review: completed")
         )
         (prompts_dir / "0047_test.md").write_text(content)
 
@@ -1472,9 +1479,7 @@ class TestImplProgress:
         task_file = tmp_path / "0047_test.md"
         content = TASK_WITH_IMPL_PROGRESS.replace(
             "planning: pending", "planning: completed"
-        ).replace(
-            "implementation: pending", "implementation: in_progress"
-        )
+        ).replace("implementation: pending", "implementation: in_progress")
         task_file.write_text(content)
         tf = TaskFile(task_file)
         updated = tf.sync_impl_progress_to_status(TaskStatus.BACKLOG)
@@ -1723,11 +1728,15 @@ class TestRichCreate:
         """--from-json creates from JSON file."""
         manager = self._setup_project(tmp_path)
         json_file = tmp_path / "task.json"
-        json_file.write_text(json.dumps({
-            "name": "JSON Task",
-            "background": "From JSON",
-            "requirements": "JSON requirements",
-        }))
+        json_file.write_text(
+            json.dumps(
+                {
+                    "name": "JSON Task",
+                    "background": "From JSON",
+                    "requirements": "JSON requirements",
+                }
+            )
+        )
         exit_code = manager.cmd_create("", from_json=str(json_file))
         assert exit_code == 0
         content = (tmp_path / "docs/prompts/0001_JSON_Task.md").read_text()
@@ -1800,11 +1809,15 @@ class TestBatchCreate:
         """Creates multiple tasks from JSON array."""
         manager = self._setup_project(tmp_path)
         json_file = tmp_path / "tasks.json"
-        json_file.write_text(json.dumps([
-            {"name": "Task A", "background": "bg A"},
-            {"name": "Task B", "background": "bg B"},
-            {"name": "Task C"},
-        ]))
+        json_file.write_text(
+            json.dumps(
+                [
+                    {"name": "Task A", "background": "bg A"},
+                    {"name": "Task B", "background": "bg B"},
+                    {"name": "Task C"},
+                ]
+            )
+        )
 
         exit_code = manager.cmd_batch_create(from_json=str(json_file))
         assert exit_code == 0
@@ -1819,10 +1832,14 @@ class TestBatchCreate:
         (tmp_path / "docs/prompts/0010_existing.md").write_text("---\nstatus: Backlog\n---\n")
 
         json_file = tmp_path / "tasks.json"
-        json_file.write_text(json.dumps([
-            {"name": "New A"},
-            {"name": "New B"},
-        ]))
+        json_file.write_text(
+            json.dumps(
+                [
+                    {"name": "New A"},
+                    {"name": "New B"},
+                ]
+            )
+        )
 
         exit_code = manager.cmd_batch_create(from_json=str(json_file))
         assert exit_code == 0
@@ -1836,10 +1853,10 @@ class TestBatchCreate:
         output_file.write_text(
             "# Analysis Report\n\nSome analysis content.\n\n"
             "<!-- TASKS:\n"
-            '[\n'
+            "[\n"
             '  {"name": "Fix auth bug", "background": "Auth is broken"},\n'
             '  {"name": "Add logging", "requirements": "Log all API calls"}\n'
-            ']\n'
+            "]\n"
             "-->\n"
         )
 
@@ -1885,10 +1902,14 @@ class TestBatchCreate:
         """Kanban is refreshed only once at end, not per task."""
         manager = self._setup_project(tmp_path)
         json_file = tmp_path / "tasks.json"
-        json_file.write_text(json.dumps([
-            {"name": "Task A"},
-            {"name": "Task B"},
-        ]))
+        json_file.write_text(
+            json.dumps(
+                [
+                    {"name": "Task A"},
+                    {"name": "Task B"},
+                ]
+            )
+        )
 
         exit_code = manager.cmd_batch_create(from_json=str(json_file))
         assert exit_code == 0
@@ -1955,9 +1976,7 @@ class TestCheckAllTasks:
         (prompts_dir / ".template.md").write_text("---\nstatus: Backlog\n---\n")
 
         (prompts_dir / "0001_task_a.md").write_text(TASK_WITH_IMPL_PROGRESS)
-        (prompts_dir / "0002_task_b.md").write_text(
-            TASK_WITH_IMPL_PROGRESS.replace("0047", "0002")
-        )
+        (prompts_dir / "0002_task_b.md").write_text(TASK_WITH_IMPL_PROGRESS.replace("0047", "0002"))
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
         exit_code = manager.cmd_check()
@@ -2033,9 +2052,7 @@ class TestCheckWithProgress:
 
         content = TASK_WITH_IMPL_PROGRESS.replace(
             "planning: pending", "planning: completed"
-        ).replace(
-            "design: pending", "design: in_progress"
-        )
+        ).replace("design: pending", "design: in_progress")
         (prompts_dir / "0047_test.md").write_text(content)
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
@@ -2074,12 +2091,10 @@ class TestKanbanWithProgress:
         kanban = prompts_dir / ".kanban.md"
         kanban.write_text("---\nkanban-plugin: board\n---\n\n# Kanban Board\n")
 
-        content = TASK_WITH_IMPL_PROGRESS.replace(
-            "status: Backlog", "status: WIP"
-        ).replace(
-            "planning: pending", "planning: completed"
-        ).replace(
-            "design: pending", "design: in_progress"
+        content = (
+            TASK_WITH_IMPL_PROGRESS.replace("status: Backlog", "status: WIP")
+            .replace("planning: pending", "planning: completed")
+            .replace("design: pending", "design: in_progress")
         )
         (prompts_dir / "0047_test.md").write_text(content)
 
@@ -2120,7 +2135,8 @@ class TestPhaseValidation:
 
         # Task with placeholder content but all phases completed except testing
         content = TASK_PLACEHOLDER.replace(
-            "---\nname:", "---\nimpl_progress:\n  planning: completed\n  design: completed\n  implementation: completed\n  review: completed\n  testing: pending\nname:"
+            "---\nname:",
+            "---\nimpl_progress:\n  planning: completed\n  design: completed\n  implementation: completed\n  review: completed\n  testing: pending\nname:",
         )
         (prompts_dir / "0047_test.md").write_text(content)
 
@@ -2145,14 +2161,13 @@ class TestPhaseValidation:
 
         # Task with placeholder content but all phases completed except testing
         content = TASK_PLACEHOLDER.replace(
-            "---\nname:", "---\nimpl_progress:\n  planning: completed\n  design: completed\n  implementation: completed\n  review: completed\n  testing: pending\nname:"
+            "---\nname:",
+            "---\nimpl_progress:\n  planning: completed\n  design: completed\n  implementation: completed\n  review: completed\n  testing: pending\nname:",
         )
         (prompts_dir / "0047_test.md").write_text(content)
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
-        exit_code = manager.cmd_update(
-            "47", phase="testing", phase_status="completed", force=True
-        )
+        exit_code = manager.cmd_update("47", phase="testing", phase_status="completed", force=True)
         assert exit_code == 0
 
         tf = TaskFile(prompts_dir / "0047_test.md")
@@ -2165,14 +2180,11 @@ class TestPhaseValidation:
         prompts_dir.mkdir(parents=True)
         (prompts_dir / ".kanban.md").write_text("---\nkanban-plugin: board\n---\n")
 
-        content = TASK_WITH_IMPL_PROGRESS.replace(
-            "planning: pending", "planning: completed"
-        ).replace(
-            "design: pending", "design: completed"
-        ).replace(
-            "implementation: pending", "implementation: completed"
-        ).replace(
-            "review: pending", "review: completed"
+        content = (
+            TASK_WITH_IMPL_PROGRESS.replace("planning: pending", "planning: completed")
+            .replace("design: pending", "design: completed")
+            .replace("implementation: pending", "implementation: completed")
+            .replace("review: pending", "review: completed")
         )
         (prompts_dir / "0047_test.md").write_text(content)
 
@@ -2368,7 +2380,9 @@ class TestSetSectionContent:
         task.write_text(TASK_WITH_ALL_SECTIONS)
 
         tf = TaskFile(task)
-        result = tf.set_section_content("Design", "## Component Architecture\n\nThe system uses MVC.")
+        result = tf.set_section_content(
+            "Design", "## Component Architecture\n\nThe system uses MVC."
+        )
         assert result is True
 
         content = task.read_text()
@@ -2652,9 +2666,7 @@ class TestCmdUpdateSection:
         (prompts_dir / "0047_test.md").write_text(TASK_WITH_ALL_SECTIONS)
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
-        exit_code = manager.cmd_update(
-            "47", section="Design", append_row="type|path|agent|date"
-        )
+        exit_code = manager.cmd_update("47", section="Design", append_row="type|path|agent|date")
         assert exit_code == 1
         assert "only valid with --section Artifacts" in capsys.readouterr().err
 
@@ -2666,9 +2678,7 @@ class TestCmdUpdateSection:
         (prompts_dir / "0047_test.md").write_text(TASK_WITH_ALL_SECTIONS)
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
-        exit_code = manager.cmd_update(
-            "47", section="Artifacts", append_row="only|two"
-        )
+        exit_code = manager.cmd_update("47", section="Artifacts", append_row="only|two")
         assert exit_code == 1
         assert "4 pipe-delimited fields" in capsys.readouterr().err
 
@@ -2689,9 +2699,7 @@ class TestCmdUpdateSection:
         source.write_text("Custom content here")
 
         manager = TasksManager(TasksConfig(project_root=tmp_path))
-        exit_code = manager.cmd_update(
-            "47", section="Custom Section", from_file=str(source)
-        )
+        exit_code = manager.cmd_update("47", section="Custom Section", from_file=str(source))
         assert exit_code == 0
 
         content = (prompts_dir / "0047_test.md").read_text()

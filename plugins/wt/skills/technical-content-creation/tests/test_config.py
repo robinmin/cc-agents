@@ -30,13 +30,14 @@ from shared.config import (
     set_tcc_config,
     get_tcc_repo_root,
     set_tcc_repo_root,
-    print_config
+    print_config,
 )
 
 
 # ============================================================================
 # WTConfigPath Class Tests
 # ============================================================================
+
 
 class TestWTConfigPath:
     """Tests for WTConfigPath class."""
@@ -59,6 +60,7 @@ class TestWTConfigPath:
 # ============================================================================
 # load_jsonc() Tests
 # ============================================================================
+
 
 class TestLoadJsonc:
     """Tests for load_jsonc() function."""
@@ -87,7 +89,7 @@ class TestLoadJsonc:
     def test_load_jsonc_with_comments_strips_comments(self, mock_config_dir):
         """Test that comments are properly stripped when using json-comment library."""
         jsonc_file = mock_config_dir / "test.jsonc"
-        jsonc_file.write_text("// This is a comment\n{\n  \"key\": \"value\"\n}")
+        jsonc_file.write_text('// This is a comment\n{\n  "key": "value"\n}')
 
         result = load_jsonc(jsonc_file)
         assert result["key"] == "value"
@@ -114,6 +116,7 @@ class TestLoadJsonc:
 # ============================================================================
 # save_jsonc() Tests
 # ============================================================================
+
 
 class TestSaveJsonc:
     """Tests for save_jsonc() function."""
@@ -143,10 +146,10 @@ class TestSaveJsonc:
 
         content = test_file.read_text()
         # Find the JSON line (after header comments)
-        lines = content.split('\n')
+        lines = content.split("\n")
         json_line = [line for line in lines if line.strip().startswith('{"')][0]
         # Compact JSON should not have 2-space indentation
-        assert not json_line.startswith('  ')  # No "pretty" indentation
+        assert not json_line.startswith("  ")  # No "pretty" indentation
         # And should contain our data (JSON has spaces after colons)
         assert '"key": "value"' in json_line
 
@@ -204,7 +207,7 @@ class TestSaveJsonc:
 
         save_jsonc(data, test_file)
 
-        content = test_file.read_text(encoding='utf-8')
+        content = test_file.read_text(encoding="utf-8")
         assert "你好世界" in content
         assert "🚀" in content
 
@@ -213,19 +216,22 @@ class TestSaveJsonc:
 # ensure_config_exists() Tests
 # ============================================================================
 
+
 class TestEnsureConfigExists:
     """Tests for ensure_config_exists() function."""
 
     def test_creates_config_directory(self, tmp_path):
         """Test that config directory is created if missing."""
-        with patch.object(WTConfigPath, 'CONFIG_DIR', tmp_path / ".claude" / "wt"):
+        with patch.object(WTConfigPath, "CONFIG_DIR", tmp_path / ".claude" / "wt"):
             ensure_config_exists()
             assert WTConfigPath.CONFIG_DIR.exists()
 
     def test_creates_config_file_with_defaults(self, tmp_path):
         """Test that config file is created with default values."""
-        with patch.object(WTConfigPath, 'CONFIG_DIR', tmp_path / ".claude" / "wt"), \
-             patch.object(WTConfigPath, 'CONFIG_FILE', tmp_path / ".claude" / "wt" / "config.jsonc"):
+        with (
+            patch.object(WTConfigPath, "CONFIG_DIR", tmp_path / ".claude" / "wt"),
+            patch.object(WTConfigPath, "CONFIG_FILE", tmp_path / ".claude" / "wt" / "config.jsonc"),
+        ):
             ensure_config_exists()
             assert WTConfigPath.CONFIG_FILE.exists()
 
@@ -237,7 +243,7 @@ class TestEnsureConfigExists:
     def test_does_not_overwrite_existing_config(self, mock_jsonc_file):
         """Test that existing config is not overwritten."""
         original_content = mock_jsonc_file.read_text()
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             ensure_config_exists()
             new_content = mock_jsonc_file.read_text()
             assert original_content == new_content
@@ -247,19 +253,20 @@ class TestEnsureConfigExists:
 # get_wt_config() Tests
 # ============================================================================
 
+
 class TestGetWtConfig:
     """Tests for get_wt_config() function."""
 
     def test_returns_loaded_config(self, mock_jsonc_file):
         """Test that config is returned when file exists."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             config = get_wt_config()
             assert "version" in config
 
     def test_returns_empty_dict_if_config_missing(self, tmp_path):
         """Test that default config is created when config doesn't exist."""
         nonexistent_file = tmp_path / "nonexistent.jsonc"
-        with patch.object(WTConfigPath, 'CONFIG_FILE', nonexistent_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", nonexistent_file):
             config = get_wt_config()
             # Function creates default config when file doesn't exist
             assert "version" in config
@@ -270,7 +277,7 @@ class TestGetWtConfig:
         bad_file = mock_config_dir / "bad.jsonc"
         bad_file.write_text("{invalid json}")
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', bad_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", bad_file):
             with pytest.raises(json.JSONDecodeError):
                 get_wt_config()
 
@@ -279,12 +286,13 @@ class TestGetWtConfig:
 # get_tcc_config() Tests
 # ============================================================================
 
+
 class TestGetTccConfig:
     """Tests for get_tcc_config() function."""
 
     def test_returns_tcc_section_with_defaults(self, mock_jsonc_file):
         """Test that TCC section is returned with default values."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             tcc_config = get_tcc_config()
             assert "tcc_repo_root" in tcc_config
             assert "default_collection" in tcc_config
@@ -296,7 +304,7 @@ class TestGetTccConfig:
         incomplete_file = mock_config_dir / "incomplete.jsonc"
         incomplete_file.write_text('{"technical-content-creation": {"tcc_repo_root": "/path"}}')
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', incomplete_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", incomplete_file):
             tcc_config = get_tcc_config()
             assert "default_collection" in tcc_config
             assert "auto_create_collections" in tcc_config
@@ -307,7 +315,7 @@ class TestGetTccConfig:
         empty_tcc_file = mock_config_dir / "empty_tcc.jsonc"
         empty_tcc_file.write_text('{"technical-content-creation": {}}')
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', empty_tcc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", empty_tcc_file):
             tcc_config = get_tcc_config()
             assert tcc_config["tcc_repo_root"] is None
             assert tcc_config["auto_create_collections"]
@@ -317,19 +325,20 @@ class TestGetTccConfig:
 # set_tcc_config() Tests
 # ============================================================================
 
+
 class TestSetTccConfig:
     """Tests for set_tcc_config() function."""
 
     def test_updates_valid_key(self, mock_jsonc_file):
         """Test updating a valid config key."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             set_tcc_config("default_collection", "new-collection")
             tcc_config = get_tcc_config()
             assert tcc_config["default_collection"] == "new-collection"
 
     def test_raises_value_error_for_invalid_key(self, mock_jsonc_file):
         """Test ValueError for invalid config key."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             with pytest.raises(ValueError, match="Invalid TCC config key"):
                 set_tcc_config("invalid_key", "value")
 
@@ -338,7 +347,7 @@ class TestSetTccConfig:
         no_tcc_file = mock_config_dir / "no_tcc.jsonc"
         no_tcc_file.write_text('{"version": "1.0.0"}')
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', no_tcc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", no_tcc_file):
             set_tcc_config("tcc_repo_root", "/new/path")
             config = load_jsonc(no_tcc_file)
             assert WTConfigPath.TCC_SECTION in config
@@ -346,7 +355,7 @@ class TestSetTccConfig:
 
     def test_updates_last_updated_timestamp(self, mock_jsonc_file):
         """Test that last_updated timestamp is updated."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             datetime.now().isoformat()
             set_tcc_config("default_collection", "test")
             datetime.now().isoformat()
@@ -360,12 +369,13 @@ class TestSetTccConfig:
 # get_tcc_repo_root() Tests
 # ============================================================================
 
+
 class TestGetTccRepoRoot:
     """Tests for get_tcc_repo_root() function."""
 
     def test_returns_path_object_when_configured(self, mock_jsonc_file):
         """Test that Path object is returned when repo root is configured."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             repo_root = get_tcc_repo_root()
             assert isinstance(repo_root, Path)
             assert str(repo_root) == "/mock/repo/root"
@@ -375,7 +385,7 @@ class TestGetTccRepoRoot:
         no_root_file = mock_config_dir / "no_root.jsonc"
         no_root_file.write_text('{"technical-content-creation": {"tcc_repo_root": null}}')
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', no_root_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", no_root_file):
             repo_root = get_tcc_repo_root()
             assert repo_root is None
 
@@ -383,6 +393,7 @@ class TestGetTccRepoRoot:
 # ============================================================================
 # set_tcc_repo_root() Tests
 # ============================================================================
+
 
 class TestSetTccRepoRoot:
     """Tests for set_tcc_repo_root() function."""
@@ -393,7 +404,7 @@ class TestSetTccRepoRoot:
         test_repo = tmp_path / "test_repo"
         test_repo.mkdir()
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             set_tcc_repo_root(str(test_repo))
             tcc_config = get_tcc_config()
             assert tcc_config["tcc_repo_root"] == str(test_repo)
@@ -401,13 +412,13 @@ class TestSetTccRepoRoot:
     def test_expands_user_path(self, tmp_path):
         """Test that ~ is expanded to home directory."""
         test_file = tmp_path / "test.jsonc"
-        test_file.write_text('{}')
+        test_file.write_text("{}")
 
         # Create a test directory
         test_repo = tmp_path / "test_repo"
         test_repo.mkdir()
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', test_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", test_file):
             # Use the actual test_repo path
             set_tcc_repo_root(str(test_repo))
             tcc_config = get_tcc_config()
@@ -415,7 +426,7 @@ class TestSetTccRepoRoot:
 
     def test_raises_file_not_found_for_non_existent_path(self, mock_jsonc_file):
         """Test FileNotFoundError for non-existent path."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             with pytest.raises(FileNotFoundError, match="Repository root does not exist"):
                 set_tcc_repo_root("/non/existent/path")
 
@@ -424,12 +435,13 @@ class TestSetTccRepoRoot:
 # print_config() Tests
 # ============================================================================
 
+
 class TestPrintConfig:
     """Tests for print_config() function."""
 
     def test_prints_configuration(self, mock_jsonc_file, capsys):
         """Test that configuration is printed correctly."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             print_config()
             captured = capsys.readouterr()
             assert "Technical Content Creation Configuration:" in captured.out
@@ -442,6 +454,7 @@ class TestPrintConfig:
 # ============================================================================
 # Edge Cases Tests
 # ============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases and special scenarios."""
@@ -463,7 +476,7 @@ class TestEdgeCases:
             "boolean": True,
             "null": None,
             "nested": {"key": "value"},
-            "array": [1, 2, 3]
+            "array": [1, 2, 3],
         }
 
         save_jsonc(original_data, test_file)
@@ -509,14 +522,7 @@ class TestAdditionalCoverage:
     def test_save_jsonc_with_nested_data(self, tmp_path):
         """Test save_jsonc with nested data structures."""
         test_file = tmp_path / "nested.jsonc"
-        data = {
-            "level1": {
-                "level2": {
-                    "level3": "deep value"
-                },
-                "array": [{"item": 1}, {"item": 2}]
-            }
-        }
+        data = {"level1": {"level2": {"level3": "deep value"}, "array": [{"item": 1}, {"item": 2}]}}
 
         save_jsonc(data, test_file)
         loaded = load_jsonc(test_file)
@@ -526,7 +532,7 @@ class TestAdditionalCoverage:
         """Test get_wt_config creates default config when file doesn't exist."""
         nonexistent = tmp_path / "nonexistent.jsonc"
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', nonexistent):
+        with patch.object(WTConfigPath, "CONFIG_FILE", nonexistent):
             config = get_wt_config()
             assert "version" in config
             assert WTConfigPath.TCC_SECTION in config
@@ -538,9 +544,9 @@ class TestAdditionalCoverage:
         test_repo.mkdir()
 
         test_file = tmp_path / "config.jsonc"
-        test_file.write_text('{}')
+        test_file.write_text("{}")
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', test_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", test_file):
             # Use relative path - should convert to absolute
             set_tcc_repo_root(str(test_repo))
             tcc_config = get_tcc_config()
@@ -549,8 +555,9 @@ class TestAdditionalCoverage:
 
     def test_set_tcc_config_updates_last_updated(self, mock_jsonc_file):
         """Test set_tcc_config updates last_updated timestamp."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             import time
+
             time.time()
             set_tcc_config("tcc_repo_root", "/new/path")
             time.time()
@@ -561,7 +568,7 @@ class TestAdditionalCoverage:
 
     def test_print_config_shows_all_keys(self, mock_jsonc_file, capsys):
         """Test print_config displays all configuration keys."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             print_config()
             captured = capsys.readouterr()
             assert "Repo Root:" in captured.out
@@ -574,7 +581,7 @@ class TestAdditionalCoverage:
         config_file = mock_config_dir / "no_tcc.jsonc"
         config_file.write_text('{"version": "1.0.0"}')
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', config_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", config_file):
             tcc_config = get_tcc_config()
             assert "tcc_repo_root" in tcc_config
             assert "auto_create_collections" in tcc_config
@@ -594,22 +601,24 @@ class TestAdditionalCoverage:
         config_dir = tmp_path / ".claude" / "wt"
         config_file = config_dir / "config.jsonc"
 
-        with patch.object(WTConfigPath, 'CONFIG_DIR', config_dir), \
-             patch.object(WTConfigPath, 'CONFIG_FILE', config_file):
+        with (
+            patch.object(WTConfigPath, "CONFIG_DIR", config_dir),
+            patch.object(WTConfigPath, "CONFIG_FILE", config_file),
+        ):
             ensure_config_exists()
             assert config_dir.exists()
             assert config_file.exists()
 
     def test_config_cli_get_via_print(self, mock_jsonc_file, capsys):
         """Test print_config() which is what CLI get command calls."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             print_config()
             captured = capsys.readouterr()
             assert "Configuration:" in captured.out
 
     def test_set_tcc_config_via_function(self, mock_jsonc_file):
         """Test set_tcc_config which is what CLI set command uses."""
-        with patch.object(WTConfigPath, 'CONFIG_FILE', mock_jsonc_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", mock_jsonc_file):
             set_tcc_config("default_collection", "new-collection")
             tcc_config = get_tcc_config()
             assert tcc_config["default_collection"] == "new-collection"
@@ -617,7 +626,7 @@ class TestAdditionalCoverage:
     def test_load_jsonc_with_json_comment_library_available(self, mock_config_dir):
         """Test load_jsonc when json-comment library is available."""
         jsonc_file = mock_config_dir / "with-comments.jsonc"
-        jsonc_file.write_text("// Comment\n{\n  \"key\": \"value\"\n}")
+        jsonc_file.write_text('// Comment\n{\n  "key": "value"\n}')
 
         result = load_jsonc(jsonc_file)
         assert result["key"] == "value"
@@ -631,10 +640,10 @@ class TestAdditionalCoverage:
 
         content = test_file.read_text()
         # Find the JSON line
-        lines = content.split('\n')
+        lines = content.split("\n")
         json_line = [line for line in lines if line.strip().startswith('{"')][0]
         # Compact JSON should not have 2-space indentation
-        assert not json_line.startswith('  ')
+        assert not json_line.startswith("  ")
 
     def test_save_jsonc_empty_file_creates_with_header(self, tmp_path):
         """Test save_jsonc on empty file creates header."""
@@ -652,7 +661,7 @@ class TestAdditionalCoverage:
         bad_file = mock_config_dir / "bad.jsonc"
         bad_file.write_text("{invalid json that causes parse error")
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', bad_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", bad_file):
             with pytest.raises(json.JSONDecodeError):
                 get_wt_config()
 
@@ -661,6 +670,6 @@ class TestAdditionalCoverage:
         null_root_file = mock_config_dir / "null_root.jsonc"
         null_root_file.write_text('{"technical-content-creation": {"tcc_repo_root": null}}')
 
-        with patch.object(WTConfigPath, 'CONFIG_FILE', null_root_file):
+        with patch.object(WTConfigPath, "CONFIG_FILE", null_root_file):
             repo_root = get_tcc_repo_root()
             assert repo_root is None

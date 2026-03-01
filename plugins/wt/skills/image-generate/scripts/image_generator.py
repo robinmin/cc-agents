@@ -62,7 +62,7 @@ try:
         TemplateError,
         TemplateNotFoundError,
         TemplateParseError,
-        TemplateValidationError
+        TemplateValidationError,
     )
 except ImportError as e:
     print(f"Error: Missing template_engine module: {e}")
@@ -78,6 +78,7 @@ try:
     if (parent_script_dir / "config_loader.py").exists():
         sys.path.insert(0, str(parent_script_dir))
         from config_loader import load_wt_config, get_wt_config
+
         _WT_CONFIG_LOADED = True
         # Load config and inject environment variables
         _wt_config = load_wt_config()
@@ -89,9 +90,11 @@ except ImportError:
 # Common Interface and Data Structures
 # =============================================================================
 
+
 @dataclass
 class GenerationRequest:
     """Unified image generation request."""
+
     prompt: str
     resolution: Tuple[int, int] = (1024, 1024)
     steps: int = 50
@@ -102,6 +105,7 @@ class GenerationRequest:
 @dataclass
 class GenerationResult:
     """Result of image generation."""
+
     success: bool
     image_bytes: Optional[bytes] = None
     output_path: Optional[str] = None
@@ -133,6 +137,7 @@ class ImageGeneratorBackend(ABC):
 # =============================================================================
 # HuggingFace Implementation
 # =============================================================================
+
 
 class HuggingFaceBackend(ImageGeneratorBackend):
     """HuggingFace Inference API backend for image generation."""
@@ -173,51 +178,43 @@ class HuggingFaceBackend(ImageGeneratorBackend):
             url = f"{self.API_URL}{request.model}"
 
         try:
-            response = requests.post(
-                url,
-                headers=headers,
-                json=payload,
-                timeout=request.timeout
-            )
+            response = requests.post(url, headers=headers, json=payload, timeout=request.timeout)
 
             if response.status_code == 200:
                 return GenerationResult(
                     success=True,
                     image_bytes=response.content,
                     method="huggingface",
-                    metadata={"model": self.model or self.DEFAULT_MODEL}
+                    metadata={"model": self.model or self.DEFAULT_MODEL},
                 )
             elif response.status_code == 503:
                 # Model loading - should retry
                 return GenerationResult(
                     success=False,
                     method="huggingface",
-                    error=f"Model loading (HTTP 503): {response.text[:200]}"
+                    error=f"Model loading (HTTP 503): {response.text[:200]}",
                 )
             else:
                 return GenerationResult(
                     success=False,
                     method="huggingface",
-                    error=f"HTTP {response.status_code}: {response.text[:200]}"
+                    error=f"HTTP {response.status_code}: {response.text[:200]}",
                 )
 
         except requests.Timeout:
             return GenerationResult(
-                success=False,
-                method="huggingface",
-                error=f"Timeout after {request.timeout}s"
+                success=False, method="huggingface", error=f"Timeout after {request.timeout}s"
             )
         except Exception as e:
             return GenerationResult(
-                success=False,
-                method="huggingface",
-                error=f"Request error: {str(e)}"
+                success=False, method="huggingface", error=f"Request error: {str(e)}"
             )
 
 
 # =============================================================================
 # Gemini Implementation
 # =============================================================================
+
 
 class GeminiBackend(ImageGeneratorBackend):
     """Gemini Imagen API backend for image generation."""
@@ -238,6 +235,7 @@ class GeminiBackend(ImageGeneratorBackend):
             return False
         try:
             from google import genai  # noqa: F401 - imported for availability check
+
             return True
         except ImportError:
             return False
@@ -247,6 +245,7 @@ class GeminiBackend(ImageGeneratorBackend):
         if self._client is None:
             try:
                 from google import genai
+
                 self._client = genai.Client(api_key=self.api_key)
             except ImportError:
                 raise RuntimeError(
@@ -290,7 +289,7 @@ class GeminiBackend(ImageGeneratorBackend):
                 model=request.model or self.model,
                 prompt=request.prompt,
                 config=config,
-                timeout=request.timeout
+                timeout=request.timeout,
             )
 
             # Extract first generated image
@@ -305,41 +304,33 @@ class GeminiBackend(ImageGeneratorBackend):
                     success=True,
                     image_bytes=image_bytes,
                     method="gemini",
-                    metadata={
-                        "model": request.model or self.model,
-                        "aspect_ratio": aspect_ratio
-                    }
+                    metadata={"model": request.model or self.model, "aspect_ratio": aspect_ratio},
                 )
             else:
                 return GenerationResult(
-                    success=False,
-                    method="gemini",
-                    error="No images generated in response"
+                    success=False, method="gemini", error="No images generated in response"
                 )
 
         except genai_errors.APIError as e:
             return GenerationResult(
-                success=False,
-                method="gemini",
-                error=f"Gemini API error: {e.code} - {e.message}"
+                success=False, method="gemini", error=f"Gemini API error: {e.code} - {e.message}"
             )
         except ImportError:
             return GenerationResult(
                 success=False,
                 method="gemini",
-                error="google-genai package not found. Install with: uv add google-genai"
+                error="google-genai package not found. Install with: uv add google-genai",
             )
         except Exception as e:
             return GenerationResult(
-                success=False,
-                method="gemini",
-                error=f"Gemini generation error: {str(e)}"
+                success=False, method="gemini", error=f"Gemini generation error: {str(e)}"
             )
 
 
 # =============================================================================
 # nano banana Implementation (Z-Image Turbo via HuggingFace MCP)
 # =============================================================================
+
 
 class NanoBananaBackend(ImageGeneratorBackend):
     """nano banana backend using HuggingFace Z-Image Turbo model via MCP.
@@ -352,15 +343,15 @@ class NanoBananaBackend(ImageGeneratorBackend):
     # NOTE: Only 9 resolutions are supported by the MCP server schema
     # Source: https://victor-Z-Image-Turbo-MCP.hf.space/gradio_api/mcp/schema
     RESOLUTION_MAP = {
-        (1024, 1024): "1024x1024 ( 1:1 )",    # Square (1:1)
-        (1344, 576): "1344x576 ( 21:9 )",     # Ultrawide (21:9) - Best for 2.35:1 covers
-        (1280, 720): "1280x720 ( 16:9 )",     # Widescreen (16:9)
-        (1248, 832): "1248x832 ( 3:2 )",     # Photo ratio (3:2)
-        (1152, 864): "1152x864 ( 4:3 )",     # Standard (4:3) - Best for illustrations
-        (576, 1344): "576x1344 ( 9:21 )",    # Portrait ultrawide (9:21)
-        (720, 1280): "720x1280 ( 9:16 )",    # Portrait widescreen (9:16)
-        (832, 1248): "832x1248 ( 2:3 )",     # Portrait photo (2:3)
-        (864, 1152): "864x1152 ( 3:4 )",    # Portrait standard (3:4)
+        (1024, 1024): "1024x1024 ( 1:1 )",  # Square (1:1)
+        (1344, 576): "1344x576 ( 21:9 )",  # Ultrawide (21:9) - Best for 2.35:1 covers
+        (1280, 720): "1280x720 ( 16:9 )",  # Widescreen (16:9)
+        (1248, 832): "1248x832 ( 3:2 )",  # Photo ratio (3:2)
+        (1152, 864): "1152x864 ( 4:3 )",  # Standard (4:3) - Best for illustrations
+        (576, 1344): "576x1344 ( 9:21 )",  # Portrait ultrawide (9:21)
+        (720, 1280): "720x1280 ( 9:16 )",  # Portrait widescreen (9:16)
+        (832, 1248): "832x1248 ( 2:3 )",  # Portrait photo (2:3)
+        (864, 1152): "864x1152 ( 3:4 )",  # Portrait standard (3:4)
     }
 
     def __init__(self):
@@ -396,7 +387,7 @@ class NanoBananaBackend(ImageGeneratorBackend):
 
         # Find closest by aspect ratio
         best_match = None
-        best_ratio_diff = float('inf')
+        best_ratio_diff = float("inf")
 
         for (width, height), resolution_str in self.RESOLUTION_MAP.items():
             ratio = width / height
@@ -427,7 +418,7 @@ class NanoBananaBackend(ImageGeneratorBackend):
                 "Use mcp__huggingface__gr1_z_image_turbo_generate with: "
                 f"prompt='{request.prompt}', resolution='{resolution_str}', "
                 f"steps={request.steps}, random_seed=true"
-            )
+            ),
         )
 
     @staticmethod
@@ -455,6 +446,7 @@ class NanoBananaBackend(ImageGeneratorBackend):
 # =============================================================================
 # Common Image Generation Framework
 # =============================================================================
+
 
 class ImageGenerator:
     """Main image generation framework that manages multiple backends."""
@@ -502,7 +494,9 @@ class ImageGenerator:
                 if self.backends[backend_name].is_available():
                     return self.backends[backend_name]
                 else:
-                    print(f"Warning: Requested backend '{backend_name}' is not available (missing credentials)")
+                    print(
+                        f"Warning: Requested backend '{backend_name}' is not available (missing credentials)"
+                    )
 
         # Try preferred backend
         if self.preferred_backend:
@@ -537,7 +531,7 @@ class ImageGenerator:
         steps: int = 50,
         timeout: int = 60,
         retries: int = 3,
-        retry_delay: int = 2
+        retry_delay: int = 2,
     ) -> GenerationResult:
         """
         Generate an image using the specified or best available backend.
@@ -556,11 +550,7 @@ class ImageGenerator:
             GenerationResult with success status and image data
         """
         request = GenerationRequest(
-            prompt=prompt,
-            resolution=resolution,
-            steps=steps,
-            timeout=timeout,
-            model=model
+            prompt=prompt, resolution=resolution, steps=steps, timeout=timeout, model=model
         )
 
         selected_backend = self.select_backend(backend)
@@ -582,7 +572,7 @@ class ImageGenerator:
                 error_lower = result.error.lower() if result.error else ""
                 if "loading" in error_lower or "timeout" in error_lower:
                     if attempt < retries - 1:
-                        wait_time = retry_delay * (2 ** attempt)
+                        wait_time = retry_delay * (2**attempt)
                         print(f"  {result.error}")
                         print(f"  Waiting {wait_time}s before retry...")
                         time.sleep(wait_time)
@@ -593,16 +583,13 @@ class ImageGenerator:
                 return result
 
         # Should not reach here, but handle gracefully
-        return GenerationResult(
-            success=False,
-            method=backend_name,
-            error="Max retries exceeded"
-        )
+        return GenerationResult(success=False, method=backend_name, error="Max retries exceeded")
 
 
 # =============================================================================
 # Utility Functions
 # =============================================================================
+
 
 def parse_resolution(resolution: str) -> Tuple[int, int]:
     """Parse resolution string (e.g., '1920x1080') into width and height."""
@@ -677,7 +664,7 @@ def _validate_output_path(output_path: Path) -> None:
         )
 
     # Validate file extension
-    valid_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff'}
+    valid_extensions = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"}
     suffix = output_path.suffix.lower()
 
     if not suffix:
@@ -719,18 +706,14 @@ def parse_variables(var_list: Optional[list]) -> Dict[str, str]:
     variables = {}
     for var_arg in var_list:
         if "=" not in var_arg:
-            raise ValueError(
-                f"Invalid variable format: '{var_arg}'. Expected: KEY=VALUE"
-            )
+            raise ValueError(f"Invalid variable format: '{var_arg}'. Expected: KEY=VALUE")
 
         key, value = var_arg.split("=", 1)
         key = key.strip()
         value = value.strip()
 
         if not key:
-            raise ValueError(
-                f"Invalid variable format: '{var_arg}'. Key cannot be empty."
-            )
+            raise ValueError(f"Invalid variable format: '{var_arg}'. Key cannot be empty.")
 
         variables[key] = value
 
@@ -765,8 +748,8 @@ def load_content(content_input: Optional[str]) -> Optional[str]:
     # Check if input looks like a file path but doesn't exist
     # Heuristics: contains path separators or has common file extensions
     looks_like_file = False
-    path_separators = ['/', '\\']
-    common_extensions = ['.md', '.txt', '.html', '.htm', '.json', '.yaml', '.yml', '.csv']
+    path_separators = ["/", "\\"]
+    common_extensions = [".md", ".txt", ".html", ".htm", ".json", ".yaml", ".yml", ".csv"]
 
     if any(sep in content_input for sep in path_separators):
         looks_like_file = True
@@ -790,6 +773,7 @@ def load_content(content_input: Optional[str]) -> Optional[str]:
 # =============================================================================
 # Main Entry Point
 # =============================================================================
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -833,83 +817,81 @@ Templates:
 Environment Variables:
   HUGGINGFACE_API_TOKEN - HuggingFace API token
   GEMINI_API_KEY         - Google Gemini API key
-        """
+        """,
     )
 
     parser.add_argument(
         "prompt",
         nargs="?",
-        help="Text prompt for image generation (not required when using --template)"
+        help="Text prompt for image generation (not required when using --template)",
     )
     parser.add_argument(
-        "--output", "-o",
-        help="Output image path (optional if template specifies output_filename)"
+        "--output", "-o", help="Output image path (optional if template specifies output_filename)"
     )
     parser.add_argument(
-        "--resolution", "-r",
-        default=(get_wt_config().get("image_generation", {}).get("default_resolution", "1024x1024") if _WT_CONFIG_LOADED else "1024x1024"),
-        help="Image resolution (default: from config or 1024x1024)"
+        "--resolution",
+        "-r",
+        default=(
+            get_wt_config().get("image_generation", {}).get("default_resolution", "1024x1024")
+            if _WT_CONFIG_LOADED
+            else "1024x1024"
+        ),
+        help="Image resolution (default: from config or 1024x1024)",
     )
     parser.add_argument(
-        "--backend", "-b",
+        "--backend",
+        "-b",
         choices=ImageGenerator.BACKEND_PRIORITIES,
-        help="Specific backend to use (default: auto-select first available)"
+        help="Specific backend to use (default: auto-select first available)",
     )
+    parser.add_argument("--model", "-m", help="Override default model (for HuggingFace)")
     parser.add_argument(
-        "--model", "-m",
-        help="Override default model (for HuggingFace)"
-    )
-    parser.add_argument(
-        "--steps", "-s",
+        "--steps",
+        "-s",
         type=int,
-        default=(get_wt_config().get("image_generation", {}).get("default_steps", 8) if _WT_CONFIG_LOADED else 8),
-        help="Inference steps (default: from config or 8 for Z-Image Turbo)"
+        default=(
+            get_wt_config().get("image_generation", {}).get("default_steps", 8)
+            if _WT_CONFIG_LOADED
+            else 8
+        ),
+        help="Inference steps (default: from config or 8 for Z-Image Turbo)",
     )
     parser.add_argument(
-        "--timeout",
-        type=int,
-        default=60,
-        help="Request timeout in seconds (default: 60)"
+        "--timeout", type=int, default=60, help="Request timeout in seconds (default: 60)"
     )
     parser.add_argument(
-        "--retries",
-        type=int,
-        default=3,
-        help="Number of retry attempts (default: 3)"
+        "--retries", type=int, default=3, help="Number of retry attempts (default: 3)"
     )
     parser.add_argument(
-        "--retry-delay",
-        type=int,
-        default=2,
-        help="Delay between retries in seconds (default: 2)"
+        "--retry-delay", type=int, default=2, help="Delay between retries in seconds (default: 2)"
     )
     parser.add_argument(
-        "--template", "-t",
-        help="Use a template (e.g., 'default', 'cover', 'illustrator')"
+        "--template", "-t", help="Use a template (e.g., 'default', 'cover', 'illustrator')"
     )
     parser.add_argument(
-        "--var", "-v",
+        "--var",
+        "-v",
         action="append",
         metavar="KEY=VALUE",
-        help="Template variable (can be used multiple times)"
+        help="Template variable (can be used multiple times)",
     )
     parser.add_argument(
-        "--content", "-c",
+        "--content",
+        "-c",
         metavar="FILE_OR_TEXT",
-        help="Article content (file path or text) - sets {{content}} variable"
+        help="Article content (file path or text) - sets {{content}} variable",
     )
     parser.add_argument(
-        "--number", "-n",
+        "--number",
+        "-n",
         type=int,
         default=1,
         choices=range(1, 5),
         metavar="1-4",
-        help="Number of images to generate (default: 1, max: 4)"
+        help="Number of images to generate (default: 1, max: 4)",
     )
     parser.add_argument(
-        "--list-templates",
-        action="store_true",
-        help="List all available templates and exit"
+        "--list-templates", action="store_true", help="List all available templates and exit"
     )
 
     args = parser.parse_args()
@@ -1006,7 +988,11 @@ Environment Variables:
             resolution = template.config.resolution
             # Check if user explicitly set steps (default is 8 for Z-Image Turbo)
             # Use template steps only if user didn't override
-            default_steps = get_wt_config().get("image_generation", {}).get("default_steps", 8) if _WT_CONFIG_LOADED else 8
+            default_steps = (
+                get_wt_config().get("image_generation", {}).get("default_steps", 8)
+                if _WT_CONFIG_LOADED
+                else 8
+            )
             if args.steps == default_steps:  # Only use template steps if not overridden
                 steps = template.config.steps
             if not backend and template.config.backend:
@@ -1019,7 +1005,9 @@ Environment Variables:
             print(f"  Resolution: {template.config.width}x{template.config.height}")
             print(f"  Style: {template.config.style}")
             if vars_dict:
-                print(f"  Variables: {', '.join(f'{k}={v[:50]}...' if len(str(v)) > 50 else f'{k}={v}' for k, v in vars_dict.items())}")
+                print(
+                    f"  Variables: {', '.join(f'{k}={v[:50]}...' if len(str(v)) > 50 else f'{k}={v}' for k, v in vars_dict.items())}"
+                )
             print()
 
         except TemplateNotFoundError as e:
@@ -1040,7 +1028,9 @@ Environment Variables:
 
     # Show available backends
     available = generator.get_available_backends()
-    print(f"Available backends: {', '.join(available) if available else 'None (configure API tokens)'}")
+    print(
+        f"Available backends: {', '.join(available) if available else 'None (configure API tokens)'}"
+    )
     print()
 
     # Generate images (support multiple)
@@ -1069,7 +1059,7 @@ Environment Variables:
             steps=steps,
             timeout=args.timeout,
             retries=args.retries,
-            retry_delay=args.retry_delay
+            retry_delay=args.retry_delay,
         )
 
         if not result.success:

@@ -1,4 +1,5 @@
 """Tests for run-file command in code-review-opencode.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -21,9 +22,7 @@ class TestRunOpenCodeFromFile:
         prompt_file.write_text("Explain this code in detail")
 
         with patch("code_review_opencode.subprocess.run") as mock_run:
-            mock_run.return_value = Mock(
-                returncode=0, stdout="Response from OpenCode", stderr=""
-            )
+            mock_run.return_value = Mock(returncode=0, stdout="Response from OpenCode", stderr="")
 
             result = cro.run_opencode_from_file(prompt_file)
 
@@ -47,13 +46,9 @@ class TestRunOpenCodeFromFile:
         output_file = tmp_path / "output.txt"
 
         with patch("code_review_opencode.subprocess.run") as mock_run:
-            mock_run.return_value = Mock(
-                returncode=0, stdout="Response", stderr=""
-            )
+            mock_run.return_value = Mock(returncode=0, stdout="Response", stderr="")
 
-            result = cro.run_opencode_from_file(
-                prompt_file, output_file=output_file
-            )
+            result = cro.run_opencode_from_file(prompt_file, output_file=output_file)
 
             assert result.success is True
             assert output_file.exists()
@@ -104,15 +99,9 @@ class TestCmdRunFile:
         prompt_file = tmp_path / "prompt.txt"
         prompt_file.write_text("Test prompt")
 
-        mock_check.return_value = cro.CheckResult(
-            available=True, message="opencode ready"
-        )
-        mock_run.return_value = cro.RunResult(
-            success=True, output="AI Response"
-        )
-        args = Namespace(
-            prompt_file=str(prompt_file), output=None, timeout=None
-        )
+        mock_check.return_value = cro.CheckResult(available=True, message="opencode ready")
+        mock_run.return_value = cro.RunResult(success=True, output="AI Response")
+        args = Namespace(prompt_file=str(prompt_file), output=None, timeout=None)
 
         exit_code = cro.cmd_run_file(args)
 
@@ -134,12 +123,8 @@ class TestCmdRunFile:
         prompt_file.write_text("Test prompt")
         output_file = tmp_path / "output.txt"
 
-        mock_check.return_value = cro.CheckResult(
-            available=True, message="opencode ready"
-        )
-        mock_run.return_value = cro.RunResult(
-            success=True, output="AI Response"
-        )
+        mock_check.return_value = cro.CheckResult(available=True, message="opencode ready")
+        mock_run.return_value = cro.RunResult(success=True, output="AI Response")
         args = Namespace(
             prompt_file=str(prompt_file),
             output=str(output_file),
@@ -164,12 +149,8 @@ class TestCmdRunFile:
         prompt_file = tmp_path / "prompt.txt"
         prompt_file.write_text("Test prompt")
 
-        mock_check.return_value = cro.CheckResult(
-            available=False, message="ERROR: Not installed"
-        )
-        args = Namespace(
-            prompt_file=str(prompt_file), output=None, timeout=None
-        )
+        mock_check.return_value = cro.CheckResult(available=False, message="ERROR: Not installed")
+        args = Namespace(prompt_file=str(prompt_file), output=None, timeout=None)
 
         exit_code = cro.cmd_run_file(args)
 

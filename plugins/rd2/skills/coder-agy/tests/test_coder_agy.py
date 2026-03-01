@@ -36,21 +36,14 @@ class TestCheckResult:
 
     def test_check_result_creation(self):
         """Test creating CheckResult with all fields."""
-        result = coder_agy.CheckResult(
-            available=True,
-            message="Available",
-            version="1.0.0"
-        )
+        result = coder_agy.CheckResult(available=True, message="Available", version="1.0.0")
         assert result.available is True
         assert result.message == "Available"
         assert result.version == "1.0.0"
 
     def test_check_result_without_version(self):
         """Test creating CheckResult without optional version."""
-        result = coder_agy.CheckResult(
-            available=False,
-            message="Not available"
-        )
+        result = coder_agy.CheckResult(available=False, message="Not available")
         assert result.available is False
         assert result.message == "Not available"
         assert result.version is None
@@ -61,11 +54,7 @@ class TestRunResult:
 
     def test_run_result_success(self):
         """Test creating successful RunResult."""
-        result = coder_agy.RunResult(
-            success=True,
-            output="Generated code",
-            mode="agent"
-        )
+        result = coder_agy.RunResult(success=True, output="Generated code", mode="agent")
         assert result.success is True
         assert result.output == "Generated code"
         assert result.error is None
@@ -73,12 +62,7 @@ class TestRunResult:
 
     def test_run_result_failure(self):
         """Test creating failed RunResult."""
-        result = coder_agy.RunResult(
-            success=False,
-            output="",
-            error="Command failed",
-            mode="ask"
-        )
+        result = coder_agy.RunResult(success=False, output="", error="Command failed", mode="ask")
         assert result.success is False
         assert result.output == ""
         assert result.error == "Command failed"
@@ -92,10 +76,7 @@ class TestGenerateResult:
         """Test creating successful GenerateResult."""
         output_path = Path("docs/plans/output.md")
         result = coder_agy.GenerateResult(
-            success=True,
-            output_path=output_path,
-            message="Generated successfully",
-            mode="agent"
+            success=True, output_path=output_path, message="Generated successfully", mode="agent"
         )
         assert result.success is True
         assert result.output_path == output_path
@@ -105,10 +86,7 @@ class TestGenerateResult:
     def test_generate_result_failure(self):
         """Test creating failed GenerateResult."""
         result = coder_agy.GenerateResult(
-            success=False,
-            output_path=None,
-            message="Generation failed",
-            mode=None
+            success=False, output_path=None, message="Generation failed", mode=None
         )
         assert result.success is False
         assert result.output_path is None
@@ -190,7 +168,7 @@ class TestSanitizeFilename:
             ("", ""),
             ("---", ""),
             ("   ", ""),
-        ]
+        ],
     )
     def test_sanitizes_various_names(self, input_name, expected):
         """Test filename sanitization with various inputs."""
@@ -414,9 +392,7 @@ class TestCmdCheck:
         mock_args = Mock(verbose=False)
         with patch.object(coder_agy, "check_antigravity_availability") as mock_check:
             mock_check.return_value = coder_agy.CheckResult(
-                available=True,
-                message="Ready",
-                version="1.0"
+                available=True, message="Ready", version="1.0"
             )
             result = coder_agy.cmd_check(mock_args)
             captured = capsys.readouterr()
@@ -429,9 +405,7 @@ class TestCmdCheck:
         mock_args = Mock(verbose=True)
         with patch.object(coder_agy, "check_antigravity_availability") as mock_check:
             mock_check.return_value = coder_agy.CheckResult(
-                available=True,
-                message="Ready",
-                version="1.0"
+                available=True, message="Ready", version="1.0"
             )
             result = coder_agy.cmd_check(mock_args)
             captured = capsys.readouterr()
@@ -444,8 +418,7 @@ class TestCmdCheck:
         mock_args = Mock(verbose=False)
         with patch.object(coder_agy, "check_antigravity_availability") as mock_check:
             mock_check.return_value = coder_agy.CheckResult(
-                available=False,
-                message="Not available"
+                available=False, message="Not available"
             )
             result = coder_agy.cmd_check(mock_args)
             captured = capsys.readouterr()
@@ -511,8 +484,7 @@ class TestRunAntigravityPrompt:
                     mock_run.return_value = mock_result
 
                     result = coder_agy.run_antigravity_prompt(
-                        TEST_PROMPT,
-                        add_files=[str(test_file)]
+                        TEST_PROMPT, add_files=[str(test_file)]
                     )
                     assert result.success is True
                     mock_files.assert_called_once()
@@ -535,7 +507,9 @@ class TestRunAntigravityPrompt:
         """Test timeout during prompt execution."""
         with patch.object(coder_agy, "validate_mode", return_value=None):
             with patch.object(coder_agy, "validate_add_files", return_value=[]):
-                with patch.object(subprocess, "run", side_effect=subprocess.TimeoutExpired("agy", 300)):
+                with patch.object(
+                    subprocess, "run", side_effect=subprocess.TimeoutExpired("agy", 300)
+                ):
                     result = coder_agy.run_antigravity_prompt(TEST_PROMPT, timeout=300)
                     assert result.success is False
                     assert "Timeout" in result.error
@@ -550,7 +524,9 @@ class TestRunAntigravityPrompt:
     def test_run_invalid_file_path(self, tmp_path):
         """Test with invalid file path."""
         with patch.object(coder_agy, "validate_mode", return_value=None):
-            with patch.object(coder_agy, "validate_add_files", side_effect=ValueError("Invalid file")):
+            with patch.object(
+                coder_agy, "validate_add_files", side_effect=ValueError("Invalid file")
+            ):
                 result = coder_agy.run_antigravity_prompt(TEST_PROMPT, add_files=["invalid.txt"])
                 assert result.success is False
                 assert "Invalid file" in result.error
@@ -568,10 +544,7 @@ class TestRunAntigravityFile:
         with patch.object(coder_agy, "validate_file_path") as mock_validate:
             mock_validate.return_value = prompt_file
             with patch.object(coder_agy, "run_antigravity_prompt") as mock_run:
-                mock_run.return_value = coder_agy.RunResult(
-                    success=True,
-                    output=mock_output
-                )
+                mock_run.return_value = coder_agy.RunResult(success=True, output=mock_output)
 
                 result = coder_agy.run_antigravity_file(prompt_file)
                 assert result.success is True
@@ -600,7 +573,7 @@ class TestRunAntigravityFile:
     def test_unicode_decode_error(self, tmp_path):
         """Test with file that has encoding issues."""
         test_file = tmp_path / "binary.txt"
-        test_file.write_bytes(b'\x80\x81\x82\x83')
+        test_file.write_bytes(b"\x80\x81\x82\x83")
 
         with patch.object(coder_agy, "validate_file_path") as mock_validate:
             mock_validate.return_value = test_file
@@ -617,10 +590,7 @@ class TestCmdRun:
         """Test successful run command."""
         mock_args = Mock(prompt=TEST_PROMPT, mode=None, add_files=[])
         with patch.object(coder_agy, "run_antigravity_prompt") as mock_run:
-            mock_run.return_value = coder_agy.RunResult(
-                success=True,
-                output="Response"
-            )
+            mock_run.return_value = coder_agy.RunResult(success=True, output="Response")
             result = coder_agy.cmd_run(mock_args)
             captured = capsys.readouterr()
             assert result == 0
@@ -630,11 +600,7 @@ class TestCmdRun:
         """Test failed run command."""
         mock_args = Mock(prompt=TEST_PROMPT, mode=None, add_files=[])
         with patch.object(coder_agy, "run_antigravity_prompt") as mock_run:
-            mock_run.return_value = coder_agy.RunResult(
-                success=False,
-                output="",
-                error="Failed"
-            )
+            mock_run.return_value = coder_agy.RunResult(success=False, output="", error="Failed")
             result = coder_agy.cmd_run(mock_args)
             captured = capsys.readouterr()
             assert result == 1
@@ -651,10 +617,7 @@ class TestCmdRunFile:
 
         mock_args = Mock(prompt_file=str(prompt_file), mode=None, add_files=[])
         with patch.object(coder_agy, "run_antigravity_file") as mock_run:
-            mock_run.return_value = coder_agy.RunResult(
-                success=True,
-                output="Response from file"
-            )
+            mock_run.return_value = coder_agy.RunResult(success=True, output="Response from file")
             result = coder_agy.cmd_run_file(mock_args)
             captured = capsys.readouterr()
             assert result == 0
@@ -666,9 +629,7 @@ class TestCmdRunFile:
         mock_args = Mock(prompt_file=str(prompt_file), mode=None, add_files=[])
         with patch.object(coder_agy, "run_antigravity_file") as mock_run:
             mock_run.return_value = coder_agy.RunResult(
-                success=False,
-                output="",
-                error="File error"
+                success=False, output="", error="File error"
             )
             result = coder_agy.cmd_run_file(mock_args)
             captured = capsys.readouterr()
@@ -728,8 +689,7 @@ class TestGenerateCode:
                 mock_temp.return_value = temp_file
                 with patch.object(coder_agy, "run_antigravity_file") as mock_run:
                     mock_run.return_value = coder_agy.RunResult(
-                        success=True,
-                        output="Generated code content"
+                        success=True, output="Generated code content"
                     )
                     with patch.object(coder_agy, "PLANS_DIR", tmp_path / "plans"):
                         result = coder_agy.generate_code(TEST_TASK_CONTENT)
@@ -745,14 +705,10 @@ class TestGenerateCode:
                 mock_temp.return_value = temp_file
                 with patch.object(coder_agy, "run_antigravity_file") as mock_run:
                     mock_run.return_value = coder_agy.RunResult(
-                        success=True,
-                        output="Generated code"
+                        success=True, output="Generated code"
                     )
                     with patch.object(coder_agy, "PLANS_DIR", tmp_path / "plans"):
-                        result = coder_agy.generate_code(
-                            TEST_TASK_CONTENT,
-                            output="custom-output"
-                        )
+                        result = coder_agy.generate_code(TEST_TASK_CONTENT, output="custom-output")
                         assert result.success is True
                         assert "custom-output" in str(result.output_path)
 
@@ -764,14 +720,10 @@ class TestGenerateCode:
                 mock_temp.return_value = temp_file
                 with patch.object(coder_agy, "run_antigravity_file") as mock_run:
                     mock_run.return_value = coder_agy.RunResult(
-                        success=True,
-                        output="Generated code"
+                        success=True, output="Generated code"
                     )
                     with patch.object(coder_agy, "PLANS_DIR", tmp_path / "plans"):
-                        result = coder_agy.generate_code(
-                            TEST_TASK_CONTENT,
-                            no_tdd=True
-                        )
+                        result = coder_agy.generate_code(TEST_TASK_CONTENT, no_tdd=True)
                         assert result.success is True
                         # Check output file contains tdd_mode: standard
                         output_content = result.output_path.read_text()
@@ -785,15 +737,11 @@ class TestGenerateCode:
                 mock_temp.return_value = temp_file
                 with patch.object(coder_agy, "run_antigravity_file") as mock_run:
                     mock_run.return_value = coder_agy.RunResult(
-                        success=True,
-                        output="Generated code"
+                        success=True, output="Generated code"
                     )
                     with patch.object(coder_agy, "PLANS_DIR", tmp_path / "plans"):
                         context = "Additional project context"
-                        result = coder_agy.generate_code(
-                            TEST_TASK_CONTENT,
-                            context=context
-                        )
+                        result = coder_agy.generate_code(TEST_TASK_CONTENT, context=context)
                         assert result.success is True
 
     def test_generation_with_add_files(self, tmp_path):
@@ -807,13 +755,11 @@ class TestGenerateCode:
                 mock_temp.return_value = temp_file
                 with patch.object(coder_agy, "run_antigravity_file") as mock_run:
                     mock_run.return_value = coder_agy.RunResult(
-                        success=True,
-                        output="Generated code"
+                        success=True, output="Generated code"
                     )
                     with patch.object(coder_agy, "PLANS_DIR", tmp_path / "plans"):
                         result = coder_agy.generate_code(
-                            TEST_TASK_CONTENT,
-                            add_files=[str(context_file)]
+                            TEST_TASK_CONTENT, add_files=[str(context_file)]
                         )
                         assert result.success is True
 
@@ -825,9 +771,7 @@ class TestGenerateCode:
                 mock_temp.return_value = temp_file
                 with patch.object(coder_agy, "run_antigravity_file") as mock_run:
                     mock_run.return_value = coder_agy.RunResult(
-                        success=False,
-                        output="",
-                        error="Generation failed"
+                        success=False, output="", error="Generation failed"
                     )
                     result = coder_agy.generate_code(TEST_TASK_CONTENT)
                     assert result.success is False
@@ -848,8 +792,7 @@ class TestGenerateCode:
                 mock_temp.return_value = temp_file
                 with patch.object(coder_agy, "run_antigravity_file") as mock_run:
                     mock_run.return_value = coder_agy.RunResult(
-                        success=True,
-                        output="Generated code"
+                        success=True, output="Generated code"
                     )
                     with patch.object(coder_agy, "PLANS_DIR", tmp_path / "plans"):
                         result = coder_agy.generate_code(TEST_TASK_CONTENT)
@@ -868,8 +811,7 @@ class TestGenerateCode:
                 mock_temp.return_value = temp_file
                 with patch.object(coder_agy, "run_antigravity_file") as mock_run:
                     mock_run.return_value = coder_agy.RunResult(
-                        success=True,
-                        output="Generated code"
+                        success=True, output="Generated code"
                     )
                     with patch.object(coder_agy, "PLANS_DIR", tmp_path / "plans"):
                         coder_agy.generate_code(TEST_TASK_CONTENT)
@@ -889,7 +831,7 @@ class TestCmdGenerate:
             output=None,
             context=None,
             add_files=[],
-            verbose=False
+            verbose=False,
         )
         with patch.object(coder_agy, "validate_file_path"):
             with patch.object(coder_agy, "validate_add_files", return_value=[]):
@@ -897,7 +839,7 @@ class TestCmdGenerate:
                     mock_gen.return_value = coder_agy.GenerateResult(
                         success=True,
                         output_path=Path("output.md"),
-                        message="Generated successfully"
+                        message="Generated successfully",
                     )
                     result = coder_agy.cmd_generate(mock_args)
                     captured = capsys.readouterr()
@@ -916,7 +858,7 @@ class TestCmdGenerate:
             output=None,
             context=str(context_file),
             add_files=[],
-            verbose=False
+            verbose=False,
         )
         with patch.object(coder_agy, "validate_file_path", return_value=context_file):
             with patch.object(coder_agy, "validate_add_files", return_value=[]):
@@ -924,7 +866,7 @@ class TestCmdGenerate:
                     mock_gen.return_value = coder_agy.GenerateResult(
                         success=True,
                         output_path=Path("output.md"),
-                        message="Generated successfully"
+                        message="Generated successfully",
                     )
                     result = coder_agy.cmd_generate(mock_args)
                     assert result == 0
@@ -938,7 +880,7 @@ class TestCmdGenerate:
             output=None,
             context="nonexistent.md",
             add_files=[],
-            verbose=False
+            verbose=False,
         )
         with patch.object(coder_agy, "validate_file_path") as mock_validate:
             mock_validate.side_effect = ValueError("File not found")
@@ -956,7 +898,7 @@ class TestCmdGenerate:
             output=None,
             context=None,
             add_files=["invalid.txt"],
-            verbose=False
+            verbose=False,
         )
         with patch.object(coder_agy, "validate_add_files") as mock_validate:
             mock_validate.side_effect = ValueError("Invalid file")
@@ -974,16 +916,14 @@ class TestCmdGenerate:
             output=None,
             context=None,
             add_files=[],
-            verbose=True
+            verbose=True,
         )
         with patch.object(coder_agy, "validate_file_path"):
             with patch.object(coder_agy, "validate_add_files", return_value=[]):
                 with patch.object(coder_agy, "generate_code") as mock_gen:
                     output_path = Path("docs/plans/output.md")
                     mock_gen.return_value = coder_agy.GenerateResult(
-                        success=True,
-                        output_path=output_path,
-                        message="Generated successfully"
+                        success=True, output_path=output_path, message="Generated successfully"
                     )
                     result = coder_agy.cmd_generate(mock_args)
                     captured = capsys.readouterr()
@@ -999,15 +939,13 @@ class TestCmdGenerate:
             output=None,
             context=None,
             add_files=[],
-            verbose=False
+            verbose=False,
         )
         with patch.object(coder_agy, "validate_file_path"):
             with patch.object(coder_agy, "validate_add_files", return_value=[]):
                 with patch.object(coder_agy, "generate_code") as mock_gen:
                     mock_gen.return_value = coder_agy.GenerateResult(
-                        success=False,
-                        output_path=None,
-                        message="Generation failed"
+                        success=False, output_path=None, message="Generation failed"
                     )
                     result = coder_agy.cmd_generate(mock_args)
                     captured = capsys.readouterr()

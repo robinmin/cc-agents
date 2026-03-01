@@ -528,7 +528,8 @@ def main() -> int:
         epilog=__doc__,
     )
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose output",
     )
@@ -547,8 +548,14 @@ def main() -> int:
     run_file_parser.set_defaults(func=cmd_run_file)
 
     gen_parser = subparsers.add_parser("generate", help="Generate code")
-    gen_parser.add_argument("task_content", help="Task specification (file content or requirements)")
-    gen_parser.add_argument("--no-tdd", action="store_true", help="Disable TDD mode (opt-out from rd2:tdd-workflow default)")
+    gen_parser.add_argument(
+        "task_content", help="Task specification (file content or requirements)"
+    )
+    gen_parser.add_argument(
+        "--no-tdd",
+        action="store_true",
+        help="Disable TDD mode (opt-out from rd2:tdd-workflow default)",
+    )
     gen_parser.add_argument("-o", "--output", help="Output file name")
     gen_parser.add_argument("-c", "--context", help="Path to context file")
     gen_parser.set_defaults(func=cmd_generate)

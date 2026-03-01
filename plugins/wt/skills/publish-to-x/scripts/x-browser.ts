@@ -1,214 +1,291 @@
-import { spawn } from 'node:child_process';
-import fs from 'node:fs';
-import { mkdir } from 'node:fs/promises';
-import process from 'node:process';
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import { mkdir } from "node:fs/promises";
+import process from "node:process";
 
 // CDP utilities from web-automation
 import {
-  CHROME_CANDIDATES_FULL,
-  CdpConnection,
-  findChromeExecutable,
-  waitForChromeDebugPort,
-} from '../../../scripts/web-automation/dist/browser.js';
+	CdpConnection,
+	CHROME_CANDIDATES_FULL,
+	findChromeExecutable,
+	waitForChromeDebugPort,
+} from "../../../scripts/web-automation/dist/browser.js";
 
 // Shared utilities from playwright
 import {
-  getFreePort,
-  pwSleep as sleep,
-} from '../../../scripts/web-automation/dist/playwright.js';
+	getFreePort,
+	pwSleep as sleep,
+} from "../../../scripts/web-automation/dist/playwright.js";
 
 // X-specific utilities from x-utils
 import {
-  getDefaultProfileDir,
-  getAutoSubmitPreference,
-  copyImageToClipboard,
-  paste,
-} from './x-utils.js';
+	copyImageToClipboard,
+	getAutoSubmitPreference,
+	getDefaultProfileDir,
+	paste,
+} from "./x-utils.js";
 
-export const X_COMPOSE_URL = 'https://x.com/compose/post';
+export const X_COMPOSE_URL = "https://x.com/compose/post";
 
 export interface XBrowserOptions {
-  text?: string;
-  images?: string[];
-  submit?: boolean;
-  timeoutMs?: number;
-  profileDir?: string;
-  chromePath?: string;
+	text?: string;
+	images?: string[];
+	submit?: boolean;
+	timeoutMs?: number;
+	profileDir?: string;
+	chromePath?: string;
 }
 
 export async function postToX(options: XBrowserOptions): Promise<void> {
-  const { text, images = [], submit = false, timeoutMs = 120_000, profileDir = getDefaultProfileDir() } = options;
+	const {
+		text,
+		images = [],
+		submit = false,
+		timeoutMs = 120_000,
+		profileDir = getDefaultProfileDir(),
+	} = options;
 
-  const chromePath = options.chromePath ?? findChromeExecutable(CHROME_CANDIDATES_FULL);
-  if (!chromePath) throw new Error('Chrome not found. Set X_BROWSER_CHROME_PATH env var.');
+	const chromePath =
+		options.chromePath ?? findChromeExecutable(CHROME_CANDIDATES_FULL);
+	if (!chromePath)
+		throw new Error("Chrome not found. Set X_BROWSER_CHROME_PATH env var.");
 
-  await mkdir(profileDir, { recursive: true });
+	await mkdir(profileDir, { recursive: true });
 
-  const port = await getFreePort();
-  console.log(`[x-browser] Launching Chrome (profile: ${profileDir})`);
+	const port = await getFreePort();
+	console.log(`[x-browser] Launching Chrome (profile: ${profileDir})`);
 
-  let chrome: ReturnType<typeof spawn>;
-  let cdp: CdpConnection | null = null;
+	let chrome: ReturnType<typeof spawn>;
+	let cdp: CdpConnection | null = null;
 
-  try {
-    chrome = spawn(chromePath, [
-      `--remote-debugging-port=${port}`,
-      `--user-data-dir=${profileDir}`,
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--disable-blink-features=AutomationControlled',
-      '--start-maximized',
-      X_COMPOSE_URL,
-    ], { stdio: 'ignore' });
+	try {
+		chrome = spawn(
+			chromePath,
+			[
+				`--remote-debugging-port=${port}`,
+				`--user-data-dir=${profileDir}`,
+				"--no-first-run",
+				"--no-default-browser-check",
+				"--disable-blink-features=AutomationControlled",
+				"--start-maximized",
+				X_COMPOSE_URL,
+			],
+			{ stdio: "ignore" },
+		);
 
-    // Wait for Chrome to start and be ready
-    const wsUrl = await waitForChromeDebugPort(port, 30_000, { includeLastError: true });
-    cdp = await CdpConnection.connect(wsUrl, 30_000, { defaultTimeoutMs: 15_000 });
+		// Wait for Chrome to start and be ready
+		const wsUrl = await waitForChromeDebugPort(port, 30_000, {
+			includeLastError: true,
+		});
+		cdp = await CdpConnection.connect(wsUrl, 30_000, {
+			defaultTimeoutMs: 15_000,
+		});
 
-    const targets = await cdp.send<{ targetInfos: Array<{ targetId: string; url: string; type: string }> }>('Target.getTargets');
-    let pageTarget = targets.targetInfos.find((t) => t.type === 'page' && t.url.includes('x.com'));
+		const targets = await cdp.send<{
+			targetInfos: Array<{ targetId: string; url: string; type: string }>;
+		}>("Target.getTargets");
+		let pageTarget = targets.targetInfos.find(
+			(t) => t.type === "page" && t.url.includes("x.com"),
+		);
 
-    if (!pageTarget) {
-      const { targetId } = await cdp.send<{ targetId: string }>('Target.createTarget', { url: X_COMPOSE_URL });
-      pageTarget = { targetId, url: X_COMPOSE_URL, type: 'page' };
-    }
+		if (!pageTarget) {
+			const { targetId } = await cdp.send<{ targetId: string }>(
+				"Target.createTarget",
+				{ url: X_COMPOSE_URL },
+			);
+			pageTarget = { targetId, url: X_COMPOSE_URL, type: "page" };
+		}
 
-    // Ensure pageTarget is valid before use
-    if (!pageTarget) {
-      throw new Error('Failed to create or find X page target');
-    }
+		// Ensure pageTarget is valid before use
+		if (!pageTarget) {
+			throw new Error("Failed to create or find X page target");
+		}
 
-    const { sessionId } = await cdp.send<{ sessionId: string }>('Target.attachToTarget', { targetId: pageTarget.targetId, flatten: true });
+		const { sessionId } = await cdp.send<{ sessionId: string }>(
+			"Target.attachToTarget",
+			{ targetId: pageTarget.targetId, flatten: true },
+		);
 
-    await cdp.send('Page.enable', {}, { sessionId });
-    await cdp.send('Runtime.enable', {}, { sessionId });
-    await cdp.send('Input.setIgnoreInputEvents', { ignore: false }, { sessionId });
+		await cdp.send("Page.enable", {}, { sessionId });
+		await cdp.send("Runtime.enable", {}, { sessionId });
+		await cdp.send(
+			"Input.setIgnoreInputEvents",
+			{ ignore: false },
+			{ sessionId },
+		);
 
-    console.log('[x-browser] Waiting for X editor...');
-    await sleep(3000);
+		console.log("[x-browser] Waiting for X editor...");
+		await sleep(3000);
 
-    const waitForEditor = async (): Promise<boolean> => {
-      const start = Date.now();
-      while (Date.now() - start < timeoutMs) {
-        const result = await cdp!.send<{ result: { value: boolean } }>('Runtime.evaluate', {
-          expression: `!!document.querySelector('[data-testid="tweetTextarea_0"]')`,
-          returnByValue: true,
-        }, { sessionId });
-        if (result.result.value) return true;
-        await sleep(1000);
-      }
-      return false;
-    };
+		const waitForEditor = async (): Promise<boolean> => {
+			const start = Date.now();
+			while (Date.now() - start < timeoutMs) {
+				const result = await cdp?.send<{ result: { value: boolean } }>(
+					"Runtime.evaluate",
+					{
+						expression: `!!document.querySelector('[data-testid="tweetTextarea_0"]')`,
+						returnByValue: true,
+					},
+					{ sessionId },
+				);
+				if (result.result.value) return true;
+				await sleep(1000);
+			}
+			return false;
+		};
 
-    const editorFound = await waitForEditor();
-    if (!editorFound) {
-      console.log('[x-browser] Editor not found. Please log in to X in the browser window.');
-      console.log('[x-browser] Waiting for login...');
-      const loggedIn = await waitForEditor();
-      if (!loggedIn) throw new Error('Timed out waiting for X editor. Please log in first.');
-    }
+		const editorFound = await waitForEditor();
+		if (!editorFound) {
+			console.log(
+				"[x-browser] Editor not found. Please log in to X in the browser window.",
+			);
+			console.log("[x-browser] Waiting for login...");
+			const loggedIn = await waitForEditor();
+			if (!loggedIn)
+				throw new Error("Timed out waiting for X editor. Please log in first.");
+		}
 
-    if (text) {
-      console.log('[x-browser] Typing text...');
-      await cdp.send('Runtime.evaluate', {
-        expression: `
+		if (text) {
+			console.log("[x-browser] Typing text...");
+			await cdp.send(
+				"Runtime.evaluate",
+				{
+					expression: `
           const editor = document.querySelector('[data-testid="tweetTextarea_0"]');
           if (editor) {
             editor.focus();
             document.execCommand('insertText', false, ${JSON.stringify(text)});
           }
         `,
-      }, { sessionId });
-      await sleep(500);
-    }
+				},
+				{ sessionId },
+			);
+			await sleep(500);
+		}
 
-    for (const imagePath of images) {
-      if (!fs.existsSync(imagePath)) {
-        console.warn(`[x-browser] Image not found: ${imagePath}`);
-        continue;
-      }
+		for (const imagePath of images) {
+			if (!fs.existsSync(imagePath)) {
+				console.warn(`[x-browser] Image not found: ${imagePath}`);
+				continue;
+			}
 
-      console.log(`[x-browser] Pasting image: ${imagePath}`);
+			console.log(`[x-browser] Pasting image: ${imagePath}`);
 
-      if (!copyImageToClipboard(imagePath)) {
-        console.warn(`[x-browser] Failed to copy image to clipboard: ${imagePath}`);
-        continue;
-      }
+			if (!copyImageToClipboard(imagePath)) {
+				console.warn(
+					`[x-browser] Failed to copy image to clipboard: ${imagePath}`,
+				);
+				continue;
+			}
 
-      // Wait for clipboard to be ready
-      await sleep(500);
+			// Wait for clipboard to be ready
+			await sleep(500);
 
-      // Focus the editor
-      await cdp.send('Runtime.evaluate', {
-        expression: `document.querySelector('[data-testid="tweetTextarea_0"]')?.focus()`,
-      }, { sessionId });
-      await sleep(200);
+			// Focus the editor
+			await cdp.send(
+				"Runtime.evaluate",
+				{
+					expression: `document.querySelector('[data-testid="tweetTextarea_0"]')?.focus()`,
+				},
+				{ sessionId },
+			);
+			await sleep(200);
 
-      // Use paste script (handles platform differences, activates Chrome)
-      console.log('[x-browser] Pasting from clipboard...');
-      const pasteSuccess = await paste({ targetApp: 'Google Chrome', retries: 5, delayMs: 500 });
+			// Use paste script (handles platform differences, activates Chrome)
+			console.log("[x-browser] Pasting from clipboard...");
+			const pasteSuccess = await paste({
+				targetApp: "Google Chrome",
+				retries: 5,
+				delayMs: 500,
+			});
 
-      if (!pasteSuccess) {
-        // Fallback to CDP (may not work for images on X)
-        console.log('[x-browser] Paste script failed, trying CDP fallback...');
-        const modifiers = process.platform === 'darwin' ? 4 : 2;
-        await cdp.send('Input.dispatchKeyEvent', {
-          type: 'keyDown',
-          key: 'v',
-          code: 'KeyV',
-          modifiers,
-          windowsVirtualKeyCode: 86,
-        }, { sessionId });
-        await cdp.send('Input.dispatchKeyEvent', {
-          type: 'keyUp',
-          key: 'v',
-          code: 'KeyV',
-          modifiers,
-          windowsVirtualKeyCode: 86,
-        }, { sessionId });
-      }
+			if (!pasteSuccess) {
+				// Fallback to CDP (may not work for images on X)
+				console.log("[x-browser] Paste script failed, trying CDP fallback...");
+				const modifiers = process.platform === "darwin" ? 4 : 2;
+				await cdp.send(
+					"Input.dispatchKeyEvent",
+					{
+						type: "keyDown",
+						key: "v",
+						code: "KeyV",
+						modifiers,
+						windowsVirtualKeyCode: 86,
+					},
+					{ sessionId },
+				);
+				await cdp.send(
+					"Input.dispatchKeyEvent",
+					{
+						type: "keyUp",
+						key: "v",
+						code: "KeyV",
+						modifiers,
+						windowsVirtualKeyCode: 86,
+					},
+					{ sessionId },
+				);
+			}
 
-      console.log('[x-browser] Waiting for image upload...');
-      await sleep(4000);
-    }
+			console.log("[x-browser] Waiting for image upload...");
+			await sleep(4000);
+		}
 
-    if (submit) {
-      console.log('[x-browser] Submitting post...');
-      await cdp.send('Runtime.evaluate', {
-        expression: `document.querySelector('[data-testid="tweetButton"]')?.click()`,
-      }, { sessionId });
-      await sleep(2000);
-      console.log('[x-browser] Post submitted!');
-    } else {
-      console.log('[x-browser] Post composed (preview mode). Add --submit to post.');
-      console.log('[x-browser] Browser will stay open for 30 seconds for preview...');
-      await sleep(30_000);
-    }
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    console.error(`[x-browser] Chrome operation failed: ${err.message}`);
-    throw new Error(`Failed to communicate with Chrome: ${err.message}`);
-  } finally {
-    if (cdp) {
-      try { await cdp.send('Browser.close', {}, { timeoutMs: 5_000 }); } catch (error) {
-        console.debug('[x-browser] Browser.close error (may already be closed):', error);
-      }
-      cdp.close();
-    }
+		if (submit) {
+			console.log("[x-browser] Submitting post...");
+			await cdp.send(
+				"Runtime.evaluate",
+				{
+					expression: `document.querySelector('[data-testid="tweetButton"]')?.click()`,
+				},
+				{ sessionId },
+			);
+			await sleep(2000);
+			console.log("[x-browser] Post submitted!");
+		} else {
+			console.log(
+				"[x-browser] Post composed (preview mode). Add --submit to post.",
+			);
+			console.log(
+				"[x-browser] Browser will stay open for 30 seconds for preview...",
+			);
+			await sleep(30_000);
+		}
+	} catch (error) {
+		const err = error instanceof Error ? error : new Error(String(error));
+		console.error(`[x-browser] Chrome operation failed: ${err.message}`);
+		throw new Error(`Failed to communicate with Chrome: ${err.message}`);
+	} finally {
+		if (cdp) {
+			try {
+				await cdp.send("Browser.close", {}, { timeoutMs: 5_000 });
+			} catch (error) {
+				console.debug(
+					"[x-browser] Browser.close error (may already be closed):",
+					error,
+				);
+			}
+			cdp.close();
+		}
 
-    setTimeout(() => {
-      if (chrome && !chrome.killed) try { chrome.kill('SIGKILL'); } catch (error) {
-        console.debug('[x-browser] SIGKILL error:', error);
-      }
-    }, 2_000).unref?.();
-    try { if (chrome) chrome.kill('SIGTERM'); } catch (error) {
-      console.debug('[x-browser] SIGTERM error:', error);
-    }
-  }
+		setTimeout(() => {
+			if (chrome && !chrome.killed)
+				try {
+					chrome.kill("SIGKILL");
+				} catch (error) {
+					console.debug("[x-browser] SIGKILL error:", error);
+				}
+		}, 2_000).unref?.();
+		try {
+			if (chrome) chrome.kill("SIGTERM");
+		} catch (error) {
+			console.debug("[x-browser] SIGTERM error:", error);
+		}
+	}
 }
 
 function printUsage(): never {
-  console.log(`Post to X (Twitter) using real Chrome browser
+	console.log(`Post to X (Twitter) using real Chrome browser
 
 Usage:
   npx -y bun x-browser.ts [options] [text]
@@ -225,48 +302,50 @@ Examples:
   npx -y bun x-browser.ts "Check this out" --image ./screenshot.png
   npx -y bun x-browser.ts "Post it!" --image a.png --image b.png --submit
 `);
-  process.exit(0);
+	process.exit(0);
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  if (args.includes('--help') || args.includes('-h')) printUsage();
+	const args = process.argv.slice(2);
+	if (args.includes("--help") || args.includes("-h")) printUsage();
 
-  const images: string[] = [];
-  let submit = getAutoSubmitPreference(); // Default from config
-  let profileDir: string | undefined;
-  const textParts: string[] = [];
+	const images: string[] = [];
+	let submit = getAutoSubmitPreference(); // Default from config
+	let profileDir: string | undefined;
+	const textParts: string[] = [];
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]!;
-    if (arg === '--image' && args[i + 1]) {
-      images.push(args[++i]!);
-    } else if (arg === '--submit') {
-      submit = true; // Explicit flag overrides config
-    } else if (arg === '--no-submit') {
-      submit = false; // Allow override to disable auto-submit
-    } else if (arg === '--profile' && args[i + 1]) {
-      profileDir = args[++i];
-    } else if (!arg.startsWith('-')) {
-      textParts.push(arg);
-    }
-  }
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (!arg) continue;
+		if (arg === "--image" && args[i + 1]) {
+			const img = args[++i];
+			if (img) images.push(img);
+		} else if (arg === "--submit") {
+			submit = true; // Explicit flag overrides config
+		} else if (arg === "--no-submit") {
+			submit = false; // Allow override to disable auto-submit
+		} else if (arg === "--profile" && args[i + 1]) {
+			profileDir = args[++i];
+		} else if (!arg.startsWith("-")) {
+			textParts.push(arg);
+		}
+	}
 
-  const text = textParts.join(' ').trim() || undefined;
+	const text = textParts.join(" ").trim() || undefined;
 
-  if (!text && images.length === 0) {
-    console.error('Error: Provide text or at least one image.');
-    process.exit(1);
-  }
+	if (!text && images.length === 0) {
+		console.error("Error: Provide text or at least one image.");
+		process.exit(1);
+	}
 
-  await postToX({ text, images, submit, profileDir });
+	await postToX({ text, images, submit, profileDir });
 }
 
 // Only run main() when this file is executed directly, not when imported
-const isMain = process.argv[1]?.includes('x-browser.ts');
+const isMain = process.argv[1]?.includes("x-browser.ts");
 if (isMain) {
-  await main().catch((err) => {
-    console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-    process.exit(1);
-  });
+	await main().catch((err) => {
+		console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+		process.exit(1);
+	});
 }

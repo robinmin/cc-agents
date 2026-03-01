@@ -1,4 +1,5 @@
 """Tests for run command in code-review-gemini.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -17,13 +18,9 @@ class TestRunGeminiPrompt:
     @patch("code_review_gemini.subprocess.run")
     def test_successful_run(self, mock_run: Mock) -> None:
         """Test successful prompt execution."""
-        mock_run.return_value = Mock(
-            returncode=0, stdout="Response from Gemini", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Response from Gemini", stderr="")
 
-        result = crg.run_gemini_prompt(
-            prompt="Test prompt", model="gemini-2.5-pro"
-        )
+        result = crg.run_gemini_prompt(prompt="Test prompt", model="gemini-2.5-pro")
 
         assert result.success is True
         assert result.output == "Response from Gemini"
@@ -41,9 +38,7 @@ class TestRunGeminiPrompt:
     @patch("code_review_gemini.subprocess.run")
     def test_run_with_json_format(self, mock_run: Mock) -> None:
         """Test run with JSON output format."""
-        mock_run.return_value = Mock(
-            returncode=0, stdout='{"result": "data"}', stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout='{"result": "data"}', stderr="")
 
         result = crg.run_gemini_prompt(
             prompt="Test", model="gemini-2.5-flash", output_format="json"
@@ -65,9 +60,7 @@ class TestRunGeminiPrompt:
     @patch("code_review_gemini.subprocess.run")
     def test_run_failure(self, mock_run: Mock) -> None:
         """Test prompt execution failure."""
-        mock_run.return_value = Mock(
-            returncode=1, stdout="", stderr="API Error"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="", stderr="API Error")
 
         result = crg.run_gemini_prompt(prompt="Test")
 
@@ -77,9 +70,7 @@ class TestRunGeminiPrompt:
     @patch("code_review_gemini.subprocess.run")
     def test_run_timeout(self, mock_run: Mock) -> None:
         """Test timeout during execution."""
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["gemini"], timeout=300
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["gemini"], timeout=300)
 
         result = crg.run_gemini_prompt(prompt="Test", timeout=300)
 
@@ -110,9 +101,7 @@ class TestCmdRun:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test successful run command."""
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_run.return_value = crg.RunResult(
             success=True, output="Gemini response", model="gemini-2.5-pro"
         )
@@ -135,9 +124,7 @@ class TestCmdRun:
         self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test run when Gemini is not available."""
-        mock_check.return_value = crg.CheckResult(
-            available=False, message="Not installed"
-        )
+        mock_check.return_value = crg.CheckResult(available=False, message="Not installed")
         args = Namespace(
             prompt="Test",
             model="gemini-2.5-pro",
@@ -161,9 +148,7 @@ class TestCmdRun:
         capsys: pytest.CaptureFixture[str],
     ) -> None:
         """Test run command failure."""
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_run.return_value = crg.RunResult(
             success=False,
             output="Partial output",
@@ -196,9 +181,7 @@ class TestCmdRun:
         mock_plans_dir: Path,
     ) -> None:
         """Test run command with save to plan."""
-        mock_check.return_value = crg.CheckResult(
-            available=True, message="ready"
-        )
+        mock_check.return_value = crg.CheckResult(available=True, message="ready")
         mock_run.return_value = crg.RunResult(
             success=True, output="Response", model="gemini-2.5-pro"
         )
@@ -214,6 +197,4 @@ class TestCmdRun:
         exit_code = crg.cmd_run(args)
 
         assert exit_code == 0
-        mock_save.assert_called_once_with(
-            "Response", "test-plan", "gemini-2.5-pro"
-        )
+        mock_save.assert_called_once_with("Response", "test-plan", "gemini-2.5-pro")

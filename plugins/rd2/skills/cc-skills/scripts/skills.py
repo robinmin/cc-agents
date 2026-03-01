@@ -455,9 +455,7 @@ class CacheManager:
         self.misses += 1
         return None
 
-    def set_evaluation(
-        self, skill_path: Path, dimensions: list[str], result: dict
-    ) -> None:
+    def set_evaluation(self, skill_path: Path, dimensions: list[str], result: dict) -> None:
         """Cache evaluation result.
 
         Args:
@@ -1512,9 +1510,7 @@ def analyze_script(script_path: Path) -> dict[str, Any]:
 
     elif language == "bash":
         # Basic bash analysis (can be extended with shellcheck)
-        result["note"] = (
-            "Bash analysis is basic; consider shellcheck for thorough review"
-        )
+        result["note"] = "Bash analysis is basic; consider shellcheck for thorough review"
 
     return result
 
@@ -1622,19 +1618,19 @@ ASSETS_DIR = SKILL_ROOT / "assets"
 # Removed frontmatter and structure - now validated in Tier 1
 DIMENSION_WEIGHTS: dict[str, float] = {
     # Content dimensions
-    "content": 0.17,              # SKILL.md content quality
+    "content": 0.17,  # SKILL.md content quality
     # Behavioral dimensions
-    "behavioral": 0.10,           # Scenario testing quality
-    "trigger_design": 0.14,       # Skill discovery/trigger quality
+    "behavioral": 0.10,  # Scenario testing quality
+    "trigger_design": 0.14,  # Skill discovery/trigger quality
     "instruction_clarity": 0.11,  # Instruction unambiguity
-    "value_add": 0.10,            # Beyond-base-capability value
+    "value_add": 0.10,  # Beyond-base-capability value
     "behavioral_readiness": 0.08,  # Error handling, edge cases
     # Technical dimensions
-    "security": 0.14,             # Security considerations
-    "code_quality": 0.07,         # Script code quality
+    "security": 0.14,  # Security considerations
+    "code_quality": 0.07,  # Script code quality
     # Efficiency/Process
-    "efficiency": 0.05,           # Token efficiency
-    "best_practices": 0.04,       # Naming conventions, guidance
+    "efficiency": 0.05,  # Token efficiency
+    "best_practices": 0.04,  # Naming conventions, guidance
 }
 
 
@@ -1677,29 +1673,19 @@ class Config:
 
         # Validate thresholds is a dict with string keys and int values
         if not isinstance(self.thresholds, dict):
-            raise ValueError(
-                f"thresholds must be a dict, got {type(self.thresholds).__name__}"
-            )
+            raise ValueError(f"thresholds must be a dict, got {type(self.thresholds).__name__}")
         for key, value in self.thresholds.items():
             if not isinstance(key, str):
-                raise ValueError(
-                    f"Threshold keys must be strings, got {type(key).__name__}"
-                )
+                raise ValueError(f"Threshold keys must be strings, got {type(key).__name__}")
             if not isinstance(value, int):
-                raise ValueError(
-                    f"Threshold values must be integers, got {type(value).__name__}"
-                )
+                raise ValueError(f"Threshold values must be integers, got {type(value).__name__}")
 
         # Validate languages is a list of strings
         if not isinstance(self.languages, list):
-            raise ValueError(
-                f"languages must be a list, got {type(self.languages).__name__}"
-            )
+            raise ValueError(f"languages must be a list, got {type(self.languages).__name__}")
         for lang in self.languages:
             if not isinstance(lang, str):
-                raise ValueError(
-                    f"Each language must be a string, got {type(lang).__name__}"
-                )
+                raise ValueError(f"Each language must be a string, got {type(lang).__name__}")
 
 
 CONFIG_FILENAME = ".cc-skills.yaml"
@@ -1733,9 +1719,7 @@ def load_config(skill_path: Path) -> Config:
         if config_file.is_file():
             config_source = "environment variable"
         else:
-            print(
-                f"WARNING: CC_SKILLS_CONFIG points to non-existent file: {env_config}"
-            )
+            print(f"WARNING: CC_SKILLS_CONFIG points to non-existent file: {env_config}")
             print("WARNING: Falling back to default configuration")
             config_file = None
 
@@ -2068,9 +2052,7 @@ def discover_evaluators(plugins_dir: Path | None = None) -> list[DimensionEvalua
                 # Properties use @property decorator (not callable), methods are callable
                 has_name = hasattr(item, "name")
                 has_weight = hasattr(item, "weight")
-                has_evaluate = hasattr(item, "evaluate") and callable(
-                    getattr(item, "evaluate")
-                )
+                has_evaluate = hasattr(item, "evaluate") and callable(getattr(item, "evaluate"))
                 if has_name and has_weight and has_evaluate:
                     # Instantiate and add to list
                     try:
@@ -2141,9 +2123,7 @@ class HookManager:
         """
         if hook_name not in self._hooks:
             valid_hooks = ", ".join(self._hooks.keys())
-            raise ValueError(
-                f"Invalid hook '{hook_name}'. Valid hooks are: {valid_hooks}"
-            )
+            raise ValueError(f"Invalid hook '{hook_name}'. Valid hooks are: {valid_hooks}")
         self._hooks[hook_name].append(callback)
 
     def trigger(self, hook_name: str, *args: Any, **kwargs: Any) -> list[Any]:
@@ -2374,7 +2354,9 @@ def init_skill(skill_name: str, path: str, skill_type: str | None = None) -> Pat
     # Validate skill type
     valid_types = {"technique", "pattern", "reference", None}
     if skill_type is not None and skill_type not in valid_types:
-        print(f"Error: Invalid skill type '{skill_type}'. Must be one of: technique, pattern, reference")
+        print(
+            f"Error: Invalid skill type '{skill_type}'. Must be one of: technique, pattern, reference"
+        )
         return None
 
     # Validate skill name format
@@ -2420,9 +2402,7 @@ def init_skill(skill_name: str, path: str, skill_type: str | None = None) -> Pat
         template_name = "skill-template.md"
 
     skill_template = load_template(template_name, SKILL_TEMPLATE_FALLBACK)
-    skill_content = render_template(
-        skill_template, skill_name=skill_name, skill_title=skill_title
-    )
+    skill_content = render_template(skill_template, skill_name=skill_name, skill_title=skill_title)
 
     skill_md_path = skill_dir / "SKILL.md"
     try:
@@ -2437,14 +2417,10 @@ def init_skill(skill_name: str, path: str, skill_type: str | None = None) -> Pat
         # scripts/
         scripts_dir = skill_dir / "scripts"
         scripts_dir.mkdir(exist_ok=True)
-        example_script_template = load_template(
-            "example-script.py", EXAMPLE_SCRIPT_FALLBACK
-        )
+        example_script_template = load_template("example-script.py", EXAMPLE_SCRIPT_FALLBACK)
         example_script = scripts_dir / "example.py"
         example_script.write_text(
-            render_template(
-                example_script_template, skill_name=skill_name, skill_title=skill_title
-            )
+            render_template(example_script_template, skill_name=skill_name, skill_title=skill_title)
         )
         example_script.chmod(0o755)
         print("Created scripts/example.py")
@@ -2452,13 +2428,9 @@ def init_skill(skill_name: str, path: str, skill_type: str | None = None) -> Pat
         # references/
         references_dir = skill_dir / "references"
         references_dir.mkdir(exist_ok=True)
-        example_ref_template = load_template(
-            "example-reference.md", EXAMPLE_REFERENCE_FALLBACK
-        )
+        example_ref_template = load_template("example-reference.md", EXAMPLE_REFERENCE_FALLBACK)
         example_reference = references_dir / "api_reference.md"
-        example_reference.write_text(
-            render_template(example_ref_template, skill_title=skill_title)
-        )
+        example_reference.write_text(render_template(example_ref_template, skill_title=skill_title))
         print("Created references/api_reference.md")
 
         # assets/ (empty directory - no example file needed)
@@ -2484,9 +2456,7 @@ def init_skill(skill_name: str, path: str, skill_type: str | None = None) -> Pat
 ###############################################################################
 
 
-def package_skill(
-    skill_path: str | Path, output_dir: str | Path | None = None
-) -> Path | None:
+def package_skill(skill_path: str | Path, output_dir: str | Path | None = None) -> Path | None:
     """
     Package a skill folder into a .skill file.
 
@@ -2604,9 +2574,7 @@ class Grade(Enum):
         # Scores below 0 get F
         return cls.F
 
-    def __init__(
-        self, letter: str, min_score: float, max_score: float, description: str
-    ):
+    def __init__(self, letter: str, min_score: float, max_score: float, description: str):
         self.letter = letter
         self.min_score = min_score
         self.max_score = max_score
@@ -2645,9 +2613,7 @@ class EvaluationResult:
         return {
             "skill_path": str(self.skill_path),
             "validation": {
-                "result": self.validation_result.value
-                if self.validation_result
-                else None,
+                "result": self.validation_result.value if self.validation_result else None,
                 "message": self.validation_message,
             },
             "dimensions": {
@@ -2823,9 +2789,7 @@ class MarkdownFormatter(ReportFormatter):
         quality_level = quality_levels.get(result.grade.letter, "Unknown")
 
         # Validation status emoji
-        validation_status = (
-            "✅" if result.validation_result == ValidationResult.PASS else "❌"
-        )
+        validation_status = "✅" if result.validation_result == ValidationResult.PASS else "❌"
         validation_result_text = (
             "PASSED" if result.validation_result == ValidationResult.PASS else "FAILED"
         )
@@ -2887,9 +2851,7 @@ class MarkdownFormatter(ReportFormatter):
             sections.append("\n".join(lines))
         return "\n".join(sections)
 
-    def _categorize_recommendations(
-        self, result: EvaluationResult
-    ) -> dict[str, str]:
+    def _categorize_recommendations(self, result: EvaluationResult) -> dict[str, str]:
         """Categorize recommendations by priority based on dimension scores."""
         critical = []
         high = []
@@ -3082,7 +3044,9 @@ def cmd_evaluate(args) -> int:
         print("  python3 scripts/skills.py evaluate ./skills/my-skill")
         print("  python3 scripts/skills.py evaluate ./skills/my-skill --format json")
         print("  python3 scripts/skills.py evaluate ./skills/my-skill --format markdown")
-        print("  python3 scripts/skills.py evaluate ./skills/my-skill --deep --model claude-opus-4-20250514")
+        print(
+            "  python3 scripts/skills.py evaluate ./skills/my-skill --deep --model claude-opus-4-20250514"
+        )
         print("  python3 scripts/skills.py evaluate ./skills/my-skill --deep --pass-k 3")
         return 1
 
@@ -3178,9 +3142,7 @@ def cmd_evaluate(args) -> int:
             else:
                 print(f"  ✓ LLM client connected ({llm_model})", file=sys.stderr)
 
-            evaluator = LLMJudgeEvaluator(
-                model=llm_model, pass_k=pass_k, verbose=True
-            )
+            evaluator = LLMJudgeEvaluator(model=llm_model, pass_k=pass_k, verbose=True)
 
             # Evaluate instruction clarity
             try:
@@ -3196,9 +3158,7 @@ def cmd_evaluate(args) -> int:
                         f"LLM: {clarity_result.level_name} - {clarity_result.reasoning}"
                     )
                 if clarity_result.cost_report:
-                    llm_cost_reports["instruction_clarity"] = (
-                        clarity_result.cost_report.to_dict()
-                    )
+                    llm_cost_reports["instruction_clarity"] = clarity_result.cost_report.to_dict()
                 print(
                     f"    Score: {clarity_result.score:.1f}/100 ({clarity_result.level_name})",
                     file=sys.stderr,
@@ -3238,9 +3198,7 @@ def cmd_evaluate(args) -> int:
         print(f"  {dim_name}: {dim_score.score:.1f}/100", file=sys.stderr)
 
     print(f"\n  Total Score: {result.total_score:.2f}/100", file=sys.stderr)
-    print(
-        f"  Grade: {result.grade.letter} - {result.grade.description}", file=sys.stderr
-    )
+    print(f"  Grade: {result.grade.letter} - {result.grade.description}", file=sys.stderr)
     print(file=sys.stderr)
 
     # Output using formatter
@@ -3326,9 +3284,7 @@ Examples:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # init command
-    init_parser = subparsers.add_parser(
-        "init", help="Initialize a new skill directory structure"
-    )
+    init_parser = subparsers.add_parser("init", help="Initialize a new skill directory structure")
     init_parser.add_argument("skill_name", nargs="?", help="Name of the skill")
     init_parser.add_argument("--path", help="Directory to create skill in")
     init_parser.add_argument(
@@ -3338,29 +3294,19 @@ Examples:
     )
 
     # validate command
-    validate_parser = subparsers.add_parser(
-        "validate", help="Validate a skill directory structure"
-    )
-    validate_parser.add_argument(
-        "skill_path", nargs="?", help="Path to skill directory"
-    )
+    validate_parser = subparsers.add_parser("validate", help="Validate a skill directory structure")
+    validate_parser.add_argument("skill_path", nargs="?", help="Path to skill directory")
 
     # package command
-    package_parser = subparsers.add_parser(
-        "package", help="Package a skill for distribution"
-    )
+    package_parser = subparsers.add_parser("package", help="Package a skill for distribution")
     package_parser.add_argument("skill_path", nargs="?", help="Path to skill directory")
-    package_parser.add_argument(
-        "output_dir", nargs="?", help="Output directory (optional)"
-    )
+    package_parser.add_argument("output_dir", nargs="?", help="Output directory (optional)")
 
     # evaluate command
     evaluate_parser = subparsers.add_parser(
         "evaluate", help="Evaluate skill quality (structural + quality assessment)"
     )
-    evaluate_parser.add_argument(
-        "skill_path", nargs="?", help="Path to skill directory"
-    )
+    evaluate_parser.add_argument("skill_path", nargs="?", help="Path to skill directory")
     evaluate_parser.add_argument(
         "--json",
         action="store_true",

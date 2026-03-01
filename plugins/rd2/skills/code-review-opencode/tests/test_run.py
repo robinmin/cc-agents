@@ -1,4 +1,5 @@
 """Tests for run command in code-review-opencode.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -17,9 +18,7 @@ class TestRunOpenCodePrompt:
     @patch("code_review_opencode.subprocess.run")
     def test_successful_prompt_execution(self, mock_run: Mock) -> None:
         """Test successful execution of a prompt."""
-        mock_run.return_value = Mock(
-            returncode=0, stdout="Response from OpenCode", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Response from OpenCode", stderr="")
 
         result = cro.run_opencode_prompt("Explain this code")
 
@@ -30,9 +29,7 @@ class TestRunOpenCodePrompt:
     @patch("code_review_opencode.subprocess.run")
     def test_failed_prompt_execution(self, mock_run: Mock) -> None:
         """Test failed execution of a prompt."""
-        mock_run.return_value = Mock(
-            returncode=1, stdout="", stderr="Command failed"
-        )
+        mock_run.return_value = Mock(returncode=1, stdout="", stderr="Command failed")
 
         result = cro.run_opencode_prompt("Invalid prompt")
 
@@ -82,12 +79,8 @@ class TestCmdRun:
         self, mock_check: Mock, mock_run: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test successful run command."""
-        mock_check.return_value = cro.CheckResult(
-            available=True, message="opencode ready"
-        )
-        mock_run.return_value = cro.RunResult(
-            success=True, output="AI Response"
-        )
+        mock_check.return_value = cro.CheckResult(available=True, message="opencode ready")
+        mock_run.return_value = cro.RunResult(success=True, output="AI Response")
         args = Namespace(prompt="Test prompt", timeout=None, save=None)
 
         exit_code = cro.cmd_run(args)
@@ -101,9 +94,7 @@ class TestCmdRun:
         self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test run command when OpenCode is not available."""
-        mock_check.return_value = cro.CheckResult(
-            available=False, message="ERROR: Not installed"
-        )
+        mock_check.return_value = cro.CheckResult(available=False, message="ERROR: Not installed")
         args = Namespace(prompt="Test prompt", timeout=None, save=None)
 
         exit_code = cro.cmd_run(args)
@@ -115,17 +106,18 @@ class TestCmdRun:
     @patch("code_review_opencode.run_opencode_prompt")
     @patch("code_review_opencode.check_opencode_availability")
     def test_run_with_save(
-        self, mock_check: Mock, mock_run: Mock, mock_plans_dir: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+        self,
+        mock_check: Mock,
+        mock_run: Mock,
+        mock_plans_dir: Path,
+        capsys: pytest.CaptureFixture[str],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Test run command with save option."""
         import code_review_opencode as cro_module
 
-        mock_check.return_value = cro.CheckResult(
-            available=True, message="opencode ready"
-        )
-        mock_run.return_value = cro.RunResult(
-            success=True, output="AI Response"
-        )
+        mock_check.return_value = cro.CheckResult(available=True, message="opencode ready")
+        mock_run.return_value = cro.RunResult(success=True, output="AI Response")
         args = Namespace(prompt="Test prompt", timeout=None, save="test-plan")
 
         exit_code = cro_module.cmd_run(args)

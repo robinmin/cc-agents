@@ -26,9 +26,9 @@ def validate_structure(
 
     # 1. Check file exists
     if not path.exists():
-        return ValidationResult(path, False, [
-            ValidationIssue("error", "general", f"File not found: {path}")
-        ])
+        return ValidationResult(
+            path, False, [ValidationIssue("error", "general", f"File not found: {path}")]
+        )
 
     content = path.read_text()
     lines = content.split("\n")
@@ -63,18 +63,16 @@ def validate_naming(path: Path, skill_type: SkillType) -> list[ValidationIssue]:
     if skill_type == SkillType.AGENT:
         # Agents should be in agents/ directory
         if "agents" not in str(parent):
-            issues.append(ValidationIssue(
-                "warning", "naming",
-                "Agent should be in agents/ directory"
-            ))
+            issues.append(
+                ValidationIssue("warning", "naming", "Agent should be in agents/ directory")
+            )
 
     if skill_type == SkillType.SKILL:
         # Skills should have SKILL.md file
         if path.name.upper() != "SKILL.MD":
-            issues.append(ValidationIssue(
-                "warning", "naming",
-                "Skill file should be named SKILL.md"
-            ))
+            issues.append(
+                ValidationIssue("warning", "naming", "Skill file should be named SKILL.md")
+            )
 
     return issues
 

@@ -15,10 +15,12 @@ try:
     _common_lib_path = Path(__file__).parent.parent.parent.parent.parent / "scripts"
     if _common_lib_path.exists():
         import sys
+
         if str(_common_lib_path) not in sys.path:
             sys.path.insert(0, str(_common_lib_path))
 
     from schema.frontmatter import parse_frontmatter as common_parse_frontmatter
+
     HAS_COMMON = True
 except ImportError:
     HAS_COMMON = False
@@ -91,12 +93,14 @@ class BestPracticesEvaluator:
     """Evaluates best practices adherence in skills using rubric-based scoring."""
 
     # Pre-configured rubric scorer
-    RUBRIC_SCORER = RubricScorer([
-        NAMING_CONVENTION_RUBRIC,
-        DOC_COMPLETENESS_RUBRIC,
-        TODO_RESOLUTION_RUBRIC,
-        SCRIPT_BEST_PRACTICES_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            NAMING_CONVENTION_RUBRIC,
+            DOC_COMPLETENESS_RUBRIC,
+            TODO_RESOLUTION_RUBRIC,
+            SCRIPT_BEST_PRACTICES_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "best_practices"

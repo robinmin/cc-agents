@@ -14,13 +14,14 @@ sys.path.insert(0, str(scripts_dir))
 
 from template_engine import TemplateEngine, TemplateConfig  # noqa: E402
 
+
 def test_basic_template_loading():
     """Test basic template loading."""
     print("Testing basic template loading...")
 
     engine = TemplateEngine(
         project_templates_dir=scripts_dir.parent / "assets" / "templates",
-        skill_templates_dir=scripts_dir.parent / "assets" / "templates"
+        skill_templates_dir=scripts_dir.parent / "assets" / "templates",
     )
 
     templates = engine.list_templates()
@@ -32,13 +33,14 @@ def test_basic_template_loading():
 
     print("  ✓ Template listing works")
 
+
 def test_template_rendering():
     """Test template rendering with variables."""
     print("\nTesting template rendering...")
 
     engine = TemplateEngine(
         project_templates_dir=scripts_dir.parent / "assets" / "templates",
-        skill_templates_dir=scripts_dir.parent / "assets" / "templates"
+        skill_templates_dir=scripts_dir.parent / "assets" / "templates",
     )
 
     # Load cover template
@@ -47,11 +49,7 @@ def test_template_rendering():
     print(f"  Resolution: {template.config.width}x{template.config.height}")
 
     # Render with variables
-    prompt = template.render_prompt({
-        "title": "Test Article",
-        "topics": "AI",
-        "mood": "modern"
-    })
+    prompt = template.render_prompt({"title": "Test Article", "topics": "AI", "mood": "modern"})
 
     print(f"  Rendered prompt: {prompt[:100]}...")
     assert "Test Article" in prompt
@@ -64,13 +62,14 @@ def test_template_rendering():
 
     print("  ✓ Template rendering works")
 
+
 def test_template_with_defaults():
     """Test template default values."""
     print("\nTesting template defaults...")
 
     engine = TemplateEngine(
         project_templates_dir=scripts_dir.parent / "assets" / "templates",
-        skill_templates_dir=scripts_dir.parent / "assets" / "templates"
+        skill_templates_dir=scripts_dir.parent / "assets" / "templates",
     )
 
     template = engine.load_template("default")
@@ -81,24 +80,19 @@ def test_template_with_defaults():
     assert "landscape" in prompt  # Default subject
     print("  ✓ Template defaults work")
 
+
 def test_variable_substitution():
     """Test variable substitution syntax."""
     print("\nTesting variable substitution...")
 
     from template_engine import Template
 
-    config = TemplateConfig(
-        name="test",
-        description="Test",
-        width=100,
-        height=100,
-        style="vibrant"
-    )
+    config = TemplateConfig(name="test", description="Test", width=100, height=100, style="vibrant")
 
     template = Template(
         config=config,
         body="{{required}} and {{optional | default value}}",
-        source_path=Path("test.tpl.md")
+        source_path=Path("test.tpl.md"),
     )
 
     # With only required variable
@@ -106,10 +100,9 @@ def test_variable_substitution():
     assert result == "present and default value"
 
     # With both variables
-    result = template._substitute_variables(template.body, {
-        "required": "present",
-        "optional": "custom"
-    })
+    result = template._substitute_variables(
+        template.body, {"required": "present", "optional": "custom"}
+    )
     assert result == "present and custom"
 
     # Missing required variable (left as-is)
@@ -117,6 +110,7 @@ def test_variable_substitution():
     assert "{{required}}" in result
 
     print("  ✓ Variable substitution works")
+
 
 def main():
     """Run all tests."""
@@ -138,8 +132,10 @@ def main():
     except Exception as e:
         print(f"\n✗ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

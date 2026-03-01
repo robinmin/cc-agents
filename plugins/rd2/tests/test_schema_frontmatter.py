@@ -1,6 +1,5 @@
 """Tests for schema/frontmatter.py - frontmatter validation."""
 
-
 from schema.frontmatter import (
     validate_name,
     validate_description,
@@ -145,10 +144,7 @@ class TestValidateFrontmatter:
 
     def test_valid_skill_frontmatter(self):
         """Test valid skill frontmatter."""
-        fm = {
-            "name": "test-skill",
-            "description": "Use this skill when you need to test"
-        }
+        fm = {"name": "test-skill", "description": "Use this skill when you need to test"}
         issues = validate_frontmatter(fm, SkillType.SKILL)
         assert len([i for i in issues if i.severity == "error"]) == 0
 
@@ -158,28 +154,20 @@ class TestValidateFrontmatter:
             "name": "test-agent",
             "description": "Use this agent when you need to test",
             "model": "sonnet",
-            "color": "blue"
+            "color": "blue",
         }
         issues = validate_frontmatter(fm, SkillType.AGENT)
         assert len([i for i in issues if i.severity == "error"]) == 0
 
     def test_invalid_field_agent(self):
         """Test invalid frontmatter field for agent."""
-        fm = {
-            "name": "test",
-            "description": "test",
-            "agent": "something"
-        }
+        fm = {"name": "test", "description": "test", "agent": "something"}
         issues = validate_frontmatter(fm, SkillType.AGENT)
         assert any("Invalid field" in i.message for i in issues)
 
     def test_agent_missing_model(self):
         """Test agent missing model is valid (optional, defaults to inherit)."""
-        fm = {
-            "name": "test-agent",
-            "description": "test",
-            "color": "blue"
-        }
+        fm = {"name": "test-agent", "description": "test", "color": "blue"}
         issues = validate_frontmatter(fm, SkillType.AGENT)
         # model is optional - no error should be raised
         model_errors = [i for i in issues if i.field == "model" and i.severity == "error"]
@@ -187,11 +175,7 @@ class TestValidateFrontmatter:
 
     def test_agent_missing_color(self):
         """Test agent missing color is valid (not in official schema)."""
-        fm = {
-            "name": "test-agent",
-            "description": "test",
-            "model": "sonnet"
-        }
+        fm = {"name": "test-agent", "description": "test", "model": "sonnet"}
         issues = validate_frontmatter(fm, SkillType.AGENT)
         # color is NOT in official schema - no error should be raised
         color_errors = [i for i in issues if i.field == "color" and i.severity == "error"]
@@ -199,10 +183,7 @@ class TestValidateFrontmatter:
 
     def test_agent_minimal_valid(self):
         """Test agent with only required fields (name, description) is valid."""
-        fm = {
-            "name": "test-agent",
-            "description": "Test agent for something"
-        }
+        fm = {"name": "test-agent", "description": "Test agent for something"}
         issues = validate_frontmatter(fm, SkillType.AGENT)
         # Only name and description are required - should pass
         errors = [i for i in issues if i.severity == "error"]

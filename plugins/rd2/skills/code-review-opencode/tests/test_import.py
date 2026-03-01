@@ -1,4 +1,5 @@
 """Tests for import command in code-review-opencode.py."""
+
 from __future__ import annotations
 
 from argparse import Namespace
@@ -120,9 +121,7 @@ class TestBuildIssueFromDict:
         }
         content_lines = ["Additional context"]
 
-        issue = cro._build_issue_from_dict(
-            issue_dict, content_lines, "critical", 1
-        )
+        issue = cro._build_issue_from_dict(issue_dict, content_lines, "critical", 1)
 
         assert issue.identifier == "TEST-001"
         assert issue.title == "Test Issue"
@@ -137,9 +136,7 @@ class TestBuildIssueFromDict:
         issue_dict = {}
         content_lines = []
 
-        issue = cro._build_issue_from_dict(
-            issue_dict, content_lines, "low", 5
-        )
+        issue = cro._build_issue_from_dict(issue_dict, content_lines, "low", 5)
 
         assert issue.identifier == "LOW-005"
         assert issue.title == "Untitled Issue"
@@ -232,6 +229,7 @@ class TestCreateTaskFromIssue:
     def test_create_task_timeout(self, mock_run: Mock) -> None:
         """Test task creation timeout."""
         import subprocess
+
         mock_run.side_effect = subprocess.TimeoutExpired("tasks", 30)
 
         issue = cro.ReviewIssue(

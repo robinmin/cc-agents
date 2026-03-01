@@ -441,9 +441,7 @@ Verified with ref_search_documentation."""
 
     def test_claim_with_confidence_but_no_source_denied(self):
         """Test that claims with confidence but no source are denied."""
-        text = (
-            "The library supports this feature as of version 2.0. **Confidence**: HIGH"
-        )
+        text = "The library supports this feature as of version 2.0. **Confidence**: HIGH"
         is_compliant, reason = verify_anti_hallucination_protocol(text)
         assert is_compliant is False
         assert "source citations" in reason
@@ -565,10 +563,7 @@ class TestMainFunction:
         output = json.loads(captured.out)
         assert output["ok"] is True
         # Empty JSON context results in no content to verify
-        assert (
-            "content" in output["reason"].lower()
-            or "context" in output["reason"].lower()
-        )
+        assert "content" in output["reason"].lower() or "context" in output["reason"].lower()
 
     @patch.dict(os.environ, {"ARGUMENTS": "invalid json"})
     def test_main_with_invalid_json(self, capsys):

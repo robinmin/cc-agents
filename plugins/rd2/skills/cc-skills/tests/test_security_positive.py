@@ -83,9 +83,7 @@ class TestSecurityPositiveDetection:
 
     def test_line_numbers_accurate(self, tmp_script):
         """Should report accurate line numbers."""
-        script = tmp_script(
-            "# Line 1\nx = 1  # Line 2\neval('test')  # Line 3\ny = 2  # Line 4\n"
-        )
+        script = tmp_script("# Line 1\nx = 1  # Line 2\neval('test')  # Line 3\ny = 2  # Line 4\n")
         findings = find_dangerous_calls_ast(script)
         assert len(findings) == 1
         assert findings[0][1] == 3  # Line number should be 3

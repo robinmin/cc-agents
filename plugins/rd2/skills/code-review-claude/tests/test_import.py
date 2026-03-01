@@ -1,4 +1,5 @@
 """Tests for import command in code-review-claude.py."""
+
 from __future__ import annotations
 
 from argparse import Namespace
@@ -157,10 +158,7 @@ class TestCreateTaskFromIssue:
     @patch("code_review_claude.subprocess.run")
     @patch("code_review_claude.get_tasks_dir")
     def test_create_task_success(
-        self,
-        mock_get_tasks_dir: Mock,
-        mock_run: Mock,
-        tmp_path: Path
+        self, mock_get_tasks_dir: Mock, mock_run: Mock, tmp_path: Path
     ) -> None:
         """Test successful task creation."""
         # Setup mock tasks directory
@@ -175,7 +173,9 @@ class TestCreateTaskFromIssue:
                 # Generate the expected task name pattern
                 task_name = "CRITICAL-001_SQL_Injection_Vulnerability"
                 task_file = tasks_dir / f"{task_name}.md"
-                task_file.write_text("# Background\n\nDefault content\n\n# Requirements\n\nDefault requirements\n")
+                task_file.write_text(
+                    "# Background\n\nDefault content\n\n# Requirements\n\nDefault requirements\n"
+                )
                 return Mock(returncode=0, stdout="", stderr="")
             return Mock(returncode=0, stdout="", stderr="")
 
@@ -189,7 +189,7 @@ class TestCreateTaskFromIssue:
             issue_description="User input not sanitized",
             impact="Allows arbitrary SQL execution",
             fix_recommendation="Use parameterized queries",
-            raw_content=None
+            raw_content=None,
         )
 
         metadata = {"target": "src/auth.py", "type": "claude-code-review"}
@@ -211,7 +211,7 @@ class TestCreateTaskFromIssue:
             issue_description=None,
             impact=None,
             fix_recommendation=None,
-            raw_content=None
+            raw_content=None,
         )
 
         success, message = crc.create_task_from_issue(issue, {})
@@ -223,6 +223,7 @@ class TestCreateTaskFromIssue:
     def test_create_task_timeout(self, mock_run: Mock) -> None:
         """Test task creation timeout."""
         import subprocess
+
         mock_run.side_effect = subprocess.TimeoutExpired("tasks create", 30)
 
         issue = crc.ReviewIssue(
@@ -233,7 +234,7 @@ class TestCreateTaskFromIssue:
             issue_description=None,
             impact=None,
             fix_recommendation=None,
-            raw_content=None
+            raw_content=None,
         )
 
         success, message = crc.create_task_from_issue(issue, {})
@@ -252,7 +253,7 @@ class TestCmdImport:
         mock_parse: Mock,
         mock_create: Mock,
         capsys: pytest.CaptureFixture[str],
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         """Test successful import command."""
         # Create a temporary review file
@@ -268,7 +269,7 @@ class TestCmdImport:
             issue_description="Not sanitized",
             impact="High",
             fix_recommendation="Use prepared statements",
-            raw_content=None
+            raw_content=None,
         )
 
         issue2 = crc.ReviewIssue(
@@ -279,19 +280,13 @@ class TestCmdImport:
             issue_description=None,
             impact=None,
             fix_recommendation=None,
-            raw_content=None
+            raw_content=None,
         )
 
         mock_parse.return_value = ({"target": "src/auth.py"}, [issue1, issue2])
-        mock_create.side_effect = [
-            (True, "/path/to/task1.md"),
-            (True, "/path/to/task2.md")
-        ]
+        mock_create.side_effect = [(True, "/path/to/task1.md"), (True, "/path/to/task2.md")]
 
-        args = Namespace(
-            review_file=str(review_file),
-            priority=None
-        )
+        args = Namespace(review_file=str(review_file), priority=None)
 
         exit_code = crc.cmd_import(args)
 
@@ -301,15 +296,9 @@ class TestCmdImport:
         mock_parse.assert_called_once()
         assert mock_create.call_count == 2
 
-    def test_import_file_not_found(
-        self,
-        capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_import_file_not_found(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test import with non-existent file."""
-        args = Namespace(
-            review_file="nonexistent.md",
-            priority=None
-        )
+        args = Namespace(review_file="nonexistent.md", priority=None)
 
         exit_code = crc.cmd_import(args)
 
@@ -324,7 +313,7 @@ class TestCmdImport:
         mock_parse: Mock,
         mock_create: Mock,
         capsys: pytest.CaptureFixture[str],
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         """Test import with priority filter."""
         # Create a temporary review file
@@ -339,7 +328,7 @@ class TestCmdImport:
             issue_description=None,
             impact=None,
             fix_recommendation=None,
-            raw_content=None
+            raw_content=None,
         )
 
         high_issue = crc.ReviewIssue(
@@ -350,16 +339,13 @@ class TestCmdImport:
             issue_description=None,
             impact=None,
             fix_recommendation=None,
-            raw_content=None
+            raw_content=None,
         )
 
         mock_parse.return_value = ({"target": "src/auth.py"}, [critical_issue, high_issue])
         mock_create.return_value = (True, "/path/to/task.md")
 
-        args = Namespace(
-            review_file=str(review_file),
-            priority="critical"
-        )
+        args = Namespace(review_file=str(review_file), priority="critical")
 
         exit_code = crc.cmd_import(args)
 
@@ -376,7 +362,7 @@ class TestCmdImport:
         mock_parse: Mock,
         mock_create: Mock,
         capsys: pytest.CaptureFixture[str],
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         """Test import when no issues found."""
         # Create a temporary review file
@@ -385,10 +371,7 @@ class TestCmdImport:
 
         mock_parse.return_value = ({"target": "src/auth.py"}, [])
 
-        args = Namespace(
-            review_file=str(review_file),
-            priority=None
-        )
+        args = Namespace(review_file=str(review_file), priority=None)
 
         exit_code = crc.cmd_import(args)
 
@@ -404,7 +387,7 @@ class TestCmdImport:
         mock_parse: Mock,
         mock_create: Mock,
         capsys: pytest.CaptureFixture[str],
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         """Test import with some failures."""
         # Create a temporary review file
@@ -419,7 +402,7 @@ class TestCmdImport:
             issue_description=None,
             impact=None,
             fix_recommendation=None,
-            raw_content=None
+            raw_content=None,
         )
 
         issue2 = crc.ReviewIssue(
@@ -430,19 +413,13 @@ class TestCmdImport:
             issue_description=None,
             impact=None,
             fix_recommendation=None,
-            raw_content=None
+            raw_content=None,
         )
 
         mock_parse.return_value = ({"target": "src/auth.py"}, [issue1, issue2])
-        mock_create.side_effect = [
-            (True, "/path/to/task1.md"),
-            (False, "Task creation failed")
-        ]
+        mock_create.side_effect = [(True, "/path/to/task1.md"), (False, "Task creation failed")]
 
-        args = Namespace(
-            review_file=str(review_file),
-            priority=None
-        )
+        args = Namespace(review_file=str(review_file), priority=None)
 
         exit_code = crc.cmd_import(args)
 

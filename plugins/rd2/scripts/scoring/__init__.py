@@ -6,6 +6,7 @@ from dataclasses import dataclass
 @dataclass
 class DimensionWeights:
     """Weights for different quality dimensions."""
+
     name: str
     weight: float
     description: str
@@ -51,7 +52,9 @@ def get_weights(skill_type: str) -> list[DimensionWeights]:
     return SKILL_WEIGHTS
 
 
-def calculate_weighted_score(dimension_scores: dict[str, float], weights: list[DimensionWeights]) -> float:
+def calculate_weighted_score(
+    dimension_scores: dict[str, float], weights: list[DimensionWeights]
+) -> float:
     """Calculate weighted score from dimension scores."""
     total = 0.0
     for dw in weights:

@@ -5,22 +5,22 @@
 
 /* ==================== 容器样式 ==================== */
 section,
-container {
-  font-family: var(--md-font-family);
-  font-size: var(--md-font-size);
-  line-height: 1.75;
-  text-align: left;
+.md-container {
+	font-family: var(--md-font-family);
+	font-size: var(--md-font-size);
+	line-height: 1.75;
+	text-align: left;
 }
 
 /* 确保 #output 容器应用基础样式 */
 #output {
-  font-family: var(--md-font-family);
-  font-size: var(--md-font-size);
-  line-height: 1.75;
-  text-align: left;
+	font-family: var(--md-font-family);
+	font-size: var(--md-font-size);
+	line-height: 1.75;
+	text-align: left;
 }
 
 /* 去除第一个元素的 margin-top */
 #output section > :first-child {
-  margin-top: 0 !important;
+	margin-top: 0;
 }

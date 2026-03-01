@@ -33,14 +33,14 @@ from context_validator import (
     cmd_validate,
     cmd_status,
     cmd_detect_stage,
-    cmd_verify_dependencies
+    cmd_verify_dependencies,
 )
-
 
 
 # ============================================================================
 # STAGES Constant Tests
 # ============================================================================
+
 
 class TestStagesConstant:
     """Tests for STAGES constant."""
@@ -66,7 +66,7 @@ class TestStagesConstant:
             3: "Draft",
             4: "Illustration",
             5: "Adaptation",
-            6: "Publish"
+            6: "Publish",
         }
         for stage_num, expected_name in expected_names.items():
             assert STAGES[stage_num]["name"] == expected_name
@@ -80,6 +80,7 @@ class TestStagesConstant:
 # ============================================================================
 # TopicContext Class Tests
 # ============================================================================
+
 
 class TestTopicContext:
     """Tests for TopicContext class."""
@@ -123,12 +124,13 @@ class TestTopicContext:
 # find_repo_root() Tests
 # ============================================================================
 
+
 class TestFindRepoRoot:
     """Tests for find_repo_root() function."""
 
     def test_returns_configured_root(self, mock_repo_root):
         """Test that configured root is returned."""
-        with patch('context_validator.get_tcc_repo_root', return_value=mock_repo_root):
+        with patch("context_validator.get_tcc_repo_root", return_value=mock_repo_root):
             result = find_repo_root(Path.cwd())
             assert result == mock_repo_root
 
@@ -142,7 +144,7 @@ class TestFindRepoRoot:
         (tmp_path / "collections.json").write_text('{"collections": []}')
         (tmp_path / "collections").mkdir()
 
-        with patch('context_validator.get_tcc_repo_root', return_value=None):
+        with patch("context_validator.get_tcc_repo_root", return_value=None):
             result = find_repo_root(nested_dir)
             assert result == tmp_path
 
@@ -151,7 +153,7 @@ class TestFindRepoRoot:
         no_repo_dir = tmp_path / "no_repo"
         no_repo_dir.mkdir()
 
-        with patch('context_validator.get_tcc_repo_root', return_value=None):
+        with patch("context_validator.get_tcc_repo_root", return_value=None):
             result = find_repo_root(no_repo_dir)
             assert result is None
 
@@ -161,7 +163,7 @@ class TestFindRepoRoot:
         shallow_dir = tmp_path / "shallow"
         shallow_dir.mkdir()
 
-        with patch('context_validator.get_tcc_repo_root', return_value=None):
+        with patch("context_validator.get_tcc_repo_root", return_value=None):
             result = find_repo_root(shallow_dir)
             assert result is None
 
@@ -169,6 +171,7 @@ class TestFindRepoRoot:
 # ============================================================================
 # find_topic_context() Tests
 # ============================================================================
+
 
 class TestFindTopicContext:
     """Tests for find_topic_context() function."""
@@ -219,6 +222,7 @@ class TestFindTopicContext:
 # get_stage_status() Tests
 # ============================================================================
 
+
 class TestGetStageStatus:
     """Tests for get_stage_status() function."""
 
@@ -264,6 +268,7 @@ class TestGetStageStatus:
 # detect_current_stage() Tests
 # ============================================================================
 
+
 class TestDetectCurrentStage:
     """Tests for detect_current_stage() function."""
 
@@ -298,8 +303,8 @@ class TestDetectCurrentStage:
         topic_dir.mkdir()
         (topic_dir / "topic.md").write_text("---\nname: single\n---")
         (topic_dir / "0-materials").mkdir()
-        (topic_dir / "0-materials" / "materials.json").write_text('{}')
-        (topic_dir / "0-materials" / "materials-extracted.md").write_text('# Materials')
+        (topic_dir / "0-materials" / "materials.json").write_text("{}")
+        (topic_dir / "0-materials" / "materials-extracted.md").write_text("# Materials")
 
         stage = detect_current_stage(topic_dir)
         # Stage 0 complete, should return 1
@@ -309,6 +314,7 @@ class TestDetectCurrentStage:
 # ============================================================================
 # verify_dependencies() Tests
 # ============================================================================
+
 
 class TestVerifyDependencies:
     """Tests for verify_dependencies() function."""
@@ -345,6 +351,7 @@ class TestVerifyDependencies:
 # ============================================================================
 # get_stage_completion_percentage() Tests
 # ============================================================================
+
 
 class TestGetStageCompletionPercentage:
     """Tests for get_stage_completion_percentage() function."""
@@ -385,7 +392,7 @@ class TestGetStageCompletionPercentage:
             stage_dir = topic_dir / stage_folder
             stage_dir.mkdir()
             for key_file in key_files:
-                (stage_dir / key_file).write_text('complete')
+                (stage_dir / key_file).write_text("complete")
 
         percentage = get_stage_completion_percentage(topic_dir)
         assert percentage == 100.0
@@ -394,6 +401,7 @@ class TestGetStageCompletionPercentage:
 # ============================================================================
 # print_status_report() Tests
 # ============================================================================
+
 
 class TestPrintStatusReport:
     """Tests for print_status_report() function."""
@@ -435,12 +443,13 @@ class TestPrintStatusReport:
 # CLI Commands Tests
 # ============================================================================
 
+
 class TestCmdValidate:
     """Tests for cmd_validate() function."""
 
     def test_valid_context_exits_0(self, mock_topic_dir):
         """Test cmd_validate exits 0 for valid context."""
-        with patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with patch("context_validator.Path.cwd", return_value=mock_topic_dir):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_validate(None)
             assert exc_info.value.code == 0
@@ -450,14 +459,14 @@ class TestCmdValidate:
         outside_repo = tmp_path / "outside"
         outside_repo.mkdir()
 
-        with patch('context_validator.Path.cwd', return_value=outside_repo):
+        with patch("context_validator.Path.cwd", return_value=outside_repo):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_validate(None)
             assert exc_info.value.code == 1
 
     def test_no_topic_dir_exits_1(self, mock_repo_root):
         """Test cmd_validate exits 1 when not in topic."""
-        with patch('context_validator.Path.cwd', return_value=mock_repo_root):
+        with patch("context_validator.Path.cwd", return_value=mock_repo_root):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_validate(None)
             assert exc_info.value.code == 1
@@ -468,7 +477,7 @@ class TestCmdStatus:
 
     def test_prints_status_report(self, mock_topic_dir, capsys):
         """Test that cmd_status prints status report."""
-        with patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with patch("context_validator.Path.cwd", return_value=mock_topic_dir):
             cmd_status(None)
             captured = capsys.readouterr()
             assert "Topic Status Report" in captured.out
@@ -478,7 +487,7 @@ class TestCmdStatus:
         outside = tmp_path / "outside"
         outside.mkdir()
 
-        with patch('context_validator.Path.cwd', return_value=outside):
+        with patch("context_validator.Path.cwd", return_value=outside):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_status(None)
             assert exc_info.value.code == 1
@@ -492,7 +501,7 @@ class TestCmdDetectStage:
         args = MagicMock()
         args.json = False
 
-        with patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with patch("context_validator.Path.cwd", return_value=mock_topic_dir):
             cmd_detect_stage(args)
             captured = capsys.readouterr()
             # Should output a number 0-6
@@ -504,11 +513,12 @@ class TestCmdDetectStage:
         args = MagicMock()
         args.json = True
 
-        with patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with patch("context_validator.Path.cwd", return_value=mock_topic_dir):
             cmd_detect_stage(args)
             captured = capsys.readouterr()
             # Should be valid JSON
             import json
+
             try:
                 data = json.loads(captured.out.strip())
                 assert "stage" in data
@@ -525,7 +535,7 @@ class TestCmdDetectStage:
         args = MagicMock()
         args.json = False
 
-        with patch('context_validator.Path.cwd', return_value=outside):
+        with patch("context_validator.Path.cwd", return_value=outside):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_detect_stage(args)
             assert exc_info.value.code == 1
@@ -539,7 +549,7 @@ class TestCmdVerifyDependencies:
         args = MagicMock()
         args.stage = 2  # Stage 2 dependencies are satisfied
 
-        with patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with patch("context_validator.Path.cwd", return_value=mock_topic_dir):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_verify_dependencies(args)
             assert exc_info.value.code == 0
@@ -549,7 +559,7 @@ class TestCmdVerifyDependencies:
         args = MagicMock()
         args.stage = 6  # Stage 6 has unmet dependencies
 
-        with patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with patch("context_validator.Path.cwd", return_value=mock_topic_dir):
             # May exit 1 if dependencies not met
             try:
                 cmd_verify_dependencies(args)
@@ -565,7 +575,7 @@ class TestCmdVerifyDependencies:
         args = MagicMock()
         args.stage = None
 
-        with patch('context_validator.Path.cwd', return_value=outside):
+        with patch("context_validator.Path.cwd", return_value=outside):
             with pytest.raises(SystemExit) as exc_info:
                 cmd_verify_dependencies(args)
             assert exc_info.value.code == 1
@@ -574,6 +584,7 @@ class TestCmdVerifyDependencies:
 # ============================================================================
 # Edge Cases Tests
 # ============================================================================
+
 
 class TestEdgeCases:
     """Tests for edge cases and special scenarios."""
@@ -620,7 +631,7 @@ class TestAdditionalCoverage:
         args = MagicMock()
         args.stage = None
 
-        with patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with patch("context_validator.Path.cwd", return_value=mock_topic_dir):
             # mock_topic_dir has incomplete stages, so this will exit 1
             with pytest.raises(SystemExit):
                 cmd_verify_dependencies(args)
@@ -668,45 +679,56 @@ class TestAdditionalCoverage:
         no_repo = tmp_path / "no_repo"
         no_repo.mkdir()
 
-        with patch('context_validator.get_tcc_repo_root', return_value=None):
+        with patch("context_validator.get_tcc_repo_root", return_value=None):
             result = find_repo_root(no_repo)
             assert result is None
 
     def test_main_no_command_shows_help(self, capsys):
         """Test main() with no command shows help."""
-        with patch('sys.argv', ['context-validator.py']):
+        with patch("sys.argv", ["context-validator.py"]):
             with pytest.raises(SystemExit):
                 from context_validator import main
+
                 main()
 
     def test_main_with_validate_command(self, mock_topic_dir, capsys):
         """Test main() with --validate command."""
-        with patch('sys.argv', ['context-validator.py', '--validate']), \
-             patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with (
+            patch("sys.argv", ["context-validator.py", "--validate"]),
+            patch("context_validator.Path.cwd", return_value=mock_topic_dir),
+        ):
             with pytest.raises(SystemExit) as exc_info:
                 from context_validator import main
+
                 main()
             # Should exit 0 for valid context
             assert exc_info.value.code == 0
 
     def test_main_with_status_command(self, mock_topic_dir, capsys):
         """Test main() with --status command."""
-        with patch('sys.argv', ['context-validator.py', '--status']), \
-             patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with (
+            patch("sys.argv", ["context-validator.py", "--status"]),
+            patch("context_validator.Path.cwd", return_value=mock_topic_dir),
+        ):
             from context_validator import main
+
             main()
             captured = capsys.readouterr()
             assert "Topic Status Report" in captured.out
 
     def test_main_with_detect_stage_json_command(self, mock_topic_dir, capsys):
         """Test main() with --detect-stage --json command."""
-        with patch('sys.argv', ['context-validator.py', '--detect-stage', '--json']), \
-             patch('context_validator.Path.cwd', return_value=mock_topic_dir):
+        with (
+            patch("sys.argv", ["context-validator.py", "--detect-stage", "--json"]),
+            patch("context_validator.Path.cwd", return_value=mock_topic_dir),
+        ):
             from context_validator import main
+
             main()
             captured = capsys.readouterr()
             # Should output JSON
             import json
+
             try:
                 data = json.loads(captured.out.strip())
                 assert "stage" in data

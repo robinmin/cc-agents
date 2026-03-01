@@ -20,7 +20,7 @@ class TestValidateStructure:
 
     def test_valid_agent_file(self):
         """Test validating a valid agent file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write("""---
 name: test-agent
 description: Use this agent when testing
@@ -60,7 +60,7 @@ Templates here
 
     def test_valid_skill_file(self):
         """Test validating a valid skill file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write("""---
 name: test-skill
 description: Use this skill when testing
@@ -87,7 +87,7 @@ Example here
 
     def test_missing_name(self):
         """Test file without name."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write("""---
 description: No name field
 ---
@@ -101,7 +101,7 @@ description: No name field
 
     def test_agent_missing_required_fields(self):
         """Test agent with only required fields is valid per official schema."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write("""---
 name: test-agent
 description: Use this agent when testing
@@ -114,7 +114,9 @@ description: Use this agent when testing
 
         # According to official Claude Code schema, only name and description are required
         # model and color are optional - this should pass
-        assert len(result.errors) == 0, f"Expected no errors for minimal agent, got: {result.errors}"
+        assert len(result.errors) == 0, (
+            f"Expected no errors for minimal agent, got: {result.errors}"
+        )
 
 
 class TestValidateNaming:
@@ -139,7 +141,7 @@ class TestLoadScenarios:
 
     def test_load_valid_yaml(self):
         """Test loading valid scenarios.yaml."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("""trigger_tests:
   should_trigger:
     - query: "create a skill"
@@ -162,7 +164,7 @@ class TestLoadScenarios:
 
     def test_load_empty_file(self):
         """Test loading empty file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("")
             f.flush()
             scenarios = load_scenarios(Path(f.name))
@@ -179,14 +181,9 @@ class TestRunTriggerTests:
         description = "Use this skill when you need to create skills"
         scenarios = {
             "trigger_tests": {
-                "should_trigger": [
-                    {"query": "create a skill", "confidence": 0.5}
-                ],
+                "should_trigger": [{"query": "create a skill", "confidence": 0.5}],
                 "should_not_trigger": [],
-                "pass_criteria": {
-                    "min_trigger_rate": 0.8,
-                    "max_false_positive_rate": 0.2
-                }
+                "pass_criteria": {"min_trigger_rate": 0.8, "max_false_positive_rate": 0.2},
             }
         }
         results = run_trigger_tests(description, scenarios)
@@ -198,13 +195,8 @@ class TestRunTriggerTests:
         scenarios = {
             "trigger_tests": {
                 "should_trigger": [],
-                "should_not_trigger": [
-                    {"query": "make coffee", "reason": "Unrelated"}
-                ],
-                "pass_criteria": {
-                    "min_trigger_rate": 0.8,
-                    "max_false_positive_rate": 0.2
-                }
+                "should_not_trigger": [{"query": "make coffee", "reason": "Unrelated"}],
+                "pass_criteria": {"min_trigger_rate": 0.8, "max_false_positive_rate": 0.2},
             }
         }
         results = run_trigger_tests(description, scenarios)
@@ -215,11 +207,7 @@ class TestRunTriggerTests:
         """Test with empty scenarios."""
         description = "Use this skill when you need to create skills"
         scenarios = {
-            "trigger_tests": {
-                "should_trigger": [],
-                "should_not_trigger": [],
-                "pass_criteria": {}
-            }
+            "trigger_tests": {"should_trigger": [], "should_not_trigger": [], "pass_criteria": {}}
         }
         results = run_trigger_tests(description, scenarios)
         # Should have passed key
@@ -236,7 +224,7 @@ class TestRunScenarioTests:
                 {
                     "name": "Test Scenario",
                     "input": "test input",
-                    "expected_behaviors": ["check something"]
+                    "expected_behaviors": ["check something"],
                 }
             ]
         }

@@ -45,7 +45,9 @@ ANTI_PATTERNS_RUBRIC = RubricCriterion(
     description="Documentation of common mistakes and DON'T patterns",
     weight=0.20,
     levels=[
-        RubricLevel("excellent", 100, "Has Common Mistakes section, 3+ DON'T patterns, comparisons"),
+        RubricLevel(
+            "excellent", 100, "Has Common Mistakes section, 3+ DON'T patterns, comparisons"
+        ),
         RubricLevel("good", 75, "Has Common Mistakes section and DON'T patterns"),
         RubricLevel("fair", 50, "Has some DON'T/Never patterns"),
         RubricLevel("poor", 25, "Minimal anti-pattern documentation"),
@@ -114,14 +116,16 @@ class BehavioralReadinessEvaluator:
     """Evaluates behavioral readiness indicators in a skill using rubric-based scoring."""
 
     # Pre-configured rubric scorer for behavioral readiness evaluation
-    RUBRIC_SCORER = RubricScorer([
-        EXAMPLES_RUBRIC,
-        ANTI_PATTERNS_RUBRIC,
-        ERROR_HANDLING_RUBRIC,
-        EDGE_CASES_RUBRIC,
-        TEST_INFRA_RUBRIC,
-        TRIGGER_TESTING_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            EXAMPLES_RUBRIC,
+            ANTI_PATTERNS_RUBRIC,
+            ERROR_HANDLING_RUBRIC,
+            EDGE_CASES_RUBRIC,
+            TEST_INFRA_RUBRIC,
+            TRIGGER_TESTING_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "behavioral_readiness"
@@ -163,23 +167,41 @@ class BehavioralReadinessEvaluator:
 
         # Pre-compute metrics for examples
         code_blocks = re.findall(r"```[\s\S]*?```", body)
-        has_example_section = bool(re.search(
-            r"^#{1,3}\s+(?:[Ee]xample|[Ee]xamples)", body, re.MULTILINE
-        ))
+        has_example_section = bool(
+            re.search(r"^#{1,3}\s+(?:[Ee]xample|[Ee]xamples)", body, re.MULTILINE)
+        )
         scenario_patterns = [
-            r"Given\s+\w+", r"When\s+\w+", r"Then\s+\w+",
+            r"Given\s+\w+",
+            r"When\s+\w+",
+            r"Then\s+\w+",
             r"If\s+\w+,\s+(?:do|use|apply)",
         ]
         scenario_count = sum(len(re.findall(p, body)) for p in scenario_patterns)
 
         # Pre-compute metrics for anti-patterns
-        has_mistakes_section = bool(re.search(
-            r"^#{1,3}\s+(?:[Cc]ommon\s+[Mm]istakes?|[Mm]istakes?\s+[Tt]o\s+[Aa]void|[Ww]hat\s+[Nn]ot\s+[Tt]o\s+[Dd]o)",
-            body, re.MULTILINE
-        ))
-        dont_patterns = [r"[Dd]on't\s+", r"[Dd]o\s+not\s+", r"[Nn]ever\s+", r"Avoid\s+", r"Don'?t\s+"]
+        has_mistakes_section = bool(
+            re.search(
+                r"^#{1,3}\s+(?:[Cc]ommon\s+[Mm]istakes?|[Mm]istakes?\s+[Tt]o\s+[Aa]void|[Ww]hat\s+[Nn]ot\s+[Tt]o\s+[Dd]o)",
+                body,
+                re.MULTILINE,
+            )
+        )
+        dont_patterns = [
+            r"[Dd]on't\s+",
+            r"[Dd]o\s+not\s+",
+            r"[Nn]ever\s+",
+            r"Avoid\s+",
+            r"Don'?t\s+",
+        ]
         dont_count = sum(len(re.findall(p, body)) for p in dont_patterns)
-        comparison_patterns = [r"[Bb]ad[:\s]+", r"[Gg]ood[:\s]+", r"[Ww]rong[:\s]+", r"[Cc]orrect[:\s]+", r"❌", r"✅"]
+        comparison_patterns = [
+            r"[Bb]ad[:\s]+",
+            r"[Gg]ood[:\s]+",
+            r"[Ww]rong[:\s]+",
+            r"[Cc]orrect[:\s]+",
+            r"❌",
+            r"✅",
+        ]
         comparison_count = sum(len(re.findall(p, body)) for p in comparison_patterns)
 
         # Pre-compute metrics for error handling
@@ -190,9 +212,13 @@ class BehavioralReadinessEvaluator:
             r"\b(log|print)\s+(?:error|warning|info)\b",
         ]
         error_count = sum(len(re.findall(p, body, re.IGNORECASE)) for p in error_keywords)
-        has_troubleshooting = bool(re.search(
-            r"^#{1,3}\s+(?:[Tt]roubleshooting|[Dd]ebugging|[Ee]rror\s+[Hh]andling)", body, re.MULTILINE
-        ))
+        has_troubleshooting = bool(
+            re.search(
+                r"^#{1,3}\s+(?:[Tt]roubleshooting|[Dd]ebugging|[Ee]rror\s+[Hh]andling)",
+                body,
+                re.MULTILINE,
+            )
+        )
         fallback_patterns = [
             r"if\s+\w+\s+(?:fails?|errors?|times?\s+out|isn?'t?\s+available)",
             r"(fallback|backup|alternative)\s+(?:is|to|use)",
@@ -201,14 +227,20 @@ class BehavioralReadinessEvaluator:
         fallback_count = sum(len(re.findall(p, body, re.IGNORECASE)) for p in fallback_patterns)
 
         # Pre-compute metrics for edge cases
-        edge_mentions = len(re.findall(
-            r"\b(edge|corner)\s+(?:case|scenario)|\b(when|if)\s+\w+\s+(?:is\s+)?(?:null|undefined|none|empty|zero|missing)",
-            body, re.IGNORECASE
-        ))
-        boundary_terms = len(re.findall(
-            r"\b(maximum|minimum|max|min|large|small|empty|zero|null|undefined|none|optional|required)\b",
-            body, re.IGNORECASE
-        ))
+        edge_mentions = len(
+            re.findall(
+                r"\b(edge|corner)\s+(?:case|scenario)|\b(when|if)\s+\w+\s+(?:is\s+)?(?:null|undefined|none|empty|zero|missing)",
+                body,
+                re.IGNORECASE,
+            )
+        )
+        boundary_terms = len(
+            re.findall(
+                r"\b(maximum|minimum|max|min|large|small|empty|zero|null|undefined|none|optional|required)\b",
+                body,
+                re.IGNORECASE,
+            )
+        )
 
         # Pre-compute metrics for test infrastructure
         tests_dir = skill_path / "tests"
@@ -229,7 +261,9 @@ class BehavioralReadinessEvaluator:
             for sf in scenario_files:
                 try:
                     scenario_content = sf.read_text()
-                    if re.search(r"trigger_tests?:|should_trigger:|should_not_trigger:", scenario_content):
+                    if re.search(
+                        r"trigger_tests?:|should_trigger:|should_not_trigger:", scenario_content
+                    ):
                         has_trigger_tests = True
                         break
                 except Exception:
@@ -241,7 +275,9 @@ class BehavioralReadinessEvaluator:
             r"negative\s+triggers?",
             r"overtrigger",
         ]
-        negative_count = sum(len(re.findall(p, body, re.IGNORECASE)) for p in negative_trigger_patterns)
+        negative_count = sum(
+            len(re.findall(p, body, re.IGNORECASE)) for p in negative_trigger_patterns
+        )
 
         # Single evaluator function for all criteria
         def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
@@ -253,7 +289,10 @@ class BehavioralReadinessEvaluator:
                 )
                 total = sum(score_factors)
                 if total >= 2.5:
-                    return "excellent", f"Has {len(code_blocks)} code blocks, Example section, {scenario_count} scenarios"
+                    return (
+                        "excellent",
+                        f"Has {len(code_blocks)} code blocks, Example section, {scenario_count} scenarios",
+                    )
                 elif total >= 1.5:
                     return "good", f"Has {len(code_blocks)} code blocks, Example section"
                 elif total >= 0.5:
@@ -270,7 +309,10 @@ class BehavioralReadinessEvaluator:
                 )
                 total = sum(score_factors)
                 if total >= 2.5:
-                    return "excellent", f"Has Common Mistakes, {dont_count} DON'T patterns, {comparison_count} comparisons"
+                    return (
+                        "excellent",
+                        f"Has Common Mistakes, {dont_count} DON'T patterns, {comparison_count} comparisons",
+                    )
                 elif total >= 1.5:
                     return "good", f"Has Common Mistakes, {dont_count} DON'T patterns"
                 elif total >= 0.5:
@@ -287,9 +329,15 @@ class BehavioralReadinessEvaluator:
                 )
                 total = sum(score_factors)
                 if total >= 2.5:
-                    return "excellent", f"Has Troubleshooting, {error_count} error refs, {fallback_count} fallbacks"
+                    return (
+                        "excellent",
+                        f"Has Troubleshooting, {error_count} error refs, {fallback_count} fallbacks",
+                    )
                 elif total >= 1.5:
-                    return "good", f"Has {error_count} error handling refs, {fallback_count} fallbacks"
+                    return (
+                        "good",
+                        f"Has {error_count} error handling refs, {fallback_count} fallbacks",
+                    )
                 elif total >= 0.5:
                     return "fair", f"Has {error_count} error handling content"
                 elif error_count > 0:
@@ -303,7 +351,10 @@ class BehavioralReadinessEvaluator:
                 )
                 total = sum(score_factors)
                 if total >= 1.5:
-                    return "excellent", f"Has {edge_mentions} edge case mentions, {boundary_terms} boundary terms"
+                    return (
+                        "excellent",
+                        f"Has {edge_mentions} edge case mentions, {boundary_terms} boundary terms",
+                    )
                 elif total >= 1.0:
                     return "good", "Has edge case mentions and boundary terms"
                 elif total >= 0.5:
@@ -344,7 +395,9 @@ class BehavioralReadinessEvaluator:
             score=score,
             weight=self.weight,
             findings=findings,
-            recommendations=recommendations if recommendations else ["Behavioral readiness is adequate"],
+            recommendations=recommendations
+            if recommendations
+            else ["Behavioral readiness is adequate"],
         )
 
 

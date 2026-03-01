@@ -33,10 +33,7 @@ class TestValidationIssue:
     def test_create_error_issue(self):
         """Test creating an error issue."""
         issue = ValidationIssue(
-            severity="error",
-            category="frontmatter",
-            message="name required",
-            field="name"
+            severity="error", category="frontmatter", message="name required", field="name"
         )
         assert issue.severity == "error"
         assert issue.category == "frontmatter"
@@ -47,10 +44,7 @@ class TestValidationIssue:
     def test_create_warning_with_line(self):
         """Test creating a warning with line number."""
         issue = ValidationIssue(
-            severity="warning",
-            category="section",
-            message="Section not found",
-            line=42
+            severity="warning", category="section", message="Section not found", line=42
         )
         assert issue.severity == "warning"
         assert issue.line == 42
@@ -61,11 +55,7 @@ class TestValidationResult:
 
     def test_create_valid_result(self):
         """Test creating a valid result."""
-        result = ValidationResult(
-            path=Path("test.md"),
-            valid=True,
-            issues=[]
-        )
+        result = ValidationResult(path=Path("test.md"), valid=True, issues=[])
         assert result.valid is True
         assert len(result.errors) == 0
         assert len(result.warnings) == 0
@@ -76,11 +66,7 @@ class TestValidationResult:
             ValidationIssue("error", "frontmatter", "name required", field="name"),
             ValidationIssue("warning", "section", "Missing section", line=10),
         ]
-        result = ValidationResult(
-            path=Path("test.md"),
-            valid=False,
-            issues=issues
-        )
+        result = ValidationResult(path=Path("test.md"), valid=False, issues=issues)
         assert result.valid is False
         assert len(result.errors) == 1
         assert len(result.warnings) == 1
@@ -112,7 +98,7 @@ class TestScoreBreakdown:
             grade="B",
             dimension_scores={"content": 90, "structure": 80},
             findings=["Good structure"],
-            recommendations=["Add more examples"]
+            recommendations=["Add more examples"],
         )
         assert breakdown.total_score == 85.5
         assert breakdown.grade == "B"

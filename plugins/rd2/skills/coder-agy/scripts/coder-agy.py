@@ -42,8 +42,8 @@ ANTIGRAVITY_CLI = "agy"
 # Available modes (from agy chat --help)
 AVAILABLE_MODES = [
     "agent",  # Complex tasks with multi-step reasoning
-    "ask",    # Quick questions and simple tasks
-    "edit",   # Code editing and refactoring
+    "ask",  # Quick questions and simple tasks
+    "edit",  # Code editing and refactoring
 ]
 
 # Timeout settings (in seconds)
@@ -252,8 +252,8 @@ Documentation: https://antigravity.google/docs/get-started""",
         if result.returncode == 0:
             # Extract version from help output (first line)
             version = "Unknown"
-            for line in result.stdout.split('\n')[:5]:
-                if 'Antigravity' in line:
+            for line in result.stdout.split("\n")[:5]:
+                if "Antigravity" in line:
                     version = line.strip()
                     break
             return CheckResult(
@@ -437,8 +437,8 @@ def run_antigravity_file(
 
 def cmd_run(args: argparse.Namespace) -> int:
     """Handle run command."""
-    mode = getattr(args, 'mode', None)
-    add_files = getattr(args, 'add_files', [])
+    mode = getattr(args, "mode", None)
+    add_files = getattr(args, "add_files", [])
     result = run_antigravity_prompt(args.prompt, mode, add_files)
 
     if result.success:
@@ -452,8 +452,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 def cmd_run_file(args: argparse.Namespace) -> int:
     """Handle run-file command."""
     prompt_file = Path(args.prompt_file)
-    mode = getattr(args, 'mode', None)
-    add_files = getattr(args, 'add_files', [])
+    mode = getattr(args, "mode", None)
+    add_files = getattr(args, "add_files", [])
     result = run_antigravity_file(prompt_file, mode, add_files)
 
     if result.success:
@@ -696,7 +696,8 @@ def main() -> int:
         epilog=__doc__,
     )
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Enable verbose output",
     )
@@ -709,25 +710,34 @@ def main() -> int:
     run_parser = subparsers.add_parser("run", help="Run a short prompt")
     run_parser.add_argument("prompt", help="Prompt to send to Antigravity")
     run_parser.add_argument("-m", "--mode", choices=AVAILABLE_MODES, help="Mode to use")
-    run_parser.add_argument("-a", "--add-file", action="append", dest="add_files",
-                           help="Add file as context")
+    run_parser.add_argument(
+        "-a", "--add-file", action="append", dest="add_files", help="Add file as context"
+    )
     run_parser.set_defaults(func=cmd_run)
 
     run_file_parser = subparsers.add_parser("run-file", help="Run prompt from file")
     run_file_parser.add_argument("prompt_file", help="Path to prompt file")
     run_file_parser.add_argument("-m", "--mode", choices=AVAILABLE_MODES, help="Mode to use")
-    run_file_parser.add_argument("-a", "--add-file", action="append", dest="add_files",
-                                help="Add file as context")
+    run_file_parser.add_argument(
+        "-a", "--add-file", action="append", dest="add_files", help="Add file as context"
+    )
     run_file_parser.set_defaults(func=cmd_run_file)
 
     gen_parser = subparsers.add_parser("generate", help="Generate code")
-    gen_parser.add_argument("task_content", help="Task specification (file content or requirements)")
+    gen_parser.add_argument(
+        "task_content", help="Task specification (file content or requirements)"
+    )
     gen_parser.add_argument("-m", "--mode", choices=AVAILABLE_MODES, help="Mode to use")
-    gen_parser.add_argument("--no-tdd", action="store_true", help="Disable TDD mode (opt-out from rd2:tdd-workflow default)")
+    gen_parser.add_argument(
+        "--no-tdd",
+        action="store_true",
+        help="Disable TDD mode (opt-out from rd2:tdd-workflow default)",
+    )
     gen_parser.add_argument("-o", "--output", help="Output file name")
     gen_parser.add_argument("-c", "--context", help="Path to context file")
-    gen_parser.add_argument("-a", "--add-file", action="append", dest="add_files",
-                           help="Add file as context")
+    gen_parser.add_argument(
+        "-a", "--add-file", action="append", dest="add_files", help="Add file as context"
+    )
     gen_parser.set_defaults(func=cmd_generate)
 
     args = parser.parse_args()

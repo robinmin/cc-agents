@@ -30,9 +30,7 @@ class TestSelfEvaluation:
 
         # Filter for actual security findings (not positive observations)
         security_issues = [
-            f
-            for f in result.findings
-            if f.startswith("SECURITY:") or "SECURITY in" in f
+            f for f in result.findings if f.startswith("SECURITY:") or "SECURITY in" in f
         ]
 
         assert len(security_issues) == 0, f"False positives detected: {security_issues}"
@@ -51,9 +49,7 @@ class TestSelfEvaluation:
 
         # Should have positive findings like "Mentions security considerations"
         positive_findings = [
-            f
-            for f in result.findings
-            if not f.startswith("SECURITY:") and "SECURITY in" not in f
+            f for f in result.findings if not f.startswith("SECURITY:") and "SECURITY in" not in f
         ]
 
         assert len(positive_findings) > 0, "Should have positive security findings"
@@ -102,6 +98,4 @@ class TestSelfEvaluation:
         dimensions = run_quality_assessment(skill_path)
 
         for name, dim in dimensions.items():
-            assert dim.score > 0, (
-                f"Dimension {name} has zero score. Findings: {dim.findings}"
-            )
+            assert dim.score > 0, f"Dimension {name} has zero score. Findings: {dim.findings}"

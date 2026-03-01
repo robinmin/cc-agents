@@ -1,4 +1,5 @@
 """Tests for review command in code-review-claude.py."""
+
 from __future__ import annotations
 
 from argparse import Namespace
@@ -23,7 +24,7 @@ class TestCmdReview:
         mock_run: Mock,
         capsys: pytest.CaptureFixture[str],
         mock_plans_dir: Path,
-        sample_code: str
+        sample_code: str,
     ) -> None:
         """Test successful review command."""
         mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
@@ -49,11 +50,7 @@ Approve
         mock_run.return_value = crc.RunResult(success=True, output=review_output)
 
         args = Namespace(
-            target="test.py",
-            plan=False,
-            output="test-review",
-            focus=None,
-            timeout=None
+            target="test.py", plan=False, output="test-review", focus=None, timeout=None
         )
 
         exit_code = crc.cmd_review(args)
@@ -64,22 +61,15 @@ Approve
 
     @patch("code_review_claude.check_claude_availability")
     def test_review_claude_not_available(
-        self,
-        mock_check: Mock,
-        capsys: pytest.CaptureFixture[str]
+        self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test review command when Claude is not available."""
         mock_check.return_value = crc.CheckResult(
-            available=False,
-            message="ERROR: Claude not installed"
+            available=False, message="ERROR: Claude not installed"
         )
 
         args = Namespace(
-            target="test.py",
-            plan=False,
-            output="test-review",
-            focus=None,
-            timeout=None
+            target="test.py", plan=False, output="test-review", focus=None, timeout=None
         )
 
         exit_code = crc.cmd_review(args)
@@ -91,21 +81,14 @@ Approve
     @patch("code_review_claude.gather_code_content")
     @patch("code_review_claude.check_claude_availability")
     def test_review_no_files_found(
-        self,
-        mock_check: Mock,
-        mock_gather: Mock,
-        capsys: pytest.CaptureFixture[str]
+        self, mock_check: Mock, mock_gather: Mock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Test review command when no files are found."""
         mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
         mock_gather.return_value = ("", [])
 
         args = Namespace(
-            target="nonexistent/*.py",
-            plan=False,
-            output="test-review",
-            focus=None,
-            timeout=None
+            target="nonexistent/*.py", plan=False, output="test-review", focus=None, timeout=None
         )
 
         exit_code = crc.cmd_review(args)
@@ -118,26 +101,19 @@ Approve
     @patch("code_review_claude.gather_code_content")
     @patch("code_review_claude.check_claude_availability")
     def test_review_with_focus_areas(
-        self,
-        mock_check: Mock,
-        mock_gather: Mock,
-        mock_run: Mock,
-        sample_code: str
+        self, mock_check: Mock, mock_gather: Mock, mock_run: Mock, sample_code: str
     ) -> None:
         """Test review command with focus areas."""
         mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
         mock_gather.return_value = (sample_code, [Path("test.py")])
-        mock_run.return_value = crc.RunResult(
-            success=True,
-            output="Review complete."
-        )
+        mock_run.return_value = crc.RunResult(success=True, output="Review complete.")
 
         args = Namespace(
             target="test.py",
             plan=False,
             output="test-review",
             focus="security,performance",
-            timeout=None
+            timeout=None,
         )
 
         exit_code = crc.cmd_review(args)
@@ -155,23 +131,14 @@ Approve
         mock_gather: Mock,
         mock_run: Mock,
         mock_plans_dir: Path,
-        sample_code: str
+        sample_code: str,
     ) -> None:
         """Test review command in planning mode."""
         mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
         mock_gather.return_value = (sample_code, [Path("test.py")])
-        mock_run.return_value = crc.RunResult(
-            success=True,
-            output="Implementation plan here."
-        )
+        mock_run.return_value = crc.RunResult(success=True, output="Implementation plan here.")
 
-        args = Namespace(
-            target="test.py",
-            plan=True,
-            output="test-plan",
-            focus=None,
-            timeout=None
-        )
+        args = Namespace(target="test.py", plan=True, output="test-plan", focus=None, timeout=None)
 
         exit_code = crc.cmd_review(args)
 
@@ -188,23 +155,17 @@ Approve
         mock_gather: Mock,
         mock_run: Mock,
         capsys: pytest.CaptureFixture[str],
-        sample_code: str
+        sample_code: str,
     ) -> None:
         """Test review command failure."""
         mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
         mock_gather.return_value = (sample_code, [Path("test.py")])
         mock_run.return_value = crc.RunResult(
-            success=False,
-            output="Partial output",
-            error="Review failed"
+            success=False, output="Partial output", error="Review failed"
         )
 
         args = Namespace(
-            target="test.py",
-            plan=False,
-            output="test-review",
-            focus=None,
-            timeout=None
+            target="test.py", plan=False, output="test-review", focus=None, timeout=None
         )
 
         exit_code = crc.cmd_review(args)
@@ -217,11 +178,7 @@ Approve
     @patch("code_review_claude.gather_code_content")
     @patch("code_review_claude.check_claude_availability")
     def test_review_custom_timeout(
-        self,
-        mock_check: Mock,
-        mock_gather: Mock,
-        mock_run: Mock,
-        sample_code: str
+        self, mock_check: Mock, mock_gather: Mock, mock_run: Mock, sample_code: str
     ) -> None:
         """Test review command with custom timeout."""
         mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
@@ -233,7 +190,7 @@ Approve
             plan=False,
             output="test-review",
             focus=None,
-            timeout=120  # Custom timeout
+            timeout=120,  # Custom timeout
         )
 
         exit_code = crc.cmd_review(args)

@@ -177,10 +177,7 @@ def get_stage_status(topic_dir: Path, stage_num: int) -> dict:
             missing.append(file_name)
 
     # Check if all key outputs exist
-    complete = all(
-        (stage_dir / f).exists()
-        for f in stage["key_outputs"]
-    )
+    complete = all((stage_dir / f).exists() for f in stage["key_outputs"])
 
     return {
         "complete": complete,
@@ -278,10 +275,10 @@ def print_status_report(topic_dir: Path) -> None:
     # Load topic metadata
     topic_md = topic_dir / "topic.md"
     if topic_md.exists():
-        content = topic_md.read_text(encoding='utf-8')
-        title_match = re.search(r'title:\s*(.+)', content)
-        status_match = re.search(r'status:\s*(\S+)', content)
-        stage_match = re.search(r'stage:\s*(\d+)', content)
+        content = topic_md.read_text(encoding="utf-8")
+        title_match = re.search(r"title:\s*(.+)", content)
+        status_match = re.search(r"status:\s*(\S+)", content)
+        stage_match = re.search(r"stage:\s*(\d+)", content)
 
         if title_match:
             print(f"Title: {title_match.group(1).strip()}")
@@ -307,7 +304,9 @@ def print_status_report(topic_dir: Path) -> None:
         if not status["complete"] and status["missing_files"]:
             print(f"       Missing: {', '.join(status['missing_files'])}")
         elif status["existing_files"]:
-            print(f"       Files: {', '.join(status['existing_files'][:3])}{'...' if len(status['existing_files']) > 3 else ''}")
+            print(
+                f"       Files: {', '.join(status['existing_files'][:3])}{'...' if len(status['existing_files']) > 3 else ''}"
+            )
 
     print()
 
@@ -372,11 +371,13 @@ def cmd_detect_stage(args) -> None:
 
     # Output just the stage number for scripting
     if args.json:
-        output = json.dumps({
-            "stage": current_stage,
-            "name": stage_info["name"],
-            "folder": stage_info["folder"],
-        })
+        output = json.dumps(
+            {
+                "stage": current_stage,
+                "name": stage_info["name"],
+                "folder": stage_info["folder"],
+            }
+        )
         print(output)
     else:
         print(current_stage)
@@ -436,40 +437,28 @@ Examples:
 
   # Verify dependencies for specific stage
   %(prog)s --verify-dependencies --stage 3
-        """
+        """,
     )
 
+    parser.add_argument("--validate", action="store_true", help="Check if in valid topic folder")
     parser.add_argument(
-        "--validate",
-        action="store_true",
-        help="Check if in valid topic folder"
+        "--status", action="store_true", help="Show completion status of all stages"
     )
     parser.add_argument(
-        "--status",
-        action="store_true",
-        help="Show completion status of all stages"
+        "--detect-stage", action="store_true", help="Detect and output current stage"
     )
     parser.add_argument(
-        "--detect-stage",
-        action="store_true",
-        help="Detect and output current stage"
-    )
-    parser.add_argument(
-        "--verify-dependencies",
-        action="store_true",
-        help="Verify dependencies for target stage"
+        "--verify-dependencies", action="store_true", help="Verify dependencies for target stage"
     )
     parser.add_argument(
         "--stage",
         type=int,
         choices=range(7),
         metavar="STAGE",
-        help="Target stage for dependency verification (0-6)"
+        help="Target stage for dependency verification (0-6)",
     )
     parser.add_argument(
-        "--json",
-        action="store_true",
-        help="Output in JSON format (for --detect-stage)"
+        "--json", action="store_true", help="Output in JSON format (for --detect-stage)"
     )
 
     args = parser.parse_args()

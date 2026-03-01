@@ -12,7 +12,7 @@ def check_quality_issues(content: str) -> dict:
     warnings = []
 
     try:
-        lines = content.split('\n')
+        lines = content.split("\n")
         line_count = len([line for line in lines if line.strip()])
 
         # Check length
@@ -20,20 +20,16 @@ def check_quality_issues(content: str) -> dict:
             warnings.append(f"Command exceeds 150 lines ({line_count})")
 
         # Check frontmatter
-        if not content.startswith('---'):
+        if not content.startswith("---"):
             issues.append("Missing frontmatter")
 
         # Check description
-        if 'description:' not in content:
+        if "description:" not in content:
             issues.append("Missing description field")
     except Exception as e:
         issues.append(f"Error analyzing content: {e}")
 
-    return {
-        'issues': issues,
-        'warnings': warnings,
-        'line_count': line_count
-    }
+    return {"issues": issues, "warnings": warnings, "line_count": line_count}
 
 
 def main():
@@ -52,7 +48,7 @@ def main():
 
     print(yaml.dump(result, default_flow_style=False))
 
-    if result['issues']:
+    if result["issues"]:
         sys.exit(1)
 
 

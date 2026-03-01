@@ -157,6 +157,7 @@ class TestUtilityFunctions(TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             original = PLANS_DIR
             import code_review_auggie
+
             code_review_auggie.PLANS_DIR = Path(tmpdir) / "plans"
 
             try:
@@ -200,13 +201,15 @@ class TestCheckCommand(TestCase):
 
     def test_get_claude_mcp_servers_success(self) -> None:
         """Test getting MCP servers list successfully."""
-        mock_output = json.dumps({
-            "servers": {
-                "auggie-mcp": {
-                    "tools": ["codebase-retrieval"],
+        mock_output = json.dumps(
+            {
+                "servers": {
+                    "auggie-mcp": {
+                        "tools": ["codebase-retrieval"],
+                    },
                 },
-            },
-        })
+            }
+        )
 
         with mock.patch("subprocess.run") as mock_run:
             mock_run.return_value = mock.Mock(
@@ -291,6 +294,7 @@ class TestRunCommand(TestCase):
     def test_run_auggie_prompt_timeout(self) -> None:
         """Test running a prompt that times out."""
         import subprocess
+
         with mock.patch("subprocess.run") as mock_run:
             mock_run.side_effect = subprocess.TimeoutExpired("claude", TIMEOUT_SIMPLE)
             result = run_auggie_prompt("Test prompt", timeout=TIMEOUT_SIMPLE)
@@ -474,6 +478,7 @@ Recommendation: Approve
 
         with tempfile.TemporaryDirectory() as tmpdir:
             import code_review_auggie
+
             original = PLANS_DIR
             code_review_auggie.PLANS_DIR = Path(tmpdir) / "plans"
 
@@ -536,7 +541,9 @@ mode: review
         self.assertEqual(issues[0].identifier, "CRITICAL-001")
         self.assertEqual(issues[0].title, "SQL Injection Vulnerability")
         self.assertEqual(issues[0].location, "src/auth/login.py:45")
-        self.assertEqual(issues[0].issue_description, "User input directly concatenated into SQL query")
+        self.assertEqual(
+            issues[0].issue_description, "User input directly concatenated into SQL query"
+        )
 
     def test_extract_issues_from_section_simple(self) -> None:
         """Test extracting simple bullet issues."""
@@ -634,7 +641,9 @@ mode: review
                     """Mock subprocess.run to create the expected task file."""
                     # Create the task file that tasks CLI would create
                     task_file = tasks_dir / "0001_CRITICAL-001_SQL_Injection.md"
-                    task_file.write_text("# Background\n\nDefault content\n\n# Requirements\n\nDefault requirements")
+                    task_file.write_text(
+                        "# Background\n\nDefault content\n\n# Requirements\n\nDefault requirements"
+                    )
                     return mock.Mock(returncode=0, stdout="", stderr="")
 
                 with mock.patch("subprocess.run", side_effect=mock_subprocess_run):
@@ -704,4 +713,5 @@ mode: review
 
 if __name__ == "__main__":
     import unittest
+
     unittest.main()

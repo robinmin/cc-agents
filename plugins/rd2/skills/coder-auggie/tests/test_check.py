@@ -1,4 +1,5 @@
 """Tests for check command in coder-auggie.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -15,14 +16,10 @@ class TestCheckAuggieAvailability:
 
     @patch("coder_auggie.shutil.which")
     @patch("coder_auggie.subprocess.run")
-    def test_auggie_available_with_version(
-        self, mock_run: Mock, mock_which: Mock
-    ) -> None:
+    def test_auggie_available_with_version(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test successful check with version info."""
         mock_which.return_value = "/usr/local/bin/npx"
-        mock_run.return_value = Mock(
-            returncode=0, stdout="1.2.3\n", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="1.2.3\n", stderr="")
 
         result = ca.check_auggie_availability()
 
@@ -76,13 +73,9 @@ class TestCmdCheck:
         assert "auggie ready" in captured.out
 
     @patch("coder_auggie.check_auggie_availability")
-    def test_check_failure(
-        self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_check_failure(self, mock_check: Mock, capsys: pytest.CaptureFixture[str]) -> None:
         """Test check failure."""
-        mock_check.return_value = ca.CheckResult(
-            available=False, message="ERROR: Not installed"
-        )
+        mock_check.return_value = ca.CheckResult(available=False, message="ERROR: Not installed")
         args = Namespace(verbose=False)
 
         exit_code = ca.cmd_check(args)

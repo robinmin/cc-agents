@@ -59,11 +59,13 @@ class EfficiencyEvaluator:
     """Evaluates token efficiency in skills using rubric-based scoring."""
 
     # Pre-configured rubric scorer
-    RUBRIC_SCORER = RubricScorer([
-        TOKEN_EFFICIENCY_RUBRIC,
-        CONTENT_REDUNDANCY_RUBRIC,
-        CONCISENESS_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            TOKEN_EFFICIENCY_RUBRIC,
+            CONTENT_REDUNDANCY_RUBRIC,
+            CONCISENESS_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "efficiency"

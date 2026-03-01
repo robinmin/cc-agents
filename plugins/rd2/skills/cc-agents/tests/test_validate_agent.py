@@ -31,7 +31,7 @@ def test_validate_agent_missing_file():
 
 def test_validate_agent_valid_structure():
     """Test validation with valid structure."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("""---
 name: test-agent
 description: Use this agent when testing
@@ -214,7 +214,7 @@ def test_validate_frontmatter_skill_valid():
 
 def test_validate_agent_extended_colors():
     """Test validation with extended colors."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("""---
 name: test-agent
 description: Use this agent when testing
@@ -248,7 +248,7 @@ Test output
 
 def test_validate_agent_extended_colors_crimson():
     """Test validation with crimson color."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
         f.write("""---
 name: test-agent
 description: Use this agent when testing

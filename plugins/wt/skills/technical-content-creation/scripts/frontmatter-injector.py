@@ -41,14 +41,15 @@ def load_template(template_name: str, templates_dir: Path) -> Optional[str]:
     """Load a frontmatter template file."""
     template_file = templates_dir / TEMPLATE_MAP.get(template_name, template_name)
     if template_file.exists():
-        return template_file.read_text(encoding='utf-8')
+        return template_file.read_text(encoding="utf-8")
     return None
 
 
 def parse_frontmatter(content: str) -> tuple[dict, str]:
     """Parse YAML frontmatter from markdown content."""
     import re
-    frontmatter_match = re.match(r'^---\n(.*?)\n---\n(.*)$', content, re.DOTALL)
+
+    frontmatter_match = re.match(r"^---\n(.*?)\n---\n(.*)$", content, re.DOTALL)
     if frontmatter_match:
         frontmatter_str = frontmatter_match.group(1)
         body = frontmatter_match.group(2)
@@ -59,24 +60,21 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
 def _parse_yaml_simple(yaml_str: str) -> dict:
     """Parse simple YAML-like frontmatter (key: value pairs only)."""
     frontmatter = {}
-    for line in yaml_str.strip().split('\n'):
+    for line in yaml_str.strip().split("\n"):
         line = line.strip()
-        if ':' in line and not line.startswith('#'):
-            key, value = line.split(':', 1)
+        if ":" in line and not line.startswith("#"):
+            key, value = line.split(":", 1)
             frontmatter[key.strip()] = value.strip()
     return frontmatter
 
 
 def has_frontmatter(content: str) -> bool:
     """Check if content has frontmatter."""
-    return content.strip().startswith('---')
+    return content.strip().startswith("---")
 
 
 def inject_frontmatter(
-    content: str,
-    template_name: str,
-    metadata: dict,
-    templates_dir: Path
+    content: str, template_name: str, metadata: dict, templates_dir: Path
 ) -> str:
     """
     Inject frontmatter into markdown content.
@@ -95,8 +93,8 @@ def inject_frontmatter(
         # Fallback: create basic frontmatter
         now = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         frontmatter = f"""---
-title: "{metadata.get('title', 'Untitled')}"
-topic: {metadata.get('topic', 'unknown')}
+title: "{metadata.get("title", "Untitled")}"
+topic: {metadata.get("topic", "unknown")}
 created_at: {now}
 status: draft
 ---
@@ -105,11 +103,11 @@ status: draft
 
     # Substitute placeholders in template
     now = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-    metadata.setdefault('created_at', now)
-    metadata.setdefault('updated_at', now)
-    metadata.setdefault('version', 1)
-    metadata.setdefault('status', 'draft')
-    metadata.setdefault('confidence', 'MEDIUM')
+    metadata.setdefault("created_at", now)
+    metadata.setdefault("updated_at", now)
+    metadata.setdefault("version", 1)
+    metadata.setdefault("status", "draft")
+    metadata.setdefault("confidence", "MEDIUM")
 
     frontmatter = template
     for key, value in metadata.items():
@@ -154,7 +152,7 @@ def process_file(
     template_name: str,
     metadata: dict,
     templates_dir: Path,
-    validate_only: bool = False
+    validate_only: bool = False,
 ) -> tuple[bool, str]:
     """
     Process a single markdown file for frontmatter.
@@ -172,7 +170,7 @@ def process_file(
     if not file_path.exists():
         return False, f"File not found: {file_path}"
 
-    content = file_path.read_text(encoding='utf-8')
+    content = file_path.read_text(encoding="utf-8")
 
     if has_frontmatter(content):
         if validate_only:
@@ -189,7 +187,7 @@ def process_file(
         return False, f"Missing frontmatter: {file_path.name}"
 
     new_content = inject_frontmatter(content, template_name, metadata, templates_dir)
-    file_path.write_text(new_content, encoding='utf-8')
+    file_path.write_text(new_content, encoding="utf-8")
     return True, f"Injected frontmatter: {file_path.name}"
 
 
@@ -204,7 +202,11 @@ def cmd_validate(args) -> None:
     # Stage-specific validation
     stage_files = {
         "research-brief": ["1-research/research-brief.md"],
-        "outline-option": ["2-outline/outline-option-a.md", "2-outline/outline-option-b.md", "2-outline/outline-option-c.md"],
+        "outline-option": [
+            "2-outline/outline-option-a.md",
+            "2-outline/outline-option-b.md",
+            "2-outline/outline-option-c.md",
+        ],
         "outline-approved": ["2-outline/outline-approved.md"],
         "draft-article": ["3-draft/draft-article.md"],
     }
@@ -247,8 +249,7 @@ def cmd_inject(args) -> None:
     # Stage-specific injection
     if args.stage == "all" or args.stage == "1":
         success, msg = process_file(
-            repo_root / "1-research/research-brief.md",
-            "research-brief", metadata, templates_dir
+            repo_root / "1-research/research-brief.md", "research-brief", metadata, templates_dir
         )
         if success:
             files_injected += 1
@@ -256,10 +257,12 @@ def cmd_inject(args) -> None:
             files_skipped += 1
 
     if args.stage == "all" or args.stage == "2":
-        for opt in ['a', 'b', 'c']:
+        for opt in ["a", "b", "c"]:
             success, _ = process_file(
                 repo_root / f"2-outline/outline-option-{opt}.md",
-                "outline-option", metadata | {"option": opt, "style": f"style-{opt}"}, templates_dir
+                "outline-option",
+                metadata | {"option": opt, "style": f"style-{opt}"},
+                templates_dir,
             )
             if success:
                 files_injected += 1
@@ -267,11 +270,15 @@ def cmd_inject(args) -> None:
                 files_skipped += 1
         success, _ = process_file(
             repo_root / "2-outline/outline-approved.md",
-            "outline-approved", metadata | {"selected_option": "a", "approved_by": "user"}, templates_dir
+            "outline-approved",
+            metadata | {"selected_option": "a", "approved_by": "user"},
+            templates_dir,
         )
         success, _ = process_file(
             repo_root / "2-outline/outline-approved.md",
-            "outline-approved", metadata | {"selected_option": "a", "approved_by": "user"}, templates_dir
+            "outline-approved",
+            metadata | {"selected_option": "a", "approved_by": "user"},
+            templates_dir,
         )
         if success:
             files_injected += 1
@@ -281,7 +288,9 @@ def cmd_inject(args) -> None:
     if args.stage == "all" or args.stage == "3":
         success, _ = process_file(
             repo_root / "3-draft/draft-article.md",
-            "draft-article", metadata | {"version": 1}, templates_dir
+            "draft-article",
+            metadata | {"version": 1},
+            templates_dir,
         )
         if success:
             files_injected += 1
@@ -289,13 +298,14 @@ def cmd_inject(args) -> None:
             files_skipped += 1
 
     if args.stage == "all" or args.stage == "5":
-        for platform in ['twitter', 'linkedin', 'devto', 'medium']:
+        for platform in ["twitter", "linkedin", "devto", "medium"]:
             file_path = repo_root / f"5-adaptation/article-{platform}.md"
             if file_path.exists():
                 success, _ = process_file(
-                    file_path, "article-adaptation",
+                    file_path,
+                    "article-adaptation",
                     metadata | {"platform": platform, "original_length": 0, "adapted_length": 0},
-                    templates_dir
+                    templates_dir,
                 )
                 if success:
                     files_injected += 1
@@ -305,7 +315,9 @@ def cmd_inject(args) -> None:
     if args.stage == "all" or args.stage == "6":
         success, _ = process_file(
             repo_root / "6-publish/article.md",
-            "article-published", metadata | {"published_at": datetime.now().isoformat(), "word_count": 0}, templates_dir
+            "article-published",
+            metadata | {"published_at": datetime.now().isoformat(), "word_count": 0},
+            templates_dir,
         )
         if success:
             files_injected += 1
@@ -333,25 +345,33 @@ Examples:
 
   # Inject frontmatter into specific stage
   %(prog)s --inject --stage 3 --topic my-topic --collection tutorials
-        """
+        """,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     # Validate command
-    validate_parser = subparsers.add_parser("validate", help="Validate frontmatter in markdown files")
+    validate_parser = subparsers.add_parser(
+        "validate", help="Validate frontmatter in markdown files"
+    )
     validate_parser.set_defaults(command="validate")
 
     # Inject command
     inject_parser = subparsers.add_parser("inject", help="Inject frontmatter into markdown files")
     inject_parser.set_defaults(command="inject")
-    inject_parser.add_argument("--stage", "-s", choices=["1", "2", "3", "5", "6", "all"], default="all",
-                              help="Stage to process (default: all)")
+    inject_parser.add_argument(
+        "--stage",
+        "-s",
+        choices=["1", "2", "3", "5", "6", "all"],
+        default="all",
+        help="Stage to process (default: all)",
+    )
     inject_parser.add_argument("--topic", "-t", help="Topic name for metadata")
     inject_parser.add_argument("--collection", "-c", help="Collection name for metadata")
     inject_parser.add_argument("--title", help="Article title for metadata")
-    inject_parser.add_argument("--confidence", choices=["HIGH", "MEDIUM", "LOW"], default="MEDIUM",
-                              help="Confidence level")
+    inject_parser.add_argument(
+        "--confidence", choices=["HIGH", "MEDIUM", "LOW"], default="MEDIUM", help="Confidence level"
+    )
     inject_parser.add_argument("--research-type", default="systematic", help="Research type")
     inject_parser.add_argument("--platform", default="blog", help="Platform name")
     inject_parser.add_argument("--style", default="technical-writer", help="Style profile")

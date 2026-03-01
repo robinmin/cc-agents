@@ -142,9 +142,7 @@ def generate_api_docs() -> str:
     lines = []
     lines.append("# Skills API Documentation")
     lines.append("")
-    lines.append(
-        "This document describes the main API for the skills evaluation system."
-    )
+    lines.append("This document describes the main API for the skills evaluation system.")
     lines.append("")
     lines.append("## Core Functions")
     lines.append("")
@@ -266,17 +264,13 @@ def main() -> int:
         action="store_true",
         help="Check if docs are up to date (exit code 1 if not)",
     )
-    parser.add_argument(
-        "--rules", action="store_true", help="Only generate rule documentation"
-    )
+    parser.add_argument("--rules", action="store_true", help="Only generate rule documentation")
     parser.add_argument(
         "--evaluators",
         action="store_true",
         help="Only generate evaluator documentation",
     )
-    parser.add_argument(
-        "--api", action="store_true", help="Only generate API documentation"
-    )
+    parser.add_argument("--api", action="store_true", help="Only generate API documentation")
     parser.add_argument(
         "--output-dir",
         "-o",

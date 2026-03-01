@@ -108,8 +108,8 @@ def slugify(text: str) -> str:
     """
     # Convert to lowercase and replace spaces with hyphens
     text = text.lower().strip()
-    text = re.sub(r'[^\w\s-]', '', text)
-    text = re.sub(r'[-\s]+', '-', text)
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[-\s]+", "-", text)
     return text
 
 
@@ -118,11 +118,9 @@ def load_collections_json(repo_root: Path) -> dict:
     collections_file = repo_root / "collections.json"
 
     if not collections_file.exists():
-        raise FileNotFoundError(
-            f"Collections file not found: {collections_file}"
-        )
+        raise FileNotFoundError(f"Collections file not found: {collections_file}")
 
-    with open(collections_file, 'r', encoding='utf-8') as f:
+    with open(collections_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -132,14 +130,11 @@ def save_collections_json(repo_root: Path, data: dict) -> None:
 
     data["last_updated"] = datetime.now().isoformat()
 
-    with open(collections_file, 'w', encoding='utf-8') as f:
+    with open(collections_file, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
-def find_collection_by_id_or_name(
-    collections_data: dict,
-    identifier: str
-) -> Optional[dict]:
+def find_collection_by_id_or_name(collections_data: dict, identifier: str) -> Optional[dict]:
     """
     Find a collection by ID or name.
 
@@ -206,11 +201,7 @@ def derive_collection_from_topic(topic_name: str) -> str:
     return topic_lower
 
 
-def create_collection(
-    repo_root: Path,
-    collections_data: dict,
-    collection_name: str
-) -> dict:
+def create_collection(repo_root: Path, collections_data: dict, collection_name: str) -> dict:
     """
     Create a new collection.
 
@@ -248,7 +239,7 @@ def create_collection(
         "updated_at": datetime.now().strftime("%Y-%m-%d"),
         "topic_count": 0,
         "published_count": 0,
-        "tags": []
+        "tags": [],
     }
 
     # Add to collections
@@ -258,11 +249,7 @@ def create_collection(
     return new_collection
 
 
-def register_topic(
-    repo_root: Path,
-    collection_id: str,
-    topic_id: str
-) -> None:
+def register_topic(repo_root: Path, collection_id: str, topic_id: str) -> None:
     """
     Register a topic in collections.json (increment topic count).
 
@@ -283,10 +270,7 @@ def register_topic(
 
 
 def create_topic_structure(
-    repo_root: Path,
-    collection_id: str,
-    topic_id: str,
-    topic_data: dict
+    repo_root: Path, collection_id: str, topic_id: str, topic_data: dict
 ) -> Path:
     """
     Create the topic directory structure and topic.md file.
@@ -335,7 +319,7 @@ def create_topic_structure(
     )
 
     topic_md = topic_dir / "topic.md"
-    topic_md.write_text(topic_content, encoding='utf-8')
+    topic_md.write_text(topic_content, encoding="utf-8")
 
     return topic_dir
 
@@ -448,44 +432,24 @@ Examples:
             --email "you@example.com" \\
             --tag "ai" \\
             --notes "Focus on Claude Code and GitHub Copilot"
-        """
+        """,
     )
 
     parser.add_argument(
-        "--topic",
-        required=True,
-        help="Topic identifier (will be slugified if needed)"
+        "--topic", required=True, help="Topic identifier (will be slugified if needed)"
     )
     parser.add_argument(
         "--collection",
         required=False,
         default=None,
-        help="Collection name or ID (auto-detected from topic name if not provided)"
+        help="Collection name or ID (auto-detected from topic name if not provided)",
     )
-    parser.add_argument(
-        "--title",
-        help="Human-readable title"
-    )
-    parser.add_argument(
-        "--description",
-        help="Topic description"
-    )
-    parser.add_argument(
-        "--author",
-        help="Author name"
-    )
-    parser.add_argument(
-        "--email",
-        help="Author email"
-    )
-    parser.add_argument(
-        "--tag",
-        help="Primary tag"
-    )
-    parser.add_argument(
-        "--notes",
-        help="Additional notes"
-    )
+    parser.add_argument("--title", help="Human-readable title")
+    parser.add_argument("--description", help="Topic description")
+    parser.add_argument("--author", help="Author name")
+    parser.add_argument("--email", help="Author email")
+    parser.add_argument("--tag", help="Primary tag")
+    parser.add_argument("--notes", help="Additional notes")
 
     args = parser.parse_args()
 

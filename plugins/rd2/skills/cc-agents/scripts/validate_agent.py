@@ -32,31 +32,39 @@ from schema.sections import (  # noqa: E402
 
 # Agent-specific validation extensions
 
-def validate_agent_specific(agent_path: Path, content: str, lines: list[str]) -> list[ValidationIssue]:
+
+def validate_agent_specific(
+    agent_path: Path, content: str, lines: list[str]
+) -> list[ValidationIssue]:
     """Additional agent-specific validations."""
     issues = []
 
     # Check for competencies (list items)
     competency_markers = sum(1 for line in lines if line.strip().startswith(("- ", "* ", "1.")))
     if competency_markers < 20:
-        issues.append(ValidationIssue(
-            "warning", "content",
-            f"Low competency count: {competency_markers} (recommended: 50+)"
-        ))
+        issues.append(
+            ValidationIssue(
+                "warning",
+                "content",
+                f"Low competency count: {competency_markers} (recommended: 50+)",
+            )
+        )
 
     # Check line count
     non_empty = [line for line in lines if line.strip()]
     line_count = len(non_empty)
     if line_count < 300:
-        issues.append(ValidationIssue(
-            "warning", "content",
-            f"Low line count: {line_count} (recommended: 400-600)"
-        ))
+        issues.append(
+            ValidationIssue(
+                "warning", "content", f"Low line count: {line_count} (recommended: 400-600)"
+            )
+        )
     elif line_count > 700:
-        issues.append(ValidationIssue(
-            "warning", "content",
-            f"High line count: {line_count} (recommended: 400-600)"
-        ))
+        issues.append(
+            ValidationIssue(
+                "warning", "content", f"High line count: {line_count} (recommended: 400-600)"
+            )
+        )
 
     return issues
 

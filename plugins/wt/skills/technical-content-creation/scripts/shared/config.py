@@ -17,6 +17,7 @@ from datetime import datetime
 # Note: The package is 'jsoncomment' and exports 'JsonComment'
 try:
     from jsoncomment import JsonComment
+
     HAS_JSON_COMMENT = True
 except ImportError:
     HAS_JSON_COMMENT = False
@@ -50,7 +51,7 @@ def load_jsonc(file_path: Path) -> dict[str, Any]:
     if not file_path.exists():
         raise FileNotFoundError(f"Config file not found: {file_path}")
 
-    content = file_path.read_text(encoding='utf-8')
+    content = file_path.read_text(encoding="utf-8")
 
     if HAS_JSON_COMMENT:
         # Use json-comment library for safe parsing
@@ -58,11 +59,7 @@ def load_jsonc(file_path: Path) -> dict[str, Any]:
         try:
             return jc.loads(content)
         except Exception as e:
-            raise json.JSONDecodeError(
-                f"Invalid JSONC in {file_path}: {str(e)}",
-                content,
-                0
-            )
+            raise json.JSONDecodeError(f"Invalid JSONC in {file_path}: {str(e)}", content, 0)
     else:
         # Fallback: use standard JSON module (comments will cause error)
         # This is intentional - we want proper JSONC parsing, not fragile regex
@@ -73,7 +70,7 @@ def load_jsonc(file_path: Path) -> dict[str, Any]:
                 f"JSON with comments detected but json-comment library not installed. "
                 f"Install it with: pip install json-comment. Error: {e.msg}",
                 e.doc,
-                e.pos
+                e.pos,
             )
 
 
@@ -102,7 +99,7 @@ def save_jsonc(data: dict[str, Any], file_path: Path, pretty: bool = True) -> No
         )
         json_str = header + json_str
 
-    file_path.write_text(json_str, encoding='utf-8')
+    file_path.write_text(json_str, encoding="utf-8")
 
 
 def ensure_config_exists() -> None:
@@ -119,7 +116,7 @@ def ensure_config_exists() -> None:
                 "default_collection": None,
                 "auto_create_collections": True,
                 "collections_path": "collections",
-            }
+            },
         }
         save_jsonc(default_config, WTConfigPath.CONFIG_FILE)
 
@@ -141,9 +138,7 @@ def get_wt_config() -> dict[str, Any]:
         return {}
     except json.JSONDecodeError as e:
         raise json.JSONDecodeError(
-            f"Invalid JSONC in {WTConfigPath.CONFIG_FILE}: {e.msg}",
-            e.doc,
-            e.pos
+            f"Invalid JSONC in {WTConfigPath.CONFIG_FILE}: {e.msg}", e.doc, e.pos
         )
 
 
@@ -208,8 +203,7 @@ def set_tcc_config(key: str, value: Any) -> None:
 
     if key not in valid_keys:
         raise ValueError(
-            f"Invalid TCC config key: {key}. "
-            f"Valid keys are: {', '.join(sorted(valid_keys))}"
+            f"Invalid TCC config key: {key}. Valid keys are: {', '.join(sorted(valid_keys))}"
         )
 
     # Load current config
@@ -251,9 +245,7 @@ def set_tcc_repo_root(path: str) -> None:
 
     # Validate path exists
     if not root_path.exists():
-        raise FileNotFoundError(
-            f"Repository root does not exist: {root_path}"
-        )
+        raise FileNotFoundError(f"Repository root does not exist: {root_path}")
 
     set_tcc_config("tcc_repo_root", str(root_path))
 
@@ -272,6 +264,7 @@ def print_config() -> None:
 if __name__ == "__main__":
     # CLI for testing
     import sys
+
     if len(sys.argv) > 1:
         if sys.argv[1] == "get":
             print_config()

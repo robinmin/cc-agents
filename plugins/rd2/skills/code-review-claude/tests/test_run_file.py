@@ -1,4 +1,5 @@
 """Tests for run-file command in code-review-claude.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -18,11 +19,7 @@ class TestRunClaudeFromFile:
     def test_run_from_file_success(self, mock_run: Mock, temp_file: Path) -> None:
         """Test successful file-based prompt execution."""
         temp_file.write_text("Test prompt from file")
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="Test response from Claude",
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Test response from Claude", stderr="")
 
         result = crc.run_claude_from_file(temp_file)
 
@@ -31,16 +28,14 @@ class TestRunClaudeFromFile:
         assert result.error is None
 
     @patch("code_review_claude.subprocess.run")
-    def test_run_from_file_with_output(self, mock_run: Mock, temp_file: Path, tmp_path: Path) -> None:
+    def test_run_from_file_with_output(
+        self, mock_run: Mock, temp_file: Path, tmp_path: Path
+    ) -> None:
         """Test file-based prompt with output file."""
         temp_file.write_text("Test prompt from file")
         output_file = tmp_path / "output.txt"
 
-        mock_run.return_value = Mock(
-            returncode=0,
-            stdout="Test response from Claude",
-            stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="Test response from Claude", stderr="")
 
         result = crc.run_claude_from_file(temp_file, output_file=output_file)
 
@@ -61,9 +56,7 @@ class TestRunClaudeFromFile:
     def test_run_from_file_timeout(self, mock_run: Mock, temp_file: Path) -> None:
         """Test file-based prompt timeout."""
         temp_file.write_text("Test prompt from file")
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["claude", "ask"], timeout=600
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["claude", "ask"], timeout=600)
 
         result = crc.run_claude_from_file(temp_file)
 
@@ -88,11 +81,7 @@ class TestCmdRunFile:
     @patch("code_review_claude.run_claude_from_file")
     @patch("code_review_claude.check_claude_availability")
     def test_run_file_success(
-        self,
-        mock_check: Mock,
-        mock_run: Mock,
-        capsys: pytest.CaptureFixture[str],
-        temp_file: Path
+        self, mock_check: Mock, mock_run: Mock, capsys: pytest.CaptureFixture[str], temp_file: Path
     ) -> None:
         """Test successful run-file command."""
         temp_file.write_text("Test prompt")
@@ -114,14 +103,16 @@ class TestCmdRunFile:
         mock_run: Mock,
         capsys: pytest.CaptureFixture[str],
         temp_file: Path,
-        tmp_path: Path
+        tmp_path: Path,
     ) -> None:
         """Test run-file command with output file."""
         temp_file.write_text("Test prompt")
         output_file = tmp_path / "output.txt"
 
         # Mock that creates the output file when called
-        def mock_run_from_file(prompt_file: Path, timeout: int, output_file: Path | None = None) -> crc.RunResult:
+        def mock_run_from_file(
+            prompt_file: Path, timeout: int, output_file: Path | None = None
+        ) -> crc.RunResult:
             if output_file:
                 output_file.parent.mkdir(parents=True, exist_ok=True)
                 output_file.write_text("Test response")
@@ -140,10 +131,7 @@ class TestCmdRunFile:
 
     @patch("code_review_claude.check_claude_availability")
     def test_run_file_claude_not_available(
-        self,
-        mock_check: Mock,
-        capsys: pytest.CaptureFixture[str],
-        temp_file: Path
+        self, mock_check: Mock, capsys: pytest.CaptureFixture[str], temp_file: Path
     ) -> None:
         """Test run-file command when Claude is not available."""
         temp_file.write_text("Test prompt")
@@ -161,19 +149,13 @@ class TestCmdRunFile:
     @patch("code_review_claude.run_claude_from_file")
     @patch("code_review_claude.check_claude_availability")
     def test_run_file_failure(
-        self,
-        mock_check: Mock,
-        mock_run: Mock,
-        capsys: pytest.CaptureFixture[str],
-        temp_file: Path
+        self, mock_check: Mock, mock_run: Mock, capsys: pytest.CaptureFixture[str], temp_file: Path
     ) -> None:
         """Test run-file command failure."""
         temp_file.write_text("Test prompt")
         mock_check.return_value = crc.CheckResult(available=True, message="claude ready")
         mock_run.return_value = crc.RunResult(
-            success=False,
-            output="Partial output",
-            error="Error occurred"
+            success=False, output="Partial output", error="Error occurred"
         )
 
         args = Namespace(prompt_file=str(temp_file), output=None, timeout=None)

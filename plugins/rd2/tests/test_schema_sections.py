@@ -1,6 +1,5 @@
 """Tests for schema/sections.py - section validation."""
 
-
 from schema.sections import (
     SectionDefinition,
     validate_sections,
@@ -15,11 +14,7 @@ class TestSectionDefinition:
 
     def test_create_section_definition(self):
         """Test creating a section definition."""
-        section = SectionDefinition(
-            name="Overview",
-            required=True,
-            patterns=[r"##\s+Overview"]
-        )
+        section = SectionDefinition(name="Overview", required=True, patterns=[r"##\s+Overview"])
         assert section.name == "Overview"
         assert section.required is True
         assert len(section.patterns) == 1
@@ -89,7 +84,9 @@ class TestValidateSections:
         ]
         issues = validate_sections(lines, SKILL_SECTIONS)
         # Should find Overview and Examples
-        section_names = [i.message.replace("Section not found: ", "") for i in issues if "not found" in i.message]
+        section_names = [
+            i.message.replace("Section not found: ", "") for i in issues if "not found" in i.message
+        ]
         assert "Overview" not in section_names
 
     def test_empty_lines(self):

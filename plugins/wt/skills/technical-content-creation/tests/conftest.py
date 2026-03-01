@@ -21,10 +21,10 @@ if str(_scripts_dir_abs) not in sys.path:
 # Explicitly register the script modules so they can be imported
 # Map importable module names (with underscores) to actual file names (with dashes)
 _script_modules = {
-    'context_validator': 'context-validator',
-    'outline_generator': 'outline-generator',
-    'repo_config': 'repo-config',
-    'topic_init': 'topic-init',
+    "context_validator": "context-validator",
+    "outline_generator": "outline-generator",
+    "repo_config": "repo-config",
+    "topic_init": "topic-init",
 }
 
 for _module_name, _file_name in _script_modules.items():
@@ -45,6 +45,7 @@ for _module_name, _file_name in _script_modules.items():
 # ============================================================================
 # Config Directory Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def mock_config_dir(tmp_path):
@@ -104,6 +105,7 @@ def mock_empty_jsonc_file(mock_config_dir):
 # Repository Root Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def mock_repo_root(tmp_path):
     """
@@ -127,14 +129,12 @@ def mock_repo_root(tmp_path):
                 "published_count": 0,
                 "created_at": "2026-01-30",
                 "updated_at": "2026-01-30",
-                "tags": ["test"]
+                "tags": ["test"],
             }
         ],
-        "last_updated": "2026-01-30T00:00:00Z"
+        "last_updated": "2026-01-30T00:00:00Z",
     }
-    (repo_root / "collections.json").write_text(
-        json.dumps(collections_data, indent=2)
-    )
+    (repo_root / "collections.json").write_text(json.dumps(collections_data, indent=2))
 
     # Create collections directory and test-collection subdirectory
     collections_dir = repo_root / "collections"
@@ -172,6 +172,7 @@ def mock_repo_root_without_collections(tmp_path):
 # ============================================================================
 # Topic Directory Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def mock_topic_dir(mock_repo_root):
@@ -242,7 +243,7 @@ Track progress through stages.
         "3-draft",
         "4-illustration",
         "5-adaptation",
-        "6-publish"
+        "6-publish",
     ]
 
     # Create subfolders map
@@ -250,7 +251,7 @@ Track progress through stages.
         "3-draft": ["draft-revisions"],
         "4-illustration": ["images"],
         "6-publish": ["published", "assets"],
-        "2-outline": ["materials"]
+        "2-outline": ["materials"],
     }
 
     for stage in stage_folders:
@@ -265,10 +266,14 @@ Track progress through stages.
         # Add key files for stages 0-2 (make them complete)
         if stage == "0-materials":
             (stage_dir / "materials.json").write_text('{"materials": []}')
-            (stage_dir / "materials-extracted.md").write_text("# Materials Extracted\n\nTest content.")
+            (stage_dir / "materials-extracted.md").write_text(
+                "# Materials Extracted\n\nTest content."
+            )
         elif stage == "1-research":
             (stage_dir / "sources.json").write_text('{"sources": []}')
-            (stage_dir / "research-brief.md").write_text("# Research Brief\n\nTest research content.")
+            (stage_dir / "research-brief.md").write_text(
+                "# Research Brief\n\nTest research content."
+            )
         elif stage == "2-outline":
             (stage_dir / "outline-approved.md").write_text("# Outline\n\nTest outline.")
 
@@ -296,7 +301,7 @@ def mock_incomplete_topic_dir(mock_repo_root):
     # Create only stage 0 (materials) - incomplete
     materials_dir = topic_dir / "0-materials"
     materials_dir.mkdir()
-    (materials_dir / "materials.json").write_text('{}')
+    (materials_dir / "materials.json").write_text("{}")
 
     # Other stages don't exist
 
@@ -306,6 +311,7 @@ def mock_incomplete_topic_dir(mock_repo_root):
 # ============================================================================
 # Research Brief Fixture
 # ============================================================================
+
 
 @pytest.fixture
 def mock_research_brief(tmp_path):
@@ -347,6 +353,7 @@ Summary of research findings.
 # Outline Directory Fixture
 # ============================================================================
 
+
 @pytest.fixture
 def mock_outline_dir(tmp_path):
     """
@@ -363,6 +370,7 @@ def mock_outline_dir(tmp_path):
 # ============================================================================
 # CLI Arguments Fixtures
 # ============================================================================
+
 
 @pytest.fixture
 def mock_cmd_validate_args():
@@ -433,6 +441,7 @@ def mock_cmd_approve_args():
 # Collections Data Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def mock_collections_data():
     """
@@ -452,7 +461,7 @@ def mock_collections_data():
                 "published_count": 0,
                 "created_at": "2026-01-30",
                 "updated_at": "2026-01-30",
-                "tags": ["test"]
+                "tags": ["test"],
             },
             {
                 "id": "another-collection",
@@ -463,16 +472,17 @@ def mock_collections_data():
                 "published_count": 0,
                 "created_at": "2026-01-30",
                 "updated_at": "2026-01-30",
-                "tags": []
-            }
+                "tags": [],
+            },
         ],
-        "last_updated": "2026-01-30T00:00:00Z"
+        "last_updated": "2026-01-30T00:00:00Z",
     }
 
 
 # ============================================================================
 # Topic Data Fixture
 # ============================================================================
+
 
 @pytest.fixture
 def mock_topic_data():
@@ -489,13 +499,14 @@ def mock_topic_data():
         "author_email": "test@example.com",
         "primary_tag": "test",
         "primary_keyword": "test-keyword",
-        "notes": "Test notes for unit testing"
+        "notes": "Test notes for unit testing",
     }
 
 
 # ============================================================================
 # Sys Path Fixture for Module Imports
 # ============================================================================
+
 
 @pytest.fixture(autouse=True)
 def add_scripts_to_sys_path(monkeypatch, tmp_path):
@@ -505,6 +516,7 @@ def add_scripts_to_sys_path(monkeypatch, tmp_path):
     This allows tests to import from the scripts module directly.
     """
     import sys
+
     scripts_dir = Path(__file__).parent.parent / "scripts"
     if str(scripts_dir) not in sys.path:
         monkeypatch.syspath_prepend(str(scripts_dir))
@@ -513,6 +525,7 @@ def add_scripts_to_sys_path(monkeypatch, tmp_path):
 # ============================================================================
 # TCC Config Fixture
 # ============================================================================
+
 
 @pytest.fixture
 def mock_tcc_config():
@@ -526,5 +539,5 @@ def mock_tcc_config():
         "tcc_repo_root": "/mock/repo/root",
         "default_collection": "test-collection",
         "auto_create_collections": True,
-        "collections_path": "collections"
+        "collections_path": "collections",
     }

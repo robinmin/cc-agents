@@ -26,10 +26,8 @@ from image_generator import (
     HuggingFaceBackend,
     GeminiBackend,
     NanoBananaBackend,
-
     # Main framework
     ImageGenerator,
-
     # Utilities
     parse_resolution,
     parse_variables,
@@ -39,10 +37,10 @@ from image_generator import (
 )
 
 
-
 # =============================================================================
 # Test Data Structures
 # =============================================================================
+
 
 class TestGenerationRequest:
     """Test GenerationRequest dataclass."""
@@ -63,7 +61,7 @@ class TestGenerationRequest:
             resolution=(1920, 1080),
             steps=30,
             timeout=120,
-            model="custom-model"
+            model="custom-model",
         )
         assert request.prompt == "Custom prompt"
         assert request.resolution == (1920, 1080)
@@ -81,7 +79,7 @@ class TestGenerationResult:
             success=True,
             image_bytes=b"fake_image_data",
             method="huggingface",
-            metadata={"model": "test-model"}
+            metadata={"model": "test-model"},
         )
         assert result.success is True
         assert result.image_bytes == b"fake_image_data"
@@ -91,11 +89,7 @@ class TestGenerationResult:
 
     def test_error_result(self):
         """Test error GenerationResult."""
-        result = GenerationResult(
-            success=False,
-            method="gemini",
-            error="API error occurred"
-        )
+        result = GenerationResult(success=False, method="gemini", error="API error occurred")
         assert result.success is False
         assert result.image_bytes is None
         assert result.method == "gemini"
@@ -105,6 +99,7 @@ class TestGenerationResult:
 # =============================================================================
 # Test HuggingFace Backend
 # =============================================================================
+
 
 class TestHuggingFaceBackend:
     """Test HuggingFace backend implementation."""
@@ -179,10 +174,7 @@ class TestHuggingFaceBackend:
         mock_post.return_value = mock_response
 
         backend = HuggingFaceBackend(api_token="test_token")
-        request = GenerationRequest(
-            prompt="Test",
-            model="custom/model-123"
-        )
+        request = GenerationRequest(prompt="Test", model="custom/model-123")
 
         result = backend.generate(request)
 
@@ -255,6 +247,7 @@ class TestHuggingFaceBackend:
 # =============================================================================
 # Test Gemini Backend
 # =============================================================================
+
 
 class TestGeminiBackend:
     """Test Gemini backend implementation."""
@@ -356,7 +349,9 @@ class TestGeminiBackend:
         backend = GeminiBackend(api_key="test_key")
 
         # Mock _get_client to raise ImportError
-        with patch.object(backend, "_get_client", side_effect=ImportError("No module named 'google.genai'")):
+        with patch.object(
+            backend, "_get_client", side_effect=ImportError("No module named 'google.genai'")
+        ):
             request = GenerationRequest(prompt="Test")
             result = backend.generate(request)
 
@@ -391,6 +386,7 @@ class TestGeminiBackend:
 # =============================================================================
 # Test NanoBanana Backend
 # =============================================================================
+
 
 class TestNanoBananaBackend:
     """Test nano banana backend implementation."""
@@ -435,11 +431,7 @@ class TestNanoBananaBackend:
     def test_generate_returns_mcp_instructions(self):
         """Test generate returns instructions for MCP invocation."""
         backend = NanoBananaBackend()
-        request = GenerationRequest(
-            prompt="Test image",
-            resolution=(1024, 1024),
-            steps=10
-        )
+        request = GenerationRequest(prompt="Test image", resolution=(1024, 1024), steps=10)
 
         result = backend.generate(request)
 
@@ -450,12 +442,7 @@ class TestNanoBananaBackend:
 
     def test_get_mcp_params(self):
         """Test get_mcp_params returns correct parameters."""
-        request = GenerationRequest(
-            prompt="A robot",
-            resolution=(1024, 1024),
-            steps=25,
-            timeout=60
-        )
+        request = GenerationRequest(prompt="A robot", resolution=(1024, 1024), steps=25, timeout=60)
 
         params = NanoBananaBackend.get_mcp_params(request)
 
@@ -468,20 +455,12 @@ class TestNanoBananaBackend:
     def test_get_mcp_params_steps_clamping(self):
         """Test steps are clamped to valid range."""
         # Test with steps > 20
-        request = GenerationRequest(
-            prompt="Test",
-            resolution=(1024, 1024),
-            steps=50
-        )
+        request = GenerationRequest(prompt="Test", resolution=(1024, 1024), steps=50)
         params = NanoBananaBackend.get_mcp_params(request)
         assert params["steps"] == 20
 
         # Test with steps < 1
-        request = GenerationRequest(
-            prompt="Test",
-            resolution=(1024, 1024),
-            steps=0
-        )
+        request = GenerationRequest(prompt="Test", resolution=(1024, 1024), steps=0)
         params = NanoBananaBackend.get_mcp_params(request)
         assert params["steps"] == 1
 
@@ -489,6 +468,7 @@ class TestNanoBananaBackend:
 # =============================================================================
 # Test Main ImageGenerator Framework
 # =============================================================================
+
 
 class TestImageGenerator:
     """Test main ImageGenerator framework."""
@@ -508,11 +488,7 @@ class TestImageGenerator:
 
     def test_backend_priorities(self):
         """Test backend priority order."""
-        assert ImageGenerator.BACKEND_PRIORITIES == [
-            "huggingface",
-            "gemini",
-            "nano_banana"
-        ]
+        assert ImageGenerator.BACKEND_PRIORITIES == ["huggingface", "gemini", "nano_banana"]
 
     def test_get_available_backends(self, monkeypatch):
         """Test getting list of available backends."""
@@ -609,9 +585,7 @@ class TestImageGenerator:
 
         # Mock successful generation
         mock_backend.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test_image",
-            method="huggingface"
+            success=True, image_bytes=b"test_image", method="huggingface"
         )
 
         generator = ImageGenerator()
@@ -632,7 +606,7 @@ class TestImageGenerator:
         # First call fails with loading, second succeeds
         mock_backend.generate.side_effect = [
             GenerationResult(success=False, method="huggingface", error="Model loading"),
-            GenerationResult(success=True, image_bytes=b"test", method="huggingface")
+            GenerationResult(success=True, image_bytes=b"test", method="huggingface"),
         ]
 
         generator = ImageGenerator()
@@ -645,6 +619,7 @@ class TestImageGenerator:
 # =============================================================================
 # Test Utility Functions
 # =============================================================================
+
 
 class TestParseResolution:
     """Test parse_resolution utility function."""
@@ -795,7 +770,7 @@ class TestSaveImage:
         """Test path validation accepts valid image extensions."""
         from image_generator import _validate_output_path
 
-        valid_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.tiff']
+        valid_extensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".tiff"]
 
         for ext in valid_extensions:
             test_path = tmp_path / f"test{ext}"
@@ -858,25 +833,25 @@ class TestSaveImage:
 # Test Configuration Fixtures
 # =============================================================================
 
+
 @pytest.fixture
 def clean_env(monkeypatch):
     """Fixture to clean environment variables before tests."""
     # Remove all image generation env vars
-    for key in ["HUGGINGFACE_API_TOKEN", "HUGGINGFACE_MODEL",
-                "GEMINI_API_KEY", "GEMINI_MODEL"]:
+    for key in ["HUGGINGFACE_API_TOKEN", "HUGGINGFACE_MODEL", "GEMINI_API_KEY", "GEMINI_MODEL"]:
         monkeypatch.delenv(key, raising=False)
 
     yield
 
     # Cleanup after test
-    for key in ["HUGGINGFACE_API_TOKEN", "HUGGINGFACE_API_TOKEN",
-                "GEMINI_API_KEY", "GEMINI_MODEL"]:
+    for key in ["HUGGINGFACE_API_TOKEN", "HUGGINGFACE_API_TOKEN", "GEMINI_API_KEY", "GEMINI_MODEL"]:
         monkeypatch.delenv(key, raising=False)
 
 
 # =============================================================================
 # Integration Tests (with mocked APIs)
 # =============================================================================
+
 
 class TestIntegration:
     """Integration tests for the complete framework."""
@@ -901,10 +876,7 @@ class TestIntegration:
 
         # Create generator and generate
         generator = ImageGenerator()
-        result = generator.generate(
-            prompt="Integration test image",
-            resolution=(1024, 1024)
-        )
+        result = generator.generate(prompt="Integration test image", resolution=(1024, 1024))
 
         assert result.success is True
         assert result.image_bytes is not None
@@ -936,6 +908,7 @@ if __name__ == "__main__":
 # =============================================================================
 # Content Loading Tests
 # =============================================================================
+
 
 class TestLoadContent:
     """Tests for load_content utility function."""
@@ -1029,6 +1002,7 @@ class TestLoadContent:
 # CLI Main Function Tests
 # =============================================================================
 
+
 class TestMainFunction:
     """Tests for CLI main function."""
 
@@ -1043,9 +1017,7 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (1024, 1024))
@@ -1062,7 +1034,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_with_template_and_content(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch, tmp_path):
+    def test_main_with_template_and_content(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch, tmp_path
+    ):
         """Test main function with template and content file."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
 
@@ -1085,14 +1059,15 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (1920, 817))
 
-        with patch("sys.argv", ["image_generator.py", "--template", "cover", "--content", str(article_path)]):
+        with patch(
+            "sys.argv",
+            ["image_generator.py", "--template", "cover", "--content", str(article_path)],
+        ):
             main()
 
         # Verify template was loaded with content variable
@@ -1103,7 +1078,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_multiple_images(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch):
+    def test_main_multiple_images(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch
+    ):
         """Test generating multiple images with -n flag."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
 
@@ -1131,9 +1108,7 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
 
@@ -1158,9 +1133,7 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=False,
-            method="huggingface",
-            error="Generation failed"
+            success=False, method="huggingface", error="Generation failed"
         )
         mock_generator.return_value = mock_gen
 
@@ -1182,9 +1155,7 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (False, None)
@@ -1199,7 +1170,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_backend_bug_success_true_but_no_image_bytes(self, mock_exit, mock_save, mock_generator, monkeypatch):
+    def test_main_backend_bug_success_true_but_no_image_bytes(
+        self, mock_exit, mock_save, mock_generator, monkeypatch
+    ):
         """Test main function catches backend bug: success=True but image_bytes=None."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
         mock_exit.side_effect = SystemExit
@@ -1210,7 +1183,7 @@ class TestMainFunction:
         mock_gen.generate.return_value = GenerationResult(
             success=True,
             image_bytes=None,  # Bug: should not be None when success=True
-            method="huggingface"
+            method="huggingface",
         )
         mock_generator.return_value = mock_gen
 
@@ -1225,7 +1198,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_with_template_output_filename(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch):
+    def test_main_with_template_output_filename(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch
+    ):
         """Test main function uses template output_filename when --output not specified."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
 
@@ -1246,9 +1221,7 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (1024, 1024))
@@ -1264,7 +1237,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_list_templates(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch, capsys):
+    def test_main_list_templates(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch, capsys
+    ):
         """Test --list-templates flag."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
         mock_exit.side_effect = SystemExit
@@ -1302,7 +1277,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_template_without_output_filename(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch):
+    def test_main_template_without_output_filename(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch
+    ):
         """Test error when template doesn't specify output_filename and --output not provided."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
         mock_exit.side_effect = SystemExit
@@ -1330,7 +1307,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_content_file_reading(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch, tmp_path):
+    def test_main_content_file_reading(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch, tmp_path
+    ):
         """Test --content reads from file correctly."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
 
@@ -1352,14 +1331,15 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (1024, 1024))
 
-        with patch("sys.argv", ["image_generator.py", "--template", "default", "--content", str(content_path)]):
+        with patch(
+            "sys.argv",
+            ["image_generator.py", "--template", "default", "--content", str(content_path)],
+        ):
             main()
 
         # Verify content was passed to template
@@ -1372,7 +1352,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_content_with_template_variables(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch):
+    def test_main_content_with_template_variables(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch
+    ):
         """Test --content combined with --var variables."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
 
@@ -1391,14 +1373,23 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (1024, 1024))
 
-        with patch("sys.argv", ["image_generator.py", "--template", "default", "--content", "Article text", "--var", "title=Custom"]):
+        with patch(
+            "sys.argv",
+            [
+                "image_generator.py",
+                "--template",
+                "default",
+                "--content",
+                "Article text",
+                "--var",
+                "title=Custom",
+            ],
+        ):
             main()
 
         # Verify both content and title were passed
@@ -1416,9 +1407,7 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (1024, 1024))
@@ -1433,16 +1422,16 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_shows_available_backends(self, mock_exit, mock_save, mock_generator, monkeypatch, capsys):
+    def test_main_shows_available_backends(
+        self, mock_exit, mock_save, mock_generator, monkeypatch, capsys
+    ):
         """Test that available backends are shown."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
 
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface", "gemini"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (1024, 1024))
@@ -1459,7 +1448,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_template_overrides_cli_args(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch):
+    def test_main_template_overrides_cli_args(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch
+    ):
         """Test that template config can override CLI args."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
         monkeypatch.setenv("GEMINI_API_KEY", "test_key")
@@ -1484,9 +1475,7 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface", "gemini"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="gemini"
+            success=True, image_bytes=b"test image", method="gemini"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (800, 600))
@@ -1504,7 +1493,9 @@ class TestMainFunction:
     @patch("image_generator.ImageGenerator")
     @patch("image_generator.save_image")
     @patch("image_generator.sys.exit")
-    def test_main_cli_args_override_template(self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch):
+    def test_main_cli_args_override_template(
+        self, mock_exit, mock_save, mock_generator, mock_engine, monkeypatch
+    ):
         """Test that template config takes precedence over CLI args."""
         monkeypatch.setenv("HUGGINGFACE_API_TOKEN", "test_token")
 
@@ -1526,15 +1517,24 @@ class TestMainFunction:
         mock_gen = MagicMock()
         mock_gen.get_available_backends.return_value = ["huggingface", "gemini"]
         mock_gen.generate.return_value = GenerationResult(
-            success=True,
-            image_bytes=b"test image",
-            method="huggingface"
+            success=True, image_bytes=b"test image", method="huggingface"
         )
         mock_generator.return_value = mock_gen
         mock_save.return_value = (True, (1024, 1024))
 
         # CLI args try to override, but template takes precedence
-        with patch("sys.argv", ["image_generator.py", "--template", "default", "--backend", "gemini", "-r", "1920x1080"]):
+        with patch(
+            "sys.argv",
+            [
+                "image_generator.py",
+                "--template",
+                "default",
+                "--backend",
+                "gemini",
+                "-r",
+                "1920x1080",
+            ],
+        ):
             main()
 
         # Verify template config was used (takes precedence over CLI args)

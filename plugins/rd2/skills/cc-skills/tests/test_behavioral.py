@@ -6,6 +6,7 @@ import tempfile
 
 # Add scripts directory to path
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from evaluators.behavioral import (
@@ -186,7 +187,9 @@ class TestBehavioralEvaluator:
 
     def test_evaluate_with_valid_scenarios(self):
         """Test full evaluation with valid scenarios."""
-        skill = create_skill_with_scenarios(VALID_SCENARIOS, """---
+        skill = create_skill_with_scenarios(
+            VALID_SCENARIOS,
+            """---
 name: test-skill
 description: Test skill
 ---
@@ -194,7 +197,8 @@ description: Test skill
 # Test Skill
 
 This skill handles processing.
-""")
+""",
+        )
 
         evaluator = BehavioralEvaluator()
         result = evaluator.evaluate(skill)

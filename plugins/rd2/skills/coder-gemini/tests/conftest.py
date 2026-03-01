@@ -1,4 +1,5 @@
 """Pytest fixtures for coder-gemini tests."""
+
 from __future__ import annotations
 
 import importlib.util

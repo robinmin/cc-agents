@@ -36,6 +36,7 @@ DIFFICULTY_WEIGHTS = {
 @dataclass
 class Scenario:
     """A single behavioral test scenario."""
+
     name: str
     input: str
     expected_behaviors: list[str]
@@ -44,9 +45,10 @@ class Scenario:
     tags: list[str] = field(default_factory=list)
 
 
-@dataclass  
+@dataclass
 class ScenarioSet:
     """A validated set of scenarios from tests/scenarios.yaml."""
+
     version: str = "1.0"
     scenarios: list[Scenario] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
@@ -54,62 +56,62 @@ class ScenarioSet:
 
 class ScenarioParser:
     """Parses and validates tests/scenarios.yaml files."""
-    
+
     SCHEMA_VERSION = "1.0"
-    
+
     @staticmethod
     def parse(yaml_content: str) -> ScenarioSet:
         """Parse YAML content into ScenarioSet.
-        
+
         Args:
             yaml_content: Raw YAML string from scenarios.yaml
-            
+
         Returns:
             ScenarioSet with validated scenarios or errors
         """
         result = ScenarioSet()
-        
+
         try:
             data = yaml.safe_load(yaml_content)
         except yaml.YAMLError as e:
             result.errors.append(f"Invalid YAML: {e}")
             return result
-        
+
         if not isinstance(data, dict):
             result.errors.append("Root must be a dictionary with 'scenarios' key")
             return result
-        
+
         # Check version
         result.version = data.get("version", "1.0")
-        
+
         scenarios_data = data.get("scenarios", [])
         if not scenarios_data:
             result.errors.append("No scenarios defined")
             return result
-        
+
         if not isinstance(scenarios_data, list):
             result.errors.append("'scenarios' must be a list")
             return result
-        
+
         for i, s in enumerate(scenarios_data):
             scenario, errors = ScenarioParser._parse_single(s, i)
             result.scenarios.append(scenario)
             result.errors.extend(errors)
-        
+
         return result
-    
+
     @staticmethod
     def _parse_single(data: dict, index: int) -> tuple[Scenario, list[str]]:
         """Parse a single scenario entry."""
         errors = []
         name = data.get("name", f"Scenario {index + 1}")
-        
+
         if not data.get("input"):
             errors.append(f"Scenario '{name}': missing 'input' field")
-        
+
         if not data.get("expected_behaviors"):
             errors.append(f"Scenario '{name}': missing 'expected_behaviors'")
-        
+
         scenario = Scenario(
             name=name,
             input=data.get("input", ""),
@@ -118,46 +120,47 @@ class ScenarioParser:
             difficulty=data.get("difficulty", "beginner"),
             tags=data.get("tags", []),
         )
-        
+
         return scenario, errors
 
 
 class BehavioralEvaluator:
     """Evaluates behavioral test scenario coverage and quality."""
-    
+
     def __init__(self):
         self._name = "behavioral"
         # Use default weight if not in DIMENSION_WEIGHTS
         try:
             from ..skills import DIMENSION_WEIGHTS
+
             self._weight = DIMENSION_WEIGHTS.get("behavioral", 0.10)
         except ImportError:
             self._weight = 0.10
-        
+
         self._scenario_minimums = SCENARIO_MINIMUMS
-    
+
     @property
     def name(self) -> str:
         """Dimension name."""
         return self._name
-    
+
     @property
     def weight(self) -> float:
         """Weight in overall score."""
         return self._weight
-    
+
     def evaluate(self, skill_path: Path) -> DimensionScore:
         """Evaluate behavioral scenario coverage for a skill.
-        
+
         Args:
             skill_path: Path to the skill directory
-            
+
         Returns:
             DimensionScore with findings, recommendations, and score
         """
         findings: list[str] = []
         recommendations: list[str] = []
-        
+
         # Find scenarios.yaml
         scenarios_file = skill_path / "tests" / "scenarios.yaml"
         if not scenarios_file.exists():
@@ -172,7 +175,7 @@ class BehavioralEvaluator:
                 findings=findings,
                 recommendations=recommendations,
             )
-        
+
         # Parse scenarios
         try:
             yaml_content = scenarios_file.read_text()
@@ -185,15 +188,13 @@ class BehavioralEvaluator:
                 findings=findings,
                 recommendations=["Fix file read permissions or format"],
             )
-        
+
         scenario_set = ScenarioParser.parse(yaml_content)
-        
+
         if scenario_set.errors:
             for error in scenario_set.errors[:5]:  # Limit to first 5
                 findings.append(error)
-            recommendations.extend(
-                f"Fix validation error: {e}" for e in scenario_set.errors[:3]
-            )
+            recommendations.extend(f"Fix validation error: {e}" for e in scenario_set.errors[:3])
             # Partial credit for valid scenarios
             if scenario_set.scenarios:
                 len(scenario_set.scenarios) * 10
@@ -208,11 +209,11 @@ class BehavioralEvaluator:
                 )
         else:
             findings.append(f"Found {len(scenario_set.scenarios)} valid scenarios")
-        
+
         # Score based on coverage
         scenario_count = len(scenario_set.scenarios)
         minimum = self._scenario_minimums.get("default", 2)
-        
+
         # Base score from count
         if scenario_count >= minimum:
             base_score = 100.0
@@ -220,7 +221,7 @@ class BehavioralEvaluator:
             base_score = (scenario_count / minimum) * 100.0
         else:
             base_score = 0.0
-        
+
         # Bonus for difficulty variety
         difficulty_bonus = 0.0
         difficulties = set(s.difficulty for s in scenario_set.scenarios)
@@ -228,38 +229,36 @@ class BehavioralEvaluator:
             difficulty_bonus = 10.0
         elif len(difficulties) == 2:
             difficulty_bonus = 5.0
-        
+
         # Bonus for anti-behavior coverage
-        anti_behavior_count = sum(
-            len(s.anti_behaviors) for s in scenario_set.scenarios
-        )
+        anti_behavior_count = sum(len(s.anti_behaviors) for s in scenario_set.scenarios)
         anti_bonus = min(10.0, anti_behavior_count * 2.0) if anti_behavior_count > 0 else 0.0
-        
+
         # Bonus for tags usage
         tagged_count = sum(1 for s in scenario_set.scenarios if s.tags)
         tag_bonus = min(5.0, tagged_count * 2.5)
-        
+
         total_score = min(100.0, base_score + difficulty_bonus + anti_bonus + tag_bonus)
-        
+
         # Generate findings and recommendations
         findings.append(f"Scenario count: {scenario_count} (minimum: {minimum})")
         findings.append(f"Difficulty levels: {sorted(difficulties)}")
         findings.append(f"Anti-behavior checks: {anti_behavior_count}")
-        
+
         if scenario_count < minimum:
             recommendations.append(
                 f"Add {minimum - scenario_count} more scenarios to reach minimum coverage"
             )
-        
+
         if not difficulties:
             recommendations.append("Add difficulty levels to categorize scenarios")
-        
+
         if anti_behavior_count == 0:
             recommendations.append("Add anti-behaviors to specify what should NOT happen")
-        
+
         if tagged_count == 0:
             recommendations.append("Add tags for scenario categorization and filtering")
-        
+
         return DimensionScore(
             name=self.name,
             score=total_score,
@@ -267,7 +266,7 @@ class BehavioralEvaluator:
             findings=findings,
             recommendations=recommendations,
         )
-    
+
     def get_rubric_criteria(self) -> list[RubricCriterion]:
         """Get rubric criteria for LLM-as-Judge evaluation."""
         return [
@@ -298,7 +297,9 @@ class BehavioralEvaluator:
                 description="Coverage of different behavioral scenarios",
                 weight=0.25,
                 levels=[
-                    RubricLevel("comprehensive", 100, "Beginner, intermediate, and advanced scenarios"),
+                    RubricLevel(
+                        "comprehensive", 100, "Beginner, intermediate, and advanced scenarios"
+                    ),
                     RubricLevel("moderate", 75, "Multiple difficulty levels"),
                     RubricLevel("limited", 50, "Single difficulty level"),
                     RubricLevel("minimal", 25, "Only basic scenarios"),
@@ -321,10 +322,10 @@ class BehavioralEvaluator:
 # Backward compatibility function
 def evaluate_behavioral(skill_path: str | Path) -> DimensionScore:
     """Evaluate behavioral scenario coverage for a skill.
-    
+
     Args:
         skill_path: Path to the skill directory
-        
+
     Returns:
         DimensionScore with findings and recommendations
     """

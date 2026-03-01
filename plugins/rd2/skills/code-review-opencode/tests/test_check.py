@@ -1,4 +1,5 @@
 """Tests for check command in code-review-opencode.py."""
+
 from __future__ import annotations
 
 import subprocess
@@ -15,14 +16,10 @@ class TestCheckOpenCodeAvailability:
 
     @patch("code_review_opencode.shutil.which")
     @patch("code_review_opencode.subprocess.run")
-    def test_opencode_available_with_version(
-        self, mock_run: Mock, mock_which: Mock
-    ) -> None:
+    def test_opencode_available_with_version(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test successful check with version info."""
         mock_which.return_value = "/usr/local/bin/opencode"
-        mock_run.return_value = Mock(
-            returncode=0, stdout="opencode version 1.0.0\n", stderr=""
-        )
+        mock_run.return_value = Mock(returncode=0, stdout="opencode version 1.0.0\n", stderr="")
 
         result = cro.check_opencode_availability()
 
@@ -49,9 +46,7 @@ class TestCheckOpenCodeAvailability:
     def test_opencode_timeout(self, mock_run: Mock, mock_which: Mock) -> None:
         """Test when OpenCode CLI times out."""
         mock_which.return_value = "/usr/local/bin/opencode"
-        mock_run.side_effect = subprocess.TimeoutExpired(
-            cmd=["opencode", "--version"], timeout=10
-        )
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["opencode", "--version"], timeout=10)
 
         result = cro.check_opencode_availability()
 
@@ -109,13 +104,9 @@ class TestCmdCheck:
         assert "1.0.0" in captured.out  # Version shown with verbose
 
     @patch("code_review_opencode.check_opencode_availability")
-    def test_check_failure(
-        self, mock_check: Mock, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_check_failure(self, mock_check: Mock, capsys: pytest.CaptureFixture[str]) -> None:
         """Test check failure."""
-        mock_check.return_value = cro.CheckResult(
-            available=False, message="ERROR: Not installed"
-        )
+        mock_check.return_value = cro.CheckResult(available=False, message="ERROR: Not installed")
         args = Namespace(verbose=False)
 
         exit_code = cro.cmd_check(args)

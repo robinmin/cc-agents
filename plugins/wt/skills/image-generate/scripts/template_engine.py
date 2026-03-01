@@ -33,28 +33,34 @@ import yaml
 # Exceptions
 # =============================================================================
 
+
 class TemplateError(Exception):
     """Base exception for template errors."""
+
     pass
 
 
 class TemplateNotFoundError(TemplateError):
     """Raised when a template file cannot be found."""
+
     pass
 
 
 class TemplateParseError(TemplateError):
     """Raised when template parsing fails."""
+
     pass
 
 
 class TemplateValidationError(TemplateError):
     """Raised when template validation fails."""
+
     pass
 
 
 class CircularReferenceError(TemplateError):
     """Raised when circular template references are detected."""
+
     pass
 
 
@@ -62,9 +68,11 @@ class CircularReferenceError(TemplateError):
 # Template Data Classes
 # =============================================================================
 
+
 @dataclass
 class TemplateConfig:
     """Configuration extracted from template frontmatter."""
+
     name: str
     description: str
     width: int
@@ -111,7 +119,7 @@ class TemplateConfig:
             steps=int(data.get("steps", 50)),
             output_filename=data.get("output_filename"),
             variables=data.get("variables", {}),
-            keywords=data.get("keywords", [])
+            keywords=data.get("keywords", []),
         )
 
     @property
@@ -153,9 +161,7 @@ class Template:
     source_path: Path
 
     def render_prompt(
-        self,
-        variables: Optional[Dict[str, str]] = None,
-        style_modifiers: Optional[str] = None
+        self, variables: Optional[Dict[str, str]] = None, style_modifiers: Optional[str] = None
     ) -> str:
         """
         Render the prompt template with variable substitution.
@@ -218,14 +224,14 @@ class Template:
             Text with variables substituted
         """
         # Pattern to match {{variable}} or {{variable | default}}
-        pattern = r'\{\{([^}]+)\}\}'
+        pattern = r"\{\{([^}]+)\}\}"
 
         def replacer(match):
             expr = match.group(1).strip()
 
             # Check for default value syntax
-            if '|' in expr:
-                var_name, default = map(str.strip, expr.split('|', 1))
+            if "|" in expr:
+                var_name, default = map(str.strip, expr.split("|", 1))
                 result = variables.get(var_name, default)
                 return result if result is not None else ""
 
@@ -261,7 +267,7 @@ class Template:
             "minimalist": "minimalist design, clean lines, simple aesthetic, plenty of whitespace",
             "vibrant": "bold colors, high contrast, vibrant and energetic, eye-catching",
             "sketch": "hand-drawn sketch style, artistic, pencil drawing feel, organic lines",
-            "photorealistic": "photorealistic, highly detailed, realistic lighting, professional photography"
+            "photorealistic": "photorealistic, highly detailed, realistic lighting, professional photography",
         }
 
         # Try to find and load styles.yaml
@@ -278,11 +284,11 @@ class Template:
         for style_path in search_paths:
             if style_path.exists():
                 try:
-                    with open(style_path, 'r') as f:
+                    with open(style_path, "r") as f:
                         style_data = yaml.safe_load(f)
-                        if style_data and 'styles' in style_data:
+                        if style_data and "styles" in style_data:
                             # Merge with defaults (custom styles override defaults)
-                            merged_styles = {**default_styles, **style_data['styles']}
+                            merged_styles = {**default_styles, **style_data["styles"]}
                             return merged_styles
                 except (yaml.YAMLError, IOError):
                     # If loading fails, use defaults
@@ -296,13 +302,14 @@ class Template:
 # Template Engine
 # =============================================================================
 
+
 class TemplateEngine:
     """Engine for loading and rendering image generation templates."""
 
     def __init__(
         self,
         project_templates_dir: Optional[Path] = None,
-        skill_templates_dir: Optional[Path] = None
+        skill_templates_dir: Optional[Path] = None,
     ):
         """
         Initialize the template engine.
@@ -447,22 +454,14 @@ class TemplateEngine:
             # Validate and create config
             config = TemplateConfig.from_dict(frontmatter)
 
-            return Template(
-                config=config,
-                body=body.strip(),
-                source_path=path
-            )
+            return Template(config=config, body=body.strip(), source_path=path)
 
         except yaml.YAMLError as e:
-            raise TemplateParseError(
-                f"Failed to parse YAML frontmatter in {path}:\n{e}"
-            )
+            raise TemplateParseError(f"Failed to parse YAML frontmatter in {path}:\n{e}")
         except Exception as e:
             if isinstance(e, TemplateError):
                 raise
-            raise TemplateParseError(
-                f"Failed to load template from {path}:\n{e}"
-            )
+            raise TemplateParseError(f"Failed to load template from {path}:\n{e}")
         finally:
             # Remove from loaded set (allow reloading)
             template_key = f"{template_name}:{path}"
@@ -485,16 +484,12 @@ class TemplateEngine:
 
         # Check for frontmatter delimiters
         if not content.startswith("---"):
-            raise TemplateParseError(
-                "Template must start with YAML frontmatter delimited by '---'"
-            )
+            raise TemplateParseError("Template must start with YAML frontmatter delimited by '---'")
 
         # Find the end of frontmatter
         parts = content.split("---", 2)
         if len(parts) < 3:
-            raise TemplateParseError(
-                "YAML frontmatter must be closed with '---'"
-            )
+            raise TemplateParseError("YAML frontmatter must be closed with '---'")
 
         frontmatter_str = parts[1]
         body = parts[2]
@@ -511,9 +506,7 @@ class TemplateEngine:
             raise TemplateParseError(f"Invalid YAML in frontmatter:\n{e}")
 
     def render_template(
-        self,
-        template_name_or_path: str,
-        variables: Optional[Dict[str, str]] = None
+        self, template_name_or_path: str, variables: Optional[Dict[str, str]] = None
     ) -> Tuple[str, TemplateConfig]:
         """
         Load and render a template.
@@ -536,6 +529,7 @@ class TemplateEngine:
 # Utility Functions
 # =============================================================================
 
+
 def create_template(
     name: str,
     description: str,
@@ -544,7 +538,7 @@ def create_template(
     style: str,
     body: str,
     output_path: Path,
-    **kwargs
+    **kwargs,
 ) -> None:
     """
     Create a new template file.
@@ -565,7 +559,7 @@ def create_template(
         "width": width,
         "height": height,
         "style": style,
-        **kwargs
+        **kwargs,
     }
 
     # Convert to YAML

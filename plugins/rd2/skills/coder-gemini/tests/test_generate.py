@@ -1,4 +1,5 @@
 """Tests for generate command in coder-gemini.py."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -51,10 +52,7 @@ class TestBuildTaskPrompt:
 
     def test_context_inclusion(self) -> None:
         """Test context inclusion."""
-        prompt = cg.build_task_prompt(
-            "Create a function",
-            context="This is for a web application"
-        )
+        prompt = cg.build_task_prompt("Create a function", context="This is for a web application")
         assert "web application" in prompt
 
 
@@ -69,15 +67,10 @@ class TestGenerateCode:
         """Test successful code generation."""
         mock_ensure.return_value = mock_plans_dir
         mock_run.return_value = Mock(
-            success=True,
-            output="Generated code here",
-            model="gemini-3-flash-preview"
+            success=True, output="Generated code here", model="gemini-3-flash-preview"
         )
 
-        result = cg.generate_code(
-            task_content="Create a hello function",
-            output="test-output"
-        )
+        result = cg.generate_code(task_content="Create a hello function", output="test-output")
 
         assert result.success
         assert result.output_path is not None
@@ -85,11 +78,7 @@ class TestGenerateCode:
     @patch("coder_gemini.run_gemini_file")
     def test_failed_generation(self, mock_run: Mock) -> None:
         """Test failed code generation."""
-        mock_run.return_value = Mock(
-            success=False,
-            output="",
-            error="API error"
-        )
+        mock_run.return_value = Mock(success=False, output="", error="API error")
 
         result = cg.generate_code(task_content="Create a function")
 

@@ -39,7 +39,7 @@ ERROR_HANDLING_RUBRIC = RubricCriterion(
 # Rubric for main guard presence (20% weight)
 MAIN_GUARD_RUBRIC = RubricCriterion(
     name="main_guard",
-    description="Scripts have __name__ == \"__main__\" guard",
+    description='Scripts have __name__ == "__main__" guard',
     weight=0.20,
     levels=[
         RubricLevel("complete", 100, "All scripts have main guard"),
@@ -83,12 +83,14 @@ class CodeQualityEvaluator:
     """Evaluates code quality in skill scripts using rubric-based scoring."""
 
     # Pre-configured rubric scorer
-    RUBRIC_SCORER = RubricScorer([
-        ERROR_HANDLING_RUBRIC,
-        MAIN_GUARD_RUBRIC,
-        TYPE_HINTS_RUBRIC,
-        DOCUMENTATION_RUBRIC,
-    ])
+    RUBRIC_SCORER = RubricScorer(
+        [
+            ERROR_HANDLING_RUBRIC,
+            MAIN_GUARD_RUBRIC,
+            TYPE_HINTS_RUBRIC,
+            DOCUMENTATION_RUBRIC,
+        ]
+    )
 
     def __init__(self):
         self._name = "code_quality"
@@ -177,43 +179,91 @@ class CodeQualityEvaluator:
         def evaluate_criterion(criterion: RubricCriterion) -> tuple[str, str]:
             if criterion.name == "error_handling":
                 if error_pct == 1.0:
-                    return "excellent", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
+                    return (
+                        "excellent",
+                        f"{scripts_with_error_handling}/{script_count} scripts have error handling",
+                    )
                 elif error_pct >= 0.75:
-                    return "good", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
+                    return (
+                        "good",
+                        f"{scripts_with_error_handling}/{script_count} scripts have error handling",
+                    )
                 elif error_pct >= 0.5:
-                    return "fair", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
+                    return (
+                        "fair",
+                        f"{scripts_with_error_handling}/{script_count} scripts have error handling",
+                    )
                 elif error_pct >= 0.25:
-                    return "poor", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
+                    return (
+                        "poor",
+                        f"{scripts_with_error_handling}/{script_count} scripts have error handling",
+                    )
                 return "none", "No scripts have error handling"
             elif criterion.name == "main_guard":
                 if guard_pct == 1.0:
-                    return "complete", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
+                    return (
+                        "complete",
+                        f"{scripts_with_main_guard}/{script_count} scripts have main guard",
+                    )
                 elif guard_pct >= 0.75:
-                    return "good", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
+                    return (
+                        "good",
+                        f"{scripts_with_main_guard}/{script_count} scripts have main guard",
+                    )
                 elif guard_pct >= 0.5:
-                    return "partial", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
+                    return (
+                        "partial",
+                        f"{scripts_with_main_guard}/{script_count} scripts have main guard",
+                    )
                 elif guard_pct >= 0.25:
-                    return "minimal", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
+                    return (
+                        "minimal",
+                        f"{scripts_with_main_guard}/{script_count} scripts have main guard",
+                    )
                 return "none", "No scripts have main guard"
             elif criterion.name == "type_hints":
                 if type_pct == 1.0:
-                    return "complete", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
+                    return (
+                        "complete",
+                        f"{scripts_with_type_hints}/{script_count} scripts have type hints",
+                    )
                 elif type_pct >= 0.75:
-                    return "good", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
+                    return (
+                        "good",
+                        f"{scripts_with_type_hints}/{script_count} scripts have type hints",
+                    )
                 elif type_pct >= 0.5:
-                    return "fair", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
+                    return (
+                        "fair",
+                        f"{scripts_with_type_hints}/{script_count} scripts have type hints",
+                    )
                 elif type_pct >= 0.25:
-                    return "minimal", f"{scripts_with_type_hints}/{script_count} scripts have type hints"
+                    return (
+                        "minimal",
+                        f"{scripts_with_type_hints}/{script_count} scripts have type hints",
+                    )
                 return "none", "No type hints present"
             elif criterion.name == "documentation":
                 if doc_pct == 1.0:
-                    return "well_documented", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
+                    return (
+                        "well_documented",
+                        f"{scripts_with_docstrings}/{script_count} scripts have docstrings",
+                    )
                 elif doc_pct >= 0.75:
-                    return "good", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
+                    return (
+                        "good",
+                        f"{scripts_with_docstrings}/{script_count} scripts have docstrings",
+                    )
                 elif doc_pct >= 0.5:
-                    return "fair", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
+                    return (
+                        "fair",
+                        f"{scripts_with_docstrings}/{script_count} scripts have docstrings",
+                    )
                 elif doc_pct >= 0.25:
-                    return "minimal", f"{scripts_with_docstrings}/{script_count} scripts have docstrings"
+                    return (
+                        "minimal",
+                        f"{scripts_with_docstrings}/{script_count} scripts have docstrings",
+                    )
                 return "none", "No docstrings present"
             return "none", "Unknown criterion"
 
