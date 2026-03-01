@@ -13,7 +13,7 @@ def check_quality_issues(content: str) -> dict:
 
     try:
         lines = content.split('\n')
-        line_count = len([l for l in lines if l.strip()])
+        line_count = len([line for line in lines if line.strip()])
 
         # Check length
         if line_count > 150:
