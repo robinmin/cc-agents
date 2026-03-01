@@ -1,7 +1,5 @@
 """Tests for schema/frontmatter.py - frontmatter validation."""
 
-import pytest
-from pathlib import Path
 
 from schema.frontmatter import (
     validate_name,
@@ -12,7 +10,7 @@ from schema.frontmatter import (
     validate_frontmatter,
     parse_frontmatter,
 )
-from schema.base import SkillType, ValidationIssue
+from schema.base import SkillType
 
 
 class TestValidateName:
