@@ -54,31 +54,40 @@ def validate_command_frontmatter(frontmatter: dict[str, Any]) -> list[Validation
     # Check required fields
     for field in COMMAND_REQUIRED_FIELDS:
         if not frontmatter.get(field):
-            issues.append(ValidationIssue(
-                "error", "frontmatter",
-                f"Command frontmatter requires '{field}' field",
-                field=field
-            ))
+            issues.append(
+                ValidationIssue(
+                    "error",
+                    "frontmatter",
+                    f"Command frontmatter requires '{field}' field",
+                    field=field,
+                )
+            )
 
     # Validate name format (commands use different naming convention)
     name = frontmatter.get("name", "")
     if name:
         # Commands typically use kebab-case like verbs
         if not name.replace("-", "").replace("_", "").isalnum():
-            issues.append(ValidationIssue(
-                "warning", "frontmatter",
-                f"Command name '{name}' should be alphanumeric with hyphens",
-                field="name"
-            ))
+            issues.append(
+                ValidationIssue(
+                    "warning",
+                    "frontmatter",
+                    f"Command name '{name}' should be alphanumeric with hyphens",
+                    field="name",
+                )
+            )
 
     # Validate description length
     desc = frontmatter.get("description", "")
     if desc and len(desc) > 60:
-        issues.append(ValidationIssue(
-            "warning", "frontmatter",
-            f"Command description should be under 60 chars (currently {len(desc)})",
-            field="description"
-        ))
+        issues.append(
+            ValidationIssue(
+                "warning",
+                "frontmatter",
+                f"Command description should be under 60 chars (currently {len(desc)})",
+                field="description",
+            )
+        )
 
     return issues
 
@@ -108,9 +117,9 @@ def validate_command(command_path: Path) -> ValidationResult:
     issues: list[ValidationIssue] = []
 
     if not command_path.exists():
-        issues.append(ValidationIssue(
-            "error", "file", f"File not found: {command_path}", field="file"
-        ))
+        issues.append(
+            ValidationIssue("error", "file", f"File not found: {command_path}", field="file")
+        )
         return ValidationResult(path=command_path, valid=False, issues=issues)
 
     content = command_path.read_text()
@@ -121,9 +130,9 @@ def validate_command(command_path: Path) -> ValidationResult:
         frontmatter, body = common_parse_frontmatter(content)
         issues.extend(validate_command_frontmatter(frontmatter))
     else:
-        issues.append(ValidationIssue(
-            "warning", "frontmatter", "No frontmatter found", field="frontmatter"
-        ))
+        issues.append(
+            ValidationIssue("warning", "frontmatter", "No frontmatter found", field="frontmatter")
+        )
 
     # Validate sections
     issues.extend(validate_command_sections(lines))
