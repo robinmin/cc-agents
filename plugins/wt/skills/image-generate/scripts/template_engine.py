@@ -22,7 +22,6 @@ Usage:
     config = template.get_config({"title": "My Article"})
 """
 
-import os
 import re
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, List
@@ -285,7 +284,7 @@ class Template:
                             # Merge with defaults (custom styles override defaults)
                             merged_styles = {**default_styles, **style_data['styles']}
                             return merged_styles
-                except (yaml.YAMLError, IOError) as e:
+                except (yaml.YAMLError, IOError):
                     # If loading fails, use defaults
                     pass
 
