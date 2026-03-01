@@ -2,8 +2,8 @@
 # Tools: uv (package manager), ruff (linter/formatter), mypy (type checker), pytest (testing)
 # TypeScript tools: bun (runtime, test runner)
 
-.PHONY: help install test lint format autofix clean notify-start notify-end discover-scripts list-scripts
-.PHONY: test-one test-one2 lint-one format-one ci-one
+.PHONY: help install test lint lint-one lint-one2 format autofix clean notify-start notify-end discover-scripts list-scripts
+.PHONY: test-one test-one2 lint-one lint-one2 format-one ci-one
 
 # Default target
 .DEFAULT_GOAL := help
@@ -14,6 +14,34 @@ VENV_DIR := .venv
 
 # Auto-discover all directories with BOTH scripts/ and tests/ subdirectories
 SCRIPT_DIRS = $(foreach dir,$(shell find plugins -type d -name scripts | sed 's|/scripts||' | sort -u),$(if $(wildcard $(dir)/tests),$(dir),))
+
+# Blacklist: Skills still using Python (will migrate to TypeScript/bunjs gradually)
+# These will be linted using lint-one (Python), others use lint-one2 (TypeScript/bun)
+# Note: Only skills in SCRIPT_DIRS (have tests/) will be linted in Phase 1 & 2
+# Additional Python folders without tests can be added to COMMON_FOLDERS or linted separately
+PYTHON_SKILLS = \
+	plugins/rd2 \
+	plugins/rd2/skills/anti-hallucination \
+	plugins/rd2/skills/cc-agents \
+	plugins/rd2/skills/cc-commands \
+	plugins/rd2/skills/cc-skills \
+	plugins/rd2/skills/cc-hooks \
+	plugins/rd2/skills/code-review-auggie \
+	plugins/rd2/skills/code-review-claude \
+	plugins/rd2/skills/code-review-common \
+	plugins/rd2/skills/code-review-gemini \
+	plugins/rd2/skills/code-review-opencode \
+	plugins/rd2/skills/coder-agy \
+	plugins/rd2/skills/coder-auggie \
+	plugins/rd2/skills/coder-claude \
+	plugins/rd2/skills/coder-gemini \
+	plugins/rd2/skills/coder-opencode \
+	plugins/rd2/skills/tasks \
+	plugins/wt/skills/image-generate \
+	plugins/wt/skills/technical-content-creation
+
+# Common script folders (Python only)
+COMMON_FOLDERS = plugins/rd2/scripts plugins/wt/scripts
 
 ## help: Display this help message
 help:
@@ -90,20 +118,39 @@ test-one2:
 ## lint: Run linting checks for all script directories
 lint:
 	@echo "🔍 Running linting checks..."
-	@source $(VENV_DIR)/bin/activate && for script_dir in $(SCRIPT_DIRS); do \
-		echo ""; \
-		echo "🔍 Linting $$script_dir..."; \
-		ruff check $$script_dir/scripts $$script_dir/tests || exit 1; \
-		if ls $$script_dir/scripts/*.py 1> /dev/null 2>&1; then \
-			(cd $$script_dir && mypy scripts --config-file $(PWD)/pyproject.toml) || exit 1; \
+	@echo ""
+	@echo "=== Phase 1: Python skills (ruff + mypy) ==="
+	@for script_dir in $(SCRIPT_DIRS); do \
+		case "$(PYTHON_SKILLS)" in \
+			*$$script_dir*) \
+				make lint-one DIR=$$script_dir || exit 1; \
+				;; \
+		esac \
+	done
+	@echo ""
+	@echo "=== Phase 2: TypeScript/bun skills (biome) ==="
+	@for script_dir in $(SCRIPT_DIRS); do \
+		case "$(PYTHON_SKILLS)" in \
+			*$$script_dir*) \
+				;; \
+			*) \
+				if [ -d "$$script_dir/scripts" ]; then \
+					make lint-one2 DIR=$$script_dir || exit 1; \
+				fi \
+				;; \
+		esac \
+	done
+	@echo ""
+	@echo "=== Phase 3: Common folders (Python) ==="
+	@for folder in $(COMMON_FOLDERS); do \
+		if [ -d "$$folder" ] && ls $$folder/*.py 1>/dev/null 2>&1; then \
+			echo "🔍 Linting $$folder..."; \
+			source $(VENV_DIR)/bin/activate && ruff check $$folder && mypy $$folder --config-file $(PWD)/pyproject.toml || exit 1; \
 		else \
-			echo "⏭️  Skipping mypy (no Python files in scripts/)"; \
-		fi; \
-	done && \
-	echo ""; \
-	echo "🔍 Linting plugins/rd2/scripts (common code)..."; \
-	ruff check plugins/rd2/scripts && \
-	mypy plugins/rd2/scripts --config-file $(PWD)/pyproject.toml
+			echo "⏭️  Skipping $$folder (not found or no Python files)"; \
+		fi \
+	done
+	@echo ""
 	@echo "✅ Linting complete"
 
 ## lint-one: Lint one script directory (usage: make lint-one DIR=plugins/rd2/skills/cc-skills)
@@ -116,6 +163,37 @@ lint-one:
 	@echo "🔍 Linting $(DIR)..."
 	@source $(VENV_DIR)/bin/activate && ruff check $(DIR)/scripts $(DIR)/tests
 	@source $(VENV_DIR)/bin/activate && (cd $(DIR) && mypy scripts --config-file $(PWD)/pyproject.toml)
+
+## lint-one2: Run TypeScript/JS linting for one skill directory via bun (usage: make lint-one2 DIR=plugins/wt/skills/publish-to-xhs)
+lint-one2:
+	@if [ -z "$(DIR)" ]; then \
+		echo "❌ Error: DIR parameter required. Usage: make lint-one2 DIR=plugins/wt/skills/publish-to-xhs"; \
+		echo "   Available TypeScript skills: publish-to-xhs, publish-to-medium, etc."; \
+		exit 1; \
+	fi
+	@echo "🔍 Linting $(DIR) with bun..."
+	@if [ -d "$(DIR)/scripts" ]; then \
+		has_ts=$$(find $(DIR)/scripts -maxdepth 1 -name "*.ts" -o -name "*.js" 2>/dev/null | head -1); \
+		if [ -n "$$has_ts" ]; then \
+			cd $(DIR) && { \
+				(bun run lint 2>&1 || true) | grep -v 'error: Script not found' | tee /tmp/lint-output.txt; \
+				if grep -qE "^Found [0-9]+ error" /tmp/lint-output.txt; then \
+					echo "❌ npm lint found errors"; \
+					exit 1; \
+				fi; \
+				(biome check . 2>&1 || true) | tee /tmp/biome-output.txt; \
+				if grep -qE "^Found [0-9]+ error" /tmp/biome-output.txt; then \
+					echo "❌ Biome found errors"; \
+					exit 1; \
+				fi; \
+			}; \
+		else \
+			echo "⏭️  Skipping $(DIR) (no TypeScript/JS files to lint)"; \
+		fi \
+	else \
+		echo "❌ Error: $(DIR) missing scripts/ directory"; \
+		exit 1; \
+	fi
 
 ## format: Format code for all script directories
 format:
