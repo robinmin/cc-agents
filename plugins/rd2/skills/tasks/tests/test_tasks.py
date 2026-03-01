@@ -25,8 +25,6 @@ from tasks import TaskStatus, TasksConfig, TasksManager, TaskFile  # noqa: E402
 from tasks import rotate_log_file, _cleanup_old_logs, MAX_LOG_SIZE  # noqa: E402
 from tasks import (  # noqa: E402
     IMPL_PHASES,
-    IMPL_PHASE_STATUSES,
-    ValidationResult,
     _phase_status_indicator,
     compute_status_from_progress,
     validate_task_for_transition,
