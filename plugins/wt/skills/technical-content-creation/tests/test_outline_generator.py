@@ -18,17 +18,13 @@ Tests cover:
 
 import json
 import pytest
-from pathlib import Path
 from unittest.mock import patch, MagicMock
-from datetime import datetime
 
 # Import shared module first (needed by outline_generator)
-from shared.config import get_tcc_config, get_tcc_repo_root
 
 from outline_generator import (
     OUTLINE_STYLES,
     PROMPT_TEMPLATES,
-    OUTLINE_TEMPLATES,
     parse_frontmatter,
     read_research_brief,
     generate_outline_prompt,
@@ -43,7 +39,6 @@ from outline_generator import (
     cmd_list
 )
 
-from shared.config import get_tcc_repo_root
 
 
 # ============================================================================
@@ -615,7 +610,7 @@ class TestEdgeCases:
         brief = {"path": "test", "content": "## Theme 1\n", "frontmatter": {}}
         # Invalid options should raise KeyError
         with pytest.raises(KeyError):
-            content = create_outline_content('z', "Test", "short", brief)
+            create_outline_content('z', "Test", "short", brief)
 
 
 class TestAdditionalCoverage:
