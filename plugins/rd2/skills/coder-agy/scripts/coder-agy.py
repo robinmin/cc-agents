@@ -367,7 +367,7 @@ def run_antigravity_prompt(
                 error=result.stderr.strip() or "Unknown error",
                 mode=validated_mode,
             )
-    except subprocess.TimeoutExpired as e:
+    except subprocess.TimeoutExpired:
         return RunResult(
             success=False,
             output="",
