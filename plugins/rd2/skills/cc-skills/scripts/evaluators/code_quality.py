@@ -184,7 +184,7 @@ class CodeQualityEvaluator:
                     return "fair", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
                 elif error_pct >= 0.25:
                     return "poor", f"{scripts_with_error_handling}/{script_count} scripts have error handling"
-                return "none", f"No scripts have error handling"
+                return "none", "No scripts have error handling"
             elif criterion.name == "main_guard":
                 if guard_pct == 1.0:
                     return "complete", f"{scripts_with_main_guard}/{script_count} scripts have main guard"
