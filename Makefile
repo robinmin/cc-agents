@@ -94,7 +94,11 @@ lint:
 		echo ""; \
 		echo "🔍 Linting $$script_dir..."; \
 		ruff check $$script_dir/scripts $$script_dir/tests || exit 1; \
-		(cd $$script_dir && mypy scripts --config-file $(PWD)/pyproject.toml) || exit 1; \
+		if ls $$script_dir/scripts/*.py 1> /dev/null 2>&1; then \
+			(cd $$script_dir && mypy scripts --config-file $(PWD)/pyproject.toml) || exit 1; \
+		else \
+			echo "⏭️  Skipping mypy (no Python files in scripts/)"; \
+		fi; \
 	done
 	@echo "✅ Linting complete"
 
