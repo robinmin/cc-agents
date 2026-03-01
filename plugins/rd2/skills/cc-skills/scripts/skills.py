@@ -3072,7 +3072,7 @@ def cmd_package(args):
     return 0 if result else 1
 
 
-def cmd_evaluate(args):
+def cmd_evaluate(args) -> int:
     """Handle evaluate command - two-phase skill evaluation with optional deep LLM grading."""
     if not args.skill_path:
         print(
@@ -3299,7 +3299,7 @@ def check_dependencies() -> None:
         print("", file=sys.stderr)
 
 
-def main():
+def main() -> int:
     """Main entry point with argument parsing."""
     # Check dependencies at startup
     check_dependencies()
