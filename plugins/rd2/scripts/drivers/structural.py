@@ -46,7 +46,7 @@ def validate_structure(
     issues.extend(validate_naming(path, skill_type))
 
     # 5. Calculate line count metrics
-    non_empty_lines = [l for l in lines if l.strip()]
+    non_empty_lines = [line for line in lines if line.strip()]
     metadata["line_count"] = len(non_empty_lines)
     metadata["total_lines"] = len(lines)
 
@@ -65,7 +65,7 @@ def validate_naming(path: Path, skill_type: SkillType) -> list[ValidationIssue]:
         if "agents" not in str(parent):
             issues.append(ValidationIssue(
                 "warning", "naming",
-                f"Agent should be in agents/ directory"
+                "Agent should be in agents/ directory"
             ))
 
     if skill_type == SkillType.SKILL:
@@ -73,7 +73,7 @@ def validate_naming(path: Path, skill_type: SkillType) -> list[ValidationIssue]:
         if path.name.upper() != "SKILL.MD":
             issues.append(ValidationIssue(
                 "warning", "naming",
-                f"Skill file should be named SKILL.md"
+                "Skill file should be named SKILL.md"
             ))
 
     return issues
