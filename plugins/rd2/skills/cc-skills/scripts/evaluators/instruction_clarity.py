@@ -147,7 +147,7 @@ class InstructionClarityEvaluator:
         lines = body.split("\n")
 
         # Count meaningful lines (non-header, non-empty)
-        total_instruction_like = len([l for l in lines if l.strip() and not l.strip().startswith("#")])
+        total_instruction_like = len([line for line in lines if line.strip() and not line.strip().startswith("#")])
 
         # Pre-compute metrics used by multiple criteria
 
