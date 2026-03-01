@@ -263,10 +263,10 @@ class BehavioralReadinessEvaluator:
                 return "missing", "No examples or scenarios"
 
             elif criterion.name == "anti_patterns":
-                score_factors = (
-                    (1 if has_mistakes_section else 0),
-                    (1 if dont_count >= 3 else 0.5 if dont_count >= 1 else 0),
-                    (1 if comparison_count >= 4 else 0.5 if comparison_count >= 2 else 0),
+                score_factors = (  # type: ignore[no-redef, assignment]
+                    float(1 if has_mistakes_section else 0),
+                    (1.0 if dont_count >= 3 else 0.5 if dont_count >= 1 else 0.0),
+                    (1.0 if comparison_count >= 4 else 0.5 if comparison_count >= 2 else 0.0),
                 )
                 total = sum(score_factors)
                 if total >= 2.5:
@@ -280,10 +280,10 @@ class BehavioralReadinessEvaluator:
                 return "missing", "No anti-pattern documentation"
 
             elif criterion.name == "error_handling":
-                score_factors = (
-                    (1 if has_troubleshooting else 0),
-                    (1 if error_count >= 5 else 0.5 if error_count >= 2 else 0),
-                    (1 if fallback_count >= 2 else 0.5 if fallback_count >= 1 else 0),
+                score_factors = (  # type: ignore[no-redef, assignment]
+                    float(1 if has_troubleshooting else 0),
+                    (1.0 if error_count >= 5 else 0.5 if error_count >= 2 else 0.0),
+                    (1.0 if fallback_count >= 2 else 0.5 if fallback_count >= 1 else 0.0),
                 )
                 total = sum(score_factors)
                 if total >= 2.5:
@@ -297,17 +297,17 @@ class BehavioralReadinessEvaluator:
                 return "missing", "No error handling guidance"
 
             elif criterion.name == "edge_cases":
-                score_factors = (
-                    (1 if edge_mentions >= 3 else 0.5 if edge_mentions >= 1 else 0),
-                    (1 if boundary_terms >= 5 else 0.5 if boundary_terms >= 2 else 0),
+                score_factors = (  # type: ignore[no-redef, assignment]
+                    (1.0 if edge_mentions >= 3 else 0.5 if edge_mentions >= 1 else 0.0),
+                    (1.0 if boundary_terms >= 5 else 0.5 if boundary_terms >= 2 else 0.0),
                 )
                 total = sum(score_factors)
                 if total >= 1.5:
                     return "excellent", f"Has {edge_mentions} edge case mentions, {boundary_terms} boundary terms"
                 elif total >= 1.0:
-                    return "good", f"Has edge case mentions and boundary terms"
+                    return "good", "Has edge case mentions and boundary terms"
                 elif total >= 0.5:
-                    return "fair", f"Has some edge case content"
+                    return "fair", "Has some edge case content"
                 elif edge_mentions > 0 or boundary_terms > 0:
                     return "poor", "Minimal edge case coverage"
                 return "missing", "No edge case coverage"
