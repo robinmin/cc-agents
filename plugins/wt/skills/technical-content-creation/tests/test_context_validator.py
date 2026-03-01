@@ -14,13 +14,11 @@ Tests cover:
 - CLI commands (cmd_validate, cmd_status, cmd_detect_stage, cmd_verify_dependencies)
 """
 
-import json
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Import shared module first (needed by context_validator)
-from shared.config import get_tcc_repo_root
 
 from context_validator import (
     STAGES,
@@ -38,7 +36,6 @@ from context_validator import (
     cmd_verify_dependencies
 )
 
-from shared.config import get_tcc_repo_root
 
 
 # ============================================================================
