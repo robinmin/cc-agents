@@ -1,6 +1,5 @@
 """Pytest configuration for rd2 tests."""
 
-import pytest
 from pathlib import Path
 import sys
 
