@@ -1,91 +1,98 @@
-import { mkdir } from 'node:fs/promises';
-import * as process from 'node:process';
-import { launchChrome, getPageSession, clickElement, evaluate, sleep, getDefaultProfileDir as cdpGetDefaultProfileDir } from './cdp.js';
-import { type ChromeSession } from './cdp.js';
+import { mkdir } from "node:fs/promises";
+import * as process from "node:process";
 import {
-  getWtProfileDir,
-  getAutoPublishPreference,
-  getNewArticleUrl,
-  parseMarkdownFile,
-  sanitizeForJavaScript,
-  normalizeCategory,
-  type ParsedArticle,
-} from './infoq-utils.js';
+	type ChromeSession,
+	getDefaultProfileDir as cdpGetDefaultProfileDir,
+	clickElement,
+	evaluate,
+	getPageSession,
+	launchChrome,
+	sleep,
+} from "./cdp.js";
+import {
+	getAutoPublishPreference,
+	getNewArticleUrl,
+	getWtProfileDir,
+	normalizeCategory,
+	type ParsedArticle,
+	parseMarkdownFile,
+	sanitizeForJavaScript,
+} from "./infoq-utils.js";
 
 // ============================================================================
 // InfoQ DOM Selectors
 // ============================================================================
 
 const INFOQ_SELECTORS = {
-  // Title input field
-  titleInput: [
-    'input[placeholder*="标题" i]',
-    'input[placeholder*="title" i]',
-    'input[type="text"][class*="title"]',
-    'textarea[placeholder*="标题" i]',
-    '[data-testid="title-input"]',
-    '[name="title"]',
-    '.article-title-input',
-    '.title-input',
-  ],
+	// Title input field
+	titleInput: [
+		'input[placeholder*="标题" i]',
+		'input[placeholder*="title" i]',
+		'input[type="text"][class*="title"]',
+		'textarea[placeholder*="标题" i]',
+		'[data-testid="title-input"]',
+		'[name="title"]',
+		".article-title-input",
+		".title-input",
+	],
 
-  // Subtitle/Summary input field
-  subtitleInput: [
-    'input[placeholder*="摘要" i]',
-    'input[placeholder*="subtitle" i]',
-    'textarea[placeholder*="摘要" i]',
-    '[data-testid="summary-input"]',
-    '[name="summary"]',
-    '.summary-input',
-  ],
+	// Subtitle/Summary input field
+	subtitleInput: [
+		'input[placeholder*="摘要" i]',
+		'input[placeholder*="subtitle" i]',
+		'textarea[placeholder*="摘要" i]',
+		'[data-testid="summary-input"]',
+		'[name="summary"]',
+		".summary-input",
+	],
 
-  // Content editor (likely ProseMirror or similar rich text editor)
-  contentEditor: [
-    '.ProseMirror',
-    '[contenteditable="true"][class*="editor"]',
-    '[contenteditable="true"][class*="prose"]',
-    '[data-testid="editor"]',
-    '.editor-content',
-    '.article-editor',
-    '.rich-text-editor',
-  ],
+	// Content editor (likely ProseMirror or similar rich text editor)
+	contentEditor: [
+		".ProseMirror",
+		'[contenteditable="true"][class*="editor"]',
+		'[contenteditable="true"][class*="prose"]',
+		'[data-testid="editor"]',
+		".editor-content",
+		".article-editor",
+		".rich-text-editor",
+	],
 
-  // Category selector
-  categorySelect: [
-    'select[name="category"]',
-    '.category-select',
-    '[data-testid="category-select"]',
-    '.article-category',
-  ],
+	// Category selector
+	categorySelect: [
+		'select[name="category"]',
+		".category-select",
+		'[data-testid="category-select"]',
+		".article-category",
+	],
 
-  // Tags input field
-  tagsInput: [
-    'input[placeholder*="标签" i]',
-    'input[placeholder*="tags" i]',
-    '[data-testid="tags-input"]',
-    '[name="tags"]',
-    '.tags-input',
-  ],
+	// Tags input field
+	tagsInput: [
+		'input[placeholder*="标签" i]',
+		'input[placeholder*="tags" i]',
+		'[data-testid="tags-input"]',
+		'[name="tags"]',
+		".tags-input",
+	],
 
-  // Submit/Save button
-  submitButton: [
-    'button[type="submit"]',
-    'button:has-text("提交")',
-    'button:has-text("发布")',
-    'button:has-text("保存")',
-    '[data-testid="submit-button"]',
-    '.submit-button',
-    '.publish-button',
-  ],
+	// Submit/Save button
+	submitButton: [
+		'button[type="submit"]',
+		'button:has-text("提交")',
+		'button:has-text("发布")',
+		'button:has-text("保存")',
+		'[data-testid="submit-button"]',
+		".submit-button",
+		".publish-button",
+	],
 
-  // Draft button
-  draftButton: [
-    'button:has-text("保存草稿")',
-    'button:has-text("Save draft")',
-    'button:has-text("草稿")',
-    '[data-testid="draft-button"]',
-    '.draft-button',
-  ],
+	// Draft button
+	draftButton: [
+		'button:has-text("保存草稿")',
+		'button:has-text("Save draft")',
+		'button:has-text("草稿")',
+		'[data-testid="draft-button"]',
+		".draft-button",
+	],
 } as const;
 
 // ============================================================================
@@ -95,15 +102,19 @@ const INFOQ_SELECTORS = {
 /**
  * Find an element using multiple possible selectors
  */
-async function findElement(session: ChromeSession, selectors: readonly string[], timeoutMs = 5000): Promise<string> {
-  const start = Date.now();
+async function findElement(
+	session: ChromeSession,
+	selectors: readonly string[],
+	timeoutMs = 5000,
+): Promise<string> {
+	const start = Date.now();
 
-  while (Date.now() - start < timeoutMs) {
-    for (const selector of selectors) {
-      try {
-        const result = await evaluate(
-          session,
-          `
+	while (Date.now() - start < timeoutMs) {
+		for (const selector of selectors) {
+			try {
+				const result = await evaluate(
+					session,
+					`
           (function() {
             const el = document.querySelector('${selector}');
             if (el && el.offsetParent !== null) {
@@ -111,87 +122,94 @@ async function findElement(session: ChromeSession, selectors: readonly string[],
             }
             return 'not-found';
           })()
-          `
-        );
-        if (result === 'found') {
-          return selector;
-        }
-      } catch {
-        // Selector error, try next one
-      }
-    }
-    await sleep(100);
-  }
+          `,
+				);
+				if (result === "found") {
+					return selector;
+				}
+			} catch {
+				// Selector error, try next one
+			}
+		}
+		await sleep(100);
+	}
 
-  throw new Error(`Element not found. Tried selectors: ${selectors.join(', ')}`);
+	throw new Error(
+		`Element not found. Tried selectors: ${selectors.join(", ")}`,
+	);
 }
 
 /**
  * Wait for page to be fully loaded and editor to be ready
  * InfoQ uses Vue.js 2.6.11 SPA, so we need to wait for the app to mount
  */
-async function waitForPageReady(session: ChromeSession, timeoutMs = 20000): Promise<void> {
-  const start = Date.now();
+async function waitForPageReady(
+	session: ChromeSession,
+	timeoutMs = 20000,
+): Promise<void> {
+	const start = Date.now();
 
-  while (Date.now() - start < timeoutMs) {
-    const isReady = await evaluate(
-      session,
-      `
+	while (Date.now() - start < timeoutMs) {
+		const isReady = await evaluate(
+			session,
+			`
       (function() {
         return document.readyState === 'complete' &&
                (document.querySelector('.ProseMirror') !== null ||
                 document.querySelector('[contenteditable="true"]') !== null ||
                 document.querySelector('.editor') !== null);
       })()
-      `
-    );
-    if (isReady) return;
-    await sleep(200);
-  }
+      `,
+		);
+		if (isReady) return;
+		await sleep(200);
+	}
 
-  // If editor not found, still continue - page might be ready with different selectors
-  console.log('[infoq] Editor not detected via standard selectors, continuing anyway...');
+	// If editor not found, still continue - page might be ready with different selectors
+	console.log(
+		"[infoq] Editor not detected via standard selectors, continuing anyway...",
+	);
 }
 
 /**
  * Check if user is logged in
  */
 async function checkLoginStatus(session: ChromeSession): Promise<boolean> {
-  const currentUrl = await evaluate<string>(session, 'window.location.href');
-  console.log(`[infoq] Current URL: ${currentUrl}`);
+	const currentUrl = await evaluate<string>(session, "window.location.href");
+	console.log(`[infoq] Current URL: ${currentUrl}`);
 
-  // If URL contains /auth/login, user is not logged in
-  if (currentUrl.includes('/auth/login')) {
-    return false;
-  }
+	// If URL contains /auth/login, user is not logged in
+	if (currentUrl.includes("/auth/login")) {
+		return false;
+	}
 
-  // Check for logged-in indicators
-  const isLoggedIn = await evaluate(
-    session,
-    `
+	// Check for logged-in indicators
+	const isLoggedIn = await evaluate(
+		session,
+		`
     (function() {
       // Check for user avatar, logout button, or other logged-in indicators
       return document.querySelector('.user-avatar') !== null ||
              document.querySelector('.logout-button') !== null ||
              document.querySelector('[class*="user"]') !== null;
     })()
-    `
-  );
+    `,
+	);
 
-  return isLoggedIn === true;
+	return isLoggedIn === true;
 }
 
 /**
  * Fill in the title field
  */
 async function fillTitle(session: ChromeSession, title: string): Promise<void> {
-  console.log('[infoq] Filling in title...');
+	console.log("[infoq] Filling in title...");
 
-  const selector = await findElement(session, INFOQ_SELECTORS.titleInput);
+	const selector = await findElement(session, INFOQ_SELECTORS.titleInput);
 
-  await evaluate(
-    session,
-    `
+	await evaluate(
+		session,
+		`
     (function() {
       const el = document.querySelector('${selector}');
       if (!el) throw new Error('Title input not found');
@@ -216,28 +234,35 @@ async function fillTitle(session: ChromeSession, title: string): Promise<void> {
 
       return 'success';
     })()
-    `
-  );
+    `,
+	);
 
-  await sleep(500);
+	await sleep(500);
 }
 
 /**
  * Fill in the subtitle/summary field (optional)
  */
-async function fillSubtitle(session: ChromeSession, subtitle: string): Promise<void> {
-  console.log('[infoq] Filling in subtitle/summary...');
+async function fillSubtitle(
+	session: ChromeSession,
+	subtitle: string,
+): Promise<void> {
+	console.log("[infoq] Filling in subtitle/summary...");
 
-  const start = Date.now();
-  const timeoutMs = 3000;
+	const start = Date.now();
+	const timeoutMs = 3000;
 
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const selector = await findElement(session, INFOQ_SELECTORS.subtitleInput, 1000);
+	while (Date.now() - start < timeoutMs) {
+		try {
+			const selector = await findElement(
+				session,
+				INFOQ_SELECTORS.subtitleInput,
+				1000,
+			);
 
-      await evaluate(
-        session,
-        `
+			await evaluate(
+				session,
+				`
         (function() {
           const el = document.querySelector('${selector}');
           if (!el) return 'not-found';
@@ -258,30 +283,33 @@ async function fillSubtitle(session: ChromeSession, subtitle: string): Promise<v
 
           return 'success';
         })()
-        `
-      );
+        `,
+			);
 
-      await sleep(500);
-      return;
-    } catch {
-      await sleep(200);
-    }
-  }
+			await sleep(500);
+			return;
+		} catch {
+			await sleep(200);
+		}
+	}
 
-  console.log('[infoq] Subtitle field not found (optional, skipping...)');
+	console.log("[infoq] Subtitle field not found (optional, skipping...)");
 }
 
 /**
  * Fill in the content editor
  */
-async function fillContent(session: ChromeSession, content: string): Promise<void> {
-  console.log('[infoq] Filling in content...');
+async function fillContent(
+	session: ChromeSession,
+	content: string,
+): Promise<void> {
+	console.log("[infoq] Filling in content...");
 
-  const selector = await findElement(session, INFOQ_SELECTORS.contentEditor);
+	const selector = await findElement(session, INFOQ_SELECTORS.contentEditor);
 
-  await evaluate(
-    session,
-    `
+	await evaluate(
+		session,
+		`
     (function() {
       const el = document.querySelector('${selector}');
       if (!el) throw new Error('Content editor not found');
@@ -312,29 +340,36 @@ async function fillContent(session: ChromeSession, content: string): Promise<voi
 
       return 'success';
     })()
-    `
-  );
+    `,
+	);
 
-  await sleep(1000);
+	await sleep(1000);
 }
 
 /**
  * Set article category
  */
-async function setCategory(session: ChromeSession, category?: string): Promise<void> {
-  if (!category) {
-    console.log('[infoq] No category specified (optional)...');
-    return;
-  }
+async function setCategory(
+	session: ChromeSession,
+	category?: string,
+): Promise<void> {
+	if (!category) {
+		console.log("[infoq] No category specified (optional)...");
+		return;
+	}
 
-  console.log(`[infoq] Setting category: ${category}...`);
+	console.log(`[infoq] Setting category: ${category}...`);
 
-  try {
-    const selector = await findElement(session, INFOQ_SELECTORS.categorySelect, 2000);
+	try {
+		const selector = await findElement(
+			session,
+			INFOQ_SELECTORS.categorySelect,
+			2000,
+		);
 
-    await evaluate(
-      session,
-      `
+		await evaluate(
+			session,
+			`
       (function() {
         const el = document.querySelector('${selector}');
         if (!el) return 'not-found';
@@ -348,33 +383,37 @@ async function setCategory(session: ChromeSession, category?: string): Promise<v
 
         return 'success';
       })()
-      `
-    );
+      `,
+		);
 
-    await sleep(500);
-  } catch {
-    console.log('[infoq] Category selector not found (optional, skipping...)');
-  }
+		await sleep(500);
+	} catch {
+		console.log("[infoq] Category selector not found (optional, skipping...)");
+	}
 }
 
 /**
  * Add tags to the article
  */
 async function addTags(session: ChromeSession, tags: string[]): Promise<void> {
-  if (tags.length === 0) {
-    console.log('[infoq] No tags to add...');
-    return;
-  }
+	if (tags.length === 0) {
+		console.log("[infoq] No tags to add...");
+		return;
+	}
 
-  console.log(`[infoq] Setting tags: ${tags.join(', ')}...`);
+	console.log(`[infoq] Setting tags: ${tags.join(", ")}...`);
 
-  try {
-    const selector = await findElement(session, INFOQ_SELECTORS.tagsInput, 2000);
+	try {
+		const selector = await findElement(
+			session,
+			INFOQ_SELECTORS.tagsInput,
+			2000,
+		);
 
-    for (const tag of tags) {
-      await evaluate(
-        session,
-        `
+		for (const tag of tags) {
+			await evaluate(
+				session,
+				`
         (function() {
           const el = document.querySelector('${selector}');
           if (!el) return 'not-found';
@@ -400,50 +439,55 @@ async function addTags(session: ChromeSession, tags: string[]): Promise<void> {
 
           return 'success';
         })()
-        `
-      );
+        `,
+			);
 
-      await sleep(300);
-    }
+			await sleep(300);
+		}
 
-    await sleep(500);
-  } catch {
-    console.log('[infoq] Tags input not found (optional, skipping...)');
-  }
+		await sleep(500);
+	} catch {
+		console.log("[infoq] Tags input not found (optional, skipping...)");
+	}
 }
 
 /**
  * Submit the article or save as draft
  */
-async function submitArticle(session: ChromeSession, asDraft: boolean): Promise<string> {
-  const action = asDraft ? 'Saving as draft' : 'Submitting for review';
-  console.log(`[infoq] ${action}...`);
+async function submitArticle(
+	session: ChromeSession,
+	asDraft: boolean,
+): Promise<string> {
+	const action = asDraft ? "Saving as draft" : "Submitting for review";
+	console.log(`[infoq] ${action}...`);
 
-  const buttonSelectors = asDraft ? INFOQ_SELECTORS.draftButton : INFOQ_SELECTORS.submitButton;
+	const buttonSelectors = asDraft
+		? INFOQ_SELECTORS.draftButton
+		: INFOQ_SELECTORS.submitButton;
 
-  try {
-    const selector = await findElement(session, buttonSelectors, 3000);
+	try {
+		const selector = await findElement(session, buttonSelectors, 3000);
 
-    // Click the button
-    await clickElement(session, selector);
+		// Click the button
+		await clickElement(session, selector);
 
-    // Wait for navigation or completion
-    await sleep(3000);
+		// Wait for navigation or completion
+		await sleep(3000);
 
-    // Get the current URL (should be the submitted article URL)
-    const url = await evaluate<string>(session, 'window.location.href');
+		// Get the current URL (should be the submitted article URL)
+		const url = await evaluate<string>(session, "window.location.href");
 
-    return url as string;
-  } catch (error) {
-    // If button click failed, try keyboard shortcut
-    console.log('[infoq] Button click failed, trying keyboard shortcut...');
+		return url as string;
+	} catch (_error) {
+		// If button click failed, try keyboard shortcut
+		console.log("[infoq] Button click failed, trying keyboard shortcut...");
 
-    // Try Ctrl/Cmd + Enter to submit
-    const modifiers = process.platform === 'darwin' ? 8 : 4;
+		// Try Ctrl/Cmd + Enter to submit
+		const modifiers = process.platform === "darwin" ? 8 : 4;
 
-    await evaluate(
-      session,
-      `
+		await evaluate(
+			session,
+			`
       (function() {
         const event = new KeyboardEvent('keydown', {
           key: 'Enter',
@@ -456,14 +500,14 @@ async function submitArticle(session: ChromeSession, asDraft: boolean): Promise<
         document.dispatchEvent(event);
         return 'success';
       })()
-      `
-    );
+      `,
+		);
 
-    await sleep(3000);
+		await sleep(3000);
 
-    const url = await evaluate<string>(session, 'window.location.href');
-    return url as string;
-  }
+		const url = await evaluate<string>(session, "window.location.href");
+		return url as string;
+	}
 }
 
 // ============================================================================
@@ -471,132 +515,145 @@ async function submitArticle(session: ChromeSession, asDraft: boolean): Promise<
 // ============================================================================
 
 interface PublishOptions {
-  markdownFile?: string;
-  title?: string;
-  content?: string;
-  subtitle?: string;
-  category?: string;
-  tags?: string[];
-  asDraft?: boolean;
-  profileDir?: string;
+	markdownFile?: string;
+	title?: string;
+	content?: string;
+	subtitle?: string;
+	category?: string;
+	tags?: string[];
+	asDraft?: boolean;
+	profileDir?: string;
 }
 
 /**
  * Publish article to InfoQ
  */
 export async function publishToInfoQ(options: PublishOptions): Promise<string> {
-  // Parse article
-  let article: ParsedArticle;
+	// Parse article
+	let article: ParsedArticle;
 
-  if (options.markdownFile) {
-    console.log(`[infoq] Parsing markdown: ${options.markdownFile}`);
-    article = parseMarkdownFile(options.markdownFile);
-  } else if (options.title && options.content) {
-    article = {
-      title: options.title,
-      content: options.content,
-      subtitle: options.subtitle,
-      category: options.category ? normalizeCategory(options.category) : undefined,
-      tags: options.tags,
-    };
-  } else {
-    throw new Error('Error: --markdown is required (or use --title with --content)');
-  }
+	if (options.markdownFile) {
+		console.log(`[infoq] Parsing markdown: ${options.markdownFile}`);
+		article = parseMarkdownFile(options.markdownFile);
+	} else if (options.title && options.content) {
+		article = {
+			title: options.title,
+			content: options.content,
+			subtitle: options.subtitle,
+			category: options.category
+				? normalizeCategory(options.category)
+				: undefined,
+			tags: options.tags,
+		};
+	} else {
+		throw new Error(
+			"Error: --markdown is required (or use --title with --content)",
+		);
+	}
 
-  // Override with CLI options
-  if (options.subtitle) article.subtitle = options.subtitle;
-  if (options.category) article.category = normalizeCategory(options.category);
-  if (options.tags) article.tags = options.tags;
+	// Override with CLI options
+	if (options.subtitle) article.subtitle = options.subtitle;
+	if (options.category) article.category = normalizeCategory(options.category);
+	if (options.tags) article.tags = options.tags;
 
-  // Determine publish status
-  const autoPublish = getAutoPublishPreference();
-  const asDraft = options.asDraft ?? !autoPublish;
+	// Determine publish status
+	const autoPublish = getAutoPublishPreference();
+	const asDraft = options.asDraft ?? !autoPublish;
 
-  console.log(`[infoq] Title: ${article.title}`);
-  console.log(`[infoq] Category: ${article.category || '(not set)'}`);
-  console.log(`[infoq] Tags: ${article.tags?.join(', ') || '(none)'}`);
-  console.log(`[infoq] Status: ${asDraft ? 'draft' : 'submit'}`);
+	console.log(`[infoq] Title: ${article.title}`);
+	console.log(`[infoq] Category: ${article.category || "(not set)"}`);
+	console.log(`[infoq] Tags: ${article.tags?.join(", ") || "(none)"}`);
+	console.log(`[infoq] Status: ${asDraft ? "draft" : "submit"}`);
 
-  // Get profile directory (WT config takes precedence, then CLI option, then default)
-  const wtProfileDir = getWtProfileDir();
-  const profileDir = options.profileDir ?? wtProfileDir ?? cdpGetDefaultProfileDir();
-  await mkdir(profileDir, { recursive: true });
+	// Get profile directory (WT config takes precedence, then CLI option, then default)
+	const wtProfileDir = getWtProfileDir();
+	const profileDir =
+		options.profileDir ?? wtProfileDir ?? cdpGetDefaultProfileDir();
+	await mkdir(profileDir, { recursive: true });
 
-  // Get new article URL
-  const newArticleUrl = getNewArticleUrl();
-  console.log(`[infoq] Navigating to: ${newArticleUrl}`);
+	// Get new article URL
+	const newArticleUrl = getNewArticleUrl();
+	console.log(`[infoq] Navigating to: ${newArticleUrl}`);
 
-  // Launch Chrome
-  console.log(`[infoq] Launching Chrome (profile: ${profileDir})`);
-  const { cdp, chrome } = await launchChrome(newArticleUrl, profileDir);
+	// Launch Chrome
+	console.log(`[infoq] Launching Chrome (profile: ${profileDir})`);
+	const { cdp, chrome } = await launchChrome(newArticleUrl, profileDir);
 
-  try {
-    // Get page session
-    const session = await getPageSession(cdp, 'xie.infoq.cn');
+	try {
+		// Get page session
+		const session = await getPageSession(cdp, "xie.infoq.cn");
 
-    // Check login status
-    console.log('[infoq] Checking login status...');
-    const isLoggedIn = await checkLoginStatus(session);
+		// Check login status
+		console.log("[infoq] Checking login status...");
+		const isLoggedIn = await checkLoginStatus(session);
 
-    if (!isLoggedIn) {
-      console.log('[infoq] Not logged in. Please log in to your InfoQ account.');
-      console.log('[infoq] Waiting for login (manual intervention required)...');
+		if (!isLoggedIn) {
+			console.log(
+				"[infoq] Not logged in. Please log in to your InfoQ account.",
+			);
+			console.log(
+				"[infoq] Waiting for login (manual intervention required)...",
+			);
 
-      // Wait for user to log in (check every 3 seconds, timeout 5 minutes)
-      const loginTimeoutMs = 300_000;
-      const start = Date.now();
-      while (Date.now() - start < loginTimeoutMs) {
-        await sleep(3000);
-        const nowLoggedIn = await checkLoginStatus(session);
-        if (nowLoggedIn) {
-          console.log('[infoq] Login detected! Continuing...');
-          break;
-        }
-        console.log('[infoq] Still waiting for login...');
-      }
+			// Wait for user to log in (check every 3 seconds, timeout 5 minutes)
+			const loginTimeoutMs = 300_000;
+			const start = Date.now();
+			while (Date.now() - start < loginTimeoutMs) {
+				await sleep(3000);
+				const nowLoggedIn = await checkLoginStatus(session);
+				if (nowLoggedIn) {
+					console.log("[infoq] Login detected! Continuing...");
+					break;
+				}
+				console.log("[infoq] Still waiting for login...");
+			}
 
-      if (!isLoggedIn && Date.now() - start >= loginTimeoutMs) {
-        throw new Error('Login timeout. Please run the script again after logging in.');
-      }
-    } else {
-      console.log('[infoq] Already logged in.');
-    }
+			if (!isLoggedIn && Date.now() - start >= loginTimeoutMs) {
+				throw new Error(
+					"Login timeout. Please run the script again after logging in.",
+				);
+			}
+		} else {
+			console.log("[infoq] Already logged in.");
+		}
 
-    // Wait for page to be ready
-    console.log('[infoq] Waiting for editor to load...');
-    await waitForPageReady(session);
+		// Wait for page to be ready
+		console.log("[infoq] Waiting for editor to load...");
+		await waitForPageReady(session);
 
-    // Fill in the article
-    await fillTitle(session, article.title);
+		// Fill in the article
+		await fillTitle(session, article.title);
 
-    if (article.subtitle) {
-      await fillSubtitle(session, article.subtitle);
-    }
+		if (article.subtitle) {
+			await fillSubtitle(session, article.subtitle);
+		}
 
-    await fillContent(session, article.content);
+		await fillContent(session, article.content);
 
-    if (article.category) {
-      await setCategory(session, article.category);
-    }
+		if (article.category) {
+			await setCategory(session, article.category);
+		}
 
-    if (article.tags && article.tags.length > 0) {
-      await addTags(session, article.tags);
-    }
+		if (article.tags && article.tags.length > 0) {
+			await addTags(session, article.tags);
+		}
 
-    // Submit or save as draft
-    const articleUrl = await submitArticle(session, asDraft);
+		// Submit or save as draft
+		const articleUrl = await submitArticle(session, asDraft);
 
-    console.log('');
-    console.log('[infoq] Article saved successfully!');
-    console.log(`[infoq] URL: ${articleUrl}`);
-    console.log(`[infoq] Status: ${asDraft ? 'draft' : 'submitted for review'}`);
+		console.log("");
+		console.log("[infoq] Article saved successfully!");
+		console.log(`[infoq] URL: ${articleUrl}`);
+		console.log(
+			`[infoq] Status: ${asDraft ? "draft" : "submitted for review"}`,
+		);
 
-    return articleUrl;
-  } finally {
-    // Close CDP connection
-    cdp.close();
-    chrome.kill();
-  }
+		return articleUrl;
+	} finally {
+		// Close CDP connection
+		cdp.close();
+		chrome.kill();
+	}
 }
 
 // ============================================================================
@@ -604,7 +661,7 @@ export async function publishToInfoQ(options: PublishOptions): Promise<string> {
 // ============================================================================
 
 function printUsage(): never {
-  console.log(`Post articles to InfoQ (xie.infoq.cn) via browser automation
+	console.log(`Post articles to InfoQ (xie.infoq.cn) via browser automation
 
 Usage:
   npx -y bun infoq-article.ts [options]
@@ -662,59 +719,65 @@ Setup:
        }
      }
 `);
-  process.exit(0);
+	process.exit(0);
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  if (args.includes('--help') || args.includes('-h')) printUsage();
+	const args = process.argv.slice(2);
+	if (args.includes("--help") || args.includes("-h")) printUsage();
 
-  let markdownFile: string | undefined;
-  let title: string | undefined;
-  let content: string | undefined;
-  let subtitle: string | undefined;
-  let category: string | undefined;
-  let tags: string[] = [];
-  let asDraft: boolean | undefined;
-  let profileDir: string | undefined;
+	let markdownFile: string | undefined;
+	let title: string | undefined;
+	let content: string | undefined;
+	let subtitle: string | undefined;
+	let category: string | undefined;
+	const tags: string[] = [];
+	let asDraft: boolean | undefined;
+	let profileDir: string | undefined;
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i]!;
-    if (arg === '--markdown' && args[i + 1]) markdownFile = args[++i];
-    else if (arg === '--title' && args[i + 1]) title = args[++i];
-    else if (arg === '--content' && args[i + 1]) content = args[++i];
-    else if (arg === '--subtitle' && args[i + 1]) subtitle = args[++i];
-    else if (arg === '--category' && args[i + 1]) category = args[++i];
-    else if (arg === '--tags' && args[i + 1]) {
-      const tagStr = args[++i]!;
-      tags.push(...tagStr.split(',').map((t) => t.trim()).filter((t) => t));
-    }
-    else if (arg === '--submit') asDraft = false;
-    else if (arg === '--draft') asDraft = true;
-    else if (arg === '--profile' && args[i + 1]) profileDir = args[++i];
-  }
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (!arg) continue;
+		if (arg === "--markdown" && args[i + 1]) markdownFile = args[++i];
+		else if (arg === "--title" && args[i + 1]) title = args[++i];
+		else if (arg === "--content" && args[i + 1]) content = args[++i];
+		else if (arg === "--subtitle" && args[i + 1]) subtitle = args[++i];
+		else if (arg === "--category" && args[i + 1]) category = args[++i];
+		else if (arg === "--tags" && args[i + 1]) {
+			const tagStr = args[++i];
+			if (!tagStr) continue;
+			tags.push(
+				...tagStr
+					.split(",")
+					.map((t) => t.trim())
+					.filter((t) => t),
+			);
+		} else if (arg === "--submit") asDraft = false;
+		else if (arg === "--draft") asDraft = true;
+		else if (arg === "--profile" && args[i + 1]) profileDir = args[++i];
+	}
 
-  // Validate input
-  if (!markdownFile && !title) {
-    throw new Error('Error: --title is required (or use --markdown)');
-  }
-  if (!markdownFile && !content) {
-    throw new Error('Error: --content is required when using --title');
-  }
+	// Validate input
+	if (!markdownFile && !title) {
+		throw new Error("Error: --title is required (or use --markdown)");
+	}
+	if (!markdownFile && !content) {
+		throw new Error("Error: --content is required when using --title");
+	}
 
-  await publishToInfoQ({
-    markdownFile,
-    title,
-    content,
-    subtitle,
-    category,
-    tags,
-    asDraft,
-    profileDir,
-  });
+	await publishToInfoQ({
+		markdownFile,
+		title,
+		content,
+		subtitle,
+		category,
+		tags,
+		asDraft,
+		profileDir,
+	});
 }
 
 await main().catch((err) => {
-  console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-  process.exit(1);
+	console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+	process.exit(1);
 });
