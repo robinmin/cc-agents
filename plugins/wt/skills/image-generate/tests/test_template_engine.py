@@ -10,7 +10,6 @@ import pytest
 import tempfile
 import shutil
 from pathlib import Path
-from yaml import safe_dump
 
 # Import template engine components
 import sys
@@ -20,7 +19,6 @@ from template_engine import (
     TemplateEngine,
     Template,
     TemplateConfig,
-    TemplateError,
     TemplateNotFoundError,
     TemplateParseError,
     TemplateValidationError,
@@ -379,7 +377,6 @@ styles:
         template = Template(config=config, body="Test", source_path=Path("test.tpl.md"))
 
         # Mock _load_styles to return custom styles
-        original_load = template._load_styles
         template._load_styles = lambda: {
             "custom-style": "custom modifiers, unique look, special style",
             "technical-diagram": "overridden technical style"
@@ -707,7 +704,7 @@ Cover for "{{title}}"{{subtitle | - {{subtitle}}}}.
 # Helper Functions
 # =============================================================================
 
-def valid_template_content():
+def make_valid_template_content():
     """Helper to generate valid template content."""
     return """---
 name: test
