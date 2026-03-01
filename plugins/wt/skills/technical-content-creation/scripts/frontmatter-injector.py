@@ -7,7 +7,6 @@ by checking existing files and injecting frontmatter as needed.
 """
 
 import argparse
-import json
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -15,7 +14,6 @@ from typing import Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import get_tcc_config
 
 
 # Template mapping
@@ -314,7 +312,7 @@ def cmd_inject(args) -> None:
         else:
             files_skipped += 1
 
-    print(f"Frontmatter injection complete:")
+    print("Frontmatter injection complete:")
     print(f"  - Files processed: {files_injected + files_skipped}")
     print(f"  - Frontmatter injected: {files_injected}")
     print(f"  - Already had frontmatter: {files_skipped}")
