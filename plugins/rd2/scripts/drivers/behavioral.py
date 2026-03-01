@@ -33,7 +33,7 @@ def run_trigger_tests(
     should_trigger = scenarios.get("trigger_tests", {}).get("should_trigger", [])
     should_not_trigger = scenarios.get("trigger_tests", {}).get("should_not_trigger", [])
 
-    results = {
+    results: dict[str, Any] = {
         "triggered": [],
         "not_triggered": [],
         "false_positives": [],
