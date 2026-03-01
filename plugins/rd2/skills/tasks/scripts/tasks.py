@@ -681,19 +681,17 @@ class ValidationResult:
         self.warnings: list[str] = []
         self.suggestions: list[str] = []
 
-        @property
-        def has_errors(self) -> bool:
-            return len(self.errors) > 0
-
-        @property
-        def has_warnings(self) -> bool:
-            return len(self.warnings) > 0    @property
+    @property
     def has_errors(self) -> bool:
         return len(self.errors) > 0
 
     @property
     def has_warnings(self) -> bool:
         return len(self.warnings) > 0
+
+    @property
+    def has_suggestions(self) -> bool:
+        return len(self.suggestions) > 0
 
 
 def validate_task_for_transition(task: TaskFile, new_status: TaskStatus) -> ValidationResult:
