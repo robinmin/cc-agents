@@ -8,7 +8,7 @@ from schema.base import ValidationIssue, SkillType
 # Common field validators
 def validate_name(name: Any, context: str = "skill") -> list[ValidationIssue]:
     """Validate name field (common rules for all types)."""
-    issues = []
+    issues: list[ValidationIssue] = []
     if name is None:
         issues.append(ValidationIssue("error", "frontmatter", "name required", field="name"))
         return issues
@@ -32,7 +32,7 @@ def validate_name(name: Any, context: str = "skill") -> list[ValidationIssue]:
 
 def validate_description(description: Any, context: str = "skill") -> list[ValidationIssue]:
     """Validate description field."""
-    issues = []
+    issues: list[ValidationIssue] = []
     if description is None:
         issues.append(ValidationIssue("error", "frontmatter", "description required", field="description"))
         return issues
@@ -78,7 +78,7 @@ INVALID_FRONTMATTER_FIELDS = {"agent", "subagents", "orchestrates", "skills"}
 
 def validate_model(model: Any) -> list[ValidationIssue]:
     """Validate model field for agents."""
-    issues = []
+    issues: list[ValidationIssue] = []
     if model is None:
         return issues  # Optional for skills
 
@@ -94,7 +94,7 @@ def validate_model(model: Any) -> list[ValidationIssue]:
 
 def validate_color(color: Any) -> list[ValidationIssue]:
     """Validate color field for agents."""
-    issues = []
+    issues: list[ValidationIssue] = []
     if color is None:
         return issues  # Optional for skills
 
@@ -110,7 +110,7 @@ def validate_color(color: Any) -> list[ValidationIssue]:
 
 def validate_tools(tools: Any) -> list[ValidationIssue]:
     """Validate tools field."""
-    issues = []
+    issues: list[ValidationIssue] = []
     if tools is None:
         return issues  # Optional
 
@@ -122,7 +122,7 @@ def validate_tools(tools: Any) -> list[ValidationIssue]:
 
 def validate_frontmatter(frontmatter: dict[str, Any], skill_type: SkillType) -> list[ValidationIssue]:
     """Validate frontmatter based on skill type."""
-    issues = []
+    issues: list[ValidationIssue] = []
 
     # Check for invalid fields
     for field_name in INVALID_FRONTMATTER_FIELDS:
@@ -184,11 +184,10 @@ def parse_frontmatter(content: str) -> tuple[dict[str, Any], str]:
     return fm, body
 
 
-def _simple_yaml_parse(yaml_str: str) -> dict:
+def _simple_yaml_parse(yaml_str: str) -> dict[str, Any]:
     """Simple YAML parsing fallback without yaml module."""
-    result = {}
-    current_key = None
-    current_list = None
+    result: dict[str, Any] = {}
+    current_list: list[str] | None = None
 
     for line in yaml_str.split("\n"):
         line = line.rstrip()
@@ -201,7 +200,6 @@ def _simple_yaml_parse(yaml_str: str) -> dict:
             value = line[colon_idx + 1:].strip()
 
             if not value:
-                current_key = key
                 if key == "tools":
                     current_list = []
                     result[key] = current_list
