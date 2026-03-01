@@ -12,7 +12,7 @@ from pathlib import Path
 scripts_dir = Path(__file__).parent
 sys.path.insert(0, str(scripts_dir))
 
-from template_engine import TemplateEngine, TemplateConfig, create_template
+from template_engine import TemplateEngine, TemplateConfig  # noqa: E402
 
 def test_basic_template_loading():
     """Test basic template loading."""
