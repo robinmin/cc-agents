@@ -141,11 +141,11 @@ class ContentEvaluator:
             elif criterion.name == "core_sections":
                 sections = sum([bool(has_overview), bool(has_examples), bool(has_when_to_use)])
                 if sections >= 3:
-                    return "complete", f"Overview, Examples, and Workflow sections present"
+                    return "complete", "Overview, Examples, and Workflow sections present"
                 elif sections == 2:
-                    return "good", f"Two core sections present"
+                    return "good", "Two core sections present"
                 elif sections == 1:
-                    return "fair", f"One core section present"
+                    return "fair", "One core section present"
                 elif has_overview:
                     return "poor", "Only Overview present"
                 return "missing", "Missing core sections"
