@@ -3,7 +3,6 @@
 import pytest
 from pathlib import Path
 import tempfile
-import os
 
 # Add scripts directory to path
 import sys
@@ -200,7 +199,7 @@ description: Test skill
 
 Don't forget to handle errors.
 """)
-        evaluator = BehavioralReadinessEvaluator()
+        BehavioralReadinessEvaluator()
         result = evaluate_behavioral_readiness(skill)
 
         assert result.name == "behavioral_readiness"
