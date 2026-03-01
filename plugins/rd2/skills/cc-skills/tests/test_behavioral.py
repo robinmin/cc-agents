@@ -11,7 +11,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 from evaluators.behavioral import (
     BehavioralEvaluator,
     ScenarioParser,
-    ScenarioSet,
     evaluate_behavioral,
     SCENARIO_MINIMUMS,
     DIFFICULTY_WEIGHTS,
