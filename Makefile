@@ -99,7 +99,11 @@ lint:
 		else \
 			echo "⏭️  Skipping mypy (no Python files in scripts/)"; \
 		fi; \
-	done
+	done && \
+	echo ""; \
+	echo "🔍 Linting plugins/rd2/scripts (common code)..."; \
+	ruff check plugins/rd2/scripts && \
+	mypy plugins/rd2/scripts --config-file $(PWD)/pyproject.toml
 	@echo "✅ Linting complete"
 
 ## lint-one: Lint one script directory (usage: make lint-one DIR=plugins/rd2/skills/cc-skills)
