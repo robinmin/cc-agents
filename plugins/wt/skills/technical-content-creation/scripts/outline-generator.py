@@ -12,11 +12,10 @@ import re
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from shared.config import get_tcc_config, get_tcc_repo_root
+from shared.config import get_tcc_repo_root
 
 
 # Outline option styles
@@ -231,7 +230,7 @@ def create_outline_content(
     Returns:
         Generated outline content
     """
-    style = OUTLINE_STYLES[option]
+    OUTLINE_STYLES[option]
 
     # Extract key themes from research brief
     brief_content = research_brief['content']
@@ -279,8 +278,8 @@ def create_outline_content(
                 sections.extend([
                     f"## {3+i}. {theme}",
                     f"   - Key concept {i}",
-                    f"   - Practical application",
-                    f"   - Common considerations",
+                    "   - Practical application",
+                    "   - Common considerations",
                 ])
             sections.extend([
                 "",
@@ -324,8 +323,8 @@ def create_outline_content(
             for i, theme in enumerate(themes[:3], 1):
                 sections.extend([
                     f"## {3+i}. Exploring {theme}",
-                    f"   - Real-world example",
-                    f"   - What I learned",
+                    "   - Real-world example",
+                    "   - What I learned",
                 ])
             sections.extend([
                 "",
@@ -371,9 +370,9 @@ def create_outline_content(
             for i, theme in enumerate(themes[:3], 1):
                 sections.extend([
                     f"## {3+i}. {theme}: Technical Analysis",
-                    f"   - Technical specifications",
-                    f"   - Edge cases and considerations",
-                    f"   - Performance implications",
+                    "   - Technical specifications",
+                    "   - Edge cases and considerations",
+                    "   - Performance implications",
                 ])
             sections.extend([
                 "",
