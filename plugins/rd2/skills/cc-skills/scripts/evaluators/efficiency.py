@@ -4,7 +4,6 @@ Evaluates token efficiency and conciseness of skills using rubric-based scoring.
 """
 
 from pathlib import Path
-import re
 
 from .base import DimensionScore, RubricLevel, RubricCriterion, RubricScorer, DIMENSION_WEIGHTS
 
