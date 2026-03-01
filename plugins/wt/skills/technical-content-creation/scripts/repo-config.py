@@ -369,7 +369,7 @@ def cmd_set_default_collection(args) -> None:
 
         # Show current config
         tcc_config = get_tcc_config()
-        print(f"\nCurrent TCC configuration:")
+        print("\nCurrent TCC configuration:")
         print(f"  Repo Root: {tcc_config.get('tcc_repo_root')}")
         print(f"  Default Collection: {tcc_config.get('default_collection')}")
 
