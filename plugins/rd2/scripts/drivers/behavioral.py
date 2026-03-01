@@ -17,10 +17,7 @@ def load_scenarios(scenarios_path: Path) -> dict[str, Any]:
         return {}
 
 
-def run_trigger_tests(
-    skill_description: str,
-    scenarios: dict
-) -> dict[str, Any]:
+def run_trigger_tests(skill_description: str, scenarios: dict) -> dict[str, Any]:
     """Run trigger detection tests.
 
     Args:
@@ -75,19 +72,16 @@ def run_trigger_tests(
     trigger_rate = len(results["triggered"]) / len(should_trigger) if should_trigger else 0
     fp_rate = len(results["false_positives"]) / len(should_not_trigger) if should_not_trigger else 0
 
-    results["passed"] = (
-        trigger_rate >= criteria.get("min_trigger_rate", 0.85) and
-        fp_rate <= criteria.get("max_false_positive_rate", 0.15)
-    )
+    results["passed"] = trigger_rate >= criteria.get(
+        "min_trigger_rate", 0.85
+    ) and fp_rate <= criteria.get("max_false_positive_rate", 0.15)
     results["trigger_rate"] = trigger_rate
     results["false_positive_rate"] = fp_rate
 
     return results
 
 
-def run_scenario_tests(
-    scenarios: dict
-) -> dict[str, Any]:
+def run_scenario_tests(scenarios: dict) -> dict[str, Any]:
     """Run scenario-based behavioral tests.
 
     Note: Full execution requires LLM integration. This is a placeholder.
@@ -96,18 +90,20 @@ def run_scenario_tests(
     results = []
 
     for scenario in scenario_list:
-        results.append({
-            "name": scenario.get("name", "Unnamed"),
-            "description": scenario.get("description", ""),
-            "input": scenario.get("input", ""),
-            "expected_behaviors": scenario.get("expected_behaviors", []),
-            "note": "Execution requires LLM integration"
-        })
+        results.append(
+            {
+                "name": scenario.get("name", "Unnamed"),
+                "description": scenario.get("description", ""),
+                "input": scenario.get("input", ""),
+                "expected_behaviors": scenario.get("expected_behaviors", []),
+                "note": "Execution requires LLM integration",
+            }
+        )
 
     return {
         "scenarios": results,
         "total": len(results),
-        "note": "Full execution requires LLM integration"
+        "note": "Full execution requires LLM integration",
     }
 
 
