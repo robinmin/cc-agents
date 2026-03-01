@@ -10,25 +10,23 @@ Now uses common validation libraries from plugins/rd2/scripts.
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from pathlib import Path
 from typing import Any
 
-# Add common library to path
+# Add common library to path (must be before local imports)
 _common_lib_path = Path(__file__).parent.parent.parent.parent / "scripts"
 if _common_lib_path.exists():
     sys.path.insert(0, str(_common_lib_path))
 
-from schema.base import SkillType, ValidationIssue, ValidationResult
-from schema.frontmatter import (
+from schema.base import SkillType, ValidationIssue  # noqa: E402
+from schema.frontmatter import (  # noqa: E402
     parse_frontmatter as common_parse_frontmatter,
     validate_frontmatter as common_validate_frontmatter,
 )
-from schema.sections import (
+from schema.sections import (  # noqa: E402
     validate_sections as common_validate_sections,
     get_section_schema,
-    AGENT_SECTIONS,
 )
 
 
@@ -47,7 +45,7 @@ def validate_agent_specific(agent_path: Path, content: str, lines: list[str]) ->
         ))
 
     # Check line count
-    non_empty = [l for l in lines if l.strip()]
+    non_empty = [line for line in lines if line.strip()]
     line_count = len(non_empty)
     if line_count < 300:
         issues.append(ValidationIssue(
@@ -72,7 +70,7 @@ def validate_agent(agent_path: Path) -> dict:
     Returns:
         Dict with validation results
     """
-    results = {
+    results: dict[str, Any] = {
         "valid": True,
         "errors": [],
         "warnings": [],
