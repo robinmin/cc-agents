@@ -9,12 +9,11 @@ from __future__ import annotations
 import yaml
 from pathlib import Path
 from dataclasses import dataclass, field
-from typing import Any
 
 try:
-    from .base import DimensionScore, RubricCriterion, RubricLevel, RubricScorer
+    from .base import DimensionScore, RubricCriterion, RubricLevel
 except ImportError:
-    from base import DimensionScore, RubricCriterion, RubricLevel, RubricScorer
+    from base import DimensionScore, RubricCriterion, RubricLevel  # type: ignore[no-redef]
 
 
 # Minimum scenarios per skill type
@@ -197,7 +196,7 @@ class BehavioralEvaluator:
             )
             # Partial credit for valid scenarios
             if scenario_set.scenarios:
-                partial = len(scenario_set.scenarios) * 10
+                len(scenario_set.scenarios) * 10
                 findings.append(f"Partial credit: {len(scenario_set.scenarios)} scenarios parsed")
             else:
                 return DimensionScore(
