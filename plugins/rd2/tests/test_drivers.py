@@ -1,13 +1,11 @@
 """Tests for drivers module."""
 
-import pytest
 import tempfile
 from pathlib import Path
 
 from drivers.structural import (
     validate_structure,
     validate_naming,
-    print_validation_result,
 )
 from drivers.behavioral import (
     load_scenarios,
