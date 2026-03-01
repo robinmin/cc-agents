@@ -17,7 +17,6 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Import shared module first (needed by repo_config)
-from shared.config import get_tcc_config, get_tcc_repo_root, WTConfigPath
 
 from repo_config import (
     RepoValidator,
@@ -35,7 +34,6 @@ from repo_config import (
     COLLECTIONS_FILE
 )
 
-from shared.config import get_tcc_config, get_tcc_repo_root, set_tcc_repo_root
 
 
 # ============================================================================
@@ -322,7 +320,7 @@ class TestCmdDetect:
             mock_validator.return_value = mock_v
 
             cmd_detect(args)
-            captured = capsys.readouterr()
+            capsys.readouterr()
             mock_v.validate_repo_root.assert_called_once_with(mock_root)
 
 
@@ -335,7 +333,7 @@ class TestCmdSetRoot:
         args.path = str(mock_valid_repo)
 
         with patch('repo_config.Path') as mock_path, \
-             patch('repo_config.set_tcc_repo_root') as mock_set:
+             patch('repo_config.set_tcc_repo_root'):
             mock_path.return_value = mock_valid_repo
             mock_v = MagicMock()
             mock_v.validate_repo_root.return_value = (True, [])
@@ -351,7 +349,7 @@ class TestCmdSetRoot:
         invalid_path = tmp_path / "invalid"
 
         with patch('repo_config.Path') as mock_path, \
-             patch('repo_config.RepoValidator') as mock_validator:
+             patch('repo_config.RepoValidator'):
             mock_path.return_value.expanduser.resolve.return_value = invalid_path
             mock_v = MagicMock()
             mock_v.validate_repo_root.return_value = (False, ["Missing required"])
