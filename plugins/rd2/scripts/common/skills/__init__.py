@@ -73,9 +73,9 @@ def validate_skill(skill_path: Path) -> ValidationResult:
     issues: list[ValidationIssue] = []
 
     if not skill_path.exists():
-        issues.append(ValidationIssue(
-            "error", "file", f"File not found: {skill_path}", field="file"
-        ))
+        issues.append(
+            ValidationIssue("error", "file", f"File not found: {skill_path}", field="file")
+        )
         return ValidationResult(path=skill_path, valid=False, issues=issues)
 
     content = skill_path.read_text()
@@ -86,9 +86,9 @@ def validate_skill(skill_path: Path) -> ValidationResult:
         frontmatter, body = common_parse_frontmatter(content)
         issues.extend(validate_skill_frontmatter(frontmatter))
     else:
-        issues.append(ValidationIssue(
-            "warning", "frontmatter", "No frontmatter found", field="frontmatter"
-        ))
+        issues.append(
+            ValidationIssue("warning", "frontmatter", "No frontmatter found", field="frontmatter")
+        )
 
     # Validate sections
     issues.extend(validate_skill_sections(lines))
