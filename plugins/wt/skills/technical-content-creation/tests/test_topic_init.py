@@ -14,12 +14,10 @@ Tests cover:
 
 import json
 import pytest
-from pathlib import Path
 from unittest.mock import patch, MagicMock
 from datetime import datetime
 
 # Import shared module first (needed by topic_init)
-from shared.config import get_tcc_config, get_tcc_repo_root
 
 from topic_init import (
     slugify,
@@ -35,7 +33,6 @@ from topic_init import (
     TOPIC_TEMPLATE
 )
 
-from shared.config import get_tcc_config, get_tcc_repo_root
 
 
 # ============================================================================
@@ -196,7 +193,7 @@ class TestCreateCollection:
 
     def test_creates_collection_directory(self, mock_repo_root, mock_collections_data):
         """Test that collection directory is created."""
-        new_col = create_collection(mock_repo_root, mock_collections_data, "New Collection")
+        create_collection(mock_repo_root, mock_collections_data, "New Collection")
         collection_dir = mock_repo_root / "collections" / "new-collection"
         assert collection_dir.exists()
 
@@ -250,11 +247,11 @@ class TestRegisterTopic:
 
     def test_updates_updated_at_timestamp(self, mock_repo_root):
         """Test that updated_at timestamp is updated."""
-        before = datetime.now().isoformat()
+        datetime.now().isoformat()
         register_topic(mock_repo_root, "test-collection", "test-topic")
 
         data = load_collections_json(mock_repo_root)
-        after = datetime.now().isoformat()
+        datetime.now().isoformat()
         updated_at = data["collections"][0]["updated_at"]
         # Check timestamp is recent
         assert updated_at is not None
@@ -633,7 +630,7 @@ class TestAdditionalCoverage:
     def test_save_collections_json_updates_timestamp(self, mock_repo_root):
         """Test save_collections_json updates last_updated timestamp."""
         from datetime import datetime
-        before = datetime.now().isoformat()
+        datetime.now().isoformat()
 
         data = {"collections": [{"id": "test"}]}
         save_collections_json(mock_repo_root, data)
