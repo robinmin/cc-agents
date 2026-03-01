@@ -10,7 +10,6 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -130,7 +129,7 @@ def find_topic_context(start_dir: Path) -> TopicContext:
         if (current / "topic.md").exists():
             # Verify it's in a valid topic structure (has stage folders)
             has_stage_folders = any(
-                (current / stage["folder"]).exists()
+                (current / stage["folder"]).exists()  # type: ignore[operator]
                 for stage in STAGES.values()
             )
             if has_stage_folders:
@@ -158,7 +157,7 @@ def get_stage_status(topic_dir: Path, stage_num: int) -> dict:
         raise ValueError(f"Invalid stage number: {stage_num}")
 
     stage = STAGES[stage_num]
-    stage_dir = topic_dir / stage["folder"]
+    stage_dir = topic_dir / stage["folder"]  # type: ignore[operator]
 
     if not stage_dir.exists():
         return {
@@ -270,8 +269,8 @@ def get_stage_completion_percentage(topic_dir: Path) -> float:
 
 def print_status_report(topic_dir: Path) -> None:
     """Print a comprehensive status report for the topic."""
-    print(f"Topic Status Report")
-    print(f"=" * 50)
+    print("Topic Status Report")
+    print("=" * 50)
     print(f"Topic ID: {topic_dir.name}")
     print(f"Path: {topic_dir}")
     print()
@@ -319,7 +318,8 @@ def print_status_report(topic_dir: Path) -> None:
 
     # Current stage
     current = detect_current_stage(topic_dir)
-    print(f"Detected Current Stage: {current} - {STAGES[current]['name']}")
+    assert current is not None, "No valid stage detected"
+    print(f"Detected Current Stage: {current} - {STAGES[current]['name']}")  # type: ignore[index]
     print()
 
 
@@ -354,7 +354,7 @@ def cmd_status(args) -> None:
         print("\nUse --validate to check context")
         sys.exit(1)
 
-    print_status_report(context.topic_dir)
+    print_status_report(context.topic_dir)  # type: ignore[arg-type]
 
 
 def cmd_detect_stage(args) -> None:
@@ -365,8 +365,10 @@ def cmd_detect_stage(args) -> None:
         print("Error: Not in a valid topic folder")
         sys.exit(1)
 
+    assert context.topic_dir is not None, "No valid topic directory"
     current_stage = detect_current_stage(context.topic_dir)
-    stage_info = STAGES[current_stage]
+    assert current_stage is not None, "No valid stage detected"
+    stage_info = STAGES[current_stage]  # type: ignore[index]
 
     # Output just the stage number for scripting
     if args.json:
@@ -388,14 +390,17 @@ def cmd_verify_dependencies(args) -> None:
         print("Error: Not in a valid topic folder")
         sys.exit(1)
 
+    assert context.topic_dir is not None, "No valid topic directory"
+
     # Default to current stage + 1 (next stage)
     if args.stage is None:
         current_stage = detect_current_stage(context.topic_dir)
+        assert current_stage is not None, "No valid stage detected"
         target_stage = min(current_stage + 1, 6)
     else:
         target_stage = args.stage
 
-    all_satisfied, unmet = verify_dependencies(context.topic_dir, target_stage)
+    all_satisfied, unmet = verify_dependencies(context.topic_dir, target_stage)  # type: ignore[arg-type]
 
     if all_satisfied:
         print(f"All dependencies satisfied for Stage {target_stage}")
