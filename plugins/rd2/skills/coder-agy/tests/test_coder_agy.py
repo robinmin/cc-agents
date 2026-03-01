@@ -5,7 +5,6 @@ Unit tests for coder-agy.py - Antigravity Code Generation Utility.
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -873,7 +872,7 @@ class TestGenerateCode:
                         output="Generated code"
                     )
                     with patch.object(coder_agy, "PLANS_DIR", tmp_path / "plans"):
-                        result = coder_agy.generate_code(TEST_TASK_CONTENT)
+                        coder_agy.generate_code(TEST_TASK_CONTENT)
                         # Temp file should be cleaned up
                         assert not temp_file.exists()
 
