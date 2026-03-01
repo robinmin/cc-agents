@@ -10,15 +10,11 @@ Tests cover:
 - Utility functions (parse_resolution, save_image)
 """
 
-import io
-import os
 import sys
 import pytest
 import requests
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock, mock_open
-from dataclasses import asdict
-import tempfile
+from unittest.mock import Mock, patch, MagicMock
 
 # Add scripts directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
@@ -27,9 +23,6 @@ from image_generator import (
     # Data structures
     GenerationRequest,
     GenerationResult,
-    ImageGeneratorBackend,
-
-    # Backends
     HuggingFaceBackend,
     GeminiBackend,
     NanoBananaBackend,
@@ -45,12 +38,6 @@ from image_generator import (
     main,
 )
 
-from template_engine import (
-    TemplateError,
-    TemplateNotFoundError,
-    TemplateParseError,
-    TemplateValidationError,
-)
 
 
 # =============================================================================
