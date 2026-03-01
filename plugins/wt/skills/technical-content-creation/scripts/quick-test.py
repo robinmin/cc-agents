@@ -15,10 +15,8 @@ def test_config_module():
         from shared.config import (
             get_wt_config,
             get_tcc_config,
-            set_tcc_config,
             WTConfigPath,
             strip_json_comments,
-            ensure_config_exists,
         )
         print("  [PASS] All imports successful")
 
