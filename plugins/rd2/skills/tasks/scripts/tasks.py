@@ -94,7 +94,8 @@ Commands:
                              Update a section's content from a file
     update <WBS> --section Artifacts --append-row "type|path|agent|date"
                              Append a row to the Artifacts table
-    open <WBS>               Open a task file in default editor
+    show <WBS>               Show task content in markdown (for agents)
+    open <WBS>               Open task file in default editor (for humans)
     refresh                  Refresh the kanban board
     check                    Verify tasks CLI availability
     check <WBS>              Validate a specific task file
@@ -116,6 +117,7 @@ Examples:
     tasks update 47 testing
     tasks update 47 wip --force
     tasks update 47 --phase implementation completed
+    tasks show 0047
     tasks open 0047
     tasks check
     tasks check 47
@@ -1409,8 +1411,37 @@ class TasksManager:
         self.cmd_refresh()
         return 0
 
+    def cmd_show(self, wbs: str) -> int:
+        """Show a task file's content in markdown format (for agents).
+
+        Uses glow if available, otherwise prints directly.
+
+        Args:
+            wbs: WBS number (can be short form like "47" or full "0047").
+        """
+        # Validate and normalize WBS to 4-digit
+        try:
+            wbs_int = self._validate_wbs(wbs)
+            wbs_normalized = f"{wbs_int:04d}"
+        except ValueError as e:
+            print(f"[ERROR] {e}", file=sys.stderr)
+            return 1
+
+        self.config.validate()
+
+        # Find task file across all folders
+        task_path = self.config.find_task_by_wbs(wbs_normalized)
+        if not task_path:
+            print(f"[ERROR] No task found with WBS: {wbs_normalized}", file=sys.stderr)
+            return 1
+
+        # Read and display content
+        content = task_path.read_text()
+        self._display_with_glow(content)
+        return 0
+
     def cmd_open(self, wbs: str) -> int:
-        """Open a task file in the default editor.
+        """Open a task file in the default editor (for humans).
 
         Args:
             wbs: WBS number (can be short form like "47" or full "0047").
@@ -2246,8 +2277,15 @@ def main() -> int:
                 return 1
             wbs, stage = remaining[0], remaining[1]
             return manager.cmd_update(wbs, stage, force=pre_args.force)
+        elif pre_args.command == "show":
+            # show takes: <WBS> (one positional arg) - for agents to view task content
+            if not remaining:
+                print("[ERROR] Usage: tasks show <WBS>", file=sys.stderr)
+                return 1
+            wbs = remaining[0]
+            return manager.cmd_show(wbs)
         elif pre_args.command == "open":
-            # open takes: <WBS> (one positional arg)
+            # open takes: <WBS> (one positional arg) - for humans to open in GUI editor
             if not remaining:
                 print("[ERROR] Usage: tasks open <WBS>", file=sys.stderr)
                 return 1

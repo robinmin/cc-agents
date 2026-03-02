@@ -22,6 +22,18 @@ The tasks CLI uses five canonical status values:
 | testing, test, review, inreview | Testing |
 | done, completed, finished, closed | Done |
 
+## Implementation Phases
+
+The tasks CLI also tracks implementation phases via the `impl_progress` frontmatter field:
+
+**Phase Names:** planning, design, implementation, review, testing
+
+**Phase Statuses:**
+- `pending` - Not started
+- `in_progress` - Currently working
+- `completed` - Finished
+- `blocked` - Stuck
+
 ## Usage Examples
 
 All of these are equivalent:

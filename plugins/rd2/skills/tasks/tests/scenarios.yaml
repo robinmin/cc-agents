@@ -1,0 +1,108 @@
+# Behavioral test scenarios for tasks skill
+# Defines test cases for validating skill behavior
+
+scenarios:
+  - name: "Create task with background and requirements"
+    description: "Create a task with rich content"
+    difficulty: beginner
+    input: "tasks create \"add-oauth-login\" --background \"Users need SSO\" --requirements \"Support Google and GitHub\""
+    expected_behaviors:
+      - Creates task file in docs/prompts/
+      - Includes Background section with provided content
+      - Includes Requirements section with provided content
+      - Updates kanban board
+
+  - name: "Update task status with validation"
+    description: "Transition task to WIP with validation"
+    difficulty: beginner
+    input: "tasks update 47 wip"
+    expected_behaviors:
+      - Validates required sections exist
+      - Blocks if Background/Requirements/Solution is placeholder
+      - Allows if sections are populated
+
+  - name: "Force update bypassing validation"
+    description: "Force status change without validation"
+    difficulty: intermediate
+    input: "tasks update 47 wip --force"
+    expected_behaviors:
+      - Bypasses validation warnings
+      - Updates status even with empty sections
+
+  - name: "Update section from file"
+    description: "Update task section with file content"
+    difficulty: beginner
+    input: "tasks update 47 --section Design --from-file /tmp/design.md"
+    expected_behaviors:
+      - Reads content from file
+      - Replaces section content in task file
+      - Updates updated_at timestamp
+
+  - name: "Append artifact row"
+    description: "Add row to Artifacts table"
+    difficulty: beginner
+    input: "tasks update 47 --section Artifacts --append-row \"diagram|docs/arch.png|super-architect|2026-02-10\""
+    expected_behaviors:
+      - Appends row to Artifacts table
+      - Preserves existing rows
+
+  - name: "List tasks by stage"
+    description: "Filter kanban by specific status"
+    difficulty: beginner
+    input: "tasks list wip"
+    expected_behaviors:
+      - Shows only WIP tasks
+      - Uses glow if available
+
+  - name: "Show task content"
+    description: "Display task file in markdown (for agents)"
+    difficulty: beginner
+    input: "tasks show 47"
+    expected_behaviors:
+      - Reads task file content
+      - Displays in markdown format
+      - Uses glow if available
+
+  - name: "Open task in editor"
+    description: "Open task file in system editor (for humans)"
+    difficulty: beginner
+    input: "tasks open 47"
+    expected_behaviors:
+      - Finds task across all folders
+      - Opens in default editor
+
+  - name: "Update impl_progress phase"
+    description: "Update phase and auto-compute status"
+    difficulty: intermediate
+    input: "tasks update 47 --phase implementation completed"
+    expected_behaviors:
+      - Updates phase status
+      - Auto-computes task status
+      - Validates before advancing
+
+  - name: "Batch create tasks"
+    description: "Create multiple tasks from JSON"
+    difficulty: intermediate
+    input: "tasks batch-create --from-json tasks.json"
+    expected_behaviors:
+      - Parses JSON array
+      - Creates multiple task files
+      - Single kanban refresh at end
+
+  - name: "Validate single task"
+    description: "Check task readiness for next status"
+    difficulty: beginner
+    input: "tasks check 47"
+    expected_behaviors:
+      - Shows current status and target
+      - Displays impl_progress breakdown
+      - Lists errors/warnings/suggestions
+
+  - name: "Add new folder"
+    description: "Create new task folder with base counter"
+    difficulty: intermediate
+    input: "tasks config add-folder docs/v2 --base-counter 200 --label \"V2\""
+    expected_behaviors:
+      - Adds folder to config
+      - Creates directory
+      - Sets base_counter for WBS range
