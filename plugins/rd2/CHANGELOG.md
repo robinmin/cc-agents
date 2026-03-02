@@ -1,3 +1,71 @@
+## [0.7.6] - 2026-03-01
+
+### Summary
+
+**cc-skills v2.2: 30+ New Skills, Complete Agent/Command Framework, tasks CLI Enhancements**
+
+Major release with comprehensive skill coverage across coding, testing, architecture, and workflow orchestration. Added 30+ new skills, 16 agents, 18 commands, complete evaluation framework with 12 dimensions, and enhanced tasks CLI with `show` command.
+
+### ✨ New Features
+
+#### Skills (30+ new skills)
+- **Code Generation**: coder-claude, coder-gemini, coder-auggie, coder-opencode, coder-agy
+- **Code Review**: code-review-claude, code-review-gemini, code-review-auggie, code-review-opencode, code-review-common
+- **Planning**: pl-python, pl-javascript, pl-typescript, pl-golang
+- **Architecture**: backend-architect, frontend-architect, cloud-architect, frontend-design, ui-ux-design
+- **Testing**: unit-tests-generation, test-cycle, test-coverage, tdd-workflow, advanced-testing
+- **Workflow**: task-decomposition, task-workflow, workflow-orchestration, brainstorm
+- **Code Analysis**: ast-grep, anti-hallucination, knowledge-extraction, tool-selection
+- **Hooks**: cc-hooks
+
+#### Agents (16 new agents)
+- super-coder, super-planner, super-architect, super-designer
+- super-code-reviewer, super-brain, super-reve
+- skill-doctor, skill-expert, agent-doctor, agent-expert
+- command-doctor, command-expert, hook-doctor, hook-expert
+- knowledge-seeker
+
+#### Commands (18 new commands)
+- tasks-plan, tasks-run, tasks-design, tasks-review
+- tasks-fixall, tasks-unit, tasks-gitmsg, tasks-changelog
+- skill-add, skill-evaluate, skill-refine
+- agent-add, agent-evaluate, agent-refine
+- command-add, command-evaluate, command-refine
+
+### 🔧 Improvements
+
+#### tasks CLI Enhancements
+- Added `tasks show <WBS>` command for agents to view task content
+- Clarified `show` vs `open` usage for agents vs humans
+- Added command to always use global `tasks` command (not Python script)
+- Refined SKILL.md: reduced from ~6500 to ~1287 tokens
+
+#### cc-skills Evaluation Framework
+- 12-dimension quality scoring: Behavioral, Behavioral Readiness, Best Practices, Code Quality, Content, Efficiency, Frontmatter, Instruction Clarity, Security, Structure, Trigger Design, Value Add
+- Automated evaluation script (`scripts/skills.py evaluate`)
+- Scenario-based behavioral testing with `scenarios.yaml`
+- LLM-judged quality assessment
+
+#### Reference Documentation
+- 100+ reference files across all skills
+- Architecture guides, best practices, pattern libraries
+- Testing guides (unit, integration, mutation, property-based)
+- Code review frameworks and output formats
+
+### 🐛 Bug Fixes
+
+- Fixed tasks unit test issues
+- Fixed lint issues in skill scripts
+- Fixed cc-skills validation issues
+
+### 📝 Notes
+
+- Most commits were internal fixes (lint, tests)
+- See git history for detailed changes
+- Version 0.7.5 was skipped
+
+---
+
 ## [0.7.4] - 2026-02-18
 
 ### Summary

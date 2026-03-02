@@ -2,6 +2,76 @@
 
 All notable changes to the wt plugin will be documented in this file.
 
+## [1.7.6] - 2026-03-01
+
+### Summary
+
+**wt Plugin v1.7: Complete Publishing Platform & Technical Content Workflow**
+
+Major release with comprehensive multi-platform publishing support, technical content creation workflow, and image generation capabilities. Added 10+ publishing skills, enhanced browser automation, and complete technical content lifecycle management.
+
+### ✨ New Features
+
+#### Publishing Skills (10+ new platforms)
+- **publish-to-xhs** - Xiaohongshu (XHS) publishing
+- **publish-to-infoq** - InfoQ publishing
+- **publish-to-juejin** - Juejin publishing
+- **publish-to-qiita** - Qiita publishing
+- **publish-to-medium** - Medium publishing
+- **publish-to-substack** - Substack publishing
+- **publish-to-wechatmp** - WeChat Mini Program publishing
+- **publish-to-zenn** - Zenn publishing
+- **publish-to-surfing** - Surfing publishing
+
+#### Image Generation
+- **image-generate** - AI image generation with styles and templates
+- **image-cover** - Cover image generation
+- **image-illustrator** - Article illustration generation
+
+#### Technical Content Workflow
+- **technical-content-creation** - Complete 7-stage workflow (research → outline → draft → illustrate → adapt → publish)
+- **topic-create** - Create new technical content
+- **topic-init** - Initialize topic folder
+- **topic-outline** - Generate structured outlines
+- **topic-draft** - Apply writing style to content
+- **topic-illustrate** - Generate AI images for articles
+- **topic-adapt** - Adapt content for platforms
+- **topic-publish** - Multi-platform publishing orchestration
+
+#### Research & Information
+- **info-research** - Systematic research with evidence synthesis
+- **info-seek** - Knowledge extraction and verification
+- **info-reve** - High-level design document generation
+
+#### Browser Automation
+- **markitdown-browser** - Browser automation with Playwright
+- **lead-research-assistant** - Lead generation and research
+
+#### Style & Translation
+- **style-extractor** - Extract writing style fingerprints
+- **translate** - Multi-language translation (EN, ZH, JA, KO, ES, FR, DE, PT, RU)
+
+### 🔧 Improvements
+
+- **Playwright Migration** - All publish-to skills migrated to Playwright
+- **Web Automation Shared Modules** - Centralized utilities (async, config, errors, fs, logger, sanitize, selectors)
+- **Enhanced Test Infrastructure** - Comprehensive test suites for all skills
+- **Content Sanitization** - Safe HTML generation for publishing
+
+### 🐛 Bug Fixes
+
+- Fixed lint issues in skill scripts
+- Fixed test issues in skill scripts
+- Fixed cc-skills integration issues
+
+### 📝 Notes
+
+- Most commits were internal fixes (lint, tests)
+- Version 0.7.1-0.7.5 were skipped
+- See git history for detailed changes
+
+---
+
 ## [0.7.0] - 2026-02-10
 
 ### Summary
