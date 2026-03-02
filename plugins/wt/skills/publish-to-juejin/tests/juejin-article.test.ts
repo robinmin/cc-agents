@@ -29,7 +29,7 @@ describe("juejin-article", () => {
 
 		test("should get correct Juejin article URL", () => {
 			const url = juejinUtils.getNewArticleUrl();
-			expect(url).toBe("https://juejin.cn/post/create");
+			expect(url).toBe("https://juejin.cn/editor/drafts/new");
 		});
 
 		test("should expand tilde paths correctly", () => {
@@ -94,9 +94,9 @@ describe("juejin-article", () => {
 			expect(url).toMatch(/^https:\/\/juejin\.cn\//);
 		});
 
-		test("article creation URL should point to post endpoint", () => {
+		test("article creation URL should point to editor endpoint", () => {
 			const url = juejinUtils.getNewArticleUrl();
-			expect(url).toContain("/post/");
+			expect(url).toContain("/editor/");
 		});
 	});
 });
