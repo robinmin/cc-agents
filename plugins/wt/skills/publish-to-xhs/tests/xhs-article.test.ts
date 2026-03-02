@@ -29,7 +29,7 @@ describe("xhs-article", () => {
 
 		test("should get correct XHS article URL", () => {
 			const url = xhsUtils.getNewArticleUrl();
-			expect(url).toBe("https://www.xiaohongshu.com/publish/publish");
+			expect(url).toBe("https://creator.xiaohongshu.com/publish/publish");
 		});
 
 		test("should expand tilde paths correctly", () => {
@@ -115,7 +115,7 @@ category: 科技
 	describe("URL constants", () => {
 		test("XHS URLs should use correct domain", () => {
 			const url = xhsUtils.getNewArticleUrl();
-			expect(url).toMatch(/^https:\/\/www\.xiaohongshu\.com\//);
+			expect(url).toMatch(/^https:\/\/creator\.xiaohongshu\.com\//);
 		});
 
 		test("article creation URL should point to publish endpoint", () => {
