@@ -427,7 +427,7 @@ Test template
         """Test resolving template by name."""
         # Create template
         template_path = temp_dir / "cover.tpl.md"
-        template_path.write_text(valid_template_content())
+        template_path.write_text(make_valid_template_content())
 
         resolved = template_engine._resolve_template_path("cover")
         assert resolved == template_path
@@ -436,7 +436,7 @@ Test template
         """Test resolving template by absolute path."""
         # Create template
         template_path = temp_dir / "custom.tpl.md"
-        template_path.write_text(valid_template_content())
+        template_path.write_text(make_valid_template_content())
 
         resolved = template_engine._resolve_template_path(str(template_path))
         assert resolved == template_path
@@ -450,7 +450,7 @@ Test template
     def test_load_template_valid(self, template_engine, temp_dir):
         """Test loading a valid template."""
         template_path = temp_dir / "test.tpl.md"
-        template_path.write_text(valid_template_content())
+        template_path.write_text(make_valid_template_content())
 
         template = template_engine.load_template("test")
 
@@ -485,7 +485,7 @@ Bad YAML
     def test_render_template_convenience(self, template_engine, temp_dir):
         """Test render_template convenience method."""
         template_path = temp_dir / "test.tpl.md"
-        template_path.write_text(valid_template_content())
+        template_path.write_text(make_valid_template_content())
 
         prompt, config = template_engine.render_template(
             "test", variables={"title": "Custom Title"}
