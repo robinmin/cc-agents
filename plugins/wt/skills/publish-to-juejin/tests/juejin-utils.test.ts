@@ -95,7 +95,7 @@ describe("juejin-utils", () => {
 	describe("getNewArticleUrl", () => {
 		test("should return the Juejin article creation URL", () => {
 			const url = getNewArticleUrl();
-			expect(url).toBe("https://juejin.cn/post/create");
+			expect(url).toBe("https://juejin.cn/editor/drafts/new");
 		});
 	});
 
