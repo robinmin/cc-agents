@@ -76,12 +76,35 @@ discover-scripts: list-scripts
 ## test: Run all tests with coverage for all script directories
 test: notify-start
 	@echo "🧪 Running all tests..."
-	@source $(VENV_DIR)/bin/activate && for script_dir in $(SCRIPT_DIRS); do \
-		if ls $$script_dir/tests/*.py 1> /dev/null 2>&1; then \
-			echo ""; \
-			echo "📦 Testing $$script_dir..."; \
-			pytest $$script_dir/tests -v --cov=$$script_dir/scripts --cov-report=term-missing --cov-report=html:$$script_dir/htmlcov || exit 1; \
-		fi; \
+	@echo ""
+	@echo "=== Phase 1: Python skills (pytest) ==="
+	@for script_dir in $(SCRIPT_DIRS); do \
+		case "$(PYTHON_SKILLS)" in \
+			*$$script_dir*) \
+				if ls $$script_dir/tests/*.py 1>/dev/null 2>&1; then \
+					make test-one DIR=$$script_dir || exit 1; \
+				else \
+					echo "⏭️  Skipping $$script_dir (no Python tests)"; \
+				fi \
+				;; \
+			*) \
+				;; \
+		esac \
+	done
+	@echo ""
+	@echo "=== Phase 2: TypeScript skills (bun test) ==="
+	@for script_dir in $(SCRIPT_DIRS); do \
+		case "$(PYTHON_SKILLS)" in \
+			*$$script_dir*) \
+				;; \
+			*) \
+				if ls $$script_dir/tests/*.ts 1>/dev/null 2>&1; then \
+					make test-one2 DIR=$$script_dir || exit 1; \
+				else \
+					echo "⏭️  Skipping $$script_dir (no TypeScript tests)"; \
+				fi \
+				;; \
+		esac \
 	done
 	@$(MAKE) notify-end
 
@@ -92,9 +115,11 @@ test-one:
 		echo "   Run 'make list-scripts' to see available directories"; \
 		exit 1; \
 	fi
-	@echo "🧪 Testing $(DIR)..."
-	@source $(VENV_DIR)/bin/activate && if [ -d "$(DIR)/tests" ] && [ -d "$(DIR)/scripts" ]; then \
-		pytest $(DIR)/tests -v --cov=$(DIR)/scripts --cov-report=term-missing --cov-report=html:$(DIR)/htmlcov; \
+	@if [ -d "$(DIR)/tests" ] && [ -d "$(DIR)/scripts" ]; then \
+		echo "🎨 Formatting $(DIR) with ruff..."; \
+		source $(VENV_DIR)/bin/activate && ruff format $(DIR)/scripts $(DIR)/tests; \
+		echo "🧪 Testing $(DIR)..."; \
+		source $(VENV_DIR)/bin/activate && pytest $(DIR)/tests -v --cov=$(DIR)/scripts --cov-report=term-missing --cov-report=html:$(DIR)/htmlcov; \
 	else \
 		echo "❌ Error: $(DIR) missing tests/ or scripts/ directory"; \
 		exit 1; \
@@ -107,9 +132,16 @@ test-one2:
 		echo "   Available TypeScript skills: publish-to-xhs, publish-to-medium, etc."; \
 		exit 1; \
 	fi
-	@echo "🧪 Testing $(DIR) with bun..."
 	@if [ -d "$(DIR)/tests" ] && [ -d "$(DIR)/scripts" ]; then \
-		cd $(DIR) && bun test --coverage 2>/dev/null || echo "Note: bun test coverage reporting may vary"; \
+		has_test=$$(find $(DIR)/tests -maxdepth 1 \( -name "*.test.ts" -o -name "*.test.js" -o -name "*.spec.ts" -o -name "*.spec.js" \) 2>/dev/null | head -1); \
+		if [ -n "$$has_test" ]; then \
+			echo "🎨 Formatting $(DIR) with biome..." && \
+			cd $(DIR) && biome format --write && echo "🧪 Testing $(DIR) with bun..." && { \
+				bun test --coverage; \
+			}; \
+		else \
+			echo "⏭️  Skipping $(DIR) (no TypeScript test files)"; \
+		fi \
 	else \
 		echo "❌ Error: $(DIR) missing tests/ or scripts/ directory"; \
 		exit 1; \
