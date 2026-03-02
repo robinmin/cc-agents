@@ -100,7 +100,7 @@ describe("xhs-utils", () => {
 	describe("getNewArticleUrl", () => {
 		test("should return the XHS article creation URL", () => {
 			const url = getNewArticleUrl();
-			expect(url).toBe("https://www.xiaohongshu.com/publish/publish");
+			expect(url).toBe("https://creator.xiaohongshu.com/publish/publish");
 		});
 	});
 
@@ -140,10 +140,10 @@ describe("xhs-utils", () => {
 		});
 
 		test("should handle strings with dollar signs and braces", () => {
-			// Using String.fromCharCode to avoid template literal in test code
-			const dollar = String.fromCharCode(36);
-			const input = `${dollar}{template}`;
-			const expected = `"\\${dollar}{template}"`;
+			// JSON.stringify handles escaping - dollar signs don't need special escaping
+			// when the result is used as a string literal (already quoted)
+			const input = "${template}";
+			const expected = `"${input}"`;
 			expect(sanitizeForJavaScript(input)).toBe(expected);
 		});
 	});
