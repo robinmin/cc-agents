@@ -3,7 +3,7 @@ name: Add distribution guidance
 description: Add skill distribution guidance including GitHub hosting, API usage, and positioning best practices
 status: Done
 created_at: 2026-02-12 11:33:47
-updated_at: 2026-02-18 00:46:00
+updated_at: 2026-03-08 23:15:43
 impl_progress:
   planning: completed
   design: completed
