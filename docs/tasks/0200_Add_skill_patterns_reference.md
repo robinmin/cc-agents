@@ -3,7 +3,7 @@ name: Add skill patterns reference
 description: Add official 5 skill patterns reference documentation (Sequential, Multi-MCP, Iterative, Context-aware, Domain-specific)
 status: Done
 created_at: 2026-02-12 11:33:46
-updated_at: 2026-02-18 00:40:00
+updated_at: 2026-03-08 23:15:29
 impl_progress:
   planning: completed
   design: completed

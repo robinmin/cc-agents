@@ -3,7 +3,7 @@ name: Add troubleshooting reference
 description: Add comprehensive troubleshooting guide for common skill issues (upload, triggering, execution)
 status: Done
 created_at: 2026-02-12 11:33:47
-updated_at: 2026-02-18 00:42:00
+updated_at: 2026-03-08 23:15:32
 impl_progress:
   planning: completed
   design: completed
