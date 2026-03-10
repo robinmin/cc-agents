@@ -7,6 +7,18 @@ PROMPTS_DIR="docs/prompts"
 KANBAN_FILE="$PROMPTS_DIR/.kanban.md"
 TEMPLATE_FILE="$PROMPTS_DIR/.template.md"
 
+# Detect OS for sed compatibility
+# macOS requires -i '' (with empty extension), Linux just needs -i
+function detect_sed_i() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "sed -i ''"
+    else
+        echo "sed -i"
+    fi
+}
+
+SED_I=$(detect_sed_i)
+
 # Ensure we are running from the project root or adjust paths accordingly
 # We take current working directory as the PROJECT_ROOT
 PROJECT_ROOT="$(pwd)"
@@ -20,12 +32,7 @@ PROMPTS_DIR="$PROJECT_ROOT/docs/prompts"
 KANBAN_FILE="$PROMPTS_DIR/.kanban.md"
 TEMPLATE_FILE="$PROMPTS_DIR/.template.md"
 
-function validate_project_root() {
-    if [ ! -d "$PROJECT_ROOT/.git" ]; then
-        log_error "Not a valid project root (no .git directory found). Please run from the root of your git repository."
-        exit 1
-    fi
-}
+# validate_project_root is deprecated - removed git directory requirement
 
 # Canonical stages (formal, unique list)
 VALID_STAGES=("Backlog" "Todo" "WIP" "Testing" "Done")
@@ -147,19 +154,6 @@ EOF
 
     check_dependencies
     
-    # Create soft link to /opt/homebrew/bin/tasks
-    if [ ! -L "/opt/homebrew/bin/tasks" ] && [ ! -f "/opt/homebrew/bin/tasks" ]; then
-        log_info "Creating soft link /opt/homebrew/bin/tasks..."
-        if ln -s "$SCRIPT_PATH" /opt/homebrew/bin/tasks 2>/dev/null; then
-             log_info "Soft link created successfully."
-        else
-             log_error "Failed to create soft link. Permission denied?"
-             log_info "You can try running: sudo ln -s \"$SCRIPT_PATH\" /opt/homebrew/bin/tasks"
-        fi
-    else
-        log_info "Soft link /opt/homebrew/bin/tasks already exists."
-    fi
-
     log_info "Initialization complete."
 }
 
@@ -266,7 +260,6 @@ function cmd_create() {
         exit 1
     fi
 
-    validate_project_root
     if [ ! -d "$PROMPTS_DIR" ]; then
         log_error "Prompts directory not found at $PROMPTS_DIR. Please run from project root or run 'init'."
         exit 1
@@ -309,20 +302,20 @@ function cmd_create() {
         # We will try to replace both styles.
         
         # PROMPT_NAME
-        sed -i '' "s|{{PROMPT_NAME}}|$prompt_name|g" "$filepath"
-        sed -i '' "s|{ { PROMPT_NAME } }|$prompt_name|g" "$filepath"
+        $SED_I "s|{{PROMPT_NAME}}|$prompt_name|g" "$filepath"
+        $SED_I "s|{ { PROMPT_NAME } }|$prompt_name|g" "$filepath"
         
         # WBS
-        sed -i '' "s|{{WBS}}|$wbs|g" "$filepath"
-        sed -i '' "s|{ { WBS } }|$wbs|g" "$filepath"
+        $SED_I "s|{{WBS}}|$wbs|g" "$filepath"
+        $SED_I "s|{ { WBS } }|$wbs|g" "$filepath"
         
         # Set created_at and updated_at
         local now=$(date "+%Y-%m-%d %H:%M:%S")
-        sed -i '' "s|{{CREATED_AT}}|$now|g" "$filepath"
-        sed -i '' "s|{ { CREATED_AT } }|$now|g" "$filepath"
+        $SED_I "s|{{CREATED_AT}}|$now|g" "$filepath"
+        $SED_I "s|{ { CREATED_AT } }|$now|g" "$filepath"
         
-        sed -i '' "s|{{UPDATED_AT}}|$now|g" "$filepath"
-        sed -i '' "s|{ { UPDATED_AT } }|$now|g" "$filepath"
+        $SED_I "s|{{UPDATED_AT}}|$now|g" "$filepath"
+        $SED_I "s|{ { UPDATED_AT } }|$now|g" "$filepath"
     else
         log_error "Template file not found: $TEMPLATE_FILE"
         exit 1
@@ -441,12 +434,12 @@ function cmd_update() {
     # We need to be careful if status is not found.
 
     if grep -q "^status:" "$file"; then
-        sed -i '' "s/^status: .*/status: $normalized_stage/" "$file"
+        $SED_I "s/^status: .*/status: $normalized_stage/" "$file"
         log_info "Updated status of $(basename "$file") to '$normalized_stage'"
         
         # Set updated_at
         local now=$(date "+%Y-%m-%d %H:%M:%S")
-        sed -i '' "s/^updated_at: .*/updated_at: $now/" "$file"
+        $SED_I "s/^updated_at: .*/updated_at: $now/" "$file"
         
         cmd_refresh
     else
@@ -501,14 +494,11 @@ function cmd_help() {
 }
 
 # Main dispatcher
-# Main dispatcher
 case "$1" in
     init)
-        validate_project_root
         cmd_init
         ;;
     create)
-        validate_project_root
         if [ ! -d "$PROMPTS_DIR" ]; then
             log_error "Prompts directory not found at $PROMPTS_DIR. Please run from project root or run 'init'."
             exit 1
@@ -516,7 +506,6 @@ case "$1" in
         cmd_create "$2"
         ;;
     list)
-        validate_project_root
         if [ ! -d "$PROMPTS_DIR" ]; then
             log_error "Prompts directory not found at $PROMPTS_DIR. Please run from project root or run 'init'."
             exit 1
@@ -524,7 +513,6 @@ case "$1" in
         cmd_list "$2"
         ;;
     update)
-        validate_project_root
         if [ ! -d "$PROMPTS_DIR" ]; then
             log_error "Prompts directory not found at $PROMPTS_DIR. Please run from project root or run 'init'."
             exit 1
@@ -532,7 +520,6 @@ case "$1" in
         cmd_update "$2" "$3"
         ;;
     refresh)
-        validate_project_root
         if [ ! -d "$PROMPTS_DIR" ]; then
             log_error "Prompts directory not found at $PROMPTS_DIR. Please run from project root or run 'init'."
             exit 1
@@ -540,7 +527,6 @@ case "$1" in
         cmd_refresh
         ;;
     open)
-        validate_project_root
         if [ ! -d "$PROMPTS_DIR" ]; then
             log_error "Prompts directory not found at $PROMPTS_DIR. Please run from project root or run 'init'."
             exit 1
