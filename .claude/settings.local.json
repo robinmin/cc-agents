@@ -11,7 +11,6 @@
       "Skill(rd2:tasks-cli)",
       "Skill(wt:info-seek)",
       "Skill(superpowers:brainstorming)",
-
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -23,7 +22,6 @@
       "mcp__huggingface__model_search",
       "mcp__huggingface__gr1_z_image_turbo_generate",
       "mcp__brave-search__brave_web_search",
-
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
@@ -35,9 +33,11 @@
       "WebFetch(domain:almcorp.com)",
 
       "Bash(ast-grep:*)",
+      "Bash(mgrep:*)",
+      "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(make:*)",
-      "Bash(mgrep:*)"
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
