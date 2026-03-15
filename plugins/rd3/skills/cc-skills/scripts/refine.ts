@@ -8,9 +8,12 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { createAntigravityAdapter } from './adapters/antigravity';
+import { createClaudeAdapter } from './adapters/claude';
 import { createCodexAdapter } from './adapters/codex';
 import { createOpenClawAdapter } from './adapters/openclaw';
-import type { Platform, ScaffoldOptions, SkillFrontmatter, SkillResources } from './types';
+import { createOpenCodeAdapter } from './adapters/opencode';
+import type { IPlatformAdapter, Platform, ScaffoldOptions, SkillFrontmatter, SkillResources } from './types';
 
 // ============================================================================
 // Migration Functions
@@ -149,70 +152,51 @@ async function refineSkill(
     }
 
     // Generate platform companions
-    const platforms = options.platforms || ['claude', 'codex', 'openclaw'];
+    const platforms = options.platforms || ['claude', 'codex', 'openclaw', 'opencode', 'antigravity'];
+
+    // biome-ignore lint/suspicious/noExplicitAny: Adapters lack a unified interface
+    const platformAdapters: Record<string, any> = {
+        claude: createClaudeAdapter(),
+        codex: createCodexAdapter(),
+        openclaw: createOpenClawAdapter(),
+        opencode: createOpenCodeAdapter(),
+        antigravity: createAntigravityAdapter(),
+    };
 
     for (const platform of platforms) {
         try {
-            if (platform === 'codex') {
-                const adapter = createCodexAdapter();
-                const scaffoldOptions: ScaffoldOptions = {
-                    name: resolvedPath.split('/').pop() || 'unknown',
-                    path: resolvedPath,
-                };
-                const context = {
-                    skillPath: resolvedPath,
-                    skillName: resolvedPath.split('/').pop() || 'unknown',
-                    frontmatter: {} as SkillFrontmatter,
-                    body: content,
-                    resources: {} as SkillResources,
-                    options: scaffoldOptions,
-                    outputPath: resolvedPath,
-                    skill: {
-                        frontmatter: {} as SkillFrontmatter,
-                        body: content,
-                        raw: content,
-                        path: skillMdPath,
-                        directory: resolvedPath,
-                        resources: {} as SkillResources,
-                    },
-                };
-
-                const result = await adapter.generateCompanions(context);
-                if (result.messages?.length) {
-                    generations.push(...result.messages);
-                    updated = true;
-                }
+            const adapter = platformAdapters[platform];
+            if (!adapter) {
+                errors.push(`Unknown platform: ${platform}`);
+                continue;
             }
 
-            if (platform === 'openclaw') {
-                const adapter = createOpenClawAdapter();
-                const scaffoldOptions: ScaffoldOptions = {
-                    name: resolvedPath.split('/').pop() || 'unknown',
-                    path: resolvedPath,
-                };
-                const context = {
-                    skillPath: resolvedPath,
-                    skillName: resolvedPath.split('/').pop() || 'unknown',
+            const scaffoldOptions: ScaffoldOptions = {
+                name: resolvedPath.split('/').pop() || 'unknown',
+                path: resolvedPath,
+            };
+            const context = {
+                skillPath: resolvedPath,
+                skillName: resolvedPath.split('/').pop() || 'unknown',
+                frontmatter: {} as SkillFrontmatter,
+                body: content,
+                resources: {} as SkillResources,
+                options: scaffoldOptions,
+                outputPath: resolvedPath,
+                skill: {
                     frontmatter: {} as SkillFrontmatter,
                     body: content,
+                    raw: content,
+                    path: skillMdPath,
+                    directory: resolvedPath,
                     resources: {} as SkillResources,
-                    options: scaffoldOptions,
-                    outputPath: resolvedPath,
-                    skill: {
-                        frontmatter: {} as SkillFrontmatter,
-                        body: content,
-                        raw: content,
-                        path: skillMdPath,
-                        directory: resolvedPath,
-                        resources: {} as SkillResources,
-                    },
-                };
+                },
+            };
 
-                const result = await adapter.generateCompanions(context);
-                if (result.messages?.length) {
-                    generations.push(...result.messages);
-                    updated = true;
-                }
+            const result = await adapter.generateCompanions(context);
+            if (result.messages?.length) {
+                generations.push(...result.messages);
+                updated = true;
             }
         } catch (e) {
             errors.push(`Failed to generate ${platform} companions: ${e}`);
