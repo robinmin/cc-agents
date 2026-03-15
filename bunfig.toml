@@ -1,0 +1,3 @@
+[test]
+# Exclude directories from test discovery
+exclude = ["**/node_modules/**", "**/vendors/**", "**/dist/**"]

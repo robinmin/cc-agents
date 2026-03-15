@@ -1,0 +1,31 @@
+{
+    "name": "@cc-agents/monorepo",
+    "version": "1.0.0",
+    "private": true,
+    "description": "CC-Agents monorepo - Bun/TypeScript/Biome unified config",
+    "workspaces": [
+        "plugins/rd3",
+        "plugins/wt"
+    ],
+    "scripts": {
+        "dev": "bun run --watch",
+        "build": "bun run -r build",
+        "lint": "biome lint plugins/rd3",
+        "lint:fix": "biome lint --write plugins/rd3",
+        "format": "biome format --write plugins/rd3",
+        "lint:all": "biome lint plugins/rd3 plugins/wt/scripts/web-automation",
+        "lint:fix:all": "biome lint --write plugins/rd3 plugins/wt/scripts/web-automation",
+        "check": "bun run lint && bun run typecheck && bun run test",
+        "typecheck": "tsc --noEmit",
+        "test": "bun test plugins/rd3/tests"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^1.9.4",
+        "@types/bun": "^1.1.0",
+        "typescript": "^5.7.3"
+    },
+    "dependencies": {
+        "yaml": "^2.6.1",
+        "marked": "^17.0.1"
+    }
+}

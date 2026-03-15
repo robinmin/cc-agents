@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "lib": ["ES2022"],
+        "strict": false,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "downlevelIteration": true,
+        "noImplicitAny": false,
+        "moduleDetection": "force"
+    },
+    "include": ["plugins/rd3/**/*"],
+    "exclude": ["node_modules", "**/node_modules", "**/dist", "**/build", "**/vendors/**"]
+}
