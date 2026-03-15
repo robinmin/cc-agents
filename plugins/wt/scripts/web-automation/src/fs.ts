@@ -9,7 +9,7 @@
 import * as fs from 'node:fs/promises';
 import * as fsSync from 'node:fs';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 import { promisify } from 'node:util';
 import { pipeline } from 'node:stream/promises';
 import { FileValidationError } from './errors.js';
