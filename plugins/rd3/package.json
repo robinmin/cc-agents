@@ -1,0 +1,18 @@
+{
+    "name": "@cc-agents/rd3",
+    "version": "0.1.0",
+    "type": "module",
+    "description": "Universal skill creator for multiple AI coding agents",
+    "private": true,
+    "scripts": {
+        "dev": "bun run --watch",
+        "build": "bun build",
+        "lint": "biome lint .",
+        "lint:fix": "biome lint --write .",
+        "format": "biome format --write .",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "yaml": "^2.6.1"
+    }
+}
