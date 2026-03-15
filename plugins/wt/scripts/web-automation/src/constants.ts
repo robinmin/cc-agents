@@ -154,7 +154,7 @@ export function getTimeoutFromEnv(envVar: string, defaultValue: number): number 
   const value = process.env[envVar];
   if (!value) return defaultValue;
 
-  const parsed = parseInt(value, 10);
+  const parsed = Number.parseInt(value, 10);
   if (isNaN(parsed)) return defaultValue;
 
   return parsed;
