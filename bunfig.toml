@@ -1,3 +1,10 @@
+telemetry = false
+
+[install]
+# Optimize package installation for monorepo speed
+smol = true
+exact = true
+
 [test]
 # Exclude directories from test discovery
-exclude = ["**/node_modules/**", "**/vendors/**", "**/dist/**"]
+pathIgnorePatterns = ["**/node_modules/**", "**/vendors/**", "**/dist/**"]
