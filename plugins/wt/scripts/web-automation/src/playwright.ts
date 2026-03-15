@@ -11,7 +11,7 @@
  * @packageDocumentation
  */
 
-import { spawn, SpawnOptions } from 'node:child_process';
+import { spawn, type SpawnOptions } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -128,7 +128,7 @@ export async function getFreePort(): Promise<number> {
 /**
  * Get default profile directory for Playwright browser automation
  */
-export function getDefaultProfileDir(platform: string = 'wt-browser'): string {
+export function getDefaultProfileDir(platform = 'wt-browser'): string {
   const base = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
   return path.join(base, `${platform}-profile`);
 }
