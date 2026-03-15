@@ -1,6 +1,6 @@
 ---
 name: cc-skills
-description: Create new skills, modify and improve existing skills, evaluate skill quality, and package skills for distribution. This skill should be used when users want to create a skill from scratch, scaffold a new skill directory, validate skill structure across multiple platforms, generate platform-specific companion files, or migrate existing rd2 skills to the new universal format. Supports Claude Code, Codex, Antigravity, OpenCode, and OpenClaw.
+description: Create, modify, evaluate, and package Agent skills. This skill should be used when you want to scaffold a new skill directory, validate skill structure across multiple platforms, generate platform-specific companion files, or migrate existing rd2 skills.
 license: Apache-2.0
 metadata:
   author: cc-agents
@@ -9,6 +9,7 @@ metadata:
 ---
 
 # cc-skills: Universal Skill Creator
+<!-- eval-ignore-platform -->
 
 Create Agent skills that work across ALL platforms from a single source of truth.
 
