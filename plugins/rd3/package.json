@@ -6,11 +6,7 @@
     "private": true,
     "scripts": {
         "dev": "bun run --watch",
-        "build": "bun build",
-        "lint": "biome lint .",
-        "lint:fix": "biome lint --write .",
-        "format": "biome format --write .",
-        "typecheck": "tsc --noEmit"
+        "build": "bun build"
     },
     "dependencies": {
         "yaml": "^2.6.1"
