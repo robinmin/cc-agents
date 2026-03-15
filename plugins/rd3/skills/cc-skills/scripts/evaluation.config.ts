@@ -151,19 +151,84 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
                 severity: 'critical',
                 reason: 'Hardcoded credentials',
             },
+            {
+                pattern: /mkfs\.\w+/,
+                severity: 'critical',
+                reason: 'Disk formatting command (mkfs)',
+            },
+            {
+                pattern: /dd\s+if=.*of=\/dev\/(sd|nvme|mmc)/,
+                severity: 'critical',
+                reason: 'Destructive low-level block write (dd to /dev/*)',
+            },
+            {
+                pattern: /shutdown\s+-h|reboot|init\s+0/,
+                severity: 'critical',
+                reason: 'System shutdown/reboot commands',
+            },
+            {
+                pattern: /:\(\)\{\s*:\|:&\s*\};:/,
+                severity: 'critical',
+                reason: 'Fork bomb execution pattern',
+            },
+            {
+                pattern: /nc\s+-l\s+-p|netcat\s+-l/,
+                severity: 'critical',
+                reason: 'Network listeners/bind shells (nc -l)',
+            },
+            {
+                pattern: />\s*\/dev\/(sd|nvme)\w*/,
+                severity: 'critical',
+                reason: 'Direct write to block devices',
+            },
+            {
+                pattern: /crontab\s+-r/,
+                severity: 'critical',
+                reason: 'Malicious deletion of cron jobs',
+            },
+            {
+                pattern: /history\s*\|\s*(?:sh|bash|zsh)/,
+                severity: 'critical',
+                reason: 'Executing commands from shell history (injection risk)',
+            },
+            {
+                pattern: /echo\s+.*>\s*\/(bin|sbin|usr\/bin|usr\/sbin|etc)\/.*/,
+                severity: 'critical',
+                reason: 'Overwriting critical system binaries or global config files',
+            },
+            {
+                pattern: /alias\s+.*=.*(?:rm\s+-rf|mkfs)/,
+                severity: 'critical',
+                reason: 'Creating malicious aliases for destructive commands',
+            },
+            {
+                pattern: /mv\s+.*\/dev\/null/,
+                severity: 'critical',
+                reason: 'Irreversible moving of files to /dev/null',
+            },
         ],
 
         // GREYLIST: Penalty points if found (-2 per occurrence)
         greylist: [
             {
-                pattern: /sudo\s+.*without.*pass/i,
+                pattern: /sudo\s+(?!-n)/,
                 severity: 'warning',
-                reason: 'sudo without password',
+                reason: 'Usage of sudo (may prompt for password, requires caution)',
             },
             {
-                pattern: /chmod\s+777/,
+                pattern: /sudo\s+.*without.*pass/i,
+                severity: 'warning',
+                reason: 'sudo without password configuration',
+            },
+            {
+                pattern: /chmod\s+(?:-R\s+)?777/,
                 severity: 'warning',
                 reason: 'Insecure file permissions (chmod 777)',
+            },
+            {
+                pattern: /chown\s+-R\s+(root|0):/,
+                severity: 'warning',
+                reason: 'Recursive ownership change to root (chown -R root:)',
             },
             {
                 pattern: /os\.system\s*\(/,
@@ -174,6 +239,46 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
                 pattern: /__import__\s*\(/,
                 severity: 'warning',
                 reason: 'Dynamic import risk',
+            },
+            {
+                pattern: /curl\s+(?:-k|--insecure)/,
+                severity: 'warning',
+                reason: 'Disabling SSL checks in curl',
+            },
+            {
+                pattern: /wget\s+--no-check-certificate/,
+                severity: 'warning',
+                reason: 'Disabling SSL checks in wget',
+            },
+            {
+                pattern: /git\s+push\s+(?:-f|--force)/,
+                severity: 'warning',
+                reason: 'Destructive remote Git push (git push --force)',
+            },
+            {
+                pattern: /npm\s+publish/,
+                severity: 'warning',
+                reason: 'Risky automated package publishing',
+            },
+            {
+                pattern: /\/tmp\/[a-zA-Z0-9_-]+/,
+                severity: 'warning',
+                reason: 'Hardcoded /tmp paths (use mktemp instead)',
+            },
+            {
+                pattern: /chattr\s+[+-]i/,
+                severity: 'warning',
+                reason: 'Modifying file immutability attributes',
+            },
+            {
+                pattern: /chmod\s+.*(?:4755|u\+s)/,
+                severity: 'warning',
+                reason: 'Setting SUID bits',
+            },
+            {
+                pattern: /curl\s+.*\|\s*(?:python|ruby|perl|php)/,
+                severity: 'warning',
+                reason: 'Piping remote scripts into interpreters',
             },
         ],
     },
