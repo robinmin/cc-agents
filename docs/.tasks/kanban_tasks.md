@@ -6,7 +6,7 @@ kanban-plugin: board
 
 ## Backlog
 
-
+- [ ] 0210_upgrade_cc-skills
 
 ## Todo
 
