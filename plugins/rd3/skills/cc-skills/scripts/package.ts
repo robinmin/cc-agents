@@ -8,8 +8,8 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { AntigravityAdapter } from './adapters/antigravity';
-import { ClaudeAdapter } from './adapters/claude';
+import { createAntigravityAdapter } from './adapters/antigravity';
+import { createClaudeAdapter } from './adapters/claude';
 import { createCodexAdapter } from './adapters/codex';
 import { createOpenClawAdapter } from './adapters/openclaw';
 import { createOpenCodeAdapter } from './adapters/opencode';
@@ -49,11 +49,11 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
 
     // Generate platform companions first (they go to skill directory)
     const platformAdapters = {
-        claude: new ClaudeAdapter(),
+        claude: createClaudeAdapter(),
         codex: createCodexAdapter(),
         openclaw: createOpenClawAdapter(),
         opencode: createOpenCodeAdapter(),
-        antigravity: new AntigravityAdapter(),
+        antigravity: createAntigravityAdapter(),
     };
 
     for (const platform of platforms) {
