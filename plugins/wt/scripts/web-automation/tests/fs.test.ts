@@ -185,7 +185,7 @@ describe('fs', () => {
       const originalRemoveAllListeners = stream.removeAllListeners.bind(stream);
       let removed = false;
 
-      stream.removeAllListeners = function() {
+      stream.removeAllListeners = () => {
         removed = true;
         return originalRemoveAllListeners();
       };
