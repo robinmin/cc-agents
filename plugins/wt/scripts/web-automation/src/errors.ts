@@ -164,7 +164,7 @@ export class ValidationError extends WtAutomationError {
 export class UrlValidationError extends ValidationError {
   constructor(
     url: string,
-    reason: string = 'Invalid URL',
+    reason = 'Invalid URL',
     context?: Record<string, unknown>
   ) {
     super(`${reason}: ${url}`, 'url', url, context);
@@ -184,8 +184,8 @@ export class UrlValidationError extends ValidationError {
 export class FileValidationError extends ValidationError {
   constructor(
     filePath: string,
-    reason: string = 'Invalid file',
-    code: string = 'INVALID_FILE',
+    reason = 'Invalid file',
+    code = 'INVALID_FILE',
     context?: Record<string, unknown>
   ) {
     // Call parent constructor with proper ValidationError signature: (message, field, value?, context?)
@@ -210,7 +210,7 @@ export class FileValidationError extends ValidationError {
  */
 export class AuthenticationError extends WtAutomationError {
   constructor(
-    message: string = 'Authentication required',
+    message = 'Authentication required',
     context?: Record<string, unknown>
   ) {
     super(message, 'AUTHENTICATION_ERROR', context);
