@@ -84,3 +84,23 @@ The command outputs:
 
 - `/rd3:skill-add` - Create new skill
 - `/rd3:skill-refine` - Improve skill based on evaluation
+
+## Implementation
+
+To execute this command, the AI agent should choose the appropriate execution path based on its environment:
+
+### For Claude Code
+Use the `rd2:skill-doctor` subagent or explicitly use a task:
+```python
+Task(
+    subagent_type="rd2:skill-doctor",
+    prompt="Evaluate skill at {skill_path} with scope {scope} and platform {platform} using the scripts at ${CLAUDE_PLUGIN_ROOT:-.}/plugins/rd3/skills/cc-skills/scripts/evaluate.ts",
+    description="Evaluate skill quality for {skill_path}"
+)
+```
+
+### For Other Coding Agents (Codex, Antigravity, OpenCode, OpenClaw)
+Explicitly use the terminal or bash execution tool to run the TypeScript script directly:
+```bash
+bun ./plugins/rd3/skills/cc-skills/scripts/evaluate.ts <skill-path> [--scope <level>] [--platform <name>] [--json]
+```
