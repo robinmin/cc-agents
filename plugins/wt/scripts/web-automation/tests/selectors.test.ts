@@ -28,8 +28,8 @@ import {
   buildInputSelectors,
   buildEditorSelectors,
   getI18NSelectors,
-  SelectorBuilder,
-  I18NSelectorMap,
+  type SelectorBuilder,
+  type I18NSelectorMap,
   FindResult,
 } from '../src/selectors.js';
 
