@@ -11,7 +11,7 @@ import {
   CHROME_CANDIDATES_FULL,
   waitForChromeDebugPort,
   CdpConnection,
-  PlatformCandidates,
+  type PlatformCandidates,
 } from '../src/browser.js';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
