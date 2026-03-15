@@ -22,7 +22,7 @@ import {
   clearConfigCache,
   clearPlatformCache,
   PlatformConfig,
-  ConfigValidationRule,
+  type ConfigValidationRule,
 } from '../src/config.js';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
@@ -566,7 +566,7 @@ describe('config', () => {
     });
 
     it('should handle NaN for number type', () => {
-      const config = { value: NaN };
+      const config = { value: Number.NaN };
       const rules: ConfigValidationRule[] = [
         { key: 'value', type: 'number' },
       ];
