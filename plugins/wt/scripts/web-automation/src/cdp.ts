@@ -135,7 +135,7 @@ export function findChromeExecutable(
 /**
  * Get default profile directory for WT browser automation
  */
-export function getDefaultProfileDir(platform: string = 'wt-browser'): string {
+export function getDefaultProfileDir(platform = 'wt-browser'): string {
   const base = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
   return path.join(base, `${platform}-profile`);
 }
