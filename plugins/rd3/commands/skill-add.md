@@ -66,3 +66,23 @@ After running this command:
 
 - `/rd3:skill-evaluate` - Validate and evaluate skill quality
 - `/rd3:skill-refine` - Improve skill based on evaluation results
+
+## Implementation
+
+To execute this command, the AI agent should choose the appropriate execution path based on its environment:
+
+### For Claude Code
+Use the `rd2:skill-expert` subagent:
+```python
+Task(
+    subagent_type="rd2:skill-expert",
+    prompt="Create a new skill {skill_name} at output path {path}. Use template {type}, platform {platform}, resources {resources}. Use the scripts at ${CLAUDE_PLUGIN_ROOT:-.}/plugins/rd3/skills/cc-skills/scripts/scaffold.ts",
+    description="Create {skill_name} skill using rd3:cc-skills scaffold"
+)
+```
+
+### For Other Coding Agents (Codex, Antigravity, OpenCode, OpenClaw)
+Explicitly use the terminal or bash execution tool to run the TypeScript script directly:
+```bash
+bun ./plugins/rd3/skills/cc-skills/scripts/scaffold.ts <skill-name> [--template <type>] [--resources <list>] [--platform <name>] [--path <dir>]
+```
