@@ -578,7 +578,7 @@ export interface I18NSelectorMap {
  */
 export function getI18NSelectors(
   map: I18NSelectorMap,
-  primaryLocale: string = 'en'
+  primaryLocale = 'en'
 ): string[] {
   const selectors: string[] = [];
 
