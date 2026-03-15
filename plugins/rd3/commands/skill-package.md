@@ -69,3 +69,23 @@ The package includes:
 - `/rd3:skill-add` - Create new skill
 - `/rd3:skill-evaluate` - Evaluate skill quality
 - `/rd3:skill-refine` - Refine skill based on evaluation
+
+## Implementation
+
+To execute this command, the AI agent should choose the appropriate execution path based on its environment:
+
+### For Claude Code
+Explicitly invoke a packaging task:
+```python
+Task(
+    subagent_type="rd2:skill-expert",
+    prompt="Package skill at {skill_path} with platform {platform} using the scripts at ${CLAUDE_PLUGIN_ROOT:-.}/plugins/rd3/skills/cc-skills/scripts/package.ts",
+    description="Package skill {skill_path}"
+)
+```
+
+### For Other Coding Agents (Codex, Antigravity, OpenCode, OpenClaw)
+Explicitly use the terminal or bash execution tool to run the TypeScript script directly:
+```bash
+bun ./plugins/rd3/skills/cc-skills/scripts/package.ts <skill-path> [--output <dir>] [--platform <name>] [--no-source] [--json]
+```
