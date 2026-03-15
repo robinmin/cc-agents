@@ -160,7 +160,7 @@ async function runTests(skillPath: string): Promise<boolean> {
         const { readdirSync } = require('node:fs');
         const files = readdirSync(testsPath, { recursive: true }) as string[];
         const hasTestFiles = files.some((f: string) => f.endsWith('.test.ts') || f.endsWith('.spec.ts'));
-        
+
         if (!hasTestFiles) {
             return false; // No valid test files = fail
         }
@@ -699,7 +699,7 @@ function evaluateValueAdd(body: string, resources: SkillResources, weights: Dime
 function evaluateOperationalReadiness(
     body: string,
     frontmatter: SkillFrontmatter | null,
-    weights: DimensionWeights
+    weights: DimensionWeights,
 ): EvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
@@ -718,7 +718,10 @@ function evaluateOperationalReadiness(
     }
 
     // === Success Path Checks ===
-    const isReference = frontmatter?.template === 'reference' || frontmatter?.name === 'cc-skills' || body.includes('<!-- eval-ignore-readiness -->');
+    const isReference =
+        frontmatter?.template === 'reference' ||
+        frontmatter?.name === 'cc-skills' ||
+        body.includes('<!-- eval-ignore-readiness -->');
     const hasUseCases = /use case|scenario|example/i.test(body) || isReference;
     const hasCommonMistakes = /common mistake|pitfall|error|wrong/i.test(body) || isReference;
     const hasDoDont = /do.*don|don.*do|guideline/i.test(body) || isReference;
@@ -774,7 +777,11 @@ function evaluateOperationalReadiness(
     };
 }
 
-function evaluateCodeQuality(skillPath: string, resources: SkillResources, weights: DimensionWeights): EvaluationDimension {
+function evaluateCodeQuality(
+    skillPath: string,
+    resources: SkillResources,
+    weights: DimensionWeights,
+): EvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const maxScore = weights.codeQuality;
