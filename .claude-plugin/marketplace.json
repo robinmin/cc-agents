@@ -22,6 +22,12 @@
       "name": "rd2",
       "source": "./plugins/rd2",
       "description": "Next generation tools for Rapid Development"
+    },
+    {
+      "version": "0.1.0",
+      "name": "rd3",
+      "source": "./plugins/rd3",
+      "description": "New generation tools for Rapid Development"
     }
   ]
 }
