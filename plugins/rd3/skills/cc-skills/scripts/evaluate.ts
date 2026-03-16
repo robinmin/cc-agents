@@ -6,7 +6,7 @@
  * Uses evaluation.config.ts for configurable weights and rules
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import YAML from 'yaml';
@@ -24,68 +24,17 @@ import type {
     SkillFrontmatter,
     SkillResources,
 } from './types';
+import { discoverResources, parseFrontmatter } from './utils';
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-interface ParsedFrontmatter {
-    frontmatter: SkillFrontmatter | null;
-    body: string;
-}
 
 interface SecurityScanResult {
     hasBlacklist: boolean;
     blacklistFindings: string[];
     greylistFindings: string[];
     greylistPenalty: number;
-}
-
-// ============================================================================
-// FRONTMATTER PARSING
-// ============================================================================
-
-function parseFrontmatter(content: string): ParsedFrontmatter {
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-
-    if (!fmMatch) {
-        return { frontmatter: null, body: content };
-    }
-
-    const yamlContent = fmMatch[1];
-    const body = content.slice(fmMatch[0].length).trim();
-
-    try {
-        const frontmatter = YAML.parse(yamlContent) as SkillFrontmatter;
-        return { frontmatter, body };
-    } catch {
-        return { frontmatter: null, body };
-    }
-}
-
-// ============================================================================
-// RESOURCE DISCOVERY
-// ============================================================================
-
-function discoverResources(skillPath: string): SkillResources {
-    const resources: SkillResources = {};
-    const resourceTypes = ['scripts', 'references', 'assets'] as const;
-
-    for (const type of resourceTypes) {
-        const resourcePath = join(skillPath, type);
-        if (existsSync(resourcePath)) {
-            const stat = statSync(resourcePath);
-            if (stat.isDirectory()) {
-                const files = readdirSync(resourcePath).filter((f: string) => {
-                    const filePath = join(resourcePath, f);
-                    return statSync(filePath).isFile();
-                });
-                resources[type] = files;
-            }
-        }
-    }
-
-    return resources;
 }
 
 // ============================================================================
@@ -157,7 +106,6 @@ async function runTests(skillPath: string): Promise<boolean> {
 
     // Verify if test files actually exist before spawning bun test
     try {
-        const { readdirSync } = require('node:fs');
         const files = readdirSync(testsPath, { recursive: true }) as string[];
         const hasTestFiles = files.some((f: string) => f.endsWith('.test.ts') || f.endsWith('.spec.ts'));
 
@@ -311,8 +259,8 @@ function evaluateBestPractices(body: string, weights: DimensionWeights): Evaluat
         score -= todoCount * 2;
     }
 
-    // Check for placeholder text
-    const placeholderCount = (body.match(/\[.*?\]/g) || []).length;
+    // Check for placeholder text (exclude markdown links like [text](url) and [text][ref])
+    const placeholderCount = (body.match(/\[(?:TODO|PLACEHOLDER|FIXME|XXX|INSERT|CHANGE|REPLACE|FILL)[^\]]*\]/gi) || []).length;
     if (placeholderCount > 5) {
         findings.push(`Found ${placeholderCount} placeholder(s)`);
         recommendations.push('Replace placeholders with actual content');
@@ -810,7 +758,7 @@ function evaluateCodeQuality(
 
     // Check for test files
     const testFiles = scripts.filter((f) => f.includes('.test.') || f.includes('.spec.'));
-    const hasTestsDir = require('node:fs').existsSync(require('node:path').join(skillPath, 'tests'));
+    const hasTestsDir = existsSync(join(skillPath, 'tests'));
     if (scripts.length > 0 && testFiles.length === 0 && !hasTestsDir) {
         findings.push('No test files found');
         recommendations.push('Add unit tests for scripts or in tests/ directory');
@@ -900,7 +848,7 @@ const ADAPTERS = {
     antigravity: new AntigravityAdapter(),
 };
 
-async function _evaluatePlatform(
+async function evaluatePlatform(
     skillPath: string,
     platform: Platform,
 ): Promise<{ errors: string[]; warnings: string[] }> {
@@ -949,7 +897,7 @@ async function _evaluatePlatform(
 async function evaluateSkill(
     skillPath: string,
     scope: EvaluationScope,
-    _platforms: Platform[],
+    platforms: Platform[],
 ): Promise<EvaluationReport> {
     const resolvedPath = resolve(skillPath);
     const skillMdPath = join(resolvedPath, 'SKILL.md');
@@ -1048,17 +996,20 @@ async function evaluateSkill(
     }
 
     // Calculate overall score
-    const _totalWeight = dimensions.reduce((sum, d) => sum + d.weight, 0);
     const weightedScore = dimensions.reduce((sum, d) => sum + d.score, 0);
     const maxScore = dimensions.reduce((sum, d) => sum + d.maxScore, 0);
 
     const percentage = maxScore > 0 ? Math.round((weightedScore / maxScore) * 100) : 0;
 
     // Platform validation (if specified)
-    const _platformErrors: string[] = [];
-    const _platformWarnings: string[] = [];
+    const platformErrors: string[] = [];
+    const platformWarnings: string[] = [];
 
-    // Note: Platform adapter validation would go here in async context
+    for (const platform of platforms) {
+        const result = await evaluatePlatform(resolvedPath, platform);
+        platformErrors.push(...result.errors);
+        platformWarnings.push(...result.warnings);
+    }
 
     return {
         skillPath: resolvedPath,
@@ -1069,8 +1020,10 @@ async function evaluateSkill(
         percentage,
         dimensions,
         timestamp: new Date().toISOString(),
-        passed: percentage >= 70,
+        passed: percentage >= 70 && platformErrors.length === 0,
         ...(testsPassed != null ? { testsPassed } : {}),
+        ...(platformErrors.length > 0 ? { platformErrors } : {}),
+        ...(platformWarnings.length > 0 ? { platformWarnings } : {}),
     };
 }
 
@@ -1245,7 +1198,7 @@ async function main() {
 
     printReport(report, options.verbose);
 
-    process.exit(report.passed || report.rejected ? 0 : 1);
+    process.exit(report.passed ? 0 : 1);
 }
 
 main();
