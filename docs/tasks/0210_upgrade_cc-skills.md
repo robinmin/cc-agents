@@ -3,7 +3,7 @@ name: upgrade cc-skills
 description: Create rd3:cc-skills - a universal skill creator supporting multiple coding agents (Claude Code, Codex, Antigravity, OpenCode, OpenClaw) with single source of truth architecture
 status: WIP
 created_at: 2026-03-14 15:17:13
-updated_at: 2026-03-14 18:15:00
+updated_at: 2026-03-15 22:47:04
 impl_progress:
   planning: done
   design: done
@@ -69,7 +69,49 @@ A: They are preserved for Claude Code and documented as Claude-only in a Platfor
 
 ### Design
 
-#### Architecture: Pipeline + Platform Adapters
+
+## Decomposition Plan (Phase 2: Review Fixes)
+
+26 issues from code review decomposed into 7 sequential batches with dependency ordering.
+
+### Execution Order (strict sequential - each batch depends on prior)
+
+| Batch | Task | Issues | Severity | Dependencies | Est. Complexity |
+|-------|------|--------|----------|-------------|----------------|
+| 1 | 0211 | C1, C2, C3, C4 | S1: Critical | None | Medium |
+| 2 | 0212 | H1, H2, L8 | S2: High | 0211 (C1 affects L8) | High |
+| 3 | 0213 | H3, H4 | S2: High | None (parallel-safe) | Low |
+| 4 | 0214 | M1, M2 | S3: Medium | None (parallel-safe) | Medium |
+| 5 | 0215 | H5, M6, M7, M9 | Mixed | 0212, 0214 | High |
+| 6 | 0216 | M3, M4, M5, M8 | S3: Medium | 0214 (shared utils) | Medium |
+| 7 | 0217 | L1-L7 | S4: Low | All prior batches | Low |
+
+### Dependency Graph
+
+```
+0211 (Critical bugs) ──┐
+                       ├──> 0212 (Adapter interface) ──┐
+0213 (Import cleanup)  │                               ├──> 0215 (Integrate adapt.ts)
+0214 (Shared utils) ───┤                               │
+                       ├──> 0216 (Logic fixes) ─────────┤
+                       │                               │
+                       └───────────────────────────────┴──> 0217 (Cleanup + tests)
+```
+
+### Parallelization Notes
+- Batches 1, 3, 4 can run in parallel (no dependencies between them)
+- Batch 2 depends on Batch 1 (C1 affects whether L8 is dead code)
+- Batch 5 depends on Batches 2 and 4
+- Batch 6 depends on Batch 4 (shared utils needed)
+- Batch 7 must run last (depends on all prior work)
+
+### Workflow
+- **Template**: W5 (refactor)
+- **Maker**: super-coder
+- **Post-production**: super-code-reviewer (after all batches)
+- **Test command**: `bun test` (configured via bunfig.toml with root="plugins/rd3")
+
+### Architecture: Pipeline + Platform Adapters
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
