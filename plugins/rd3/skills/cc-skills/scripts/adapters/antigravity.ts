@@ -6,7 +6,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AdapterContext, AdapterResult, Skill } from '../types';
+import type { AdapterContext, AdapterResult, IPlatformAdapter, Skill } from '../types';
 
 export interface AntigravityAdapterOptions {
     validateCompat?: boolean;
@@ -16,7 +16,7 @@ export interface AntigravityAdapterOptions {
  * Antigravity Adapter
  * Handles Antigravity/Gemini CLI compatibility
  */
-export class AntigravityAdapter {
+export class AntigravityAdapter implements IPlatformAdapter {
     readonly platform = 'antigravity' as const;
     readonly displayName = 'Antigravity';
     options: AntigravityAdapterOptions;
