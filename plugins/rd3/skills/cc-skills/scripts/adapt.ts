@@ -52,7 +52,7 @@ interface AuditResult {
 // Configuration
 // ============================================================================
 
-// Navigate from scripts/cc-skills/skills/rd3/plugins to root
+// Navigate from plugins/rd3/skills/cc-skills/scripts to root
 const PROJECT_ROOT = resolve(import.meta.dir, '..', '..', '..', '..', '..');
 
 const COLORS = {
@@ -65,7 +65,7 @@ const COLORS = {
     reset: '\x1b[0m',
 };
 
-const VALID_TARGETS = ['all', 'codex', 'openclaw', 'claude'];
+const VALID_TARGETS = ['all', 'codex', 'openclaw', 'claude', 'opencode', 'antigravity'];
 const VALID_COMPONENTS = ['commands', 'skills', 'subagents', 'all'];
 
 // ============================================================================
@@ -128,19 +128,19 @@ function parseCliArgs(): AdaptOptions {
 function printUsage(): void {
     console.log(`${COLORS.cyan}adapt.ts${COLORS.reset} - Adapt plugin for cross-platform compatibility\n`);
     console.log(`${COLORS.green}USAGE:${COLORS.reset}`);
-    console.log(`    bun adapt.ts <plugin|path> <targets> [options]\n`);
+    console.log('    bun adapt.ts <plugin|path> <targets> [options]\n');
     console.log(`${COLORS.green}ARGUMENTS:${COLORS.reset}`);
-    console.log(`    plugin      Plugin name (e.g., rd2, rd3, wt) OR skill path\n`);
-    console.log(`    targets     Target platforms: all, codex, openclaw, claude (default: all)\n`);
+    console.log('    plugin      Plugin name (e.g., rd2, rd3, wt) OR skill path\n');
+    console.log('    targets     Target platforms: all, codex, openclaw, claude (default: all)\n');
     console.log(`${COLORS.green}OPTIONS:${COLORS.reset}`);
-    console.log(`    --component   Component: commands, skills, subagents, all (default: all)`);
-    console.log(`    --dry-run     Preview changes without applying`);
-    console.log(`    --verbose     Show detailed output`);
-    console.log(`    --help        Show this help message\n`);
+    console.log('    --component   Component: commands, skills, subagents, all (default: all)');
+    console.log('    --dry-run     Preview changes without applying');
+    console.log('    --verbose     Show detailed output');
+    console.log('    --help        Show this help message\n');
     console.log(`${COLORS.green}EXAMPLES:${COLORS.reset}`);
-    console.log(`    bun adapt.ts rd3 all`);
-    console.log(`    bun adapt.ts rd2 codex,openclaw --dry-run`);
-    console.log(`    bun adapt.ts ./skills/my-skill claude --component skills`);
+    console.log('    bun adapt.ts rd3 all');
+    console.log('    bun adapt.ts rd2 codex,openclaw --dry-run');
+    console.log('    bun adapt.ts ./skills/my-skill claude --component skills');
 }
 
 // ============================================================================
@@ -238,7 +238,7 @@ function fixCommand(cmdFile: string, pluginName: string): AuditResult {
     // Fix 2: Add 'disable-model-invocation: true' if not present
     if (!/^disable-model-invocation:/m.test(content)) {
         if (/^---/m.test(content)) {
-            content = content.replace(/^---/, `---\ndisable-model-invocation: true`);
+            content = content.replace(/^---/, '---\ndisable-model-invocation: true');
             logger.info('  Added disable-model-invocation: true');
         }
     }
@@ -324,7 +324,7 @@ function fixSkill(skillDir: string): AuditResult {
             content = content.replace(/^name:.*/m, `name: ${skillName}`);
             logger.info(`  Fixed name: -> ${skillName}`);
         } else {
-            content = `---\nname: ${skillName}\n` + content;
+            content = `---\nname: ${skillName}\n${content}`;
             logger.info(`  Added name: ${skillName}`);
         }
     }
@@ -347,7 +347,7 @@ function generateCodexYaml(skillDir: string): string {
     const descMatch = content.match(/^description:\s*(.+)$/m);
     const description = descMatch ? descMatch[1].trim() : `${skillName} skill`;
 
-    const versionMatch = content.match(/^  version:\s*(.+)$/m);
+    const versionMatch = content.match(/^ {2}version:\s*(.+)$/m);
     const version = versionMatch ? versionMatch[1].trim().replace(/"/g, '') : '1.0.0';
 
     const emojiMatch = content.match(/emoji:\s*["']?([^"'\n]+)["']?/);
@@ -401,7 +401,7 @@ function adaptForOpenclaw(skillDir: string, targets: string[], dryRun: boolean):
     const content = readFileSync(skillFile, 'utf-8');
 
     // Check if metadata.openclaw already exists
-    if (/metadata:.*openclaw/s.test(content) || /^  openclaw:/m.test(content)) {
+    if (/metadata:.*openclaw/s.test(content) || /^ {2}openclaw:/m.test(content)) {
         logger.info('  [SKIP] openclaw metadata already exists');
         return;
     }
