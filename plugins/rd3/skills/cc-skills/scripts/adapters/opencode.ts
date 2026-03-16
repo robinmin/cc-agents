@@ -4,9 +4,9 @@
  * Handles OpenCode-specific permission configuration
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AdapterContext, AdapterResult, Skill } from '../types';
+import type { AdapterContext, AdapterResult, IPlatformAdapter, Skill } from '../types';
 
 export interface OpenCodeAdapterOptions {
     validatePermissions?: boolean;
@@ -16,7 +16,7 @@ export interface OpenCodeAdapterOptions {
  * OpenCode Adapter
  * Handles OpenCode-specific configuration and permissions
  */
-export class OpenCodeAdapter {
+export class OpenCodeAdapter implements IPlatformAdapter {
     readonly platform = 'opencode' as const;
     readonly displayName = 'OpenCode';
     options: OpenCodeAdapterOptions;
@@ -41,7 +41,7 @@ export class OpenCodeAdapter {
             return { success: false, errors, warnings, companions: [] };
         }
 
-        const content = require('node:fs').readFileSync(skillMdPath, 'utf-8');
+        const content = readFileSync(skillMdPath, 'utf-8');
 
         // Check for OpenCode-specific patterns
         if (content.includes('permission:') || content.includes('permissions:')) {
