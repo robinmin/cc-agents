@@ -6,7 +6,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AdapterContext, AdapterResult, Skill } from '../types';
+import type { AdapterContext, AdapterResult, IPlatformAdapter, Skill } from '../types';
 
 export interface ClaudeAdapterResult extends AdapterResult {
     info: string[];
@@ -22,7 +22,7 @@ export interface ClaudeAdapterOptions {
  * Claude Code Adapter
  * Validates Claude-specific syntax and can generate Platform Notes
  */
-export class ClaudeAdapter {
+export class ClaudeAdapter implements IPlatformAdapter {
     readonly platform = 'claude' as const;
     readonly displayName = 'Claude Code';
     options: ClaudeAdapterOptions;
