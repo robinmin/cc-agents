@@ -29,12 +29,12 @@ export abstract class BaseAdapter implements IPlatformAdapter {
      * Validate skill for platform compatibility
      * Override to add platform-specific validation rules
      */
-    async validate(skill: Skill): Promise<ValidationResult> {
+    async validate(skill: Skill): Promise<AdapterResult> {
         const errors: string[] = [];
         const warnings: string[] = [];
 
         // Check if skill name matches directory name (required by most platforms)
-        const expectedName = skill.path.split('/').pop();
+        const expectedName = skill.directory.split('/').pop();
         if (skill.frontmatter.name !== expectedName) {
             errors.push(`Skill name '${skill.frontmatter.name}' does not match directory name '${expectedName}'`);
         }
@@ -50,7 +50,8 @@ export abstract class BaseAdapter implements IPlatformAdapter {
         warnings.push(...platformResult.warnings);
 
         return {
-            valid: errors.length === 0,
+            success: errors.length === 0,
+            companions: [],
             errors,
             warnings,
         };
