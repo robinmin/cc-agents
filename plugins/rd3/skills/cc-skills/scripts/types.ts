@@ -142,6 +142,8 @@ export interface EvaluationReport {
     rejected?: boolean;
     rejectReason?: string;
     testsPassed?: boolean;
+    platformErrors?: string[];
+    platformWarnings?: string[];
     securityScan?: {
         blacklistFound: boolean;
         greylistFound: boolean;
@@ -235,7 +237,7 @@ export interface IPlatformAdapter {
     /**
      * Validate skill for platform compatibility
      */
-    validate(skill: Skill): Promise<ValidationResult>;
+    validate(skill: Skill): Promise<AdapterResult>;
 
     /**
      * Generate platform-specific companion files
