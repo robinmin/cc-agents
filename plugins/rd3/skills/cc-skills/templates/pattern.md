@@ -3,8 +3,11 @@ name: {{skill_name}}
 description: [TODO: Complete description of what this pattern is for and when to use it. Include WHEN to use this pattern - specific scenarios, problems, or decisions that benefit from this approach.]
 license: Apache-2.0
 metadata:
-  author: your-org
+  author: [author]
   version: "1.0"
+  platforms: "claude-code,codex,openclaw,opencode,antigravity"
+  openclaw:
+    emoji: "🛠️"
 ---
 
 # {{skill_title}}
