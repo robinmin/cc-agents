@@ -7,7 +7,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import YAML from 'yaml';
-import type { AdapterContext, AdapterResult, Skill } from '../types';
+import type { AdapterContext, AdapterResult, IPlatformAdapter, Skill } from '../types';
 
 export interface OpenClawAdapterOptions {
     generateMetadata?: boolean;
@@ -17,7 +17,7 @@ export interface OpenClawAdapterOptions {
  * OpenClaw Adapter
  * Handles OpenClaw-specific metadata.openclaw configuration
  */
-export class OpenClawAdapter {
+export class OpenClawAdapter implements IPlatformAdapter {
     readonly platform = 'openclaw' as const;
     readonly displayName = 'OpenClaw';
     options: OpenClawAdapterOptions;
