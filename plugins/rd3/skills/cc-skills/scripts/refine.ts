@@ -14,6 +14,7 @@ import { createCodexAdapter } from './adapters/codex';
 import { createOpenClawAdapter } from './adapters/openclaw';
 import { createOpenCodeAdapter } from './adapters/opencode';
 import type { IPlatformAdapter, Platform, ScaffoldOptions, SkillFrontmatter, SkillResources } from './types';
+import { parseFrontmatter } from './utils';
 
 // ============================================================================
 // Migration Functions
@@ -154,14 +155,17 @@ async function refineSkill(
     // Generate platform companions
     const platforms = options.platforms || ['claude', 'codex', 'openclaw', 'opencode', 'antigravity'];
 
-    // biome-ignore lint/suspicious/noExplicitAny: Adapters lack a unified interface
-    const platformAdapters: Record<string, any> = {
+    const platformAdapters: Record<string, IPlatformAdapter> = {
         claude: createClaudeAdapter(),
         codex: createCodexAdapter(),
         openclaw: createOpenClawAdapter(),
         opencode: createOpenCodeAdapter(),
         antigravity: createAntigravityAdapter(),
     };
+
+    // Parse actual frontmatter from SKILL.md content (once, outside the loop)
+    const parsed = parseFrontmatter(content);
+    const parsedFrontmatter = parsed.frontmatter || ({} as SkillFrontmatter);
 
     for (const platform of platforms) {
         try {
@@ -172,21 +176,22 @@ async function refineSkill(
             }
 
             const scaffoldOptions: ScaffoldOptions = {
-                name: resolvedPath.split('/').pop() || 'unknown',
+                name: parsedFrontmatter.name || resolvedPath.split('/').pop() || 'unknown',
                 path: resolvedPath,
             };
+
             const context = {
                 skillPath: resolvedPath,
-                skillName: resolvedPath.split('/').pop() || 'unknown',
-                frontmatter: {} as SkillFrontmatter,
-                body: content,
+                skillName: parsedFrontmatter.name || resolvedPath.split('/').pop() || 'unknown',
+                frontmatter: parsedFrontmatter,
+                body: parsed.body,
                 resources: {} as SkillResources,
                 options: scaffoldOptions,
                 outputPath: resolvedPath,
                 skill: {
-                    frontmatter: {} as SkillFrontmatter,
-                    body: content,
-                    raw: content,
+                    frontmatter: parsedFrontmatter,
+                    body: parsed.body,
+                    raw: parsed.raw,
                     path: skillMdPath,
                     directory: resolvedPath,
                     resources: {} as SkillResources,
