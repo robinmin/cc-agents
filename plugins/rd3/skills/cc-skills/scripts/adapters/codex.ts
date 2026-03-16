@@ -7,7 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import YAML from 'yaml';
-import type { AdapterContext, AdapterResult, Skill } from '../types';
+import type { AdapterContext, AdapterResult, IPlatformAdapter, Skill } from '../types';
 
 export interface CodexAdapterOptions {
     platforms?: string[];
@@ -28,7 +28,7 @@ export interface OpenAIYAML {
  * Codex Adapter
  * Generates agents/openai.yaml for Codex UI
  */
-export class CodexAdapter {
+export class CodexAdapter implements IPlatformAdapter {
     readonly platform = 'codex' as const;
     readonly displayName = 'Codex';
     options: CodexAdapterOptions;
