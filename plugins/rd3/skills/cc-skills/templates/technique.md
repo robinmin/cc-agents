@@ -6,6 +6,8 @@ metadata:
   author: [author]
   version: "1.0"
   platforms: "claude-code,codex,openclaw,opencode,antigravity"
+  openclaw:
+    emoji: "🛠️"
 ---
 
 # {{skill_title}}
