@@ -127,7 +127,7 @@ skill-name/
 # Scaffold a new technique-type skill
 bun run scripts/scaffold.ts my-api-skill --template technique --path ./skills
 
-# The skill is created at: ./skills/my-api-skills/my-api-skills/SKILL.md
+# The skill is created at: ./skills/my-api-skill/SKILL.md
 ```
 
 ### Example 2: Evaluate and Refine
