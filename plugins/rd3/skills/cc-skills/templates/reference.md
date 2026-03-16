@@ -3,8 +3,11 @@ name: {{skill_name}}
 description: [TODO: Complete description of what this reference skill provides and when to use it. Include when to use this reference - specific scenarios, API lookups, documentation checks, or technical details needed.]
 license: Apache-2.0
 metadata:
-  author: your-org
+  author: [author]
   version: "1.0"
+  platforms: "claude-code,codex,openclaw,opencode,antigravity"
+  openclaw:
+    emoji: "🛠️"
 ---
 
 # {{skill_title}}
