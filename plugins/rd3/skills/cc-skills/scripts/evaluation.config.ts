@@ -85,7 +85,7 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
         completeness: 12,
         security: 0,
         // New dimensions from rd2
-        content: 18,
+        content: 16,
         triggerDesign: 12,
         valueAdd: 8,
         // Merged: behavioral (0) + behavioralReadiness (3) = 3
