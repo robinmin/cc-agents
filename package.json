@@ -13,11 +13,13 @@
         "lint": "biome lint plugins/rd3",
         "lint:fix": "biome lint --write plugins/rd3",
         "format": "biome format --write plugins/rd3",
-        "lint:all": "biome lint plugins/rd3 plugins/wt/scripts/web-automation",
-        "lint:fix:all": "biome lint --write plugins/rd3 plugins/wt/scripts/web-automation",
+        "lint:all": "biome lint plugins/rd3",
+        "lint:fix:all": "biome lint --write plugins/rd3",
         "check": "bun run lint && bun run typecheck && bun run test",
         "typecheck": "tsc --noEmit",
-        "test": "bun test plugins/rd3/tests"
+        "test": "bun test",
+        "test:watch": "bun test --watch",
+        "test:coverage": "bun test --coverage"
     },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",
