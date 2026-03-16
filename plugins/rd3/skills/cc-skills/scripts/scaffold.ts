@@ -20,6 +20,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import type { ResourceType, ScaffoldOptions } from './types';
+
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -53,8 +55,7 @@ function writeFile(path: string, content: string): void {
 }
 
 // Constants
-const ALLOWED_RESOURCE_TYPES = ['scripts', 'references', 'assets'] as const;
-type ResourceType = (typeof ALLOWED_RESOURCE_TYPES)[number];
+const ALLOWED_RESOURCE_TYPES: readonly ResourceType[] = ['scripts', 'references', 'assets'];
 
 // Parse resource types from comma-separated string
 function parseResourceTypes(resources?: string): ResourceType[] {
@@ -133,18 +134,17 @@ Replace with actual assets (templates, images, fonts) or delete if not needed.
 - Data: .json, .csv
 `;
 
-interface ScaffoldOptions {
-    name: string;
-    path: string;
-    template: 'technique' | 'pattern' | 'reference';
-    resources: ('scripts' | 'references' | 'assets')[];
+/**
+ * CLI-specific scaffold options extending the shared ScaffoldOptions.
+ * Adds CLI-only fields (platform as single string, verbose flag).
+ */
+interface ScaffoldCliOptions extends ScaffoldOptions {
     platform: 'all' | 'claude' | 'codex' | 'openclaw' | 'opencode' | 'antigravity';
-    examples: boolean;
     verbose: boolean;
 }
 
 // Default options
-const DEFAULT_OPTIONS: ScaffoldOptions = {
+const DEFAULT_OPTIONS: ScaffoldCliOptions = {
     name: '',
     path: './skills',
     template: 'technique',
@@ -252,6 +252,11 @@ function createResourceDirs(
 
 /**
  * Generate agents/openai.yaml for Codex compatibility
+ *
+ * TODO: Replace inline YAML generation with CodexAdapter from ./adapters/
+ * to ensure consistent output format and reduce duplication. The CodexAdapter
+ * already handles openai.yaml generation via generateCompanions() -- this
+ * function should delegate to it instead of duplicating the logic.
  */
 function generateOpenaiYaml(skillName: string, skillTitle: string, description: string): string {
     // Extract first sentence for short description
@@ -275,7 +280,7 @@ tags:
 /**
  * Main scaffold function
  */
-async function scaffold(options: ScaffoldOptions): Promise<string | null> {
+async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
     const { name, path, template, resources, platform, examples, verbose } = options;
 
     // Normalize skill name
@@ -383,7 +388,7 @@ function printUsage(): void {
 /**
  * Parse command line arguments
  */
-function parseCliArgs(): ScaffoldOptions {
+function parseCliArgs(): ScaffoldCliOptions {
     const args = parseArgs({
         args: process.argv.slice(2),
         allowPositionals: true,
@@ -420,7 +425,7 @@ function parseCliArgs(): ScaffoldOptions {
         typeof values.template === 'string' &&
         ['technique', 'pattern', 'reference'].includes(values.template)
     ) {
-        options.template = values.template as ScaffoldOptions['template'];
+        options.template = values.template as ScaffoldCliOptions['template'];
     }
     if (values.resources && typeof values.resources === 'string') {
         options.resources = parseResourceTypes(values.resources);
@@ -430,7 +435,7 @@ function parseCliArgs(): ScaffoldOptions {
         typeof values.platform === 'string' &&
         ['all', 'claude', 'codex', 'openclaw', 'opencode', 'antigravity'].includes(values.platform)
     ) {
-        options.platform = values.platform as ScaffoldOptions['platform'];
+        options.platform = values.platform as ScaffoldCliOptions['platform'];
     }
     if (values.examples === true) {
         options.examples = true;
