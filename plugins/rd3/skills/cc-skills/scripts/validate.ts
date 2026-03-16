@@ -5,13 +5,14 @@
  * Validates skill structure, frontmatter, and best practices
  */
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import YAML from 'yaml';
 
 import type { Platform, Skill, SkillFrontmatter, SkillResources, ValidationReport } from './types.ts';
+import { discoverResources, parseFrontmatter } from './utils';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
@@ -23,59 +24,6 @@ const logger = {
     error: (msg: string) => console.error(`[ERROR] ${msg}`),
     success: (msg: string) => console.log(`✓ ${msg}`),
 };
-
-// ============================================================================
-// Frontmatter Parsing
-// ============================================================================
-
-interface ParsedFrontmatter {
-    frontmatter: SkillFrontmatter | null;
-    body: string;
-    raw: string;
-}
-
-function parseFrontmatter(content: string): ParsedFrontmatter {
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-
-    if (!fmMatch) {
-        return { frontmatter: null, body: content, raw: content };
-    }
-
-    const yamlContent = fmMatch[1];
-    const body = content.slice(fmMatch[0].length).trim();
-
-    try {
-        const frontmatter = YAML.parse(yamlContent) as SkillFrontmatter;
-        return { frontmatter, body, raw: content };
-    } catch {
-        return { frontmatter: null, body, raw: content };
-    }
-}
-
-// ============================================================================
-// Resource Discovery
-// ============================================================================
-
-function discoverResources(skillPath: string): SkillResources {
-    const resources: SkillResources = {};
-    const resourceTypes = ['scripts', 'references', 'assets'] as const;
-
-    for (const type of resourceTypes) {
-        const resourcePath = join(skillPath, type);
-        if (existsSync(resourcePath)) {
-            const stat = statSync(resourcePath);
-            if (stat.isDirectory()) {
-                const files = readdirSync(resourcePath).filter((f) => {
-                    const filePath = join(resourcePath, f);
-                    return statSync(filePath).isFile();
-                });
-                resources[type] = files;
-            }
-        }
-    }
-
-    return resources;
-}
 
 // ============================================================================
 // Validation Rules
@@ -159,7 +107,6 @@ function validateBodyContent(skill: Skill, report: ValidationReport): void {
 function validateResources(skill: Skill, report: ValidationReport): void {
     const { resources } = skill;
     const hasWorkflow = skill.body.toLowerCase().includes('workflow');
-    const _hasCodeExamples = skill.body.toLowerCase().includes('```');
 
     if (hasWorkflow && !resources.scripts?.length) {
         report.warnings.push('Skill has workflow but no scripts/ directory');
@@ -277,7 +224,17 @@ function validateSkill(skillPath: string, _options: ValidateOptions): Validation
     };
 
     for (const rule of VALIDATION_RULES) {
-        rule.check(skill, { errors, warnings } as ValidationReport);
+        rule.check(skill, {
+            valid: false,
+            errors,
+            warnings,
+            skillPath: resolvedPath,
+            skillName: frontmatter?.name || resolvedPath.split('/').pop() || 'unknown',
+            frontmatter: frontmatter as SkillFrontmatter,
+            resources,
+            platforms: [],
+            timestamp: new Date().toISOString(),
+        });
     }
 
     const report: ValidationReport = {
