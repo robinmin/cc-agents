@@ -6,7 +6,7 @@ kanban-plugin: board
 
 ## Backlog
 
-- [ ] 0210_upgrade_cc-skills
+
 
 ## Todo
 
@@ -14,7 +14,8 @@ kanban-plugin: board
 
 ## WIP
 
-
+- [.] 0210_upgrade_cc-skills
+  [ ] planning [ ] design [ ] implementation [ ] review [ ] testing
 
 ## Testing
 
@@ -51,4 +52,11 @@ kanban-plugin: board
 - [x] 0207_Add_CSO_categories_to_SKILL.md_description
 - [x] 0208_Add_trigger_testing_to_tests_scenarios.yaml
 - [x] 0209_Add_dimension_weight_comments_in_frontmatter.py_structure.py
+- [x] 0211_Fix_critical_bugs_C1-C4:_platform_validation,_empty_frontmatter,_exit_code,_adapter_validate
+- [x] 0212_Unify_adapter_interface_H1-H2_and_remove_dead_code_L8
+- [x] 0213_Replace_require()_with_ESM_imports_H3-H4
+- [x] 0214_Extract_shared_utilities_parseFrontmatter_and_discoverResources_M1-M2
+- [x] 0215_Integrate_adapt.ts_and_unify_types_H5_M6_M7_M9
+- [x] 0216_Fix_logic_issues_M3_M4_M5_M8:_placeholders,_weights,_ValidationReport,_unused_var
+- [x] 0217_Cleanup_and_test_coverage_L1-L7:_hardcoded_paths,_typos,_unused_vars,_missing_tests
 
