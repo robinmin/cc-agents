@@ -71,10 +71,9 @@ Content here.
             'utf-8',
         );
 
-        const proc = Bun.spawn(
-            ['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'all', '--dry-run', '--component', 'skills'],
-            { stdout: 'pipe' },
-        );
+        const proc = Bun.spawn(['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'all', '--dry-run', '--component', 'skills'], {
+            stdout: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
@@ -100,10 +99,9 @@ Content here.
             'utf-8',
         );
 
-        const proc = Bun.spawn(
-            ['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'codex', '--component', 'skills'],
-            { stdout: 'pipe' },
-        );
+        const proc = Bun.spawn(['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'codex', '--component', 'skills'], {
+            stdout: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
@@ -134,10 +132,9 @@ Content here.
             'utf-8',
         );
 
-        const proc = Bun.spawn(
-            ['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'openclaw', '--component', 'skills'],
-            { stdout: 'pipe' },
-        );
+        const proc = Bun.spawn(['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'openclaw', '--component', 'skills'], {
+            stdout: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
@@ -165,10 +162,9 @@ Content here.
             'utf-8',
         );
 
-        const proc = Bun.spawn(
-            ['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'claude', '--component', 'skills'],
-            { stdout: 'pipe' },
-        );
+        const proc = Bun.spawn(['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'claude', '--component', 'skills'], {
+            stdout: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
@@ -195,10 +191,9 @@ description: A skill with existing codex yaml
         );
         writeFileSync(join(skillDir, 'agents', 'openai.yaml'), 'name: existing\n', 'utf-8');
 
-        const proc = Bun.spawn(
-            ['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'codex', '--component', 'skills'],
-            { stdout: 'pipe' },
-        );
+        const proc = Bun.spawn(['bun', 'run', ADAPT_SCRIPT, TEST_DIR, 'codex', '--component', 'skills'], {
+            stdout: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
