@@ -1,61 +1,36 @@
 ---
 description: Evaluate command quality with validation and scoring
 argument-hint: "<command-path> [--scope basic|full] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--json]"
+allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
 # Command Evaluate
 
-Validate and evaluate slash command quality across multiple dimensions.
+Wraps **rd3:cc-commands** skill.
 
-## Core Skill
-
-> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
-
-This command wraps **rd3:cc-commands** skill - the universal command evaluator.
-
-**Delegation (Claude Code):**
-```
-Skill(skill="rd3:cc-commands")
-```
+Check command quality score and identify weaknesses. **This command only evaluates - makes NO changes.**
 
 ## When to Use
 
-- Validating a new or modified command
-- Checking command quality before publishing
-- Running quality assessment for improvement planning
-- Comparing command quality across platforms
+- Validate a new or modified command
+- Check command quality before publishing
+- Compare quality across platforms
 
-## Usage
+## Expected Results
 
-```bash
-/rd3:command-evaluate <command-path> [options]
-```
+- Quality score (0-100%)
+- Dimension-by-dimension breakdown with pass/fail status
+- List of weaknesses found
+- Recommendations for improvements
 
-## Options
+## Arguments
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--scope <level>` | Evaluation scope: basic or full | basic |
-| `--platform <name>` | Platform: claude, codex, gemini, openclaw, opencode, antigravity, all | - |
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `command-path` | Path to the command .md file | (required) |
+| `--scope` | Evaluation scope: basic or full | basic |
+| `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
 | `--json` | Output results as JSON | false |
-| `--verbose, -v` | Show detailed output | false |
-
-## Scopes
-
-### basic (default)
-- Frontmatter validation (5-field schema)
-- Description effectiveness
-- Content quality
-- Structure and brevity
-- Delegation patterns
-- Argument design
-
-### full
-- All basic checks +
-- Security scan
-- Naming convention
-- Platform compatibility
-- Operational readiness
 
 ## Examples
 
@@ -70,34 +45,35 @@ Skill(skill="rd3:cc-commands")
 /rd3:command-evaluate ./commands/review-code.md --platform gemini
 ```
 
-## Workflow
+## Output Example
 
-1. **Parse** command .md and extract frontmatter
-2. **Validate** 5-field schema compliance
-3. **Analyze** body content quality
-4. **Score** dimensions (basic: 6, full: 10)
-5. **Report** results with grade and recommendations
+```
+Evaluation passed (85%)
 
-## Exit Codes
+--- Dimensions ---
+| Dimension | Score | Status |
+|-----------|-------|--------|
+| Frontmatter | 18/18 | ✓ PASS |
+| Content Quality | 12/15 | ✗ FAIL |
 
-- `0` - Evaluation passed (score >= 80%)
-- `1` - Evaluation failed or errors found
-
-## Related Commands
-
-- `/rd3:command-add` - Create new command
-- `/rd3:command-refine` - Improve command based on evaluation
+--- Weaknesses ---
+- Missing Platform Notes section
+- Uses second-person voice
+```
 
 ## Implementation
 
-<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
-
-### For Claude Code
+**Direct script execution:**
 ```bash
-bun ${CLAUDE_PLUGIN_ROOT:-.}/plugins/rd3/skills/cc-commands/scripts/evaluate.ts <command-path> [options]
+bun plugins/rd3/skills/cc-commands/scripts/evaluate.ts <command-path> [options]
 ```
 
-### For Other Coding Agents
-```bash
-bun ./plugins/rd3/skills/cc-commands/scripts/evaluate.ts <command-path> [options]
-```
+## Platform Notes
+
+- Claude Code: Use `Skill()` for skill delegation
+- Other platforms: Run script directly via Bash tool
+
+## See Also
+
+- `/rd3:command-add` - Create new command
+- `/rd3:command-refine` - Evaluate + apply fixes in one step
