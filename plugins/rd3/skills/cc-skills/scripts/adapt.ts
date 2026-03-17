@@ -24,8 +24,8 @@
  *   bun adapt.ts ./skills/my-skill claude --component skills
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve, basename } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 // ============================================================================
@@ -79,7 +79,9 @@ const logger = {
     error: (msg: string) => console.error(`${COLORS.red}❌ ${msg}${COLORS.reset}`),
     header: () => {
         console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
-        console.log(`${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Adaptation        ${COLORS.magenta}║${COLORS.reset}`);
+        console.log(
+            `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Adaptation        ${COLORS.magenta}║${COLORS.reset}`,
+        );
         console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
     },
 };
@@ -434,7 +436,7 @@ function processCommands(pluginDir: string, pluginName: string, targets: string[
 
     logger.info(`Processing commands in ${commandsDir}...`);
 
-    const files = readdirSync(commandsDir).filter(f => f.endsWith('.md'));
+    const files = readdirSync(commandsDir).filter((f) => f.endsWith('.md'));
     let total = 0;
     let issues = 0;
 
@@ -470,9 +472,7 @@ function processCommands(pluginDir: string, pluginName: string, targets: string[
 }
 
 function processSkills(pluginOrPath: string, isPath: boolean, targets: string[], dryRun: boolean): void {
-    const skillsDir = isPath
-        ? pluginOrPath
-        : join(pluginOrPath, 'skills');
+    const skillsDir = isPath ? pluginOrPath : join(pluginOrPath, 'skills');
 
     if (!existsSync(skillsDir)) {
         logger.info('No skills directory found');
@@ -481,7 +481,7 @@ function processSkills(pluginOrPath: string, isPath: boolean, targets: string[],
 
     logger.info(`Processing skills in ${skillsDir}...`);
 
-    const dirs = readdirSync(skillsDir).filter(f => {
+    const dirs = readdirSync(skillsDir).filter((f) => {
         const fullPath = join(skillsDir, f);
         return statSync(fullPath).isDirectory();
     });
@@ -533,7 +533,7 @@ function processSubagents(pluginDir: string): void {
     logger.info(`Processing subagents in ${subagentsDir}...`);
     logger.warning('  Note: Subagents have no cross-platform standard (Claude Code only)');
 
-    const files = readdirSync(subagentsDir).filter(f => f.endsWith('.md'));
+    const files = readdirSync(subagentsDir).filter((f) => f.endsWith('.md'));
     for (const file of files) {
         const agentName = basename(file, '.md');
         logger.info(`  - ${agentName} (Claude Code only)`);
@@ -554,9 +554,7 @@ async function main() {
 
     logger.header();
 
-    const pluginDir = options.isPath
-        ? options.plugin
-        : resolve(PROJECT_ROOT, 'plugins', options.plugin);
+    const pluginDir = options.isPath ? options.plugin : resolve(PROJECT_ROOT, 'plugins', options.plugin);
     const pluginName = options.isPath ? basename(options.plugin) : options.plugin;
 
     console.log(`Plugin: ${pluginName}`);
