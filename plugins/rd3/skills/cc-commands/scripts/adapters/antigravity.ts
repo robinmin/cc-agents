@@ -4,7 +4,6 @@
  * Generates @mention variant for Antigravity (Gemini CLI)
  */
 
-import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { Command, CommandAdapterContext, CommandAdapterResult, CommandPlatform } from '../types';
 import { BaseCommandAdapter, convertArgumentSyntax, convertPseudocodeToNaturalLanguage } from './base';

@@ -22,6 +22,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { logger } from '../../../scripts/logger';
+import { ensureDir, readFile, writeFile } from '../../../scripts/utils';
 import type { CommandPlatform, CommandScaffoldOptions, CommandScaffoldResult, CommandTemplate } from './types';
 import { normalizeCommandName } from './utils';
 
@@ -29,32 +31,9 @@ import { normalizeCommandName } from './utils';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Simple logger
-const logger = {
-    info: (msg: string) => console.log(`[INFO] ${msg}`),
-    warn: (msg: string) => console.warn(`[WARN] ${msg}`),
-    error: (msg: string) => console.error(`[ERROR] ${msg}`),
-    success: (msg: string) => console.log(`[OK] ${msg}`),
-};
-
 // ============================================================================
 // Helpers
 // ============================================================================
-
-function ensureDir(path: string): void {
-    if (!existsSync(path)) {
-        mkdirSync(path, { recursive: true });
-    }
-}
-
-function readFile(path: string): string {
-    return readFileSync(path, 'utf-8');
-}
-
-function writeFile(path: string, content: string): void {
-    ensureDir(dirname(path));
-    writeFileSync(path, content, 'utf-8');
-}
 
 /**
  * Convert hyphen-case to Title Case.
@@ -291,4 +270,6 @@ async function main() {
     }
 }
 
-main();
+if (import.meta.main) {
+    main();
+}

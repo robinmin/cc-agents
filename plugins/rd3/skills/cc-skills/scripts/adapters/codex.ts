@@ -153,7 +153,7 @@ export class CodexAdapter implements IPlatformAdapter {
             };
 
             // Extract instructions if available
-            const instructionsMatch = content.match(/## Instructions\n\n([\s\S]+?)(?=\n##|$)/);
+            const instructionsMatch = content.match(/## Instructions\n\n([\s\S]+?)(?=\n#|$)/);
             if (instructionsMatch) {
                 openaiYaml.instructions = instructionsMatch[1].trim().substring(0, 2000);
             }

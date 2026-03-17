@@ -26,6 +26,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { logger, COLORS } from '../../../scripts/logger';
 
 import {
     createAntigravityAdapter,
@@ -73,36 +74,8 @@ interface AdaptResult {
 // Navigate from plugins/rd3/skills/cc-commands/scripts to root
 const PROJECT_ROOT = resolve(import.meta.dir, '..', '..', '..', '..', '..');
 
-const COLORS = {
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
-    reset: '\x1b[0m',
-};
-
 const VALID_TARGETS = ['all', 'codex', 'gemini', 'openclaw', 'claude', 'opencode', 'antigravity'];
 const VALID_COMPONENTS = ['commands', 'all'];
-
-// ============================================================================
-// Logger
-// ============================================================================
-
-const logger = {
-    info: (msg: string) => console.log(`${COLORS.cyan}[INFO]${COLORS.reset} ${msg}`),
-    success: (msg: string) => console.log(`${COLORS.green}[OK]${COLORS.reset} ${msg}`),
-    warning: (msg: string) => console.warn(`${COLORS.yellow}[WARN]${COLORS.reset} ${msg}`),
-    error: (msg: string) => console.error(`${COLORS.red}[ERROR]${COLORS.reset} ${msg}`),
-    header: () => {
-        console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
-        console.log(
-            `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Command Adaptation    ${COLORS.magenta}║${COLORS.reset}`,
-        );
-        console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
-    },
-};
 
 // ============================================================================
 // Argument Parsing
@@ -423,7 +396,7 @@ async function processCommands(
                 logger.error(`  [${issue}]`);
             }
             for (const warning of result.warnings) {
-                logger.warning(`  [${warning}]`);
+                logger.warn(`  [${warning}]`);
             }
             if (result.issues.length > 0 || result.warnings.length > 0) {
                 issues++;
@@ -465,7 +438,11 @@ async function main() {
 
     validateOptions(options);
 
-    logger.header();
+    console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
+    console.log(
+        `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Command Adaptation    ${COLORS.magenta}║${COLORS.reset}`,
+    );
+    console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
 
     const pluginDir = options.isPath ? options.plugin : resolve(PROJECT_ROOT, 'plugins', options.plugin);
     const pluginName = options.isPath ? basename(options.plugin) : options.plugin;

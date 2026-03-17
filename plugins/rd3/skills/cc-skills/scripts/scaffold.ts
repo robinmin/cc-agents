@@ -20,42 +20,16 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import { logger } from '../../../scripts/logger';
+import { ensureDir, pathExists, readFile, writeFile } from '../../../scripts/utils';
 import type { ResourceType, ScaffoldOptions } from './types';
 
 // Get __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Simple logger
-const logger = {
-    info: (msg: string) => console.log(`[INFO] ${msg}`),
-    warn: (msg: string) => console.warn(`[WARN] ${msg}`),
-    error: (msg: string) => console.error(`[ERROR] ${msg}`),
-    success: (msg: string) => console.log(`✓ ${msg}`),
-};
-
-// Utility functions (local implementations)
-function ensureDir(path: string): void {
-    if (!existsSync(path)) {
-        mkdirSync(path, { recursive: true });
-    }
-}
-
-function pathExists(path: string): boolean {
-    return existsSync(path);
-}
-
-function readFile(path: string): string {
-    return readFileSync(path, 'utf-8');
-}
-
-function writeFile(path: string, content: string): void {
-    ensureDir(dirname(path));
-    writeFileSync(path, content, 'utf-8');
-}
-
 // Constants
-const ALLOWED_RESOURCE_TYPES: readonly ResourceType[] = ['scripts', 'references', 'assets'];
+const ALLOWED_RESOURCE_TYPES: readonly ResourceType[] = ['scripts', 'references', 'assets', 'agents'];
 
 // Parse resource types from comma-separated string
 function parseResourceTypes(resources?: string): ResourceType[] {
@@ -214,7 +188,7 @@ function processTemplate(template: string, skillName: string, skillTitle: string
  */
 function createResourceDirs(
     skillDir: string,
-    resources: ('scripts' | 'references' | 'assets')[],
+    resources: ResourceType[],
     skillName: string,
     skillTitle: string,
     includeExamples: boolean,
@@ -361,8 +335,10 @@ function printNextSteps(skillDir: string, resources: string[], examples: boolean
         console.log('3. Create resource directories only if needed (scripts/, references/, assets/)');
     }
 
-    console.log('4. Run validation: bun validate.ts <skill-path>');
-    console.log('5. Test the skill with realistic user requests');
+    console.log('4. Run evaluation: bun scripts/evaluate.ts <skill-path> --scope basic');
+    console.log('5. Run refinement: bun scripts/refine.ts <skill-path> --best-practices --platform all');
+    console.log('6. Test the skill with realistic user requests');
+    console.log('\nSee references/troubleshooting.md for common issues');
 }
 
 /**
@@ -501,4 +477,6 @@ async function main() {
     }
 }
 
-main();
+if (import.meta.main) {
+    main();
+}

@@ -13,27 +13,67 @@ metadata:
 
 Create Agent skills that work across ALL platforms from a single source of truth.
 
-## When to Use
+## Operations
 
-Use this skill when:
-- Creating a new skill from scratch
-- Scaffolding a skill directory with templates
-- Validating skill structure across multiple platforms
-- Generating platform-specific companion files
-- Migrating existing rd2 skills to the new universal format
+This skill accepts **4 operations**:
+
+| Operation | Purpose | Script |
+|-----------|---------|--------|
+| **add** | Scaffold a new skill | `scripts/scaffold.ts` |
+| **evaluate** | Validate and score skill quality | `scripts/evaluate.ts` |
+| **refine** | Fix issues and improve quality | `scripts/refine.ts` |
+| **package** | Package for distribution | `scripts/package.ts` |
+
+## Workflow Design
+
+Each operation has a **step-by-step workflow** combining scripts and checklists:
+
+### Workflow Components
+
+| Component | Purpose | Examples |
+|-----------|---------|----------|
+| **Scripts** | Deterministic tasks | File creation, validation, companion generation |
+| **Checklists** | Fuzzy verification | Imperative form, description clarity, voice |
+
+### Workflow Flow Pattern
+
+Each workflow follows this pattern:
+
+1. **Step 1 → Step 2 → Step 3 → Step 4**
+2. Each step specifies its handler (script or checklist)
+3. **Branching**: If step fails, go back to X
+4. **Retry**: Max 3 retries per step
+
+**See [references/workflows.md](references/workflows.md)** for:
+- Visual flow diagrams
+- Step-by-step tables with handlers
+- Success/failure criteria
+- Mandatory checklist items
+- Retry policies
 
 ## Quick Start
 
 ```bash
-# Initialize a new skill
-bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/scaffold.ts my-skill --path ./skills
+# Add: Initialize a new skill
+bun scripts/scaffold.ts my-skill --path ./skills
 
-# Validate skill structure
-bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/validate.ts ./skills/my-skill
+# Evaluate: Validate skill structure (Two-Tier: Structural + Quality)
+bun scripts/evaluate.ts ./skills/my-skill --scope full
 
-# Evaluate skill quality
-bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-skills/scripts/evaluate.ts ./skills/my-skill --scope full
+# Refine: Apply fixes (deterministic + LLM)
+bun scripts/refine.ts ./skills/my-skill --best-practices --llm-refine
+
+# Package: Create distribution bundle
+bun scripts/package.ts ./skills/my-skill --output ./dist
 ```
+
+## When to Use
+
+- Creating a new skill from scratch → use **add**
+- Validating skill structure → use **evaluate**
+- Fixing quality issues → use **refine**
+- Preparing for distribution → use **package**
+- Migrating rd2 skills to rd3 → use **refine --migrate**
 
 ## Core Principles
 
@@ -52,6 +92,23 @@ Skills use 3-tier loading:
 2. **SKILL.md body** - Instructions (<500 lines, loaded on trigger)
 3. **References** - Detailed docs (loaded on demand)
 
+### Fat Skills, Thin Wrappers
+
+All coding agents support agent skills now, but slash commands and subagents are not universally supported. So we **MUST** follow these principles:
+
+- **Skills** = core logic, workflows, domain knowledge (source of truth)
+- **Commands** = ~50 line wrappers invoking skills for humans
+- **Agents** = ~100 line wrappers invoking skills for AI workflows
+
+### Circular Reference Rule
+Skills MUST NOT reference their associated agents or commands. This includes:
+
+- ❌ Bad: `See also: my-agent, /plugin:my-command`
+- ❌ Bad: Commands Reference section listing `/rd3:skill-*` commands
+- ✅ Good: `This skill provides workflows for X.`
+
+If you need command examples, reference generic patterns without specific command names (e.g., "Use Task() to delegate to specialist agents" instead of "/rd3:skill-add").
+
 ## Skill Types
 
 | Type | Use When | Structure |
@@ -64,6 +121,8 @@ Choose based on content:
 - Has steps? -> Technique
 - Mental model? -> Pattern
 - Lookup data? -> Reference
+
+See [references/skill-patterns.md](references/skill-patterns.md) for advanced workflow patterns.
 
 ## Directory Structure
 
@@ -91,25 +150,6 @@ skill-name/
 | **OpenCode** | Config-level `permission.skill` | None (hints only) |
 | **Antigravity** | Gemini CLI compatible | None (validates) |
 
-## Commands Reference
-
-```bash
-# Create new skill with template
-/rd3:skill-add <name> --template <type> --resources <list>
-
-# Validate skill structure
-/rd3:skill-evaluate <path> --scope basic
-
-# Evaluate skill quality
-/rd3:skill-evaluate <path> --scope full --platform all
-
-# Refine skill based on evaluation
-/rd3:skill-refine <path> --from-eval <results.json>
-
-# Migrate rd2 skill to rd3
-/rd3:skill-refine <path> --migrate --platform all
-```
-
 ## Migration from rd2
 
 | rd2 Feature | Migration Action |
@@ -119,46 +159,11 @@ skill-name/
 | Missing `name:` field | Add explicit `name:` from directory |
 | Python scripts | Keep (scripts are platform-agnostic) |
 
-## Examples
+## Detailed Workflows
 
-### Example 1: Create a New Skill
+For complete workflow definitions with certainty/uncertainty split and checklists:
 
-```bash
-# Scaffold a new technique-type skill
-bun run scripts/scaffold.ts my-api-skill --template technique --path ./skills
-
-# The skill is created at: ./skills/my-api-skill/SKILL.md
-```
-
-### Example 2: Evaluate and Refine
-
-```bash
-# First evaluate the skill
-bun run scripts/evaluate.ts ./skills/my-api-skill --scope full --verbose --json
-
-# Then refine based on findings
-bun run scripts/refine.ts ./skills/my-api-skill --from-eval eval-results.json
-```
-
-### Example 3: Generate Platform Companions
-
-```bash
-# Generate Codex-specific companions
-bun run scripts/refine.ts ./skills/my-api-skill --platform codex
-
-# Generate OpenClaw companions
-bun run scripts/refine.ts ./skills/my-api-skill --platform openclaw
-
-# Generate all platform companions
-bun run scripts/refine.ts ./skills/my-api-skill --platform all
-```
-
-### Example 4: Package for Distribution
-
-```bash
-# Package skill for distribution
-bun run scripts/package.ts ./skills/my-api-skill --output ./dist/my-api-skill
-```
+**See [references/workflows.md](references/workflows.md)**
 
 ## Advanced
 
@@ -189,10 +194,10 @@ Each platform adapter validates different aspects:
 
 When migrating from rd2:
 
-1. Run evaluation first: `bun run scripts/evaluate.ts ./old-skill --scope full`
-2. Apply migration: `bun run scripts/refine.ts ./old-skill --migrate`
-3. Verify: `bun run scripts/evaluate.ts ./old-skill --scope full`
-4. Generate platform companions: `bun run scripts/refine.ts ./old-skill --platform all`
+1. Run evaluation first: `bun scripts/evaluate.ts ./old-skill --scope full`
+2. Apply migration: `bun scripts/refine.ts ./old-skill --migrate`
+3. Verify: `bun scripts/evaluate.ts ./old-skill --scope full`
+4. Generate platform companions: `bun scripts/refine.ts ./old-skill --platform all`
 
 ## Platform Notes
 
@@ -208,8 +213,28 @@ When migrating from rd2:
 - Arguments are provided directly in chat, not via `$ARGUMENTS`
 - Platform companions (openai.yaml, metadata.openclaw) are auto-generated
 
+## Best Practices
+
+Follow these best practices to create effective, maintainable skills. See [references/best-practices.md](references/best-practices.md) for the complete guide.
+
+### Core Principles
+
+- **Concise is Key**: Challenge each piece of information - does Claude really need this?
+- **Set Degrees of Freedom**: Match specificity to task fragility (High/Medium/Low)
+- **Test with Target Models**: Works differently on Haiku vs Sonnet vs Opus
+- **Script vs LLM**: Use scripts for deterministic issues, LLM for fuzzy issues (see workflows.md)
+
+<!-- Full best practices moved to references/best-practices.md -->
 ## Additional Resources
 
+- **Workflows**: [references/workflows.md](references/workflows.md) - Detailed operation workflows
+- **Security Guidelines**: [references/security.md](references/security.md) - Security checklist and patterns
+- **Best Practices Guide**: [references/best-practices.md](references/best-practices.md)
 - **Platform Adapters Guide**: [adapters/README.md](adapters/README.md)
 - **Evaluation Framework**: [references/evaluation-framework.md](references/evaluation-framework.md)
 - **Platform Compatibility**: [references/platform-compatibility.md](references/platform-compatibility.md)
+- **Skill Patterns**: [references/skill-patterns.md](references/skill-patterns.md) - Five proven patterns for complex skills
+- **Troubleshooting**: [references/troubleshooting.md](references/troubleshooting.md) - Common issues and fixes
+- **Output Patterns**: [references/output-patterns.md](references/output-patterns.md) - Output formatting guidance
+- **Quick Reference**: [references/quick-reference.md](references/quick-reference.md) - CLI commands and checklists
+- **Skill Creation**: [references/skill-creation.md](references/skill-creation.md) - Step-by-step creation guide

@@ -1,11 +1,22 @@
 ---
 description: Refine and improve a slash command based on best practices
-argument-hint: "<command-path> [--migrate] [--dry-run] [--from-eval <results.json>]"
+argument-hint: "<command-path> [--migrate] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--dry-run] [--from-eval <results.json>]"
 ---
 
 # Command Refine
 
 Improve slash commands by fixing frontmatter, converting writing style, and adding missing sections.
+
+## Core Skill
+
+> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
+
+This command wraps **rd3:cc-commands** skill - the universal command refiner.
+
+**Delegation (Claude Code):**
+```
+Skill(skill="rd3:cc-commands")
+```
 
 ## When to Use
 
@@ -13,6 +24,7 @@ Improve slash commands by fixing frontmatter, converting writing style, and addi
 - Migrating commands from rd2 to rd3 format
 - Converting second-person to imperative form
 - Adding missing argument-hint or Platform Notes
+- Generating platform companions after refinement
 
 ## Usage
 
@@ -25,6 +37,7 @@ Improve slash commands by fixing frontmatter, converting writing style, and addi
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--migrate` | Enable rd2-to-rd3 migration mode | false |
+| `--platform <name>` | Generate platform companions: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
 | `--dry-run` | Show changes without writing | false |
 | `--from-eval <path>` | Use evaluation results to guide refinement | - |
 | `--verbose, -v` | Show detailed output | false |
@@ -68,6 +81,8 @@ Improve slash commands by fixing frontmatter, converting writing style, and addi
 - `/rd3:command-evaluate` - Evaluate command quality
 
 ## Implementation
+
+<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
 
 ### For Claude Code
 ```bash

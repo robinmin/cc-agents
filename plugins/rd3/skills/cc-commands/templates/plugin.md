@@ -13,6 +13,33 @@ allowed-tools: Bash, Read
 - [Scenario 1: When this command applies]
 - [Scenario 2: Another scenario]
 
+## Core Skill
+
+> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
+
+This command wraps **rd3:cc-commands** skill - [description].
+
+**Delegation (Claude Code):**
+```
+Skill(skill="rd3:cc-commands")
+```
+
+## Implementation
+
+<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
+
+### For Claude Code
+Use `Skill()` to delegate to the core skill:
+```
+Skill(skill="rd3:cc-commands")
+```
+
+### For Other Coding Agents (Codex, Gemini, OpenClaw, OpenCode, Antigravity)
+Execute the script directly:
+```bash
+bun ./plugins/rd3/skills/cc-commands/scripts/[scaffold|validate|evaluate|refine|adapt].ts <args>
+```
+
 ## Instructions
 
 Run the plugin script:

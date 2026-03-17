@@ -73,12 +73,13 @@ export interface Skill {
 // Resource Types
 // ============================================================================
 
-export type ResourceType = 'scripts' | 'references' | 'assets';
+export type ResourceType = 'scripts' | 'references' | 'assets' | 'agents';
 
 export interface SkillResources {
     scripts?: string[];
     references?: string[];
     assets?: string[];
+    agents?: string[];
 }
 
 // ============================================================================
@@ -114,16 +115,78 @@ export interface ValidationReport extends ValidationResult {
 }
 
 // ============================================================================
-// Evaluation Types
+// EVALUATION TYPES
 // ============================================================================
 
 export type EvaluationScope = 'basic' | 'full';
 
+// Feature flags extracted from evaluation
+export interface EvaluationFeatures {
+    // Frontmatter features
+    hasFrontmatter: boolean;
+    hasName: boolean;
+    nameValidFormat: boolean;
+    hasDescription: boolean;
+    descriptionLength: number; // 0 = missing, <20 = short, 20-500 = good, >500 = long
+    hasMetadata: boolean;
+
+    // Structure features
+    lineCount: number;
+    hasSkillMd: boolean;
+    hasScripts: boolean;
+    hasReferences: boolean;
+    hasAssets: boolean;
+    hasAgents: boolean;
+
+    // Content features
+    hasOverview: boolean;
+    hasQuickStart: boolean;
+    hasExamples: boolean;
+    hasCodeBlocks: boolean;
+    hasWorkflows: boolean;
+    hasPlatformNotes: boolean;
+
+    // Trigger features
+    hasWhenToUse: boolean;
+    triggerPhrases: string[]; // "create X", "implement Y", etc.
+
+    // Security features
+    hasBlacklistMatch: boolean;
+    hasGreylistMatch: boolean;
+    securityIssues: string[];
+
+    // Best practices features
+    hasTodo: boolean;
+    todoCount: number;
+    hasPlaceholders: boolean;
+    placeholderCount: number;
+    usesSecondPerson: boolean;
+    hasWindowsPaths: boolean;
+    hasNestedRefs: boolean;
+    timeSensitiveCount: number;
+    hasCircularRef: boolean;
+    contentLength: number; // chars
+    hasSectionHeaders: boolean;
+    headingCount: number;
+
+    // Completeness features
+    hasAdditionalResources: boolean;
+    hasSeeAlso: boolean;
+    hasPlatforms: boolean;
+
+    // Platform features
+    platformsSupported: string[];
+    hasEvalIgnore: boolean;
+}
+
 export interface EvaluationDimension {
     name: string;
+    category?: string; // Added at output time
     weight: number;
     score: number;
     maxScore: number;
+    percentage?: number;
+    passed?: boolean;
     findings: string[];
     recommendations: string[];
 }

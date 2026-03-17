@@ -1,11 +1,22 @@
 ---
 description: Scaffold a new slash command with best-practice structure
-argument-hint: "<command-name> [--template simple|workflow|plugin] [--path <dir>] [--description <text>]"
+argument-hint: "<command-name> [--template simple|workflow|plugin] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--path <dir>] [--description <text>]"
 ---
 
 # Command Add
 
 Scaffold a new slash command file with proper frontmatter and structure.
+
+## Core Skill
+
+> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
+
+This command wraps **rd3:cc-commands** skill - the universal command creator.
+
+**Delegation (Claude Code):**
+```
+Skill(skill="rd3:cc-commands")
+```
 
 ## When to Use
 
@@ -24,6 +35,7 @@ Scaffold a new slash command file with proper frontmatter and structure.
 | Option | Description | Default |
 |--------|-------------|---------|
 | `--template <type>` | Template type: simple, workflow, plugin | simple |
+| `--platform <name>` | Generate platform companions: all, claude, codex, gemini, openclaw, opencode, antigravity | claude |
 | `--path <dir>` | Output directory for the .md file | ./commands |
 | `--description <text>` | Description for frontmatter | auto-generated |
 | `--plugin-name <name>` | Plugin name for plugin template | - |
@@ -67,6 +79,8 @@ Plugin-aware command using CLAUDE_PLUGIN_ROOT for script paths.
 - `/rd3:command-refine` - Improve command based on evaluation
 
 ## Implementation
+
+<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
 
 ### For Claude Code
 ```bash

@@ -1,11 +1,22 @@
 ---
 description: Adapt a Claude Code command for other AI coding platforms
-argument-hint: "<command-path> --target <platform|all> [--dry-run] [--output <dir>]"
+argument-hint: "<command-path> [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--dry-run] [--output <dir>]"
 ---
 
 # Command Adapt
 
 Convert a Claude Code slash command to work on other AI coding platforms.
+
+## Core Skill
+
+> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
+
+This command wraps **rd3:cc-commands** skill - the universal command adapter.
+
+**Delegation (Claude Code):**
+```
+Skill(skill="rd3:cc-commands")
+```
 
 ## When to Use
 
@@ -16,14 +27,14 @@ Convert a Claude Code slash command to work on other AI coding platforms.
 ## Usage
 
 ```bash
-/rd3:command-adapt <command-path> --target <platform> [options]
+/rd3:command-adapt <command-path> [--platform <platform>] [options]
 ```
 
 ## Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--target <platform>` | Target: claude, codex, gemini, openclaw, opencode, antigravity, all | required |
+| `--platform <name>` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
 | `--dry-run` | Show adapted output without writing files | false |
 | `--output <dir>` | Output directory for adapted files | ./adapted/ |
 | `--verbose, -v` | Show detailed output | false |
@@ -67,6 +78,8 @@ Convert a Claude Code slash command to work on other AI coding platforms.
 - `/rd3:command-refine` - Improve command quality
 
 ## Implementation
+
+<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
 
 ### For Claude Code
 ```bash

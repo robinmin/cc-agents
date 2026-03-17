@@ -1,6 +1,6 @@
 ---
 description: Create a new skill with scaffolding
-argument-hint: "<skill-name> [--template <type>] [--resources <list>] [--platform <name>]"
+argument-hint: "<skill-name> [--template technique|pattern|reference] [--resources scripts|references|assets|agents] [--platform all|claude|codex|openclaw|opencode|antigravity]"
 ---
 
 # Skill Add
@@ -11,78 +11,34 @@ Create a new skill directory with templates and platform-specific companions.
 
 - Creating a new skill from scratch
 - Scaffolding a skill directory with proper structure
-- Setting up platform-specific companion files
-
-## Usage
-
-```bash
-/rd3:skill-add <skill-name> [options]
-```
-
-## Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--template <type>` | Template type: technique, pattern, reference | technique |
-| `--resources <list>` | Comma-separated: scripts,references,assets | (none) |
-| `--platform <name>` | Target platform: all, claude, codex, openclaw | all |
-| `--path <dir>` | Output directory | ./skills |
-| `--examples` | Include example files in resource directories | false |
 
 ## Examples
 
 ```bash
 # Create a technique skill with all resources
-/rd3:skill-add my-api-helper --template technique --resources scripts,references,assets --examples
+/rd3:skill-add my-api-helper --template technique --resources scripts,references,assets
 
 # Create a pattern skill for Claude Code only
 /rd3:skill-add decision-framework --template pattern --platform claude
 
-# Create a reference skill with scripts only
-/rd3:skill-add api-reference --template reference --resources scripts --path ./docs/skills
+# Create with example files
+/rd3:skill-add api-reference --template reference --resources scripts --examples
 ```
-
-## Workflow
-
-This command invokes the scaffold.ts script to:
-
-1. **Validate** skill name (lowercase hyphen-case, max 64 chars)
-2. **Create** skill directory structure
-3. **Generate** SKILL.md from template
-4. **Create** platform-specific companions (agents/openai.yaml for Codex)
-5. **Create** resource directories with optional example files
-
-## Next Steps
-
-After running this command:
-
-1. Edit SKILL.md to complete the TODO items
-2. Update the description to include when to use the skill
-3. Add resources to scripts/, references/, assets/ as needed
-4. Run validation: `/rd3:skill-evaluate <path> --scope basic`
-5. Test the skill with realistic user requests
-
-## Related Commands
-
-- `/rd3:skill-evaluate` - Validate and evaluate skill quality
-- `/rd3:skill-refine` - Improve skill based on evaluation results
 
 ## Implementation
 
-To execute this command, the AI agent should choose the appropriate execution path based on its environment:
+Delegates to **rd3:cc-skills** skill:
 
-### For Claude Code
-Use the `rd2:skill-expert` subagent:
-```python
-Task(
-    subagent_type="rd2:skill-expert",
-    prompt="Create a new skill {skill_name} at output path {path}. Use template {type}, platform {platform}, resources {resources}. Use the scripts at ${CLAUDE_PLUGIN_ROOT:-.}/plugins/rd3/skills/cc-skills/scripts/scaffold.ts",
-    description="Create {skill_name} skill using rd3:cc-skills scaffold"
-)
+```
+Skill(skill="rd3:cc-skills")
 ```
 
-### For Other Coding Agents (Codex, Antigravity, OpenCode, OpenClaw)
-Explicitly use the terminal or bash execution tool to run the TypeScript script directly:
+**Direct script execution:**
 ```bash
-bun ./plugins/rd3/skills/cc-skills/scripts/scaffold.ts <skill-name> [--template <type>] [--resources <list>] [--platform <name>] [--path <dir>]
+bun plugins/rd3/skills/cc-skills/scripts/scaffold.ts <skill-name> [options]
 ```
+
+## See Also
+
+- `/rd3:skill-evaluate` - Validate skill quality
+- `/rd3:skill-refine` - Improve skill after evaluation

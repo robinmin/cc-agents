@@ -18,6 +18,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { logger } from '../../../scripts/logger';
+
 import type {
     Command,
     CommandBodyAnalysis,
@@ -36,14 +38,6 @@ import {
     readCommand,
     validateDescription,
 } from './utils';
-
-// Logger
-const logger = {
-    info: (msg: string) => console.log(`[INFO] ${msg}`),
-    warn: (msg: string) => console.warn(`[WARN] ${msg}`),
-    error: (msg: string) => console.error(`[ERROR] ${msg}`),
-    success: (msg: string) => console.log(`[OK] ${msg}`),
-};
 
 // ============================================================================
 // Validation Rules
@@ -439,4 +433,6 @@ async function main() {
     process.exit(report.valid ? 0 : 1);
 }
 
-main();
+if (import.meta.main) {
+    main();
+}

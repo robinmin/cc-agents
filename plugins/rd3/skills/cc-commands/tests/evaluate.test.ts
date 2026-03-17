@@ -28,8 +28,8 @@ Content.`,
 
         const report = evaluateCommand(command, 'basic');
 
-        // Basic scope should have 6 dimensions
-        expect(report.dimensions.length).toBe(6);
+        // Basic scope should have 7 dimensions (includes circularReference)
+        expect(report.dimensions.length).toBe(7);
     });
 
     it('should return correct dimensions count for full scope', async () => {
@@ -49,8 +49,8 @@ Content.`,
 
         const report = evaluateCommand(command, 'full');
 
-        // Full scope should have 10 dimensions
-        expect(report.dimensions.length).toBe(10);
+        // Full scope should have 11 dimensions (includes circularReference)
+        expect(report.dimensions.length).toBe(11);
     });
 
     it('should detect pseudocode usage', async () => {

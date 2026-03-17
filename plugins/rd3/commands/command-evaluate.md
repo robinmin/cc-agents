@@ -1,11 +1,22 @@
 ---
 description: Evaluate command quality with validation and scoring
-argument-hint: "<command-path> [--scope basic|full] [--platform <name>] [--json]"
+argument-hint: "<command-path> [--scope basic|full] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--json]"
 ---
 
 # Command Evaluate
 
 Validate and evaluate slash command quality across multiple dimensions.
+
+## Core Skill
+
+> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
+
+This command wraps **rd3:cc-commands** skill - the universal command evaluator.
+
+**Delegation (Claude Code):**
+```
+Skill(skill="rd3:cc-commands")
+```
 
 ## When to Use
 
@@ -78,6 +89,8 @@ Validate and evaluate slash command quality across multiple dimensions.
 - `/rd3:command-refine` - Improve command based on evaluation
 
 ## Implementation
+
+<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
 
 ### For Claude Code
 ```bash

@@ -27,6 +27,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { logger, COLORS } from '../../../scripts/logger';
 
 // ============================================================================
 // Types
@@ -55,36 +56,8 @@ interface AuditResult {
 // Navigate from plugins/rd3/skills/cc-skills/scripts to root
 const PROJECT_ROOT = resolve(import.meta.dir, '..', '..', '..', '..', '..');
 
-const COLORS = {
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    magenta: '\x1b[35m',
-    cyan: '\x1b[36m',
-    reset: '\x1b[0m',
-};
-
 const VALID_TARGETS = ['all', 'codex', 'openclaw', 'claude', 'opencode', 'antigravity'];
 const VALID_COMPONENTS = ['commands', 'skills', 'subagents', 'all'];
-
-// ============================================================================
-// Logger
-// ============================================================================
-
-const logger = {
-    info: (msg: string) => console.log(`${COLORS.cyan}ℹ️  ${msg}${COLORS.reset}`),
-    success: (msg: string) => console.log(`${COLORS.green}✅ ${msg}${COLORS.reset}`),
-    warning: (msg: string) => console.warn(`${COLORS.yellow}⚠️  ${msg}${COLORS.reset}`),
-    error: (msg: string) => console.error(`${COLORS.red}❌ ${msg}${COLORS.reset}`),
-    header: () => {
-        console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
-        console.log(
-            `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Adaptation        ${COLORS.magenta}║${COLORS.reset}`,
-        );
-        console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
-    },
-};
 
 // ============================================================================
 // Argument Parsing
@@ -451,8 +424,8 @@ function processCommands(pluginDir: string, pluginName: string, targets: string[
 
         if (dryRun) {
             const result = auditCommand(cmdFile, pluginName);
-            for (const issue of result.issues) logger.warning(`  [${issue}]`);
-            for (const warning of result.warnings) logger.warning(`  [${warning}]`);
+            for (const issue of result.issues) logger.warn(`  [${issue}]`);
+            for (const warning of result.warnings) logger.warn(`  [${warning}]`);
             if (result.issues.length > 0) issues++;
         } else {
             const result = auditCommand(cmdFile, pluginName);
@@ -499,8 +472,8 @@ function processSkills(pluginOrPath: string, isPath: boolean, targets: string[],
         // Skills 2.0 compliance
         if (dryRun) {
             const result = auditSkill(skillDir);
-            for (const issue of result.issues) logger.warning(`  [${issue}]`);
-            for (const warning of result.warnings) logger.warning(`  [${warning}]`);
+            for (const issue of result.issues) logger.warn(`  [${issue}]`);
+            for (const warning of result.warnings) logger.warn(`  [${warning}]`);
             if (result.issues.length > 0) issues++;
         } else {
             const result = auditSkill(skillDir);
@@ -531,7 +504,7 @@ function processSubagents(pluginDir: string): void {
     }
 
     logger.info(`Processing subagents in ${subagentsDir}...`);
-    logger.warning('  Note: Subagents have no cross-platform standard (Claude Code only)');
+    logger.warn('  Note: Subagents have no cross-platform standard (Claude Code only)');
 
     const files = readdirSync(subagentsDir).filter((f) => f.endsWith('.md'));
     for (const file of files) {
@@ -552,7 +525,11 @@ async function main() {
 
     validateOptions(options);
 
-    logger.header();
+    console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
+    console.log(
+        `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Adaptation        ${COLORS.magenta}║${COLORS.reset}`,
+    );
+    console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
 
     const pluginDir = options.isPath ? options.plugin : resolve(PROJECT_ROOT, 'plugins', options.plugin);
     const pluginName = options.isPath ? basename(options.plugin) : options.plugin;

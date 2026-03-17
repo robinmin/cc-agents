@@ -216,7 +216,8 @@ export type CommandDimensionName =
     | 'security'
     | 'naming-convention'
     | 'platform-compatibility'
-    | 'operational-readiness';
+    | 'operational-readiness'
+    | 'circular-reference';
 
 /**
  * Single evaluation dimension result.

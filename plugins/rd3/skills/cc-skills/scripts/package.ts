@@ -153,16 +153,22 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
         }
     }
 
-    // Calculate size
+    // Calculate size (recursive to include all subdirectories)
     let totalSize = 0;
-    if (existsSync(resolvedOutputPath)) {
-        const files = readdirSync(resolvedOutputPath);
-        for (const file of files) {
-            const filePath = join(resolvedOutputPath, file);
-            if (statSync(filePath).isFile()) {
-                totalSize += statSync(filePath).size;
+    function calculateDirSize(dirPath: string): void {
+        const entries = readdirSync(dirPath);
+        for (const entry of entries) {
+            const entryPath = join(dirPath, entry);
+            const stat = statSync(entryPath);
+            if (stat.isFile()) {
+                totalSize += stat.size;
+            } else if (stat.isDirectory()) {
+                calculateDirSize(entryPath);
             }
         }
+    }
+    if (existsSync(resolvedOutputPath)) {
+        calculateDirSize(resolvedOutputPath);
     }
 
     return {
@@ -286,4 +292,6 @@ async function main() {
     process.exit(result.success ? 0 : 1);
 }
 
-main();
+if (import.meta.main) {
+    main();
+}

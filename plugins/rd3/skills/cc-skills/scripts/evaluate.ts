@@ -15,9 +15,10 @@ import { ClaudeAdapter } from './adapters/claude';
 import { CodexAdapter } from './adapters/codex';
 import { OpenClawAdapter } from './adapters/openclaw';
 import { OpenCodeAdapter } from './adapters/opencode';
-import { type DimensionWeights, EVALUATION_CONFIG } from './evaluation.config';
+import { type DimensionWeights, EVALUATION_CONFIG, DIMENSION_CATEGORIES } from './evaluation.config';
 import type {
     EvaluationDimension,
+    EvaluationFeatures,
     EvaluationReport,
     EvaluationScope,
     Platform,
@@ -128,6 +129,445 @@ async function runTests(skillPath: string): Promise<boolean> {
     } catch {
         return false;
     }
+}
+
+// ============================================================================
+// FEATURE EXTRACTION
+// ============================================================================
+
+/**
+ * Extract diagnostic features from skill for scoring
+ * This is the "feature engineering" step - generates boolean/diagnostic features
+ */
+function extractFeatures(
+    body: string,
+    frontmatter: SkillFrontmatter | null,
+    resources: SkillResources,
+    securityResult: { blocked: boolean; blacklist: string[]; greylist: string[] },
+): EvaluationFeatures {
+    const features: EvaluationFeatures = {
+        // Frontmatter features
+        hasFrontmatter: !!frontmatter,
+        hasName: !!frontmatter?.name,
+        nameValidFormat: !!(frontmatter?.name && /^[a-z0-9][a-z0-9-]*$/.test(frontmatter.name)),
+        hasDescription: !!frontmatter?.description,
+        descriptionLength: frontmatter?.description?.length || 0,
+        hasMetadata: !!frontmatter?.metadata,
+
+        // Structure features
+        lineCount: body.split('\n').length,
+        hasSkillMd: true, // We only evaluate if SKILL.md exists
+        hasScripts: (resources.scripts?.length ?? 0) > 0,
+        hasReferences: (resources.references?.length ?? 0) > 0,
+        hasAssets: (resources.assets?.length ?? 0) > 0,
+        hasAgents: (resources.agents?.length ?? 0) > 0,
+
+        // Content features - allow multiple variations for flexibility
+        hasOverview: /##\s+(Overview|Operations)/i.test(body),
+        hasQuickStart: /##\s+Quick Start/i.test(body),
+        hasExamples: /##\s+Example/i.test(body) || /```\w*\n.*\n```/s.test(body) || /\|.*Example.*\|/.test(body),
+        hasCodeBlocks: /```[\s\S]*?```/g.test(body),
+        hasWorkflows: /##\s+Workflow/i.test(body),
+        hasPlatformNotes: /##\s+Platform/i.test(body),
+
+        // Trigger features
+        hasWhenToUse: /##\s+When to Use/i.test(body),
+        triggerPhrases: extractTriggerPhrases(frontmatter?.description || ''),
+
+        // Security features
+        hasBlacklistMatch: securityResult.blocked,
+        hasGreylistMatch: securityResult.greylist.length > 0,
+        securityIssues: [...securityResult.blacklist, ...securityResult.greylist],
+
+        // Best practices features
+        hasTodo: /\bTODO\b/i.test(body),
+        todoCount: (body.match(/\bTODO\b/gi) || []).length,
+        hasPlaceholders: /\[(?:TODO|PLACEHOLDER|FIXME|XXX|INSERT|CHANGE|REPLACE|FILL)[^\]]*\]/gi.test(body),
+        placeholderCount: (body.match(/\[(?:TODO|PLACEHOLDER|FIXME|XXX|INSERT|CHANGE|REPLACE|FILL)[^\]]*\]/gi) || [])
+            .length,
+        usesSecondPerson: /(\bI can help\b|\bI will help\b|\byou can use\b|\byou should\b|\byou need to\b)/gi.test(
+            body,
+        ),
+        hasWindowsPaths: /[a-zA-Z]:\\[\w\\]+\.?\w*/g.test(body),
+        hasNestedRefs: /\[.*?\]\(.*?\]\(.*?\)/g.test(body),
+        timeSensitiveCount: (body.match(/\b(20\d{2}|202\d)\b/g) || []).length,
+        hasCircularRef: /(\/rd\d+):[a-z-]+\s+/g.test(body) || /^## Commands Reference$/m.test(body),
+        contentLength: body.length,
+        hasSectionHeaders: /##\s+/.test(body),
+        headingCount: (body.match(/^#{1,3}\s+/gm) || []).length,
+
+        // Completeness features
+        hasAdditionalResources: /##\s+Additional Resources/i.test(body),
+        hasSeeAlso: /##\s+See Also/i.test(body),
+        hasPlatforms: !!frontmatter?.metadata?.platforms,
+
+        // Platform features
+        platformsSupported: frontmatter?.metadata?.platforms?.split(',').map((p) => p.trim()) || [],
+        hasEvalIgnore: /<!--\s*eval-ignore/.test(body),
+    };
+
+    return features;
+}
+
+/**
+ * Extract trigger phrases from description
+ */
+function extractTriggerPhrases(description: string): string[] {
+    const phrases: string[] = [];
+    // Match patterns like "create X", "implement Y", "add Z"
+    const matches = description.match(/"[^"]+"|\b\w+\s+\w+/g) || [];
+    return matches.slice(0, 5); // Limit to 5 phrases
+}
+
+// ============================================================================
+// CENTRALIZED SCORING ENGINE
+// ============================================================================
+
+/**
+ * Centralized scoring function that computes all dimension scores from features
+ * This is the heart of the scoring engine - all scoring logic in one place
+ */
+function computeDimensionScores(
+    features: EvaluationFeatures,
+    weights: DimensionWeights,
+    hasScripts: boolean,
+    scope: EvaluationScope,
+): EvaluationDimension[] {
+    const dimensions: EvaluationDimension[] = [];
+
+    // ==========================================================================
+    // 1. FRONTMAKER (Core Quality - 10pts)
+    // ==========================================================================
+    let frontmatterScore = 10;
+    const frontmatterFindings: string[] = [];
+    const frontmatterRecommendations: string[] = [];
+
+    if (!features.hasFrontmatter) {
+        frontmatterFindings.push('No frontmatter found');
+        frontmatterRecommendations.push('Add YAML frontmatter with name and description');
+        frontmatterScore = 0;
+    } else {
+        if (!features.hasName) {
+            frontmatterFindings.push('Missing required field: name');
+            frontmatterRecommendations.push('Add name field to frontmatter');
+            frontmatterScore -= 10;
+        } else if (!features.nameValidFormat) {
+            frontmatterFindings.push('Invalid name format');
+            frontmatterRecommendations.push('Use lowercase hyphen-case for name');
+            frontmatterScore -= 5;
+        }
+
+        if (!features.hasDescription) {
+            frontmatterFindings.push('Missing required field: description');
+            frontmatterRecommendations.push('Add description field to frontmatter');
+            frontmatterScore -= 5;
+        } else if (features.descriptionLength < 20) {
+            frontmatterFindings.push('Description is too short');
+            frontmatterRecommendations.push('Expand description to at least 20 characters');
+            frontmatterScore -= 2;
+        } else if (features.descriptionLength > 500) {
+            frontmatterFindings.push('Description is too long');
+            frontmatterRecommendations.push('Keep description under 500 characters');
+            frontmatterScore -= 2;
+        }
+
+        if (!features.hasMetadata) {
+            frontmatterFindings.push('No metadata found');
+            frontmatterRecommendations.push('Consider adding metadata (author, version)');
+            frontmatterScore -= 3;
+        }
+    }
+
+    dimensions.push({
+        name: 'Frontmatter',
+        category: DIMENSION_CATEGORIES.Frontmatter,
+        weight: weights.frontmatter,
+        score: Math.max(0, frontmatterScore),
+        maxScore: 10,
+        findings: frontmatterFindings,
+        recommendations: frontmatterRecommendations,
+    });
+
+    // ==========================================================================
+    // 2. STRUCTURE (Core Quality - 5pts)
+    // ==========================================================================
+    let structureScore = 5;
+    const structureFindings: string[] = [];
+    const structureRecommendations: string[] = [];
+
+    if (features.lineCount < 10) {
+        structureFindings.push('Content too short');
+        structureRecommendations.push('Expand content');
+        structureScore -= 3;
+    }
+
+    if (!features.hasSkillMd) {
+        structureFindings.push('SKILL.md not found');
+        structureScore = 0;
+    }
+
+    dimensions.push({
+        name: 'Structure',
+        category: DIMENSION_CATEGORIES.Structure,
+        weight: weights.structure,
+        score: Math.max(0, structureScore),
+        maxScore: 5,
+        findings: structureFindings,
+        recommendations: structureRecommendations,
+    });
+
+    // ==========================================================================
+    // 3. CONTENT (Core Quality - 15pts)
+    // ==========================================================================
+    let contentScore = 15;
+    const contentFindings: string[] = [];
+    const contentRecommendations: string[] = [];
+
+    if (!features.hasOverview && features.contentLength > 100) {
+        contentFindings.push('No overview section');
+        contentRecommendations.push('Add Overview section');
+        contentScore -= 3;
+    }
+    if (!features.hasQuickStart) {
+        contentFindings.push('No Quick Start section');
+        contentRecommendations.push('Add Quick Start with examples');
+        contentScore -= 3;
+    }
+    if (!features.hasExamples) {
+        contentFindings.push('No examples found');
+        contentRecommendations.push('Add concrete examples');
+        contentScore -= 3;
+    }
+    if (!features.hasCodeBlocks) {
+        contentFindings.push('No code examples');
+        contentRecommendations.push('Add code examples');
+        contentScore -= 2;
+    }
+    if (!features.hasWorkflows && features.contentLength > 500) {
+        contentFindings.push('No workflows section');
+        contentRecommendations.push('Add Workflows section');
+        contentScore -= 2;
+    }
+
+    dimensions.push({
+        name: 'Content',
+        category: DIMENSION_CATEGORIES.Content,
+        weight: weights.content,
+        score: Math.max(0, contentScore),
+        maxScore: 15,
+        findings: contentFindings,
+        recommendations: contentRecommendations,
+    });
+
+    // ==========================================================================
+    // 4. TRIGGER DESIGN (Discovery & Trigger - 10pts)
+    // ==========================================================================
+    let triggerScore = 10;
+    const triggerFindings: string[] = [];
+    const triggerRecommendations: string[] = [];
+
+    if (!features.hasWhenToUse) {
+        triggerFindings.push('No "When to Use" section');
+        triggerRecommendations.push('Add When to Use section with trigger phrases');
+        triggerScore -= 5;
+    }
+    if (features.triggerPhrases.length === 0) {
+        triggerFindings.push('No trigger phrases found');
+        triggerRecommendations.push('Add specific trigger phrases in description');
+        triggerScore -= 5;
+    }
+
+    dimensions.push({
+        name: 'Trigger Design',
+        category: DIMENSION_CATEGORIES['Trigger Design'],
+        weight: weights.triggerDesign,
+        score: Math.max(0, triggerScore),
+        maxScore: 10,
+        findings: triggerFindings,
+        recommendations: triggerRecommendations,
+    });
+
+    // ==========================================================================
+    // 5. CIRCULAR REFERENCE (Safety & Security - 10pts)
+    // ==========================================================================
+    let circularScore = 10;
+    const circularFindings: string[] = [];
+    const circularRecommendations: string[] = [];
+
+    if (features.hasCircularRef) {
+        circularFindings.push('Circular reference detected');
+        circularRecommendations.push('Remove references to associated commands/agents');
+        circularScore -= 10;
+    }
+
+    dimensions.push({
+        name: 'Circular Reference Prevention',
+        category: DIMENSION_CATEGORIES['Circular Reference Prevention'],
+        weight: weights.circularReference,
+        score: Math.max(0, circularScore),
+        maxScore: 10,
+        findings: circularFindings,
+        recommendations: circularRecommendations,
+    });
+
+    // ==========================================================================
+    // 6. PROGRESSIVE DISCLOSURE (Code & Documentation - 10pts)
+    // ==========================================================================
+    let progressiveScore = 10;
+    const progressiveFindings: string[] = [];
+    const progressiveRecommendations: string[] = [];
+
+    if (features.hasTodo) {
+        progressiveFindings.push(`Found ${features.todoCount} TODO marker(s)`);
+        progressiveRecommendations.push('Remove TODO markers before publishing');
+        progressiveScore -= Math.min(features.todoCount * 2, 6);
+    }
+    if (features.hasPlaceholders && features.placeholderCount > 5) {
+        progressiveFindings.push(`Found ${features.placeholderCount} placeholder(s)`);
+        progressiveRecommendations.push('Replace placeholders with actual content');
+        progressiveScore -= Math.min(features.placeholderCount, 5);
+    }
+    if (features.usesSecondPerson) {
+        progressiveFindings.push('Uses second-person voice');
+        progressiveRecommendations.push('Use imperative form');
+        progressiveScore -= 3;
+    }
+    if (features.hasWindowsPaths) {
+        progressiveFindings.push('Windows-style paths found');
+        progressiveRecommendations.push('Use forward slashes');
+        progressiveScore -= 2;
+    }
+    if (features.hasNestedRefs) {
+        progressiveFindings.push('Nested references found');
+        progressiveRecommendations.push('Keep references one level deep');
+        progressiveScore -= 3;
+    }
+    if (features.contentLength > 2000 && !features.hasSectionHeaders) {
+        progressiveFindings.push('Long content without section headers');
+        progressiveRecommendations.push('Use ## headers for progressive disclosure');
+        progressiveScore -= 3;
+    }
+
+    dimensions.push({
+        name: 'Progressive Disclosure',
+        category: DIMENSION_CATEGORIES['Progressive Disclosure'],
+        weight: weights.progressiveDisclosure,
+        score: Math.max(0, progressiveScore),
+        maxScore: 10,
+        findings: progressiveFindings,
+        recommendations: progressiveRecommendations,
+    });
+
+    // ==========================================================================
+    // Full scope only dimensions
+    // ==========================================================================
+    if (scope === 'full') {
+        // Platform Compatibility
+        let platformScore = 10;
+        const platformFindings: string[] = [];
+        const platformRecommendations: string[] = [];
+
+        if (features.platformsSupported.length === 0 && !features.hasEvalIgnore) {
+            platformFindings.push('No platform metadata found');
+            platformRecommendations.push('Add platforms to metadata');
+            platformScore -= 5;
+        }
+
+        dimensions.push({
+            name: 'Platform Compatibility',
+            category: DIMENSION_CATEGORIES['Platform Compatibility'],
+            weight: weights.platformCompatibility,
+            score: Math.max(0, platformScore),
+            maxScore: 10,
+            findings: platformFindings,
+            recommendations: platformRecommendations,
+        });
+
+        // Completeness
+        let completenessScore = 10;
+        const completenessFindings: string[] = [];
+        const completenessRecommendations: string[] = [];
+
+        if (!features.hasAdditionalResources) {
+            completenessFindings.push('No Additional Resources section');
+            completenessRecommendations.push('Add links to references');
+            completenessScore -= 3;
+        }
+        if (features.hasCircularRef) {
+            completenessFindings.push('Circular reference in See Also');
+            completenessScore -= 3;
+        }
+
+        dimensions.push({
+            name: 'Completeness',
+            category: DIMENSION_CATEGORIES.Completeness,
+            weight: weights.completeness,
+            score: Math.max(0, completenessScore),
+            maxScore: 10,
+            findings: completenessFindings,
+            recommendations: completenessRecommendations,
+        });
+
+        // Security (only for skills with scripts)
+        if (hasScripts) {
+            let securityScore = 10;
+            const securityFindings: string[] = [];
+            const securityRecommendations: string[] = [];
+
+            if (features.hasBlacklistMatch) {
+                securityFindings.push('Security blacklist pattern detected');
+                securityRecommendations.push('Remove dangerous patterns');
+                securityScore = 0;
+            } else if (features.hasGreylistMatch) {
+                securityFindings.push('Security greylist pattern detected');
+                securityRecommendations.push('Review security patterns');
+                securityScore -= 5;
+            }
+
+            dimensions.push({
+                name: 'Security',
+                category: DIMENSION_CATEGORIES.Security,
+                weight: weights.security,
+                score: Math.max(0, securityScore),
+                maxScore: 10,
+                findings: securityFindings,
+                recommendations: securityRecommendations,
+            });
+
+            // Code Quality
+            let codeQualityScore = 10;
+            const codeQualityFindings: string[] = [];
+            const codeQualityRecommendations: string[] = [];
+
+            if (!features.hasScripts) {
+                codeQualityFindings.push('No scripts directory found');
+                codeQualityRecommendations.push('Add scripts for reusable functionality');
+                codeQualityScore -= 5;
+            }
+
+            dimensions.push({
+                name: 'Code Quality',
+                category: DIMENSION_CATEGORIES['Code Quality'],
+                weight: weights.codeQuality,
+                score: Math.max(0, codeQualityScore),
+                maxScore: 10,
+                findings: codeQualityFindings,
+                recommendations: codeQualityRecommendations,
+            });
+        }
+    }
+
+    // ==========================================================================
+    // Calculate percentages and final weighted scores
+    // ==========================================================================
+    for (const dim of dimensions) {
+        dim.percentage = dim.maxScore > 0 ? Math.round((dim.score / dim.maxScore) * 100) : 0;
+        dim.passed = dim.percentage >= 70;
+        // Apply weight: weightedScore = percentage * weight
+        dim.score = Math.round((dim.score / dim.maxScore) * dim.weight);
+    }
+
+    return dimensions;
 }
 
 // ============================================================================
@@ -245,11 +685,15 @@ function evaluateStructure(body: string, resources: SkillResources, weights: Dim
     };
 }
 
-function evaluateBestPractices(body: string, weights: DimensionWeights): EvaluationDimension {
+function evaluateProgressiveDisclosure(body: string, weights: DimensionWeights): EvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
-    const maxScore = weights.bestPractices;
+    const maxScore = weights.progressiveDisclosure;
     let score = maxScore;
+
+    // ==========================================================================
+    // BEST PRACTICES VALIDATION
+    // ==========================================================================
 
     // Check for TODO
     const todoCount = (body.match(/\bTODO\b/gi) || []).length;
@@ -276,16 +720,75 @@ function evaluateBestPractices(body: string, weights: DimensionWeights): Evaluat
         score -= 3;
     }
 
-    // Check for progressive disclosure
-    if (body.length < 500) {
-        findings.push('Content may be too brief');
-        recommendations.push('Consider adding more detail or references/');
-        score -= 2;
+    // ==========================================================================
+    // ENHANCED BEST PRACTICES VALIDATION
+    // ==========================================================================
+
+    // Check: Avoid second-person voice ("You should", "I can help")
+    const secondPersonPatterns = [
+        /\bI can help\b/gi,
+        /\bI will help\b/gi,
+        /\byou can use\b/gi,
+        /\byou should\b/gi,
+        /\byou need to\b/gi,
+    ];
+    const secondPersonCount = secondPersonPatterns.reduce((count, pattern) => {
+        return count + (body.match(pattern) || []).length;
+    }, 0);
+    if (secondPersonCount > 0) {
+        findings.push(`Found ${secondPersonCount} second-person phrase(s) - use imperative form`);
+        recommendations.push('Use imperative form: "Extract text" not "You can extract text"');
+        score -= Math.min(secondPersonCount * 2, 10);
+    }
+
+    // Check: Avoid Windows-style paths
+    const windowsPaths = (body.match(/[a-zA-Z]:\\[\w\\]+\.?\w*/g) || []).length;
+    if (windowsPaths > 0) {
+        findings.push(`Found ${windowsPaths} Windows-style path(s)`);
+        recommendations.push('Use forward slashes: scripts/helper.py not scripts\\helper.py');
+        score -= windowsPaths * 2;
+    }
+
+    // Check: References should be one level deep (not nested)
+    const nestedRefPattern = /\[.*?\]\(.*?\]\(.*?\)/g;
+    const nestedRefs = (body.match(nestedRefPattern) || []).length;
+    if (nestedRefs > 0) {
+        findings.push(`Found ${nestedRefs} nested reference(s)`);
+        recommendations.push('Keep references one level deep: SKILL.md → reference.md');
+        score -= nestedRefs * 3;
+    }
+
+    // Check: Check for time-sensitive information (year-based)
+    const timeSensitivePattern = /\b(20\d{2}|202\d)\b/g;
+    const timeSensitive = (body.match(timeSensitivePattern) || []).length;
+    if (timeSensitive > 2) {
+        findings.push(`Found ${timeSensitive} year reference(s) - may become outdated`);
+        recommendations.push('Avoid time-specific information or use "Current" vs "Legacy" pattern');
+        score -= Math.min(timeSensitive, 5);
+    }
+
+    // Check: Circular reference (skills should not reference commands)
+    const circularPatterns = [
+        { pattern: /^## Commands Reference$/m, message: 'Contains "Commands Reference" section' },
+        { pattern: /\/(rd\d+):[a-z-]+\s+/g, message: 'Contains slash command references' },
+    ];
+    for (const { pattern, message } of circularPatterns) {
+        if (pattern.test(body)) {
+            findings.push(message);
+            score -= 10;
+        }
+    }
+
+    // Check: Progressive disclosure - content should be organized
+    if (body.length > 2000 && !body.includes('## ')) {
+        findings.push('Long content without section headers');
+        recommendations.push('Use ## headers for progressive disclosure');
+        score -= 3;
     }
 
     return {
-        name: 'Best Practices',
-        weight: weights.bestPractices,
+        name: 'Progressive Disclosure',
+        weight: weights.progressiveDisclosure,
         score: Math.max(0, score),
         maxScore,
         findings,
@@ -589,143 +1092,6 @@ function evaluateTriggerDesign(
     };
 }
 
-function evaluateValueAdd(body: string, resources: SkillResources, weights: DimensionWeights): EvaluationDimension {
-    const findings: string[] = [];
-    const recommendations: string[] = [];
-    const maxScore = weights.valueAdd;
-    let score = maxScore;
-
-    // Check for unique value propositions
-    const hasExamples = body.includes('Example');
-    const hasAdvanced = body.toLowerCase().includes('advanced');
-    const hasReferences = (resources.references?.length ?? 0) > 0;
-    const _hasAssets = (resources.assets?.length ?? 0) > 0;
-
-    if (!hasExamples && body.length > 500) {
-        findings.push('No examples despite substantial content');
-        recommendations.push('Add concrete examples');
-        score -= 2;
-    }
-
-    if (!hasAdvanced && body.length > 2000) {
-        findings.push('No advanced section for complex content');
-        recommendations.push('Add Advanced section');
-        score -= 1;
-    }
-
-    if (!hasReferences && body.length > 1000) {
-        findings.push('Long content without references folder');
-        recommendations.push('Move detailed docs to references/');
-        score -= 1;
-    }
-
-    // Check for differentiation from basic functionality
-    const hasComparison = body.toLowerCase().includes('comparison');
-    const hasAlternatives = body.toLowerCase().includes('alternative');
-    if (!hasComparison && !hasAlternatives && body.length > 1500) {
-        findings.push('No comparison or alternatives section');
-        recommendations.push('Document alternatives or comparisons');
-        score -= 1;
-    }
-
-    return {
-        name: 'Value Add',
-        weight: weights.valueAdd,
-        score: Math.max(0, score),
-        maxScore,
-        findings,
-        recommendations,
-    };
-}
-
-/**
- * Operational Readiness - Merged from Behavioral + Behavioral Readiness
- *
- * Evaluates how well the skill prepares users for both success and failure scenarios:
- * - Success path: use cases, examples, do's/don'ts
- * - Failure path: troubleshooting, edge cases, limitations
- */
-function evaluateOperationalReadiness(
-    body: string,
-    frontmatter: SkillFrontmatter | null,
-    weights: DimensionWeights,
-): EvaluationDimension {
-    const findings: string[] = [];
-    const recommendations: string[] = [];
-    const maxScore = weights.operationalReadiness;
-    let score = maxScore;
-
-    if (weights.operationalReadiness === 0) {
-        return {
-            name: 'Operational Readiness',
-            weight: 0,
-            score: 0,
-            maxScore: 0,
-            findings: [],
-            recommendations: [],
-        };
-    }
-
-    // === Success Path Checks ===
-    const isReference =
-        frontmatter?.template === 'reference' ||
-        frontmatter?.name === 'cc-skills' ||
-        body.includes('<!-- eval-ignore-readiness -->');
-    const hasUseCases = /use case|scenario|example/i.test(body) || isReference;
-    const hasCommonMistakes = /common mistake|pitfall|error|wrong/i.test(body) || isReference;
-    const hasDoDont = /do.*don|don.*do|guideline/i.test(body) || isReference;
-
-    if (!hasUseCases) {
-        findings.push('No use case or scenario examples');
-        recommendations.push('Add concrete usage scenarios');
-        score -= 2;
-    }
-
-    if (!hasCommonMistakes) {
-        findings.push('No common mistakes or pitfalls section');
-        recommendations.push("Add 'Common Mistakes' or 'Pitfalls' section");
-        score -= 1;
-    }
-
-    if (!hasDoDont) {
-        findings.push("No do/don't guidelines");
-        recommendations.push("Add Do's and Don'ts section");
-        score -= 1;
-    }
-
-    // === Failure Path Checks ===
-    const hasTroubleshooting = /troubleshooting|debug|fail/i.test(body) || isReference;
-    const hasEdgeCases = /edge case|boundary/i.test(body) || isReference;
-    const hasLimitations = /limitation|restriction|requirement|prerequisite/i.test(body) || isReference;
-
-    if (!hasTroubleshooting) {
-        findings.push('No troubleshooting section');
-        recommendations.push('Add Troubleshooting section');
-        score -= 2;
-    }
-
-    if (!hasEdgeCases && body.length > 1000) {
-        findings.push('No edge case coverage');
-        recommendations.push('Document edge cases');
-        score -= 1;
-    }
-
-    if (!hasLimitations && body.length > 800) {
-        findings.push('No limitations or prerequisites');
-        recommendations.push('Add Limitations section');
-        score -= 1;
-    }
-
-    return {
-        name: 'Operational Readiness',
-        weight: weights.operationalReadiness,
-        score: Math.max(0, score),
-        maxScore,
-        findings,
-        recommendations,
-    };
-}
-
 function evaluateCodeQuality(
     skillPath: string,
     resources: SkillResources,
@@ -786,54 +1152,76 @@ function evaluateCodeQuality(
     };
 }
 
-function evaluateEfficiency(body: string, weights: DimensionWeights): EvaluationDimension {
+// ============================================================================
+// PLATFORM ADAPTERS
+// ============================================================================
+// ============================================================================
+// CIRCULAR REFERENCE CHECKER
+// ============================================================================
+
+/**
+ * Detects circular references in skills.
+ * Skills should NOT reference their associated commands/agents by name.
+ */
+function evaluateCircularReference(
+    body: string,
+    frontmatter: SkillFrontmatter | null,
+    weights: DimensionWeights,
+): EvaluationDimension {
+    const dimensionName = 'Circular Reference Prevention';
     const findings: string[] = [];
-    const recommendations: string[] = [];
-    const maxScore = weights.efficiency;
-    let score = maxScore;
+    let score = weights.circularReference || 10;
+    const maxScore = score;
 
-    // Token efficiency check (rough estimate: 1 token ≈ 4 chars)
-    const charCount = body.length;
-    const estimatedTokens = Math.ceil(charCount / 4);
+    // Get skill name from frontmatter for comparison
+    const skillName = frontmatter?.name || '';
 
-    if (estimatedTokens > 3000) {
-        findings.push(`Content too long (~${estimatedTokens} tokens)`);
-        recommendations.push('Reduce to ~3000 tokens for progressive disclosure');
-        score -= 3;
-    } else if (estimatedTokens > 2000) {
-        findings.push(`Content approaching limit (~${estimatedTokens} tokens)`);
-        recommendations.push('Consider moving details to references/');
-        score -= 1;
-    }
+    // Patterns that indicate circular references
+    const circularPatterns = [
+        {
+            // Commands Reference section (explicit violation)
+            pattern: /^## Commands Reference$/m,
+            message: 'Contains "Commands Reference" section - skills must not list commands that use them',
+            severity: 'error',
+        },
+        {
+            // Slash command references in skill docs
+            pattern: /\/(rd\d+):[a-z-]+\s+[^\n]*/g,
+            message: 'Contains slash command reference - skills must not reference associated commands',
+            severity: 'warning',
+        },
+        {
+            // See also sections with command references
+            pattern: /See also:.*\/(rd\d+):/gi,
+            message: 'Contains "See also" with command reference - circular reference detected',
+            severity: 'error',
+        },
+    ];
 
-    // Check for redundancy
-    const lines = body.split('\n').filter((l) => l.trim().length > 0);
-    const uniqueLines = new Set(lines);
-    const redundancy = 1 - uniqueLines.size / lines.length;
-
-    if (redundancy > 0.3) {
-        findings.push('High content redundancy detected');
-        recommendations.push('Remove duplicate content');
-        score -= 2;
-    }
-
-    // Check for verbose headings
-    const bodyNoCodeBlocks = body.replace(/```[\s\S]*?```/g, '');
-    const headingCount = (bodyNoCodeBlocks.match(/^#{1,3}\s+/gm) ?? []).length;
-    const maxHeadings = Math.max(20, Math.ceil(estimatedTokens / 50));
-    if (headingCount > maxHeadings) {
-        findings.push('Too many headings (reduce structure)');
-        recommendations.push('Simplify heading structure');
-        score -= 1;
+    for (const { pattern, message, severity } of circularPatterns) {
+        const matches = body.match(pattern);
+        if (matches) {
+            findings.push(message);
+            if (severity === 'error') {
+                score = 0; // Critical - fail immediately
+            } else {
+                score = Math.max(0, score - 5);
+            }
+        }
     }
 
     return {
-        name: 'Efficiency',
-        weight: weights.efficiency,
-        score: Math.max(0, score),
+        name: dimensionName,
+        weight: score,
+        score,
         maxScore,
+        percentage: maxScore > 0 ? Math.round((score / maxScore) * 100) : 0,
+        passed: score >= maxScore * 0.5,
         findings,
-        recommendations,
+        recommendations:
+            findings.length > 0
+                ? ['Remove "Commands Reference" sections', 'Use generic patterns instead of specific command names']
+                : [],
     };
 }
 
@@ -971,30 +1359,19 @@ async function evaluateSkill(
         }
     }
 
-    const dimensions: EvaluationDimension[] = [];
+    // ==========================================================================
+    // STEP 1: Extract features (feature engineering)
+    // ==========================================================================
+    const features = extractFeatures(body, frontmatter, resources, {
+        blocked: securityResult.hasBlacklist,
+        blacklist: securityResult.blacklistFindings,
+        greylist: securityResult.greylistFindings,
+    });
 
-    // Always run basic evaluations
-    dimensions.push(evaluateFrontmatter(frontmatter, weights));
-    dimensions.push(evaluateStructure(body, resources, weights));
-    dimensions.push(evaluateBestPractices(body, weights));
-    dimensions.push(evaluateContent(body, frontmatter, weights));
-    dimensions.push(evaluateTriggerDesign(frontmatter, body, weights));
-    dimensions.push(evaluateValueAdd(body, resources, weights));
-
-    if (scope === 'full') {
-        dimensions.push(evaluatePlatformCompatibility(body, frontmatter, weights));
-        dimensions.push(evaluateCompleteness(body, resources, weights));
-
-        // Behavioral & readiness (full scope only)
-        dimensions.push(evaluateOperationalReadiness(body, frontmatter, weights));
-        dimensions.push(evaluateEfficiency(body, weights));
-
-        // Security only in full scope for skills with scripts
-        if (hasScripts) {
-            dimensions.push(evaluateSecurity(securityResult, weights));
-            dimensions.push(evaluateCodeQuality(resolvedPath, resources, weights));
-        }
-    }
+    // ==========================================================================
+    // STEP 2: Compute dimension scores from features (centralized scoring)
+    // ==========================================================================
+    const dimensions = computeDimensionScores(features, weights, hasScripts, scope);
 
     // Calculate overall score
     const weightedScore = dimensions.reduce((sum, d) => sum + d.score, 0);

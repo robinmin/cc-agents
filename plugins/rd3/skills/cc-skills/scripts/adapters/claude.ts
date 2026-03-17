@@ -54,7 +54,7 @@ export class ClaudeAdapter implements IPlatformAdapter {
         // Validate Claude-specific syntax
         if (this.options.validateCommands) {
             // Check for !`cmd` syntax
-            const backtickCommands = content.match(/`!`[^`]+``/g) || [];
+            const backtickCommands = content.match(/!`[^`]+`/g) || [];
             if (backtickCommands.length > 0) {
                 messages.push(`Found ${backtickCommands.length} Claude command(s)`);
             }
@@ -66,7 +66,7 @@ export class ClaudeAdapter implements IPlatformAdapter {
             }
 
             // Validate command syntax
-            const invalidCommands = content.match(/`!`[a-z]+\s+[^\s`]+``/g) || [];
+            const invalidCommands = content.match(/!`[a-z]+\s+[^\s`]+`/g) || [];
             if (invalidCommands.length > 0) {
                 warnings.push(`Potential invalid command syntax: ${invalidCommands.join(', ')}`);
             }
@@ -121,14 +121,15 @@ export class ClaudeAdapter implements IPlatformAdapter {
 
         // Add Claude Code platform notes if missing
         if (!content.includes('### Claude Code')) {
+            const bt = '`';
             const platformNotesSection = `
 ## Platform Notes
 
 ### Claude Code
-- Use \`!\`cmd\`\` for live command execution
-- Use \`$ARGUMENTS\` or \`$1\`, \`$2\` etc. for parameter references
-- Use \`context: fork\` for parallel task execution
-- Hooks can be registered in \`.claude/hooks.json\``;
+- Use !${bt}cmd${bt} for live command execution
+- Use ${bt}$ARGUMENTS${bt} or ${bt}$1${bt}, ${bt}$2${bt} etc. for parameter references
+- Use ${bt}context: fork${bt} for parallel task execution
+- Hooks can be registered in ${bt}.claude/hooks.json${bt}`;
 
             if (content.includes('## Platform Notes')) {
                 // Append to existing Platform Notes section

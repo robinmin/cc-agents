@@ -4,7 +4,6 @@
  * Generates OpenCode-specific command variant
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import YAML from 'yaml';
 import type { Command, CommandAdapterContext, CommandAdapterResult, CommandPlatform } from '../types';

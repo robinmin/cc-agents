@@ -34,6 +34,8 @@ export interface CommandDimensionWeights {
     platformCompatibility: number;
     /** Error handling, edge cases */
     operationalReadiness: number;
+    /** Circular reference prevention */
+    circularReference: number;
 }
 
 export interface SecurityPattern {
@@ -75,7 +77,8 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
         security: 10,
         namingConvention: 5,
         platformCompatibility: 8,
-        operationalReadiness: 5,
+        operationalReadiness: 0,
+        circularReference: 5,
     },
 
     // Scenario: Commands WITHOUT pseudocode (simple commands)
@@ -88,8 +91,9 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
         argumentDesign: 10,
         security: 8,
         namingConvention: 7,
-        platformCompatibility: 5,
-        operationalReadiness: 2,
+        platformCompatibility: 2,
+        operationalReadiness: 0,
+        circularReference: 5,
     },
 
     // ==========================================================================
@@ -129,6 +133,16 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
                 pattern: /base64\.decode|atob\s*\(/,
                 severity: 'critical',
                 reason: 'Obfuscated code execution',
+            },
+            {
+                pattern: /exec\s*\(/,
+                severity: 'critical',
+                reason: 'Shell command execution (exec)',
+            },
+            {
+                pattern: /subprocess.*shell\s*=\s*True/i,
+                severity: 'critical',
+                reason: 'Subprocess with shell=True (command injection risk)',
             },
             {
                 pattern: /eval\s*\(/,
@@ -183,6 +197,26 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
                 pattern: /__import__\s*\(/,
                 severity: 'warning',
                 reason: 'Dynamic import risk',
+            },
+            {
+                pattern: /curl\s+(?:-k|--insecure)/,
+                severity: 'warning',
+                reason: 'Insecure SSL connection (curl -k)',
+            },
+            {
+                pattern: /wget\s+--no-check-certificate/,
+                severity: 'warning',
+                reason: 'Insecure SSL connection (wget --no-check-certificate)',
+            },
+            {
+                pattern: /git\s+push\s+(?:-f|--force)/,
+                severity: 'warning',
+                reason: 'Force git push (can overwrite remote)',
+            },
+            {
+                pattern: /npm\s+publish/,
+                severity: 'warning',
+                reason: 'Publishing to npm registry',
             },
         ],
     },

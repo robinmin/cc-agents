@@ -43,13 +43,37 @@ bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/adapt.ts ./commands/ --plat
 
 ## Core Principles
 
-### Thin Wrappers, Fat Skills
+### Fat Skills, Thin Wrappers
 
-Commands are thin wrappers (~50-150 lines) that delegate to skills. The command file contains imperative instructions for Claude, not domain knowledge.
+All coding agents support agent skills now, but slash commands and subagents are not universally supported. So we **MUST** follow these principles:
+
+- **Skills** = core logic, workflows, domain knowledge (source of truth)
+- **Commands** = ~50-150 line wrappers invoking skills for humans
+- **Agents** = ~100 line wrappers invoking skills for AI workflows
+
+**Circular Reference Rule**: Commands MUST NOT reference their associated agents or skills by name. This includes:
+
+- ❌ Bad: `Use the super-coder agent` or `See also: my-skill`
+- ❌ Bad: Commands Reference section listing `/rd3:command-*` commands
+- ✅ Good: `Delegate to a coding agent` or `Use Skill() for domain workflows`
+
+If you need command examples, reference generic patterns without specific command names (e.g., "Use Task() to delegate to specialist agents" instead of "/rd3:skill-add").
 
 ### Strict Frontmatter
 
 Commands have exactly 5 valid frontmatter fields: `description`, `allowed-tools`, `model`, `argument-hint`, `disable-model-invocation`. Any other field is an error.
+
+### Argument Hint Best Practices
+
+The `argument-hint` field provides the user interface for invoking commands. **Always show valid options** instead of generic placeholders:
+
+| Instead of | Use |
+|------------|-----|
+| `--template <type>` | `--template technique\|pattern\|reference` |
+| `--platform <name>` | `--platform all\|claude\|codex\|gemini\|openclaw\|opencode\|antigravity` |
+| `--scope <level>` | `--scope basic\|full` |
+
+This helps users know available options without consulting documentation.
 
 ### Imperative Form
 
@@ -99,22 +123,6 @@ Two weight profiles: `with-pseudocode` and `without-pseudocode`.
 | OpenCode | `command.md` | `.opencode/commands/<name>.md` |
 | Antigravity | `command.md` | SKILL.md (mention-triggered) |
 
-## Commands Reference
-
-```bash
-# Create new command with template
-/rd3:command-add <name> --template <type>
-
-# Validate and evaluate command
-/rd3:command-evaluate <path> --scope full
-
-# Refine command based on evaluation
-/rd3:command-refine <path> --from-eval <results.json>
-
-# Generate cross-platform variants
-/rd3:command-adapt <path> --platform all
-```
-
 ## Naming Convention
 
 - **Grouped commands:** noun-verb pattern (e.g., `task-create`, `skill-evaluate`)
@@ -123,47 +131,83 @@ Two weight profiles: `with-pseudocode` and `without-pseudocode`.
 
 ## Examples
 
-### Example 1: Scaffold a Simple Command
+See [references/command-examples.md](references/command-examples.md) for detailed examples.
 
-```bash
-bun run scripts/scaffold.ts review-code --template simple --path ./commands
-# Creates: ./commands/review-code.md
-```
+## Do's and Don'ts
 
-### Example 2: Evaluate and Fix
+### Do
+- Use imperative form: "Review the code" not "You should review the code"
+- Keep descriptions under 60 characters
+- Start descriptions with a verb (Create, Generate, Review, etc.)
+- Use proper namespace: `plugin-name:command-name`
+- Choose the right template: simple, workflow, or plugin
 
-```bash
-# Evaluate
-bun run scripts/evaluate.ts ./commands/review-code.md --scope full --json
-
-# Refine based on findings
-bun run scripts/refine.ts ./commands/review-code.md --from-eval eval-results.json
-```
-
-### Example 3: Generate Platform Variants
-
-```bash
-# Generate Gemini CLI TOML equivalent
-bun run scripts/adapt.ts ./commands/ --platform gemini
-
-# Generate all platform variants
-bun run scripts/adapt.ts ./commands/ --platform all
-```
+### Don't
+- Use second-person voice ("You should...") - write FOR Claude, not TO user
+- Include non-allowed frontmatter fields (only: description, allowed-tools, model, argument-hint, disable-model-invocation)
+- Create commands over 150 lines - use progressive disclosure
+- Use hardcoded paths - use `CLAUDE_PLUGIN_ROOT` for portability
+- Skip validation before publishing commands
 
 ## Additional Resources
 
 - **Frontmatter Reference:** [references/frontmatter-reference.md](references/frontmatter-reference.md)
 - **Evaluation Framework:** [references/evaluation-framework.md](references/evaluation-framework.md)
 - **Platform Compatibility:** [references/platform-compatibility.md](references/platform-compatibility.md)
+- **Troubleshooting:** [references/troubleshooting.md](references/troubleshooting.md)
+
+## Advanced
+
+### Custom Weight Profiles
+Evaluate with custom profiles for specific use cases:
+```bash
+--profile with-pseudocode   # For workflow commands
+--profile without-pseudocode # For simple commands
+```
+
+### Platform-Specific Validation
+Target specific platforms during evaluation:
+```bash
+--platform claude    # Claude Code only
+--platform codex     # Codex format only
+--platform gemini    # Gemini CLI TOML
+```
+
+### Batch Operations
+Process multiple commands:
+```bash
+# Validate all commands in directory
+for f in commands/*.md; do
+  bun run scripts/validate.ts "$f"
+done
+```
+
+## Alternatives and Comparisons
+
+| vs | Difference |
+|----|------------|
+| rd2 Commands | rd3 uses YAML frontmatter, supports multi-platform adaptation |
+| Codex Skills | rd3 generates Codex format via `adapt.ts` |
+| Gemini CLI | rd3 generates TOML via `adapt.ts`, triggers via `/` not `!` |
 
 ## Platform Notes
 
-### Claude Code
+### Claude Code (Primary)
 - Native format: `.md` files in `commands/` directory
 - Full support for `$ARGUMENTS`, `Task()`, `Skill()`, `!`cmd``
 - `CLAUDE_PLUGIN_ROOT` available for plugin commands
 
-### Codex / Gemini CLI / OpenClaw / OpenCode / Antigravity
-- Generated via `adapt.ts` from Claude Code source
-- Platform-specific features translated or flagged as non-portable
-- See [references/platform-compatibility.md](references/platform-compatibility.md) for full matrix
+### Other Platforms (Generated)
+These platforms do NOT natively support Claude Code syntax. Use `adapt.ts` to generate equivalents:
+
+| Platform | Syntax Limitation |
+|----------|-------------------|
+| Codex | `!`cmd\$ syntax not supported - use `agents/openai.yaml` |
+| Gemini CLI | `$ARGUMENTS` not supported - use TOML triggers |
+| OpenClaw | `Task()`/`Skill()` not supported - use command-dispatch |
+| OpenCode | Claude-specific syntax not supported |
+| Antigravity | Mention-triggered only, not slash commands |
+
+**Limitation:** When creating commands with `$ARGUMENTS`, `Task()`, `Skill()`, or `!`cmd`` syntax, document these as Claude-only features in your command. Other platforms will need adapted versions via `adapt.ts`.
+
+See [references/platform-compatibility.md](references/platform-compatibility.md) for full matrix.

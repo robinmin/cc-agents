@@ -9,22 +9,40 @@
 // TYPES
 // ============================================================================
 
+// MECE Dimensions (Mutually Exclusive, Collectively Exhaustive)
+// Total: 100 points
+export type DimensionCategory = 'Core Quality' | 'Discovery & Trigger' | 'Safety & Security' | 'Code & Documentation';
+
 export interface DimensionWeights {
-    frontmatter: number;
-    structure: number;
-    bestPractices: number;
-    platformCompatibility: number;
-    completeness: number;
-    security: number;
-    // New dimensions from rd2
-    content: number;
-    triggerDesign: number;
-    valueAdd: number;
-    // Merged: behavioral + behavioralReadiness
-    operationalReadiness: number;
-    codeQuality: number;
-    efficiency: number;
+    // Core Quality (40 pts)
+    frontmatter: number; // 10 pts - YAML validation, required fields
+    structure: number; // 5 pts - Directory structure, file organization
+    content: number; // 15 pts - SKILL.md body quality
+    completeness: number; // 10 pts - All required sections present
+    // Discovery & Trigger (20 pts)
+    triggerDesign: number; // 10 pts - Description triggers, when-to-use
+    platformCompatibility: number; // 10 pts - Multi-platform support
+    // Safety & Security (20 pts)
+    security: number; // 10 pts - No dangerous patterns
+    circularReference: number; // 10 pts - No circular references
+    // Code & Documentation (20 pts)
+    codeQuality: number; // 10 pts - Scripts are executable
+    progressiveDisclosure: number; // 10 pts - Progressive disclosure
 }
+
+// Dimension name to category mapping
+export const DIMENSION_CATEGORIES: Record<string, DimensionCategory> = {
+    Frontmatter: 'Core Quality',
+    Structure: 'Core Quality',
+    Content: 'Core Quality',
+    Completeness: 'Core Quality',
+    'Trigger Design': 'Discovery & Trigger',
+    'Platform Compatibility': 'Discovery & Trigger',
+    Security: 'Safety & Security',
+    'Circular Reference Prevention': 'Safety & Security',
+    'Code Quality': 'Code & Documentation',
+    'Progressive Disclosure': 'Code & Documentation',
+};
 
 export interface SecurityPattern {
     pattern: RegExp;
@@ -55,43 +73,43 @@ export interface EvaluationConfig {
 
 export const EVALUATION_CONFIG: EvaluationConfig = {
     // ==========================================================================
-    // DIMENSION WEIGHTS
+    // DIMENSION WEIGHTS (MECE - Total: 100 pts)
     // ==========================================================================
 
     // Scenario: Skills WITH scripts/commands
     withScripts: {
+        // Core Quality (40 pts)
         frontmatter: 10,
         structure: 5,
-        bestPractices: 10,
-        platformCompatibility: 10,
+        content: 15,
         completeness: 10,
-        security: 8,
-        // New dimensions from rd2
-        content: 12,
+        // Discovery & Trigger (20 pts)
         triggerDesign: 10,
-        valueAdd: 8,
-        // Merged: behavioral (5) + behavioralReadiness (4) = 9
-        operationalReadiness: 9,
-        codeQuality: 5,
-        efficiency: 3,
+        platformCompatibility: 10,
+        // Safety & Security (20 pts)
+        security: 10,
+        circularReference: 10,
+        // Code & Documentation (20 pts)
+        codeQuality: 10,
+        progressiveDisclosure: 10,
     },
 
     // Scenario: Skills WITHOUT scripts (documentation-only)
     withoutScripts: {
-        frontmatter: 12,
-        structure: 8,
-        bestPractices: 12,
-        platformCompatibility: 12,
-        completeness: 12,
-        security: 0,
-        // New dimensions from rd2
-        content: 16,
-        triggerDesign: 12,
-        valueAdd: 8,
-        // Merged: behavioral (0) + behavioralReadiness (3) = 3
-        operationalReadiness: 3,
+        // Core Quality (50 pts) - More weight to content since no scripts
+        frontmatter: 10,
+        structure: 10,
+        content: 20,
+        completeness: 10,
+        // Discovery & Trigger (20 pts)
+        triggerDesign: 10,
+        platformCompatibility: 10,
+        // Safety & Security (20 pts)
+        security: 10,
+        circularReference: 10,
+        // Code & Documentation (10 pts) - No scripts to evaluate
         codeQuality: 0,
-        efficiency: 5,
+        progressiveDisclosure: 10,
     },
 
     // ==========================================================================

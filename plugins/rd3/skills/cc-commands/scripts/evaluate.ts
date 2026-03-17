@@ -684,6 +684,74 @@ function evaluatePlatformCompatibility(
     };
 }
 
+// ============================================================================
+// CIRCULAR REFERENCE CHECKER (Commands)
+// ============================================================================
+
+/**
+ * Detects circular references in commands.
+ * Commands should NOT reference their associated skills by name.
+ */
+function evaluateCircularReference(
+    body: string,
+    analysis: CommandBodyAnalysis,
+    weights: CommandDimensionWeights,
+): CommandEvaluationDimension {
+    const findings: string[] = [];
+    const recommendations: string[] = [];
+    const maxScore = weights.circularReference || 5;
+    let score = maxScore;
+
+    // Patterns that indicate circular references for commands
+    const circularPatterns = [
+        {
+            // Commands Reference section (explicit violation)
+            pattern: /^## Commands Reference$/m,
+            message: 'Contains "Commands Reference" section - commands must not list other commands',
+            severity: 'error',
+        },
+        {
+            // Skill references by name
+            pattern: /(?:Skill|skill):\s*["'](rd\d+):[a-z-]+["']/g,
+            message: 'Contains explicit skill reference by name - commands must use generic delegation patterns',
+            severity: 'warning',
+        },
+        {
+            // See also sections with skill references
+            pattern: /See also:.*(rd\d+):[a-z-]+/gi,
+            message: 'Contains "See also" with skill reference - circular reference detected',
+            severity: 'error',
+        },
+    ];
+
+    for (const { pattern, message, severity } of circularPatterns) {
+        const matches = body.match(pattern);
+        if (matches) {
+            findings.push(message);
+            if (severity === 'error') {
+                score = 0; // Critical - fail immediately
+            } else {
+                score = Math.max(0, score - 3);
+            }
+        }
+    }
+
+    if (findings.length > 0) {
+        recommendations.push('Remove "Commands Reference" sections');
+        recommendations.push('Use generic patterns like "Skill()" instead of specific skill names');
+    }
+
+    return {
+        name: 'circular-reference',
+        displayName: 'Circular Reference Prevention',
+        weight: maxScore,
+        score: Math.max(0, score),
+        maxScore,
+        findings,
+        recommendations,
+    };
+}
+
 function evaluateOperationalReadiness(
     body: string,
     analysis: CommandBodyAnalysis,
@@ -799,7 +867,7 @@ export function evaluateCommand(command: Command, scope: EvaluationScope = 'basi
 
     const dimensions: CommandEvaluationDimension[] = [];
 
-    // Always run basic evaluations (6 of 10 dimensions).
+    // Always run basic evaluations (7 of 11 dimensions).
     // NOTE: Basic scope evaluates fewer dimensions, so percentages are relative
     // to the actual maxScore of evaluated dimensions, not the full 10-dimension total.
     dimensions.push(evaluateFrontmatterQuality(frontmatter, weights));
@@ -808,6 +876,7 @@ export function evaluateCommand(command: Command, scope: EvaluationScope = 'basi
     dimensions.push(evaluateStructureBrevity(body, analysis, weights));
     dimensions.push(evaluateDelegationPattern(body, analysis, weights));
     dimensions.push(evaluateArgumentDesign(frontmatter, analysis, weights));
+    dimensions.push(evaluateCircularReference(body, analysis, weights));
 
     if (scope === 'full') {
         dimensions.push(evaluateSecurity(frontmatter, securityResult, weights));

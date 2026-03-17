@@ -103,7 +103,7 @@ export class OpenClawAdapter implements IPlatformAdapter {
 
         // Parse SKILL.md frontmatter
         const content = readFileSync(skillMdPath, 'utf-8');
-        const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+        const fmMatch = content.match(/^---\r?\n([\s\S]*?)(?:\r?\n)?---/);
 
         if (!fmMatch) {
             warnings.push('No frontmatter found');
@@ -121,9 +121,17 @@ export class OpenClawAdapter implements IPlatformAdapter {
             }
 
             // Generate metadata.openclaw file
+            const name = fm.name as string | undefined;
+            const description = fm.description as string | undefined;
+
+            if (!name || !description) {
+                errors.push('Missing required frontmatter fields: name, description');
+                return { success: false, errors, warnings, companions: [], messages };
+            }
+
             const metadata = {
-                name: fm.name as string,
-                description: fm.description as string,
+                name,
+                description,
                 version: fm.version || '1.0.0',
                 emoji: '🛠️',
             };

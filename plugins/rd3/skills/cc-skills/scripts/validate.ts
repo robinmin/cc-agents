@@ -11,19 +11,12 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import YAML from 'yaml';
 
+import { logger } from '../../../scripts/logger';
 import type { Platform, Skill, SkillFrontmatter, SkillResources, ValidationReport } from './types.ts';
 import { discoverResources, parseFrontmatter } from './utils';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
-
-// Logger
-const logger = {
-    info: (msg: string) => console.log(`[INFO] ${msg}`),
-    warn: (msg: string) => console.warn(`[WARN] ${msg}`),
-    error: (msg: string) => console.error(`[ERROR] ${msg}`),
-    success: (msg: string) => console.log(`✓ ${msg}`),
-};
 
 // ============================================================================
 // Validation Rules
@@ -139,7 +132,7 @@ function validateCompanions(skill: Skill, report: ValidationReport): void {
 function validateClaudeFeatures(skill: Skill, report: ValidationReport): void {
     const { body, frontmatter } = skill;
 
-    const backtickCommands = body.match(/`!`[^`]+``/g) || [];
+    const backtickCommands = body.match(/!`[^`]+`/g) || [];
     const dollarArguments = body.match(/\$ARGUMENTS|\$\d+/g) || [];
     const contextFork = body.includes('context: fork');
 
@@ -380,4 +373,6 @@ async function main() {
     process.exit(report.valid ? 0 : 1);
 }
 
-main();
+if (import.meta.main) {
+    main();
+}

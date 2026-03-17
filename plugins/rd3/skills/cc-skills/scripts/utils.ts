@@ -57,7 +57,7 @@ export function parseFrontmatter(content: string): ParsedFrontmatter {
  */
 export function discoverResources(skillPath: string): SkillResources {
     const resources: SkillResources = {};
-    const resourceTypes = ['scripts', 'references', 'assets'] as const;
+    const resourceTypes = ['scripts', 'references', 'assets', 'agents'] as const;
 
     for (const type of resourceTypes) {
         const resourcePath = join(skillPath, type);

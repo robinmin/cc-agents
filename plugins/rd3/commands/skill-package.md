@@ -1,6 +1,6 @@
 ---
 description: Package skill for distribution with platform companions
-argument-hint: "<skill-path> [--output <dir>] [--platform <name>] [--no-source] [--json]"
+argument-hint: "<skill-path> [--output <dir>] [--platform all|claude|codex|openclaw|opencode|antigravity] [--no-source]"
 ---
 
 # Skill Package
@@ -11,27 +11,12 @@ Package a skill for distribution with all platform-specific companions.
 
 - Preparing skills for distribution
 - Creating distributable skill packages
-- Generating platform-specific companions for published skills
-
-## Usage
-
-```bash
-/rd3:skill-package <skill-path> [options]
-```
-
-## Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--output, -o` | Output directory | `./dist` |
-| `--platform <name>` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
-| `--no-source` | Exclude SKILL.md from package | false |
-| `--json` | Output results as JSON | false |
+- Generating platform-specific companions
 
 ## Examples
 
 ```bash
-# Package skill with all platforms
+# Package with all platforms
 /rd3:skill-package ./skills/my-skill
 
 # Package for specific platform
@@ -39,53 +24,23 @@ Package a skill for distribution with all platform-specific companions.
 
 # Custom output directory
 /rd3:skill-package ./skills/my-skill -o ./release
-
-# Package without source
-/rd3:skill-package ./skills/my-skill --no-source
 ```
 
-## Workflow
+## Implementation
 
-This command:
+Delegates to **rd3:cc-skills** skill:
 
-1. **Reads** the skill SKILL.md
-2. **Generates** platform-specific companions
-3. **Copies** files to output directory
-4. **Reports** package size and contents
+```
+Skill(skill="rd3:cc-skills")
+```
 
-## Output
+**Direct script execution:**
+```bash
+bun plugins/rd3/skills/cc-skills/scripts/package.ts <skill-path> [options]
+```
 
-The package includes:
-- SKILL.md (unless --no-source)
-- Platform-specific companion files
-
-## Exit Codes
-
-- `0` - Packaging completed successfully
-- `1` - Packaging failed
-
-## Related Commands
+## See Also
 
 - `/rd3:skill-add` - Create new skill
 - `/rd3:skill-evaluate` - Evaluate skill quality
 - `/rd3:skill-refine` - Refine skill based on evaluation
-
-## Implementation
-
-To execute this command, the AI agent should choose the appropriate execution path based on its environment:
-
-### For Claude Code
-Explicitly invoke a packaging task:
-```python
-Task(
-    subagent_type="rd2:skill-expert",
-    prompt="Package skill at {skill_path} with platform {platform} using the scripts at ${CLAUDE_PLUGIN_ROOT:-.}/plugins/rd3/skills/cc-skills/scripts/package.ts",
-    description="Package skill {skill_path}"
-)
-```
-
-### For Other Coding Agents (Codex, Antigravity, OpenCode, OpenClaw)
-Explicitly use the terminal or bash execution tool to run the TypeScript script directly:
-```bash
-bun ./plugins/rd3/skills/cc-skills/scripts/package.ts <skill-path> [--output <dir>] [--platform <name>] [--no-source] [--json]
-```

@@ -26,6 +26,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { logger, COLORS } from '../../../scripts/logger';
 import {
     convertToImperative,
     createAntigravityAdapter,
@@ -38,26 +39,6 @@ import {
 } from './adapters';
 import type { Command, CommandBodyAnalysis, CommandFrontmatter, CommandPlatform } from './types';
 import { analyzeBody, inferArgumentHints, normalizeCommandName, parseFrontmatter, readCommand } from './utils';
-
-// ============================================================================
-// Logger
-// ============================================================================
-
-const COLORS = {
-    red: '\x1b[31m',
-    green: '\x1b[32m',
-    yellow: '\x1b[33m',
-    blue: '\x1b[34m',
-    cyan: '\x1b[36m',
-    reset: '\x1b[0m',
-};
-
-const logger = {
-    info: (msg: string) => console.log(`${COLORS.cyan}[INFO]${COLORS.reset} ${msg}`),
-    success: (msg: string) => console.log(`${COLORS.green}[OK]${COLORS.reset} ${msg}`),
-    warning: (msg: string) => console.warn(`${COLORS.yellow}[WARN]${COLORS.reset} ${msg}`),
-    error: (msg: string) => console.error(`${COLORS.red}[ERROR]${COLORS.reset} ${msg}`),
-};
 
 // ============================================================================
 // Migration Functions
