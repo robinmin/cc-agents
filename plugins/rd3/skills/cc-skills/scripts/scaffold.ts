@@ -281,7 +281,7 @@ tags:
  * Main scaffold function
  */
 async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
-    const { name, path, template, resources, platform, examples, verbose } = options;
+    const { name, path, template, resources, platform, examples = false, verbose = false } = options;
 
     // Normalize skill name
     const skillName = normalizeSkillName(name);
@@ -292,7 +292,7 @@ async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
         logger.info(`Scaffolding skill: ${skillName}`);
         logger.info(`  Location: ${skillDir}`);
         logger.info(`  Template: ${template}`);
-        if (resources.length > 0) {
+        if (resources && resources.length > 0) {
             logger.info(`  Resources: ${resources.join(', ')}`);
         }
         logger.info(`  Platform: ${platform}`);
@@ -309,7 +309,8 @@ async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
     logger.success(`Created skill directory: ${skillDir}`);
 
     // Load and process template
-    const templateContent = loadTemplate(template);
+    const templateType = template || 'technique';
+    const templateContent = loadTemplate(templateType as 'technique' | 'pattern' | 'reference');
     const skillMdContent = processTemplate(templateContent, skillName, skillTitle);
 
     // Create SKILL.md
@@ -334,7 +335,7 @@ async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
     }
 
     // Create resource directories
-    if (resources.length > 0) {
+    if (resources && resources.length > 0) {
         createResourceDirs(skillDir, resources, skillName, skillTitle, examples);
     }
 
@@ -425,7 +426,7 @@ function parseCliArgs(): ScaffoldCliOptions {
         typeof values.template === 'string' &&
         ['technique', 'pattern', 'reference'].includes(values.template)
     ) {
-        options.template = values.template as ScaffoldCliOptions['template'];
+        options.template = values.template as 'technique' | 'pattern' | 'reference';
     }
     if (values.resources && typeof values.resources === 'string') {
         options.resources = parseResourceTypes(values.resources);
@@ -466,7 +467,7 @@ async function main() {
     }
 
     // Validate resource types if specified
-    if (options.resources.length > 0) {
+    if (options.resources && options.resources.length > 0) {
         const validation = validateResourceTypes(options.resources.join(','));
         if (!validation.valid) {
             for (const err of validation.errors) {
@@ -479,7 +480,7 @@ async function main() {
     // Print configuration
     console.log(`Initializing skill: ${options.name}`);
     console.log(`   Location: ${options.path}`);
-    if (options.resources.length > 0) {
+    if (options.resources && options.resources.length > 0) {
         console.log(`   Resources: ${options.resources.join(', ')}`);
         if (options.examples) {
             console.log('   Examples: enabled');
@@ -493,7 +494,7 @@ async function main() {
     const skillDir = await scaffold(options);
 
     if (skillDir) {
-        printNextSteps(skillDir, options.resources, options.examples);
+        printNextSteps(skillDir, options.resources || [], options.examples || false);
         process.exit(0);
     } else {
         process.exit(1);
