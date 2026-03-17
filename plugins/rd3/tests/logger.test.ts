@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { createLogger, Logger, type LoggerOptions, type LogLevel, logger } from '../scripts/logger';
+import { type LogLevel, Logger, type LoggerOptions, createLogger, logger } from '../scripts/logger';
 
 describe('Logger', () => {
     it('should create logger with default options', () => {
