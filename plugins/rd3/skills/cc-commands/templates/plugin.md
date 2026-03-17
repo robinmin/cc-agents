@@ -1,71 +1,65 @@
 ---
 description: {{DESCRIPTION}}
 argument-hint: {{ARGUMENT_HINT}}
-allowed-tools: Bash, Read
+allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
 # {{COMMAND_TITLE}}
 
-<!-- Plugin command: uses CLAUDE_PLUGIN_ROOT for script/resource paths -->
+Wraps **{{TARGET_SKILL}}** skill.
+
+[Description of what this command does - keep under 60 chars, start with verb]
 
 ## When to Use
 
 - [Scenario 1: When this command applies]
 - [Scenario 2: Another scenario]
 
-## Core Skill
+## Expected Results
 
-> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
+- [Result 1: What the command produces]
+- [Result 2: Another outcome]
+- [Result 3: Any additional outputs]
 
-This command wraps **rd3:cc-commands** skill - [description].
+## Arguments
 
-**Delegation (Claude Code):**
-```
-Skill(skill="rd3:cc-commands")
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `{{ARG_NAME}}` | [Description] | [default value] |
+| `--{{FLAG_NAME}}` | [Flag description] | [default value] |
+
+## Examples
+
+```bash
+# [Example 1]
+/{{PLUGIN_NAME}}:{{COMMAND_NAME}} [args]
+
+# [Example 2]
+/{{PLUGIN_NAME}}:{{COMMAND_NAME}} [args]
 ```
 
 ## Implementation
 
-<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
+Delegates to **{{TARGET_SKILL}}** skill:
 
-### For Claude Code
-Use `Skill()` to delegate to the core skill:
 ```
-Skill(skill="rd3:cc-commands")
+Skill(skill="{{TARGET_SKILL}}")
 ```
 
-### For Other Coding Agents (Codex, Gemini, OpenClaw, OpenCode, Antigravity)
-Execute the script directly:
-```bash
-bun ./plugins/rd3/skills/cc-commands/scripts/[scaffold|validate|evaluate|refine|adapt].ts <args>
-```
-
-## Instructions
-
-Run the plugin script:
-
+**Direct script execution:**
 ```bash
 bun ${CLAUDE_PLUGIN_ROOT}/skills/{{SKILL_DIR}}/scripts/{{SCRIPT_NAME}}.ts $ARGUMENTS
 ```
 
-Process the script output:
-1. Parse the results from the script
-2. Validate the output format
-3. Present findings to the user
+## Platform Notes
 
-## Arguments
+- Claude Code: Use `Skill()` for skill delegation
+- Other platforms: Run script directly via Bash tool
 
-| Argument | Description | Required |
-|----------|-------------|----------|
-| `$1` | [First argument description] | Yes |
-| `$2` | [Second argument description] | No |
+## See Also
 
-## Error Handling
-
-If the script fails:
-- Check that the file path exists
-- Verify Bun is available
-- Report the error with context
+- `/{{PLUGIN_NAME}}:{{RELATED_COMMAND_1}}` - [Description]
+- `/{{PLUGIN_NAME}}:{{RELATED_COMMAND_2}}` - [Description]
 
 ---
 
