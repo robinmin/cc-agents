@@ -1,55 +1,38 @@
 ---
 description: Refine and improve a slash command based on best practices
-argument-hint: "<command-path> [--migrate] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--dry-run] [--from-eval <results.json>]"
+argument-hint: "<command-path> [--migrate] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--dry-run]"
+allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
 # Command Refine
 
-Improve slash commands by fixing frontmatter, converting writing style, and adding missing sections.
+Wraps **rd3:cc-commands** skill.
 
-## Core Skill
-
-> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
-
-This command wraps **rd3:cc-commands** skill - the universal command refiner.
-
-**Delegation (Claude Code):**
-```
-Skill(skill="rd3:cc-commands")
-```
+Evaluate command issues and apply fixes in one step. **Runs evaluation internally** then applies improvements.
 
 ## When to Use
 
-- Fixing issues found during evaluation
-- Migrating commands from rd2 to rd3 format
-- Converting second-person to imperative form
-- Adding missing argument-hint or Platform Notes
-- Generating platform companions after refinement
-
-## Usage
-
-```bash
-/rd3:command-refine <command-path> [options]
-```
-
-## Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--migrate` | Enable rd2-to-rd3 migration mode | false |
-| `--platform <name>` | Generate platform companions: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
-| `--dry-run` | Show changes without writing | false |
-| `--from-eval <path>` | Use evaluation results to guide refinement | - |
-| `--verbose, -v` | Show detailed output | false |
-
-## Refinement Actions
-
-- Remove invalid frontmatter fields (rd2-specific)
-- Fix description length (truncate with warning)
+- Fix issues found during evaluation
+- Migrate commands from rd2 to rd3 format
 - Convert second-person to imperative form
-- Add missing argument-hint from body analysis
-- Add Platform Notes section
-- Add disable-model-invocation field
+- Add missing argument-hint or Platform Notes
+
+## Expected Results
+
+- Evaluation results showing score and weaknesses
+- Applied fixes (frontmatter, style, structure)
+- Migrated rd2 commands to rd3 format
+- Generated platform companion files
+
+## Arguments
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `command-path` | Path to the command .md file | (required) |
+| `--migrate` | Enable rd2-to-rd3 migration mode | false |
+| `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
+| `--dry-run` | Preview changes without applying | false |
+| `--from-eval` | Use evaluation results to guide refinement | (none) |
 
 ## Examples
 
@@ -62,34 +45,33 @@ Skill(skill="rd3:cc-commands")
 
 # Migrate from rd2 format
 /rd3:command-refine ./commands/old-command.md --migrate
-
-# Refine based on evaluation results
-/rd3:command-refine ./commands/review-code.md --from-eval eval-results.json
 ```
 
-## Workflow
+## Output Example
 
-1. **Read** command file
-2. **Analyze** frontmatter and body
-3. **Apply** refinement rules
-4. **Write** updated file (unless --dry-run)
-5. **Report** changes made
-
-## Related Commands
-
-- `/rd3:command-add` - Create new command
-- `/rd3:command-evaluate` - Evaluate command quality
+```
+Evaluation passed (85%)
+--- Weaknesses ---
+- Missing Platform Notes section
+- Uses second-person voice
+--- Applied Fixes ---
+✓ Added Platform Notes section
+✓ Fixed second-person voice
+```
 
 ## Implementation
 
-<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
-
-### For Claude Code
+**Direct script execution:**
 ```bash
-bun ${CLAUDE_PLUGIN_ROOT:-.}/plugins/rd3/skills/cc-commands/scripts/refine.ts <command-path> [options]
+bun plugins/rd3/skills/cc-commands/scripts/refine.ts <command-path> [options]
 ```
 
-### For Other Coding Agents
-```bash
-bun ./plugins/rd3/skills/cc-commands/scripts/refine.ts <command-path> [options]
-```
+## Platform Notes
+
+- Claude Code: Use `Skill()` for skill delegation
+- Other platforms: Run script directly via Bash tool
+
+## See Also
+
+- `/rd3:command-add` - Create new command
+- `/rd3:command-evaluate` - Evaluate only (no changes)
