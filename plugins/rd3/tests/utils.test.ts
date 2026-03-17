@@ -7,6 +7,10 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
     ALLOWED_RESOURCE_TYPES,
+    MAX_DESCRIPTION_LENGTH,
+    MAX_SKILL_NAME_LENGTH,
+    SKILL_FILE_NAME,
+    type SkillFrontmatter,
     ensureDir,
     generateFrontmatter,
     getSkillMdPath,
@@ -15,16 +19,12 @@ import {
     isFile,
     isValidSkillName,
     listFiles,
-    MAX_DESCRIPTION_LENGTH,
-    MAX_SKILL_NAME_LENGTH,
     normalizeSkillName,
     parseFrontmatter,
     parseResourceTypes,
     pathExists,
     readFile,
     resolveSkillPath,
-    SKILL_FILE_NAME,
-    type SkillFrontmatter,
     titleCaseSkillName,
     validateFrontmatter,
     validateResourceTypes,
@@ -320,6 +320,65 @@ body`;
 
             const result = validateFrontmatter(fm);
             expect(result.warnings.length).toBeGreaterThan(0);
+        });
+
+        it('should reject name that is too long', () => {
+            const fm: SkillFrontmatter = {
+                name: 'a'.repeat(100),
+                description: 'test',
+            };
+
+            const result = validateFrontmatter(fm);
+            expect(result.errors.length).toBeGreaterThan(0);
+        });
+
+        it('should reject invalid name format', () => {
+            const fm: SkillFrontmatter = {
+                name: 'Invalid-Name',
+                description: 'test',
+            };
+
+            const result = validateFrontmatter(fm);
+            expect(result.errors).toContain("'name' must be lowercase hyphen-case starting with a letter");
+        });
+    });
+
+    describe('generateFrontmatter', () => {
+        it('should generate basic frontmatter', () => {
+            const fm: SkillFrontmatter = {
+                name: 'test-skill',
+                description: 'A test skill',
+            };
+
+            const result = generateFrontmatter(fm);
+            expect(result).toContain('name: test-skill');
+            expect(result).toContain('description: A test skill');
+        });
+
+        it('should include metadata in generated frontmatter', () => {
+            const fm: SkillFrontmatter = {
+                name: 'test-skill',
+                description: 'A test skill',
+                metadata: {
+                    version: '1.0.0',
+                    author: 'test',
+                },
+            };
+
+            const result = generateFrontmatter(fm);
+            expect(result).toContain('metadata:');
+            expect(result).toContain('version: 1.0.0');
+        });
+
+        it('should quote strings with special characters', () => {
+            const fm: SkillFrontmatter = {
+                name: 'test-skill',
+                description: 'A test: with #special chars and "quotes"',
+            };
+
+            const result = generateFrontmatter(fm);
+            // Should contain quoted string
+            expect(result).toMatch(/"[^"]*"/);
         });
     });
 });
