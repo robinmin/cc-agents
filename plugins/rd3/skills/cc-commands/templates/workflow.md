@@ -1,81 +1,65 @@
 ---
 description: {{DESCRIPTION}}
 argument-hint: {{ARGUMENT_HINT}}
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Task", "Skill"]
 ---
 
 # {{COMMAND_TITLE}}
 
-<!-- Workflow command: multi-step orchestration with pseudocode -->
+Wraps **{{TARGET_SKILL}}** skill.
+
+[Description of what this command does - keep under 60 chars, start with verb]
 
 ## When to Use
 
 - [Scenario 1: When this command applies]
 - [Scenario 2: Another scenario]
 
-## Core Skill
+## Expected Results
 
-> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
+- [Result 1: What the command produces]
+- [Result 2: Another outcome]
+- [Result 3: Any additional outputs]
 
-This command wraps **rd3:cc-commands** skill - [description].
+## Arguments
 
-**Delegation (Claude Code):**
-```
-Skill(skill="rd3:cc-commands")
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `{{ARG_NAME}}` | [Description] | [default value] |
+| `--{{FLAG_NAME}}` | [Flag description] | [default value] |
+
+## Examples
+
+```bash
+# [Example 1]
+/{{PLUGIN_NAME}}:{{COMMAND_NAME}} [args]
+
+# [Example 2]
+/{{PLUGIN_NAME}}:{{COMMAND_NAME}} [args]
 ```
 
 ## Implementation
 
-<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
+Delegates to **{{TARGET_SKILL}}** skill:
 
-### For Claude Code
-Use `Skill()` to delegate to the core skill:
 ```
-Skill(skill="rd3:cc-commands")
+Skill(skill="{{TARGET_SKILL}}")
 ```
 
-### For Other Coding Agents (Codex, Gemini, OpenClaw, OpenCode, Antigravity)
-Execute the script directly:
+**Direct script execution:**
 ```bash
-bun ./plugins/rd3/skills/cc-commands/scripts/[scaffold|validate|evaluate|refine|adapt].ts <args>
+bun plugins/{{PLUGIN_PATH}}/scripts/{{SCRIPT_NAME}}.ts <args>
 ```
 
-## Workflow
+## Platform Notes
 
-This command delegates to specialist skills and agents:
+- Claude Code: Use `Skill()` for skill delegation
+- Other platforms: Run script directly via Bash tool
 
-### Step 1: Analyze Input
+## See Also
 
-Read and analyze the provided input:
-- Parse arguments from $ARGUMENTS
-- Identify scope and requirements
-
-### Step 2: Delegate to Specialist
-
-Invoke the appropriate skill:
-
-```
-Skill(skill="{{PLUGIN_NAME}}:{{SKILL_NAME}}", args="$ARGUMENTS")
-```
-
-Or delegate to a specialist agent:
-
-```
-Task(subagent_type="{{AGENT_NAME}}",
-     prompt="[Task description with context from Step 1]")
-```
-
-### Step 3: Present Results
-
-Format the output:
-- Summarize key findings
-- Present actionable recommendations
-- Save results if --output flag specified
-
-## Error Handling
-
-- If input is invalid, explain expected format
-- If specialist fails, report error and suggest alternatives
-- Use AskUserQuestion for ambiguous decisions
+- `/{{PLUGIN_NAME}}:{{RELATED_COMMAND_1}}` - [Description]
+- `/{{PLUGIN_NAME}}:{{RELATED_COMMAND_2}}` - [Description]
 
 ---
 
