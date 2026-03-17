@@ -5,7 +5,7 @@
  * Packages skills for distribution with platform-specific companions
  */
 
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { createAntigravityAdapter } from './adapters/antigravity';
