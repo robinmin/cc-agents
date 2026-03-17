@@ -1,54 +1,65 @@
 ---
 description: {{DESCRIPTION}}
 argument-hint: {{ARGUMENT_HINT}}
+allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
 # {{COMMAND_TITLE}}
 
-<!-- Simple command: direct imperative instructions for Claude -->
+Wraps **{{TARGET_SKILL}}** skill.
+
+[Description of what this command does - keep under 60 chars, start with verb]
 
 ## When to Use
 
 - [Scenario 1: When this command applies]
 - [Scenario 2: Another scenario]
 
-## Core Skill
+## Expected Results
 
-> **Note**: `Skill()` is Claude Code specific. For other platforms, see Implementation section.
+- [Result 1: What the command produces]
+- [Result 2: Another outcome]
+- [Result 3: Any additional outputs]
 
-This command wraps **rd3:cc-commands** skill - [description].
+## Arguments
 
-**Delegation (Claude Code):**
-```
-Skill(skill="rd3:cc-commands")
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `{{ARG_NAME}}` | [Description] | [default value] |
+| `--{{FLAG_NAME}}` | [Flag description] | [default value] |
+
+## Examples
+
+```bash
+# [Example 1]
+/{{PLUGIN_NAME}}:{{COMMAND_NAME}} [args]
+
+# [Example 2]
+/{{PLUGIN_NAME}}:{{COMMAND_NAME}} [args]
 ```
 
 ## Implementation
 
-<!-- TODO: Replace direct script call with rd3:cc-agents subagent when ready -->
+Delegates to **{{TARGET_SKILL}}** skill:
 
-### For Claude Code
-Use `Skill()` to delegate to the core skill:
 ```
-Skill(skill="rd3:cc-commands")
+Skill(skill="{{TARGET_SKILL}}")
 ```
 
-### For Other Coding Agents (Codex, Gemini, OpenClaw, OpenCode, Antigravity)
-Execute the script directly:
+**Direct script execution:**
 ```bash
-bun ./plugins/rd3/skills/cc-commands/scripts/[scaffold|validate|evaluate|refine|adapt].ts <args>
+bun plugins/{{PLUGIN_PATH}}/scripts/{{SCRIPT_NAME}}.ts <args>
 ```
 
-## Instructions
+## Platform Notes
 
-[Imperative instructions for Claude. Write FOR Claude, not TO the user.]
+- Claude Code: Use `Skill()` for skill delegation
+- Other platforms: Run script directly via Bash tool
 
-Read the relevant files and:
-1. [First action to perform]
-2. [Second action to perform]
-3. [Third action to perform]
+## See Also
 
-Present results to the user in a clear format.
+- `/{{PLUGIN_NAME}}:{{RELATED_COMMAND_1}}` - [Description]
+- `/{{PLUGIN_NAME}}:{{RELATED_COMMAND_2}}` - [Description]
 
 ---
 
