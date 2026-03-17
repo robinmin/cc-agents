@@ -6,7 +6,7 @@
  * Uses evaluation.config.ts for configurable weights and rules
  */
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import YAML from 'yaml';
@@ -260,7 +260,8 @@ function evaluateBestPractices(body: string, weights: DimensionWeights): Evaluat
     }
 
     // Check for placeholder text (exclude markdown links like [text](url) and [text][ref])
-    const placeholderCount = (body.match(/\[(?:TODO|PLACEHOLDER|FIXME|XXX|INSERT|CHANGE|REPLACE|FILL)[^\]]*\]/gi) || []).length;
+    const placeholderCount = (body.match(/\[(?:TODO|PLACEHOLDER|FIXME|XXX|INSERT|CHANGE|REPLACE|FILL)[^\]]*\]/gi) || [])
+        .length;
     if (placeholderCount > 5) {
         findings.push(`Found ${placeholderCount} placeholder(s)`);
         recommendations.push('Replace placeholders with actual content');
