@@ -1,37 +1,55 @@
 ---
-description: Evaluate skill quality with validation and scoring
+description: Check skill quality score and identify weaknesses (no changes)
 argument-hint: "<skill-path> [--scope basic|full] [--platform all|claude|codex|openclaw|opencode|antigravity] [--json]"
 ---
 
 # Skill Evaluate
 
-Validate and evaluate skill quality across multiple dimensions.
+Check skill quality score and identify weaknesses. **This command only evaluates - makes NO changes.**
+
+## What It Shows
+
+- Overall quality score (0-100%)
+- Dimension-by-dimension breakdown
+- Specific weaknesses found
+- Recommendations for improvements
 
 ## When to Use
 
-- Validating a new or modified skill
-- Checking skill quality before publishing
+- Check current score without making changes
+- Compare scores before/after refine
+- Verify skill is ready for publishing
 
 ## Examples
 
 ```bash
-# Basic validation
+# Basic validation (structural checks)
 /rd3:skill-evaluate ./skills/my-skill --scope basic
 
-# Full evaluation with scoring
+# Full evaluation with all dimensions
 /rd3:skill-evaluate ./skills/my-skill --scope full
 
-# Quick JSON output
+# JSON output for automation
 /rd3:skill-evaluate ./skills/my-skill --json
 ```
 
+## Output Example
+
+```
+✓ Evaluation passed (85%)
+
+--- Dimensions ---
+| Dimension | Score | Status |
+|-----------|-------|--------|
+| Frontmatter | 10/10 | ✓ PASS |
+| Content | 12/15 | ✗ FAIL |
+
+--- Weaknesses ---
+- Missing Overview section
+- Uses second-person voice
+```
+
 ## Implementation
-
-Delegates to **rd3:cc-skills** skill:
-
-```
-Skill(skill="rd3:cc-skills")
-```
 
 **Direct script execution:**
 ```bash
@@ -40,5 +58,5 @@ bun plugins/rd3/skills/cc-skills/scripts/evaluate.ts <skill-path> [options]
 
 ## See Also
 
+- `/rd3:skill-refine` - Evaluate + apply fixes in one step
 - `/rd3:skill-add` - Create new skill
-- `/rd3:skill-refine` - Improve skill based on evaluation

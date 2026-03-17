@@ -1,6 +1,6 @@
 ---
 name: cc-commands
-description: Create, validate, evaluate, and adapt slash commands across platforms. This skill should be used when you want to scaffold a new command, validate command structure, evaluate command quality, refine commands based on evaluation, or generate cross-platform command equivalents.
+description: Create, validate, evaluate, and adapt slash commands across platforms. Use for scaffolding new commands, validating structure, evaluating quality, refining based on feedback, or generating cross-platform equivalents.
 license: Apache-2.0
 metadata:
   author: cc-agents
@@ -12,9 +12,28 @@ metadata:
 
 Create and manage slash commands that work across multiple agent platforms.
 
+## Overview
+
+This skill provides a complete pipeline for slash command development:
+- **Scaffold** new commands from templates
+- **Validate** structure and frontmatter
+- **Evaluate** quality across 10 dimensions
+- **Refine** based on evaluation feedback
+- **Adapt** for cross-platform compatibility
+
+## Operations
+
+| Operation | Purpose | Script |
+|-----------|---------|--------|
+| **scaffold** | Create new command from template | `scripts/scaffold.ts` |
+| **validate** | Check structure and frontmatter | `scripts/validate.ts` |
+| **evaluate** | Score quality across dimensions | `scripts/evaluate.ts` |
+| **refine** | Fix issues and improve quality | `scripts/refine.ts` |
+| **adapt** | Generate platform companions | `scripts/adapt.ts` |
+
 ## When to Use
 
-Use this skill when:
+Use for:
 - Creating a new slash command from scratch
 - Validating command structure and frontmatter
 - Evaluating command quality across 10 dimensions
@@ -57,7 +76,7 @@ All coding agents support agent skills now, but slash commands and subagents are
 - ❌ Bad: Commands Reference section listing `/rd3:command-*` commands
 - ✅ Good: `Delegate to a coding agent` or `Use Skill() for domain workflows`
 
-If you need command examples, reference generic patterns without specific command names (e.g., "Use Task() to delegate to specialist agents" instead of "/rd3:skill-add").
+Reference generic patterns without specific command names (e.g., "Use Task() to delegate to specialist agents" instead of "/rd3:skill-add").
 
 ### Strict Frontmatter
 
@@ -77,7 +96,7 @@ This helps users know available options without consulting documentation.
 
 ### Imperative Form
 
-Write instructions FOR Claude, not messages TO the user. Use imperative form ("Review the code") not second-person ("You should review the code").
+Write instructions FOR Claude, not messages TO the user. Use imperative form ("Review the code") not second-person ("Avoid second-person phrasing").
 
 ## Command Types
 
@@ -94,6 +113,14 @@ scaffold.ts -> validate.ts -> evaluate.ts -> refine.ts -> adapt.ts
 ```
 
 Each script operates independently and can be invoked from CLI or slash commands.
+
+## Workflows
+
+| Workflow | Steps |
+|----------|-------|
+| **Create Command** | scaffold → validate → refine |
+| **Quality Check** | evaluate → refine → evaluate |
+| **Cross-Platform** | scaffold → adapt |
 
 ## Evaluation Dimensions (10)
 
@@ -136,14 +163,14 @@ See [references/command-examples.md](references/command-examples.md) for detaile
 ## Do's and Don'ts
 
 ### Do
-- Use imperative form: "Review the code" not "You should review the code"
+- Use imperative form: "Review the code" not "Second-person phrasing"
 - Keep descriptions under 60 characters
 - Start descriptions with a verb (Create, Generate, Review, etc.)
 - Use proper namespace: `plugin-name:command-name`
 - Choose the right template: simple, workflow, or plugin
 
 ### Don't
-- Use second-person voice ("You should...") - write FOR Claude, not TO user
+- Avoid second-person voice - write FOR Claude, not TO user
 - Include non-allowed frontmatter fields (only: description, allowed-tools, model, argument-hint, disable-model-invocation)
 - Create commands over 150 lines - use progressive disclosure
 - Use hardcoded paths - use `CLAUDE_PLUGIN_ROOT` for portability
@@ -208,6 +235,6 @@ These platforms do NOT natively support Claude Code syntax. Use `adapt.ts` to ge
 | OpenCode | Claude-specific syntax not supported |
 | Antigravity | Mention-triggered only, not slash commands |
 
-**Limitation:** When creating commands with `$ARGUMENTS`, `Task()`, `Skill()`, or `!`cmd`` syntax, document these as Claude-only features in your command. Other platforms will need adapted versions via `adapt.ts`.
+**Limitation:** When creating commands with `$ARGUMENTS`, `Task()`, `Skill()`, or `!`cmd`` syntax, document these as Claude-only features in the command. Other platforms need adapted versions via `adapt.ts`.
 
 See [references/platform-compatibility.md](references/platform-compatibility.md) for full matrix.

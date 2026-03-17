@@ -1,32 +1,40 @@
 ---
-description: Refine and improve skills with migration support
+description: Evaluate and fix skill issues in one step
 argument-hint: "<skill-path> [--migrate] [--best-practices] [--llm-refine] [--platform all|claude|codex|openclaw|opencode|antigravity] [--dry-run]"
 ---
 
 # Skill Refine
 
-Refine and improve skills based on evaluation results, with optional rd2 to rd3 migration.
+Evaluate skill issues and apply fixes in one step. **Runs evaluation internally** then applies improvements.
+
+## What It Does
+
+1. **Runs evaluation** internally to identify issues
+2. **Applies deterministic fixes** (TODOs, Windows paths, formatting)
+3. **Runs LLM refinement** for fuzzy issues (imperative form, clarity)
+4. **Migrates rd2 skills** to rd3 format
+5. **Generates platform companions**
 
 ## When to Use
 
-- Improving skill quality after evaluation
-- Migrating existing rd2 skills to rd3 format
-- Adding platform-specific companions to existing skills
-- Applying best practices fixes
+- Fix skill issues in one step (no need to run evaluate separately)
+- Apply best practice fixes automatically
+- Use LLM to fix style/voice issues
+- Migrate existing rd2 skills to rd3
 
 ## Examples
 
 ```bash
-# Migrate rd2 skill to rd3 format
-/rd3:skill-refine ./skills/my-skill --migrate
-
-# Apply deterministic best practice fixes
+# Evaluate + apply deterministic fixes
 /rd3:skill-refine ./skills/my-skill --best-practices
 
-# Use LLM to refine fuzzy issues
+# Evaluate + use LLM to refine style
 /rd3:skill-refine ./skills/my-skill --llm-refine
 
-# Preview changes without applying
+# Migrate rd2 skill to rd3 (includes evaluation)
+/rd3:skill-refine ./skills/my-skill --migrate
+
+# Preview without applying
 /rd3:skill-refine ./skills/my-skill --dry-run
 ```
 
@@ -34,18 +42,25 @@ Refine and improve skills based on evaluation results, with optional rd2 to rd3 
 
 | Option | Description |
 |--------|-------------|
-| `--migrate` | Enable rd2 to rd3 migration |
-| `--best-practices` | Auto-fix deterministic issues (TODOs, Windows paths) |
-| `--llm-refine` | Use LLM for fuzzy issues (requires ANTHROPIC_API_KEY) |
+| `--best-practices` | Auto-fix TODOs, Windows paths, formatting |
+| `--llm-refine` | Use LLM for style/voice fixes |
+| `--migrate` | Migrate rd2 to rd3 format |
 | `--dry-run` | Preview changes without applying |
 
+## Output
+
+Shows evaluation results, then applied fixes:
+```
+✓ Evaluation passed (85%)
+--- Weaknesses ---
+- Missing Overview section
+- Uses second-person voice
+--- Applied Fixes ---
+✓ Added Overview section
+✓ Fixed second-person voice
+```
+
 ## Implementation
-
-Delegates to **rd3:cc-skills** skill:
-
-```
-Skill(skill="rd3:cc-skills")
-```
 
 **Direct script execution:**
 ```bash
@@ -54,5 +69,5 @@ bun plugins/rd3/skills/cc-skills/scripts/refine.ts <skill-path> [options]
 
 ## See Also
 
+- `/rd3:skill-evaluate` - Evaluate only (no changes) - useful for checking current score
 - `/rd3:skill-add` - Create new skill
-- `/rd3:skill-evaluate` - Evaluate skill quality
