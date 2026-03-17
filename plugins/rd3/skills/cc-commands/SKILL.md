@@ -98,6 +98,36 @@ This helps users know available options without consulting documentation.
 
 Write instructions FOR Claude, not messages TO the user. Use imperative form ("Review the code") not second-person ("Avoid second-person phrasing").
 
+### Wrapped Skill Declaration
+
+At the beginning of each command, **explicitly declare** the skill being wrapped:
+
+```markdown
+# Command Name
+
+Wraps **rd3:cc-skills** skill.
+
+<description>
+```
+
+This ensures users know which underlying skill handles the operation.
+
+### Arguments Table with Defaults
+
+When documenting arguments, **always include a Default column**:
+
+```markdown
+## Arguments
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `skill-path` | Path to the skill | (required) |
+| `--scope` | Evaluation scope | basic |
+| `--json` | JSON output | false |
+```
+
+This helps users understand which arguments are optional and their default behavior.
+
 ## Command Types
 
 | Type | Template | Use When |
@@ -105,6 +135,25 @@ Write instructions FOR Claude, not messages TO the user. Use imperative form ("R
 | **Simple** | `simple.md` | Direct instructions, no delegation |
 | **Workflow** | `workflow.md` | Multi-step with Task()/Skill() pseudocode |
 | **Plugin** | `plugin.md` | Uses CLAUDE_PLUGIN_ROOT for script paths |
+
+### Template Placeholders
+
+When using templates, replace these placeholders:
+
+| Placeholder | Description |
+|--------------|-------------|
+| `{{COMMAND_TITLE}}` | Title of the command (e.g., "Skill Add") |
+| `{{DESCRIPTION}}` | Short description (under 60 chars, start with verb) |
+| `{{ARGUMENT_HINT}}` | CLI argument hint showing all options |
+| `{{TARGET_SKILL}}` | Skill being wrapped (e.g., "rd3:cc-skills") |
+| `{{PLUGIN_NAME}}` | Plugin name (e.g., "rd3") |
+| `{{PLUGIN_PATH}}` | Plugin path (e.g., "rd3/skills/cc-skills") |
+| `{{SKILL_DIR}}` | Skill directory name |
+| `{{SCRIPT_NAME}}` | Script filename (without .ts) |
+| `{{ARG_NAME}}` | Argument name |
+| `{{FLAG_NAME}}` | Flag name |
+| `{{RELATED_COMMAND_1}}` | Related command name |
+| `{{RELATED_COMMAND_2}}` | Another related command |
 
 ## Pipeline Architecture
 
