@@ -153,11 +153,15 @@ vite.config.ts.timestamp-*
 /.claude/last-session.json
 
 /GEMINI.md
-/AGENTS.md
+/CLAUDE.md
 /.agent/
 /.gemini/
 /.opencode/
 /.rulesync/
 /stubs
+/.augmentignore
+/.geminiignore
+/.python-version
+/opencode.json
 
 /plugins/wt/skills/image-generate/scripts/config_loader.py
