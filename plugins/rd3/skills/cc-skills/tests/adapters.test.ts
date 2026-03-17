@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { AntigravityAdapter } from '../scripts/adapters/antigravity';
 import { ClaudeAdapter } from '../scripts/adapters/claude';
 import { CodexAdapter, createCodexAdapter } from '../scripts/adapters/codex';
-import { createOpenClawAdapter, OpenClawAdapter } from '../scripts/adapters/openclaw';
-import { createOpenCodeAdapter, OpenCodeAdapter } from '../scripts/adapters/opencode';
+import { OpenClawAdapter, createOpenClawAdapter } from '../scripts/adapters/openclaw';
+import { OpenCodeAdapter, createOpenCodeAdapter } from '../scripts/adapters/opencode';
 import type { Skill } from '../scripts/types';
 
 const TEST_DIR = '/tmp/adapter-test';
