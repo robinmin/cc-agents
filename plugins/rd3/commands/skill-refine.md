@@ -51,19 +51,13 @@ Evaluate skill issues and apply fixes in one step. **Runs evaluation internally*
 /rd3:skill-refine ./skills/my-skill --dry-run
 ```
 
-## Output Example
-
-```
-✓ Evaluation passed (85%)
---- Weaknesses ---
-- Missing Overview section
-- Uses second-person voice
---- Applied Fixes ---
-✓ Added Overview section
-✓ Fixed second-person voice
-```
-
 ## Implementation
+
+Delegates to **rd3:cc-skills** skill:
+
+```
+Skill(skill="rd3:cc-skills")
+```
 
 **Direct script execution:**
 ```bash
@@ -74,8 +68,3 @@ bun plugins/rd3/skills/cc-skills/scripts/refine.ts <skill-path> [options]
 
 - Claude Code: Use `Skill()` for skill delegation
 - Other platforms: Run script directly via Bash tool
-
-## See Also
-
-- `/rd3:skill-evaluate` - Evaluate only (no changes) - useful for checking current score
-- `/rd3:skill-add` - Create new skill
