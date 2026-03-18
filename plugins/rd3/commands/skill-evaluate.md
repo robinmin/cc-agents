@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-skills** skill.
 
-Check skill quality score and identify weaknesses and provide improvement suggestions if possible. **This command only evaluates - makes NO changes.**
+Check skill quality score and identify weaknesses. **This command only evaluates - makes NO changes.**
 
 ## When to Use
 
@@ -45,23 +45,13 @@ Check skill quality score and identify weaknesses and provide improvement sugges
 /rd3:skill-evaluate ./skills/my-skill --json
 ```
 
-## Output Example
-
-```
-✓ Evaluation passed (85%)
-
---- Dimensions ---
-| Dimension | Score | Status |
-|-----------|-------|--------|
-| Frontmatter | 10/10 | ✓ PASS |
-| Content | 12/15 | ✗ FAIL |
-
---- Weaknesses ---
-- Missing Overview section
-- Uses second-person voice
-```
-
 ## Implementation
+
+Delegates to **rd3:cc-skills** skill:
+
+```
+Skill(skill="rd3:cc-skills")
+```
 
 **Direct script execution:**
 ```bash
@@ -72,8 +62,3 @@ bun plugins/rd3/skills/cc-skills/scripts/evaluate.ts <skill-path> [options]
 
 - Claude Code: Use `Skill()` for skill delegation
 - Other platforms: Run script directly via Bash tool
-
-## See Also
-
-- `/rd3:skill-refine` - Evaluate + apply fixes in one step
-- `/rd3:skill-add` - Create new skill
