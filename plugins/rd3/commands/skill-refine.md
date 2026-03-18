@@ -1,6 +1,6 @@
 ---
 description: Evaluate and fix skill issues in one step
-argument-hint: "<skill-path> [--migrate] [--best-practices] [--llm-refine] [--platform all|claude|codex|openclaw|opencode|antigravity] [--dry-run]"
+argument-hint: "<skill-path> [--best-practices] [--llm-refine] [--migrate] [--dry-run]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -8,21 +8,14 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-skills** skill.
 
-Evaluate skill issues and apply fixes in one step. **Runs evaluation internally** then applies improvements.
+Run evaluation internally then apply fixes in one step.
 
 ## When to Use
 
-- Fix skill issues in one step (no need to run evaluate separately)
+- Fix skill issues without running evaluate separately
 - Apply best practice fixes automatically
-- Use LLM to fix style/voice issues
-- Migrate existing rd2 skills to rd3
-
-## Expected Results
-
-- Evaluation results showing score and weaknesses
-- Applied fixes (deterministic and/or LLM-based)
-- Migrated rd2 skills to rd3 format
-- Generated platform companion files
+- Use LLM to fix style and voice issues
+- Migrate existing rd2 skills to rd3 format
 
 ## Arguments
 
@@ -38,20 +31,22 @@ Evaluate skill issues and apply fixes in one step. **Runs evaluation internally*
 ## Examples
 
 ```bash
-# Evaluate + apply deterministic fixes
+# Evaluate then apply deterministic fixes
 /rd3:skill-refine ./skills/my-skill --best-practices
 
-# Evaluate + use LLM to refine style
+# Use LLM to refine style
 /rd3:skill-refine ./skills/my-skill --llm-refine
 
-# Migrate rd2 skill to rd3 (includes evaluation)
+# Migrate rd2 skill to rd3 format
 /rd3:skill-refine ./skills/my-skill --migrate
 
-# Preview without applying
+# Preview changes without applying
 /rd3:skill-refine ./skills/my-skill --dry-run
 ```
 
 ## Implementation
+
+Pass `$ARGUMENTS` to the underlying skill for processing.
 
 Delegates to **rd3:cc-skills** skill:
 
@@ -61,10 +56,10 @@ Skill(skill="rd3:cc-skills")
 
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-skills/scripts/refine.ts <skill-path> [options]
+bun plugins/rd3/skills/cc-skills/scripts/refine.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
