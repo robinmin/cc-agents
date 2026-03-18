@@ -1,6 +1,6 @@
 ---
 description: Check agent quality score and identify weaknesses
-argument-hint: "<agent-path> [--scope basic|full] [--json] [--verbose]"
+argument-hint: "<agent-path> [--scope basic|full] [--profile auto|thin-wrapper|specialist] [--output text|json]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -8,21 +8,13 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-agents** skill.
 
-Check agent quality score and identify weaknesses. **This command only evaluates - makes NO changes.**
+Score agent quality across 10 dimensions. **Evaluate only — make NO changes.**
 
 ## When to Use
 
 - Check current score without making changes
-- Compare scores before/after refine
-- Verify agent is ready for publishing
-- Grade an agent's quality
-
-## Expected Results
-
-- Quality score (0-100%)
-- Dimension-by-dimension breakdown with pass/fail status
-- List of weaknesses found
-- Recommendations for improvements
+- Compare scores before and after refinement
+- Verify agent readiness for publishing
 
 ## Arguments
 
@@ -30,52 +22,39 @@ Check agent quality score and identify weaknesses. **This command only evaluates
 |----------|-------------|---------|
 | `agent-path` | Path to the agent .md file | (required) |
 | `--scope` | Evaluation scope: basic or full | full |
-| `--json` | Output results as JSON | false |
+| `--profile` | Weight profile: auto, thin-wrapper, specialist | auto |
+| `--output` | Output format: text or json | text |
 | `--verbose` | Show detailed output | false |
 
 ## Examples
 
 ```bash
-# Full evaluation (all 10 dimensions)
+# Full evaluation with auto-detected profile
 /rd3:agent-evaluate ./agents/my-agent.md
 
-# Basic validation (structural checks only)
+# Basic structural validation only
 /rd3:agent-evaluate ./agents/my-agent.md --scope basic
 
-# JSON output for automation
-/rd3:agent-evaluate ./agents/my-agent.md --json
-```
-
-## Output Example
-
-```
---- Evaluation Summary ---
-Grade: B (85%)
-
---- Dimensions ---
-| Dimension | Score | Status |
-|-----------|-------|--------|
-| Frontmatter Quality | 9/10 | ✓ |
-| Description Effectiveness | 14/15 | ✓ |
-
---- Weaknesses ---
-- Missing Examples section
-- No DO/DON'T rules
+# Force specialist profile with JSON output
+/rd3:agent-evaluate ./agents/my-agent.md --profile specialist --output json
 ```
 
 ## Implementation
 
+Pass `$ARGUMENTS` to the underlying skill for processing.
+
+Delegates to **rd3:cc-agents** skill:
+
+```
+Skill(skill="rd3:cc-agents")
+```
+
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-agents/scripts/evaluate.ts <agent-path> [options]
+bun plugins/rd3/skills/cc-agents/scripts/evaluate.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
-
-## See Also
-
-- `/rd3:agent-refine` - Evaluate + apply fixes in one step
-- `/rd3:agent-add` - Create new agent
