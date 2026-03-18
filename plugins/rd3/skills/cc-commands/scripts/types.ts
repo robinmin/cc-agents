@@ -204,20 +204,24 @@ export type EvaluationScope = 'basic' | 'full';
 export type WeightProfile = 'with-pseudocode' | 'without-pseudocode';
 
 /**
- * Names of the 10 evaluation dimensions for commands.
+ * Names of the 10 evaluation dimensions for commands (organized by MECE category).
  */
 export type CommandDimensionName =
+    // Metadata
     | 'frontmatter-quality'
     | 'description-effectiveness'
+    | 'naming-convention'
+    // Content
     | 'content-quality'
     | 'structure-brevity'
-    | 'delegation-pattern'
+    // Architecture
+    | 'delegation-architecture'
     | 'argument-design'
+    // Security
     | 'security'
-    | 'naming-convention'
-    | 'platform-compatibility'
-    | 'operational-readiness'
-    | 'circular-reference';
+    | 'circular-reference'
+    // Platform
+    | 'cross-platform-portability';
 
 /**
  * Single evaluation dimension result.
@@ -225,6 +229,8 @@ export type CommandDimensionName =
 export interface CommandEvaluationDimension {
     name: CommandDimensionName;
     displayName: string;
+    /** MECE category: Metadata | Content | Architecture | Security | Platform */
+    category: 'Metadata' | 'Content' | 'Architecture' | 'Security' | 'Platform';
     weight: number;
     score: number;
     maxScore: number;

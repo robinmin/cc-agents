@@ -1,43 +1,47 @@
 # Command Evaluation Framework
 
-10-dimension quality evaluation for slash commands with configurable weight profiles.
+10-dimension quality evaluation for slash commands with configurable weight profiles, organized into 5 MECE categories.
 
 ## Dimensions Overview
 
-| # | Dimension | With Pseudocode | Without Pseudocode | What It Checks |
-|---|-----------|-----------------|--------------------|----|
-| 1 | Frontmatter Quality | 15 | 18 | Valid YAML, only allowed fields, no invalid fields |
-| 2 | Description Effectiveness | 15 | 18 | Under 60 chars, starts with verb, specific |
-| 3 | Content Quality | 12 | 15 | Imperative form, no second-person, writes FOR Claude |
-| 4 | Structure & Brevity | 10 | 12 | Under 150 lines, progressive disclosure |
-| 5 | Delegation Pattern | 12 | 5 | Uses Skill()/Task()/SlashCommand(), fat skills thin wrappers |
-| 6 | Argument Design | 8 | 10 | argument-hint present when $N used, descriptive |
-| 7 | Security | 10 | 8 | allowed-tools restrictive, no dangerous patterns |
-| 8 | Naming Convention | 5 | 7 | noun-verb for grouped, verb-noun for simple |
-| 9 | Platform Compatibility | 8 | 5 | Claude-specific features documented |
-| 10 | Operational Readiness | 5 | 2 | Error handling, edge cases |
-| | **Total** | **100** | **100** | |
+Organized into 5 MECE categories (Mutually Exclusive, Collectively Exhaustive):
+
+| # | Category | Dimension | With Pseudocode | Without Pseudocode | What It Checks |
+|---|---------|-----------|-----------------|--------------------|----|
+| 1 | Metadata | Frontmatter Quality | 15 | 18 | Valid YAML, only allowed fields, no invalid fields |
+| 2 | Metadata | Description Effectiveness | 15 | 18 | Under 60 chars, starts with verb, specific |
+| 3 | Metadata | Naming Convention | 5 | 7 | noun-verb for grouped, verb-noun for simple |
+| 4 | Content | Content Quality | 12 | 15 | Imperative form, no second-person, writes FOR Claude |
+| 5 | Content | Structure & Brevity | 10 | 12 | Under 150 lines, progressive disclosure |
+| 6 | Architecture | Delegation Architecture | 12 | 5 | Uses Skill()/Task() properly, fat skills thin wrappers |
+| 7 | Architecture | Argument Design | 8 | 10 | argument-hint present when $N used, descriptive |
+| 8 | Security | Security | 10 | 8 | allowed-tools restrictive, no dangerous patterns |
+| 9 | Security | Circular Reference Prevention | 5 | 5 | No /rd3:command-* refs or Commands Reference sections |
+| 10 | Platform | Cross-Platform Portability | 8 | 2 | Claude-specific features documented |
+| | | **Total** | **100** | **100** | |
 
 ## Weight Profiles
 
 ### With Pseudocode (workflow commands)
 
-Commands using Task(), Skill(), SlashCommand(), or AskUserQuestion() are weighted toward delegation quality and platform compatibility.
+Commands using Task(), Skill(), SlashCommand(), or AskUserQuestion() are weighted toward delegation quality and platform compatibility. Content quality and structure brevity also receive higher weights.
 
 ### Without Pseudocode (simple commands)
 
-Commands with direct instructions are weighted toward frontmatter quality, description clarity, and content quality.
+Commands with direct instructions are weighted toward frontmatter quality, description clarity, and content quality. Delegation architecture receives lower weight since there are no pseudocode constructs.
 
 ## Dimension Details
 
-### 1. Frontmatter Quality (15/18)
+### Metadata Category
+
+#### 1. Frontmatter Quality (15/18)
 
 - YAML parses without errors
 - Only valid fields present (description, allowed-tools, model, argument-hint, disable-model-invocation)
 - No invalid fields (name, skills, subagents, version, etc.)
 - Field values have correct types (model is string enum, allowed-tools is string/array, etc.)
 
-### 2. Description Effectiveness (15/18)
+#### 2. Description Effectiveness (15/18)
 
 - Under 60 characters
 - Starts with a verb (Review, Deploy, Generate)
@@ -45,7 +49,16 @@ Commands with direct instructions are weighted toward frontmatter quality, descr
 - Specific enough to differentiate from other commands
 - No redundant words ("command", "slash command")
 
-### 3. Content Quality (12/15)
+#### 3. Naming Convention (5/7)
+
+- Grouped commands use noun-verb pattern (e.g., task-create, skill-evaluate)
+- Simple commands use verb-noun pattern (e.g., review-code)
+- Full namespace used (plugin-name:command-name)
+- Hyphen-case, lowercase
+
+### Content Category
+
+#### 4. Content Quality (12/15)
 
 - Uses imperative form (not second-person "you should")
 - Writes instructions FOR Claude (not messages TO user)
@@ -53,28 +66,32 @@ Commands with direct instructions are weighted toward frontmatter quality, descr
 - No hallucinated tool names or non-existent APIs
 - Proper markdown formatting
 
-### 4. Structure & Brevity (10/12)
+#### 5. Structure & Brevity (10/12)
 
 - Total lines under ~150 (thin wrapper principle)
 - Progressive disclosure with sections
 - Well-organized with clear headers
 - No excessive boilerplate or redundant content
 
-### 5. Delegation Pattern (12/5)
+### Architecture Category
+
+#### 6. Delegation Architecture (12/5)
 
 - Uses Skill(), Task(), SlashCommand() properly
 - Follows fat skills, thin wrappers principle
 - Delegates to skills (not agents) from commands
 - Pseudocode is clear and structured
 
-### 6. Argument Design (8/10)
+#### 7. Argument Design (8/10)
 
 - argument-hint present when body uses $1, $2, $ARGUMENTS
 - Descriptive argument names (not arg1, arg2)
 - Consistent with body usage
-- Square brackets for each argument
+- Square or angle brackets for each argument
 
-### 7. Security (10/8)
+### Security Category
+
+#### 8. Security (10/8)
 
 - allowed-tools is as restrictive as possible
 - Bash uses command filters (Bash(git:*) not Bash)
@@ -82,26 +99,21 @@ Commands with direct instructions are weighted toward frontmatter quality, descr
 - No dangerous shell patterns (rm -rf, sudo, etc.)
 - Security blacklist/greylist scanning
 
-### 8. Naming Convention (5/7)
+#### 9. Circular Reference Prevention (5/5)
 
-- Grouped commands use noun-verb pattern (e.g., task-create, skill-evaluate)
-- Simple commands use verb-noun pattern (e.g., review-code)
-- Full namespace used (plugin-name:command-name)
-- Hyphen-case, lowercase
+- No "Commands Reference" sections
+- No explicit skill references by name (e.g., "rd3:some-skill")
+- No "See also" with specific skill references
+- Uses generic delegation patterns instead
 
-### 9. Platform Compatibility (8/5)
+### Platform Category
 
-- Claude-specific features documented (Task, Skill, $ARGUMENTS, etc.)
+#### 10. Cross-Platform Portability (8/2)
+
+- Claude-specific features documented (Task, Skill, $ARGUMENTS, !`cmd`, etc.)
 - Platform Notes section present if using non-portable features
 - Portable alternatives suggested where possible
 - Cross-platform adaptation feasibility assessed
-
-### 10. Operational Readiness (5/2)
-
-- Error handling instructions present
-- Edge cases documented or handled
-- Input validation described
-- Graceful failure behavior specified
 
 ## Grading Scale
 
@@ -115,12 +127,14 @@ Commands with direct instructions are weighted toward frontmatter quality, descr
 
 ## Security Gatekeeper
 
+See [red-flags.md](red-flags.md) for the complete 10-category red flags checklist.
+
 Commands are automatically rejected (grade F, failed) if they contain:
 
 **Blacklist (immediate rejection):**
 - Hardcoded API keys, tokens, passwords
 - Base64-encoded suspicious strings
-- Known malicious patterns
+- Known malicious patterns (exec, eval, shell injection)
 
 **Greylist (score penalty):**
 - Unrestricted Bash access

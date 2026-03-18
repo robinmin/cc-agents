@@ -202,9 +202,6 @@ bun scripts/refine.ts ./skills/my-skill --migrate
 # Apply best practices fixes
 bun scripts/refine.ts ./skills/my-skill --best-practices
 
-# LLM refinement
-bun scripts/refine.ts ./skills/my-skill --llm-refine
-
 # Generate platform companions
 bun scripts/refine.ts ./skills/my-skill --platform all
 

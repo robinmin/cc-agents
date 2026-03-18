@@ -49,8 +49,8 @@ Content.`,
 
         const report = evaluateCommand(command, 'full');
 
-        // Full scope should have 11 dimensions (includes circularReference)
-        expect(report.dimensions.length).toBe(11);
+        // Full scope should have 10 dimensions (includes circularReference)
+        expect(report.dimensions.length).toBe(10);
     });
 
     it('should detect pseudocode usage', async () => {
@@ -706,41 +706,9 @@ Use $ARGUMENTS and run \`!custom command\`
         );
 
         const report = evaluateCommand(command, 'full');
-        const platDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'platform-compatibility');
+        const platDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'cross-platform-portability');
         // Has Task() but no Platform Notes section
         expect(platDim).toBeDefined();
-    });
-
-    it('should evaluate operational readiness with all operational terms', async () => {
-        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
-        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
-
-        // Include all keywords that the operational readiness check looks for
-        const content = `
-# Test Command
-
-This is a command that handles error cases and validates input.
-It checks for edge cases and boundary conditions.
-We validate all inputs before processing.
-When troubleshooting, check the logs for debugging information.
-`.trim();
-
-        const command = parseCommand(
-            '/test/good-ops.md',
-            `---
-description: Test command
----
-
-# Test
-
-${content}
-`,
-        );
-
-        const report = evaluateCommand(command, 'full');
-        const opDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'operational-readiness');
-        // This should pass with good operational content
-        expect(opDim).toBeDefined();
     });
 
     it('should handle missing frontmatter in evaluation', async () => {
@@ -1072,7 +1040,7 @@ AskUserQuestion(question="What to do?")
         );
 
         const report = evaluateCommand(command, 'basic');
-        const delegDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'delegation-pattern');
+        const delegDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'delegation-architecture');
         expect(delegDim?.findings.some((f: string) => f.includes('Only AskUserQuestion'))).toBe(true);
     });
 
@@ -1357,7 +1325,7 @@ Skill(skill="some-skill")
         );
 
         const report = evaluateCommand(command, 'basic');
-        const delegDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'delegation-pattern');
+        const delegDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'delegation-architecture');
         // Should have Task() or Skill() - this one has Skill so it should be fine
         expect(delegDim?.findings.some((f: string) => f.includes('No Task() or Skill()'))).toBe(false);
     });
@@ -1383,7 +1351,7 @@ Works on Claude Code.
         );
 
         const report = evaluateCommand(command, 'full');
-        const platDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'platform-compatibility');
+        const platDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'cross-platform-portability');
         expect(platDim?.findings.some((f: string) => f.includes('Platform Notes'))).toBe(false);
     });
 
@@ -1433,30 +1401,6 @@ Use this.
         expect(['A', 'B', 'C', 'D', 'F']).toContain(report.grade);
     });
 
-    it('should evaluate operational readiness with all checks passing', async () => {
-        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
-        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
-
-        const command = parseCommand(
-            '/test/full-ops.md',
-            `---
-description: Test
----
-
-# Test
-
-Handle errors gracefully when something fails.
-Check edge cases like empty input.
-Validate the input before processing.
-Debug issues when troubleshooting is needed.
-`,
-        );
-
-        const report = evaluateCommand(command, 'full');
-        const opDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'operational-readiness');
-        // All operational terms present - should have no findings
-        expect(opDim?.findings.length).toBe(0);
-    });
 });
 
 describe('Unit: CLI functions', () => {

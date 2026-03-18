@@ -465,7 +465,7 @@ Fix issues and improve quality. Supports multiple refinement modes.
 |------|------|---------|------------------|-------------|
 | 1 | Detect Issues | `refine.ts` | Detects what needs fixing | Continue |
 | 2 | Apply BestPrac | `refine.ts --best-practices` | Fixes deterministic issues | Warn only |
-| 3 | Apply LLM Refine | `refine.ts --llm-refine` | Fixes fuzzy issues | Warn only |
+| 3 | LLM Checklist | Checklist (invoking agent) | Verifies fuzzy issues | Back to 2 |
 | 4 | Validate Result | `validate.ts` | Validation passes | Retry step 3 |
 
 ### Step Details
@@ -493,21 +493,24 @@ bun scripts/refine.ts <skill-path> --best-practices
 
 **Output:** Modified SKILL.md, report of changes
 
-#### Step 3: Apply LLM Refine
-```bash
-bun scripts/refine.ts <skill-path> --llm-refine
-```
+#### Step 3: LLM Checklist (Invoking Agent)
+The invoking agent performs fuzzy quality checks via checklist (not an external API call).
 
-**What LLM fixes (fuzzy):**
+**Checklist items:**
 
-| # | Item | Fix |
-|---|------|-----|
-| 1 | Imperative form | Convert to "Use X" |
-| 2 | Third-person voice | Ensure "This skill..." |
-| 3 | Description clarity | Add key terms, triggers |
-| 4 | When to Use clarity | Make specific |
+| # | Item | What the Agent Checks |
+|---|------|-----------------------|
+| 1 | Description pattern | Starts with "Use PROACTIVELY for" |
+| 2 | Trigger phrases | 3+ quoted phrases in description |
+| 3 | Example blocks | 2+ `<example>` with `<commentary>` |
+| 4 | Voice consistency | Third-person, no "I can help you" |
+| 5 | Circular references | No `/rd3:command-*` slash refs |
+| 6 | Commands Reference | Section not present (removed by best-practices) |
+| 7 | Section structure | Progressive disclosure with `## ` headers |
+| 8 | Line budget | Within tier template limits |
 
-**If no changes:** Output "No improvements needed"
+**If all items pass:** Continue to Step 4
+**If failures:** Back to Step 2 for additional fixes
 
 #### Step 4: Validate Result
 ```bash
@@ -675,7 +678,7 @@ bun scripts/package.ts <skill-path> --output ./dist --platform all
 | New skill | Add | 1 → 2 → 3 → 4 |
 | Quality check | Evaluate | 1 → 2 → 3 → 4 |
 | Fix deterministic | Refine --best-practices | 1 → 2 → 4 |
-| Fix fuzzy | Refine --llm-refine | 1 → 3 → 4 |
+| Fix fuzzy | Refine checklist | 1 → 2 → 3 → 4 |
 | Fix all | Refine --both | 1 → 2 → 3 → 4 |
 | Migrate from rd2 | Refine --migrate | M1 → M2 |
 | Pre-publish | Package | 1 → 2 → 3 → 4 → 5 |

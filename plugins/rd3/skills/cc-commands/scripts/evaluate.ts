@@ -69,6 +69,9 @@ function getWeights(hasPseudocode: boolean): CommandDimensionWeights {
     return hasPseudocode ? EVALUATION_CONFIG.withPseudocode : EVALUATION_CONFIG.withoutPseudocode;
 }
 
+// Category helper for dimension results
+type DimensionCategory = 'Metadata' | 'Content' | 'Architecture' | 'Security' | 'Platform';
+
 function detectPseudocode(body: string): boolean {
     for (const pattern of EVALUATION_CONFIG.detection.pseudocodePatterns) {
         if (pattern.test(body)) {
@@ -131,6 +134,7 @@ function evaluateFrontmatterQuality(
         return {
             name: 'frontmatter-quality',
             displayName: 'Frontmatter Quality',
+            category: 'Metadata',
             weight: maxScore,
             score: 0,
             maxScore,
@@ -183,6 +187,7 @@ function evaluateFrontmatterQuality(
     return {
         name: 'frontmatter-quality',
         displayName: 'Frontmatter Quality',
+        category: 'Metadata',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -206,6 +211,7 @@ function evaluateDescriptionEffectiveness(
         return {
             name: 'description-effectiveness',
             displayName: 'Description Effectiveness',
+            category: 'Metadata',
             weight: maxScore,
             score: 0,
             maxScore,
@@ -247,6 +253,7 @@ function evaluateDescriptionEffectiveness(
     return {
         name: 'description-effectiveness',
         displayName: 'Description Effectiveness',
+        category: 'Metadata',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -271,6 +278,7 @@ function evaluateContentQuality(
         return {
             name: 'content-quality',
             displayName: 'Content Quality',
+            category: 'Content',
             weight: maxScore,
             score: 0,
             maxScore,
@@ -339,6 +347,7 @@ function evaluateContentQuality(
     return {
         name: 'content-quality',
         displayName: 'Content Quality',
+        category: 'Content',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -386,6 +395,7 @@ function evaluateStructureBrevity(
     return {
         name: 'structure-brevity',
         displayName: 'Structure & Brevity',
+        category: 'Content',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -394,14 +404,14 @@ function evaluateStructureBrevity(
     };
 }
 
-function evaluateDelegationPattern(
-    body: string,
+function evaluateDelegationArchitecture(
+    _body: string,
     analysis: CommandBodyAnalysis,
     weights: CommandDimensionWeights,
 ): CommandEvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
-    const maxScore = weights.delegationPattern;
+    const maxScore = weights.delegationArchitecture;
     let score = maxScore;
 
     // Commands should NOT have scripts/ subdirectories - they delegate to skills
@@ -409,14 +419,15 @@ function evaluateDelegationPattern(
 
     if (!analysis.hasPseudocode) {
         // Simple command without pseudocode - low weight expected
-        if (weights.delegationPattern > 8) {
+        if (weights.delegationArchitecture > 8) {
             findings.push('No pseudocode constructs found (Task, Skill, SlashCommand)');
             recommendations.push('Consider delegating to skills for complex operations');
             score -= 2;
         }
         return {
-            name: 'delegation-pattern',
-            displayName: 'Delegation Pattern',
+            name: 'delegation-architecture',
+            displayName: 'Delegation Architecture',
+            category: 'Architecture',
             weight: maxScore,
             score: Math.max(0, score),
             maxScore,
@@ -431,7 +442,6 @@ function evaluateDelegationPattern(
     // Should use Task() or Skill() for delegation
     const hasTask = constructs.some((c) => c.includes('Task'));
     const hasSkill = constructs.some((c) => c.includes('Skill'));
-    const hasSlashCommand = constructs.some((c) => c.includes('SlashCommand'));
     const hasAskUserQuestion = constructs.some((c) => c.includes('AskUserQuestion'));
 
     if (!hasTask && !hasSkill && constructs.length > 0) {
@@ -455,8 +465,9 @@ function evaluateDelegationPattern(
     }
 
     return {
-        name: 'delegation-pattern',
-        displayName: 'Delegation Pattern',
+        name: 'delegation-architecture',
+        displayName: 'Delegation Architecture',
+        category: 'Architecture',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -503,6 +514,7 @@ function evaluateArgumentDesign(
             return {
                 name: 'argument-design',
                 displayName: 'Argument Design',
+                category: 'Architecture',
                 weight: maxScore,
                 score: Math.max(0, score),
                 maxScore,
@@ -536,6 +548,7 @@ function evaluateArgumentDesign(
     return {
         name: 'argument-design',
         displayName: 'Argument Design',
+        category: 'Architecture',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -588,6 +601,7 @@ function evaluateSecurity(
     return {
         name: 'security',
         displayName: 'Security',
+        category: 'Security',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -632,6 +646,7 @@ function evaluateNamingConvention(commandName: string, weights: CommandDimension
     return {
         name: 'naming-convention',
         displayName: 'Naming Convention',
+        category: 'Metadata',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -640,21 +655,22 @@ function evaluateNamingConvention(commandName: string, weights: CommandDimension
     };
 }
 
-function evaluatePlatformCompatibility(
+function evaluateCrossPlatformPortability(
     body: string,
     analysis: CommandBodyAnalysis,
     weights: CommandDimensionWeights,
 ): CommandEvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
-    const maxScore = weights.platformCompatibility;
+    const maxScore = weights.crossPlatformPortability;
     let score = maxScore;
 
     if (!analysis.hasPseudocode) {
-        // Simple command - less weight on platform compatibility
+        // Simple command - less weight on platform portability
         return {
-            name: 'platform-compatibility',
-            displayName: 'Platform Compatibility',
+            name: 'cross-platform-portability',
+            displayName: 'Cross-Platform Portability',
+            category: 'Platform',
             weight: maxScore,
             score: Math.max(0, score),
             maxScore,
@@ -690,8 +706,9 @@ function evaluatePlatformCompatibility(
     }
 
     return {
-        name: 'platform-compatibility',
-        displayName: 'Platform Compatibility',
+        name: 'cross-platform-portability',
+        displayName: 'Cross-Platform Portability',
+        category: 'Platform',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -710,7 +727,7 @@ function evaluatePlatformCompatibility(
  */
 function evaluateCircularReference(
     body: string,
-    analysis: CommandBodyAnalysis,
+    _analysis: CommandBodyAnalysis,
     weights: CommandDimensionWeights,
 ): CommandEvaluationDimension {
     const findings: string[] = [];
@@ -760,74 +777,7 @@ function evaluateCircularReference(
     return {
         name: 'circular-reference',
         displayName: 'Circular Reference Prevention',
-        weight: maxScore,
-        score: Math.max(0, score),
-        maxScore,
-        findings,
-        recommendations,
-    };
-}
-
-function evaluateOperationalReadiness(
-    body: string,
-    analysis: CommandBodyAnalysis,
-    weights: CommandDimensionWeights,
-): CommandEvaluationDimension {
-    const findings: string[] = [];
-    const recommendations: string[] = [];
-    const maxScore = weights.operationalReadiness;
-    let score = maxScore;
-
-    if (weights.operationalReadiness <= 2) {
-        // Low weight - skip detailed checks for simple commands
-        return {
-            name: 'operational-readiness',
-            displayName: 'Operational Readiness',
-            weight: maxScore,
-            score: Math.max(0, score),
-            maxScore,
-            findings,
-            recommendations,
-        };
-    }
-
-    const bodyLower = body.toLowerCase();
-
-    // Error handling
-    const hasErrorHandling = /error|fail|exception|catch/i.test(body);
-    if (!hasErrorHandling) {
-        findings.push('No error handling mentioned');
-        recommendations.push('Add error handling instructions');
-        score -= 1;
-    }
-
-    // Edge cases
-    const hasEdgeCases = /edge\s+case|boundary|limit/i.test(body);
-    if (!hasEdgeCases && body.length > 500) {
-        findings.push('No edge case coverage');
-        recommendations.push('Document edge cases');
-        score -= 1;
-    }
-
-    // Input validation
-    const hasInputValidation = /validat|check|verify|ensure/i.test(body);
-    if (!hasInputValidation && body.length > 300) {
-        findings.push('No input validation mentioned');
-        recommendations.push('Add input validation instructions');
-        score -= 1;
-    }
-
-    // Troubleshooting
-    const hasTroubleshooting = /troubleshoot|debug|solve|resolve/i.test(body);
-    if (!hasTroubleshooting && body.length > 800) {
-        findings.push('No troubleshooting guidance');
-        recommendations.push('Add troubleshooting section');
-        score -= 1;
-    }
-
-    return {
-        name: 'operational-readiness',
-        displayName: 'Operational Readiness',
+        category: 'Security',
         weight: maxScore,
         score: Math.max(0, score),
         maxScore,
@@ -883,22 +833,21 @@ export function evaluateCommand(command: Command, scope: EvaluationScope = 'basi
 
     const dimensions: CommandEvaluationDimension[] = [];
 
-    // Always run basic evaluations (7 of 11 dimensions).
+    // Always run basic evaluations (7 of 10 dimensions).
     // NOTE: Basic scope evaluates fewer dimensions, so percentages are relative
     // to the actual maxScore of evaluated dimensions, not the full 10-dimension total.
     dimensions.push(evaluateFrontmatterQuality(frontmatter, weights));
     dimensions.push(evaluateDescriptionEffectiveness(frontmatter, weights));
     dimensions.push(evaluateContentQuality(body, analysis, weights));
     dimensions.push(evaluateStructureBrevity(body, analysis, weights));
-    dimensions.push(evaluateDelegationPattern(body, analysis, weights));
+    dimensions.push(evaluateDelegationArchitecture(body, analysis, weights));
     dimensions.push(evaluateArgumentDesign(frontmatter, analysis, weights));
     dimensions.push(evaluateCircularReference(body, analysis, weights));
 
     if (scope === 'full') {
         dimensions.push(evaluateSecurity(frontmatter, securityResult, weights));
         dimensions.push(evaluateNamingConvention(filename, weights));
-        dimensions.push(evaluatePlatformCompatibility(body, analysis, weights));
-        dimensions.push(evaluateOperationalReadiness(body, analysis, weights));
+        dimensions.push(evaluateCrossPlatformPortability(body, analysis, weights));
     }
 
     // Calculate overall score

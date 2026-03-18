@@ -173,18 +173,20 @@ Each script operates independently and can be invoked from CLI or slash commands
 
 ## Evaluation Dimensions (10)
 
-| # | Dimension | What It Checks |
-|---|-----------|----------------|
-| 1 | Frontmatter Quality | Valid YAML, only allowed fields |
-| 2 | Description Effectiveness | Under 60 chars, starts with verb |
-| 3 | Content Quality | Imperative form, writes FOR Claude |
-| 4 | Structure & Brevity | Under 150 lines, progressive disclosure |
-| 5 | Delegation Pattern | Proper Skill()/Task() usage |
-| 6 | Argument Design | argument-hint consistency with body |
-| 7 | Security | Tool restrictions, dangerous patterns |
-| 8 | Naming Convention | noun-verb (grouped) or verb-noun (simple) |
-| 9 | Platform Compatibility | Non-portable features documented |
-| 10 | Operational Readiness | Error handling, edge cases |
+Organized into 5 categories (MECE-compliant):
+
+| # | Category | Dimension | What It Checks |
+|---|---------|-----------|----------------|
+| 1 | Metadata | Frontmatter Quality | Valid YAML, only allowed fields |
+| 2 | Metadata | Description Effectiveness | Under 60 chars, starts with verb |
+| 3 | Metadata | Naming Convention | noun-verb (grouped) or verb-noun (simple) |
+| 4 | Content | Content Quality | Imperative form, writes FOR Claude |
+| 5 | Content | Structure & Brevity | Under 150 lines, progressive disclosure |
+| 6 | Architecture | Delegation Architecture | Proper Skill()/Task() usage |
+| 7 | Architecture | Argument Design | argument-hint consistency with body |
+| 8 | Security | Security | Tool restrictions, dangerous patterns |
+| 9 | Security | Circular Reference Prevention | No /rd3:command-* refs or Commands Reference |
+| 10 | Platform | Cross-Platform Portability | Non-portable features documented |
 
 Two weight profiles: `with-pseudocode` and `without-pseudocode`.
 

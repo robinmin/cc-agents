@@ -266,9 +266,6 @@ Fix issues and improve quality based on evaluation results.
 # Apply deterministic fixes
 bun scripts/refine.ts <skill-path> --best-practices
 
-# Apply LLM refinement
-bun scripts/refine.ts <skill-path> --llm-refine
-
 # Generate platform companions
 bun scripts/refine.ts <skill-path> --platform all
 
@@ -281,7 +278,6 @@ bun scripts/refine.ts <skill-path> --dry-run
 | Option | What It Does |
 |--------|-------------|
 | `--best-practices` | Auto-fix TODOs, Windows paths, circular references |
-| `--llm-refine` | Use LLM to fix fuzzy issues (imperative form, voice) |
 | `--migrate` | Migrate rd2 skills to rd3 format |
 | `--platform` | Generate platform-specific companions |
 
@@ -289,7 +285,7 @@ bun scripts/refine.ts <skill-path> --dry-run
 
 ```bash
 # Combined refinement
-bun scripts/refine.ts <skill-path> --best-practices --llm-refine --platform all
+bun scripts/refine.ts <skill-path> --best-practices --platform all
 ```
 
 ---

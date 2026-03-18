@@ -60,8 +60,8 @@ bun scripts/scaffold.ts my-skill --path ./skills
 # Evaluate: Validate skill structure (Two-Tier: Structural + Quality)
 bun scripts/evaluate.ts ./skills/my-skill --scope full
 
-# Refine: Apply fixes (deterministic + LLM)
-bun scripts/refine.ts ./skills/my-skill --best-practices --llm-refine
+# Refine: Apply deterministic fixes (fuzzy checks via invoking agent checklist)
+bun scripts/refine.ts ./skills/my-skill --best-practices
 
 # Package: Create distribution bundle
 bun scripts/package.ts ./skills/my-skill --output ./dist
@@ -226,7 +226,7 @@ Follow these best practices to create effective, maintainable skills. See [refer
 
 <!-- Full best practices moved to references/best-practices.md -->
 
-## Evaluation Dimensions
+## MECE Evaluation Dimensions
 
 Skills are scored across **4 categories, 10 dimensions, 100 points total** (source: `scripts/evaluation.config.ts`):
 

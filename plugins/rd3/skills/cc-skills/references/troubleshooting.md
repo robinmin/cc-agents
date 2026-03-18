@@ -156,14 +156,6 @@ bun scripts/refine.ts ./my-skill --migrate --verbose
 
 **Missing API key for LLM refinement:**
 ```
-Error: ANTHROPIC_API_KEY not set
-```
-**Solution:**
-```bash
-export ANTHROPIC_API_KEY=your-key
-bun scripts/refine.ts ./my-skill --llm-refine
-```
-
 **Platform generation failures:**
 ```bash
 # Test single platform first
@@ -327,7 +319,6 @@ bun scripts/evaluate.ts ./my-skill --json | jq '.scores'
 | `SKILL.md not found` | Wrong path or filename | Check file exists at skill-path/SKILL.md |
 | `YAML parse error` | Invalid frontmatter | Validate YAML syntax |
 | `name: is required` | Missing frontmatter field | Add name field |
-| `ANTHROPIC_API_KEY not set` | LLM refine without key | Set API key or skip --llm-refine |
 | `platform not supported` | Invalid platform name | Use: claude, codex, openclaw, opencode, antigravity |
 | `No changes needed` | Skill already meets standards | Skip refinement |
 

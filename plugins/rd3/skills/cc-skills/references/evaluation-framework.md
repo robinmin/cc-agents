@@ -106,6 +106,8 @@ A skill is classified as "with scripts" if it contains any of:
 - **Basic scope**: All structural checks pass
 - **Full scope**: Score >= **70 pts** (Grade B or above)
 
+See [red-flags.md](red-flags.md) for the complete 10-category red flags checklist.
+
 ## Security Scanner
 
 The evaluation includes a security scanner with two tiers:
@@ -204,7 +206,7 @@ See `scripts/evaluation.config.ts` for the complete list.
 
 1. Run evaluation with `--scope full`
 2. Review findings and recommendations
-3. Apply refinements: `bun scripts/refine.ts <skill-path> --best-practices --llm-refine`
+3. Apply refinements: `bun scripts/refine.ts <skill-path> --best-practices`
 4. Re-run evaluation to verify improvements
 5. Repeat until score >= 70 pts (Grade B)
 

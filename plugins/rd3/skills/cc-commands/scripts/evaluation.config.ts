@@ -14,28 +14,31 @@
 // ============================================================================
 
 export interface CommandDimensionWeights {
+    // Metadata (3 dimensions)
     /** Valid YAML, only allowed fields, no invalid fields */
     frontmatterQuality: number;
     /** Under 60 chars, starts with verb, specific */
     descriptionEffectiveness: number;
+    /** noun-verb for grouped, verb-noun for simple, hyphen-case */
+    namingConvention: number;
+    // Content (2 dimensions)
     /** Imperative form, no second-person, writes FOR Claude */
     contentQuality: number;
     /** Under 150 lines, progressive disclosure */
     structureBrevity: number;
-    /** Uses Skill()/Task()/SlashCommand(), fat skills thin wrappers */
-    delegationPattern: number;
+    // Architecture (2 dimensions)
+    /** Uses Skill()/Task() properly, fat-skills-thin-wrappers principle */
+    delegationArchitecture: number;
     /** argument-hint present when $N used, descriptive */
     argumentDesign: number;
+    // Security (2 dimensions)
     /** allowed-tools restrictive, no dangerous patterns */
     security: number;
-    /** noun-verb for grouped, verb-noun for simple */
-    namingConvention: number;
-    /** Claude-specific features documented */
-    platformCompatibility: number;
-    /** Error handling, edge cases */
-    operationalReadiness: number;
-    /** Circular reference prevention */
+    /** No /rd3:command-* refs, no Commands Reference sections */
     circularReference: number;
+    // Platform (1 dimension)
+    /** Platform Notes present, Claude-specific limitations documented */
+    crossPlatformPortability: number;
 }
 
 export interface SecurityPattern {
@@ -68,32 +71,40 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
 
     // Scenario: Commands WITH pseudocode (workflow commands)
     withPseudocode: {
+        // Metadata
         frontmatterQuality: 15,
         descriptionEffectiveness: 15,
+        namingConvention: 5,
+        // Content
         contentQuality: 12,
         structureBrevity: 10,
-        delegationPattern: 12,
+        // Architecture
+        delegationArchitecture: 12,
         argumentDesign: 8,
+        // Security
         security: 10,
-        namingConvention: 5,
-        platformCompatibility: 8,
-        operationalReadiness: 0,
         circularReference: 5,
+        // Platform
+        crossPlatformPortability: 8,
     },
 
     // Scenario: Commands WITHOUT pseudocode (simple commands)
     withoutPseudocode: {
+        // Metadata
         frontmatterQuality: 18,
         descriptionEffectiveness: 18,
+        namingConvention: 7,
+        // Content
         contentQuality: 15,
         structureBrevity: 12,
-        delegationPattern: 5,
+        // Architecture
+        delegationArchitecture: 5,
         argumentDesign: 10,
+        // Security
         security: 8,
-        namingConvention: 7,
-        platformCompatibility: 2,
-        operationalReadiness: 0,
         circularReference: 5,
+        // Platform
+        crossPlatformPortability: 2,
     },
 
     // ==========================================================================
