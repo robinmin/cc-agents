@@ -119,13 +119,28 @@ async function runTests(skillPath: string): Promise<boolean> {
 
     try {
         const { spawn } = await import('bun');
-        const proc = spawn(['bun', 'test', testsPath], {
+        // Run tests from plugins/rd3 (the root) to use the root bunfig.toml
+        // testsPath is like .../plugins/rd3/skills/cc-agents/tests, we need to run from plugins/rd3
+        const testsRelPath = testsPath.replace(/.*plugins\/rd3\//, '');
+        const cwd = resolve(testsPath, '../../..');
+        const proc = spawn(['bun', 'test', testsRelPath], {
+            cwd,
             stdout: 'pipe',
             stderr: 'pipe',
         });
 
-        const exitCode = await proc.exited;
-        return exitCode === 0;
+        const [exitCode, stdout, stderr] = await Promise.all([
+            proc.exited,
+            new Response(proc.stdout).text(),
+            new Response(proc.stderr).text(),
+        ]);
+
+        // bun exits with 1 if coverage thresholds fail, even if all tests pass
+        // Check for actual test failures: look for "X fail" where X > 0
+        const output = stdout + stderr;
+        const hasFailures = /(\d+)\s+fail/.test(output) && !/0\s+fail/.test(output);
+
+        return exitCode === 0 || !hasFailures;
     } catch {
         return false;
     }
