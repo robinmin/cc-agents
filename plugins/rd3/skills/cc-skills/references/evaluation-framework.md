@@ -1,6 +1,6 @@
 # Evaluation Framework
 
-This document describes the evaluation framework for rd3:cc-skills.
+This document describes the evaluation framework for rd3:cc-skills. The authoritative source for weights and rules is `scripts/evaluation.config.ts`.
 
 ## Evaluation Scopes
 
@@ -37,42 +37,112 @@ Comprehensive evaluation including all basic checks plus
    - Measure success rate
 
 2. **Quality Scoring**
-   - Trigger design effectiveness
-   - Instruction clarity
-   - Code quality (scripts/)
-   - Documentation completeness (references/)
-   - Platform compatibility score
+   - 10 dimensions across 4 MECE categories
+   - Deterministic (script) + fuzzy (LLM) checks
+   - Two weight profiles: with/without scripts
 
 3. **Performance Metrics**
    - Token efficiency
    - Execution time
    - Success rate across platforms
 
-## Evaluation Dimensions
+## Evaluation Dimensions (MECE)
 
-| Dimension | Weight | Criteria |
-|-----------|--------|----------|
-| **Frontmatter Quality** | 15% | Complete, valid, descriptive |
-| **Structure Compliance** | 10% | Follows directory conventions |
-| **Content Clarity** | 20% | Clear instructions, examples |
-| **Trigger Design** | 15% | Effective activation |
-| **Platform Compatibility** | 15% | Works across platforms |
-| **Resource Quality** | 10% | Scripts work, docs are useful |
-| **Best Practices** | 15% | Follows skill conventions |
+4 categories, 10 dimensions, 100 points total.
+
+### Weight Profiles
+
+Skills are scored differently depending on whether they contain executable code:
+
+| Category | Dimension | With Scripts | Without Scripts | What It Checks |
+|----------|-----------|:---:|:---:|----------------|
+| **Core Quality** | Frontmatter | 10 | 10 | YAML validity, required fields |
+| | Structure | 5 | 10 | Directory organization, file layout |
+| | Content | 15 | 20 | SKILL.md body quality, examples |
+| | Completeness | 10 | 10 | All required sections present |
+| **Discovery & Trigger** | Trigger Design | 10 | 10 | Description triggers, when-to-use |
+| | Platform Compatibility | 10 | 10 | Multi-platform support |
+| **Safety & Security** | Security | 10 | 10 | No dangerous patterns (blacklist/greylist) |
+| | Circular Reference | 10 | 10 | No command/agent references |
+| **Code & Documentation** | Code Quality | 10 | 0 | Scripts executable, tested |
+| | Progressive Disclosure | 10 | 10 | References used, detail offloaded |
+| **Total** | | **100** | **100** | |
+
+**Key differences without scripts:** Structure and Content get more weight (+5 each) to compensate for Code Quality being 0.
+
+### Category Totals
+
+| Category | With Scripts | Without Scripts |
+|----------|:---:|:---:|
+| Core Quality | 40 | 50 |
+| Discovery & Trigger | 20 | 20 |
+| Safety & Security | 20 | 20 |
+| Code & Documentation | 20 | 10 |
+
+### Script Detection
+
+A skill is classified as "with scripts" if it contains any of:
+- Bash/shell code blocks
+- `!`cmd`` syntax (Claude command execution)
+- Variable assignments (`$VAR=`)
+- Package manager commands (`bun run`, `npm run`)
+- Python script references (`python script.py`)
+- References to `scripts/` directory
 
 ## Scoring Guide
 
-### Score Ranges
+### Grading Scale
 
-- **90-100%**: Excellent - Ready for production
-- **75-89%**: Good - Minor improvements recommended
-- **60-74%**: Acceptable - Several improvements needed
-- **Below 60%**: Needs Work - Significant improvements required
+| Grade | Score | Meaning |
+|-------|-------|---------|
+| **A** | 90-100 | Production ready |
+| **B** | 70-89 | Minor fixes needed |
+| **C** | 50-69 | Moderate revision |
+| **D** | 30-49 | Major revision |
+| **F** | 0-29 | Rewrite needed |
 
 ### Passing Threshold
 
-- **Basic scope**: All checks pass
-- **Full scope**: Score >= 70%
+- **Basic scope**: All structural checks pass
+- **Full scope**: Score >= **70 pts** (Grade B or above)
+
+## Security Scanner
+
+The evaluation includes a security scanner with two tiers:
+
+### Blacklist (Immediate REJECT)
+
+Patterns that cause critical security failures:
+
+| Pattern | Reason |
+|---------|--------|
+| `rm -rf` | Destructive file deletion |
+| `curl ... \| sh` | Pipe to shell execution |
+| `eval()` / `exec()` | Dynamic code execution |
+| `subprocess...shell=True` | Shell injection vulnerability |
+| `password=` / `api_key=` | Hardcoded credentials |
+| `mkfs.*` | Disk formatting |
+| `dd if=...of=/dev/` | Destructive block writes |
+| `shutdown` / `reboot` | System shutdown commands |
+| Fork bomb patterns | Resource exhaustion |
+| `nc -l` / `netcat -l` | Network listeners / bind shells |
+
+### Greylist (Penalty: -2 pts each)
+
+Patterns that warrant warnings:
+
+| Pattern | Reason |
+|---------|--------|
+| `sudo` (without -n) | May prompt for password |
+| `chmod 777` | Insecure permissions |
+| `chown -R root:` | Recursive ownership change |
+| `os.system()` | Command injection risk |
+| `curl -k` / `--insecure` | Disabling SSL checks |
+| `git push --force` | Destructive remote push |
+| `npm publish` | Risky automated publishing |
+| Hardcoded `/tmp/` paths | Use mktemp instead |
+
+See `scripts/evaluation.config.ts` for the complete list.
 
 ## Evaluation Report Format
 
@@ -84,16 +154,19 @@ Comprehensive evaluation including all basic checks plus
   "overallScore": 82,
   "maxScore": 100,
   "percentage": 82,
+  "weightProfile": "withScripts",
   "dimensions": [
     {
-      "name": "Frontmatter Quality",
-      "weight": 15,
-      "score": 14,
-      "maxScore": 15,
+      "name": "Frontmatter",
+      "category": "Core Quality",
+      "weight": 10,
+      "score": 9,
+      "maxScore": 10,
       "findings": ["Complete frontmatter", "Good description"],
       "recommendations": []
     }
   ],
+  "securityFindings": [],
   "timestamp": "2026-03-14T00:00:00Z",
   "passed": true
 }
@@ -131,9 +204,9 @@ Comprehensive evaluation including all basic checks plus
 
 1. Run evaluation with `--scope full`
 2. Review findings and recommendations
-3. Use `/rd3:skill-refine` to apply improvements
+3. Apply refinements: `bun scripts/refine.ts <skill-path> --best-practices --llm-refine`
 4. Re-run evaluation to verify improvements
-5. Repeat until score >= 80%
+5. Repeat until score >= 70 pts (Grade B)
 
 ## Integration with CI/CD
 
