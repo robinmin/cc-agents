@@ -1,6 +1,6 @@
 ---
 description: Adapt a Claude Code command for other AI coding platforms
-argument-hint: "<command-path> [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--dry-run] [--output <dir>]"
+argument-hint: "<plugin|path> [targets: all|claude|codex|gemini|openclaw|opencode|antigravity] [--component commands|all] [--dry-run]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -26,22 +26,22 @@ Convert a Claude Code slash command to work on other AI coding platforms.
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| `command-path` | Path to the command .md file | (required) |
-| `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
-| `--dry-run` | Show adapted output without writing files | false |
-| `--output` | Output directory for adapted files | ./adapted/ |
+| `plugin\|path` | Plugin name (e.g., rd3) or path to command .md file | (required) |
+| `targets` | Comma-separated target platforms: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
+| `--component` | Component to adapt: commands, all | all |
+| `--dry-run` | Preview changes without applying | false |
 
 ## Examples
 
 ```bash
-# Adapt for all platforms
-/rd3:command-adapt ./commands/review-code.md --platform all
+# Adapt all rd3 commands for all platforms
+/rd3:command-adapt rd3 all
 
-# Adapt for Gemini only
-/rd3:command-adapt ./commands/review-code.md --platform gemini
+# Adapt for Gemini and OpenClaw only
+/rd3:command-adapt rd3 gemini,openclaw --dry-run
 
-# Dry run to preview
-/rd3:command-adapt ./commands/review-code.md --platform codex --dry-run
+# Adapt a single command file for Claude
+/rd3:command-adapt ./commands/review-code.md claude
 ```
 
 ## Implementation
@@ -54,7 +54,7 @@ Skill(skill="rd3:cc-commands")
 
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-commands/scripts/adapt.ts <command-path> [options]
+bun plugins/rd3/skills/cc-commands/scripts/adapt.ts <plugin|path> <targets> [options]
 ```
 
 ## Platform Notes
