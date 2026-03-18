@@ -1,6 +1,6 @@
 ---
-description: Package skill for distribution with platform companions
-argument-hint: "<skill-path> [--output <dir>] [--platform all|claude|codex|openclaw|opencode|antigravity] [--no-source]"
+description: Package skill for distribution with companions
+argument-hint: "<skill-path> [--output <dir>] [--platform all|claude|codex|openclaw|opencode|antigravity]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -8,19 +8,13 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-skills** skill.
 
-Package a skill for distribution with all platform-specific companions.
+Bundle a skill for distribution with platform-specific companions.
 
 ## When to Use
 
 - Prepare skills for distribution
 - Create distributable skill packages
 - Generate platform-specific companions
-
-## Expected Results
-
-- Distribution-ready package directory
-- Platform-specific companion files (if --platform is not claude)
-- Package size and contents summary
 
 ## Arguments
 
@@ -34,10 +28,10 @@ Package a skill for distribution with all platform-specific companions.
 ## Examples
 
 ```bash
-# Package with all platforms
+# Package with all platform companions
 /rd3:skill-package ./skills/my-skill
 
-# Package for specific platform
+# Package for a specific platform
 /rd3:skill-package ./skills/my-skill --platform codex
 
 # Custom output directory
@@ -45,6 +39,8 @@ Package a skill for distribution with all platform-specific companions.
 ```
 
 ## Implementation
+
+Pass `$ARGUMENTS` to the underlying skill for processing.
 
 Delegates to **rd3:cc-skills** skill:
 
@@ -54,10 +50,10 @@ Skill(skill="rd3:cc-skills")
 
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-skills/scripts/package.ts <skill-path> [options]
+bun plugins/rd3/skills/cc-skills/scripts/package.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
