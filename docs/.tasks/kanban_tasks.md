@@ -61,4 +61,18 @@ kanban-plugin: board
 - [x] 0217_Cleanup_and_test_coverage_L1-L7:_hardcoded_paths,_typos,_unused_vars,_missing_tests
 - [x] 0218_implement_the_new_cc-command
 - [x] 0219_Fix_cc-commands_code_review_issues_(18_issues:_6_HIGH,_7_MEDIUM,_8_LOW)
+- [x] 0220_upgrade_cc-agents_for_plugin_rd3
+- [x] 0221_rd3-cc-agents-phase1-foundation-types-utils-adapters
+- [x] 0222_rd3-cc-agents-phase2-scaffold-validate-templates
+- [x] 0223_rd3-cc-agents-phase3-evaluate-refine
+- [x] 0224_rd3-cc-agents-phase4-platform-adapters
+- [x] 0225_rd3-cc-agents-phase5-skill-md-references-integration
+- [x] 0226_Fix_critical_evaluation_scoring:_grade_boundaries,_pass_threshold,_weight_profiles,_main_guard_(C1-C5)
+- [x] 0227_Align_reference_docs_with_spec:_evaluation-framework_rename_and_weight_grade_corrections_(H1,_H4,_L1)
+- [x] 0228_Extend_validate.ts_with_OpenCode,_Codex,_OpenClaw_platform-specific_field_validation_(H5)
+- [x] 0229_Add_OpenCode_adapter_dual-format_output:_Markdown_plus_JSON_config_snippet_(H6)
+- [x] 0230_Optimize_adapt.ts_to_reuse_parsed_content_instead_of_re-running_pipeline_per_platform_(H2)
+- [x] 0231_Create_missing_spec-required_files:_metadata,_references,_test_fixtures_(H3)
+- [x] 0232_Fix_medium_issues:_writeFileSync,_TOML_parser,_CLI_color,_template_footers,_security_scanner,_nc-l_pattern,_error_handling_(M1-M7)
+- [x] 0233_Fix_low_issues:_placeholder_text,_minimal_template_examples,_dry-run_flag,_frontmatter_validation_(L2-L5)
 
