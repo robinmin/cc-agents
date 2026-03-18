@@ -13,6 +13,7 @@ rd3 skills follow five distinct patterns that represent best practices. Understa
 | Iterative Refinement | Quality loops | Validation scripts, stop criteria |
 | Context-Aware Tool Selection | Decision trees | Clear criteria, fallbacks |
 | Domain-Specific Intelligence | Compliance/audit | Embedded expertise, checks |
+| Composable Library | Dynamic code generation | Pre-built helpers, runtime composition |
 
 ---
 
@@ -305,6 +306,66 @@ IF file is document:
 
 ---
 
+## 6. Composable Library
+
+**Best for:** Skills that provide helper functions Claude can compose dynamically at runtime.
+
+### Characteristics
+
+- Pre-built helper functions in `scripts/`
+- Claude generates new scripts that import and compose these helpers
+- Claude spends turns on composition, not reconstructing boilerplate
+- Helpers handle complexity; Claude handles orchestration
+
+### Example Structure
+
+```markdown
+## Data Analysis Toolkit
+
+### Available Helpers
+
+The following functions are in `scripts/helpers/`:
+
+- `fetch_events(source, date_range)` — Pull events from your event source
+- `join_users(events, user_table)` — Join events with canonical user_id
+- `compute_funnel(steps, events)` — Calculate conversion funnel
+- `format_report(data, template)` — Format results using templates
+
+### Usage
+
+Generate a Python script that imports and composes these helpers:
+
+    from helpers import fetch_events, join_users, compute_funnel
+
+    events = fetch_events("signup", last_7_days)
+    enriched = join_users(events, "users_canonical")
+    funnel = compute_funnel(["signup", "activate", "paid"], enriched)
+```
+
+### When to Use
+
+- Complex analysis requiring multiple data transformations
+- Workflows where the same building blocks combine in different ways
+- Skills where Claude would otherwise rewrite the same code each time
+- Domain-specific operations with tricky edge cases
+
+### When NOT to Use
+
+- Simple single-step operations
+- Skills where the workflow is always the same (use Sequential instead)
+- Operations that don't benefit from code generation
+
+### Key Techniques Checklist
+
+- [ ] Helper functions are tested and reliable
+- [ ] Function signatures are well-documented
+- [ ] Helpers handle edge cases internally
+- [ ] Claude knows what helpers are available (list in SKILL.md)
+- [ ] Generated scripts can be run directly
+- [ ] Error messages from helpers are clear and actionable
+
+---
+
 ## Choosing a Pattern
 
 ### Quick Decision Guide
@@ -328,6 +389,10 @@ Does it make decisions based on context?
 
 Does it embed domain expertise?
   YES → Domain-Specific Intelligence
+  NO ↓
+
+Does it provide helper functions Claude composes at runtime?
+  YES → Composable Library
   NO → Consider Technique or Reference type
 ```
 
