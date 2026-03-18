@@ -495,6 +495,22 @@ function evaluateArgumentDesign(
     if (hasArgumentHint && frontmatter?.['argument-hint']) {
         const hint = frontmatter['argument-hint'];
 
+        // Ensure hint is a string before processing
+        if (typeof hint !== 'string') {
+            findings.push('argument-hint must be a string');
+            recommendations.push('Change argument-hint to a descriptive string');
+            score -= 3;
+            return {
+                name: 'argument-design',
+                displayName: 'Argument Design',
+                weight: maxScore,
+                score: Math.max(0, score),
+                maxScore,
+                findings,
+                recommendations,
+            };
+        }
+
         // Should have angle brackets or descriptive names
         if (!hint.includes('<') && !hint.includes('[')) {
             findings.push('argument-hint should use angle or square brackets');
