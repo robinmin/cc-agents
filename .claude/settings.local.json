@@ -12,6 +12,10 @@
       "Skill(wt:info-seek)",
       "Skill(superpowers:brainstorming)",
 
+      "Skill(rd3:skill-evaluate)",
+      "Skill(rd3:command-evaluate)",
+      "Skill(rd3:agent-evaluate)",
+
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -40,9 +44,7 @@
       "Bash(rg:*)",
       "Bash(make:*)",
       "Bash(tasks:*)",
-      "Bash(ls:*)",
-      "Bash(bun run:*)",
-      "Bash(wc:*)"
+      "Bash(bun run:*)"
     ],
     "deny": [],
     "ask": []
