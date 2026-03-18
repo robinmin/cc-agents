@@ -58,12 +58,15 @@ Follow these steps to complete the workflow:
 {{advanced_example}}
 ```
 
-## Common Mistakes
+## Gotchas
 
-Avoid these common mistakes:
-1. **Mistake 1**: [Description and how to avoid]
-2. **Mistake 2**: [Description and how to avoid]
-3. **Mistake 3**: [Description and how to avoid]
+<!-- This is the HIGHEST-SIGNAL section of your skill. Start with 2-3 items, -->
+<!-- then grow it as you observe Claude failing in real usage. Each gotcha -->
+<!-- should describe a specific failure mode and how to avoid it. -->
+
+1. **[Gotcha 1]**: [What goes wrong and how to prevent it]
+2. **[Gotcha 2]**: [What goes wrong and how to prevent it]
+3. **[Gotcha 3]**: [What goes wrong and how to prevent it]
 
 ## Resources (optional)
 
