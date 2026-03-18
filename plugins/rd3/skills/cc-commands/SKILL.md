@@ -68,7 +68,7 @@ All coding agents support agent skills now, but slash commands and subagents are
 
 - **Skills** = core logic, workflows, domain knowledge (source of truth)
 - **Commands** = ~50-150 line wrappers invoking skills for humans
-- **Agents** = ~100 line wrappers invoking skills for AI workflows
+- **Subagents** = ~100 line wrappers invoking skills for AI workflows
 
 **Circular Reference Rule**: Commands MUST NOT reference their associated agents or skills by name. This includes:
 
