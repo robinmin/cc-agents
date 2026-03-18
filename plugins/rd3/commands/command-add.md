@@ -1,6 +1,6 @@
 ---
-description: Scaffold a new slash command with best-practice structure
-argument-hint: "<command-name> [--template simple|workflow|plugin] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--path <dir>]"
+description: Scaffold a new slash definition with best practices
+argument-hint: "<command-name> [--template simple|workflow|plugin] [--path <dir>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -8,26 +8,19 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-commands** skill.
 
-Scaffold a new slash command file with proper frontmatter and structure.
+Scaffold a new slash definition file from a template.
 
 ## When to Use
 
-- Create a new slash command from scratch
-- Generate a command with specific template
-- Bootstrap a command file with proper metadata
-
-## Expected Results
-
-- New command .md file created at specified path
-- Frontmatter with description, argument-hint, allowed-tools
-- Template structure applied (simple, workflow, or plugin)
-- Platform companion files generated (if --platform is not claude)
+- Create a new slash definition from scratch
+- Generate with a specific template type
+- Bootstrap a file with proper metadata
 
 ## Arguments
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| `command-name` | Name of the command to create | (required) |
+| `command-name` | Name to create | (required) |
 | `--template` | Template type: simple, workflow, plugin | simple |
 | `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | claude |
 | `--path` | Output directory | ./commands |
@@ -37,17 +30,19 @@ Scaffold a new slash command file with proper frontmatter and structure.
 ## Examples
 
 ```bash
-# Simple command
+# Scaffold a simple definition
 /rd3:command-add review-code
 
-# Workflow command with description
+# Scaffold a workflow definition with description
 /rd3:command-add deploy-app --template workflow --description "Deploy app to production"
 
-# Plugin command
+# Scaffold a plugin definition
 /rd3:command-add skill-test --template plugin --plugin-name rd3
 ```
 
 ## Implementation
+
+Pass `$ARGUMENTS` to the underlying skill for processing.
 
 Delegates to **rd3:cc-commands** skill:
 
@@ -57,10 +52,10 @@ Skill(skill="rd3:cc-commands")
 
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-commands/scripts/scaffold.ts <command-name> [options]
+bun plugins/rd3/skills/cc-commands/scripts/scaffold.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
