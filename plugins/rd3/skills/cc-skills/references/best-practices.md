@@ -67,6 +67,69 @@ Match specificity to the task's fragility and variability:
 - **Narrow bridge**: One safe way forward → provide specific guardrails (low freedom)
 - **Open field**: Many paths lead to success → give general direction (high freedom)
 
+### Avoid Railroading
+
+Claude will try hard to follow your instructions exactly. Because skills are reused across many different contexts, overly specific instructions cause problems. Give Claude the information it needs, but let it adapt.
+
+**Too rigid** (breaks when context differs):
+```markdown
+## Error Handling
+1. Wrap all API calls in try/catch
+2. Log the error with console.error
+3. Return a 500 status with message "Internal Server Error"
+4. Send a Slack notification to #alerts
+```
+
+**Appropriately flexible** (works across contexts):
+```markdown
+## Error Handling
+Handle API errors gracefully:
+- Catch and log errors with enough context to debug
+- Return appropriate HTTP status codes
+- Notify the team if the error affects users
+```
+
+**Too rigid** (assumes specific setup):
+```markdown
+## Testing
+Run `pytest tests/ -v --cov=src --cov-report=html` after every change.
+Open coverage report at htmlcov/index.html and verify >90% coverage.
+```
+
+**Appropriately flexible** (adapts to project):
+```markdown
+## Testing
+Run the project's test suite after changes. Check coverage if
+the project has coverage tooling configured. Aim for coverage
+parity with existing code.
+```
+
+**Rule of thumb:** If an instruction would be wrong in 20% of cases, make it flexible. If it must be exact every time (database migrations, compliance checks), make it rigid.
+
+### Build a Gotchas Section
+
+The highest-signal content in any skill is the **Gotchas section**. Build it up from common failure points that Claude runs into when using your skill.
+
+**How to grow your Gotchas section:**
+
+1. Start with 2-3 known failure modes
+2. Use the skill on real tasks
+3. When Claude fails or produces wrong output, add the failure as a gotcha
+4. Each gotcha should name the failure mode AND explain how to avoid it
+
+**Good gotcha:**
+```markdown
+**Don't use `pdfplumber` for scanned PDFs** — it only extracts embedded text.
+For scanned documents, use `pytesseract` with `pdf2image` first.
+```
+
+**Bad gotcha:**
+```markdown
+**Be careful with PDFs** — some things might not work.
+```
+
+The Gotchas section is more valuable than most other sections because it captures knowledge Claude doesn't have by default. Prioritize keeping it up to date.
+
 ### Test with All Target Models
 
 Skills act as additions to models, so effectiveness depends on the underlying model:
@@ -264,6 +327,106 @@ MAX_RETRIES = 3
 
 - List required packages in SKILL.md
 - Verify availability in the execution environment
+
+---
+
+## Setup & Configuration
+
+Some skills need user-specific configuration before they can run. Use the **config.json pattern** to handle first-run setup gracefully.
+
+### The Config Pattern
+
+Store setup information in a config file within the skill's stable data directory:
+
+```markdown
+## Setup
+
+On first run, check for config at `${CLAUDE_PLUGIN_DATA}/config.json`.
+
+If config does not exist:
+1. Ask the user for required settings using AskUserQuestion
+2. Save responses to `${CLAUDE_PLUGIN_DATA}/config.json`
+3. Proceed with the workflow
+
+If config exists:
+1. Load settings from config
+2. Proceed with the workflow
+```
+
+### Example: Slack Posting Skill
+
+```json
+// ${CLAUDE_PLUGIN_DATA}/config.json
+{
+  "slack_channel": "#team-standup",
+  "format": "bullet-points",
+  "include_prs": true
+}
+```
+
+```markdown
+## First Run
+
+If `${CLAUDE_PLUGIN_DATA}/config.json` does not exist, ask:
+- "Which Slack channel should I post to?"
+- "What format do you prefer? (bullet-points, paragraph, table)"
+
+Use AskUserQuestion to present structured choices.
+```
+
+### Key Rules
+
+- Always use `${CLAUDE_PLUGIN_DATA}` for config (survives skill upgrades)
+- Never store config in the skill directory itself (gets deleted on upgrade)
+- Make setup re-runnable (user should be able to reconfigure)
+- Provide sensible defaults where possible
+
+---
+
+## Data & Memory
+
+Skills can persist data across sessions using file-based storage. This enables stateful workflows like standups, recurring reports, or operation logs.
+
+### Where to Store Data
+
+| Location | Survives Upgrade? | Use For |
+|----------|-------------------|---------|
+| `${CLAUDE_PLUGIN_DATA}/` | **Yes** | Config, logs, state, databases |
+| Skill directory (`./`) | **No** | Temporary files only |
+
+**Always use `${CLAUDE_PLUGIN_DATA}`** for any data that should persist.
+
+### Common Patterns
+
+**Append-only log** (standup history, operation audit trail):
+```markdown
+Append each run's output to `${CLAUDE_PLUGIN_DATA}/runs.log`.
+Read the log on next run to see what changed since last time.
+```
+
+**JSON state** (user preferences, last-run metadata):
+```markdown
+Save state to `${CLAUDE_PLUGIN_DATA}/state.json` after each run.
+Load state at start of next run for continuity.
+```
+
+**SQLite database** (complex queries, structured data):
+```markdown
+Use `${CLAUDE_PLUGIN_DATA}/data.db` for structured storage.
+Include schema creation in the skill's setup step.
+```
+
+### When to Persist Data
+
+- Skill runs repeatedly and benefits from history (standups, reports)
+- Skill needs to track state across sessions (progress, configuration)
+- Skill produces audit trails (infrastructure operations, deployments)
+
+### When NOT to Persist
+
+- One-shot transformations (PDF conversion, code generation)
+- Results are already stored elsewhere (git, ticket systems)
+- Data is sensitive and shouldn't be stored locally
 
 ---
 
