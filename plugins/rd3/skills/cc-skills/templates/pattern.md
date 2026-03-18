@@ -82,16 +82,20 @@ metadata:
 {{command}}
 ```
 
-## Common Mistakes
+## Gotchas
 
-### Mistake 1: [title]
-[Description of the mistake and how to avoid it]
+<!-- This is the HIGHEST-SIGNAL section of your skill. Start with 2-3 items, -->
+<!-- then grow it as you observe Claude failing in real usage. Each gotcha -->
+<!-- should describe a specific failure mode and how to avoid it. -->
 
-### Mistake 2: [title]
-[Description of the mistake and how to avoid it]
+### [Gotcha 1 title]
+[What goes wrong and how to prevent it]
 
-### Mistake 3: [title]
-[Description of the mistake, how to avoid it]
+### [Gotcha 2 title]
+[What goes wrong and how to prevent it]
+
+### [Gotcha 3 title]
+[What goes wrong and how to prevent it]
 
 ## Trade-offs
 
