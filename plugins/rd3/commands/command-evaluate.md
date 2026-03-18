@@ -45,23 +45,13 @@ Check command quality score and identify weaknesses. **This command only evaluat
 /rd3:command-evaluate ./commands/review-code.md --platform gemini
 ```
 
-## Output Example
-
-```
-Evaluation passed (85%)
-
---- Dimensions ---
-| Dimension | Score | Status |
-|-----------|-------|--------|
-| Frontmatter | 18/18 | ✓ PASS |
-| Content Quality | 12/15 | ✗ FAIL |
-
---- Weaknesses ---
-- Missing Platform Notes section
-- Uses second-person voice
-```
-
 ## Implementation
+
+Delegates to **rd3:cc-commands** skill:
+
+```
+Skill(skill="rd3:cc-commands")
+```
 
 **Direct script execution:**
 ```bash
@@ -72,8 +62,3 @@ bun plugins/rd3/skills/cc-commands/scripts/evaluate.ts <command-path> [options]
 
 - Claude Code: Use `Skill()` for skill delegation
 - Other platforms: Run script directly via Bash tool
-
-## See Also
-
-- `/rd3:command-add` - Create new command
-- `/rd3:command-refine` - Evaluate + apply fixes in one step
