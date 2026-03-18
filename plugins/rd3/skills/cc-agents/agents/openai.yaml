@@ -1,0 +1,10 @@
+# Codex UI metadata for rd3:cc-agents
+name: cc-agents
+description: Universal subagent creator with cross-platform adaptation
+version: "3.0.0"
+category: development
+tags:
+  - agents
+  - cross-platform
+  - scaffolding
+  - evaluation

@@ -1,0 +1,221 @@
+# Platform Compatibility
+
+Cross-platform feature matrix and adapter reference for the Universal Agent Model (UAM).
+
+## Feature Matrix
+
+Which features are supported on each platform.
+
+| Feature | Claude Code | Gemini CLI | OpenCode | Codex | OpenClaw | Antigravity |
+|---------|:-----------:|:----------:|:--------:|:-----:|:--------:|:-----------:|
+| Markdown agents | Yes | Yes | Yes | No | No | No |
+| YAML frontmatter | Yes | Yes | Yes | No | No | No |
+| TOML config | No | No | No | Yes | No | No |
+| JSON config | No | No | Yes | No | Yes | No |
+| Tool allowlist | Yes | Yes | Yes | No (sandbox) | Yes | No |
+| Tool denylist | Yes | No | Yes | No | Yes | No |
+| Model override | Yes | Yes | Yes | Yes | Per-agent | No |
+| Max turns/steps | Yes | Yes | Yes | No | No | No |
+| Timeout | No | Yes | No | Yes | Yes | No |
+| Temperature | No | Yes | Yes | No | No | No |
+| Skills delegation | Yes | No | No | No | No | No |
+| MCP servers | Yes | No | No | No | No | No |
+| Hooks | Yes | No | No | No | No | No |
+| Memory | Yes | No | No | No | No | No |
+| Background mode | Yes | No | No | No | No | No |
+| Isolation/worktree | Yes | No | No | No | No | No |
+| UI color | Yes | No | Yes | No | No | No |
+| Permission modes | Yes | No | Yes | No | No | No |
+| Sandbox mode | No | No | No | Yes | No | No |
+| Reasoning effort | No | No | No | Yes | No | No |
+
+## Platform Adapter Interface
+
+```typescript
+interface IAgentPlatformAdapter {
+  readonly platform: AgentPlatform;
+  readonly displayName: string;
+
+  parse(input: string, filePath: string): Promise<AgentParseResult>;
+  validate(agent: UniversalAgent): Promise<AgentAdapterResult>;
+  generate(agent: UniversalAgent, context: AgentAdapterContext): Promise<AgentAdapterResult>;
+  detectFeatures(agent: UniversalAgent): string[];
+}
+```
+
+## Claude Code Adapter
+
+**Location**: `scripts/adapters/claude.ts`
+
+**Format**: Markdown with YAML frontmatter
+
+```markdown
+---
+name: my-agent
+description: Use PROACTIVELY for...
+tools: [Bash, Read, Write]
+model: claude-sonnet-4-20250514
+maxTurns: 10
+---
+
+# Agent Name
+
+[System prompt content]
+```
+
+**Features**:
+- Full UAM support
+- skills delegation
+- mcpServers
+- hooks
+- memory
+- background
+- isolation
+- color
+
+## Gemini CLI Adapter
+
+**Location**: `scripts/adapters/gemini.ts`
+
+**Format**: Markdown with YAML frontmatter in `.gemini/agents/`
+
+```markdown
+---
+name: my-agent
+description: Use PROACTIVELY for...
+tools: [bash, read]
+model: gemini-2.0-flash
+max_turns: 10
+timeout_mins: 30
+temperature: 0.7
+kind: local
+---
+
+[System prompt]
+```
+
+**Field Mapping**:
+| UAM | Gemini |
+|-----|--------|
+| maxTurns | max_turns |
+| timeout | timeout_mins |
+| kind | kind |
+
+## OpenCode Adapter
+
+**Location**: `scripts/adapters/opencode.ts`
+
+**Format**: Markdown or JSON config
+
+**Markdown format**:
+```markdown
+---
+description: Use PROACTIVELY for...
+model: claude-sonnet-4-20250514
+tools:
+  Bash: true
+  Read: true
+steps: 10
+---
+
+[System prompt]
+```
+
+**JSON format**:
+```json
+{
+  "description": "...",
+  "model": "claude-sonnet-4-20250514",
+  "tools": {
+    "Bash": true,
+    "Read": true
+  },
+  "steps": 10
+}
+```
+
+**Field Mapping**:
+| UAM | OpenCode |
+|-----|----------|
+| maxTurns | steps |
+| hidden | hidden |
+| color | color |
+
+## Codex Adapter
+
+**Location**: `scripts/adapters/codex.ts`
+
+**Format**: TOML in `codex.yaml`
+
+```toml
+[agents.my-agent]
+description = "..."
+model = "claude-sonnet-4-20250514"
+developer_instructions = "..."
+
+[agents.my-agent.settings]
+sandbox_mode = "read-only"
+reasoning_effort = "high"
+job_max_runtime_seconds = 3600
+```
+
+**Field Mapping**:
+| UAM | Codex |
+|-----|-------|
+| body | developer_instructions |
+| sandboxMode | sandbox_mode |
+| reasoningEffort | reasoning_effort |
+| timeout | job_max_runtime_seconds / 60 |
+
+## OpenClaw Adapter
+
+**Location**: `scripts/adapters/openclaw.ts`
+
+**Format**: JSON in `agents.json`
+
+```json
+{
+  "agents": {
+    "list": [
+      {
+        "name": "my-agent",
+        "description": "...",
+        "tools": {
+          "allow": ["Bash", "Read"],
+          "deny": ["Edit"]
+        },
+        "runTimeoutSeconds": 600
+      }
+    ]
+  }
+}
+```
+
+**Field Mapping**:
+| UAM | OpenClaw |
+|-----|----------|
+| tools | tools.allow |
+| disallowedTools | tools.deny |
+| timeout | runTimeoutSeconds |
+
+## Antigravity Adapter
+
+**Location**: `scripts/adapters/antigravity.ts`
+
+**Format**: Advisory documentation only
+
+No formal agent format exists. The adapter generates an advisory document describing how to configure the agent via natural language dispatch.
+
+## Loss Detection
+
+When adapting between platforms, some features may not be representable:
+
+| Source | Target | Loss |
+|--------|--------|------|
+| Claude | Gemini | skills, mcpServers, hooks, memory, background, isolation |
+| Claude | OpenCode | skills, mcpServers, hooks |
+| Claude | Codex | skills, mcpServers, hooks, memory |
+| Claude | OpenClaw | mcpServers, hooks, memory, background |
+| Claude | Antigravity | All - advisory only |
+
+The `adapt.ts` script reports these as warnings.

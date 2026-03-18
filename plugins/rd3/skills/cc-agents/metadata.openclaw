@@ -1,0 +1,6 @@
+{
+  "name": "cc-agents",
+  "version": "3.0.0",
+  "description": "Universal subagent creator with cross-platform adaptation",
+  "platforms": ["claude", "gemini", "opencode", "codex", "openclaw", "antigravity"]
+}

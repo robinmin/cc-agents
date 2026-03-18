@@ -1,0 +1,150 @@
+# Behavioral Test Scenarios for cc-agents Pipeline
+# Each scenario defines: name, operation, input, expected outcome
+
+scaffold:
+  - name: scaffold-minimal
+    operation: scaffold
+    args: [test-agent, --template, minimal, --path, /tmp/cc-agents-test]
+    expected:
+      file_exists: /tmp/cc-agents-test/test-agent.md
+      contains:
+        - "name: test-agent"
+        - "## Role"
+        - "## When to Delegate"
+        - "## Rules"
+        - "<example>"
+      not_contains:
+        - "## Process"
+        - "## Competencies"
+        - "## Philosophy"
+
+  - name: scaffold-standard
+    operation: scaffold
+    args: [test-agent, --template, standard, --path, /tmp/cc-agents-test-std]
+    expected:
+      file_exists: /tmp/cc-agents-test-std/test-agent.md
+      contains:
+        - "name: test-agent"
+        - "## Role"
+        - "## Process"
+        - "## Rules"
+        - "### What I Always Do"
+        - "### What I Never Do"
+        - "## Output Format"
+
+  - name: scaffold-specialist
+    operation: scaffold
+    args: [test-agent, --template, specialist, --path, /tmp/cc-agents-test-spec]
+    expected:
+      file_exists: /tmp/cc-agents-test-spec/test-agent.md
+      contains:
+        - "name: test-agent"
+        - "## Role"
+        - "## Philosophy"
+        - "## Verification"
+        - "## Competencies"
+        - "## Process"
+        - "## Rules"
+        - "## Output Format"
+        - "Use PROACTIVELY"
+        - "skills:"
+      not_contains:
+        - "# 1. METADATA"
+        - "# 2. PERSONA"
+
+  - name: scaffold-duplicate-error
+    operation: scaffold
+    args: [test-agent, --template, minimal, --path, /tmp/cc-agents-test]
+    precondition: scaffold-minimal
+    expected:
+      exit_code: 1
+      error_contains: "already exists"
+
+  - name: scaffold-invalid-name
+    operation: scaffold
+    args: [AB, --template, minimal, --path, /tmp/cc-agents-test-invalid]
+    expected:
+      exit_code: 1
+      error_contains: "Invalid agent name"
+
+validate:
+  - name: validate-valid-agent
+    operation: validate
+    input_file: fixtures/valid-agent.md
+    expected:
+      success: true
+      error_count: 0
+
+  - name: validate-missing-description
+    operation: validate
+    input_file: fixtures/missing-description.md
+    expected:
+      success: false
+      errors_contain: "description"
+
+  - name: validate-invalid-frontmatter
+    operation: validate
+    input_file: fixtures/invalid-frontmatter.md
+    expected:
+      success: false
+      errors_contain: "frontmatter"
+
+evaluate:
+  - name: evaluate-full-specialist
+    operation: evaluate
+    input_file: fixtures/valid-agent.md
+    args: [--scope, full]
+    expected:
+      dimensions: 8
+      grade_range: [A, F]
+      has_score: true
+
+  - name: evaluate-thin-wrapper-profile
+    operation: evaluate
+    input_file: fixtures/thin-wrapper-agent.md
+    args: [--profile, thin-wrapper]
+    expected:
+      weighted: true
+      emphasis: thin-wrapper-compliance
+
+  - name: evaluate-specialist-profile
+    operation: evaluate
+    input_file: fixtures/valid-agent.md
+    args: [--profile, specialist]
+    expected:
+      weighted: true
+      emphasis: body-quality
+
+refine:
+  - name: refine-best-practices
+    operation: refine
+    input_file: fixtures/needs-refining.md
+    args: [--best-practices]
+    expected:
+      modified: true
+      improvements_count: ">0"
+
+adapt:
+  - name: adapt-to-gemini
+    operation: adapt
+    input_file: fixtures/valid-agent.md
+    args: [--platform, gemini]
+    expected:
+      output_exists: true
+      format: markdown
+
+  - name: adapt-to-codex
+    operation: adapt
+    input_file: fixtures/valid-agent.md
+    args: [--platform, codex]
+    expected:
+      output_exists: true
+      format: toml
+      contains: "[agents."
+
+  - name: adapt-to-all
+    operation: adapt
+    input_file: fixtures/valid-agent.md
+    args: [--platform, all]
+    expected:
+      platforms_generated: [gemini, opencode, codex, openclaw, antigravity]
