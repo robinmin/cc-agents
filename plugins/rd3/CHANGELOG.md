@@ -2,6 +2,79 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.5] - 2026-03-18
+
+### ✨ New Features
+
+- **cc-agents Skill**: New meta-skill for creating and managing Claude Code subagents
+  - `scaffold` - Create new agent directories from templates (minimal, standard, specialist)
+  - `validate` - Validate agent structure and frontmatter
+  - `evaluate` - Score agent quality across 10 MECE dimensions
+  - `refine` - Auto-fix agent issues and apply best practices
+  - `adapt` - Convert agents for cross-platform compatibility
+
+- **Agent Templates**: Three-tier template system for agent creation
+  - Minimal (8 sections, ~400 lines)
+  - Standard (8 sections + extended sections)
+  - Specialist (8 sections + full competency matrix)
+
+- **Platform Adapters for Agents**: Multi-platform support
+  - Claude Code (AGENTS.md native format)
+  - Codex (agents/openai.yaml)
+  - Gemini Antigravity (agents/openai.yaml)
+  - OpenClaw (metadata.openclaw)
+  - OpenCode (agents/openai.yaml)
+
+- **Slash Commands for Agents**: Four new wrapper commands
+  - `/rd3:agent-add` - Create new agents with scaffolding
+  - `/rd3:agent-evaluate` - Check agent quality score
+  - `/rd3:agent-refine` - Evaluate and fix agent issues
+  - `/rd3:agent-adapt` - Cross-platform agent conversion
+
+- **Shared Best-Practice Fixes**: New shared module for automated corrections
+  - TODO marker normalization
+  - Second-person voice removal
+  - Windows path detection
+  - Circular reference prevention
+
+- **Red Flags Checklists**: 10-category security checklists for all meta skills
+  - cc-agents: Credential handling, command execution, destructive operations
+  - cc-skills: Trigger design, progressive disclosure
+  - cc-commands: Delegation patterns, argument design
+
+### 🔧 Improvements
+
+- **10-Dimension MECE Evaluation**: Unified evaluation framework across all skills
+  - Categories: Metadata, Content, Architecture, Security, Platform
+  - Split Delegation Architecture from Cross-Platform Portability
+  - Removed dead-weight Operational Readiness dimension
+
+- **Evaluation Framework Enhancements**:
+  - Frontmatter quality (15/18 pts)
+  - Description effectiveness (15/18 pts)
+  - Content quality with blacklist/greylist scanning
+  - Security gatekeeper with immediate reject patterns
+
+- **Script + Checklist Pattern**: Removed LLM refine from cc-agents
+  - Deterministic fixes handled by scripts
+  - Fuzzy quality issues handled by invoking LLM with checklist
+  - Applied same pattern to cc-skills
+
+### 🐛 Fixes
+
+- Fixed MECE compliance issues in evaluation dimensions
+- Fixed TODO marker bug in cc-skills refine.ts
+- Fixed type mismatches in adapter functions
+- Fixed evaluation dimension weights to properly sum to 100%
+
+### 📝 Documentation
+
+- Comprehensive SKILL.md files for all three meta skills
+- Evaluation framework references
+- Agent anatomy and architecture guides
+- Hybrid command/agent patterns documentation
+- Troubleshooting guides for each skill
+
 ## [0.1.2] - 2026-03-17
 
 ### ✨ New Features
