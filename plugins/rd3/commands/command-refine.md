@@ -1,6 +1,6 @@
 ---
-description: Refine and improve a slash command based on best practices
-argument-hint: "<command-path> [--migrate] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--dry-run]"
+description: Evaluate and fix slash definition issues in one step
+argument-hint: "<command-path> [--migrate] [--dry-run] [--from-eval <path>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -8,27 +8,19 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-commands** skill.
 
-Evaluate command issues and apply fixes in one step. **Runs evaluation internally** then applies improvements.
+Run evaluation internally then apply fixes in one step.
 
 ## When to Use
 
-- Fix issues found during evaluation
-- Migrate commands from rd2 to rd3 format
+- Fix issues without running evaluate separately
+- Migrate rd2 definitions to rd3 format
 - Convert second-person to imperative form
-- Add missing argument-hint or Platform Notes
-
-## Expected Results
-
-- Evaluation results showing score and weaknesses
-- Applied fixes (frontmatter, style, structure)
-- Migrated rd2 commands to rd3 format
-- Generated platform companion files
 
 ## Arguments
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| `command-path` | Path to the command .md file | (required) |
+| `command-path` | Path to the .md file | (required) |
 | `--migrate` | Enable rd2-to-rd3 migration mode | false |
 | `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
 | `--dry-run` | Preview changes without applying | false |
@@ -37,17 +29,19 @@ Evaluate command issues and apply fixes in one step. **Runs evaluation internall
 ## Examples
 
 ```bash
-# Basic refinement
+# Evaluate then apply fixes
 /rd3:command-refine ./commands/review-code.md
 
-# Dry run to preview changes
+# Preview changes without applying
 /rd3:command-refine ./commands/review-code.md --dry-run
 
 # Migrate from rd2 format
-/rd3:command-refine ./commands/old-command.md --migrate
+/rd3:command-refine ./commands/old-definition.md --migrate
 ```
 
 ## Implementation
+
+Pass `$ARGUMENTS` to the underlying skill for processing.
 
 Delegates to **rd3:cc-commands** skill:
 
@@ -57,10 +51,10 @@ Skill(skill="rd3:cc-commands")
 
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-commands/scripts/refine.ts <command-path> [options]
+bun plugins/rd3/skills/cc-commands/scripts/refine.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
