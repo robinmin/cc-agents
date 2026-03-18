@@ -225,6 +225,28 @@ Follow these best practices to create effective, maintainable skills. See [refer
 - **Script vs LLM**: Use scripts for deterministic issues, LLM for fuzzy issues (see workflows.md)
 
 <!-- Full best practices moved to references/best-practices.md -->
+
+## Evaluation Dimensions
+
+Skills are scored across **4 categories, 10 dimensions, 100 points total** (source: `scripts/evaluation.config.ts`):
+
+| Category | Dimension | Pts | What It Checks |
+|----------|-----------|-----|----------------|
+| **Core Quality** (40) | Frontmatter | 10 | YAML validity, required fields |
+| | Structure | 5 | Directory organization |
+| | Content | 15 | Body quality, examples |
+| | Completeness | 10 | All required sections |
+| **Discovery & Trigger** (20) | Trigger Design | 10 | Description triggers, when-to-use |
+| | Platform Compatibility | 10 | Multi-platform support |
+| **Safety & Security** (20) | Security | 10 | No dangerous patterns |
+| | Circular Reference | 10 | No command/agent refs |
+| **Code & Docs** (20) | Code Quality | 10 | Scripts executable, tested |
+| | Progressive Disclosure | 10 | References used properly |
+
+Grade: A (90+) / B (70-89) / C (50-69) / D (30-49) / F (<30). Pass threshold: **70 pts**.
+
+See [references/evaluation-framework.md](references/evaluation-framework.md) for weight profiles (with/without scripts), security scanner rules, and full scoring details.
+
 ## Additional Resources
 
 - **Workflows**: [references/workflows.md](references/workflows.md) - Detailed operation workflows
@@ -233,7 +255,8 @@ Follow these best practices to create effective, maintainable skills. See [refer
 - **Platform Adapters Guide**: [adapters/README.md](adapters/README.md)
 - **Evaluation Framework**: [references/evaluation-framework.md](references/evaluation-framework.md)
 - **Platform Compatibility**: [references/platform-compatibility.md](references/platform-compatibility.md)
-- **Skill Patterns**: [references/skill-patterns.md](references/skill-patterns.md) - Five proven patterns for complex skills
+- **Skill Categories**: [references/skill-categories.md](references/skill-categories.md) - 9 business-purpose categories (what to build)
+- **Skill Patterns**: [references/skill-patterns.md](references/skill-patterns.md) - Six proven patterns for complex skills
 - **Troubleshooting**: [references/troubleshooting.md](references/troubleshooting.md) - Common issues and fixes
 - **Output Patterns**: [references/output-patterns.md](references/output-patterns.md) - Output formatting guidance
 - **Quick Reference**: [references/quick-reference.md](references/quick-reference.md) - CLI commands and checklists
