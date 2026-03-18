@@ -195,27 +195,32 @@ Validate skill structure and score quality using **Two-Tier Architecture**.
 
 #### Scoring Dimensions
 
-Based on rd2 evaluation framework:
+MECE framework: 4 categories, 10 dimensions, 100 points total (source: `scripts/evaluation.config.ts`):
 
-| Dimension | Weight | What It Measures |
-|-----------|--------|-------------------|
-| **Frontmatter** | 10% | YAML validity, required fields |
-| **Structure** | 15% | Directory organization, progressive disclosure |
-| **Content** | 25% | Length, sections, examples |
-| **Best Practices** | 10% | Naming, when-to-use, no TODOs |
-| **Trigger Design** | 15% | Trigger phrases, third-person form |
-| **Value Add** | 15% | Domain-specific, unique workflows |
-| **Circular Reference** | 10% | No command/agent references |
+| Category | Dimension | Pts | What It Checks |
+|----------|-----------|-----|----------------|
+| **Core Quality** (40) | Frontmatter | 10 | YAML validity, required fields |
+| | Structure | 5 | Directory organization |
+| | Content | 15 | Body quality, examples |
+| | Completeness | 10 | All required sections |
+| **Discovery & Trigger** (20) | Trigger Design | 10 | Description triggers, when-to-use |
+| | Platform Compatibility | 10 | Multi-platform support |
+| **Safety & Security** (20) | Security | 10 | No dangerous patterns |
+| | Circular Reference | 10 | No command/agent refs |
+| **Code & Docs** (20) | Code Quality | 10 | Scripts executable, tested |
+| | Progressive Disclosure | 10 | References used properly |
+
+> **Note:** Skills without scripts use a different weight profile (Structure=10, Content=20, Code Quality=0). See [evaluation-framework.md](evaluation-framework.md) for both profiles.
 
 #### Grading Scale
 
-| Grade | Score Range | Meaning |
-|-------|-------------|---------|
-| **A** | 90-100% | Production ready |
-| **B** | 70-89% | Minor fixes needed |
-| **C** | 50-69% | Moderate revision |
-| **D** | 30-49% | Major revision |
-| **F** | 0-29% | Rewrite needed |
+| Grade | Score | Meaning |
+|-------|-------|---------|
+| **A** | 90-100 | Production ready |
+| **B** | 70-89 | Minor fixes needed |
+| **C** | 50-69 | Moderate revision |
+| **D** | 30-49 | Major revision |
+| **F** | 0-29 | Rewrite needed |
 
 ---
 
@@ -391,16 +396,13 @@ bun scripts/evaluate.ts <skill-path> --scope basic
 bun scripts/evaluate.ts <skill-path> --scope full
 ```
 
-**What script scores:**
-- Frontmatter: 10%
-- Structure: 15%
-- Content: 25%
-- Best Practices: 10%
-- Trigger Design: 15%
-- Value Add: 15%
-- Circular Reference: 10%
+**What script scores (10 dimensions, see evaluation.config.ts):**
+- Core Quality: Frontmatter (10), Structure (5), Content (15), Completeness (10)
+- Discovery & Trigger: Trigger Design (10), Platform Compatibility (10)
+- Safety & Security: Security (10), Circular Reference (10)
+- Code & Documentation: Code Quality (10), Progressive Disclosure (10)
 
-**Output:** Score per dimension, total percentage, grade
+**Output:** Score per dimension, total (out of 100), grade (A/B/C/D/F)
 
 #### Step 2.3: LLM Deep Evaluation (LLM)
 ```bash
