@@ -1968,4 +1968,173 @@ Content.
         // Bad naming should have findings
         expect(namingDim?.findings.length).toBeGreaterThan(0);
     });
+
+    it('should detect empty argument-hint', async () => {
+        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
+        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
+
+        const command = parseCommand(
+            '/test/empty-hint.md',
+            `---
+description: Test command
+argument-hint: ""
+---
+
+# Test
+
+Content.
+`,
+        );
+
+        const report = evaluateCommand(command, 'full');
+        const fmDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'frontmatter-quality');
+
+        expect(fmDim?.findings).toContain('argument-hint is empty');
+    });
+
+    it('should handle non-string argument-hint', async () => {
+        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
+        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
+
+        const command = parseCommand(
+            '/test/bad-hint.md',
+            `---
+description: Test command
+argument-hint: 12345
+---
+
+# Test
+
+Content.
+`,
+        );
+
+        const report = evaluateCommand(command, 'full');
+        // Should handle gracefully
+        expect(report.overallScore).toBeDefined();
+    });
+
+    it('should handle empty description', async () => {
+        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
+        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
+
+        const command = parseCommand(
+            '/test/empty-desc.md',
+            `---
+description: ""
+---
+
+# Test
+
+Content.
+`,
+        );
+
+        const report = evaluateCommand(command, 'full');
+        // Should handle gracefully without crashing
+        expect(report.overallScore).toBeDefined();
+    });
+
+    it('should handle short description', async () => {
+        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
+        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
+
+        const command = parseCommand(
+            '/test/short-desc.md',
+            `---
+description: Short
+---
+
+# Test
+
+Content.
+`,
+        );
+
+        const report = evaluateCommand(command, 'full');
+        // Should handle gracefully
+        expect(report.overallScore).toBeDefined();
+    });
+
+    it('should handle description not starting with verb', async () => {
+        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
+        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
+
+        const command = parseCommand(
+            '/test/no-verb-desc.md',
+            `---
+description: This is a test command that does something
+---
+
+# Test
+
+Content.
+`,
+        );
+
+        const report = evaluateCommand(command, 'full');
+        // Should handle gracefully
+        expect(report.overallScore).toBeDefined();
+    });
+
+    it('should handle multiple description issues', async () => {
+        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
+        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
+
+        const command = parseCommand(
+            '/test/multi-issue.md',
+            `---
+description: This is a very long description that exceeds the recommended maximum length of sixty characters
+---
+
+# Test
+
+Content.
+`,
+        );
+
+        const report = evaluateCommand(command, 'full');
+        const descDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'description-effectiveness');
+
+        expect(descDim?.recommendations).toContain('Keep description under 60 characters');
+    });
+
+    it('should handle missing description gracefully', async () => {
+        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
+        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
+
+        const command = parseCommand(
+            '/test/no-desc.md',
+            `---
+---
+
+# Test
+
+Content.
+`,
+        );
+
+        const report = evaluateCommand(command, 'full');
+        const descDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'description-effectiveness');
+
+        // Should still produce a score, not crash
+        expect(descDim?.score).toBeDefined();
+    });
+
+    it('should handle command without body', async () => {
+        const { evaluateCommand } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
+        const { parseCommand } = await import(join(SCRIPTS_DIR, 'utils.ts'));
+
+        const command = parseCommand(
+            '/test/no-body.md',
+            `---
+description: Test command
+---
+`,
+        );
+
+        const report = evaluateCommand(command, 'full');
+        // Should still produce a result
+        expect(report.overallScore).toBeDefined();
+    });
 });
