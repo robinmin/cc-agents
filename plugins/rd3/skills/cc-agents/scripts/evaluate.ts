@@ -568,6 +568,21 @@ function scoreNamingConvention(
         };
     }
 
+    // Handle non-string names (e.g., YAML parses name: 12345 as a number)
+    if (typeof name !== 'string') {
+        findings.push(`Field name must be a string, got ${typeof name}`);
+        recommendations.push('Add name field as a quoted string: name: "my-agent"');
+        return {
+            name: 'naming-convention',
+            displayName: AGENT_DIMENSION_DISPLAY_NAMES['naming-convention'],
+            weight,
+            score: 0,
+            maxScore: weight,
+            findings,
+            recommendations,
+        };
+    }
+
     // Valid format
     if (!isValidAgentName(name)) {
         findings.push(`Invalid name format: '${name}'`);
@@ -948,7 +963,7 @@ export async function evaluateAgent(
 /**
  * Render a bar chart for a dimension score.
  */
-function renderBar(score: number, maxScore: number, width = 20): string {
+export function renderBar(score: number, maxScore: number, width = 20): string {
     const pct = maxScore > 0 ? score / maxScore : 0;
     const filled = Math.round(pct * width);
     const empty = width - filled;
@@ -960,7 +975,7 @@ function renderBar(score: number, maxScore: number, width = 20): string {
 /**
  * Print the evaluation report to stdout in text format.
  */
-function printTextReport(report: AgentEvaluationReport, verbose: boolean): void {
+export function printTextReport(report: AgentEvaluationReport, verbose: boolean): void {
     const { COLORS: C } = { COLORS };
 
     // Header
@@ -1031,7 +1046,7 @@ function printTextReport(report: AgentEvaluationReport, verbose: boolean): void 
 // CLI ENTRY POINT
 // ============================================================================
 
-function printUsage(): void {
+export function printUsage(): void {
     console.log('Usage: evaluate.ts <agent-path> [options]');
     console.log('');
     console.log('Arguments:');
@@ -1045,7 +1060,7 @@ function printUsage(): void {
     console.log('  --help, -h                  Show help');
 }
 
-function parseCliArgs(): {
+export function parseCliArgs(): {
     path: string;
     scope: EvaluationScope;
     profile: AgentWeightProfile | undefined;
