@@ -1,6 +1,6 @@
 ---
-description: Check skill quality score and identify weaknesses (no changes)
-argument-hint: "<skill-path> [--scope basic|full] [--platform all|claude|codex|openclaw|opencode|antigravity] [--json]"
+description: Check skill quality score and identify weaknesses
+argument-hint: "<skill-path> [--scope basic|full] [--platform all|claude|codex|openclaw|opencode|antigravity]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -8,20 +8,13 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-skills** skill.
 
-Check skill quality score and identify weaknesses. **This command only evaluates - makes NO changes.**
+Score skill quality across 10 dimensions. **Evaluate only — make NO changes.**
 
 ## When to Use
 
 - Check current score without making changes
-- Compare scores before/after refine
-- Verify skill is ready for publishing
-
-## Expected Results
-
-- Quality score (0-100%)
-- Dimension-by-dimension breakdown with pass/fail status
-- List of weaknesses found
-- Recommendations for improvements
+- Compare scores before and after refinement
+- Verify skill readiness for publishing
 
 ## Arguments
 
@@ -35,7 +28,7 @@ Check skill quality score and identify weaknesses. **This command only evaluates
 ## Examples
 
 ```bash
-# Basic validation (structural checks)
+# Basic structural validation
 /rd3:skill-evaluate ./skills/my-skill --scope basic
 
 # Full evaluation with all dimensions
@@ -47,6 +40,8 @@ Check skill quality score and identify weaknesses. **This command only evaluates
 
 ## Implementation
 
+Pass `$ARGUMENTS` to the underlying skill for processing.
+
 Delegates to **rd3:cc-skills** skill:
 
 ```
@@ -55,10 +50,10 @@ Skill(skill="rd3:cc-skills")
 
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-skills/scripts/evaluate.ts <skill-path> [options]
+bun plugins/rd3/skills/cc-skills/scripts/evaluate.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
