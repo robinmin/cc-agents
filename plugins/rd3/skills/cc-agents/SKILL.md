@@ -1,6 +1,6 @@
 ---
 name: cc-agents
-description: "Use this skill when the user asks to 'create a new agent', 'build a subagent', 'scaffold an agent', 'write an agent definition', 'add a new subagent', 'generate an agent', 'make an agent', 'agent template', 'agent creation', 'agent development', 'evaluate agent quality', 'score agent', 'grade agent', 'assess agent structure', 'validate agent file', 'check agent structure', 'test agent', 'rate agent', 'improve existing agent', 'refine agent definition', 'fix agent errors', 'debug agent', 'agent checklist', 'agent workflow', 'convert agent to gemini', 'adapt agent', 'cross-platform agent', 'agent for codex', 'agent for opencode'. This skill creates, validates, evaluates, refines, and adapts subagent definitions across 6 target platforms (Claude Code, Gemini CLI, OpenCode, Codex, OpenClaw, Antigravity) using a Universal Agent Model (UAM) and 10-dimension quality scoring."
+description: "Use this skill when the user asks to 'create a new agent', 'scaffold an agent', 'evaluate agent quality', 'validate agent file', 'refine agent definition', 'adapt agent', 'cross-platform agent'. Creates, validates, evaluates, refines, and adapts subagent definitions across 6 platforms using a Universal Agent Model and 10-dimension scoring."
 license: Apache-2.0
 metadata:
   author: cc-agents
@@ -19,6 +19,32 @@ Create subagents that work across ALL platforms from a single source of truth.
 - Scoring quality -> use **evaluate**
 - Fixing quality issues -> use **refine**
 - Cross-platform conversion -> use **adapt**
+
+## Quick Start
+
+```bash
+# Create a new agent
+bun scripts/scaffold.ts my-agent --path ./agents --template standard
+
+# Check structure
+bun scripts/validate.ts agents/my-agent.md
+
+# Score quality
+bun scripts/evaluate.ts agents/my-agent.md --scope full
+
+# Fix issues
+bun scripts/refine.ts agents/my-agent.md --eval --best-practices
+
+# Generate cross-platform companions
+bun scripts/adapt.ts agents/my-agent.md claude all
+```
+
+## Workflows
+
+- **New agent**: scaffold → validate → evaluate → refine → adapt
+- **Improve existing agent**: evaluate → refine → evaluate (verify improvement)
+- **Cross-platform conversion**: validate → adapt → validate (target platform)
+- **Migration from rd2**: refine --migrate → evaluate → adapt
 
 ## Operations
 
@@ -46,7 +72,7 @@ Create a new agent from a tiered template:
 
 1. Choose template tier based on agent complexity (minimal/standard/specialist)
 2. Run `bun scripts/scaffold.ts <name> --path <dir> --template <tier>`
-3. Edit generated file to complete all TODO placeholders
+3. Edit generated file to complete all placeholder markers
 4. Fill in the description with trigger phrases and `<example>` blocks
 5. For specialist tier: enumerate competencies (20+ items), define verification protocol
 6. Run validate to check structure
@@ -338,6 +364,12 @@ See [references/evaluation-framework.md](references/evaluation-framework.md) for
 | Templates | 3 types | 3 tiers |
 | Adapters | Export only | Bidirectional |
 | Evaluation | 10 dimensions | 10 dimensions |
+
+## Additional Resources
+
+- [Claude Code Agent Documentation](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/sub-agents)
+- [Gemini CLI Agent Configuration](https://github.com/google-gemini/gemini-cli)
+- [OpenCode Agent Format](https://github.com/opencode-ai/opencode)
 
 ## See Also
 
