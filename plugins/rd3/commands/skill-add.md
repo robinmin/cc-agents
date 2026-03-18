@@ -1,6 +1,6 @@
 ---
 description: Create a new skill with scaffolding and templates
-argument-hint: "<skill-name> [--template technique|pattern|reference] [--resources scripts|references|assets|agents]"
+argument-hint: "<skill-name> [--template technique|pattern|reference] [--resources scripts|references|assets|agents] [--path <dir>] [--platform all|claude|codex|openclaw|opencode|antigravity]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -29,6 +29,7 @@ Create a new skill directory with scaffolding and templates.
 | `skill-name` | Name of the skill to create | (required) |
 | `--template` | Template type: technique, pattern, or reference | technique |
 | `--resources` | Comma-separated list: scripts, references, assets, agents | (none) |
+| `--path` | Output directory for the skill | ./skills |
 | `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
 
 ## Examples
@@ -39,6 +40,9 @@ Create a new skill directory with scaffolding and templates.
 
 # Create pattern skill for Claude only
 /rd3:skill-add decision-framework --template pattern --platform claude
+
+# Custom output path
+/rd3:skill-add my-skill --path ./plugins/rd3/skills
 ```
 
 ## Implementation
@@ -58,8 +62,3 @@ bun plugins/rd3/skills/cc-skills/scripts/scaffold.ts <skill-name> [options]
 
 - Claude Code: Use `Skill()` for skill delegation
 - Other platforms: Run script directly via Bash tool
-
-## See Also
-
-- `/rd3:skill-evaluate` - Validate created skill
-- `/rd3:skill-refine` - Improve after evaluation
