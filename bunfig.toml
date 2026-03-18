@@ -15,4 +15,4 @@ passWithNoTests = true
 coverage = true # always enable coverage
 # to require 90% line-level and function-level coverage
 # coverageThreshold disabled - only checking global average
-coverageThreshold = 0
+coverageThreshold = 0.9
