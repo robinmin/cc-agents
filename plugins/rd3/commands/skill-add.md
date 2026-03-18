@@ -1,6 +1,6 @@
 ---
 description: Create a new skill with scaffolding and templates
-argument-hint: "<skill-name> [--template technique|pattern|reference] [--resources scripts|references|assets|agents] [--path <dir>] [--platform all|claude|codex|openclaw|opencode|antigravity]"
+argument-hint: "<skill-name> [--template technique|pattern|reference] [--path <dir>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -8,19 +8,12 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-skills** skill.
 
-Create a new skill directory with scaffolding and templates.
+Scaffold a new skill directory from a template.
 
 ## When to Use
 
 - Create a new skill from scratch
 - Initialize a skill with proper structure
-
-## Expected Results
-
-- New skill directory created at specified path
-- SKILL.md generated from selected template
-- Resource directories created (scripts/, references/, assets/, agents/)
-- Platform companion files generated
 
 ## Arguments
 
@@ -35,17 +28,19 @@ Create a new skill directory with scaffolding and templates.
 ## Examples
 
 ```bash
-# Create technique skill with all resources
+# Scaffold a technique skill with all resources
 /rd3:skill-add my-api-helper --template technique --resources scripts,references,assets
 
-# Create pattern skill for Claude only
+# Scaffold a pattern skill for Claude only
 /rd3:skill-add decision-framework --template pattern --platform claude
 
-# Custom output path
+# Scaffold to a custom path
 /rd3:skill-add my-skill --path ./plugins/rd3/skills
 ```
 
 ## Implementation
+
+Pass `$ARGUMENTS` to the underlying skill for processing.
 
 Delegates to **rd3:cc-skills** skill:
 
@@ -55,10 +50,10 @@ Skill(skill="rd3:cc-skills")
 
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-skills/scripts/scaffold.ts <skill-name> [options]
+bun plugins/rd3/skills/cc-skills/scripts/scaffold.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
