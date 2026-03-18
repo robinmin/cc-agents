@@ -49,6 +49,12 @@ Scaffold a new slash command file with proper frontmatter and structure.
 
 ## Implementation
 
+Delegates to **rd3:cc-commands** skill:
+
+```
+Skill(skill="rd3:cc-commands")
+```
+
 **Direct script execution:**
 ```bash
 bun plugins/rd3/skills/cc-commands/scripts/scaffold.ts <command-name> [options]
@@ -58,8 +64,3 @@ bun plugins/rd3/skills/cc-commands/scripts/scaffold.ts <command-name> [options]
 
 - Claude Code: Use `Skill()` for skill delegation
 - Other platforms: Run script directly via Bash tool
-
-## See Also
-
-- `/rd3:command-evaluate` - Evaluate command quality
-- `/rd3:command-refine` - Improve command based on evaluation
