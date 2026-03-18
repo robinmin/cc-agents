@@ -44,18 +44,13 @@ Convert a Claude Code slash command to work on other AI coding platforms.
 /rd3:command-adapt ./commands/review-code.md --platform codex --dry-run
 ```
 
-## Supported Platforms
-
-| Platform | Format |
-|----------|--------|
-| Claude Code | Markdown + YAML frontmatter (native) |
-| Codex | YAML skill format |
-| Gemini | TOML configuration |
-| OpenClaw | Markdown + YAML |
-| OpenCode | Markdown + YAML |
-| Antigravity | Markdown + YAML |
-
 ## Implementation
+
+Delegates to **rd3:cc-commands** skill:
+
+```
+Skill(skill="rd3:cc-commands")
+```
 
 **Direct script execution:**
 ```bash
@@ -66,9 +61,3 @@ bun plugins/rd3/skills/cc-commands/scripts/adapt.ts <command-path> [options]
 
 - Claude Code: Use `Skill()` for skill delegation
 - Other platforms: Run script directly via Bash tool
-
-## See Also
-
-- `/rd3:command-add` - Create new command
-- `/rd3:command-evaluate` - Evaluate command quality
-- `/rd3:command-refine` - Improve command quality
