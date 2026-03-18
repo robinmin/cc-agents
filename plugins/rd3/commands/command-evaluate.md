@@ -1,6 +1,6 @@
 ---
-description: Evaluate command quality with validation and scoring
-argument-hint: "<command-path> [--scope basic|full] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity] [--json]"
+description: Score slash definition quality across 10 dimensions
+argument-hint: "<command-path> [--scope basic|full] [--json]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -8,26 +8,19 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-commands** skill.
 
-Check command quality score and identify weaknesses. **This command only evaluates - makes NO changes.**
+Score quality across 10 dimensions. **Evaluate only — make NO changes.**
 
 ## When to Use
 
-- Validate a new or modified command
-- Check command quality before publishing
-- Compare quality across platforms
-
-## Expected Results
-
-- Quality score (0-100%)
-- Dimension-by-dimension breakdown with pass/fail status
-- List of weaknesses found
-- Recommendations for improvements
+- Check current score without making changes
+- Compare scores before and after refinement
+- Verify readiness for publishing
 
 ## Arguments
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| `command-path` | Path to the command .md file | (required) |
+| `command-path` | Path to the .md file | (required) |
 | `--scope` | Evaluation scope: basic or full | basic |
 | `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
 | `--json` | Output results as JSON | false |
@@ -35,7 +28,7 @@ Check command quality score and identify weaknesses. **This command only evaluat
 ## Examples
 
 ```bash
-# Basic validation
+# Basic structural validation
 /rd3:command-evaluate ./commands/review-code.md
 
 # Full evaluation with JSON output
@@ -47,6 +40,8 @@ Check command quality score and identify weaknesses. **This command only evaluat
 
 ## Implementation
 
+Pass `$ARGUMENTS` to the underlying skill for processing.
+
 Delegates to **rd3:cc-commands** skill:
 
 ```
@@ -55,10 +50,10 @@ Skill(skill="rd3:cc-commands")
 
 **Direct script execution:**
 ```bash
-bun plugins/rd3/skills/cc-commands/scripts/evaluate.ts <command-path> [options]
+bun plugins/rd3/skills/cc-commands/scripts/evaluate.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
