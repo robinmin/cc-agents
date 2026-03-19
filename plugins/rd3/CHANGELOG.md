@@ -2,6 +2,94 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2026-03-19
+
+### ✨ New Features
+
+- **cc-agents Skill**: Complete meta-skill for creating and managing Claude Code subagents
+  - `scaffold` - Create new agent directories from templates (minimal, standard, specialist)
+  - `validate` - Validate agent structure and frontmatter
+  - `evaluate` - Score agent quality across 8-section anatomy
+  - `refine` - Auto-fix agent issues with script + checklist pattern
+  - `adapt` - Convert agents for cross-platform compatibility
+
+- **cc-commands Skill**: Comprehensive skill for Claude Code slash command management
+  - `scaffold` - Create new command files from templates (simple, workflow, plugin)
+  - `validate` - Validate command structure and frontmatter
+  - `evaluate` - Score command quality across 6 dimensions
+  - `refine` - Auto-fix command issues and generate platform companions
+  - `adapt` - Adapt commands for different AI platforms
+
+- **cc-skills Skill**: Full skill development lifecycle management
+  - `scaffold` - Create new skill directories from templates (technique, pattern, reference)
+  - `validate` - Validate skill structure and frontmatter
+  - `evaluate` - Score skill quality across 12 dimensions
+  - `refine` - Auto-fix skill issues and apply best practices
+  - `adapt` - Audit and adapt skills for cross-platform compatibility
+  - `package` - Package skills for distribution with companions
+
+- **Expert Agents**: Three specialized expert agents for development guidance
+  - `expert-agent` - Agent creation and refinement expert
+  - `expert-command` - Command development expert
+  - `expert-skill` - Skill development expert
+
+- **Platform Adapters**: Unified multi-platform support across all skills
+  - Claude Code (native AGENTS.md/SKILL.md formats)
+  - Codex (agents/openai.yaml)
+  - Gemini Antigravity (agents/openai.yaml)
+  - OpenClaw (metadata.openclaw)
+  - OpenCode (agents/openai.yaml)
+
+- **Shared Best-Practice Fixes**: Common automated correction module
+  - TODO marker normalization
+  - Second-person voice removal
+  - Windows path detection
+  - Circular reference prevention
+
+- **Comprehensive Test Suites**: Full test coverage for all skills
+  - Unit tests for evaluation logic and adapters
+  - Integration tests with fixtures
+  - Platform-specific adapter tests
+
+### 🔧 Improvements
+
+- **10-Dimension MECE Evaluation**: Unified evaluation framework
+  - Split Delegation Architecture from Cross-Platform Portability
+  - Removed dead-weight Operational Readiness dimension
+  - Proper dimension weights summing to 100%
+
+- **Script + Checklist Pattern**: Deterministic vs fuzzy issue handling
+  - Scripts handle deterministic fixes (regex, markers, paths)
+  - LLMs handle fuzzy quality issues with checklists
+  - Applied consistently across cc-agents, cc-skills, cc-commands
+
+- **Evaluation Framework Enhancements**:
+  - Frontmatter quality scoring (15-18 pts)
+  - Description effectiveness analysis
+  - Security gatekeeper with immediate reject patterns
+  - Blacklist/greylist content scanning
+
+- **Platform Adapter Architecture**: Refactored base adapter pattern
+  - Consistent interface across all platform adapters
+  - Feature detection and capability mapping
+  - Bidirectional conversion support
+
+### 🐛 Fixes
+
+- Fixed MECE compliance issues in evaluation dimensions
+- Fixed type mismatches in adapter functions
+- Fixed evaluation dimension weights to properly sum to 100%
+- Fixed TODO marker bugs in refine scripts
+- Fixed lint errors (useLiteralKeys rule compliance)
+
+### 📝 Documentation
+
+- Comprehensive SKILL.md files for all three meta skills
+- Reference guides: agent anatomy, architecture, workflows, troubleshooting
+- Evaluation framework documentation for all skill types
+- Frontmatter field references for agents, commands, and skills
+- Platform compatibility guides
+
 ## [0.1.5] - 2026-03-18
 
 ### ✨ New Features
