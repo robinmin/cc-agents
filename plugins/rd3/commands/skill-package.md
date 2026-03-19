@@ -28,7 +28,7 @@ Bundle a skill for distribution with platform-specific companions.
 ## Examples
 
 ```bash
-# Package with all platform companions
+# Package with all platform companions (most common)
 /rd3:skill-package ./skills/my-skill
 
 # Package for a specific platform
@@ -45,7 +45,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-skills** skill:
 
 ```
-Skill(skill="rd3:cc-skills")
+Skill(skill="rd3:cc-skills", args="package $ARGUMENTS")
 ```
 
 **Direct script execution:**
