@@ -199,7 +199,7 @@ function parseCliArgs(): {
     const path = args.positionals?.[0];
 
     if (!path) {
-        console.error('Error: Missing required argument <agent-path>');
+        logger.error('Error: Missing required argument <agent-path>');
         printUsage();
         process.exit(1);
     }
