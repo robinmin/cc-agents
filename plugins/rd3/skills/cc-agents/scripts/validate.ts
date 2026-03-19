@@ -17,11 +17,11 @@
  *   --help, -h           Show help
  */
 
-import { existsSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { logger } from '../../../scripts/logger';
+import { pathExists } from '../../../scripts/utils';
 import type {
     AgentBodyAnalysis,
     AgentPlatform,
@@ -390,7 +390,7 @@ export async function validateAgent(
 ): Promise<AgentValidationReport> {
     const resolvedPath = resolve(agentPath);
 
-    if (!existsSync(resolvedPath)) {
+    if (!pathExists(resolvedPath)) {
         return {
             valid: false,
             errors: [`Agent file not found: ${resolvedPath}`],
@@ -603,14 +603,14 @@ function parseCliArgs(): { path: string; platform: AgentPlatform | 'all'; verbos
 
     const path = args.positionals?.[0];
     if (!path) {
-        console.error('Error: Missing required argument <agent-path>');
+        logger.error('Error: Missing required argument <agent-path>');
         process.exit(1);
     }
 
     const validPlatforms = ['all', 'claude', 'gemini', 'opencode', 'codex', 'openclaw', 'antigravity'];
     const platform = (args.values.platform as string) || 'claude';
     if (!validPlatforms.includes(platform)) {
-        console.error(`Error: Invalid platform '${platform}'`);
+        logger.error(`Error: Invalid platform '${platform}'`);
         process.exit(1);
     }
 
