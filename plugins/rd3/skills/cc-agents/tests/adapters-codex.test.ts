@@ -10,22 +10,26 @@ const sampleAgent: UniversalAgent = {
     body: '# Test Agent\n\nA test agent body.',
     tools: ['Read', 'Grep'],
     model: 'claude-sonnet-4-20250514',
-    sandboxMode: 'read-write',
+    sandboxMode: 'workspace-write',
     reasoningEffort: 'high',
-    timeout: 30,
+    nicknameCandidates: ['TestBot', 'Agent-T'],
 };
 
 describe('CodexAgentAdapter', () => {
     const adapter = new CodexAgentAdapter();
 
-    describe('parse - TOML format', () => {
-        it('should parse valid TOML agent config', async () => {
-            const input = `[agents.test-agent]
+    // ========================================================================
+    // Parse - Official TOML format (root-level fields)
+    // ========================================================================
+
+    describe('parse - official TOML format', () => {
+        it('should parse standalone TOML with root-level fields', async () => {
+            const input = `name = "test-agent"
 description = "A test agent"
 model = "claude-sonnet-4-20250514"
-sandbox_mode = "read-write"
-reasoning_effort = "high"
-job_max_runtime_seconds = 1800
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+nickname_candidates = ["Atlas", "Echo"]
 
 developer_instructions = """
 # Test Agent
@@ -38,78 +42,195 @@ This is the body.
             expect(result.agent?.name).toBe('test-agent');
             expect(result.agent?.description).toBe('A test agent');
             expect(result.agent?.model).toBe('claude-sonnet-4-20250514');
-            expect(result.agent?.sandboxMode).toBe('read-write');
+            expect(result.agent?.sandboxMode).toBe('read-only');
             expect(result.agent?.reasoningEffort).toBe('high');
-            expect(result.agent?.timeout).toBe(30);
+            expect(result.agent?.nicknameCandidates).toEqual(['Atlas', 'Echo']);
             expect(result.agent?.body).toContain('Test Agent');
         });
 
-        it('should use section name as agent name', async () => {
-            const input = `[agents.my-agent]
+        it('should use explicit name field over filename', async () => {
+            const input = `name = "my-custom-name"
 description = "Test"`;
-            const result = await adapter.parse(input, '/tmp/test.toml');
-            expect(result.agent?.name).toBe('my-agent');
+            const result = await adapter.parse(input, '/tmp/different-file.toml');
+            expect(result.agent?.name).toBe('my-custom-name');
         });
 
-        it('should use filename as name when no section', async () => {
+        it('should use filename as name when no name field', async () => {
             const input = `description = "Test"`;
             const result = await adapter.parse(input, '/tmp/my-agent.toml');
             expect(result.agent?.name).toBe('my-agent');
         });
 
-        it('should parse triple-quoted strings', async () => {
-            const input = `[agents.test]
-description = """Multi-line
-description"""`;
+        it('should parse triple-quoted multiline strings', async () => {
+            const input = `name = "test"
+description = "Test"
+developer_instructions = """
+Line 1
+Line 2
+Line 3
+"""`;
             const result = await adapter.parse(input, '/tmp/test.toml');
-            expect(result.agent?.description).toContain('Multi-line');
+            expect(result.agent?.body).toContain('Line 1');
+            expect(result.agent?.body).toContain('Line 2');
+            expect(result.agent?.body).toContain('Line 3');
         });
 
-        it('should parse array values', async () => {
-            const input = `[agents.test]
-description = "Test"
-model = "test-model"
-tools = ["Read", "Grep"]`;
+        it('should parse single-line triple-quoted strings', async () => {
+            const input = `name = "test"
+description = """Short multi-line"""`;
             const result = await adapter.parse(input, '/tmp/test.toml');
-            // tools is not in CodexAgentConfig so should be dropped
-            expect(result.agent?.description).toBe('Test');
+            expect(result.agent?.description).toBe('Short multi-line');
+        });
+
+        it('should parse nickname_candidates array', async () => {
+            const input = `name = "test"
+description = "Test"
+nickname_candidates = ["Alpha", "Bravo", "Charlie"]`;
+            const result = await adapter.parse(input, '/tmp/test.toml');
+            expect(result.agent?.nicknameCandidates).toEqual(['Alpha', 'Bravo', 'Charlie']);
         });
 
         it('should parse boolean values', async () => {
-            const input = `[agents.test]
+            const input = `name = "test"
 description = "Test"
 enabled = true`;
             const result = await adapter.parse(input, '/tmp/test.toml');
             expect(result.agent?.description).toBe('Test');
         });
 
+        it('should parse number values', async () => {
+            const input = `name = "test"
+description = "Test"
+some_number = 42`;
+            const result = await adapter.parse(input, '/tmp/test.toml');
+            expect(result.success).toBe(true);
+        });
+
         it('should fail when description missing', async () => {
-            const input = '[agents.test]';
+            const input = 'name = "test"';
             const result = await adapter.parse(input, '/tmp/test.toml');
             expect(result.success).toBe(false);
             expect(result.errors).toContain('Missing required field: description');
         });
 
-        it('should warn when body missing', async () => {
-            const input = `[agents.test]
+        it('should warn when developer_instructions missing', async () => {
+            const input = `name = "test"
 description = "Test"`;
             const result = await adapter.parse(input, '/tmp/test.toml');
             expect(result.warnings.some((w) => w.includes('developer_instructions'))).toBe(true);
         });
+
+        it('should skip comment lines', async () => {
+            const input = `# This is a comment
+name = "test"
+# Another comment
+description = "Test"`;
+            const result = await adapter.parse(input, '/tmp/test.toml');
+            expect(result.agent?.name).toBe('test');
+            expect(result.agent?.description).toBe('Test');
+        });
     });
+
+    // ========================================================================
+    // Parse - MCP servers (nested TOML tables)
+    // ========================================================================
+
+    describe('parse - mcp_servers', () => {
+        it('should parse nested mcp_servers tables', async () => {
+            const input = `name = "test"
+description = "Test"
+developer_instructions = "Body"
+
+[mcp_servers.docs]
+url = "https://docs.example.com/mcp"
+
+[mcp_servers.search]
+url = "https://search.example.com/mcp"`;
+
+            const result = await adapter.parse(input, '/tmp/test.toml');
+            expect(result.success).toBe(true);
+            expect(result.agent?.mcpServers).toBeDefined();
+            expect(result.agent?.mcpServers?.length).toBe(2);
+
+            const servers = result.agent?.mcpServers as Record<string, unknown>[];
+            const docsServer = servers.find((s) => s.name === 'docs');
+            expect(docsServer).toBeDefined();
+            expect(docsServer?.url).toBe('https://docs.example.com/mcp');
+        });
+
+        it('should handle mcp_servers with extra fields', async () => {
+            const input = `name = "test"
+description = "Test"
+
+[mcp_servers.custom]
+url = "https://custom.example.com/mcp"
+enabled = true`;
+
+            const result = await adapter.parse(input, '/tmp/test.toml');
+            expect(result.success).toBe(true);
+            const servers = result.agent?.mcpServers as Record<string, unknown>[];
+            const server = servers.find((s) => s.name === 'custom');
+            expect(server?.enabled).toBe(true);
+        });
+    });
+
+    // ========================================================================
+    // Parse - Legacy format (backward compatibility)
+    // ========================================================================
+
+    describe('parse - legacy [agents.NAME] format', () => {
+        it('should parse legacy format with deprecation warning', async () => {
+            const input = `[agents.legacy-agent]
+description = "A legacy agent"
+model = "gpt-5.4"
+developer_instructions = """
+Legacy body content.
+"""`;
+
+            const result = await adapter.parse(input, '/tmp/legacy.toml');
+            expect(result.success).toBe(true);
+            expect(result.agent?.name).toBe('legacy-agent');
+            expect(result.agent?.description).toBe('A legacy agent');
+            expect(result.warnings.some((w) => w.includes('Legacy'))).toBe(true);
+            expect(result.warnings.some((w) => w.includes('developers.openai.com'))).toBe(true);
+        });
+
+        it('should parse legacy format with .settings subsection', async () => {
+            const input = `[agents.old-agent]
+description = "Old agent"
+developer_instructions = "Body"
+
+[agents.old-agent.settings]
+sandbox_mode = "read-only"`;
+
+            const result = await adapter.parse(input, '/tmp/old.toml');
+            expect(result.success).toBe(true);
+            expect(result.agent?.name).toBe('old-agent');
+            expect(result.agent?.sandboxMode).toBe('read-only');
+        });
+    });
+
+    // ========================================================================
+    // Parse - JSON format
+    // ========================================================================
 
     describe('parse - JSON format', () => {
         it('should parse JSON representation', async () => {
             const input = JSON.stringify({
+                name: 'json-agent',
                 description: 'A test agent',
                 model: 'claude-sonnet',
                 developer_instructions: 'Body text',
                 sandbox_mode: 'read-only',
-                reasoning_effort: 'medium',
+                model_reasoning_effort: 'medium',
+                nickname_candidates: ['Bot-A'],
             });
             const result = await adapter.parse(input, '/tmp/test.json');
             expect(result.success).toBe(true);
+            expect(result.agent?.name).toBe('json-agent');
             expect(result.agent?.description).toBe('A test agent');
+            expect(result.agent?.reasoningEffort).toBe('medium');
+            expect(result.agent?.nicknameCandidates).toEqual(['Bot-A']);
         });
 
         it('should fail for invalid JSON', async () => {
@@ -120,26 +241,61 @@ description = "Test"`;
         });
     });
 
+    // ========================================================================
+    // Validate
+    // ========================================================================
+
     describe('validate', () => {
         it('should validate a complete agent', async () => {
             const result = await adapter.validate(sampleAgent);
             expect(result.success).toBe(true);
-            expect(result.messages).toContain('Sandbox mode: read-write');
+            expect(result.messages).toContain('Sandbox mode: workspace-write');
             expect(result.messages).toContain('Reasoning effort: high');
         });
 
         it('should warn about unknown sandbox mode', async () => {
             const agent = { ...sampleAgent, sandboxMode: 'invalid' };
             const result = await adapter.validate(agent);
-            expect(result.warnings).toContain(
-                "Unknown sandbox_mode 'invalid' -- valid values: read-only, read-write, full, none",
-            );
+            expect(
+                result.warnings.some(
+                    (w) => w.includes("Unknown sandbox_mode 'invalid'") && w.includes('workspace-write'),
+                ),
+            ).toBe(true);
+        });
+
+        it('should accept valid sandbox modes', async () => {
+            for (const mode of ['read-only', 'workspace-write', 'danger-full-access']) {
+                const agent = { ...sampleAgent, sandboxMode: mode };
+                const result = await adapter.validate(agent);
+                expect(result.messages).toContain(`Sandbox mode: ${mode}`);
+            }
         });
 
         it('should warn about unknown reasoning effort', async () => {
             const agent = { ...sampleAgent, reasoningEffort: 'invalid' };
             const result = await adapter.validate(agent);
-            expect(result.warnings).toContain("Unknown reasoning_effort 'invalid' -- valid values: low, medium, high");
+            expect(
+                result.warnings.some(
+                    (w) => w.includes("Unknown model_reasoning_effort 'invalid'") && w.includes('low, medium, high'),
+                ),
+            ).toBe(true);
+        });
+
+        it('should validate nickname_candidates', async () => {
+            const result = await adapter.validate(sampleAgent);
+            expect(result.messages?.some((m) => m.includes('Nickname candidates'))).toBe(true);
+        });
+
+        it('should warn about non-ASCII nickname candidates', async () => {
+            const agent = { ...sampleAgent, nicknameCandidates: ['Valid', 'Inv@lid!'] };
+            const result = await adapter.validate(agent);
+            expect(result.warnings.some((w) => w.includes('non-ASCII'))).toBe(true);
+        });
+
+        it('should warn about duplicate nickname candidates', async () => {
+            const agent = { ...sampleAgent, nicknameCandidates: ['Same', 'Same'] };
+            const result = await adapter.validate(agent);
+            expect(result.warnings.some((w) => w.includes('Duplicate'))).toBe(true);
         });
 
         it('should warn about dropped fields', async () => {
@@ -148,10 +304,10 @@ description = "Test"`;
                 tools: ['Read'],
                 disallowedTools: ['Bash'],
                 maxTurns: 10,
+                timeout: 30,
                 temperature: 0.5,
                 permissionMode: 'ask',
                 skills: ['skill1'],
-                mcpServers: ['server1'],
                 hooks: { preToolUse: 'test' },
                 memory: 'memory',
                 background: true,
@@ -164,25 +320,50 @@ description = "Test"`;
             const result = await adapter.validate(agent);
             expect(result.warnings.some((w) => w.includes('Fields not supported by Codex'))).toBe(true);
         });
+
+        it('should NOT warn about mcpServers (now supported)', async () => {
+            const agent: UniversalAgent = {
+                ...sampleAgent,
+                mcpServers: [{ name: 'docs', url: 'https://example.com/mcp' } as unknown as string],
+            };
+            const result = await adapter.validate(agent);
+            expect(result.messages?.some((m) => m.includes('MCP servers'))).toBe(true);
+            // mcpServers should NOT appear in dropped fields
+            const droppedWarning = result.warnings.find((w) => w.includes('Fields not supported'));
+            if (droppedWarning) {
+                expect(droppedWarning).not.toContain('mcpServers');
+            }
+        });
     });
 
+    // ========================================================================
+    // Generate
+    // ========================================================================
+
     describe('generate', () => {
-        it('should generate TOML config', async () => {
+        it('should generate standalone TOML with root-level fields', async () => {
             const context = createAgentAdapterContext(sampleAgent, '/tmp', 'codex');
             const result = await adapter.generate(sampleAgent, context);
             expect(result.success).toBe(true);
-            expect(result.output).toContain('[agents.codex-test-agent]');
+            expect(result.output).toContain('name = "codex-test-agent"');
             expect(result.output).toContain('description =');
-            expect(result.output).toContain('sandbox_mode =');
-            expect(result.output).toContain('reasoning_effort =');
-            expect(result.output).toContain('job_max_runtime_seconds =');
+            expect(result.output).toContain('model =');
+            expect(result.output).toContain('model_reasoning_effort = "high"');
+            expect(result.output).toContain('sandbox_mode = "workspace-write"');
+            expect(result.output).toContain('nickname_candidates = ["TestBot", "Agent-T"]');
             expect(result.output).toContain('developer_instructions =');
+        });
+
+        it('should NOT use [agents.NAME] section format', async () => {
+            const context = createAgentAdapterContext(sampleAgent, '/tmp', 'codex');
+            const result = await adapter.generate(sampleAgent, context);
+            expect(result.output).not.toContain('[agents.');
         });
 
         it('should include model when present', async () => {
             const context = createAgentAdapterContext(sampleAgent, '/tmp', 'codex');
             const result = await adapter.generate(sampleAgent, context);
-            expect(result.output).toContain('model =');
+            expect(result.output).toContain('model = "claude-sonnet-4-20250514"');
         });
 
         it('should not include undefined fields', async () => {
@@ -195,23 +376,51 @@ description = "Test"`;
             const result = await adapter.generate(agent, context);
             expect(result.output).not.toContain('model =');
             expect(result.output).not.toContain('sandbox_mode =');
+            expect(result.output).not.toContain('model_reasoning_effort =');
+            expect(result.output).not.toContain('nickname_candidates =');
+        });
+
+        it('should generate mcp_servers as nested tables', async () => {
+            const agent: UniversalAgent = {
+                ...sampleAgent,
+                mcpServers: [
+                    { name: 'docs', url: 'https://docs.example.com/mcp' } as unknown as string,
+                    { name: 'search', url: 'https://search.example.com/mcp' } as unknown as string,
+                ],
+            };
+            const context = createAgentAdapterContext(agent, '/tmp', 'codex');
+            const result = await adapter.generate(agent, context);
+            expect(result.output).toContain('[mcp_servers.docs]');
+            expect(result.output).toContain('url = "https://docs.example.com/mcp"');
+            expect(result.output).toContain('[mcp_servers.search]');
         });
 
         it('should note dropped fields', async () => {
             const agent: UniversalAgent = {
                 ...sampleAgent,
                 tools: ['Read'],
+                timeout: 30,
             };
             const context = createAgentAdapterContext(agent, '/tmp', 'codex');
             const result = await adapter.generate(agent, context);
             expect(result.warnings.some((w) => w.includes('Fields not supported by Codex (dropped)'))).toBe(true);
         });
+
+        it('should output file with agent name', async () => {
+            const context = createAgentAdapterContext(sampleAgent, '/tmp/output', 'codex');
+            const result = await adapter.generate(sampleAgent, context);
+            expect(result.companions).toContain('/tmp/output/codex-test-agent.toml');
+        });
     });
+
+    // ========================================================================
+    // Feature Detection
+    // ========================================================================
 
     describe('detectFeatures', () => {
         it('should detect sandbox mode feature', () => {
             const features = adapter.detectFeatures(sampleAgent);
-            expect(features).toContain('codex-sandbox-read-write');
+            expect(features).toContain('codex-sandbox-workspace-write');
         });
 
         it('should detect reasoning effort feature', () => {
@@ -219,9 +428,18 @@ description = "Test"`;
             expect(features).toContain('codex-reasoning-high');
         });
 
-        it('should detect runtime limit feature', () => {
+        it('should detect nicknames feature', () => {
             const features = adapter.detectFeatures(sampleAgent);
-            expect(features).toContain('codex-runtime-limit');
+            expect(features).toContain('codex-nicknames');
+        });
+
+        it('should detect mcp-servers feature', () => {
+            const agent: UniversalAgent = {
+                ...sampleAgent,
+                mcpServers: [{ name: 'docs', url: 'https://example.com' } as unknown as string],
+            };
+            const features = adapter.detectFeatures(agent);
+            expect(features).toContain('codex-mcp-servers');
         });
     });
 });
@@ -231,6 +449,6 @@ describe('CodexAgentAdapter - options', () => {
         const adapter = new CodexAgentAdapter({ validateSandboxMode: false });
         const agent = { ...sampleAgent, sandboxMode: 'invalid' };
         const result = await adapter.validate(agent);
-        expect(result.warnings).not.toContain("Unknown sandbox_mode 'invalid'");
+        expect(result.warnings.every((w) => !w.includes("Unknown sandbox_mode 'invalid'"))).toBe(true);
     });
 });
