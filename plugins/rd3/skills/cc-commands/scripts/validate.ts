@@ -19,8 +19,6 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { logger } from '../../../scripts/logger';
 
-import { logger } from '../../../scripts/logger';
-
 import type {
     Command,
     CommandBodyAnalysis,
