@@ -367,25 +367,38 @@ async function processCommands(
     targets: string[],
     dryRun: boolean,
 ): Promise<void> {
-    const commandsDir = join(pluginDir, 'commands');
-    if (!existsSync(commandsDir)) {
+    let commandFiles: string[] = [];
+
+    if (existsSync(pluginDir) && statSync(pluginDir).isFile()) {
+        commandFiles = [pluginDir];
+    } else {
+        const commandsDir = join(pluginDir, 'commands');
+        if (existsSync(commandsDir)) {
+            logger.info(`Processing commands in ${commandsDir}...`);
+            commandFiles = readdirSync(commandsDir)
+                .filter((f) => f.endsWith('.md'))
+                .map((f) => join(commandsDir, f));
+        } else if (existsSync(pluginDir) && statSync(pluginDir).isDirectory()) {
+            logger.info(`Processing commands in ${pluginDir}...`);
+            commandFiles = readdirSync(pluginDir)
+                .filter((f) => f.endsWith('.md'))
+                .map((f) => join(pluginDir, f));
+        }
+    }
+
+    if (commandFiles.length === 0) {
         logger.info('No commands directory found');
         return;
     }
-
-    logger.info(`Processing commands in ${commandsDir}...`);
-
-    const files = readdirSync(commandsDir).filter((f) => f.endsWith('.md'));
     let total = 0;
     let issues = 0;
     let adapted = 0;
 
-    for (const file of files) {
-        const cmdFile = join(commandsDir, file);
+    for (const cmdFile of commandFiles) {
         if (!statSync(cmdFile).isFile()) continue;
 
         total++;
-        const cmdName = basename(file, '.md');
+        const cmdName = basename(cmdFile, '.md');
         console.log('');
         logger.info(`Processing: ${cmdName}`);
 
