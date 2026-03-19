@@ -75,9 +75,9 @@ const VALID_SOURCE_PLATFORMS: AgentPlatform[] = ['claude', 'gemini', 'opencode',
 // Argument Parsing
 // ============================================================================
 
-function parseCliArgs(): AdaptOptions {
+function parseCliArgs(argv = process.argv.slice(2)): AdaptOptions {
     const args = parseArgs({
-        args: process.argv.slice(2),
+        args: argv,
         allowPositionals: true,
         options: {
             output: { type: 'string', short: 'o' },
@@ -381,8 +381,8 @@ function printResults(results: AdaptResult[], dryRun: boolean): void {
 // Main
 // ============================================================================
 
-async function main() {
-    const options = parseCliArgs();
+async function main(argv = process.argv.slice(2)) {
+    const options = parseCliArgs(argv);
     validateOptions(options);
 
     console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
@@ -437,3 +437,4 @@ if (import.meta.main) {
 
 export { adaptAgent, adaptToAll };
 export type { AdaptOptions, AdaptResult };
+export { main, parseCliArgs, printResults, printUsage, validateOptions };
