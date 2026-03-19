@@ -289,6 +289,10 @@ export interface CommandScaffoldOptions {
     pluginName?: string;
     /** Description for frontmatter */
     description?: string;
+    /** Target skill name (e.g. "rd3:cc-skills") for Skill() delegation */
+    skill?: string;
+    /** Operation name passed as first arg to Skill() (e.g. "scaffold", "evaluate") */
+    operation?: string;
 }
 
 /**
