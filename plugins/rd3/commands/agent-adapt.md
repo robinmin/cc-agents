@@ -1,6 +1,6 @@
 ---
 description: Adapt a Claude Code agent for other AI coding platforms
-argument-hint: "<source-file> <source-platform> [target-platform] [--output <dir>] [--dry-run]"
+argument-hint: "<source-file> <source-platform> [target-platform]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -23,9 +23,8 @@ Convert a Claude Code agent to other platform formats.
 | `source-file` | Path to agent source .md file | (required) |
 | `source-platform` | Source platform: claude, codex, gemini, openclaw, opencode | (required) |
 | `target-platform` | Target platform(s), comma-separated or "all" | all |
-| `--output` | Output directory | same as source |
-| `--dry-run` | Preview without writing files | false |
-| `--verbose` | Show detailed output | false |
+
+> For advanced options (`--output`, `--dry-run`, `--verbose`), run the script directly: `bun plugins/rd3/skills/cc-agents/scripts/adapt.ts --help`
 
 ## Examples
 
@@ -35,9 +34,6 @@ Convert a Claude Code agent to other platform formats.
 
 # Adapt Claude agent to Gemini only
 /rd3:agent-adapt ./agents/my-agent.md claude gemini
-
-# Preview generated output
-/rd3:agent-adapt ./agents/my-agent.md claude all --dry-run
 ```
 
 ## Implementation
@@ -47,7 +43,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-agents** skill:
 
 ```
-Skill(skill="rd3:cc-agents")
+Skill(skill="rd3:cc-agents", args="adapt $ARGUMENTS")
 ```
 
 **Direct script execution:**
