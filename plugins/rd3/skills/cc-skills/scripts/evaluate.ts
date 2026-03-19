@@ -9,6 +9,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { logger } from '../../../scripts/logger';
 import YAML from 'yaml';
 import { AntigravityAdapter } from './adapters/antigravity';
 import { ClaudeAdapter } from './adapters/claude';
@@ -1540,7 +1541,7 @@ function parseCliArgs(): {
     const path = args.positionals?.[0];
 
     if (!path) {
-        console.error('Error: Missing required argument <skill-path>');
+        logger.error('Error: Missing required argument <skill-path>');
         printUsage();
         process.exit(1);
     }
@@ -1549,7 +1550,7 @@ function parseCliArgs(): {
     const scope = (args.values.scope as string) || 'basic';
 
     if (!validScopes.includes(scope)) {
-        console.error(`Error: Invalid scope '${scope}'`);
+        logger.error(`Error: Invalid scope '${scope}'`);
         process.exit(1);
     }
 
@@ -1557,7 +1558,7 @@ function parseCliArgs(): {
     const platform = (args.values.platform as string) || 'all';
 
     if (!validPlatforms.includes(platform)) {
-        console.error(`Error: Invalid platform '${platform}'`);
+        logger.error(`Error: Invalid platform '${platform}'`);
         process.exit(1);
     }
 
