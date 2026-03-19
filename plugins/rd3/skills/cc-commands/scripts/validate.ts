@@ -17,6 +17,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { logger } from '../../../scripts/logger';
 
 import { logger } from '../../../scripts/logger';
 
@@ -406,7 +407,7 @@ function parseCliArgs(): { path: string; verbose: boolean; json: boolean } {
 
     const path = args.positionals?.[0];
     if (!path) {
-        console.error('Error: Missing required argument <command-path>');
+        logger.error('Error: Missing required argument <command-path>');
         process.exit(1);
     }
 
