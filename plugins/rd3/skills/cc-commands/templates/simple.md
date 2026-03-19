@@ -8,60 +8,46 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **{{TARGET_SKILL}}** skill.
 
-[Description of what this command does - keep under 60 chars, start with verb]
+[TODO: Description of what this command does - keep under 60 chars, start with verb]
 
 ## When to Use
 
-- [Scenario 1: When this command applies]
-- [Scenario 2: Another scenario]
-
-## Expected Results
-
-- [Result 1: What the command produces]
-- [Result 2: Another outcome]
-- [Result 3: Any additional outputs]
+- [TODO: Scenario 1: When this command applies]
+- [TODO: Scenario 2: Another scenario]
 
 ## Arguments
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| `{{ARG_NAME}}` | [Description] | [default value] |
-| `--{{FLAG_NAME}}` | [Flag description] | [default value] |
+| `{{ARG_NAME}}` | [TODO: Description] | (required) |
+| `--{{FLAG_NAME}}` | [TODO: Flag description] | [default value] |
 
 ## Examples
 
 ```bash
-# [Example 1]
+# [TODO: Example 1]
 /{{PLUGIN_NAME}}:{{COMMAND_NAME}} [args]
 
-# [Example 2]
+# [TODO: Example 2]
 /{{PLUGIN_NAME}}:{{COMMAND_NAME}} [args]
 ```
 
 ## Implementation
 
+Pass `$ARGUMENTS` to the underlying skill for processing.
+
 Delegates to **{{TARGET_SKILL}}** skill:
 
 ```
-Skill(skill="{{TARGET_SKILL}}")
+Skill(skill="{{TARGET_SKILL}}", args="{{OPERATION}} $ARGUMENTS")
 ```
 
 **Direct script execution:**
 ```bash
-bun plugins/{{PLUGIN_PATH}}/scripts/{{SCRIPT_NAME}}.ts <args>
+bun plugins/{{PLUGIN_PATH}}/scripts/{{SCRIPT_NAME}}.ts $ARGUMENTS
 ```
 
 ## Platform Notes
 
-- Claude Code: Use `Skill()` for skill delegation
+- Claude Code: Invoke via `Skill()` delegation
 - Other platforms: Run script directly via Bash tool
-
-## See Also
-
-- `/{{PLUGIN_NAME}}:{{RELATED_COMMAND_1}}` - [Description]
-- `/{{PLUGIN_NAME}}:{{RELATED_COMMAND_2}}` - [Description]
-
----
-
-**Template type**: simple
-**Pattern**: Direct imperative instructions, no subagent delegation
