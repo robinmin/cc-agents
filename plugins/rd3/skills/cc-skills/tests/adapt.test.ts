@@ -202,4 +202,33 @@ description: A skill with existing codex yaml
         const yaml = readFileSync(join(skillDir, 'agents', 'openai.yaml'), 'utf-8');
         expect(yaml).toBe('name: existing\n');
     });
+
+    it('should adapt a single skill directory path', async () => {
+        const skillDir = join(TEST_DIR, 'single-skill');
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(
+            join(skillDir, 'SKILL.md'),
+            `---
+name: single-skill
+description: A skill for testing direct path adaptation behavior
+---
+
+# Single Skill
+
+## When to use
+
+Use this skill to validate single-path adaptation.
+`,
+            'utf-8',
+        );
+
+        const proc = Bun.spawn(['bun', 'run', ADAPT_SCRIPT, skillDir, 'codex', '--component', 'skills'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const exitCode = await proc.exited;
+        expect(exitCode).toBe(0);
+        expect(existsSync(join(skillDir, 'agents', 'openai.yaml'))).toBe(true);
+    });
 });
