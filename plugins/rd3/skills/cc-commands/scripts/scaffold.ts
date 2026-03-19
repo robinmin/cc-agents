@@ -154,10 +154,11 @@ export async function scaffold(options: CommandScaffoldOptions): Promise<Command
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: scaffold.ts <command-name> --path <output-dir> [options]');
+    console.log('Usage: scaffold.ts <command-name> [description] [options]');
     console.log('');
     console.log('Arguments:');
     console.log('  <command-name>         Name of the command to create');
+    console.log('  [description]          Optional command description (free-text)');
     console.log('');
     console.log('Options:');
     console.log('  -p, --path <dir>       Output directory (default: ./commands)');
@@ -200,6 +201,8 @@ function parseCliArgs(): CommandScaffoldOptions & { verbose: boolean } {
     }
 
     const name = args.positionals?.[0] || '';
+    // Second positional is optional description (free-text)
+    const positionalDescription = args.positionals?.[1] || '';
     const template = (args.values.template as CommandTemplate) || 'simple';
     const validTemplates: CommandTemplate[] = ['simple', 'workflow', 'plugin'];
 
@@ -209,7 +212,8 @@ function parseCliArgs(): CommandScaffoldOptions & { verbose: boolean } {
     }
 
     const pluginNameVal = args.values['plugin-name'] as string | undefined;
-    const descriptionVal = args.values.description as string | undefined;
+    // --description flag takes priority over positional description
+    const descriptionVal = (args.values.description as string | undefined) || positionalDescription || undefined;
 
     const result: CommandScaffoldOptions & { verbose: boolean } = {
         name,
