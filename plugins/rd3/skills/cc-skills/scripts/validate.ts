@@ -333,7 +333,7 @@ function parseCliArgs(): { path: string; options: ValidateOptions } {
     const path = args.positionals?.[0];
 
     if (!path) {
-        console.error('Error: Missing required argument <skill-path>');
+        logger.error('Error: Missing required argument <skill-path>');
         printUsage();
         process.exit(1);
     }
@@ -342,7 +342,7 @@ function parseCliArgs(): { path: string; options: ValidateOptions } {
     const platform = (args.values.platform as string) || 'all';
 
     if (!validPlatforms.includes(platform)) {
-        console.error(`Error: Invalid platform '${platform}'`);
+        logger.error(`Error: Invalid platform '${platform}'`);
         process.exit(1);
     }
 
