@@ -1091,7 +1091,7 @@ export function parseCliArgs(): {
 
     const path = args.positionals?.[0];
     if (!path) {
-        console.error('Error: Missing required argument <agent-path>');
+        logger.error('Error: Missing required argument <agent-path>');
         printUsage();
         process.exit(1);
     }
@@ -1099,21 +1099,21 @@ export function parseCliArgs(): {
     const validScopes = ['basic', 'full'];
     const scope = (args.values.scope as string) || 'full';
     if (!validScopes.includes(scope)) {
-        console.error(`Error: Invalid scope '${scope}'`);
+        logger.error(`Error: Invalid scope '${scope}'`);
         process.exit(1);
     }
 
     const validProfiles = ['auto', 'thin-wrapper', 'specialist'];
     const profileArg = (args.values.profile as string) || 'auto';
     if (!validProfiles.includes(profileArg)) {
-        console.error(`Error: Invalid profile '${profileArg}'`);
+        logger.error(`Error: Invalid profile '${profileArg}'`);
         process.exit(1);
     }
 
     const validOutputs = ['json', 'text'];
     const output = (args.values.output as string) || 'text';
     if (!validOutputs.includes(output)) {
-        console.error(`Error: Invalid output format '${output}'`);
+        logger.error(`Error: Invalid output format '${output}'`);
         process.exit(1);
     }
 
