@@ -1,6 +1,6 @@
 ---
 description: Evaluate and fix skill issues in one step
-argument-hint: "<skill-path> [--best-practices] [--llm-refine] [--migrate] [--dry-run]"
+argument-hint: "<skill-path> [description] [--best-practices] [--llm-refine] [--migrate] [--dry-run]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -22,6 +22,7 @@ Run evaluation internally then apply fixes in one step.
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `skill-path` | Path to the skill directory | (required) |
+| `description` | Optional free-text goal to guide refinement | (none) |
 | `--best-practices` | Auto-fix TODOs, Windows paths, formatting | false |
 | `--llm-refine` | Use LLM for style/voice fixes | false |
 | `--migrate` | Migrate rd2 to rd3 format | false |
@@ -31,11 +32,11 @@ Run evaluation internally then apply fixes in one step.
 ## Examples
 
 ```bash
-# Evaluate then apply deterministic fixes
+# Evaluate then apply deterministic fixes (most common)
 /rd3:skill-refine ./skills/my-skill --best-practices
 
-# Use LLM to refine style
-/rd3:skill-refine ./skills/my-skill --llm-refine
+# Refine with a goal description
+/rd3:skill-refine ./skills/my-skill "REST API scaffolding with OpenAPI integration"
 
 # Migrate rd2 skill to rd3 format
 /rd3:skill-refine ./skills/my-skill --migrate
@@ -51,7 +52,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-skills** skill:
 
 ```
-Skill(skill="rd3:cc-skills")
+Skill(skill="rd3:cc-skills", args="refine $ARGUMENTS")
 ```
 
 **Direct script execution:**
