@@ -1,6 +1,6 @@
 ---
 description: Evaluate and fix slash definition issues in one step
-argument-hint: "<command-path> [--migrate] [--dry-run] [--from-eval <path>]"
+argument-hint: "<command-path> [description] [--migrate] [--dry-run] [--from-eval <path>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -21,6 +21,7 @@ Run evaluation internally then apply fixes in one step.
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `command-path` | Path to the .md file | (required) |
+| `description` | Optional free-text goal to guide refinement | (none) |
 | `--migrate` | Enable rd2-to-rd3 migration mode | false |
 | `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
 | `--dry-run` | Preview changes without applying | false |
@@ -29,11 +30,11 @@ Run evaluation internally then apply fixes in one step.
 ## Examples
 
 ```bash
-# Evaluate then apply fixes
+# Evaluate then apply fixes (most common)
 /rd3:command-refine ./commands/review-code.md
 
-# Preview changes without applying
-/rd3:command-refine ./commands/review-code.md --dry-run
+# Refine with a goal description
+/rd3:command-refine ./commands/review-code.md "Code review with severity-driven fix workflow"
 
 # Migrate from rd2 format
 /rd3:command-refine ./commands/old-definition.md --migrate
@@ -46,7 +47,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-commands** skill:
 
 ```
-Skill(skill="rd3:cc-commands")
+Skill(skill="rd3:cc-commands", args="refine $ARGUMENTS")
 ```
 
 **Direct script execution:**
