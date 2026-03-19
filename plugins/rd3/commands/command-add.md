@@ -1,6 +1,6 @@
 ---
 description: Scaffold a new slash definition with best practices
-argument-hint: "<command-name> [--template simple|workflow|plugin] [--path <dir>]"
+argument-hint: "<command-name> [description] [--template simple|workflow|plugin] [--path <dir>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -21,20 +21,20 @@ Scaffold a new slash definition file from a template.
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `command-name` | Name to create | (required) |
+| `description` | Optional free-text description of the command's purpose | auto-generated |
 | `--template` | Template type: simple, workflow, plugin | simple |
-| `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | claude |
 | `--path` | Output directory | ./commands |
-| `--description` | Description for frontmatter | auto-generated |
+| `--platform` | Target platform: all, claude, codex, gemini, openclaw, opencode, antigravity | claude |
 | `--plugin-name` | Plugin name for plugin template | (none) |
 
 ## Examples
 
 ```bash
-# Scaffold a simple definition
+# Scaffold a simple definition (most common)
 /rd3:command-add review-code
 
-# Scaffold a workflow definition with description
-/rd3:command-add deploy-app --template workflow --description "Deploy app to production"
+# Scaffold with a description of its purpose
+/rd3:command-add deploy-app "Deploy app to production environment"
 
 # Scaffold a plugin definition
 /rd3:command-add skill-test --template plugin --plugin-name rd3
@@ -47,7 +47,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-commands** skill:
 
 ```
-Skill(skill="rd3:cc-commands")
+Skill(skill="rd3:cc-commands", args="scaffold $ARGUMENTS")
 ```
 
 **Direct script execution:**
