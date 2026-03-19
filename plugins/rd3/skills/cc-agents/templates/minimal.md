@@ -2,6 +2,7 @@
 name: {{AGENT_NAME}}
 description: "{{DESCRIPTION}}"
 tools: [{{TOOLS}}]
+skills: [{{SKILLS}}]
 model: {{MODEL}}
 color: {{COLOR}}
 ---
