@@ -1,21 +1,23 @@
 /**
  * Codex Adapter for rd3:cc-agents
  *
- * Parses Codex agent configuration (TOML [agents.NAME] sections) into UAM,
+ * Parses Codex agent configuration (standalone TOML files) into UAM,
  * validates agents for Codex compatibility, and generates
- * Codex-native TOML config output from UAM.
+ * Codex-native TOML output from UAM.
  *
- * Codex agent format:
- * - TOML configuration in [agents.NAME] sections
- * - Fields: description, model, developer_instructions, sandbox_mode,
- *   reasoning_effort, job_max_runtime_seconds
+ * Official Codex agent format (per https://developers.openai.com/codex/subagents):
+ * - Standalone .toml files in ~/.codex/agents/ or .codex/agents/
+ * - Root-level fields: name, description, developer_instructions (required)
+ * - Optional: model, model_reasoning_effort, sandbox_mode, nickname_candidates, mcp_servers
  * - Body maps to developer_instructions
  *
  * Key field mappings (UAM <-> Codex):
+ * - name <-> name
  * - body <-> developer_instructions
  * - sandboxMode <-> sandbox_mode
- * - reasoningEffort <-> reasoning_effort
- * - timeout (minutes) <-> job_max_runtime_seconds (seconds / 60)
+ * - reasoningEffort <-> model_reasoning_effort
+ * - nicknameCandidates <-> nickname_candidates
+ * - mcpServers <-> mcp_servers (nested TOML tables)
  */
 
 import { join } from 'node:path';
@@ -42,7 +44,8 @@ export interface CodexAgentAdapterOptions {
 // Constants
 // ============================================================================
 
-const VALID_SANDBOX_MODES = ['read-only', 'read-write', 'full', 'none'];
+const VALID_SANDBOX_MODES = ['read-only', 'workspace-write', 'danger-full-access'];
+const VALID_REASONING_EFFORTS = ['low', 'medium', 'high'];
 
 // ============================================================================
 // Codex Agent Adapter
@@ -71,8 +74,9 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
      * Parse a Codex TOML agent config into UAM.
      *
      * Input can be:
-     * - A TOML [agents.NAME] section (simplified key=value parsing)
-     * - A JSON representation of the TOML section
+     * - A standalone TOML file with root-level fields (official format)
+     * - A legacy [agents.NAME] section (backward compat with deprecation warning)
+     * - A JSON representation of the config
      */
     async parse(input: string, filePath: string): Promise<AgentParseResult> {
         const trimmed = input.trim();
@@ -82,7 +86,7 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
             return this.parseJson(trimmed, filePath);
         }
 
-        // Parse TOML-style key=value pairs
+        // Parse TOML
         return this.parseToml(trimmed, filePath);
     }
 
@@ -105,15 +109,21 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
     }
 
     /**
-     * Parse TOML-style [agents.NAME] section.
-     * Simplified parsing -- handles common TOML key=value patterns.
+     * Parse TOML agent file.
+     * Supports:
+     * - Official format: root-level key=value fields
+     * - Legacy format: [agents.NAME] sections (with deprecation warning)
+     * - Nested tables: [mcp_servers.serverName]
      */
     private parseToml(input: string, filePath: string): AgentParseResult {
         const errors: string[] = [];
         const warnings: string[] = [];
 
         const config: Record<string, unknown> = {};
+        const mcpServers: Record<string, Record<string, unknown>> = {};
         let agentName = '';
+        let isLegacyFormat = false;
+        let currentNestedTable = '';
 
         const lines = input.split('\n');
         let i = 0;
@@ -127,10 +137,28 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
                 continue;
             }
 
-            // Section header: [agents.NAME]
-            const sectionMatch = trimLine.match(/^\[agents\.(.+)\]$/);
-            if (sectionMatch) {
-                agentName = sectionMatch[1];
+            // Legacy section header: [agents.NAME] or [agents.NAME.settings]
+            const legacySectionMatch = trimLine.match(/^\[agents\.([^.\]]+)(?:\.settings)?\]$/);
+            if (legacySectionMatch) {
+                agentName = legacySectionMatch[1];
+                isLegacyFormat = true;
+                currentNestedTable = '';
+                i++;
+                continue;
+            }
+
+            // Nested table header: [mcp_servers.serverName]
+            const nestedTableMatch = trimLine.match(/^\[mcp_servers\.([^\]]+)\]$/);
+            if (nestedTableMatch) {
+                currentNestedTable = nestedTableMatch[1];
+                mcpServers[currentNestedTable] = {};
+                i++;
+                continue;
+            }
+
+            // Any other section header (skip unknown sections)
+            if (trimLine.startsWith('[') && trimLine.endsWith(']')) {
+                currentNestedTable = '';
                 i++;
                 continue;
             }
@@ -143,79 +171,55 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
 
                 // Parse value types
                 if (typeof value === 'string') {
-                    // Multi-line string (triple quotes)
-                    if ((value as string).startsWith('"""')) {
-                        const mlValue = (value as string).slice(3);
-                        // Single-line triple-quoted: """text"""
-                        if (mlValue.endsWith('"""')) {
-                            value = mlValue.slice(0, -3);
-                        } else {
-                            // Collect lines until closing """
-                            const mlParts: string[] = [mlValue];
-                            i++;
-                            while (i < lines.length) {
-                                const mlLine = lines[i];
-                                if (mlLine.trim().endsWith('"""')) {
-                                    const final = mlLine.trimEnd().slice(0, -3);
-                                    if (final) mlParts.push(final);
-                                    break;
-                                }
-                                mlParts.push(mlLine);
-                                i++;
-                            }
-                            value = mlParts.join('\n');
-                        }
-                    }
-                    // TOML array: [val1, val2]
-                    else if ((value as string).startsWith('[') && (value as string).endsWith(']')) {
-                        const arrContent = (value as string).slice(1, -1);
-                        value = arrContent.split(',').map((v) => {
-                            const t = v.trim();
-                            return t.startsWith('"') && t.endsWith('"') ? t.slice(1, -1) : t;
-                        });
-                    }
-                    // Quoted string
-                    else if ((value as string).startsWith('"') && (value as string).endsWith('"')) {
-                        value = (value as string).slice(1, -1);
-                    }
-                    // Number
-                    else if (/^\d+$/.test(value as string)) {
-                        value = Number.parseInt(value as string, 10);
-                    }
-                    // Boolean
-                    else if (value === 'true') {
-                        value = true;
-                    } else if (value === 'false') {
-                        value = false;
-                    }
+                    value = parseTomlValue(value as string, lines, i, (newIndex) => {
+                        i = newIndex;
+                    });
                 }
 
-                config[key] = value;
+                // Route to nested table or root config
+                if (currentNestedTable && mcpServers[currentNestedTable]) {
+                    mcpServers[currentNestedTable][key] = value;
+                } else {
+                    config[key] = value;
+                }
             }
 
             i++;
         }
 
-        // Use section name or filename as agent name
-        if (!agentName) {
-            agentName =
-                filePath
-                    .replace(/\.[^.]+$/, '')
-                    .split('/')
-                    .pop() || 'unknown';
+        if (isLegacyFormat) {
+            warnings.push(
+                'Legacy [agents.NAME] section format detected. ' +
+                    'Official Codex format uses standalone .toml files with root-level fields. ' +
+                    'See: https://developers.openai.com/codex/subagents',
+            );
         }
 
+        // Determine agent name: explicit name field > section name > filename
+        const explicitName = config.name as string | undefined;
+        const finalName =
+            explicitName ||
+            agentName ||
+            filePath
+                .replace(/\.[^.]+$/, '')
+                .split('/')
+                .pop() ||
+            'unknown';
+
         const codexConfig: CodexAgentConfig = {
+            name: finalName,
             description: (config.description as string) || '',
             model: config.model as string,
             developer_instructions: config.developer_instructions as string,
             sandbox_mode: config.sandbox_mode as string,
-            reasoning_effort: config.reasoning_effort as string,
-            job_max_runtime_seconds: config.job_max_runtime_seconds as number,
+            model_reasoning_effort: config.model_reasoning_effort as string,
+            nickname_candidates: config.nickname_candidates as string[],
         };
 
-        // Store name for configToUam
-        (codexConfig as Record<string, unknown>).name = agentName;
+        // Attach mcp_servers if found
+        if (Object.keys(mcpServers).length > 0) {
+            codexConfig.mcp_servers = mcpServers as Record<string, { url: string }>;
+        }
 
         return this.configToUam(codexConfig, filePath, errors, warnings);
     }
@@ -235,7 +239,7 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
         }
 
         const name =
-            ((config as Record<string, unknown>).name as string) ||
+            config.name ||
             filePath
                 .replace(/\.[^.]+$/, '')
                 .split('/')
@@ -255,9 +259,17 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
         // Map fields
         if (typeof config.model === 'string') agent.model = config.model;
         if (typeof config.sandbox_mode === 'string') agent.sandboxMode = config.sandbox_mode;
-        if (typeof config.reasoning_effort === 'string') agent.reasoningEffort = config.reasoning_effort;
-        if (typeof config.job_max_runtime_seconds === 'number') {
-            agent.timeout = config.job_max_runtime_seconds / 60;
+        if (typeof config.model_reasoning_effort === 'string') {
+            agent.reasoningEffort = config.model_reasoning_effort;
+        }
+        if (Array.isArray(config.nickname_candidates)) {
+            agent.nicknameCandidates = config.nickname_candidates;
+        }
+        if (config.mcp_servers && Object.keys(config.mcp_servers).length > 0) {
+            agent.mcpServers = Object.entries(config.mcp_servers).map(([serverName, serverConfig]) => ({
+                name: serverName,
+                ...serverConfig,
+            }));
         }
 
         return {
@@ -290,16 +302,37 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
             }
         }
 
-        // Validate reasoning_effort
+        // Validate model_reasoning_effort
         if (agent.reasoningEffort) {
-            const validEfforts = ['low', 'medium', 'high'];
-            if (!validEfforts.includes(agent.reasoningEffort)) {
+            if (!VALID_REASONING_EFFORTS.includes(agent.reasoningEffort)) {
                 warnings.push(
-                    `Unknown reasoning_effort '${agent.reasoningEffort}' -- valid values: ${validEfforts.join(', ')}`,
+                    `Unknown model_reasoning_effort '${agent.reasoningEffort}' -- valid values: ${VALID_REASONING_EFFORTS.join(', ')}`,
                 );
             } else {
                 messages.push(`Reasoning effort: ${agent.reasoningEffort}`);
             }
+        }
+
+        // Validate nickname_candidates
+        if (agent.nicknameCandidates?.length) {
+            const seen = new Set<string>();
+            for (const nick of agent.nicknameCandidates) {
+                if (!/^[a-zA-Z0-9 _-]+$/.test(nick)) {
+                    warnings.push(
+                        `nickname_candidates entry '${nick}' contains non-ASCII characters -- only letters, digits, spaces, hyphens, underscores allowed`,
+                    );
+                }
+                if (seen.has(nick)) {
+                    warnings.push(`Duplicate nickname_candidates entry: '${nick}'`);
+                }
+                seen.add(nick);
+            }
+            messages.push(`Nickname candidates: ${agent.nicknameCandidates.join(', ')}`);
+        }
+
+        // Note MCP servers if present
+        if (agent.mcpServers?.length) {
+            messages.push(`MCP servers: ${agent.mcpServers.length} configured`);
         }
 
         // Warn about unsupported fields
@@ -307,10 +340,10 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
         if (agent.tools?.length) droppedFields.push('tools');
         if (agent.disallowedTools?.length) droppedFields.push('disallowedTools');
         if (agent.maxTurns !== undefined) droppedFields.push('maxTurns');
+        if (agent.timeout !== undefined) droppedFields.push('timeout');
         if (agent.temperature !== undefined) droppedFields.push('temperature');
         if (agent.permissionMode) droppedFields.push('permissionMode');
         if (agent.skills?.length) droppedFields.push('skills');
-        if (agent.mcpServers?.length) droppedFields.push('mcpServers');
         if (agent.hooks && Object.keys(agent.hooks).length > 0) droppedFields.push('hooks');
         if (agent.memory) droppedFields.push('memory');
         if (agent.background !== undefined) droppedFields.push('background');
@@ -328,31 +361,35 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
     }
 
     /**
-     * Generate a Codex TOML agent config section from UAM.
+     * Generate a standalone Codex TOML agent file from UAM.
      */
     protected async generatePlatform(agent: UniversalAgent, context: AgentAdapterContext): Promise<AgentAdapterResult> {
         const warnings: string[] = [];
         const messages: string[] = [];
 
-        // Generate TOML output
+        // Generate TOML output with root-level fields (official format)
         const tomlLines: string[] = [];
-        tomlLines.push(`[agents.${agent.name}]`);
+
+        // Required fields
+        tomlLines.push(`name = "${escapeToml(agent.name)}"`);
         tomlLines.push(`description = "${escapeToml(agent.description)}"`);
 
+        // Optional fields
         if (agent.model) {
             tomlLines.push(`model = "${escapeToml(agent.model)}"`);
+        }
+        if (agent.reasoningEffort) {
+            tomlLines.push(`model_reasoning_effort = "${escapeToml(agent.reasoningEffort)}"`);
         }
         if (agent.sandboxMode) {
             tomlLines.push(`sandbox_mode = "${escapeToml(agent.sandboxMode)}"`);
         }
-        if (agent.reasoningEffort) {
-            tomlLines.push(`reasoning_effort = "${escapeToml(agent.reasoningEffort)}"`);
-        }
-        if (agent.timeout !== undefined) {
-            tomlLines.push(`job_max_runtime_seconds = ${Math.round(agent.timeout * 60)}`);
+        if (agent.nicknameCandidates?.length) {
+            const items = agent.nicknameCandidates.map((n) => `"${escapeToml(n)}"`).join(', ');
+            tomlLines.push(`nickname_candidates = [${items}]`);
         }
 
-        // Body becomes developer_instructions
+        // Body becomes developer_instructions (triple-quoted for multiline)
         if (agent.body) {
             tomlLines.push('');
             tomlLines.push('developer_instructions = """');
@@ -360,7 +397,30 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
             tomlLines.push('"""');
         }
 
-        const output = tomlLines.join('\n');
+        // MCP servers as nested TOML tables
+        if (agent.mcpServers?.length) {
+            tomlLines.push('');
+            for (const server of agent.mcpServers) {
+                if (typeof server === 'object' && server !== null) {
+                    const serverObj = server as Record<string, unknown>;
+                    const serverName = (serverObj.name as string) || 'unnamed';
+                    tomlLines.push(`[mcp_servers.${serverName}]`);
+                    for (const [key, val] of Object.entries(serverObj)) {
+                        if (key === 'name') continue; // name is in the section header
+                        if (typeof val === 'string') {
+                            tomlLines.push(`${key} = "${escapeToml(val)}"`);
+                        } else if (typeof val === 'number' || typeof val === 'boolean') {
+                            tomlLines.push(`${key} = ${val}`);
+                        }
+                    }
+                } else if (typeof server === 'string') {
+                    tomlLines.push(`[mcp_servers.${server}]`);
+                    tomlLines.push('# Configure server URL and settings');
+                }
+            }
+        }
+
+        const output = `${tomlLines.join('\n')}\n`;
 
         // Determine output file path
         const filePath = join(context.outputPath, `${agent.name}.toml`);
@@ -373,10 +433,10 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
         if (agent.tools?.length) droppedFields.push('tools');
         if (agent.disallowedTools?.length) droppedFields.push('disallowedTools');
         if (agent.maxTurns !== undefined) droppedFields.push('maxTurns');
+        if (agent.timeout !== undefined) droppedFields.push('timeout');
         if (agent.temperature !== undefined) droppedFields.push('temperature');
         if (agent.permissionMode) droppedFields.push('permissionMode');
         if (agent.skills?.length) droppedFields.push('skills');
-        if (agent.mcpServers?.length) droppedFields.push('mcpServers');
         if (agent.hooks && Object.keys(agent.hooks).length > 0) droppedFields.push('hooks');
         if (agent.memory) droppedFields.push('memory');
         if (agent.background !== undefined) droppedFields.push('background');
@@ -390,7 +450,7 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
             warnings.push(`Fields not supported by Codex (dropped): ${droppedFields.join(', ')}`);
         }
 
-        messages.push(`Generated Codex agent config: ${filePath}`);
+        messages.push(`Generated Codex agent: ${filePath}`);
 
         return {
             success: true,
@@ -415,8 +475,11 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
         if (agent.reasoningEffort) {
             features.push(`codex-reasoning-${agent.reasoningEffort}`);
         }
-        if (agent.timeout !== undefined) {
-            features.push('codex-runtime-limit');
+        if (agent.nicknameCandidates?.length) {
+            features.push('codex-nicknames');
+        }
+        if (agent.mcpServers?.length) {
+            features.push('codex-mcp-servers');
         }
 
         return features;
@@ -428,7 +491,61 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
 // ============================================================================
 
 /**
- * Escape special characters for TOML string values.
+ * Parse a TOML value from a string, handling multiline strings, arrays, etc.
+ */
+function parseTomlValue(raw: string, lines: string[], currentIndex: number, setIndex: (i: number) => void): unknown {
+    // Multi-line string (triple quotes)
+    if (raw.startsWith('"""')) {
+        const mlValue = raw.slice(3);
+        // Single-line triple-quoted: """text"""
+        if (mlValue.endsWith('"""')) {
+            return mlValue.slice(0, -3);
+        }
+        // Collect lines until closing """
+        const mlParts: string[] = [mlValue];
+        let i = currentIndex + 1;
+        while (i < lines.length) {
+            const mlLine = lines[i];
+            if (mlLine.trim().endsWith('"""')) {
+                const final = mlLine.trimEnd().slice(0, -3);
+                if (final) mlParts.push(final);
+                break;
+            }
+            mlParts.push(mlLine);
+            i++;
+        }
+        setIndex(i);
+        return mlParts.join('\n');
+    }
+
+    // TOML array: [val1, val2]
+    if (raw.startsWith('[') && raw.endsWith(']')) {
+        const arrContent = raw.slice(1, -1);
+        return arrContent.split(',').map((v) => {
+            const t = v.trim();
+            return t.startsWith('"') && t.endsWith('"') ? t.slice(1, -1) : t;
+        });
+    }
+
+    // Quoted string
+    if (raw.startsWith('"') && raw.endsWith('"')) {
+        return raw.slice(1, -1);
+    }
+
+    // Number
+    if (/^\d+$/.test(raw)) {
+        return Number.parseInt(raw, 10);
+    }
+
+    // Boolean
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+
+    return raw;
+}
+
+/**
+ * Escape special characters for TOML single-line string values.
  */
 function escapeToml(value: string): string {
     return value
