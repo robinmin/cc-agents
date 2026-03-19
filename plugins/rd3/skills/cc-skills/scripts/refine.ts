@@ -64,7 +64,7 @@ function migrateFromRd2(content: string): MigrationResult {
             actions.push('Added metadata.openclaw with default emoji');
         }
 
-        updated = content.replace(fmMatch[0], `---\n${fmContent}---`);
+        updated = content.replace(fmMatch[0], `---\n${fmContent.trimEnd()}\n---`);
     }
 
     // Add Platform Notes section if missing
