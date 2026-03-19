@@ -5,19 +5,21 @@ Full CLI arguments and defaults for all cc-agents pipeline scripts.
 ## scaffold.ts
 
 ```
-bun scripts/scaffold.ts <agent-name> [options]
+bun scripts/scaffold.ts <agent-name> [description] [options]
 
 Arguments:
   <agent-name>              Name of the agent (hyphen-case, 3-50 chars)
+  [description]             Optional agent description (free-text)
 
 Options:
   -p, --path <dir>          Output directory (default: ./agents)
   -t, --template <tier>     Template: minimal, standard, specialist (default: standard)
-      --description <text>  Agent description
+      --description <text>  Agent description (alternative to positional)
       --tools <list>        Comma-separated tools (default: Read,Grep,Glob,Bash)
       --model <model>       Model override (default: inherit)
       --color <color>       Display color (default: teal)
       --plugin-name <name>  Plugin name for skill references
+      --skills <list>       Comma-separated skills to delegate to
   -v, --verbose             Verbose output
   -h, --help                Show help
 ```
@@ -27,6 +29,9 @@ Options:
 ```bash
 # Standard agent with defaults
 bun scripts/scaffold.ts my-agent --path ./agents
+
+# Agent with description
+bun scripts/scaffold.ts expert-foo "Thin wrapper for cc-foo skill" --path ./agents --skills "rd3:cc-foo"
 
 # Minimal agent with custom tools
 bun scripts/scaffold.ts quick-helper --path ./agents --template minimal --tools "Read,Grep"
