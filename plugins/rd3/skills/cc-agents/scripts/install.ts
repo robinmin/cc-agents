@@ -86,9 +86,9 @@ const VALID_INSTALL_TARGETS: AgentPlatform[] = ['codex', 'claude', 'gemini'];
 // Argument Parsing
 // ============================================================================
 
-function parseCliArgs(): InstallOptions {
+function parseCliArgs(argv = process.argv.slice(2)): InstallOptions {
     const args = parseArgs({
-        args: process.argv.slice(2),
+        args: argv,
         allowPositionals: true,
         options: {
             target: { type: 'string', short: 't' },
@@ -129,6 +129,11 @@ function parseCliArgs(): InstallOptions {
     // Resolve source(s)
     const sourcePath = resolve(pos[0]);
     let sources: string[];
+
+    if (!existsSync(sourcePath)) {
+        logger.error(`Source not found: ${sourcePath}`);
+        process.exit(1);
+    }
 
     if (statSync(sourcePath).isDirectory()) {
         sources = readdirSync(sourcePath)
@@ -183,8 +188,38 @@ function detectSourcePlatform(filePath: string): AgentPlatform {
 
     if (ext === '.toml') return 'codex';
     if (ext === '.json') {
-        // Could be OpenCode or OpenClaw — check content
+        // Could be OpenCode or OpenClaw — inspect JSON shape first
         const content = readFileSync(filePath, 'utf-8').trim();
+        try {
+            const parsed = JSON.parse(content) as Record<string, unknown>;
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                const hasOpenClawFields =
+                    'instructions' in parsed ||
+                    'runTimeoutSeconds' in parsed ||
+                    'maxSpawnDepth' in parsed ||
+                    'maxConcurrent' in parsed ||
+                    'maxChildrenPerAgent' in parsed;
+
+                if (hasOpenClawFields) {
+                    return 'openclaw';
+                }
+
+                const hasOpenCodeFields =
+                    'prompt' in parsed ||
+                    'steps' in parsed ||
+                    'hidden' in parsed ||
+                    'permissions' in parsed ||
+                    'temperature' in parsed ||
+                    'color' in parsed;
+
+                if (hasOpenCodeFields) {
+                    return 'opencode';
+                }
+            }
+        } catch {
+            // Fall back to string heuristics below.
+        }
+
         if (content.includes('"agents"') && content.includes('"list"')) return 'openclaw';
         return 'opencode';
     }
@@ -278,8 +313,8 @@ async function installAgent(
 // Main
 // ============================================================================
 
-async function main() {
-    const options = parseCliArgs();
+async function main(argv = process.argv.slice(2)) {
+    const options = parseCliArgs(argv);
 
     console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
     console.log(
@@ -365,3 +400,4 @@ if (import.meta.main) {
 
 export { detectSourcePlatform, installAgent };
 export type { InstallOptions, InstallResult };
+export { main, parseCliArgs, printUsage };
