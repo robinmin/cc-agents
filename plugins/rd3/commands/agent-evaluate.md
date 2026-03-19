@@ -1,6 +1,6 @@
 ---
 description: Check agent quality score and identify weaknesses
-argument-hint: "<agent-path> [--scope basic|full] [--profile auto|thin-wrapper|specialist] [--output text|json]"
+argument-hint: "<agent-path> [--scope basic|full] [--profile auto|thin-wrapper|specialist]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -29,14 +29,11 @@ Score agent quality across 10 dimensions. **Evaluate only — make NO changes.**
 ## Examples
 
 ```bash
-# Full evaluation with auto-detected profile
+# Full evaluation with auto-detected profile (most common)
 /rd3:agent-evaluate ./agents/my-agent.md
 
-# Basic structural validation only
+# Basic structural check only
 /rd3:agent-evaluate ./agents/my-agent.md --scope basic
-
-# Force specialist profile with JSON output
-/rd3:agent-evaluate ./agents/my-agent.md --profile specialist --output json
 ```
 
 ## Implementation
@@ -46,7 +43,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-agents** skill:
 
 ```
-Skill(skill="rd3:cc-agents")
+Skill(skill="rd3:cc-agents", args="evaluate $ARGUMENTS")
 ```
 
 **Direct script execution:**
