@@ -135,7 +135,9 @@ export class CodexAdapter implements IPlatformAdapter {
         try {
             const fm = YAML.parse(fmMatch[1]) as Record<string, unknown>;
             const metadata = fm.metadata as Record<string, unknown> | undefined;
-            const openclaw = fm.openclaw as Record<string, unknown> | undefined;
+            const openclaw =
+                (metadata?.openclaw as Record<string, unknown> | undefined) ||
+                (fm.openclaw as Record<string, unknown> | undefined);
 
             // Create agents directory if it doesn't exist
             if (!existsSync(agentsDir)) {
@@ -146,7 +148,7 @@ export class CodexAdapter implements IPlatformAdapter {
             const openaiYaml: OpenAIYAML = {
                 name: (fm.name as string) || context.skillName,
                 description: (fm.description as string) || '',
-                version: (metadata?.version as string) || '1.0.0',
+                version: (metadata?.version as string) || (fm.version as string) || '1.0.0',
                 icon: (openclaw?.emoji as string) || '🛠️',
                 category: this.inferCategory(content),
                 tags: this.extractTags(content, fm),
