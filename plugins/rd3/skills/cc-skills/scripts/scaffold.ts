@@ -15,13 +15,12 @@
  *   --examples           Include example files in resource directories
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { logger } from '../../../scripts/logger';
-import { ensureDir, pathExists, readFile, writeFile } from '../../../scripts/utils';
+import { ensureDir, pathExists, readFile, titleCaseSkillName, writeFile } from '../../../scripts/utils';
 import type { ResourceType, ScaffoldOptions } from './types';
 
 // Get __dirname equivalent for ES modules
@@ -152,16 +151,6 @@ function normalizeSkillName(name: string): string {
 }
 
 /**
- * Convert hyphen-case to Title Case
- */
-function toTitleCase(name: string): string {
-    return name
-        .split('-')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-}
-
-/**
  * Load template content
  */
 function loadTemplate(templateType: 'technique' | 'pattern' | 'reference'): string {
@@ -266,7 +255,7 @@ async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
 
     // Normalize skill name
     const skillName = normalizeSkillName(name);
-    const skillTitle = toTitleCase(skillName);
+    const skillTitle = titleCaseSkillName(skillName);
     const skillDir = resolve(path, skillName);
 
     if (verbose) {
@@ -327,7 +316,7 @@ async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
  * Print next steps guidance
  */
 function printNextSteps(skillDir: string, resources: string[], examples: boolean): void {
-    console.log(`\n[OK] Skill initialized successfully at ${skillDir}`);
+    logger.success(`Skill initialized successfully at ${skillDir}`);
     console.log('\nNext steps:');
     console.log('1. Edit SKILL.md to complete the TODO items and update the description');
     console.log('2. Update agents/openai.yaml if the UI metadata should differ');
@@ -449,13 +438,13 @@ async function main() {
 
     // Validate required arguments
     if (!options.name) {
-        console.error('Usage: scaffold.ts <skill-name> --path <output-dir> [options]');
-        console.error('\nOptions:');
-        console.error('  --template <type>     Template type: technique, pattern, reference (default: technique)');
-        console.error('  --resources <list>   Comma-separated: scripts,references,assets');
-        console.error('  --platform <name>   Target platform: all, claude, codex, openclaw (default: all)');
-        console.error('  --examples           Include example files in resource directories');
-        console.error('  --verbose, -v        Enable verbose output');
+        logger.error('Usage: scaffold.ts <skill-name> --path <output-dir> [options]');
+        logger.error('\nOptions:');
+        logger.error('  --template <type>     Template type: technique, pattern, reference (default: technique)');
+        logger.error('  --resources <list>   Comma-separated: scripts,references,assets');
+        logger.error('  --platform <name>   Target platform: all, claude, codex, openclaw (default: all)');
+        logger.error('  --examples           Include example files in resource directories');
+        logger.error('  --verbose, -v        Enable verbose output');
         process.exit(1);
     }
 
@@ -464,7 +453,7 @@ async function main() {
         const validation = validateResourceTypes(options.resources.join(','));
         if (!validation.valid) {
             for (const err of validation.errors) {
-                console.error(err);
+                logger.error(err);
             }
             process.exit(1);
         }
