@@ -16,10 +16,10 @@ Which features are supported on each platform.
 | Tool denylist | Yes | No | Yes | No | Yes | No |
 | Model override | Yes | Yes | Yes | Yes | Per-agent | No |
 | Max turns/steps | Yes | Yes | Yes | No | No | No |
-| Timeout | No | Yes | No | Yes | Yes | No |
+| Timeout | No | Yes | No | No | Yes | No |
 | Temperature | No | Yes | Yes | No | No | No |
 | Skills delegation | Yes | No | No | No | No | No |
-| MCP servers | Yes | No | No | No | No | No |
+| MCP servers | Yes | No | No | Yes | No | No |
 | Hooks | Yes | No | No | No | No | No |
 | Memory | Yes | No | No | No | No | No |
 | Background mode | Yes | No | No | No | No | No |
@@ -28,6 +28,7 @@ Which features are supported on each platform.
 | Permission modes | Yes | No | Yes | No | No | No |
 | Sandbox mode | No | No | No | Yes | No | No |
 | Reasoning effort | No | No | No | Yes | No | No |
+| Nickname candidates | No | No | No | Yes | No | No |
 
 ## Platform Adapter Interface
 
@@ -145,27 +146,43 @@ steps: 10
 
 **Location**: `scripts/adapters/codex.ts`
 
-**Format**: TOML in `codex.yaml`
+**Format**: Standalone `.toml` files in `~/.codex/agents/` or `.codex/agents/`
+
+Per [official Codex subagents documentation](https://developers.openai.com/codex/subagents):
 
 ```toml
-[agents.my-agent]
-description = "..."
-model = "claude-sonnet-4-20250514"
-developer_instructions = "..."
-
-[agents.my-agent.settings]
+name = "my-agent"
+description = "Read-only codebase explorer."
+model = "gpt-5.4"
+model_reasoning_effort = "high"
 sandbox_mode = "read-only"
-reasoning_effort = "high"
-job_max_runtime_seconds = 3600
+nickname_candidates = ["Explorer", "Scout"]
+
+developer_instructions = """
+Your system prompt goes here.
+"""
+
+[mcp_servers.docs]
+url = "https://docs.example.com/mcp"
 ```
+
+**Required fields**: `name`, `description`, `developer_instructions`
+
+**Optional fields**: `model`, `model_reasoning_effort`, `sandbox_mode`, `nickname_candidates`, `mcp_servers`
+
+**Valid sandbox_mode values**: `read-only`, `workspace-write`, `danger-full-access`
+
+**Valid model_reasoning_effort values**: `low`, `medium`, `high`
 
 **Field Mapping**:
 | UAM | Codex |
 |-----|-------|
+| name | name |
 | body | developer_instructions |
 | sandboxMode | sandbox_mode |
-| reasoningEffort | reasoning_effort |
-| timeout | job_max_runtime_seconds / 60 |
+| reasoningEffort | model_reasoning_effort |
+| nicknameCandidates | nickname_candidates |
+| mcpServers | mcp_servers (nested TOML tables) |
 
 ## OpenClaw Adapter
 
@@ -214,7 +231,7 @@ When adapting between platforms, some features may not be representable:
 |--------|--------|------|
 | Claude | Gemini | skills, mcpServers, hooks, memory, background, isolation |
 | Claude | OpenCode | skills, mcpServers, hooks |
-| Claude | Codex | skills, mcpServers, hooks, memory |
+| Claude | Codex | skills, hooks, memory, timeout, nicknameCandidates (new in Codex) |
 | Claude | OpenClaw | mcpServers, hooks, memory, background |
 | Claude | Antigravity | All - advisory only |
 
