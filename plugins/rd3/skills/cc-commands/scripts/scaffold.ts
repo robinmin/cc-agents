@@ -71,7 +71,7 @@ function processTemplate(template: string, commandName: string, options: Command
 
     // Derive plugin path from skill name (e.g. "rd3:cc-skills" → "rd3/skills/cc-skills")
     let pluginPath = '{{PLUGIN_PATH}}';
-    if (options.skill && options.skill.includes(':')) {
+    if (options.skill?.includes(':')) {
         const [prefix, skillName] = options.skill.split(':');
         pluginPath = `${prefix}/skills/${skillName}`;
     }
