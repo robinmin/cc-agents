@@ -10,6 +10,7 @@ description: |
   <commentary>[Why this is a good delegation target]</commentary>
   </example>
 tools: [{{TOOLS}}]
+skills: [{{SKILLS}}]
 model: {{MODEL}}
 color: {{COLOR}}
 ---
