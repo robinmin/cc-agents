@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import { evaluateAgent, renderBar, parseCliArgs, printUsage, printTextReport } from '../scripts/evaluate';
 import { validateWeightProfile } from '../scripts/evaluation.config';
 import type { AgentDimensionWeights } from '../scripts/evaluation.config';
+import type { AgentEvaluationReport } from '../scripts/types';
 
 const FIXTURES_DIR = resolve(import.meta.dir, 'fixtures');
 
@@ -782,15 +783,15 @@ describe('renderBar', () => {
 });
 
 describe('printTextReport', () => {
-    const mockReport = {
+    const mockReport: AgentEvaluationReport = {
         agentPath: '/tmp/test-agent.md',
         agentName: 'test-agent',
-        scope: 'full' as const,
-        weightProfile: 'thin-wrapper' as const,
+        scope: 'full',
+        weightProfile: 'thin-wrapper',
         overallScore: 80,
         maxScore: 100,
         percentage: 80,
-        grade: 'B' as const,
+        grade: 'B',
         dimensions: [
             {
                 name: 'frontmatter-quality',
@@ -821,7 +822,7 @@ describe('printTextReport', () => {
         const origLog = console.log;
         console.log = (...args: unknown[]) => logs.push(args.join(' '));
         try {
-            printTextReport(mockReport as any, false);
+            printTextReport(mockReport, false);
             const output = logs.join('\n');
             expect(output).toContain('test-agent');
             expect(output).toContain('PASS');
@@ -836,7 +837,7 @@ describe('printTextReport', () => {
         const origLog = console.log;
         console.log = (...args: unknown[]) => logs.push(args.join(' '));
         try {
-            printTextReport(mockReport as any, true);
+            printTextReport(mockReport, true);
             const output = logs.join('\n');
             expect(output).toContain('Finding 1');
             expect(output).toContain('Rec 1');
@@ -857,7 +858,7 @@ describe('printTextReport', () => {
         const origLog = console.log;
         console.log = (...args: unknown[]) => logs.push(args.join(' '));
         try {
-            printTextReport(rejectedReport as any, false);
+            printTextReport(rejectedReport, false);
             const output = logs.join('\n');
             expect(output).toContain('REJECTED');
             expect(output).toContain('Security violation');
@@ -872,7 +873,7 @@ describe('printTextReport', () => {
         const origLog = console.log;
         console.log = (...args: unknown[]) => logs.push(args.join(' '));
         try {
-            printTextReport(failReport as any, false);
+            printTextReport(failReport, false);
             const output = logs.join('\n');
             expect(output).toContain('FAIL');
         } finally {
@@ -881,11 +882,11 @@ describe('printTextReport', () => {
     });
 
     it('should truncate recommendations to 5 in non-verbose mode', () => {
-        const manyRecsReport = {
+        const manyRecsReport: AgentEvaluationReport = {
             ...mockReport,
             dimensions: [
                 {
-                    name: 'test',
+                    name: 'frontmatter-quality',
                     displayName: 'Test',
                     weight: 10,
                     score: 2,
@@ -899,7 +900,7 @@ describe('printTextReport', () => {
         const origLog = console.log;
         console.log = (...args: unknown[]) => logs.push(args.join(' '));
         try {
-            printTextReport(manyRecsReport as any, false);
+            printTextReport(manyRecsReport, false);
             const output = logs.join('\n');
             expect(output).toContain('and 2 more');
         } finally {
@@ -936,7 +937,18 @@ describe('parseCliArgs', () => {
     });
 
     it('should parse valid arguments', () => {
-        process.argv = ['bun', 'evaluate.ts', 'test.md', '--scope', 'basic', '--profile', 'specialist', '--output', 'json', '--verbose'];
+        process.argv = [
+            'bun',
+            'evaluate.ts',
+            'test.md',
+            '--scope',
+            'basic',
+            '--profile',
+            'specialist',
+            '--output',
+            'json',
+            '--verbose',
+        ];
         const result = parseCliArgs();
         expect(result.path).toBe('test.md');
         expect(result.scope).toBe('basic');
@@ -971,11 +983,14 @@ describe('parseCliArgs', () => {
         process.argv = ['bun', 'evaluate.ts'];
         const origExit = process.exit;
         let exitCode: number | undefined;
-        process.exit = ((code?: number) => { exitCode = code; throw new Error('exit'); }) as any;
+        process.exit = ((code?: number) => {
+            exitCode = code;
+            throw new Error('exit');
+        }) as (code?: number) => never;
         try {
             parseCliArgs();
-        } catch (e: any) {
-            if (e.message !== 'exit') throw e;
+        } catch (e: unknown) {
+            if (!(e instanceof Error) || e.message !== 'exit') throw e;
         } finally {
             process.exit = origExit;
         }
@@ -986,11 +1001,14 @@ describe('parseCliArgs', () => {
         process.argv = ['bun', 'evaluate.ts', 'test.md', '--scope', 'invalid'];
         const origExit = process.exit;
         let exitCode: number | undefined;
-        process.exit = ((code?: number) => { exitCode = code; throw new Error('exit'); }) as any;
+        process.exit = ((code?: number) => {
+            exitCode = code;
+            throw new Error('exit');
+        }) as (code?: number) => never;
         try {
             parseCliArgs();
-        } catch (e: any) {
-            if (e.message !== 'exit') throw e;
+        } catch (e: unknown) {
+            if (!(e instanceof Error) || e.message !== 'exit') throw e;
         } finally {
             process.exit = origExit;
         }
@@ -1001,11 +1019,14 @@ describe('parseCliArgs', () => {
         process.argv = ['bun', 'evaluate.ts', 'test.md', '--profile', 'invalid'];
         const origExit = process.exit;
         let exitCode: number | undefined;
-        process.exit = ((code?: number) => { exitCode = code; throw new Error('exit'); }) as any;
+        process.exit = ((code?: number) => {
+            exitCode = code;
+            throw new Error('exit');
+        }) as (code?: number) => never;
         try {
             parseCliArgs();
-        } catch (e: any) {
-            if (e.message !== 'exit') throw e;
+        } catch (e: unknown) {
+            if (!(e instanceof Error) || e.message !== 'exit') throw e;
         } finally {
             process.exit = origExit;
         }
@@ -1016,11 +1037,14 @@ describe('parseCliArgs', () => {
         process.argv = ['bun', 'evaluate.ts', 'test.md', '--output', 'invalid'];
         const origExit = process.exit;
         let exitCode: number | undefined;
-        process.exit = ((code?: number) => { exitCode = code; throw new Error('exit'); }) as any;
+        process.exit = ((code?: number) => {
+            exitCode = code;
+            throw new Error('exit');
+        }) as (code?: number) => never;
         try {
             parseCliArgs();
-        } catch (e: any) {
-            if (e.message !== 'exit') throw e;
+        } catch (e: unknown) {
+            if (!(e instanceof Error) || e.message !== 'exit') throw e;
         } finally {
             process.exit = origExit;
         }
@@ -1031,11 +1055,14 @@ describe('parseCliArgs', () => {
         process.argv = ['bun', 'evaluate.ts', '--help'];
         const origExit = process.exit;
         let exitCode: number | undefined;
-        process.exit = ((code?: number) => { exitCode = code; throw new Error('exit'); }) as any;
+        process.exit = ((code?: number) => {
+            exitCode = code;
+            throw new Error('exit');
+        }) as (code?: number) => never;
         try {
             parseCliArgs();
-        } catch (e: any) {
-            if (e.message !== 'exit') throw e;
+        } catch (e: unknown) {
+            if (!(e instanceof Error) || e.message !== 'exit') throw e;
         } finally {
             process.exit = origExit;
         }
@@ -1189,7 +1216,7 @@ This is a verification and error handling agent with fallback recovery.
 
     it('should score description with long description (>500 chars)', async () => {
         const agentPath = resolve(FIXTURES_DIR, 'long-desc-agent.md');
-        const longDesc = 'Use PROACTIVELY for ' + 'a'.repeat(500);
+        const longDesc = `Use PROACTIVELY for ${'a'.repeat(500)}`;
         const content = `---
 name: long-desc-agent
 description: "${longDesc}"
