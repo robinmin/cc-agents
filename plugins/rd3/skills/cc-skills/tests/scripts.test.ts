@@ -3,7 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -248,6 +248,33 @@ describe('Integration: refine command', () => {
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
     });
+
+    it('should preserve valid frontmatter delimiters during migration', async () => {
+        const skillPath = join(TEST_DIR, 'legacy-skill');
+        mkdirSync(skillPath, { recursive: true });
+        writeFileSync(
+            join(skillPath, 'SKILL.md'),
+            `---
+description: legacy skill description long enough for migration testing
+---
+
+# legacy-skill
+
+Body.`,
+            'utf-8',
+        );
+
+        const { spawn } = await import('bun');
+
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'refine.ts'), skillPath, '--migrate']);
+
+        const exitCode = await proc.exited;
+        expect(exitCode).toBe(0);
+
+        const content = readFileSync(join(skillPath, 'SKILL.md'), 'utf-8');
+        expect(content).toContain('description: legacy skill description long enough for migration testing\n---');
+        expect(content).not.toContain('testing---');
+    });
 });
 
 describe('Integration: package command', () => {
@@ -283,6 +310,47 @@ description: A skill for packaging
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
         expect(existsSync(join(outputPath, 'SKILL.md'))).toBe(true);
+    });
+
+    it('should package companions into output without mutating source and preserve custom icon metadata', async () => {
+        const skillPath = join(TEST_DIR, 'package-skill-icon');
+        mkdirSync(skillPath, { recursive: true });
+        writeFileSync(
+            join(skillPath, 'SKILL.md'),
+            `---
+name: package-skill-icon
+description: A skill for packaging with custom icon metadata
+metadata:
+  author: tester
+  version: "1.0.0"
+  platforms: "claude-code,codex,openclaw"
+  openclaw:
+    emoji: "🧪"
+---
+
+# Package Skill Icon
+
+## When to use
+
+Use this skill when validating packaged companions.
+`,
+            'utf-8',
+        );
+
+        const outputPath = join(TEST_DIR, 'dist-icon');
+        const { spawn } = await import('bun');
+
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'package.ts'), skillPath, '--output', outputPath], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const exitCode = await proc.exited;
+        expect(exitCode).toBe(0);
+        expect(existsSync(join(skillPath, 'agents', 'openai.yaml'))).toBe(false);
+
+        const openaiYaml = readFileSync(join(outputPath, 'agents', 'openai.yaml'), 'utf-8');
+        expect(openaiYaml).toContain('icon: 🧪');
     });
 
     it('should show help', async () => {
