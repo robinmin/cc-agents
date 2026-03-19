@@ -85,6 +85,16 @@ function processTemplate(template: string, agentName: string, options: AgentScaf
     const model = options.model || DEFAULT_MODEL;
     const pluginName = options.pluginName || '{{PLUGIN_NAME}}';
 
+    // Resolve skills: explicit --skills takes priority, then plugin-name derivation, then placeholder
+    let skillsValue: string;
+    if (options.skills && options.skills.length > 0) {
+        skillsValue = options.skills.join(', ');
+    } else if (options.pluginName) {
+        skillsValue = `${pluginName}:${agentName}`;
+    } else {
+        skillsValue = '[TODO: plugin-name:skill-name]';
+    }
+
     return template
         .replace(/\{\{AGENT_NAME\}\}/g, agentName)
         .replace(/\{\{AGENT_TITLE\}\}/g, agentTitle)
@@ -93,10 +103,7 @@ function processTemplate(template: string, agentName: string, options: AgentScaf
         .replace(/\{\{MODEL\}\}/g, model)
         .replace(/\{\{COLOR\}\}/g, options.color || DEFAULT_COLOR)
         .replace(/\{\{PLUGIN_NAME\}\}/g, pluginName)
-        .replace(
-            /\{\{SKILLS\}\}/g,
-            options.pluginName ? `${pluginName}:${agentName}` : '[TODO: plugin-name:skill-name]',
-        )
+        .replace(/\{\{SKILLS\}\}/g, skillsValue)
         .replace(/\{\{SYSTEM_PROMPT\}\}/g, `[TODO: System prompt for ${agentTitle}]`)
         .replace(/\{\{ROLE_SUMMARY\}\}/g, `[TODO: One-line summary of ${agentTitle} role]`)
         .replace(/\{\{ROLE_DESCRIPTION\}\}/g, '[TODO: Role description]')
@@ -183,10 +190,11 @@ export async function scaffoldAgent(options: AgentScaffoldOptions): Promise<Agen
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: scaffold.ts <agent-name> --path <output-dir> [options]');
+    console.log('Usage: scaffold.ts <agent-name> [description] [options]');
     console.log('');
     console.log('Arguments:');
     console.log('  <agent-name>           Name of the agent to create (hyphen-case)');
+    console.log('  [description]          Optional agent description (free-text)');
     console.log('');
     console.log('Options:');
     console.log('  -p, --path <dir>       Output directory (default: ./agents)');
@@ -196,6 +204,7 @@ function printUsage(): void {
     console.log('  --model <model>        Model override (default: inherit)');
     console.log('  --color <color>        Display color (default: teal)');
     console.log('  --plugin-name <name>   Plugin name for skill references');
+    console.log('  --skills <list>        Comma-separated skills to delegate to');
     console.log('  -v, --verbose          Verbose output');
     console.log('  -h, --help             Show help');
 }
@@ -223,6 +232,7 @@ function parseCliArgs(): AgentScaffoldOptions & { verbose: boolean } {
             model: { type: 'string' },
             color: { type: 'string' },
             'plugin-name': { type: 'string' },
+            skills: { type: 'string' },
             verbose: { type: 'boolean', short: 'v', default: false },
             help: { type: 'boolean', short: 'h', default: false },
         },
@@ -234,6 +244,8 @@ function parseCliArgs(): AgentScaffoldOptions & { verbose: boolean } {
     }
 
     const name = args.positionals?.[0] || '';
+    // Second positional is optional description (free-text)
+    const positionalDescription = args.positionals?.[1] || '';
     const template = (args.values.template as AgentTemplate) || 'standard';
     const validTemplates: AgentTemplate[] = ['minimal', 'standard', 'specialist'];
 
@@ -249,7 +261,9 @@ function parseCliArgs(): AgentScaffoldOptions & { verbose: boolean } {
         verbose: args.values.verbose as boolean,
     };
 
-    if (args.values.description) result.description = args.values.description as string;
+    // --description flag takes priority over positional description
+    const descValue = (args.values.description as string) || positionalDescription;
+    if (descValue) result.description = descValue;
     if (args.values.model) result.model = args.values.model as string;
     if (args.values.color) result.color = args.values.color as string;
     if (args.values['plugin-name']) result.pluginName = args.values['plugin-name'] as string;
@@ -257,6 +271,11 @@ function parseCliArgs(): AgentScaffoldOptions & { verbose: boolean } {
     // Parse tools from comma-separated string
     if (args.values.tools) {
         result.tools = (args.values.tools as string).split(',').map((t) => t.trim());
+    }
+
+    // Parse skills from comma-separated string
+    if (args.values.skills) {
+        result.skills = (args.values.skills as string).split(',').map((s) => s.trim());
     }
 
     return result;
