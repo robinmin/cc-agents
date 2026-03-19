@@ -327,6 +327,8 @@ export interface AgentScaffoldOptions {
     color?: string;
     /** Plugin name context */
     pluginName?: string;
+    /** Skills to delegate to (populates frontmatter skills field) */
+    skills?: string[];
 }
 
 /**
