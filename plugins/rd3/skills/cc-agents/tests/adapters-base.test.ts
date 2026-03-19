@@ -16,7 +16,10 @@ import {
     getAgentAdapter,
     hasAgentAdapter,
 } from '../scripts/adapters';
-import { BaseAgentAdapter as DirectBaseAdapter, createAgentAdapterContext as directCreateCtx } from '../scripts/adapters/base';
+import {
+    BaseAgentAdapter as DirectBaseAdapter,
+    createAgentAdapterContext as directCreateCtx,
+} from '../scripts/adapters/base';
 import type { AgentAdapterContext, AgentAdapterResult, AgentPlatform, UniversalAgent } from '../scripts/types';
 
 const sampleAgent: UniversalAgent = {
@@ -387,7 +390,9 @@ description: Test
     });
 
     it('should warn about unknown fields when warnUnknownFields is enabled', async () => {
-        const adapterWithWarn = new (await import('../scripts/adapters')).ClaudeAgentAdapter({ warnUnknownFields: true });
+        const adapterWithWarn = new (await import('../scripts/adapters')).ClaudeAgentAdapter({
+            warnUnknownFields: true,
+        });
         const input = `---
 name: unknown-fields
 description: Test
@@ -406,7 +411,7 @@ describe('ClaudeAgentAdapter - validatePlatform tests', () => {
     const adapter = new ClaudeAgentAdapter();
 
     it('should warn for unknown permissionMode', async () => {
-        const agentWithBadPerm = { ...sampleAgent, permissionMode: 'invalid-mode' as any };
+        const agentWithBadPerm = { ...sampleAgent, permissionMode: 'invalid-mode' };
         const result = await adapter.validate(agentWithBadPerm);
         expect(result.warnings.join(' ')).toContain('Unknown permissionMode');
     });
@@ -566,12 +571,15 @@ class TestBaseAdapter extends BaseAgentAdapter {
     readonly platform: AgentPlatform = 'claude';
     readonly displayName = 'Test Adapter';
 
-    constructor() {
-        super();
-    }
-
     async parse(_input: string, _filePath: string) {
-        return { success: true, companions: [], agent: sampleAgent, warnings: [], errors: [], sourcePlatform: 'claude' as AgentPlatform };
+        return {
+            success: true,
+            companions: [],
+            agent: sampleAgent,
+            warnings: [],
+            errors: [],
+            sourcePlatform: 'claude' as AgentPlatform,
+        };
     }
 
     protected async generatePlatform(
@@ -639,8 +647,12 @@ class CustomPlatformAdapter extends BaseAgentAdapter {
 
     async parse(_input: string, _filePath: string) {
         return {
-            success: true, companions: [], agent: sampleAgent,
-            warnings: [], errors: [], sourcePlatform: 'gemini' as AgentPlatform,
+            success: true,
+            companions: [],
+            agent: sampleAgent,
+            warnings: [],
+            errors: [],
+            sourcePlatform: 'gemini' as AgentPlatform,
         };
     }
 
@@ -649,9 +661,11 @@ class CustomPlatformAdapter extends BaseAgentAdapter {
         _context: AgentAdapterContext,
     ): Promise<AgentAdapterResult> {
         return {
-            success: true, companions: [],
+            success: true,
+            companions: [],
             output: `Generated for ${agent.name}`,
-            warnings: [], errors: [],
+            warnings: [],
+            errors: [],
         };
     }
 
@@ -847,7 +861,7 @@ describe('index.ts - module exports and singleton', () => {
 
     it('should have hasAgentAdapter delegate to singleton', () => {
         expect(hasAgentAdapter('claude')).toBe(true);
-        expect(hasAgentAdapter('unknown' as any)).toBe(false);
+        expect(hasAgentAdapter('unknown' as AgentPlatform)).toBe(false);
     });
 
     it('should export BaseAgentAdapter and createAgentAdapterContext from index', () => {
@@ -913,11 +927,13 @@ describe('AgentAdapterRegistry - fresh instance lifecycle', () => {
         expect(adapter4).toBe(custom); // same factory, new instance
 
         // has returns false for unknown
-        expect(registry.has('unknown' as any)).toBe(false);
+        expect(registry.has('unknown' as AgentPlatform)).toBe(false);
     });
 
     it('should throw descriptive error for unregistered platform', () => {
         const registry = new AgentAdapterRegistry();
-        expect(() => registry.get('nonexistent' as any)).toThrow('No adapter registered for platform: nonexistent');
+        expect(() => registry.get('nonexistent' as AgentPlatform)).toThrow(
+            'No adapter registered for platform: nonexistent',
+        );
     });
 });
