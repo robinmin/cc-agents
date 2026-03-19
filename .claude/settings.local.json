@@ -41,7 +41,9 @@
       "Bash(make:*)",
       "Bash(tasks:*)",
       "Bash(bun run:*)",
-      "Bash(bun test:*)"
+      "Bash(bun test:*)",
+      "WebFetch(domain:developers.openai.com)",
+      "Bash(bun:*)"
     ],
     "deny": [],
     "ask": []
