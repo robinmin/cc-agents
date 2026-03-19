@@ -179,8 +179,15 @@ function loadTemplate(templateType: 'technique' | 'pattern' | 'reference'): stri
 /**
  * Process template with variable substitution
  */
-function processTemplate(template: string, skillName: string, skillTitle: string): string {
-    return template.replace(/\{\{skill_name\}\}/g, skillName).replace(/\{\{skill_title\}\}/g, skillTitle);
+function processTemplate(template: string, skillName: string, skillTitle: string, description?: string): string {
+    let result = template.replace(/\{\{skill_name\}\}/g, skillName).replace(/\{\{skill_title\}\}/g, skillTitle);
+
+    // If description provided, replace the TODO placeholder in frontmatter description
+    if (description) {
+        result = result.replace(/description:\s*\[TODO:.*?\]/, `description: ${description}`);
+    }
+
+    return result;
 }
 
 /**
@@ -255,7 +262,7 @@ tags:
  * Main scaffold function
  */
 async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
-    const { name, path, template, resources, platform, examples = false, verbose = false } = options;
+    const { name, path, template, description, resources, platform, examples = false, verbose = false } = options;
 
     // Normalize skill name
     const skillName = normalizeSkillName(name);
@@ -285,7 +292,7 @@ async function scaffold(options: ScaffoldCliOptions): Promise<string | null> {
     // Load and process template
     const templateType = template || 'technique';
     const templateContent = loadTemplate(templateType as 'technique' | 'pattern' | 'reference');
-    const skillMdContent = processTemplate(templateContent, skillName, skillTitle);
+    const skillMdContent = processTemplate(templateContent, skillName, skillTitle, description);
 
     // Create SKILL.md
     const skillMdPath = join(skillDir, 'SKILL.md');
@@ -345,14 +352,16 @@ function printNextSteps(skillDir: string, resources: string[], examples: boolean
  * Print usage information
  */
 function printUsage(): void {
-    console.log('Usage: scaffold.ts <skill-name> --path <output-dir> [options]');
+    console.log('Usage: scaffold.ts <skill-name> [description] [options]');
     console.log('');
     console.log('Arguments:');
     console.log('  <skill-name>          Name of the skill to create');
+    console.log('  [description]         Optional skill description (free-text)');
     console.log('');
     console.log('Options:');
     console.log('  -p, --path <dir>      Output directory (default: ./skills)');
     console.log('  -t, --template <type> Template type: technique, pattern, reference (default: technique)');
+    console.log('      --description <text> Skill description (alternative to positional)');
     console.log('  -r, --resources <list> Comma-separated: scripts,references,assets');
     console.log(
         '  --platform <name>     Target platform: all, claude, codex, openclaw, opencode, antigravity (default: all)',
@@ -372,6 +381,7 @@ function parseCliArgs(): ScaffoldCliOptions {
         options: {
             path: { type: 'string', short: 'p' },
             template: { type: 'string', short: 't' },
+            description: { type: 'string' },
             resources: { type: 'string', short: 'r' },
             platform: { type: 'string' },
             examples: { type: 'boolean', short: 'e', default: false },
@@ -387,13 +397,20 @@ function parseCliArgs(): ScaffoldCliOptions {
 
     const options = { ...DEFAULT_OPTIONS };
 
-    // Parse positional argument (skill name)
+    // Parse positional arguments (skill name, optional description)
     if (args.positionals && args.positionals.length > 0) {
         options.name = args.positionals[0];
     }
+    const positionalDescription = args.positionals?.[1] || '';
 
     // Parse named options (type assertion needed for parseArgs return type)
     const values = args.values as Record<string, string | boolean>;
+
+    // --description flag takes priority over positional description
+    const descValue = (typeof values.description === 'string' ? values.description : '') || positionalDescription;
+    if (descValue) {
+        options.description = descValue;
+    }
     if (values.path && typeof values.path === 'string') {
         options.path = values.path;
     }
