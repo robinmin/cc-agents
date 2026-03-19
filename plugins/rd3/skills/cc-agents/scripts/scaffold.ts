@@ -19,13 +19,12 @@
  *   --help, -h              Show help
  */
 
-import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { logger } from '../../../scripts/logger';
-import { ensureDir, readFile, writeFile } from '../../../scripts/utils';
+import { ensureDir, pathExists, readFile, titleCaseSkillName, writeFile } from '../../../scripts/utils';
 import type { AgentScaffoldOptions, AgentScaffoldResult, AgentTemplate } from './types';
 import { normalizeAgentName } from './utils';
 
@@ -52,23 +51,13 @@ const DEFAULT_COLOR = 'teal';
 // ============================================================================
 
 /**
- * Convert hyphen-case to Title Case.
- */
-function toTitleCase(name: string): string {
-    return name
-        .split('-')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-}
-
-/**
  * Load a template from the templates directory.
  */
 function loadTemplate(tier: AgentTemplate): string {
     const templatesDir = resolve(__dirname, '..', 'templates');
     const templateFile = join(templatesDir, TEMPLATE_FILES[tier]);
 
-    if (!existsSync(templateFile)) {
+    if (!pathExists(templateFile)) {
         throw new Error(`Template file not found: ${templateFile}`);
     }
 
@@ -79,7 +68,7 @@ function loadTemplate(tier: AgentTemplate): string {
  * Process template with placeholder substitution.
  */
 function processTemplate(template: string, agentName: string, options: AgentScaffoldOptions): string {
-    const agentTitle = toTitleCase(agentName);
+    const agentTitle = titleCaseSkillName(agentName);
     const description = options.description || '[TODO: Brief description of what this agent does]';
     const tools = options.tools?.join(', ') || DEFAULT_TOOLS;
     const model = options.model || DEFAULT_MODEL;
@@ -158,7 +147,7 @@ export async function scaffoldAgent(options: AgentScaffoldOptions): Promise<Agen
     result.agentPath = agentPath;
 
     // Check if file already exists
-    if (existsSync(agentPath)) {
+    if (pathExists(agentPath)) {
         result.errors.push(`Agent file already exists: ${agentPath}`);
         return result;
     }
@@ -210,7 +199,7 @@ function printUsage(): void {
 }
 
 function printNextSteps(agentPath: string, _agentName: string, tier: AgentTemplate): void {
-    console.log(`\n[OK] Agent created successfully at ${agentPath}`);
+    logger.success(`Agent created successfully at ${agentPath}`);
     console.log(`\nTemplate tier: ${tier}`);
     console.log('\nNext steps:');
     console.log('1. Edit the agent file to complete TODO items');
@@ -250,7 +239,7 @@ function parseCliArgs(): AgentScaffoldOptions & { verbose: boolean } {
     const validTemplates: AgentTemplate[] = ['minimal', 'standard', 'specialist'];
 
     if (!validTemplates.includes(template)) {
-        console.error(`Error: Invalid template '${template}'. Must be: ${validTemplates.join(', ')}`);
+        logger.error(`Error: Invalid template '${template}'. Must be: ${validTemplates.join(', ')}`);
         process.exit(1);
     }
 
@@ -285,7 +274,7 @@ async function main() {
     const options = parseCliArgs();
 
     if (!options.name) {
-        console.error('Error: Missing required argument <agent-name>');
+        logger.error('Error: Missing required argument <agent-name>');
         printUsage();
         process.exit(1);
     }
