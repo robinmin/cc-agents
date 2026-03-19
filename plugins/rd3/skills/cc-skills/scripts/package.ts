@@ -5,7 +5,7 @@
  * Packages skills for distribution with platform-specific companions
  */
 
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { logger } from '../../../scripts/logger';
@@ -47,8 +47,29 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
     }
 
     const createdFiles: string[] = [];
+    const sourceContent = readFileSync(skillMdPath, 'utf-8');
+    const fmMatch = sourceContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!fmMatch) {
+        return {
+            success: false,
+            outputPath: resolvedOutputPath,
+            size: 0,
+            platforms,
+            errors: ['No frontmatter in SKILL.md'],
+        };
+    }
 
-    // Generate platform companions first (they go to skill directory)
+    const YAML = await import('yaml');
+    const frontmatter = YAML.parse(fmMatch[1]);
+    const body = sourceContent.slice(fmMatch[0].length).trim();
+    const outputSkillMdPath = join(resolvedOutputPath, 'SKILL.md');
+
+    // Generate companions against the packaged copy so the source tree is never mutated.
+    writeFileSync(outputSkillMdPath, sourceContent, 'utf-8');
+    if (includeSource) {
+        createdFiles.push('SKILL.md');
+    }
+
     const platformAdapters = {
         claude: createClaudeAdapter(),
         codex: createCodexAdapter(),
@@ -65,40 +86,26 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
         }
 
         try {
-            // Read skill content
-            const content = readFileSync(skillMdPath, 'utf-8');
-
-            // Parse frontmatter
-            const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-            if (!fmMatch) {
-                errors.push(`No frontmatter in SKILL.md for ${platform}`);
-                continue;
-            }
-
-            const YAML = await import('yaml');
-            const frontmatter = YAML.parse(fmMatch[1]);
-            const body = content.slice(fmMatch[0].length).trim();
-
             // Create context for adapter
             const scaffoldOptions = {
                 name: resolvedSkillPath.split('/').pop() || 'unknown',
-                path: resolvedSkillPath,
+                path: resolvedOutputPath,
             };
 
             const context = {
-                skillPath: resolvedSkillPath,
+                skillPath: resolvedOutputPath,
                 skillName: resolvedSkillPath.split('/').pop() || 'unknown',
                 frontmatter,
                 body,
                 resources: {},
                 options: scaffoldOptions,
-                outputPath: resolvedSkillPath,
+                outputPath: resolvedOutputPath,
                 skill: {
                     frontmatter,
                     body,
-                    raw: content,
-                    path: skillMdPath,
-                    directory: resolvedSkillPath,
+                    raw: sourceContent,
+                    path: outputSkillMdPath,
+                    directory: resolvedOutputPath,
                     resources: {},
                 },
             };
@@ -117,14 +124,11 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
         }
     }
 
-    // Copy files to output
-    if (includeSource) {
-        const content = readFileSync(skillMdPath, 'utf-8');
-        writeFileSync(join(resolvedOutputPath, 'SKILL.md'), content, 'utf-8');
-        createdFiles.push('SKILL.md');
+    if (!includeSource && existsSync(outputSkillMdPath)) {
+        unlinkSync(outputSkillMdPath);
     }
 
-    // Copy companions from skill directory to output
+    // Copy existing companions from source into the package when they were not regenerated.
     const companionDirs = ['agents'];
     const companionFiles = ['metadata.openclaw', 'metadata.codex', 'metadata.opencode'];
 
@@ -137,8 +141,9 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
             const files = readdirSync(srcDir);
             for (const file of files) {
                 const srcFile = join(srcDir, file);
-                if (statSync(srcFile).isFile()) {
-                    cpSync(srcFile, join(destDir, file));
+                const destFile = join(destDir, file);
+                if (statSync(srcFile).isFile() && !existsSync(destFile)) {
+                    cpSync(srcFile, destFile);
                     createdFiles.push(`${dir}/${file}`);
                 }
             }
@@ -148,8 +153,9 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
     // Copy individual companion files
     for (const file of companionFiles) {
         const srcFile = join(resolvedSkillPath, file);
-        if (existsSync(srcFile)) {
-            cpSync(srcFile, join(resolvedOutputPath, file));
+        const destFile = join(resolvedOutputPath, file);
+        if (existsSync(srcFile) && !existsSync(destFile)) {
+            cpSync(srcFile, destFile);
             createdFiles.push(file);
         }
     }
