@@ -373,7 +373,12 @@ function scoreToolRestriction(
     }
 
     // Check if body mentions tools the frontmatter doesn't list
-    const bodyToolMentions = body.match(/\b(Read|Write|Edit|Grep|Glob|Bash|Task|Skill|WebSearch|WebFetch)\b/g);
+    // Strip code blocks (``` fences) first to avoid penalizing tool mentions in examples/documentation
+    const bodyWithoutCodeBlocks = body.replace(/```[\s\S]*?```/g, '');
+    // Also exclude "Skill" from the check — it's a delegation mechanism, not a direct tool
+    const bodyToolMentions = bodyWithoutCodeBlocks.match(
+        /\b(Read|Write|Edit|Grep|Glob|Bash|Task|WebSearch|WebFetch)\b/g,
+    );
     if (bodyToolMentions && Array.isArray(tools)) {
         const toolSet = new Set(tools.map(String));
         const unlistedTools = [...new Set(bodyToolMentions)].filter((t) => !toolSet.has(t));
