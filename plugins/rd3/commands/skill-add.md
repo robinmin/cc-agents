@@ -1,6 +1,6 @@
 ---
 description: Create a new skill with scaffolding and templates
-argument-hint: "<skill-name> [--template technique|pattern|reference] [--path <dir>]"
+argument-hint: "<skill-name> [description] [--template technique|pattern|reference] [--path <dir>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -20,22 +20,24 @@ Scaffold a new skill directory from a template.
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `skill-name` | Name of the skill to create | (required) |
+| `description` | Optional free-text description of the skill's purpose | auto-generated |
 | `--template` | Template type: technique, pattern, or reference | technique |
-| `--resources` | Comma-separated list: scripts, references, assets, agents | (none) |
 | `--path` | Output directory for the skill | ./skills |
+| `--resources` | Comma-separated list: scripts, references, assets | (none) |
 | `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
+| `--examples` | Include example files in resource directories | false |
 
 ## Examples
 
 ```bash
-# Scaffold a technique skill with all resources
-/rd3:skill-add my-api-helper --template technique --resources scripts,references,assets
+# Scaffold a technique skill (most common)
+/rd3:skill-add my-api-helper
 
-# Scaffold a pattern skill for Claude only
-/rd3:skill-add decision-framework --template pattern --platform claude
+# Scaffold with a description of its purpose
+/rd3:skill-add my-api-helper "REST API scaffolding and best practices"
 
-# Scaffold to a custom path
-/rd3:skill-add my-skill --path ./plugins/rd3/skills
+# Scaffold a pattern skill with resources
+/rd3:skill-add decision-framework --template pattern --resources scripts,references
 ```
 
 ## Implementation
@@ -45,7 +47,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-skills** skill:
 
 ```
-Skill(skill="rd3:cc-skills")
+Skill(skill="rd3:cc-skills", args="add $ARGUMENTS")
 ```
 
 **Direct script execution:**
