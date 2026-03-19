@@ -217,6 +217,37 @@ async function refineCommand(commandPath: string, options: RefineOptions): Promi
         }
     }
 
+    // Remove unfilled "See Also" sections with template placeholders
+    const seeAlsoRegex = /\n## See Also\n\n(?:- `?\/\{\{[^}]+\}\}[^\n]*\n?)+/;
+    if (seeAlsoRegex.test(content)) {
+        content = content.replace(seeAlsoRegex, '');
+        migrations.push('Removed unfilled "See Also" section with template placeholders');
+        updated = true;
+    }
+
+    // Remove trailing template metadata (e.g. "**Template type**: simple\n**Pattern**: ...")
+    const templateMetadataRegex = /\n---\n\n\*\*Template type\*\*:.*(?:\n\*\*Pattern\*\*:.*)?\s*$/;
+    if (templateMetadataRegex.test(content)) {
+        content = content.replace(templateMetadataRegex, '');
+        migrations.push('Removed trailing template metadata');
+        updated = true;
+    }
+
+    // Remove unfilled "Expected Results" sections with template placeholders
+    const expectedResultsRegex = /\n## Expected Results\n\n(?:- \[(?:Result|TODO)[^\n]*\n?)+/;
+    if (expectedResultsRegex.test(content)) {
+        content = content.replace(expectedResultsRegex, '');
+        migrations.push('Removed unfilled "Expected Results" section with template placeholders');
+        updated = true;
+    }
+
+    // Warn about Skill() without args (can't auto-fix without knowing operation)
+    const skillWithoutArgs = /\bSkill\s*\(\s*skill\s*=\s*["'][^"']+["']\s*\)/.test(content);
+    const skillWithArgs = /\bSkill\s*\(\s*skill\s*=\s*["'][^"']+["']\s*,\s*args\s*=/.test(content);
+    if (skillWithoutArgs && !skillWithArgs) {
+        warnings.push('Skill() invocation missing args= parameter. Add: args="<operation> $ARGUMENTS"');
+    }
+
     // Add Platform Notes section if missing and not migrated
     if (!options.migrate && !content.includes('## Platform Notes')) {
         const platformNotes = `
@@ -375,7 +406,7 @@ function parseCliArgs(): {
     const path = args.positionals?.[0];
 
     if (!path) {
-        console.error('Error: Missing required argument <command-path>');
+        logger.error('Error: Missing required argument <command-path>');
         printUsage();
         process.exit(1);
     }
@@ -384,7 +415,7 @@ function parseCliArgs(): {
     const platformArg = (args.values.platform as string) || 'all';
 
     if (!validPlatforms.includes(platformArg)) {
-        console.error(`Error: Invalid platform '${platformArg}'`);
+        logger.error(`Error: Invalid platform '${platformArg}'`);
         process.exit(1);
     }
 
