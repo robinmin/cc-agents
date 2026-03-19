@@ -1,6 +1,6 @@
 ---
 description: Create a new agent with scaffolding and templates
-argument-hint: "<agent-name> [--template minimal|standard|specialist] [--path <dir>] [--tools <list>]"
+argument-hint: "<agent-name> [description] [--path <dir>] [--template <tier>] [--skills <list>] [--tools <list>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -20,25 +20,26 @@ Scaffold a new subagent file from a tiered template.
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `agent-name` | Name of the agent (hyphen-case) | (required) |
+| `description` | Optional free-text description of the agent's purpose | auto-generated |
 | `--path` | Output directory | ./agents |
 | `--template` | Template tier: minimal, standard, specialist | standard |
+| `--skills` | Comma-separated skills to delegate to | (none) |
 | `--tools` | Comma-separated tools list | Read,Grep,Glob,Bash |
 | `--model` | Model override | inherit |
 | `--color` | Display color | teal |
-| `--description` | Agent description for frontmatter | auto-generated |
 | `--plugin-name` | Plugin name for namespacing | (none) |
 
 ## Examples
 
 ```bash
-# Scaffold a standard agent
-/rd3:agent-add my-coder --path ./agents
+# Scaffold a standard agent (most common)
+/rd3:agent-add my-coder
+
+# Scaffold with a description of its purpose
+/rd3:agent-add expert-foo "Thin wrapper for cc-foo skill" --skills rd3:cc-foo
 
 # Scaffold a specialist agent with specific tools
 /rd3:agent-add api-expert --template specialist --tools Read,Write,Bash,WebSearch
-
-# Scaffold a minimal agent with description
-/rd3:agent-add helper --template minimal --description "Simple helper for file operations"
 ```
 
 ## Implementation
@@ -48,7 +49,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-agents** skill:
 
 ```
-Skill(skill="rd3:cc-agents")
+Skill(skill="rd3:cc-agents", args="scaffold $ARGUMENTS")
 ```
 
 **Direct script execution:**
