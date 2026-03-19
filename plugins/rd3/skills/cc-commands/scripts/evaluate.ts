@@ -19,6 +19,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { logger } from '../../../scripts/logger';
 
 import { type CommandDimensionWeights, EVALUATION_CONFIG } from './evaluation.config';
 import type {
@@ -448,6 +449,19 @@ function evaluateDelegationArchitecture(
         findings.push('No Task() or Skill() delegation found');
         recommendations.push('Use Task() or Skill() for proper delegation');
         score -= 2;
+    }
+
+    // Check if Skill() passes args with operation
+    if (hasSkill) {
+        // Strip code blocks to only check actual Skill() invocations (not documentation about Skill)
+        const bodyWithoutCodeBlocks = _body.replace(/```[\s\S]*?```/g, '');
+        const skillWithoutArgs = /\bSkill\s*\(\s*skill\s*=\s*["'][^"']+["']\s*\)/.test(bodyWithoutCodeBlocks);
+        const skillWithArgs = /\bSkill\s*\(\s*skill\s*=\s*["'][^"']+["']\s*,\s*args\s*=/.test(_body);
+        if (skillWithoutArgs && !skillWithArgs) {
+            findings.push('Skill() invocation missing args parameter');
+            recommendations.push('Pass operation and arguments: Skill(skill="...", args="operation $ARGUMENTS")');
+            score -= 2;
+        }
     }
 
     // Check for nested delegation (should not have too many)
@@ -1033,7 +1047,7 @@ export function parseCliArgs(): {
     const path = args.positionals?.[0];
 
     if (!path) {
-        console.error('Error: Missing required argument <command-path>');
+        logger.error('Error: Missing required argument <command-path>');
         printUsage();
         process.exit(1);
     }
@@ -1042,7 +1056,7 @@ export function parseCliArgs(): {
     const scope = (args.values.scope as string) || 'basic';
 
     if (!validScopes.includes(scope)) {
-        console.error(`Error: Invalid scope '${scope}'`);
+        logger.error(`Error: Invalid scope '${scope}'`);
         process.exit(1);
     }
 
@@ -1050,7 +1064,7 @@ export function parseCliArgs(): {
     const platform = (args.values.platform as string) || 'all';
 
     if (!validPlatforms.includes(platform)) {
-        console.error(`Error: Invalid platform '${platform}'`);
+        logger.error(`Error: Invalid platform '${platform}'`);
         process.exit(1);
     }
 
