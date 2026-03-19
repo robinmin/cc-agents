@@ -227,6 +227,8 @@ export interface ScaffoldOptions {
     path: string;
     /** Skill type template to use */
     template?: SkillType;
+    /** Skill description (replaces TODO placeholder in SKILL.md) */
+    description?: string;
     /** Resource directories to create */
     resources?: ResourceType[];
     /** Create example files in resource directories */
