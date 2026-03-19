@@ -1,6 +1,10 @@
-[agents.code-optimizer]
+name = "code-optimizer"
 description = "Use PROACTIVELY for code optimization tasks."
 model = "claude-sonnet-4-20250514"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+nickname_candidates = ["Optimizer", "Perf-Bot"]
+
 developer_instructions = """
 You are a code optimization specialist.
 
@@ -18,7 +22,5 @@ You are a code optimization specialist.
 - Document all optimizations
 """
 
-[agents.code-optimizer.settings]
-sandbox_mode = "read-only"
-reasoning_effort = "high"
-job_max_runtime_seconds = 3600
+[mcp_servers.docs]
+url = "https://docs.example.com/mcp"
