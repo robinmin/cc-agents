@@ -454,16 +454,19 @@ function processSkills(pluginOrPath: string, isPath: boolean, targets: string[],
 
     logger.info(`Processing skills in ${skillsDir}...`);
 
-    const dirs = readdirSync(skillsDir).filter((f) => {
-        const fullPath = join(skillsDir, f);
-        return statSync(fullPath).isDirectory();
-    });
+    let skillDirs: string[];
+    if (isPath && statSync(skillsDir).isDirectory() && existsSync(join(skillsDir, 'SKILL.md'))) {
+        skillDirs = [skillsDir];
+    } else {
+        skillDirs = readdirSync(skillsDir)
+            .map((f) => join(skillsDir, f))
+            .filter((fullPath) => statSync(fullPath).isDirectory());
+    }
 
     let total = 0;
     let issues = 0;
 
-    for (const dir of dirs) {
-        const skillDir = join(skillsDir, dir);
+    for (const skillDir of skillDirs) {
         total++;
         const skillName = basename(skillDir);
         console.log('');
