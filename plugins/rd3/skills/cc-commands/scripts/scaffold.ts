@@ -17,13 +17,12 @@
  *   --help, -h            Show help
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { logger } from '../../../scripts/logger';
-import { ensureDir, readFile, writeFile } from '../../../scripts/utils';
+import { ensureDir, pathExists, readFile, titleCaseSkillName, writeFile } from '../../../scripts/utils';
 import type { CommandPlatform, CommandScaffoldOptions, CommandScaffoldResult, CommandTemplate } from './types';
 import { normalizeCommandName } from './utils';
 
@@ -34,16 +33,6 @@ const __dirname = dirname(__filename);
 // ============================================================================
 // Helpers
 // ============================================================================
-
-/**
- * Convert hyphen-case to Title Case.
- */
-function toTitleCase(name: string): string {
-    return name
-        .split('-')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-}
 
 // Template file mapping
 const TEMPLATE_FILES: Record<CommandTemplate, string> = {
@@ -63,7 +52,7 @@ function loadTemplate(templateType: CommandTemplate): string {
     const templatesDir = resolve(__dirname, '..', 'templates');
     const templateFile = join(templatesDir, TEMPLATE_FILES[templateType]);
 
-    if (!existsSync(templateFile)) {
+    if (!pathExists(templateFile)) {
         throw new Error(`Template file not found: ${templateFile}`);
     }
 
@@ -74,9 +63,21 @@ function loadTemplate(templateType: CommandTemplate): string {
  * Process template with variable substitution.
  */
 function processTemplate(template: string, commandName: string, options: CommandScaffoldOptions): string {
-    const commandTitle = toTitleCase(commandName);
+    const commandTitle = titleCaseSkillName(commandName);
     const description = options.description || '[TODO: Brief description under 60 chars]';
     const pluginName = options.pluginName || '{{PLUGIN_NAME}}';
+    const targetSkill = options.skill || '{{TARGET_SKILL}}';
+    const operation = options.operation || '{{OPERATION}}';
+
+    // Derive plugin path from skill name (e.g. "rd3:cc-skills" → "rd3/skills/cc-skills")
+    let pluginPath = '{{PLUGIN_PATH}}';
+    if (options.skill && options.skill.includes(':')) {
+        const [prefix, skillName] = options.skill.split(':');
+        pluginPath = `${prefix}/skills/${skillName}`;
+    }
+
+    // Derive script name from operation (e.g. "scaffold" → "scaffold")
+    const scriptName = options.operation || commandName;
 
     return template
         .replace(/\{\{COMMAND_NAME\}\}/g, commandName)
@@ -84,9 +85,12 @@ function processTemplate(template: string, commandName: string, options: Command
         .replace(/\{\{DESCRIPTION\}\}/g, description)
         .replace(/\{\{ARGUMENT_HINT\}\}/g, '[args]')
         .replace(/\{\{PLUGIN_NAME\}\}/g, pluginName)
+        .replace(/\{\{TARGET_SKILL\}\}/g, targetSkill)
+        .replace(/\{\{OPERATION\}\}/g, operation)
+        .replace(/\{\{PLUGIN_PATH\}\}/g, pluginPath)
         .replace(/\{\{SKILL_NAME\}\}/g, commandName)
-        .replace(/\{\{SKILL_DIR\}\}/g, commandName)
-        .replace(/\{\{SCRIPT_NAME\}\}/g, commandName)
+        .replace(/\{\{SKILL_DIR\}\}/g, options.skill?.split(':')[1] || commandName)
+        .replace(/\{\{SCRIPT_NAME\}\}/g, scriptName)
         .replace(/\{\{AGENT_NAME\}\}/g, `super-${commandName}`);
 }
 
@@ -122,7 +126,7 @@ export async function scaffold(options: CommandScaffoldOptions): Promise<Command
     result.commandPath = commandPath;
 
     // Check if file already exists
-    if (existsSync(commandPath)) {
+    if (pathExists(commandPath)) {
         result.errors.push(`Command file already exists: ${commandPath}`);
         return result;
     }
@@ -163,6 +167,8 @@ function printUsage(): void {
     console.log('Options:');
     console.log('  -p, --path <dir>       Output directory (default: ./commands)');
     console.log('  -t, --template <type>  Template: simple, workflow, plugin (default: simple)');
+    console.log('  --skill <name>         Target skill for Skill() delegation (e.g. rd3:cc-skills)');
+    console.log('  --operation <name>     Operation passed as first arg to skill (e.g. scaffold)');
     console.log('  --platform <name>      Target platform: all, claude, codex, gemini, etc.');
     console.log('  --plugin-name <name>   Plugin name for plugin template');
     console.log('  --description <text>   Description for frontmatter');
@@ -171,7 +177,7 @@ function printUsage(): void {
 }
 
 function printNextSteps(commandPath: string, commandName: string): void {
-    console.log(`\n[OK] Command created successfully at ${commandPath}`);
+    logger.success(`Command created successfully at ${commandPath}`);
     console.log('\nNext steps:');
     console.log('1. Edit the command file to complete TODO items');
     console.log('2. Update the description (keep under 60 characters)');
@@ -188,6 +194,8 @@ function parseCliArgs(): CommandScaffoldOptions & { verbose: boolean } {
             path: { type: 'string', short: 'p' },
             template: { type: 'string', short: 't' },
             platform: { type: 'string' },
+            skill: { type: 'string' },
+            operation: { type: 'string' },
             'plugin-name': { type: 'string' },
             description: { type: 'string' },
             verbose: { type: 'boolean', short: 'v', default: false },
@@ -207,11 +215,13 @@ function parseCliArgs(): CommandScaffoldOptions & { verbose: boolean } {
     const validTemplates: CommandTemplate[] = ['simple', 'workflow', 'plugin'];
 
     if (!validTemplates.includes(template)) {
-        console.error(`Error: Invalid template '${template}'. Must be: ${validTemplates.join(', ')}`);
+        logger.error(`Error: Invalid template '${template}'. Must be: ${validTemplates.join(', ')}`);
         process.exit(1);
     }
 
     const pluginNameVal = args.values['plugin-name'] as string | undefined;
+    const skillVal = args.values.skill as string | undefined;
+    const operationVal = args.values.operation as string | undefined;
     // --description flag takes priority over positional description
     const descriptionVal = (args.values.description as string | undefined) || positionalDescription || undefined;
 
@@ -224,6 +234,8 @@ function parseCliArgs(): CommandScaffoldOptions & { verbose: boolean } {
 
     // Only add optional fields if they have values
     if (pluginNameVal) result.pluginName = pluginNameVal;
+    if (skillVal) result.skill = skillVal;
+    if (operationVal) result.operation = operationVal;
     if (descriptionVal) result.description = descriptionVal;
 
     // Parse --platform flag into platforms array
@@ -238,7 +250,7 @@ function parseCliArgs(): CommandScaffoldOptions & { verbose: boolean } {
         }
         for (const p of platforms) {
             if (!validPlatforms.includes(p as (typeof validPlatforms)[number])) {
-                console.error(`Error: Invalid platform '${p}'. Must be: ${validPlatforms.join(', ')}`);
+                logger.error(`Error: Invalid platform '${p}'. Must be: ${validPlatforms.join(', ')}`);
                 process.exit(1);
             }
         }
@@ -252,7 +264,7 @@ async function main() {
     const options = parseCliArgs();
 
     if (!options.name) {
-        console.error('Error: Missing required argument <command-name>');
+        logger.error('Error: Missing required argument <command-name>');
         printUsage();
         process.exit(1);
     }
