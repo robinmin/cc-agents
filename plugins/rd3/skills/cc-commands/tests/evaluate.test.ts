@@ -706,7 +706,9 @@ Use $ARGUMENTS and run \`!custom command\`
         );
 
         const report = evaluateCommand(command, 'full');
-        const platDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'cross-platform-portability');
+        const platDim = report.dimensions.find(
+            (d: CommandEvaluationDimension) => d.name === 'cross-platform-portability',
+        );
         // Has Task() but no Platform Notes section
         expect(platDim).toBeDefined();
     });
@@ -1040,7 +1042,9 @@ AskUserQuestion(question="What to do?")
         );
 
         const report = evaluateCommand(command, 'basic');
-        const delegDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'delegation-architecture');
+        const delegDim = report.dimensions.find(
+            (d: CommandEvaluationDimension) => d.name === 'delegation-architecture',
+        );
         expect(delegDim?.findings.some((f: string) => f.includes('Only AskUserQuestion'))).toBe(true);
     });
 
@@ -1325,7 +1329,9 @@ Skill(skill="some-skill")
         );
 
         const report = evaluateCommand(command, 'basic');
-        const delegDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'delegation-architecture');
+        const delegDim = report.dimensions.find(
+            (d: CommandEvaluationDimension) => d.name === 'delegation-architecture',
+        );
         // Should have Task() or Skill() - this one has Skill so it should be fine
         expect(delegDim?.findings.some((f: string) => f.includes('No Task() or Skill()'))).toBe(false);
     });
@@ -1351,7 +1357,9 @@ Works on Claude Code.
         );
 
         const report = evaluateCommand(command, 'full');
-        const platDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'cross-platform-portability');
+        const platDim = report.dimensions.find(
+            (d: CommandEvaluationDimension) => d.name === 'cross-platform-portability',
+        );
         expect(platDim?.findings.some((f: string) => f.includes('Platform Notes'))).toBe(false);
     });
 
@@ -1400,7 +1408,6 @@ Use this.
         expect(report.percentage).toBeGreaterThan(0);
         expect(['A', 'B', 'C', 'D', 'F']).toContain(report.grade);
     });
-
 });
 
 describe('Unit: CLI functions', () => {
@@ -2038,7 +2045,9 @@ Content.
         );
 
         const report = evaluateCommand(command, 'full');
-        const descDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'description-effectiveness');
+        const descDim = report.dimensions.find(
+            (d: CommandEvaluationDimension) => d.name === 'description-effectiveness',
+        );
 
         expect(descDim?.recommendations).toContain('Keep description under 60 characters');
     });
@@ -2059,7 +2068,9 @@ Content.
         );
 
         const report = evaluateCommand(command, 'full');
-        const descDim = report.dimensions.find((d: CommandEvaluationDimension) => d.name === 'description-effectiveness');
+        const descDim = report.dimensions.find(
+            (d: CommandEvaluationDimension) => d.name === 'description-effectiveness',
+        );
 
         // Should still produce a score, not crash
         expect(descDim?.score).toBeDefined();
