@@ -78,7 +78,8 @@ describe('Codex Adapter', () => {
         const context = createAgentAdapterContext(sampleAgent, '/tmp', 'codex');
         const result = await adapter.generate(sampleAgent, context);
         expect(result.success).toBe(true);
-        expect(result.output).toContain('[agents.test-agent]');
+        expect(result.output).toContain('name = "test-agent"');
+        expect(result.output).toContain('description =');
     });
 });
 
