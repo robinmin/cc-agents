@@ -28,8 +28,8 @@ Score skill quality across 10 dimensions. **Evaluate only — make NO changes.**
 ## Examples
 
 ```bash
-# Basic structural validation
-/rd3:skill-evaluate ./skills/my-skill --scope basic
+# Basic structural validation (most common)
+/rd3:skill-evaluate ./skills/my-skill
 
 # Full evaluation with all dimensions
 /rd3:skill-evaluate ./skills/my-skill --scope full
@@ -45,7 +45,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-skills** skill:
 
 ```
-Skill(skill="rd3:cc-skills")
+Skill(skill="rd3:cc-skills", args="evaluate $ARGUMENTS")
 ```
 
 **Direct script execution:**
