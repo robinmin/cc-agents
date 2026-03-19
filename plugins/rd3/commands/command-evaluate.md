@@ -28,14 +28,11 @@ Score quality across 10 dimensions. **Evaluate only — make NO changes.**
 ## Examples
 
 ```bash
-# Basic structural validation
+# Basic structural validation (most common)
 /rd3:command-evaluate ./commands/review-code.md
 
 # Full evaluation with JSON output
 /rd3:command-evaluate ./commands/review-code.md --scope full --json
-
-# Platform-specific check
-/rd3:command-evaluate ./commands/review-code.md --platform gemini
 ```
 
 ## Implementation
@@ -45,7 +42,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-commands** skill:
 
 ```
-Skill(skill="rd3:cc-commands")
+Skill(skill="rd3:cc-commands", args="evaluate $ARGUMENTS")
 ```
 
 **Direct script execution:**
