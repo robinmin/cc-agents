@@ -8,6 +8,7 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { logger } from '../../../scripts/logger';
 import { createAntigravityAdapter } from './adapters/antigravity';
 import { createClaudeAdapter } from './adapters/claude';
 import { createCodexAdapter } from './adapters/codex';
@@ -229,7 +230,7 @@ function parseCliArgs(): {
     const path = args.positionals?.[0];
 
     if (!path) {
-        console.error('Error: Missing required argument <skill-path>');
+        logger.error('Error: Missing required argument <skill-path>');
         printUsage();
         process.exit(1);
     }
@@ -238,7 +239,7 @@ function parseCliArgs(): {
     const platformArg = (args.values.platform as string) || 'all';
 
     if (!validPlatforms.includes(platformArg)) {
-        console.error(`Error: Invalid platform '${platformArg}'`);
+        logger.error(`Error: Invalid platform '${platformArg}'`);
         process.exit(1);
     }
 
