@@ -105,6 +105,8 @@ export interface UniversalAgent {
     sandboxMode?: string;
     /** Reasoning effort level -- Codex only */
     reasoningEffort?: string;
+    /** Display nickname candidates -- Codex only */
+    nicknameCandidates?: string[];
 
     // --- Metadata ---
 
@@ -171,15 +173,18 @@ export interface OpenCodeAgentConfig {
 }
 
 /**
- * Codex agent configuration (TOML section).
+ * Codex agent configuration (standalone TOML file).
+ * Official format: root-level fields in .codex/agents/{name}.toml
  */
 export interface CodexAgentConfig {
+    name?: string;
     description: string;
     model?: string;
     developer_instructions?: string;
     sandbox_mode?: string;
-    reasoning_effort?: string;
-    job_max_runtime_seconds?: number;
+    model_reasoning_effort?: string;
+    nickname_candidates?: string[];
+    mcp_servers?: Record<string, { url: string; [key: string]: unknown }>;
     [key: string]: unknown;
 }
 
@@ -264,8 +269,9 @@ export const VALID_CODEX_AGENT_FIELDS = [
     'model',
     'developer_instructions',
     'sandbox_mode',
-    'reasoning_effort',
-    'job_max_runtime_seconds',
+    'model_reasoning_effort',
+    'nickname_candidates',
+    'mcp_servers',
 ] as const;
 
 export type ValidCodexAgentField = (typeof VALID_CODEX_AGENT_FIELDS)[number];
