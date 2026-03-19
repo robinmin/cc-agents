@@ -28,7 +28,7 @@ Convert a Claude Code slash definition to other platform formats.
 ## Examples
 
 ```bash
-# Adapt all rd3 definitions for all platforms
+# Adapt all rd3 definitions for all platforms (most common)
 /rd3:command-adapt rd3 all
 
 # Adapt for Gemini and OpenClaw only
@@ -45,7 +45,7 @@ Pass `$ARGUMENTS` to the underlying skill for processing.
 Delegates to **rd3:cc-commands** skill:
 
 ```
-Skill(skill="rd3:cc-commands")
+Skill(skill="rd3:cc-commands", args="adapt $ARGUMENTS")
 ```
 
 **Direct script execution:**
