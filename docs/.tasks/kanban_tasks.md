@@ -6,7 +6,15 @@ kanban-plugin: board
 
 ## Backlog
 
-
+- [ ] 0241_0235:_cc-magents_Foundation_-_types.ts_(UMAM)
+- [ ] 0242_0236:_cc-magents_Foundation_-_utils.ts_(parsing_utilities)
+- [ ] 0243_0237:_cc-magents_Foundation_-_base_adapter_interface
+- [ ] 0244_0238:_cc-magents_Foundation_-_agents-md_adapter_(Tier_1)
+- [ ] 0245_0239:_cc-magents_Foundation_-_claude-md_adapter_(Tier_1)
+- [ ] 0246_0240:_cc-magents_Foundation_-_adapter_registry
+- [ ] 0247_0241:_cc-magents_Foundation_-_validate.ts
+- [ ] 0248_0242:_cc-magents_Foundation_-_SKILL.md_skeleton
+- [ ] 0249_enhance_agent_skill_design_patterns
 
 ## Todo
 
@@ -75,4 +83,11 @@ kanban-plugin: board
 - [x] 0231_Create_missing_spec-required_files:_metadata,_references,_test_fixtures_(H3)
 - [x] 0232_Fix_medium_issues:_writeFileSync,_TOML_parser,_CLI_color,_template_footers,_security_scanner,_nc-l_pattern,_error_handling_(M1-M7)
 - [x] 0233_Fix_low_issues:_placeholder_text,_minimal_template_examples,_dry-run_flag,_frontmatter_validation_(L2-L5)
+- [x] 0234_create_meta_skill_cc-magents
+- [x] 0235_Phase_1:_cc-magents_Foundation_-_types,_utils,_Tier_1_adapters,_validate,_SKILL.md_skeleton
+- [x] 0236_Phase_2:_cc-magents_Evaluation_-_evaluation_config,_evaluate.ts,_evaluation-framework_reference
+- [x] 0237_Phase_3:_cc-magents_Creation_and_Refinement_-_templates,_synthesize.ts,_refine.ts
+- [x] 0238_Phase_4:_cc-magents_Adaptation_-_Tier_2_3_adapters,_adapt.ts
+- [x] 0239_Phase_5:_cc-magents_Evolution_-_evolve.ts,_safety_protocols,_version_history
+- [x] 0240_Phase_6:_cc-magents_Commands,_Agent,_Tests,_SKILL.md_completion
 
