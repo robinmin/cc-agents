@@ -1,6 +1,6 @@
 ---
 name: cc-skills
-description: Create, modify, evaluate, and package Agent skills. This skill should be used when you want to scaffold a new skill directory, validate skill structure across multiple platforms, generate platform-specific companion files, or migrate existing rd2 skills.
+description: Create, modify, evaluate, evolve, and package Agent skills. This skill should be used when you want to scaffold a new skill directory, validate skill structure across multiple platforms, generate platform-specific companion files, migrate existing rd2 skills, or run a governed evolution workflow with proposal history and rollback.
 license: Apache-2.0
 metadata:
   author: cc-agents
@@ -15,13 +15,14 @@ Create Agent skills that work across ALL platforms from a single source of truth
 
 ## Operations
 
-This skill accepts **4 operations**:
+This skill accepts **5 operations**:
 
 | Operation | Purpose | Script |
 |-----------|---------|--------|
 | **add** | Scaffold a new skill | `scripts/scaffold.ts` |
 | **evaluate** | Validate and score skill quality | `scripts/evaluate.ts` |
 | **refine** | Fix issues and improve quality | `scripts/refine.ts` |
+| **evolve** | Analyze and propose longitudinal improvements | `scripts/evolve.ts` |
 | **package** | Package for distribution | `scripts/package.ts` |
 
 ## Workflow Design
@@ -63,6 +64,9 @@ bun scripts/evaluate.ts ./skills/my-skill --scope full
 # Refine: Apply deterministic fixes (fuzzy checks via invoking agent checklist)
 bun scripts/refine.ts ./skills/my-skill --best-practices
 
+# Evolve: Analyze and propose longitudinal improvements
+bun scripts/evolve.ts ./skills/my-skill --propose
+
 # Package: Create distribution bundle
 bun scripts/package.ts ./skills/my-skill --output ./dist
 ```
@@ -72,8 +76,11 @@ bun scripts/package.ts ./skills/my-skill --output ./dist
 - Creating a new skill from scratch → use **add**
 - Validating skill structure → use **evaluate**
 - Fixing quality issues → use **refine**
+- Planning longitudinal improvement → use **evolve**
 - Preparing for distribution → use **package**
 - Migrating rd2 skills to rd3 → use **refine --migrate**
+
+`evolve` is intentionally separate from the main build/package pipeline. Use it for proposal-driven maintenance with snapshot-backed apply, history, and rollback.
 
 ## Core Principles
 
