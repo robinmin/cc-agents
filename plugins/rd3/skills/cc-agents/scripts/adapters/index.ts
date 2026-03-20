@@ -64,6 +64,8 @@ export class AgentAdapterRegistry {
         antigravity: createAntigravityAgentAdapter,
     };
 
+    constructor() {}
+
     /** Get adapter for a specific platform (lazy-instantiated and cached) */
     get(platform: AgentPlatform): IAgentPlatformAdapter {
         let adapter = this.cache.get(platform);
