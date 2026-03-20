@@ -11,7 +11,7 @@
 #
 # Arguments:
 #   plugin      Plugin name (e.g., rd3, wt)
-#   targets     Target agents: all, codexcli, geminicli, opencode, antigravity, augmentcode
+#   targets     Target agents: all, codexcli, geminicli, opencode, openclaw, antigravity, augmentcode
 #
 # Options:
 #   --features  Features to install: skills,commands,subagents (default: all)
@@ -23,6 +23,7 @@
 #   ./scripts/install-skills.sh rd3 all
 #   ./scripts/install-skills.sh rd3 codexcli
 #   ./scripts/install-skills.sh rd3 geminicli,opencode --verbose
+#   ./scripts/install-skills.sh rd3 openclaw --features=skills,commands
 #
 # Environment:
 #   PROJECT_ROOT    - Root directory of the project (auto-detected)
@@ -59,7 +60,7 @@ VERBOSE=false                              # Verbose output flag
 
 # Supported target agents (rulesync target names)
 # These correspond to the target names in rulesync.jsonc
-AVAILABLE_TARGETS="codexcli,geminicli,opencode,antigravity,augmentcode"
+AVAILABLE_TARGETS="codexcli,geminicli,opencode,openclaw,antigravity,augmentcode"
 
 # ANSI color codes for formatted output
 # Used by print_* functions to add color to console messages
@@ -83,7 +84,7 @@ usage() {
     printf "    $(basename "$0") <plugin> <targets> [options]\n\n"
     printf "${GREEN}ARGUMENTS:${NC}\n"
     printf "    plugin      Plugin name (e.g., rd3, wt)\n"
-    printf "    targets     Target agents: all, codexcli, geminicli, opencode, antigravity, augmentcode\n\n"
+    printf "    targets     Target agents: all, codexcli, geminicli, opencode, openclaw, antigravity, augmentcode\n\n"
     printf "${GREEN}OPTIONS:${NC}\n"
     printf "    --features  Features to install: skills,commands,subagents (default: all)\n"
     printf "    --dry-run   Preview changes without executing\n"
@@ -96,10 +97,13 @@ usage() {
     printf "    $(basename "$0") rd3 codexcli\n\n"
     printf "    # Install to multiple agents\n"
     printf "    $(basename "$0") rd3 geminicli,opencode --verbose\n\n"
+    printf "    # Install rd3 to OpenClaw\n"
+    printf "    $(basename "$0") rd3 openclaw --features=skills,commands\n\n"
     printf "${GREEN}TARGETS:${NC}\n"
     printf "    codexcli       Codex CLI\n"
     printf "    geminicli      Google Gemini CLI\n"
     printf "    opencode       OpenCode CLI\n"
+    printf "    openclaw       OpenClaw\n"
     printf "    antigravity    Google Antigravity CLI\n"
     printf "    augmentcode     Augment Code (Auggie)\n"
     printf "    all            All supported targets above\n"
@@ -275,7 +279,7 @@ validate_environment() {
 # This is the core transformation step that converts plugin format to rulesync format:
 #   - commands/*.md -> .rulesync/skills/{PLUGIN}-cmd-*/
 #   - skills/*/SKILL.md -> .rulesync/skills/{PLUGIN}-*/
-#   - subagents/*.md -> .rulesync/subagents/
+#   - agents/*.md or subagents/*.md -> .rulesync/subagents/
 #
 # Each resource type is processed based on FEATURES setting
 map_resources() {
@@ -347,11 +351,17 @@ map_resources() {
         fi
     fi
 
-    # Process subagents directory
-    # Subagents (*.md files in subagents/) are copied to rulesync subagents
+    # Process subagents / agents directory
+    # rd3 uses agents/, older plugins may use subagents/
     if [[ "$FEATURES" == *"subagents"* ]] || [ "$FEATURES" = "all" ]; then
-        local subagents_dir="${plugin_dir}/subagents"
-        if [ -d "$subagents_dir" ]; then
+        local subagents_dir=""
+        if [ -d "${plugin_dir}/agents" ]; then
+            subagents_dir="${plugin_dir}/agents"
+        elif [ -d "${plugin_dir}/subagents" ]; then
+            subagents_dir="${plugin_dir}/subagents"
+        fi
+
+        if [ -n "$subagents_dir" ] && [ -d "$subagents_dir" ]; then
             print_info "Processing subagents..."
             for agent_file in "$subagents_dir"/*.md; do
                 if [ -f "$agent_file" ]; then
@@ -430,8 +440,19 @@ EOF
 #   $1 - Target agents (comma-separated or 'all')
 run_rulesync() {
     local targets="$1"
+    local rulesync_targets="$targets"
 
-    print_info "Running rulesync for targets: $targets"
+    # OpenClaw install is handled by direct copy because this workflow does
+    # not currently use a rulesync OpenClaw target.
+    rulesync_targets=$(echo "$rulesync_targets" | sed 's/\(^\|,\)openclaw\(,\|$\)/\1/g' | sed 's/,,*/,/g' | sed 's/^,//; s/,$//')
+
+    if [ -z "$rulesync_targets" ]; then
+        print_info "Skipping rulesync: selected targets are handled by direct copy"
+        echo
+        return 0
+    fi
+
+    print_info "Running rulesync for targets: $rulesync_targets"
 
     # Determine rulesync command
     # Try global installation first, fall back to npx
@@ -453,15 +474,15 @@ run_rulesync() {
     # Dry-run mode: just show what would be executed
     if [ "$DRY_RUN" = "true" ]; then
         print_warning "DRY RUN - Would execute:"
-        echo "   $rulesync_cmd generate --targets $targets --features $features_str"
+        echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str"
         return 0
     fi
 
     # Execute rulesync with appropriate verbosity
     if [ "$VERBOSE" = "true" ]; then
-        $rulesync_cmd generate --targets "$targets" --features "$features_str" --verbose
+        $rulesync_cmd generate --targets "$rulesync_targets" --features "$features_str" --verbose
     else
-        $rulesync_cmd generate --targets "$targets" --features "$features_str"
+        $rulesync_cmd generate --targets "$rulesync_targets" --features "$features_str"
     fi
 
     print_success "rulesync completed"
@@ -478,6 +499,7 @@ run_rulesync() {
 #   codexcli     -> .codex/skills/
 #   geminicli    -> .gemini/skills/, .agents/skills/
 #   opencode     -> .opencode/skills/, .agents/skills/
+#   openclaw     -> skills/
 #   antigravity  -> .agents/skills/
 #
 # The .agents/skills/ directory is a cross-client convention
@@ -518,6 +540,14 @@ copy_to_targets() {
         print_info "OpenCode skills directory: .opencode/skills"
         mkdir -p ".agents/skills"
         target_dirs+=(".agents/skills")
+        print_info "Cross-client skills directory: .agents/skills"
+    fi
+
+    # OpenClaw: Uses workspace-level skills/ directory
+    if [[ "$targets" == *"openclaw"* ]]; then
+        mkdir -p "skills"
+        target_dirs+=("skills")
+        print_info "OpenClaw skills directory: skills"
     fi
 
     # Antigravity: Uses .agents/skills/ only
@@ -530,6 +560,18 @@ copy_to_targets() {
     # Augment Code: Not yet implemented
     if [[ "$targets" == *"augmentcode"* ]]; then
         print_warning "Augment Code installation not implemented yet"
+    fi
+
+    if [ "$DRY_RUN" = "true" ]; then
+        print_warning "DRY RUN - Would copy generated skills to:"
+        for target_dir in "${target_dirs[@]}"; do
+            echo "   $target_dir"
+        done
+        if [[ "$FEATURES" == *"subagents"* ]] && [[ "$targets" == *"openclaw"* ]]; then
+            print_warning "OpenClaw subagent installation is not handled by install-skills.sh; use rd3:cc-agents adapt/install flows"
+        fi
+        echo
+        return 0
     fi
 
     # Copy all skills from rulesync to each target directory
@@ -565,6 +607,10 @@ copy_to_targets() {
                 fi
             fi
         done
+
+        if [[ "$targets" == *"openclaw"* ]]; then
+            print_warning "OpenClaw subagent installation is not handled by install-skills.sh; use rd3:cc-agents adapt/install flows"
+        fi
     fi
 
     echo
