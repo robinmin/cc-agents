@@ -13,6 +13,18 @@
  * - "main agent" here means top-level project/global config (AGENTS.md, CLAUDE.md, etc.)
  */
 
+import type {
+    EvolutionDataSource as SharedEvolutionDataSource,
+    EvolutionHistoryEntry as SharedEvolutionHistoryEntry,
+    EvolutionLevel as SharedEvolutionLevel,
+    EvolutionPattern as SharedEvolutionPattern,
+    EvolutionPatternType as SharedEvolutionPatternType,
+    EvolutionProposal as SharedEvolutionProposal,
+    EvolutionResult as SharedEvolutionResult,
+    EvolutionSafetyLevel as SharedEvolutionSafetyLevel,
+    EvolutionVersionSnapshot as SharedEvolutionVersionSnapshot,
+} from '../../../scripts/evolution-contract';
+
 // ============================================================================
 // Platform Types
 // ============================================================================
@@ -366,105 +378,31 @@ export interface MagentEvaluationReport {
 // ============================================================================
 
 /** Evolution maturity level */
-export type EvolutionLevel = 'L1' | 'L2' | 'L3';
+export type EvolutionLevel = SharedEvolutionLevel;
 
 /** Evolution data source */
-export type EvolutionDataSource = 'git-history' | 'ci-results' | 'user-feedback' | 'memory-md' | 'interaction-logs';
+export type EvolutionDataSource = SharedEvolutionDataSource;
 
 /** A single evolution proposal */
-export interface EvolutionProposal {
-    /** Unique proposal ID */
-    id: string;
-    /** Which section to modify */
-    targetSection: string;
-    /** Type of change */
-    changeType: 'add' | 'modify' | 'remove' | 'reorder';
-    /** Description of what to change */
-    description: string;
-    /** Rationale for the change */
-    rationale: string;
-    /** Data source that triggered this proposal */
-    source: EvolutionDataSource;
-    /** Confidence in the proposal (0-1) */
-    confidence: number;
-    /** Whether this affects a critical section */
-    affectsCritical: boolean;
-    /** Diff preview (before/after) */
-    diff?: {
-        before: string;
-        after: string;
-    };
-}
+export type EvolutionProposal = SharedEvolutionProposal<string, EvolutionDataSource>;
 
 /** Result of an evolution analysis */
-export interface EvolutionResult {
-    /** File path analyzed */
-    filePath: string;
-    /** Data sources consulted */
-    sourcesUsed: EvolutionDataSource[];
-    /** Generated proposals */
-    proposals: EvolutionProposal[];
-    /** Current grade (before changes) */
-    currentGrade: Grade;
-    /** Predicted grade (after applying all proposals) */
-    predictedGrade: Grade;
-    /** Safety warnings */
-    safetyWarnings: string[];
-    /** Timestamp */
-    timestamp: string;
-}
+export type EvolutionResult = SharedEvolutionResult<EvolutionDataSource, EvolutionProposal, Grade>;
 
 /** Evolution history entry */
-export interface EvolutionHistoryEntry {
-    /** Timestamp of the evolution */
-    timestamp: string;
-    /** Proposals that were applied */
-    appliedProposals: string[];
-    /** Grade before evolution */
-    gradeBefore: Grade;
-    /** Grade after evolution */
-    gradeAfter: Grade;
-    /** Backup file path */
-    backupPath: string;
-}
+export type EvolutionHistoryEntry = SharedEvolutionHistoryEntry<Grade>;
 
 /** Evolution safety level for auto-application of proposals */
-export type EvolutionSafetyLevel = 'L1' | 'L2' | 'L3';
+export type EvolutionSafetyLevel = SharedEvolutionSafetyLevel;
 
 /** Type of detected pattern from analysis */
-export type EvolutionPatternType = 'success' | 'failure' | 'improvement' | 'degradation' | 'gap';
+export type EvolutionPatternType = SharedEvolutionPatternType;
 
 /** A detected pattern from evolution analysis */
-export interface DetectedPattern {
-    /** Pattern type */
-    type: EvolutionPatternType;
-    /** Data source that detected this pattern */
-    source: EvolutionDataSource;
-    /** Human-readable description */
-    description: string;
-    /** Evidence supporting this pattern */
-    evidence: string[];
-    /** Confidence in this pattern (0-1) */
-    confidence: number;
-    /** Affected section (if applicable) */
-    affectedSection?: string;
-}
+export type DetectedPattern = SharedEvolutionPattern<EvolutionDataSource>;
 
 /** Version snapshot for rollback support */
-export interface VersionSnapshot {
-    /** Version identifier (v1, v2, etc.) */
-    version: string;
-    /** ISO timestamp */
-    timestamp: string;
-    /** Full content at this version */
-    content: string;
-    /** Evaluation grade at this version */
-    grade: Grade;
-    /** Description of changes in this version */
-    changeDescription: string;
-    /** IDs of proposals applied to create this version */
-    proposalsApplied: string[];
-}
+export type VersionSnapshot = SharedEvolutionVersionSnapshot<Grade>;
 
 // ============================================================================
 // Synthesis Types
