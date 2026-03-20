@@ -15,6 +15,7 @@
 #
 # Options:
 #   --features  Features to install: skills,commands,subagents (default: all)
+#   --global    Install to user-level global directories (e.g., ~/.codex/skills/)
 #   --dry-run   Preview changes without executing
 #   --verbose   Enable verbose output
 #   --help      Show this help message
@@ -22,6 +23,7 @@
 # Examples:
 #   ./scripts/install-skills.sh rd3 all
 #   ./scripts/install-skills.sh rd3 codexcli
+#   ./scripts/install-skills.sh rd3 codexcli --global        # Install globally to ~/.codex/skills/
 #   ./scripts/install-skills.sh rd3 geminicli,opencode --verbose
 #   ./scripts/install-skills.sh rd3 openclaw --features=skills,commands
 #
@@ -57,6 +59,8 @@ TARGETS=""                                 # Target agents (e.g., codexcli, gemi
 FEATURES="skills,commands,subagents"       # Features to install
 DRY_RUN=false                              # Preview mode flag
 VERBOSE=false                              # Verbose output flag
+GLOBAL=false                               # Install to user-level directories
+PROJECT_DIR=""                             # Target project directory (default: current dir)
 
 # Supported target agents (rulesync target names)
 # These correspond to the target names in rulesync.jsonc
@@ -86,15 +90,19 @@ usage() {
     printf "    plugin      Plugin name (e.g., rd3, wt)\n"
     printf "    targets     Target agents: all, codexcli, geminicli, opencode, openclaw, antigravity, augmentcode\n\n"
     printf "${GREEN}OPTIONS:${NC}\n"
-    printf "    --features  Features to install: skills,commands,subagents (default: all)\n"
-    printf "    --dry-run   Preview changes without executing\n"
-    printf "    --verbose   Enable verbose output\n"
-    printf "    --help      Show this help message\n\n"
+    printf "    --features      Features to install: skills,commands,subagents (default: all)\n"
+    printf "    --project-dir   Target project directory (default: current directory)\n"
+    printf "    --global        Install to user-level directories (e.g., ~/.codex/skills/)\n"
+    printf "    --dry-run       Preview changes without executing\n"
+    printf "    --verbose       Enable verbose output\n"
+    printf "    --help          Show this help message\n\n"
     printf "${GREEN}EXAMPLES:${NC}\n"
-    printf "    # Install rd3 to all supported agents\n"
+    printf "    # Install rd3 to all supported agents in current directory\n"
     printf "    $(basename "$0") rd3 all\n\n"
-    printf "    # Install rd3 to Codex only\n"
-    printf "    $(basename "$0") rd3 codexcli\n\n"
+    printf "    # Install rd3 to Codex globally (available in all projects)\n"
+    printf "    $(basename "$0") rd3 codexcli --global\n\n"
+    printf "    # Install rd3 to a specific project directory\n"
+    printf "    $(basename "$0") rd3 codexcli --project-dir /path/to/my-project\n\n"
     printf "    # Install to multiple agents\n"
     printf "    $(basename "$0") rd3 geminicli,opencode --verbose\n\n"
     printf "    # Install rd3 to OpenClaw\n"
@@ -172,6 +180,22 @@ parse_args() {
             # Enable detailed output during execution
             --verbose)
                 VERBOSE=true
+                shift
+                ;;
+            # --global
+            # Install to user-level directories (~/.codex/skills/, etc.)
+            --global)
+                GLOBAL=true
+                shift
+                ;;
+            # --project-dir /path/to/project or --project-dir=/path/to/project
+            # Target project directory for installation (default: current directory)
+            --project-dir)
+                PROJECT_DIR="$2"
+                shift 2
+                ;;
+            --project-dir=*)
+                PROJECT_DIR="${1#*=}"
                 shift
                 ;;
             # --help or -h
@@ -474,7 +498,12 @@ run_rulesync() {
     # Dry-run mode: just show what would be executed
     if [ "$DRY_RUN" = "true" ]; then
         print_warning "DRY RUN - Would execute:"
-        echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str"
+        if [ "$GLOBAL" = "true" ]; then
+            echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str"
+            echo "   Copy to global directories: $HOME/.codex/skills/, etc."
+        else
+            echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str"
+        fi
         return 0
     fi
 
@@ -496,11 +525,18 @@ run_rulesync() {
 # Copy generated files to agent-specific directories
 # Maps target agents to their expected skills locations:
 #
+# Project-level (default):
 #   codexcli     -> .codex/skills/
 #   geminicli    -> .gemini/skills/, .agents/skills/
 #   opencode     -> .opencode/skills/, .agents/skills/
 #   openclaw     -> skills/
 #   antigravity  -> .agents/skills/
+#
+# Global-level (--global):
+#   codexcli     -> ~/.codex/skills/
+#   geminicli    -> ~/.gemini/skills/, ~/.agents/skills/
+#   opencode     -> ~/.opencode/skills/, ~/.agents/skills/
+#   antigravity  -> ~/.agents/skills/
 #
 # The .agents/skills/ directory is a cross-client convention
 # that allows skills to be shared across multiple agents.
@@ -510,51 +546,85 @@ run_rulesync() {
 copy_to_targets() {
     local targets="$1"
 
-    print_info "Copying generated files to agent-specific paths..."
+    if [ "$GLOBAL" = "true" ]; then
+        print_info "Copying generated files to user-level global paths..."
+    else
+        print_info "Copying generated files to project-level paths..."
+    fi
 
     # Array to hold target directories
     local target_dirs=()
 
+    # Helper to get the base path based on GLOBAL flag and PROJECT_DIR
+    # Args: $1 - project path (e.g., ".codex/skills")
+    #       $2 - global path (e.g., "$HOME/.codex/skills")
+    # Uses PROJECT_DIR if set, otherwise current directory
+    get_path() {
+        if [ "$GLOBAL" = "true" ]; then
+            echo "$2"
+        else
+            if [ -n "$PROJECT_DIR" ]; then
+                echo "${PROJECT_DIR}/$1"
+            else
+                echo "$1"
+            fi
+        fi
+    }
+
     # Codex: Uses .codex/skills/ directory
     if [[ "$targets" == *"codexcli"* ]] || [[ "$targets" == *"codex"* ]]; then
-        mkdir -p ".codex/skills"
-        target_dirs+=(".codex/skills")
-        print_info "Codex skills directory: .codex/skills"
+        local codex_path=$(get_path ".codex/skills" "$HOME/.codex/skills")
+        mkdir -p "$codex_path"
+        target_dirs+=("$codex_path")
+        print_info "Codex skills directory: $codex_path"
     fi
 
     # Gemini CLI: Uses .gemini/skills/ and .agents/skills/
     # .agents/skills/ provides cross-client compatibility
     if [[ "$targets" == *"geminicli"* ]]; then
-        mkdir -p ".gemini/skills"
-        target_dirs+=(".gemini/skills")
-        print_info "Gemini CLI skills directory: .gemini/skills"
-        mkdir -p ".agents/skills"
-        target_dirs+=(".agents/skills")
-        print_info "Cross-client skills directory: .agents/skills"
+        local gemini_path=$(get_path ".gemini/skills" "$HOME/.gemini/skills")
+        local agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+        mkdir -p "$gemini_path"
+        target_dirs+=("$gemini_path")
+        print_info "Gemini CLI skills directory: $gemini_path"
+        mkdir -p "$agents_path"
+        target_dirs+=("$agents_path")
+        print_info "Cross-client skills directory: $agents_path"
     fi
 
     # OpenCode: Uses .opencode/skills/ and .agents/skills/
     if [[ "$targets" == *"opencode"* ]]; then
-        mkdir -p ".opencode/skills"
-        target_dirs+=(".opencode/skills")
-        print_info "OpenCode skills directory: .opencode/skills"
-        mkdir -p ".agents/skills"
-        target_dirs+=(".agents/skills")
-        print_info "Cross-client skills directory: .agents/skills"
+        local opencode_path=$(get_path ".opencode/skills" "$HOME/.opencode/skills")
+        local agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+        mkdir -p "$opencode_path"
+        target_dirs+=("$opencode_path")
+        print_info "OpenCode skills directory: $opencode_path"
+        mkdir -p "$agents_path"
+        target_dirs+=("$agents_path")
+        print_info "Cross-client skills directory: $agents_path"
     fi
 
-    # OpenClaw: Uses workspace-level skills/ directory
+    # OpenClaw: Uses workspace-level skills/ directory (project-only, no global)
     if [[ "$targets" == *"openclaw"* ]]; then
-        mkdir -p "skills"
-        target_dirs+=("skills")
-        print_info "OpenClaw skills directory: skills"
+        if [ "$GLOBAL" = "true" ]; then
+            print_warning "OpenClaw does not support global installation, skipping"
+        else
+            local openclaw_path="skills"
+            if [ -n "$PROJECT_DIR" ]; then
+                openclaw_path="${PROJECT_DIR}/skills"
+            fi
+            mkdir -p "$openclaw_path"
+            target_dirs+=("$openclaw_path")
+            print_info "OpenClaw skills directory: $openclaw_path"
+        fi
     fi
 
     # Antigravity: Uses .agents/skills/ only
     if [[ "$targets" == *"antigravity"* ]]; then
-        mkdir -p ".agents/skills"
-        target_dirs+=(".agents/skills")
-        print_info "Antigravity skills directory: .agents/skills"
+        local agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+        mkdir -p "$agents_path"
+        target_dirs+=("$agents_path")
+        print_info "Antigravity skills directory: $agents_path"
     fi
 
     # Augment Code: Not yet implemented
@@ -597,13 +667,19 @@ copy_to_targets() {
     # Copy subagents if requested
     # Currently copies to .claude/subagents/ if it exists
     if [ -d "$RULESYNC_SUBDIR" ] && [[ "$FEATURES" == *"subagents"* ]]; then
+        # Determine target subagents directory based on PROJECT_DIR
+        local subagents_target_dir=".claude/subagents"
+        if [ -n "$PROJECT_DIR" ]; then
+            subagents_target_dir="${PROJECT_DIR}/.claude/subagents"
+        fi
+
         for agent_file in "$RULESYNC_SUBDIR"/*.md; do
             if [ -f "$agent_file" ]; then
                 local agent_name=$(basename "$agent_file")
 
-                if [ -d ".claude/subagents" ]; then
-                    cp "$agent_file" ".claude/subagents/${agent_name}"
-                    print_success "Copied subagent: $agent_name -> .claude/subagents"
+                if [ -d "$subagents_target_dir" ]; then
+                    cp "$agent_file" "${subagents_target_dir}/${agent_name}"
+                    print_success "Copied subagent: $agent_name -> $subagents_target_dir"
                 fi
             fi
         done
@@ -660,8 +736,14 @@ main() {
     # Step 8: Display completion message
     print_success "Installation completed successfully!"
     echo
-    print_info "Installed ${PLUGIN} to: $actual_targets"
-    print_info "Features: $FEATURES"
+    if [ "$GLOBAL" = "true" ]; then
+        print_info "Installed ${PLUGIN} globally to: $actual_targets"
+        print_info "Features: $FEATURES"
+        print_info "Location: ~/.codex/skills/, ~/.gemini/skills/, etc."
+    else
+        print_info "Installed ${PLUGIN} to project-level: $actual_targets"
+        print_info "Features: $FEATURES"
+    fi
 }
 
 # Execute main function with all arguments
