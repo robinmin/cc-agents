@@ -1,74 +1,110 @@
 {
-    "filePath": "/test/fixtures/agents-md-dev-agent.md",
-    "platform": "agents-md",
-    "weightProfile": "standard",
-    "dimensions": [
-        {
-            "dimension": "completeness",
-            "displayName": "Completeness",
-            "weight": 25,
-            "score": 85,
-            "maxScore": 100,
-            "percentage": 85,
-            "findings": [
-                "Found required category: identity",
-                "Found required category: rules",
-                "Found required category: tools",
-                "Found recommended category: verification",
-                "Found recommended category: standards",
-                "Found optional category: memory",
-                "Total sections: 12"
-            ],
-            "recommendations": []
-        },
-        {
-            "dimension": "specificity",
-            "displayName": "Specificity",
-            "weight": 20,
-            "score": 65,
-            "maxScore": 100,
-            "percentage": 65,
-            "findings": ["Found 2 decision tree indicators", "Found 3 example blocks", "Found 2 version references"],
-            "recommendations": ["Add decision trees (When-to-Use / When-NOT-to-Use patterns) for tools sections"]
-        },
-        {
-            "dimension": "verifiability",
-            "displayName": "Verifiability",
-            "weight": 20,
-            "score": 70,
-            "maxScore": 100,
-            "percentage": 70,
-            "findings": ["Found 3 anti-hallucination indicators", "Found 2 confidence scoring indicators"],
-            "recommendations": ["Add source citations for technical claims"]
-        },
-        {
-            "dimension": "safety",
-            "displayName": "Safety",
-            "weight": 20,
-            "score": 90,
-            "maxScore": 100,
-            "percentage": 90,
-            "findings": ["Found 3 CRITICAL safety markers", "Found 2 destructive action warnings"],
-            "recommendations": []
-        },
-        {
-            "dimension": "evolution-readiness",
-            "displayName": "Evolution-Readiness",
-            "weight": 15,
-            "score": 60,
-            "maxScore": 100,
-            "percentage": 60,
-            "findings": ["Found 1 memory indicator", "Found 1 feedback mechanism indicator"],
-            "recommendations": ["Add feedback mechanisms for continuous improvement"]
-        }
-    ],
-    "overallScore": 75,
-    "grade": "C",
-    "passed": true,
-    "topRecommendations": [
-        "[Specificity] Add decision trees (When-to-Use / When-NOT-to-Use patterns) for tools sections",
-        "[Evolution-Readiness] Add feedback mechanisms for continuous improvement",
-        "[Verifiability] Add source citations for technical claims"
-    ],
-    "timestamp": "2024-01-15T10:30:00.000Z"
+  "filePath": "/test/fixtures/agents-md-dev-agent.md",
+  "platform": "agents-md",
+  "weightProfile": "standard",
+  "dimensions": [
+    {
+      "dimension": "coverage",
+      "displayName": "Coverage",
+      "weight": 25,
+      "score": 68.5,
+      "maxScore": 100,
+      "percentage": 69,
+      "findings": [
+        "Found required category: identity",
+        "Found required category: rules",
+        "Found required category: tools",
+        "Found recommended category: standards",
+        "Found recommended category: verification",
+        "Found optional category: error-handling",
+        "Found optional category: testing",
+        "Found optional category: parallel",
+        "3 empty sections found",
+        "Total sections: 19"
+      ],
+      "recommendations": [
+        "Add a \"workflow\" section to improve operational coverage",
+        "Add a \"output\" section to improve operational coverage",
+        "Add content to empty section \"Tools\" or remove it",
+        "Add content to empty section \"Standards\" or remove it",
+        "Add content to empty section \"Verification\" or remove it"
+      ]
+    },
+    {
+      "dimension": "operability",
+      "displayName": "Operability",
+      "weight": 25,
+      "score": 49,
+      "maxScore": 100,
+      "percentage": 49,
+      "findings": [
+        "Found \"When to Use\" routing guidance",
+        "Found 1 executable examples or command blocks",
+        "Found 4 output contract indicators",
+        "Found 2 workflow or success-criteria indicators"
+      ],
+      "recommendations": [
+        "Replace vague guidance with concrete thresholds, limits, and versions"
+      ]
+    },
+    {
+      "dimension": "grounding",
+      "displayName": "Grounding",
+      "weight": 20,
+      "score": 64,
+      "maxScore": 100,
+      "percentage": 64,
+      "findings": [
+        "Found 2 evidence or citation indicators",
+        "Found 4 uncertainty-handling indicators",
+        "Found 2 verification or quality-gate indicators"
+      ],
+      "recommendations": [
+        "Document what the agent should do when evidence is missing or uncertainty remains"
+      ]
+    },
+    {
+      "dimension": "safety",
+      "displayName": "Safety",
+      "weight": 20,
+      "score": 12,
+      "maxScore": 100,
+      "percentage": 12,
+      "findings": [
+        "Found 2 CRITICAL safety markers"
+      ],
+      "recommendations": [
+        "Add warnings for destructive/irreversible actions (force push, rm -rf)",
+        "Add guidance for handling secrets, API keys, and credentials",
+        "Add approval and escalation boundaries for risky actions"
+      ]
+    },
+    {
+      "dimension": "maintainability",
+      "displayName": "Maintainability",
+      "weight": 10,
+      "score": 60,
+      "maxScore": 100,
+      "percentage": 60,
+      "findings": [
+        "Found 3 memory indicators",
+        "Found 5 feedback mechanism indicators"
+      ],
+      "recommendations": [
+        "Document steering files, defaults, or persistent preference mechanisms",
+        "Track config evolution with a version, effective date, or changelog note"
+      ]
+    }
+  ],
+  "overallScore": 51,
+  "grade": "F",
+  "passed": false,
+  "topRecommendations": [
+    "[Coverage] Add a \"workflow\" section to improve operational coverage",
+    "[Operability] Replace vague guidance with concrete thresholds, limits, and versions",
+    "[Grounding] Document what the agent should do when evidence is missing or uncertainty remains",
+    "[Safety] Add warnings for destructive/irreversible actions (force push, rm -rf)",
+    "[Maintainability] Document steering files, defaults, or persistent preference mechanisms"
+  ],
+  "timestamp": "2026-03-20T18:11:01.340Z"
 }
