@@ -27,10 +27,17 @@
  *   L3: Auto - fully autonomous (monitoring only)
  */
 
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { logger } from '../../../scripts/logger';
+import type {
+    EvolutionAnalysis as SharedEvolutionAnalysis,
+    EvolutionCommand,
+    EvolutionRunOptionsBase,
+    EvolutionRunResultBase,
+} from '../../../scripts/evolution-contract';
 import { evaluateMagentConfig } from './evaluate';
 import { MAGENT_EVALUATION_CONFIG, getGradeForPercentage } from './evaluation.config';
 import type {
@@ -51,11 +58,7 @@ import { classifySections, detectInjectionPatterns, detectSecrets, parseSections
 // ============================================================================
 
 /** Evolution analysis result */
-interface PatternAnalysis {
-    patterns: DetectedPattern[];
-    dataSourceAvailability: Record<EvolutionDataSource, boolean>;
-    summary: string;
-}
+interface PatternAnalysis extends SharedEvolutionAnalysis<EvolutionDataSource, DetectedPattern> {}
 
 /** Proposal with additional metadata */
 interface ProposalWithMeta extends EvolutionProposal {
@@ -64,31 +67,27 @@ interface ProposalWithMeta extends EvolutionProposal {
     rollbackDifficulty: 'easy' | 'medium' | 'hard';
 }
 
+interface StoredProposalSet {
+    filePath: string;
+    generatedAt: string;
+    proposals: EvolutionProposal[];
+    safetyWarnings: string[];
+    currentGrade: Grade;
+    predictedGrade: Grade;
+    sourcesUsed: EvolutionDataSource[];
+}
+
 // ============================================================================
 // CLI Options Interface (for testing)
 // ============================================================================
 
-/** Command types for evolve */
-export type EvolveCommand = 'analyze' | 'propose' | 'apply' | 'history' | 'rollback';
-
 /** Options for the evolve run function */
-export interface EvolveOptions {
+export interface EvolveOptions extends EvolutionRunOptionsBase {
     configPath: string;
-    command: EvolveCommand;
-    safetyLevel?: EvolutionSafetyLevel;
-    proposalId?: string;
-    versionId?: string;
-    confirm?: boolean;
 }
 
 /** Result from evolve run */
-export interface EvolveRunResult {
-    analysis?: PatternAnalysis;
-    proposals?: EvolutionResult;
-    applyResult?: { success: boolean; backupPath?: string; error?: string };
-    versions?: VersionSnapshot[];
-    rollbackResult?: { success: boolean; content?: string; error?: string };
-}
+export interface EvolveRunResult extends EvolutionRunResultBase<PatternAnalysis, EvolutionResult, VersionSnapshot> {}
 
 // ============================================================================
 // Constants
@@ -133,6 +132,11 @@ const FAILURE_PATTERNS: RegExp[] = [
 
 /** Sections that are considered CRITICAL and protected */
 const CRITICAL_SECTIONS = ['safety', 'security', 'permissions', 'rules', 'constraints', 'critical'];
+
+const POSITIVE_FEEDBACK_PATTERNS = [/\b(helpful|clear|accurate|worked|useful|great|good)\b/i, ...SUCCESS_PATTERNS];
+const NEGATIVE_FEEDBACK_PATTERNS = [/\b(confusing|wrong|bad|failed|missing|unsafe|broken)\b/i, ...FAILURE_PATTERNS];
+const MEMORY_PATTERNS = [/\b(remember|learned|recurring|repeat|preference|context)\b/i];
+const LOG_TOOL_PATTERNS = [/\b(read|write|edit|bash|grep|glob|search|task)\b/i];
 
 // ============================================================================
 // Main Evolution Functions
@@ -243,6 +247,7 @@ export async function applyProposal(
     configPath: string,
     proposalId: string,
     proposals: EvolutionProposal[],
+    options: { confirmed?: boolean } = {},
 ): Promise<{ success: boolean; newContent: string; backupPath: string; error?: string }> {
     const proposal = proposals.find((p) => p.id === proposalId);
     if (!proposal) {
@@ -251,13 +256,26 @@ export async function applyProposal(
 
     // Safety check: NEVER apply changes to CRITICAL sections without explicit confirmation
     const content = await Bun.file(configPath).text();
-    if (proposal.affectsCritical) {
+    if (proposal.affectsCritical && !options.confirmed) {
         return {
             success: false,
             newContent: '',
             backupPath: '',
             error: `Proposal ${proposalId} affects CRITICAL section "${proposal.targetSection}" - requires explicit human approval. Use --confirm flag to override.`,
         };
+    }
+
+    const currentEval = await evaluateMagentConfig(configPath, content);
+    const existingVersions = await loadVersionHistory(configPath);
+    if (existingVersions.length === 0) {
+        await recordVersion(
+            configPath,
+            content,
+            currentEval.grade,
+            [],
+            'Baseline before first evolve apply',
+            'v0',
+        );
     }
 
     // Create backup
@@ -323,6 +341,7 @@ export async function runEvolve(opts: EvolveOptions): Promise<EvolveRunResult> {
         case 'propose': {
             const analysis = await analyzePatterns(configPath);
             const proposals = await generateProposals(configPath, analysis, safetyLevel);
+            await saveProposalSet(configPath, proposals);
             return { analysis, proposals };
         }
 
@@ -331,8 +350,19 @@ export async function runEvolve(opts: EvolveOptions): Promise<EvolveRunResult> {
                 return { applyResult: { success: false, error: 'Proposal ID required for apply command' } };
             }
             const analysis = await analyzePatterns(configPath);
-            const proposalsResult = await generateProposals(configPath, analysis, safetyLevel);
-            const applyResult = await applyProposal(configPath, proposalId, proposalsResult.proposals);
+            const proposalsResult = await loadProposalSet(configPath);
+            if (!proposalsResult) {
+                return {
+                    analysis,
+                    applyResult: {
+                        success: false,
+                        error: 'No saved proposals found. Run --propose first.',
+                    },
+                };
+            }
+            const applyResult = await applyProposal(configPath, proposalId, proposalsResult.proposals, {
+                confirmed: opts.confirm ?? false,
+            });
             return { analysis, proposals: proposalsResult, applyResult };
         }
 
@@ -360,57 +390,79 @@ export async function runEvolve(opts: EvolveOptions): Promise<EvolveRunResult> {
 
 function checkDataSourceAvailability(configPath: string): Record<EvolutionDataSource, boolean> {
     const configDir = dirname(configPath);
-    const gitDir = join(configDir, '.git');
+    const workspaceRoot = findWorkspaceRoot(configDir);
+    const logsDir = getFirstExistingPath(workspaceRoot, ['.logs', 'logs', '.interaction-logs']);
 
     return {
-        'git-history': existsSync(gitDir),
-        'ci-results': existsSync(join(configDir, '.github/workflows')) || existsSync(join(configDir, '.gitlab-ci.yml')),
-        'user-feedback': existsSync(join(configDir, 'FEEDBACK.md')) || existsSync(join(configDir, '.feedback')),
-        'memory-md': existsSync(join(configDir, 'MEMORY.md')) || existsSync(join(configDir, '.memory')),
-        'interaction-logs': existsSync(join(configDir, '.logs')) || existsSync(join(configDir, '.interaction-logs')),
+        'git-history': existsSync(join(workspaceRoot, '.git')),
+        'ci-results': existsSync(join(workspaceRoot, '.github', 'workflows')) || existsSync(join(workspaceRoot, '.gitlab-ci.yml')),
+        'user-feedback': existsSync(join(workspaceRoot, 'FEEDBACK.md')) || existsSync(join(workspaceRoot, 'feedback.md')) || existsSync(join(workspaceRoot, '.feedback')),
+        'memory-md': existsSync(join(workspaceRoot, 'MEMORY.md')) || existsSync(join(workspaceRoot, '.memory')),
+        'interaction-logs': Boolean(logsDir),
     };
 }
 
 function analyzeGitHistory(configPath: string, sections: MagentSection[]): DetectedPattern[] {
     const patterns: DetectedPattern[] = [];
     const configDir = dirname(configPath);
-    const configName = basename(configPath);
+    const workspaceRoot = findWorkspaceRoot(configDir);
 
     // Check if there's a git history to analyze
-    const gitLogPath = join(configDir, '.git');
+    const gitLogPath = join(workspaceRoot, '.git');
     if (!existsSync(gitLogPath)) {
         return patterns;
     }
 
-    // Look for recent commits to this file
     try {
-        // Run git log to get recent changes (this is a simplified version)
-        // In production, you'd use actual git commands
-        const recentCommitPattern = /commit\s+([a-f0-9]+)/i;
-        const modificationPattern = /\+(\d+).*-(\d+).*${configName}/;
+        const gitLog = Bun.spawnSync(
+            ['git', '-C', workspaceRoot, 'log', '--format=%s%n%b', '--', resolve(configPath)],
+            { stdout: 'pipe', stderr: 'pipe' },
+        );
 
-        // Analyze section modification frequency (simplified)
-        const sectionMods = new Map<string, number>();
-        for (const section of sections) {
-            // Count how often section heading appears in git history
-            const heading = section.heading.toLowerCase();
-            if (heading.includes('rule') || heading.includes('constraint')) {
-                sectionMods.set(section.heading, (sectionMods.get(section.heading) || 0) + 3);
-            } else if (heading.includes('tool') || heading.includes('workflow')) {
-                sectionMods.set(section.heading, (sectionMods.get(section.heading) || 0) + 2);
-            }
+        if (gitLog.exitCode !== 0) {
+            return patterns;
         }
 
-        // Generate patterns from section modification frequency
-        for (const [heading, count] of sectionMods) {
-            if (count >= 3) {
+        const historyText = gitLog.stdout.toString();
+        if (!historyText.trim()) {
+            return patterns;
+        }
+
+        const positiveMentions = countPatternMatches(historyText, SUCCESS_PATTERNS);
+        const negativeMentions = countPatternMatches(historyText, FAILURE_PATTERNS);
+
+        if (positiveMentions > 0) {
+            patterns.push({
+                type: 'success',
+                source: 'git-history',
+                description: `Git history shows ${positiveMentions} positive maintenance signal(s)`,
+                evidence: sampleMatchingLines(historyText, SUCCESS_PATTERNS, 3),
+                confidence: 0.7,
+                affectedSection: 'overall-quality',
+            });
+        }
+
+        if (negativeMentions > 0) {
+            patterns.push({
+                type: 'failure',
+                source: 'git-history',
+                description: `Git history shows ${negativeMentions} regression or failure signal(s)`,
+                evidence: sampleMatchingLines(historyText, FAILURE_PATTERNS, 3),
+                confidence: 0.75,
+                affectedSection: 'rules',
+            });
+        }
+
+        for (const section of sections) {
+            const sectionMentions = countSubstringMatches(historyText.toLowerCase(), section.heading.toLowerCase());
+            if (sectionMentions >= 2) {
                 patterns.push({
                     type: 'success',
                     source: 'git-history',
-                    description: `Section "${heading}" is frequently updated - current content appears stable`,
-                    evidence: [`Modified ${count} times in recent history`],
-                    confidence: 0.7,
-                    affectedSection: heading,
+                    description: `Section "${section.heading}" appears repeatedly in git history`,
+                    evidence: [`Referenced ${sectionMentions} times in git log messages`],
+                    confidence: 0.6,
+                    affectedSection: section.heading,
                 });
             }
         }
@@ -423,36 +475,158 @@ function analyzeGitHistory(configPath: string, sections: MagentSection[]): Detec
 
 function analyzeCIResults(_configPath: string, _sections: MagentSection[]): DetectedPattern[] {
     const patterns: DetectedPattern[] = [];
+    const workspaceRoot = findWorkspaceRoot(dirname(_configPath));
+    const workflowDir = join(workspaceRoot, '.github', 'workflows');
+    const workflowFiles = existsSync(workflowDir)
+        ? readdirSync(workflowDir).map((name) => join(workflowDir, name))
+        : [];
+    const gitlabFile = join(workspaceRoot, '.gitlab-ci.yml');
+    const ciEvidenceFiles = [
+        ...workflowFiles,
+        ...(existsSync(gitlabFile) ? [gitlabFile] : []),
+        ...findFilesByPattern(workspaceRoot, /(?:ci|test|coverage|junit).*\.(json|txt|log|md)$/i, 10),
+    ];
+    const ciText = readFilesSafely(ciEvidenceFiles, 50000);
 
-    // Check for CI configuration and test results
-    // This is a placeholder - actual implementation would parse CI logs
+    if (workflowFiles.length > 0 || existsSync(gitlabFile)) {
+        patterns.push({
+            type: 'success',
+            source: 'ci-results',
+            description: 'CI configuration detected for this workspace',
+            evidence: ciEvidenceFiles.slice(0, 3).map((file) => relativeToRoot(workspaceRoot, file)),
+            confidence: 0.6,
+            affectedSection: 'verification',
+        });
+    }
+
+    if (/\b(test|lint|typecheck|coverage|security)\b/i.test(ciText)) {
+        patterns.push({
+            type: 'improvement',
+            source: 'ci-results',
+            description: 'CI signals indicate verification practices the config should reflect explicitly',
+            evidence: sampleMatchingLines(ciText, [/\b(test|lint|typecheck|coverage|security)\b/i], 3),
+            confidence: 0.65,
+            affectedSection: 'verification',
+        });
+    }
+
+    if (countPatternMatches(ciText, FAILURE_PATTERNS) > 0) {
+        patterns.push({
+            type: 'failure',
+            source: 'ci-results',
+            description: 'CI artifacts contain failure indicators',
+            evidence: sampleMatchingLines(ciText, FAILURE_PATTERNS, 3),
+            confidence: 0.8,
+            affectedSection: 'verification',
+        });
+    }
 
     return patterns;
 }
 
 function analyzeUserFeedback(_configPath: string, _sections: MagentSection[]): DetectedPattern[] {
     const patterns: DetectedPattern[] = [];
+    const workspaceRoot = findWorkspaceRoot(dirname(_configPath));
+    const feedbackFile = getFirstExistingPath(workspaceRoot, ['FEEDBACK.md', 'feedback.md', '.feedback']);
+    if (!feedbackFile) {
+        return patterns;
+    }
 
-    // Check for FEEDBACK.md or .feedback file
-    // This is a placeholder - actual implementation would parse feedback
+    const feedbackText = readFileSafely(feedbackFile);
+    const positiveMentions = countPatternMatches(feedbackText, POSITIVE_FEEDBACK_PATTERNS);
+    const negativeMentions = countPatternMatches(feedbackText, NEGATIVE_FEEDBACK_PATTERNS);
+
+    if (positiveMentions > 0) {
+        patterns.push({
+            type: 'success',
+            source: 'user-feedback',
+            description: `User feedback includes ${positiveMentions} positive signal(s)`,
+            evidence: sampleMatchingLines(feedbackText, POSITIVE_FEEDBACK_PATTERNS, 3),
+            confidence: 0.65,
+            affectedSection: inferAffectedSection(feedbackText, _sections),
+        });
+    }
+
+    if (negativeMentions > 0) {
+        patterns.push({
+            type: 'failure',
+            source: 'user-feedback',
+            description: `User feedback includes ${negativeMentions} negative signal(s)`,
+            evidence: sampleMatchingLines(feedbackText, NEGATIVE_FEEDBACK_PATTERNS, 3),
+            confidence: 0.8,
+            affectedSection: inferAffectedSection(feedbackText, _sections),
+        });
+    }
 
     return patterns;
 }
 
 function analyzeMemoryFile(_configPath: string, _sections: MagentSection[]): DetectedPattern[] {
     const patterns: DetectedPattern[] = [];
+    const workspaceRoot = findWorkspaceRoot(dirname(_configPath));
+    const memoryFile = getFirstExistingPath(workspaceRoot, ['MEMORY.md', '.memory']);
+    if (!memoryFile) {
+        return patterns;
+    }
 
-    // Check MEMORY.md for repeated context or learned patterns
-    // This is a placeholder - actual implementation would analyze memory
+    const memoryText = readFileSafely(memoryFile);
+    if (countPatternMatches(memoryText, MEMORY_PATTERNS) > 0) {
+        patterns.push({
+            type: 'success',
+            source: 'memory-md',
+            description: 'Workspace memory contains reusable context and learned guidance',
+            evidence: sampleMatchingLines(memoryText, MEMORY_PATTERNS, 3),
+            confidence: 0.6,
+            affectedSection: 'memory',
+        });
+    }
+
+    if (/\b(todo|missing|follow up|next time|regression)\b/i.test(memoryText)) {
+        patterns.push({
+            type: 'improvement',
+            source: 'memory-md',
+            description: 'Workspace memory records recurring issues that should be codified in the config',
+            evidence: sampleMatchingLines(memoryText, [/\b(todo|missing|follow up|next time|regression)\b/i], 3),
+            confidence: 0.7,
+            affectedSection: 'memory',
+        });
+    }
 
     return patterns;
 }
 
 function analyzeInteractionLogs(_configPath: string, _sections: MagentSection[]): DetectedPattern[] {
     const patterns: DetectedPattern[] = [];
+    const workspaceRoot = findWorkspaceRoot(dirname(_configPath));
+    const logsDir = getFirstExistingPath(workspaceRoot, ['.logs', 'logs', '.interaction-logs']);
+    if (!logsDir) {
+        return patterns;
+    }
 
-    // Check interaction logs for command usage patterns
-    // This is a placeholder - actual implementation would analyze logs
+    const logFiles = findFilesByPattern(logsDir, /\.(log|txt|md|json)$/i, 10);
+    const logText = readFilesSafely(logFiles, 50000);
+
+    if (countPatternMatches(logText, FAILURE_PATTERNS) > 0) {
+        patterns.push({
+            type: 'failure',
+            source: 'interaction-logs',
+            description: 'Interaction logs contain execution failures or regressions',
+            evidence: sampleMatchingLines(logText, FAILURE_PATTERNS, 3),
+            confidence: 0.75,
+            affectedSection: inferAffectedSection(logText, _sections),
+        });
+    }
+
+    if (countPatternMatches(logText, LOG_TOOL_PATTERNS) > 0) {
+        patterns.push({
+            type: 'improvement',
+            source: 'interaction-logs',
+            description: 'Interaction logs show repeated tool usage that should be reflected in routing guidance',
+            evidence: sampleMatchingLines(logText, LOG_TOOL_PATTERNS, 3),
+            confidence: 0.6,
+            affectedSection: 'tools',
+        });
+    }
 
     return patterns;
 }
@@ -762,15 +936,16 @@ async function recordVersion(
     grade: Grade,
     proposalsApplied: string[],
     changeDescription: string,
+    explicitVersion?: string,
 ): Promise<void> {
     const historyDir = join(dirname(configPath), EVOLUTION_DIR, 'versions');
     mkdirSync(historyDir, { recursive: true });
 
     const versions = await loadVersionHistory(configPath);
-    const versionNumber = versions.length + 1;
+    const versionId = explicitVersion ?? getNextVersionId(versions);
 
     const snapshot: VersionSnapshot = {
-        version: `v${versionNumber}`,
+        version: versionId,
         timestamp: new Date().toISOString(),
         content,
         grade,
@@ -798,6 +973,46 @@ export async function loadVersionHistory(configPath: string): Promise<VersionSna
         return JSON.parse(content);
     } catch {
         return [];
+    }
+}
+
+async function saveProposalSet(configPath: string, result: EvolutionResult): Promise<string> {
+    const proposalsDir = join(dirname(configPath), EVOLUTION_DIR, 'proposals');
+    mkdirSync(proposalsDir, { recursive: true });
+
+    const proposalPath = join(proposalsDir, `${basename(configPath)}.proposals.json`);
+    const payload: StoredProposalSet = {
+        filePath: result.filePath,
+        generatedAt: result.timestamp,
+        proposals: result.proposals,
+        safetyWarnings: result.safetyWarnings,
+        currentGrade: result.currentGrade,
+        predictedGrade: result.predictedGrade,
+        sourcesUsed: result.sourcesUsed,
+    };
+    await Bun.write(proposalPath, JSON.stringify(payload, null, 2));
+    return proposalPath;
+}
+
+async function loadProposalSet(configPath: string): Promise<EvolutionResult | null> {
+    const proposalPath = join(dirname(configPath), EVOLUTION_DIR, 'proposals', `${basename(configPath)}.proposals.json`);
+    if (!existsSync(proposalPath)) {
+        return null;
+    }
+
+    try {
+        const payload = JSON.parse(await Bun.file(proposalPath).text()) as StoredProposalSet;
+        return {
+            filePath: payload.filePath,
+            sourcesUsed: payload.sourcesUsed,
+            proposals: payload.proposals,
+            currentGrade: payload.currentGrade,
+            predictedGrade: payload.predictedGrade,
+            safetyWarnings: payload.safetyWarnings,
+            timestamp: payload.generatedAt,
+        };
+    } catch {
+        return null;
     }
 }
 
@@ -1084,10 +1299,10 @@ async function main(): Promise<void> {
     const result = await handleEvolveCLI();
 
     if (result.error) {
-        console.error(result.error);
+        logger.error(result.error);
     }
     if (result.output) {
-        console.log(result.output);
+        logger.log(result.output);
     }
     process.exit(result.exitCode);
 }
@@ -1100,10 +1315,150 @@ function generateProposalId(): string {
     return `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
+function getNextVersionId(versions: VersionSnapshot[]): string {
+    const versionNumbers = versions
+        .map((entry) => /^v(\d+)$/.exec(entry.version))
+        .map((match) => (match ? Number.parseInt(match[1], 10) : Number.NaN))
+        .filter((value) => !Number.isNaN(value));
+
+    if (versionNumbers.length === 0) {
+        return 'v1';
+    }
+
+    return `v${Math.max(...versionNumbers) + 1}`;
+}
+
+function findWorkspaceRoot(startDir: string): string {
+    let current = resolve(startDir);
+
+    while (true) {
+        if (existsSync(join(current, '.git'))) {
+            return current;
+        }
+
+        const parent = dirname(current);
+        if (parent === current) {
+            return startDir;
+        }
+        current = parent;
+    }
+}
+
+function getFirstExistingPath(root: string, candidates: string[]): string | null {
+    for (const candidate of candidates) {
+        const fullPath = join(root, candidate);
+        if (existsSync(fullPath)) {
+            return fullPath;
+        }
+    }
+    return null;
+}
+
+function readFileSafely(path: string): string {
+    try {
+        return readFileSync(path, 'utf-8');
+    } catch {
+        return '';
+    }
+}
+
+function readFilesSafely(paths: string[], maxChars = 20000): string {
+    const chunks: string[] = [];
+    let total = 0;
+
+    for (const path of paths) {
+        const content = readFileSafely(path);
+        if (!content) {
+            continue;
+        }
+
+        const remaining = maxChars - total;
+        if (remaining <= 0) {
+            break;
+        }
+
+        const slice = content.slice(0, remaining);
+        chunks.push(`## ${path}\n${slice}`);
+        total += slice.length;
+    }
+
+    return chunks.join('\n');
+}
+
+function findFilesByPattern(root: string, pattern: RegExp, limit: number): string[] {
+    const results: string[] = [];
+
+    function walk(current: string): void {
+        if (results.length >= limit || !existsSync(current)) {
+            return;
+        }
+
+        for (const entry of readdirSync(current, { withFileTypes: true })) {
+            if (results.length >= limit) {
+                return;
+            }
+
+            const fullPath = join(current, entry.name);
+            if (entry.isDirectory()) {
+                walk(fullPath);
+            } else if (entry.isFile() && pattern.test(entry.name)) {
+                results.push(fullPath);
+            }
+        }
+    }
+
+    walk(root);
+    return results;
+}
+
+function countPatternMatches(text: string, patterns: RegExp[]): number {
+    return patterns.reduce((count, pattern) => count + (text.match(new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`)) || []).length, 0);
+}
+
+function sampleMatchingLines(text: string, patterns: RegExp[], limit: number): string[] {
+    const lines = text.split(/\r?\n/);
+    const matches: string[] = [];
+
+    for (const line of lines) {
+        if (patterns.some((pattern) => pattern.test(line))) {
+            matches.push(line.trim());
+        }
+        if (matches.length >= limit) {
+            break;
+        }
+    }
+
+    return matches;
+}
+
+function inferAffectedSection(text: string, sections: MagentSection[]): string | undefined {
+    const lowered = text.toLowerCase();
+    const matched = sections.find((section) => lowered.includes(section.heading.toLowerCase()));
+    return matched?.heading ?? matched?.category ?? undefined;
+}
+
+function relativeToRoot(root: string, filePath: string): string {
+    return filePath.startsWith(`${root}/`) ? filePath.slice(root.length + 1) : filePath;
+}
+
+function countSubstringMatches(text: string, needle: string): number {
+    if (!needle) {
+        return 0;
+    }
+
+    let count = 0;
+    let index = text.indexOf(needle);
+    while (index !== -1) {
+        count += 1;
+        index = text.indexOf(needle, index + needle.length);
+    }
+    return count;
+}
+
 // Run if executed directly
 if (import.meta.main) {
     main().catch((error) => {
-        console.error(`Unexpected error: ${error}`);
+        logger.error(`Unexpected error: ${error}`);
         process.exit(1);
     });
 }
