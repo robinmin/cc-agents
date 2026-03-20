@@ -590,6 +590,37 @@ class TestBaseAdapter extends BaseAgentAdapter {
     }
 }
 
+class DirectBaseHarnessAdapter extends DirectBaseAdapter {
+    readonly platform: AgentPlatform = 'claude';
+    readonly displayName = 'Direct Base Harness';
+
+    async parse(_input: string, _filePath: string) {
+        return {
+            success: true,
+            companions: [],
+            agent: sampleAgent,
+            warnings: [],
+            errors: [],
+            sourcePlatform: 'claude' as AgentPlatform,
+        };
+    }
+
+    protected async generatePlatform(
+        _agent: UniversalAgent,
+        _context: AgentAdapterContext,
+    ): Promise<AgentAdapterResult> {
+        return { success: true, companions: [], output: 'direct harness output', warnings: [], errors: [] };
+    }
+
+    async callBaseValidatePlatform(agent: UniversalAgent) {
+        return super.validatePlatform(agent);
+    }
+
+    callBaseDetectPlatformFeatures(agent: UniversalAgent) {
+        return super.detectPlatformFeatures(agent);
+    }
+}
+
 describe('BaseAgentAdapter - protected methods', () => {
     const adapter = new TestBaseAdapter();
 
@@ -615,6 +646,16 @@ describe('BaseAgentAdapter - protected methods', () => {
         const context = createAgentAdapterContext(sampleAgent, '/tmp', 'claude');
         const result = await adapter.generate(sampleAgent, context);
         expect(result.success).toBe(true);
+    });
+
+    it('should directly call base protected methods through a direct-import subclass', async () => {
+        const harness = new DirectBaseHarnessAdapter();
+
+        await expect(harness.callBaseValidatePlatform(sampleAgent)).resolves.toEqual({
+            errors: [],
+            warnings: [],
+        });
+        expect(harness.callBaseDetectPlatformFeatures(sampleAgent)).toEqual([]);
     });
 });
 
