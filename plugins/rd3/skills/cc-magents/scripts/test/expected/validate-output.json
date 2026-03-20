@@ -1,0 +1,12 @@
+{
+    "valid": true,
+    "errors": [],
+    "warnings": [],
+    "suggestions": ["Consider using ## for top-level sections instead of ###"],
+    "filePath": "/test/fixtures/agents-md-dev-agent.md",
+    "detectedPlatform": "agents-md",
+    "fileSize": 3245,
+    "estimatedTokens": 892,
+    "sectionCount": 12,
+    "timestamp": "2024-01-15T10:30:00.000Z"
+}

@@ -1,0 +1,45 @@
+{
+    "sourcePath": "/test/fixtures/claude-md-dev-agent.md",
+    "sourcePlatform": "claude-md",
+    "conversions": [
+        {
+            "targetPlatform": "cursorrules",
+            "success": true,
+            "outputPath": "/test/fixtures/converted/.cursorrules",
+            "conversionWarnings": [
+                {
+                    "feature": "hooks",
+                    "sourcePlatform": "claude-md",
+                    "targetPlatform": "cursorrules",
+                    "severity": "warning",
+                    "description": "Claude hooks have no direct .cursorrules equivalent"
+                },
+                {
+                    "feature": "xml-structure",
+                    "sourcePlatform": "claude-md",
+                    "targetPlatform": "cursorrules",
+                    "severity": "info",
+                    "description": "XML structure (examples, system-reminders) will be flattened"
+                }
+            ],
+            "errors": []
+        }
+    ],
+    "allWarnings": [
+        {
+            "feature": "hooks",
+            "sourcePlatform": "claude-md",
+            "targetPlatform": "cursorrules",
+            "severity": "warning",
+            "description": "Claude hooks have no direct .cursorrules equivalent"
+        },
+        {
+            "feature": "xml-structure",
+            "sourcePlatform": "claude-md",
+            "targetPlatform": "cursorrules",
+            "severity": "info",
+            "description": "XML structure (examples, system-reminders) will be flattened"
+        }
+    ],
+    "errors": []
+}

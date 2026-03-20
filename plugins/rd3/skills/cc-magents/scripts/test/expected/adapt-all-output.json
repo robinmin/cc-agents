@@ -1,0 +1,45 @@
+{
+    "sourcePath": "/test/fixtures/agents-md-dev-agent.md",
+    "sourcePlatform": "agents-md",
+    "conversions": [
+        {
+            "targetPlatform": "claude-md",
+            "success": true,
+            "outputPath": "/test/fixtures/converted/CLAUDE.md",
+            "conversionWarnings": [
+                {
+                    "feature": "globs",
+                    "sourcePlatform": "agents-md",
+                    "targetPlatform": "claude-md",
+                    "severity": "info",
+                    "description": "AGENTS.md globs have no direct CLAUDE.md equivalent"
+                }
+            ],
+            "errors": []
+        },
+        {
+            "targetPlatform": "gemini-md",
+            "success": true,
+            "outputPath": "/test/fixtures/converted/GEMINI.md",
+            "conversionWarnings": [],
+            "errors": []
+        },
+        {
+            "targetPlatform": "cursorrules",
+            "success": true,
+            "outputPath": "/test/fixtures/converted/.cursorrules",
+            "conversionWarnings": [],
+            "errors": []
+        }
+    ],
+    "allWarnings": [
+        {
+            "feature": "globs",
+            "sourcePlatform": "agents-md",
+            "targetPlatform": "claude-md",
+            "severity": "info",
+            "description": "AGENTS.md globs have no direct CLAUDE.md equivalent"
+        }
+    ],
+    "errors": []
+}

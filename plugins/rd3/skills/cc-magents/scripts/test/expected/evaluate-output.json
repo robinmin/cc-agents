@@ -1,0 +1,74 @@
+{
+    "filePath": "/test/fixtures/agents-md-dev-agent.md",
+    "platform": "agents-md",
+    "weightProfile": "standard",
+    "dimensions": [
+        {
+            "dimension": "completeness",
+            "displayName": "Completeness",
+            "weight": 25,
+            "score": 85,
+            "maxScore": 100,
+            "percentage": 85,
+            "findings": [
+                "Found required category: identity",
+                "Found required category: rules",
+                "Found required category: tools",
+                "Found recommended category: verification",
+                "Found recommended category: standards",
+                "Found optional category: memory",
+                "Total sections: 12"
+            ],
+            "recommendations": []
+        },
+        {
+            "dimension": "specificity",
+            "displayName": "Specificity",
+            "weight": 20,
+            "score": 65,
+            "maxScore": 100,
+            "percentage": 65,
+            "findings": ["Found 2 decision tree indicators", "Found 3 example blocks", "Found 2 version references"],
+            "recommendations": ["Add decision trees (When-to-Use / When-NOT-to-Use patterns) for tools sections"]
+        },
+        {
+            "dimension": "verifiability",
+            "displayName": "Verifiability",
+            "weight": 20,
+            "score": 70,
+            "maxScore": 100,
+            "percentage": 70,
+            "findings": ["Found 3 anti-hallucination indicators", "Found 2 confidence scoring indicators"],
+            "recommendations": ["Add source citations for technical claims"]
+        },
+        {
+            "dimension": "safety",
+            "displayName": "Safety",
+            "weight": 20,
+            "score": 90,
+            "maxScore": 100,
+            "percentage": 90,
+            "findings": ["Found 3 CRITICAL safety markers", "Found 2 destructive action warnings"],
+            "recommendations": []
+        },
+        {
+            "dimension": "evolution-readiness",
+            "displayName": "Evolution-Readiness",
+            "weight": 15,
+            "score": 60,
+            "maxScore": 100,
+            "percentage": 60,
+            "findings": ["Found 1 memory indicator", "Found 1 feedback mechanism indicator"],
+            "recommendations": ["Add feedback mechanisms for continuous improvement"]
+        }
+    ],
+    "overallScore": 75,
+    "grade": "C",
+    "passed": true,
+    "topRecommendations": [
+        "[Specificity] Add decision trees (When-to-Use / When-NOT-to-Use patterns) for tools sections",
+        "[Evolution-Readiness] Add feedback mechanisms for continuous improvement",
+        "[Verifiability] Add source citations for technical claims"
+    ],
+    "timestamp": "2024-01-15T10:30:00.000Z"
+}
