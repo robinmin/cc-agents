@@ -4,16 +4,15 @@
   },
   "permissions": {
     "allow": [
-      "Skill(superpowers:using-superpowers)",
       "Skill(rd2:anti-hallucination)",
       "Skill(rd2:cc-skills)",
       "Skill(rd2:cc-agents)",
       "Skill(rd2:tasks-cli)",
       "Skill(wt:info-seek)",
-      "Skill(superpowers:brainstorming)",
       "Skill(rd3:skill-evaluate)",
       "Skill(rd3:command-evaluate)",
       "Skill(rd3:agent-evaluate)",
+      
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -25,6 +24,7 @@
       "mcp__huggingface__model_search",
       "mcp__huggingface__gr1_z_image_turbo_generate",
       "mcp__brave-search__brave_web_search",
+      
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
@@ -34,6 +34,7 @@
       "WebFetch(domain:developers.googleblog.com)",
       "WebFetch(domain:dev.to)",
       "WebFetch(domain:almcorp.com)",
+      "WebFetch(domain:developers.openai.com)",
       "Bash(ast-grep:*)",
       "Bash(mgrep:*)",
       "Bash(grep:*)",
@@ -42,8 +43,11 @@
       "Bash(tasks:*)",
       "Bash(bun run:*)",
       "Bash(bun test:*)",
-      "WebFetch(domain:developers.openai.com)",
-      "Bash(bun:*)"
+
+      "Read(//tmp/**)",
+      "Write(//tmp/**)",
+      "Edit(//tmp/**)",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []
