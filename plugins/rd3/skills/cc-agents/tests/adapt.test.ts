@@ -3,14 +3,8 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-    adaptAgent,
-    adaptToAll,
-    main,
-    parseCliArgs,
-    printResults,
-    validateOptions,
-} from '../scripts/adapt';
+import { adaptAgent, adaptToAll, main, parseCliArgs, printResults, validateOptions } from '../scripts/adapt';
+import { setGlobalSilent } from '../../../scripts/logger';
 
 const TEST_DIR = '/tmp/cc-agents-adapt-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -47,17 +41,24 @@ function muteConsole(): () => void {
     const originalInfo = console.info;
     const originalWarn = console.warn;
     const originalError = console.error;
+    const originalDebug = console.debug;
+
+    // Enable global silent mode to suppress all logger output
+    setGlobalSilent(true);
 
     console.log = () => {};
     console.info = () => {};
     console.warn = () => {};
     console.error = () => {};
+    console.debug = () => {};
 
     return () => {
+        setGlobalSilent(false);
         console.log = originalLog;
         console.info = originalInfo;
         console.warn = originalWarn;
         console.error = originalError;
+        console.debug = originalDebug;
     };
 }
 
@@ -65,6 +66,8 @@ describe('adapt.ts', () => {
     beforeEach(() => {
         rmSync(TEST_DIR, { recursive: true, force: true });
         mkdirSync(TEST_DIR, { recursive: true });
+        // Suppress all console output for all tests
+        muteConsole();
     });
 
     afterEach(() => {
