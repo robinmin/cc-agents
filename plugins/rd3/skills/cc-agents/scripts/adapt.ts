@@ -122,22 +122,22 @@ function parseCliArgs(argv = process.argv.slice(2)): AdaptOptions {
 }
 
 function printUsage(): void {
-    console.log(`${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Agent Adaptation\n`);
-    console.log(`${COLORS.green}USAGE:${COLORS.reset}`);
-    console.log('    bun adapt.ts <source-file> <source-platform> [target-platform] [options]\n');
-    console.log(`${COLORS.green}ARGUMENTS:${COLORS.reset}`);
-    console.log('    source-file       Path to agent source file');
-    console.log(`    source-platform   Source: ${VALID_SOURCE_PLATFORMS.join(', ')}`);
-    console.log(`    target-platform   Target: ${ALL_AGENT_PLATFORMS.join(', ')}, all (default: all)\n`);
-    console.log(`${COLORS.green}OPTIONS:${COLORS.reset}`);
-    console.log('    --output, -o      Output directory (default: same as source)');
-    console.log('    --dry-run         Preview without writing files');
-    console.log('    --verbose         Show detailed output');
-    console.log('    --help            Show this help message\n');
-    console.log(`${COLORS.green}EXAMPLES:${COLORS.reset}`);
-    console.log('    bun adapt.ts agent.md claude gemini');
-    console.log('    bun adapt.ts agent.md claude all --output ./adapted/');
-    console.log('    bun adapt.ts agent.toml codex claude --dry-run');
+    logger.log(`${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Agent Adaptation\n`);
+    logger.log(`${COLORS.green}USAGE:${COLORS.reset}`);
+    logger.log('    bun adapt.ts <source-file> <source-platform> [target-platform] [options]\n');
+    logger.log(`${COLORS.green}ARGUMENTS:${COLORS.reset}`);
+    logger.log('    source-file       Path to agent source file');
+    logger.log(`    source-platform   Source: ${VALID_SOURCE_PLATFORMS.join(', ')}`);
+    logger.log(`    target-platform   Target: ${ALL_AGENT_PLATFORMS.join(', ')}, all (default: all)\n`);
+    logger.log(`${COLORS.green}OPTIONS:${COLORS.reset}`);
+    logger.log('    --output, -o      Output directory (default: same as source)');
+    logger.log('    --dry-run         Preview without writing files');
+    logger.log('    --verbose         Show detailed output');
+    logger.log('    --help            Show this help message\n');
+    logger.log(`${COLORS.green}EXAMPLES:${COLORS.reset}`);
+    logger.log('    bun adapt.ts agent.md claude gemini');
+    logger.log('    bun adapt.ts agent.md claude all --output ./adapted/');
+    logger.log('    bun adapt.ts agent.toml codex claude --dry-run');
 }
 
 // ============================================================================
@@ -154,8 +154,8 @@ function validateOptions(options: AdaptOptions): void {
     // Validate source platform
     if (!VALID_SOURCE_PLATFORMS.includes(options.sourcePlatform)) {
         logger.error(`Invalid source platform: ${options.sourcePlatform}`);
-        console.log(`   Valid sources: ${VALID_SOURCE_PLATFORMS.join(', ')}`);
-        console.log('   Note: antigravity cannot be a source (no formal format to import)');
+        logger.log(`   Valid sources: ${VALID_SOURCE_PLATFORMS.join(', ')}`);
+        logger.log('   Note: antigravity cannot be a source (no formal format to import)');
         process.exit(1);
     }
 
@@ -163,7 +163,7 @@ function validateOptions(options: AdaptOptions): void {
     for (const target of options.targetPlatforms) {
         if (!ALL_AGENT_PLATFORMS.includes(target)) {
             logger.error(`Invalid target platform: ${target}`);
-            console.log(`   Valid targets: ${ALL_AGENT_PLATFORMS.join(', ')}`);
+            logger.log(`   Valid targets: ${ALL_AGENT_PLATFORMS.join(', ')}`);
             process.exit(1);
         }
     }
@@ -324,9 +324,9 @@ async function adaptToAll(
 // ============================================================================
 
 function printResults(results: AdaptResult[], dryRun: boolean): void {
-    console.log('');
-    console.log(`${COLORS.cyan}Adaptation Results${COLORS.reset}`);
-    console.log('='.repeat(60));
+    logger.log('');
+    logger.log(`${COLORS.cyan}Adaptation Results${COLORS.reset}`);
+    logger.log('='.repeat(60));
 
     let successCount = 0;
     let failCount = 0;
@@ -335,8 +335,8 @@ function printResults(results: AdaptResult[], dryRun: boolean): void {
         const targetName = PLATFORM_DISPLAY_NAMES[result.targetPlatform];
         const status = result.success ? `${COLORS.green}OK${COLORS.reset}` : `${COLORS.red}FAIL${COLORS.reset}`;
 
-        console.log('');
-        console.log(`  ${targetName}: ${status}`);
+        logger.log('');
+        logger.log(`  ${targetName}: ${status}`);
 
         if (result.success) {
             successCount++;
@@ -344,17 +344,17 @@ function printResults(results: AdaptResult[], dryRun: boolean): void {
             if (result.outputFiles.length > 0) {
                 for (const file of result.outputFiles) {
                     const prefix = dryRun ? '[WOULD CREATE]' : '[CREATED]';
-                    console.log(`    ${prefix} ${basename(file)}`);
+                    logger.log(`    ${prefix} ${basename(file)}`);
                 }
             }
 
             if (result.droppedFields.length > 0) {
-                console.log(`    ${COLORS.yellow}Lost features: ${result.droppedFields.join(', ')}${COLORS.reset}`);
+                logger.log(`    ${COLORS.yellow}Lost features: ${result.droppedFields.join(', ')}${COLORS.reset}`);
             }
         } else {
             failCount++;
             for (const error of result.errors) {
-                console.log(`    ${COLORS.red}ERROR: ${error}${COLORS.reset}`);
+                logger.log(`    ${COLORS.red}ERROR: ${error}${COLORS.reset}`);
             }
         }
 
@@ -362,19 +362,19 @@ function printResults(results: AdaptResult[], dryRun: boolean): void {
         const realWarnings = result.warnings.filter((w) => !w.startsWith('[info]'));
         if (realWarnings.length > 0) {
             for (const warning of realWarnings) {
-                console.log(`    ${COLORS.yellow}WARN: ${warning}${COLORS.reset}`);
+                logger.log(`    ${COLORS.yellow}WARN: ${warning}${COLORS.reset}`);
             }
         }
     }
 
-    console.log('');
-    console.log('-'.repeat(60));
-    console.log(
+    logger.log('');
+    logger.log('-'.repeat(60));
+    logger.log(
         `  Total: ${results.length} | ` +
             `${COLORS.green}Success: ${successCount}${COLORS.reset} | ` +
             `${COLORS.red}Failed: ${failCount}${COLORS.reset}`,
     );
-    console.log('');
+    logger.log('');
 }
 
 // ============================================================================
@@ -385,20 +385,20 @@ async function main(argv = process.argv.slice(2)) {
     const options = parseCliArgs(argv);
     validateOptions(options);
 
-    console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
-    console.log(
+    logger.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
+    logger.log(
         `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Agent Adaptation      ${COLORS.magenta}║${COLORS.reset}`,
     );
-    console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
+    logger.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
 
     const sourceName = basename(options.sourcePath);
     const sourceDisplayName = PLATFORM_DISPLAY_NAMES[options.sourcePlatform];
     const targetNames = options.targetPlatforms.map((p) => PLATFORM_DISPLAY_NAMES[p]).join(', ');
 
-    console.log(`Source: ${sourceName} (${sourceDisplayName})`);
-    console.log(`Targets: ${targetNames}`);
-    console.log(`Output: ${options.outputDir}`);
-    console.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'APPLY'}`);
+    logger.log(`Source: ${sourceName} (${sourceDisplayName})`);
+    logger.log(`Targets: ${targetNames}`);
+    logger.log(`Output: ${options.outputDir}`);
+    logger.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'APPLY'}`);
 
     // Ensure output directory exists
     if (!options.dryRun && !existsSync(options.outputDir)) {
