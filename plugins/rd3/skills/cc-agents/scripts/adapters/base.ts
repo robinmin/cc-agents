@@ -28,6 +28,8 @@ export abstract class BaseAgentAdapter implements IAgentPlatformAdapter {
     abstract readonly platform: AgentPlatform;
     abstract readonly displayName: string;
 
+    protected constructor() {}
+
     /**
      * Parse platform-native format into UAM.
      * Must be implemented by each platform adapter.
