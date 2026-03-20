@@ -255,7 +255,7 @@ Thin wrappers (~50 lines each) that invoke cc-magents skill scripts.
 
 #### R3. Subagent Wrapper (1)
 
-Create **one** thin-wrapper subagent: `magent-expert` at `plugins/rd3/agents/magent-expert.md`
+Create **one** thin-wrapper subagent: `expert-magent` at `plugins/rd3/agents/expert-magent.md`
 
 **Routing logic**:
 
@@ -279,7 +279,7 @@ Color: amber. Skills: [cc-magents]. Tools: [Read, Write, Edit, Bash, Glob, Grep,
 - [ ] Evolve suggests improvements from git history without auto-applying
 - [ ] Adapt converts CLAUDE.md -> AGENTS.md -> GEMINI.md with documented lossy warnings
 - [ ] All 6 slash commands invoke the correct scripts with proper argument handling
-- [ ] magent-expert subagent routes correctly to all 6 operations
+- [ ] expert-magent subagent routes correctly to all 6 operations
 - [ ] Tests pass for all operations with >80% coverage
 - [ ] SKILL.md follows rd3 conventions (fat skill, trigger phrases, examples)
 - [ ] No circular references between skill/commands/agent
@@ -385,7 +385,7 @@ Create `rd3:cc-magents` meta skill for universal main agent configuration manage
 
 #### Phase 6: Commands & Agent (Week 9) -- P1/P2
 - 6 slash commands
-- magent-expert subagent
+- expert-magent subagent
 - Full test suite
 - SKILL.md completion
 
