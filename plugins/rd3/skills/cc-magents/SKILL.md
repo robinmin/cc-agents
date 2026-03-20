@@ -168,25 +168,25 @@ Add auto-detects:
 
 ## Evaluate Operation
 
-Quality scoring across 5 dimensions.
+Quality scoring across 5 MECE dimensions.
 
 ### Dimensions
 
 | Dimension | Weight (Standard) | Measures |
 |-----------|------------------|----------|
-| **Completeness** | 25% | Required sections present and substantive |
-| **Specificity** | 20% | Examples, decision trees, versions |
-| **Verifiability** | 20% | Anti-hallucination, confidence scoring |
-| **Safety** | 20% | CRITICAL rules, destructive warnings |
-| **Evolution-Readiness** | 15% | Memory, feedback mechanisms |
+| **Coverage** | 25% | Core sections and concerns are present and substantive |
+| **Operability** | 25% | Decision trees, executable examples, output contracts |
+| **Grounding** | 20% | Evidence, verification steps, uncertainty handling |
+| **Safety** | 20% | CRITICAL rules, approvals, destructive warnings |
+| **Maintainability** | 10% | Memory, feedback, steering, version tracking |
 
 ### Weight Profiles
 
-| Profile | Completeness | Specificity | Verifiability | Safety | Evolution |
-|---------|-------------|-------------|---------------|--------|-----------|
-| **standard** | 25% | 20% | 20% | 20% | 15% |
+| Profile | Coverage | Operability | Grounding | Safety | Maintainability |
+|---------|----------|-------------|-----------|--------|-----------------|
+| **standard** | 25% | 25% | 20% | 20% | 10% |
 | **minimal** | 30% | 20% | 15% | 30% | 5% |
-| **advanced** | 20% | 15% | 25% | 15% | 25% |
+| **advanced** | 20% | 20% | 25% | 15% | 20% |
 
 ### Grade Thresholds
 
@@ -204,7 +204,7 @@ Quality scoring across 5 dimensions.
 # Standard evaluation
 /rd3:magent-evaluate AGENTS.md
 
-# For simple configs (prioritize completeness/safety)
+# For simple configs (prioritize coverage/safety)
 /rd3:magent-evaluate CLAUDE.md --profile minimal
 
 # For self-evolving configs
