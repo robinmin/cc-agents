@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
-import { afterEach, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { evaluateAgent, renderBar, parseCliArgs, printUsage, printTextReport } from '../scripts/evaluate';
 import { validateWeightProfile } from '../scripts/evaluation.config';
 import type { AgentDimensionWeights } from '../scripts/evaluation.config';
 import type { AgentEvaluationReport } from '../scripts/types';
+import { setGlobalSilent } from '../../../scripts/logger';
 
 const FIXTURES_DIR = resolve(import.meta.dir, 'fixtures');
 
@@ -932,8 +933,14 @@ describe('printUsage', () => {
 describe('parseCliArgs', () => {
     const origArgv = process.argv;
 
+    beforeEach(() => {
+        // Suppress all console output during these tests
+        setGlobalSilent(true);
+    });
+
     afterEach(() => {
         process.argv = origArgv;
+        setGlobalSilent(false);
     });
 
     it('should parse valid arguments', () => {
