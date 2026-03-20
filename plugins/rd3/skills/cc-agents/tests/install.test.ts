@@ -3,12 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-    detectSourcePlatform,
-    installAgent,
-    main,
-    parseCliArgs,
-} from '../scripts/install';
+import { detectSourcePlatform, installAgent, main, parseCliArgs } from '../scripts/install';
 
 const TEST_DIR = '/tmp/cc-agents-install-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
