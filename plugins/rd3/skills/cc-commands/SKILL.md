@@ -1,6 +1,6 @@
 ---
 name: cc-commands
-description: Create, validate, evaluate, and adapt slash commands across platforms. Use for scaffolding new commands, validating structure, evaluating quality, refining based on feedback, or generating cross-platform equivalents.
+description: Create, validate, evaluate, refine, evolve, and adapt slash commands across platforms. Use for scaffolding new commands, validating structure, evaluating quality, refining based on feedback, planning longitudinal improvements, or generating cross-platform equivalents.
 license: Apache-2.0
 metadata:
   author: cc-agents
@@ -29,6 +29,7 @@ This skill provides a complete pipeline for slash command development:
 | **validate** | Check structure and frontmatter | `scripts/validate.ts` |
 | **evaluate** | Score quality across dimensions | `scripts/evaluate.ts` |
 | **refine** | Fix issues and improve quality | `scripts/refine.ts` |
+| **evolve** | Analyze, propose, apply, and rollback longitudinal improvements | `scripts/evolve.ts` |
 | **adapt** | Generate platform companions | `scripts/adapt.ts` |
 
 ## When to Use
@@ -38,6 +39,7 @@ Use for:
 - Validating command structure and frontmatter
 - Evaluating command quality across 10 dimensions
 - Refining commands based on evaluation feedback
+- Planning longitudinal improvement proposals
 - Generating cross-platform command equivalents (Gemini TOML, Codex YAML, etc.)
 - Migrating rd2 commands to the new universal format
 
@@ -55,6 +57,9 @@ bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/evaluate.ts ./commands/my-c
 
 # Refine command based on evaluation
 bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/refine.ts ./commands/my-command.md
+
+# Analyze and propose longitudinal improvements
+bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/evolve.ts ./commands/my-command.md --propose
 
 # Adapt command for other platforms
 bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/adapt.ts ./commands/ --platform all
@@ -159,6 +164,8 @@ When using templates, replace these placeholders:
 
 ```
 scaffold.ts -> validate.ts -> evaluate.ts -> refine.ts -> adapt.ts
+
+`evolve.ts` is a separate longitudinal loop for proposal-driven maintenance with snapshot-backed apply, history, and rollback.
 ```
 
 Each script operates independently and can be invoked from CLI or slash commands.
@@ -169,6 +176,7 @@ Each script operates independently and can be invoked from CLI or slash commands
 |----------|-------|
 | **Create Command** | scaffold → validate → refine |
 | **Quality Check** | evaluate → refine → evaluate |
+| **Longitudinal Planning** | evaluate → refine → collect feedback → evolve |
 | **Cross-Platform** | scaffold → adapt |
 
 ## Evaluation Dimensions (10)
