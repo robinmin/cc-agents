@@ -2,8 +2,30 @@
  * Unit tests for rd3 logger utilities
  */
 
-import { describe, expect, it } from 'bun:test';
-import { type LogLevel, Logger, type LoggerOptions, createLogger, logger } from '../scripts/logger';
+import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
+import { type LogLevel, Logger, type LoggerOptions, createLogger, logger, setGlobalSilent } from '../scripts/logger';
+
+// Suppress console output during tests
+const originalConsole = { debug: console.debug, info: console.info, warn: console.warn, error: console.error, log: console.log };
+
+beforeEach(() => {
+    // Also enable global silent mode to suppress all logger output
+    setGlobalSilent(true);
+    console.debug = () => {};
+    console.info = () => {};
+    console.warn = () => {};
+    console.error = () => {};
+    console.log = () => {};
+});
+
+afterEach(() => {
+    setGlobalSilent(false);
+    console.debug = originalConsole.debug;
+    console.info = originalConsole.info;
+    console.warn = originalConsole.warn;
+    console.error = originalConsole.error;
+    console.log = originalConsole.log;
+});
 
 describe('Logger', () => {
     it('should create logger with default options', () => {
