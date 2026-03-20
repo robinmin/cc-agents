@@ -763,14 +763,14 @@ argument-hint: "<source-path>" --to <platform> [--output <path>]
 
 ### 7.2 Recommendation: One Thin-Wrapper Subagent
 
-Create **one** subagent: `magent-expert` (not three separate ones like the prototypes).
+Create **one** subagent: `expert-magent` (not three separate ones like the prototypes).
 
-**Rationale**: The cc-agents pattern uses pairs (agent-expert for creation, agent-doctor for evaluation). But for main agent configs, the operations are more interrelated. A single `magent-expert` that routes to the appropriate operation based on user intent is cleaner.
+**Rationale**: The cc-agents pattern uses pairs (agent-expert for creation, agent-doctor for evaluation). But for main agent configs, the operations are more interrelated. A single `expert-magent` that routes to the appropriate operation based on user intent is cleaner.
 
 ```markdown
-# magent-expert.md (thin wrapper)
+# expert-magent.md (thin wrapper)
 ---
-name: magent-expert
+name: expert-magent
 description: |
   Use PROACTIVELY for "create AGENTS.md", "evaluate my agent config",
   "improve my CLAUDE.md", "convert between agent formats", "evolve agent config",
@@ -875,7 +875,7 @@ rd3:cc-magents skill operations.
 | Task | Priority | Effort | Description |
 |------|----------|--------|-------------|
 | 6 slash commands | P1 | 2d | Thin wrappers |
-| magent-expert subagent | P2 | 1d | Thin wrapper subagent |
+| expert-magent subagent | P2 | 1d | Thin wrapper subagent |
 | tests | P1 | 3d | Test suite for all operations |
 | SKILL.md completion | P0 | 1d | Final skill documentation |
 
@@ -966,7 +966,7 @@ rd3:cc-magents skill operations.
 | Canonical format | AGENTS.md | Official standard under Linux Foundation |
 | Scoring dimensions | 5 (research-backed) | Simpler than subagent's 10, appropriate for flexibility |
 | Evolution maturity | L1 (suggested only) | Safety-first approach |
-| Subagent count | 1 (magent-expert) | Single routing point, not three prototypes |
+| Subagent count | 1 (expert-magent) | Single routing point, not three prototypes |
 | Slash commands | 6 | One per operation, validate+evaluate combined |
 | Platform tiers | 4 (Full/Standard/Basic/Generic) | Prioritizes effort where it matters |
 | Language | TypeScript (Bun) | Consistent with cc-agents/cc-skills/cc-commands |
