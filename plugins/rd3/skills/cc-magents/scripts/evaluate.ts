@@ -2,12 +2,12 @@
 /**
  * Main Agent Config Evaluation Script for rd3:cc-magents
  *
- * Quality evaluation for main agent configuration files across 5 dimensions:
- * - Completeness (25%): All necessary sections present and substantive
- * - Specificity (20%): Concrete examples, decision trees, version numbers
- * - Verifiability (20%): Anti-hallucination protocol, confidence scoring
- * - Safety (20%): CRITICAL rules, destructive action warnings, permissions
- * - Evolution-Readiness (15%): Memory architecture, feedback mechanisms
+ * Quality evaluation for main agent configuration files across 5 MECE dimensions:
+ * - Coverage: Core concerns are present and substantive
+ * - Operability: Instructions are actionable for real agent execution
+ * - Grounding: Claims are verified, sourced, and uncertainty-aware
+ * - Safety: CRITICAL rules, destructive action warnings, permissions
+ * - Maintainability: Memory, feedback, steering, and change tracking
  *
  * Usage:
  *   bun evaluate.ts <config-path> [options]
@@ -22,8 +22,8 @@
  *
  * Weight Profiles:
  *   standard:  Balanced weights (default)
- *   minimal:  Higher completeness/safety (simple configs)
- *   advanced:  Higher evolution/verifiability (self-evolving configs)
+ *   minimal:  Higher coverage/safety (simple configs)
+ *   advanced:  Higher maintainability/grounding (self-evolving configs)
  */
 
 import { resolve } from 'node:path';
@@ -33,8 +33,8 @@ import { logger } from '../../../scripts/logger';
 import {
     EXPECTED_CATEGORIES,
     MAGENT_EVALUATION_CONFIG,
+    OPERABILITY_INDICATORS,
     SAFETY_INDICATORS,
-    SPECIFICITY_INDICATORS,
     getGradeForPercentage,
     getWeightsForProfile,
 } from './evaluation.config';
@@ -106,28 +106,31 @@ interface EvaluationContext {
 // Configuration Constants
 // ============================================================================
 
-const COMPLETENESS_WEIGHT_REQUIRED = 40;
-const COMPLETENESS_WEIGHT_RECOMMENDED = 30;
-const COMPLETENESS_WEIGHT_OPTIONAL = 20;
-const COMPLETENESS_WEIGHT_EMPTY_PENALTY = 10;
+const COVERAGE_WEIGHT_REQUIRED = 45;
+const COVERAGE_WEIGHT_RECOMMENDED = 35;
+const COVERAGE_WEIGHT_OPTIONAL = 20;
+const COVERAGE_WEIGHT_EMPTY_PENALTY = 10;
 
-const SPECIFICITY_WEIGHT_DECISION_TREES = 25;
-const SPECIFICITY_WEIGHT_EXAMPLES = 25;
-const SPECIFICITY_WEIGHT_VERSIONS = 15;
-const SPECIFICITY_WEIGHT_THRESHOLDS = 20;
-const SPECIFICITY_WEIGHT_TABLES = 15;
+const OPERABILITY_WEIGHT_ROUTING = 25;
+const OPERABILITY_WEIGHT_EXAMPLES = 20;
+const OPERABILITY_WEIGHT_CONSTRAINTS = 20;
+const OPERABILITY_WEIGHT_OUTPUT = 20;
+const OPERABILITY_WEIGHT_WORKFLOW = 15;
 
-const VERIFIABILITY_WEIGHT_ANTI_HALLUCINATION = 35;
-const VERIFIABILITY_WEIGHT_CONFIDENCE = 35;
-const VERIFIABILITY_WEIGHT_CITATIONS = 30;
+const GROUNDING_WEIGHT_EVIDENCE = 30;
+const GROUNDING_WEIGHT_UNCERTAINTY = 25;
+const GROUNDING_WEIGHT_VERIFICATION = 25;
+const GROUNDING_WEIGHT_FALLBACK = 20;
 
-const SAFETY_WEIGHT_CRITICAL = 40;
-const SAFETY_WEIGHT_DESTRUCTIVE = 30;
-const SAFETY_WEIGHT_SECRETS = 30;
+const SAFETY_WEIGHT_CRITICAL = 30;
+const SAFETY_WEIGHT_DESTRUCTIVE = 25;
+const SAFETY_WEIGHT_SECRETS = 25;
+const SAFETY_WEIGHT_PERMISSIONS = 20;
 
-const EVOLUTION_WEIGHT_MEMORY = 35;
-const EVOLUTION_WEIGHT_FEEDBACK = 35;
-const EVOLUTION_WEIGHT_STEERING = 30;
+const MAINTAINABILITY_WEIGHT_MEMORY = 30;
+const MAINTAINABILITY_WEIGHT_FEEDBACK = 30;
+const MAINTAINABILITY_WEIGHT_STEERING = 20;
+const MAINTAINABILITY_WEIGHT_VERSIONING = 20;
 
 const PASS_THRESHOLD = 75;
 
@@ -169,11 +172,11 @@ export async function evaluateMagentConfig(
 
     // Score each dimension
     const dimensionResults: DimensionResult[] = [
-        scoreCompleteness(ctx),
-        scoreSpecificity(ctx),
-        scoreVerifiability(ctx),
+        scoreCoverage(ctx),
+        scoreOperability(ctx),
+        scoreGrounding(ctx),
         scoreSafety(ctx),
-        scoreEvolutionReadiness(ctx),
+        scoreMaintainability(ctx),
     ];
 
     // Calculate weighted aggregate score
@@ -183,11 +186,11 @@ export async function evaluateMagentConfig(
 
     // Map evaluation dimension names to weight keys
     const weightKeyMap: Record<EvaluationDimension, keyof typeof weights> = {
-        completeness: 'completeness',
-        specificity: 'specificity',
-        verifiability: 'verifiability',
+        coverage: 'coverage',
+        operability: 'operability',
+        grounding: 'grounding',
         safety: 'safety',
-        'evolution-readiness': 'evolutionReadiness',
+        maintainability: 'maintainability',
     };
 
     for (const result of dimensionResults) {
@@ -278,20 +281,20 @@ export async function runEvaluate(opts: EvaluateOptions): Promise<EvaluateRunRes
 
 function getDimensionWeight(dimension: EvaluationDimension, weights: ReturnType<typeof getWeightsForProfile>): number {
     switch (dimension) {
-        case 'completeness':
-            return weights.completeness;
-        case 'specificity':
-            return weights.specificity;
-        case 'verifiability':
-            return weights.verifiability;
+        case 'coverage':
+            return weights.coverage;
+        case 'operability':
+            return weights.operability;
+        case 'grounding':
+            return weights.grounding;
         case 'safety':
             return weights.safety;
-        case 'evolution-readiness':
-            return weights.evolutionReadiness;
+        case 'maintainability':
+            return weights.maintainability;
     }
 }
 
-function scoreCompleteness(ctx: EvaluationContext): DimensionResult {
+function scoreCoverage(ctx: EvaluationContext): DimensionResult {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const scoredSections: ScoredSection[] = [];
@@ -307,22 +310,24 @@ function scoreCompleteness(ctx: EvaluationContext): DimensionResult {
             requiredCount++;
             findings.push(`Found required category: ${cat}`);
         } else {
-            recommendations.push(`Add a "${cat}" section (required for completeness)`);
+            recommendations.push(`Add a "${cat}" section (required for coverage)`);
         }
     }
 
-    // Required categories contribute 40%
-    score += (requiredCount / EXPECTED_CATEGORIES.required.length) * COMPLETENESS_WEIGHT_REQUIRED;
+    // Required categories contribute 45%
+    score += (requiredCount / EXPECTED_CATEGORIES.required.length) * COVERAGE_WEIGHT_REQUIRED;
 
-    // Recommended categories contribute 30%
+    // Recommended categories contribute 35%
     let recommendedCount = 0;
     for (const cat of EXPECTED_CATEGORIES.recommended) {
         if (presentCategories.has(cat)) {
             recommendedCount++;
             findings.push(`Found recommended category: ${cat}`);
+        } else {
+            recommendations.push(`Add a "${cat}" section to improve operational coverage`);
         }
     }
-    score += (recommendedCount / EXPECTED_CATEGORIES.recommended.length) * COMPLETENESS_WEIGHT_RECOMMENDED;
+    score += (recommendedCount / EXPECTED_CATEGORIES.recommended.length) * COVERAGE_WEIGHT_RECOMMENDED;
 
     // Optional categories contribute 20%
     let optionalCount = 0;
@@ -332,11 +337,11 @@ function scoreCompleteness(ctx: EvaluationContext): DimensionResult {
             findings.push(`Found optional category: ${cat}`);
         }
     }
-    score += (optionalCount / EXPECTED_CATEGORIES.optional.length) * COMPLETENESS_WEIGHT_OPTIONAL;
+    score += (optionalCount / EXPECTED_CATEGORIES.optional.length) * COVERAGE_WEIGHT_OPTIONAL;
 
     // Check for empty sections (penalty up to 10%)
     const emptySections = ctx.sections.filter((s) => !s.content || s.content.trim().length === 0);
-    const emptyPenalty = Math.min(emptySections.length * 2, COMPLETENESS_WEIGHT_EMPTY_PENALTY);
+    const emptyPenalty = Math.min(emptySections.length * 2, COVERAGE_WEIGHT_EMPTY_PENALTY);
     score -= emptyPenalty;
 
     if (emptySections.length > 0) {
@@ -365,8 +370,8 @@ function scoreCompleteness(ctx: EvaluationContext): DimensionResult {
     const percentage = Math.round(Math.max(0, Math.min(100, score)));
 
     return {
-        dimension: 'completeness',
-        displayName: MAGENT_EVALUATION_CONFIG.dimensionDisplayNames.completeness,
+        dimension: 'coverage',
+        displayName: MAGENT_EVALUATION_CONFIG.dimensionDisplayNames.coverage,
         score,
         maxScore,
         percentage,
@@ -376,7 +381,7 @@ function scoreCompleteness(ctx: EvaluationContext): DimensionResult {
     };
 }
 
-function scoreSpecificity(ctx: EvaluationContext): DimensionResult {
+function scoreOperability(ctx: EvaluationContext): DimensionResult {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const scoredSections: ScoredSection[] = [];
@@ -384,41 +389,48 @@ function scoreSpecificity(ctx: EvaluationContext): DimensionResult {
     let score = 0;
     const maxScore = 100;
 
-    let decisionTreeCount = 0;
+    let routingCount = 0;
     let exampleCount = 0;
-    let versionCount = 0;
-    let thresholdCount = 0;
-    let tableCount = 0;
+    let constraintCount = 0;
+    let outputCount = 0;
+    let workflowCount = 0;
 
-    // Check decision trees (IF/THEN patterns)
-    for (const pattern of SPECIFICITY_INDICATORS.decisionTrees) {
+    for (const pattern of OPERABILITY_INDICATORS.decisionTrees) {
         if (pattern.test(ctx.rawContent)) {
-            decisionTreeCount++;
+            routingCount++;
         }
     }
 
-    // Count When-to-Use / When-NOT-to-Use patterns (decision tree indicators)
-    const whenToUsePattern = /\bWhen\s+to\s+Use\b/i;
-    const whenNotToUsePattern = /\bWhen\s+NOT\s+to\s+Use\b/i;
-    if (whenToUsePattern.test(ctx.rawContent)) {
-        decisionTreeCount++;
-        findings.push('Found "When to Use" decision tree');
+    if (/\bWhen\s+to\s+Use\b/i.test(ctx.rawContent)) {
+        routingCount++;
+        findings.push('Found "When to Use" routing guidance');
     }
-    if (whenNotToUsePattern.test(ctx.rawContent)) {
-        decisionTreeCount++;
-        findings.push('Found "When NOT to Use" decision tree');
+    if (/\bWhen\s+NOT\s+to\s+Use\b/i.test(ctx.rawContent)) {
+        routingCount++;
+        findings.push('Found "When NOT to Use" routing guidance');
     }
 
-    // Decision trees contribute 25%
-    const decisionTreeScore = Math.min(decisionTreeCount * 25, SPECIFICITY_WEIGHT_DECISION_TREES);
-    score += decisionTreeScore;
+    const routingScore =
+        routingCount >= 3
+            ? OPERABILITY_WEIGHT_ROUTING
+            : routingCount >= 2
+              ? Math.round(OPERABILITY_WEIGHT_ROUTING * 0.75)
+              : routingCount >= 1
+                ? Math.round(OPERABILITY_WEIGHT_ROUTING * 0.4)
+                : 0;
+    score += routingScore;
 
-    if (decisionTreeCount === 0) {
-        recommendations.push('Add decision trees (When-to-Use / When-NOT-to-Use patterns) for tools sections');
+    if (routingCount === 0) {
+        recommendations.push('Add tool-routing decision trees (When-to-Use / When-NOT-to-Use patterns)');
     }
 
-    // Check examples (code blocks, Example: patterns)
-    for (const pattern of SPECIFICITY_INDICATORS.examples) {
+    for (const pattern of OPERABILITY_INDICATORS.examples) {
+        const matches = ctx.rawContent.match(pattern);
+        if (matches) {
+            exampleCount += matches.length;
+        }
+    }
+    for (const pattern of OPERABILITY_INDICATORS.commands) {
         const matches = ctx.rawContent.match(pattern);
         if (matches) {
             exampleCount += matches.length;
@@ -427,111 +439,135 @@ function scoreSpecificity(ctx: EvaluationContext): DimensionResult {
 
     const exampleScore =
         exampleCount >= 5
-            ? SPECIFICITY_WEIGHT_EXAMPLES
+            ? OPERABILITY_WEIGHT_EXAMPLES
             : exampleCount >= 3
-              ? Math.round(SPECIFICITY_WEIGHT_EXAMPLES * 0.7)
+              ? Math.round(OPERABILITY_WEIGHT_EXAMPLES * 0.7)
               : exampleCount >= 1
-                ? Math.round(SPECIFICITY_WEIGHT_EXAMPLES * 0.4)
+                ? Math.round(OPERABILITY_WEIGHT_EXAMPLES * 0.4)
                 : 0;
     score += exampleScore;
 
     if (exampleCount > 0) {
-        findings.push(`Found ${exampleCount} example blocks`);
+        findings.push(`Found ${exampleCount} executable examples or command blocks`);
     } else {
-        recommendations.push('Add concrete examples to illustrate behavior');
+        recommendations.push('Add runnable examples or exact command snippets');
     }
 
-    // Check version numbers
-    for (const pattern of SPECIFICITY_INDICATORS.versions) {
-        if (pattern.test(ctx.rawContent)) {
-            versionCount++;
-        }
-    }
-
-    const versionScore =
-        versionCount >= 3
-            ? SPECIFICITY_WEIGHT_VERSIONS
-            : versionCount >= 1
-              ? Math.round(SPECIFICITY_WEIGHT_VERSIONS * 0.5)
-              : 0;
-    score += versionScore;
-
-    if (versionCount > 0) {
-        findings.push(`Found ${versionCount} version references`);
-    }
-
-    // Check concrete thresholds (numeric patterns in content)
-    const thresholdPattern = /\b\d+\s*(ms|s|min|hours?|%|MB|GB|KB|files?|lines?)\b/i;
-    const thresholdMatches = ctx.rawContent.match(thresholdPattern);
-    thresholdCount = thresholdMatches ? thresholdMatches.length : 0;
-
-    const thresholdScore =
-        thresholdCount >= 5
-            ? SPECIFICITY_WEIGHT_THRESHOLDS
-            : thresholdCount >= 2
-              ? Math.round(SPECIFICITY_WEIGHT_THRESHOLDS * 0.6)
-              : thresholdCount >= 1
-                ? Math.round(SPECIFICITY_WEIGHT_THRESHOLDS * 0.3)
-                : 0;
-    score += thresholdScore;
-
-    if (thresholdCount > 0) {
-        findings.push(`Found ${thresholdCount} concrete thresholds`);
-    }
-
-    // Check tables
-    for (const pattern of SPECIFICITY_INDICATORS.tables) {
+    for (const pattern of OPERABILITY_INDICATORS.constraints) {
         const matches = ctx.rawContent.match(pattern);
         if (matches) {
-            tableCount += matches.length;
+            constraintCount += matches.length;
         }
     }
 
-    const tableScore =
-        tableCount >= 2 ? SPECIFICITY_WEIGHT_TABLES : tableCount >= 1 ? Math.round(SPECIFICITY_WEIGHT_TABLES * 0.6) : 0;
-    score += tableScore;
+    const constraintScore =
+        constraintCount >= 5
+            ? OPERABILITY_WEIGHT_CONSTRAINTS
+            : constraintCount >= 2
+              ? Math.round(OPERABILITY_WEIGHT_CONSTRAINTS * 0.65)
+              : constraintCount >= 1
+                ? Math.round(OPERABILITY_WEIGHT_CONSTRAINTS * 0.35)
+                : 0;
+    score += constraintScore;
 
-    if (tableCount > 0) {
-        findings.push(`Found ${tableCount} tables`);
+    if (constraintCount > 0) {
+        findings.push(`Found ${constraintCount} concrete constraints or version references`);
+    } else {
+        recommendations.push('Replace vague guidance with concrete thresholds, limits, and versions');
     }
 
-    // Score each section
+    for (const pattern of OPERABILITY_INDICATORS.outputContracts) {
+        const matches = ctx.rawContent.match(pattern);
+        if (matches) {
+            outputCount += matches.length;
+        }
+    }
+    const hasOutputCategory = ctx.sections.some((section) => section.category === 'output');
+    if (hasOutputCategory) {
+        outputCount++;
+    }
+
+    const outputScore =
+        outputCount >= 3
+            ? OPERABILITY_WEIGHT_OUTPUT
+            : outputCount >= 2
+              ? Math.round(OPERABILITY_WEIGHT_OUTPUT * 0.7)
+              : outputCount >= 1
+                ? Math.round(OPERABILITY_WEIGHT_OUTPUT * 0.4)
+                : 0;
+    score += outputScore;
+
+    if (outputCount > 0) {
+        findings.push(`Found ${outputCount} output contract indicators`);
+    } else {
+        recommendations.push('Define the expected response/output contract for the agent');
+    }
+
+    for (const pattern of OPERABILITY_INDICATORS.workflows) {
+        const matches = ctx.rawContent.match(pattern);
+        if (matches) {
+            workflowCount += matches.length;
+        }
+    }
+    const hasWorkflowCategory = ctx.sections.some(
+        (section) => section.category === 'workflow' || section.category === 'planning',
+    );
+    if (hasWorkflowCategory) {
+        workflowCount++;
+    }
+
+    const workflowScore =
+        workflowCount >= 4
+            ? OPERABILITY_WEIGHT_WORKFLOW
+            : workflowCount >= 2
+              ? Math.round(OPERABILITY_WEIGHT_WORKFLOW * 0.7)
+              : workflowCount >= 1
+                ? Math.round(OPERABILITY_WEIGHT_WORKFLOW * 0.4)
+                : 0;
+    score += workflowScore;
+
+    if (workflowCount > 0) {
+        findings.push(`Found ${workflowCount} workflow or success-criteria indicators`);
+    } else {
+        recommendations.push('Document a stepwise workflow with success criteria or quality gates');
+    }
+
     for (const section of ctx.sections) {
         let sectionScore = 0;
 
-        // Check for decision trees in this section
-        for (const pattern of SPECIFICITY_INDICATORS.decisionTrees) {
+        for (const pattern of OPERABILITY_INDICATORS.decisionTrees) {
             if (pattern.test(section.content)) {
                 sectionScore += 25;
                 break;
             }
         }
-
-        // Check for examples in this section
-        for (const pattern of SPECIFICITY_INDICATORS.examples) {
+        for (const pattern of OPERABILITY_INDICATORS.examples) {
             if (pattern.test(section.content)) {
-                sectionScore += 25;
+                sectionScore += 20;
                 break;
             }
         }
-
-        // Check for thresholds in this section
-        if (thresholdPattern.test(section.content)) {
-            sectionScore += 20;
-        }
-
-        // Check for tables in this section
-        for (const pattern of SPECIFICITY_INDICATORS.tables) {
+        for (const pattern of OPERABILITY_INDICATORS.commands) {
             if (pattern.test(section.content)) {
                 sectionScore += 15;
                 break;
             }
         }
-
-        // Check for version in this section
-        for (const pattern of SPECIFICITY_INDICATORS.versions) {
+        for (const pattern of OPERABILITY_INDICATORS.constraints) {
             if (pattern.test(section.content)) {
-                sectionScore += 15;
+                sectionScore += 20;
+                break;
+            }
+        }
+        for (const pattern of OPERABILITY_INDICATORS.outputContracts) {
+            if (pattern.test(section.content)) {
+                sectionScore += 10;
+                break;
+            }
+        }
+        for (const pattern of OPERABILITY_INDICATORS.workflows) {
+            if (pattern.test(section.content)) {
+                sectionScore += 10;
                 break;
             }
         }
@@ -547,8 +583,8 @@ function scoreSpecificity(ctx: EvaluationContext): DimensionResult {
     const percentage = Math.round(Math.max(0, Math.min(100, score)));
 
     return {
-        dimension: 'specificity',
-        displayName: MAGENT_EVALUATION_CONFIG.dimensionDisplayNames.specificity,
+        dimension: 'operability',
+        displayName: MAGENT_EVALUATION_CONFIG.dimensionDisplayNames.operability,
         score,
         maxScore,
         percentage,
@@ -558,7 +594,7 @@ function scoreSpecificity(ctx: EvaluationContext): DimensionResult {
     };
 }
 
-function scoreVerifiability(ctx: EvaluationContext): DimensionResult {
+function scoreGrounding(ctx: EvaluationContext): DimensionResult {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const scoredSections: ScoredSection[] = [];
@@ -566,120 +602,141 @@ function scoreVerifiability(ctx: EvaluationContext): DimensionResult {
     let score = 0;
     const maxScore = 100;
 
-    // Check for anti-hallucination rules
-    const antiHallucinationPatterns = [
-        /\b(anti.?hallucination|fact.?check|verify|validation|cross.?ref)\b/i,
-        /\b(uncertainty|confidence|not sure|dont know)\b/i,
-        /\b(cite|sources?|reference|documentation)\b/i,
-    ];
-
-    let antiHallucinationCount = 0;
-    for (const pattern of antiHallucinationPatterns) {
-        if (pattern.test(ctx.rawContent)) {
-            antiHallucinationCount++;
-        }
-    }
-
-    const antiHallucinationScore =
-        antiHallucinationCount >= 3
-            ? VERIFIABILITY_WEIGHT_ANTI_HALLUCINATION
-            : antiHallucinationCount >= 2
-              ? Math.round(VERIFIABILITY_WEIGHT_ANTI_HALLUCINATION * 0.7)
-              : antiHallucinationCount >= 1
-                ? Math.round(VERIFIABILITY_WEIGHT_ANTI_HALLUCINATION * 0.4)
-                : 0;
-    score += antiHallucinationScore;
-
-    if (antiHallucinationCount > 0) {
-        findings.push(`Found ${antiHallucinationCount} anti-hallucination indicators`);
-    } else {
-        recommendations.push('Add anti-hallucination rules (fact-checking, uncertainty acknowledgment)');
-    }
-
-    // Check for confidence scoring patterns
-    const confidencePatterns = [
-        /\b(confidence|probability|certainty)\b/i,
-        /\b(high|medium|low)\s*(confidence|probability|certainty)\b/i,
-        /\b(verify|check|cross.?ref)\s*(this|that|it)\b/i,
-    ];
-
-    let confidenceCount = 0;
-    for (const pattern of confidencePatterns) {
-        const matches = ctx.rawContent.match(pattern);
-        if (matches) {
-            confidenceCount += matches.length;
-        }
-    }
-
-    const confidenceScore =
-        confidenceCount >= 3
-            ? VERIFIABILITY_WEIGHT_CONFIDENCE
-            : confidenceCount >= 2
-              ? Math.round(VERIFIABILITY_WEIGHT_CONFIDENCE * 0.6)
-              : confidenceCount >= 1
-                ? Math.round(VERIFIABILITY_WEIGHT_CONFIDENCE * 0.3)
-                : 0;
-    score += confidenceScore;
-
-    if (confidenceCount > 0) {
-        findings.push(`Found ${confidenceCount} confidence scoring indicators`);
-    } else {
-        recommendations.push('Add confidence scoring guidelines (HIGH/MEDIUM/LOW)');
-    }
-
-    // Check for source citations
-    const citationPatterns = [
+    const evidencePatterns = [
         /\[.+\]\(https?:\/\/.+\)/,
         /\*\*.+\*\*.*\(https?:\/\/.+\)/,
         /see\s+(also\s+)?https?:\/\/.+/i,
         /\b(Sources?|References?|See also):/i,
+        /\b(cite|citation|source|reference|documentation)\b/i,
+    ];
+    const uncertaintyPatterns = [
+        /\b(confidence|probability|certainty)\b/i,
+        /\b(high|medium|low)\s*(confidence|probability|certainty)\b/i,
+        /\b(uncertain|not sure|don't know|cannot verify|unknown)\b/i,
+    ];
+    const verificationPatterns = [
+        /\b(verify|validation|fact.?check|cross.?check|cross.?ref|test|tests|quality\s+gate)\b/i,
+        /\b(run|execute|inspect|confirm)\b.*\b(test|check|verification|validation)\b/i,
+    ];
+    const fallbackPatterns = [
+        /\b(if\s+unsure|if\s+uncertain|when\s+unclear)\b/i,
+        /\b(ask\s+the\s+user|escalate|state\s+the\s+limitation|do\s+not\s+claim)\b/i,
     ];
 
-    let citationCount = 0;
-    for (const pattern of citationPatterns) {
+    let evidenceCount = 0;
+    for (const pattern of evidencePatterns) {
         const matches = ctx.rawContent.match(pattern);
         if (matches) {
-            citationCount += matches.length;
+            evidenceCount += matches.length;
         }
     }
-
-    const citationScore =
-        citationCount >= 3
-            ? VERIFIABILITY_WEIGHT_CITATIONS
-            : citationCount >= 2
-              ? Math.round(VERIFIABILITY_WEIGHT_CITATIONS * 0.6)
-              : citationCount >= 1
-                ? Math.round(VERIFIABILITY_WEIGHT_CITATIONS * 0.3)
+    const evidenceScore =
+        evidenceCount >= 3
+            ? GROUNDING_WEIGHT_EVIDENCE
+            : evidenceCount >= 2
+              ? Math.round(GROUNDING_WEIGHT_EVIDENCE * 0.7)
+              : evidenceCount >= 1
+                ? Math.round(GROUNDING_WEIGHT_EVIDENCE * 0.4)
                 : 0;
-    score += citationScore;
+    score += evidenceScore;
 
-    if (citationCount > 0) {
-        findings.push(`Found ${citationCount} source citations`);
+    if (evidenceCount > 0) {
+        findings.push(`Found ${evidenceCount} evidence or citation indicators`);
     } else {
-        recommendations.push('Add source citations for technical claims');
+        recommendations.push('Require sources or citations for external and technical claims');
     }
 
-    // Score each section
+    let uncertaintyCount = 0;
+    for (const pattern of uncertaintyPatterns) {
+        const matches = ctx.rawContent.match(pattern);
+        if (matches) {
+            uncertaintyCount += matches.length;
+        }
+    }
+    const uncertaintyScore =
+        uncertaintyCount >= 3
+            ? GROUNDING_WEIGHT_UNCERTAINTY
+            : uncertaintyCount >= 2
+              ? Math.round(GROUNDING_WEIGHT_UNCERTAINTY * 0.7)
+              : uncertaintyCount >= 1
+                ? Math.round(GROUNDING_WEIGHT_UNCERTAINTY * 0.4)
+                : 0;
+    score += uncertaintyScore;
+
+    if (uncertaintyCount > 0) {
+        findings.push(`Found ${uncertaintyCount} uncertainty-handling indicators`);
+    } else {
+        recommendations.push('Add confidence or uncertainty-handling guidance');
+    }
+
+    let verificationCount = 0;
+    for (const pattern of verificationPatterns) {
+        const matches = ctx.rawContent.match(pattern);
+        if (matches) {
+            verificationCount += matches.length;
+        }
+    }
+    const verificationScore =
+        verificationCount >= 4
+            ? GROUNDING_WEIGHT_VERIFICATION
+            : verificationCount >= 2
+              ? Math.round(GROUNDING_WEIGHT_VERIFICATION * 0.7)
+              : verificationCount >= 1
+                ? Math.round(GROUNDING_WEIGHT_VERIFICATION * 0.4)
+                : 0;
+    score += verificationScore;
+
+    if (verificationCount > 0) {
+        findings.push(`Found ${verificationCount} verification or quality-gate indicators`);
+    } else {
+        recommendations.push('Define explicit verification steps before claiming completion');
+    }
+
+    let fallbackCount = 0;
+    for (const pattern of fallbackPatterns) {
+        const matches = ctx.rawContent.match(pattern);
+        if (matches) {
+            fallbackCount += matches.length;
+        }
+    }
+    const fallbackScore =
+        fallbackCount >= 2
+            ? GROUNDING_WEIGHT_FALLBACK
+            : fallbackCount >= 1
+              ? Math.round(GROUNDING_WEIGHT_FALLBACK * 0.5)
+              : 0;
+    score += fallbackScore;
+
+    if (fallbackCount > 0) {
+        findings.push(`Found ${fallbackCount} fallback or escalation indicators`);
+    } else {
+        recommendations.push('Document what the agent should do when evidence is missing or uncertainty remains');
+    }
+
     for (const section of ctx.sections) {
         let sectionScore = 0;
 
-        for (const pattern of antiHallucinationPatterns) {
-            if (pattern.test(section.content)) {
-                sectionScore += 35;
-                break;
-            }
-        }
-
-        for (const pattern of confidencePatterns) {
-            if (pattern.test(section.content)) {
-                sectionScore += 35;
-                break;
-            }
-        }
-
-        for (const pattern of citationPatterns) {
+        for (const pattern of evidencePatterns) {
             if (pattern.test(section.content)) {
                 sectionScore += 30;
+                break;
+            }
+        }
+        for (const pattern of uncertaintyPatterns) {
+            if (pattern.test(section.content)) {
+                sectionScore += 25;
+                break;
+            }
+        }
+        for (const pattern of verificationPatterns) {
+            if (pattern.test(section.content)) {
+                sectionScore += 25;
+                break;
+            }
+        }
+        for (const pattern of fallbackPatterns) {
+            if (pattern.test(section.content)) {
+                sectionScore += 20;
                 break;
             }
         }
@@ -695,8 +752,8 @@ function scoreVerifiability(ctx: EvaluationContext): DimensionResult {
     const percentage = Math.round(Math.max(0, Math.min(100, score)));
 
     return {
-        dimension: 'verifiability',
-        displayName: MAGENT_EVALUATION_CONFIG.dimensionDisplayNames.verifiability,
+        dimension: 'grounding',
+        displayName: MAGENT_EVALUATION_CONFIG.dimensionDisplayNames.grounding,
         score,
         maxScore,
         percentage,
@@ -802,10 +859,18 @@ function scoreSafety(ctx: EvaluationContext): DimensionResult {
         }
     }
 
-    // Permission patterns add bonus points
+    const permissionScore =
+        permissionCount >= 2
+            ? SAFETY_WEIGHT_PERMISSIONS
+            : permissionCount >= 1
+              ? Math.round(SAFETY_WEIGHT_PERMISSIONS * 0.5)
+              : 0;
+    score += permissionScore;
+
     if (permissionCount > 0) {
-        score += 10;
         findings.push(`Found ${permissionCount} permission boundary patterns`);
+    } else {
+        recommendations.push('Add approval and escalation boundaries for risky actions');
     }
 
     // Check for PII protection patterns
@@ -822,7 +887,7 @@ function scoreSafety(ctx: EvaluationContext): DimensionResult {
     }
 
     if (piiCount > 0) {
-        score += 10;
+        score = Math.min(100, score + 5);
         findings.push('Found PII protection indicators');
     }
 
@@ -846,7 +911,14 @@ function scoreSafety(ctx: EvaluationContext): DimensionResult {
 
         for (const pattern of SAFETY_INDICATORS.secretProtection) {
             if (pattern.test(section.content)) {
-                sectionScore += 30;
+                sectionScore += 25;
+                break;
+            }
+        }
+
+        for (const pattern of permissionPatterns) {
+            if (pattern.test(section.content)) {
+                sectionScore += 20;
                 break;
             }
         }
@@ -873,7 +945,7 @@ function scoreSafety(ctx: EvaluationContext): DimensionResult {
     };
 }
 
-function scoreEvolutionReadiness(ctx: EvaluationContext): DimensionResult {
+function scoreMaintainability(ctx: EvaluationContext): DimensionResult {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const scoredSections: ScoredSection[] = [];
@@ -881,7 +953,6 @@ function scoreEvolutionReadiness(ctx: EvaluationContext): DimensionResult {
     let score = 0;
     const maxScore = 100;
 
-    // Check for memory sections
     const memoryPatterns = [/\b(memory|context|history|remember|persistence)\b/i, /#\s*Memory/i, /#\s*Context/i];
 
     let memoryCount = 0;
@@ -896,19 +967,22 @@ function scoreEvolutionReadiness(ctx: EvaluationContext): DimensionResult {
     if (hasMemoryCategory) memoryCount++;
 
     const memoryScore =
-        memoryCount >= 2 ? EVOLUTION_WEIGHT_MEMORY : memoryCount >= 1 ? Math.round(EVOLUTION_WEIGHT_MEMORY * 0.6) : 0;
+        memoryCount >= 2
+            ? MAINTAINABILITY_WEIGHT_MEMORY
+            : memoryCount >= 1
+              ? Math.round(MAINTAINABILITY_WEIGHT_MEMORY * 0.6)
+              : 0;
     score += memoryScore;
 
     if (memoryCount > 0) {
         findings.push(`Found ${memoryCount} memory indicators`);
     } else {
-        recommendations.push('Add a Memory section for context management patterns');
+        recommendations.push('Add a Memory or Context section for durable context-management patterns');
     }
 
-    // Check for feedback mechanisms
     const feedbackPatterns = [
         /\b(feedback|learn|adapt|self.?improv|evolution)\b/i,
-        /\b(user\s+feedback|behavior\s+adjustment)\b/i,
+        /\b(user\s+feedback|behavior\s+adjustment|retrospective|postmortem)\b/i,
     ];
 
     let feedbackCount = 0;
@@ -925,21 +999,20 @@ function scoreEvolutionReadiness(ctx: EvaluationContext): DimensionResult {
 
     const feedbackScore =
         feedbackCount >= 3
-            ? EVOLUTION_WEIGHT_FEEDBACK
+            ? MAINTAINABILITY_WEIGHT_FEEDBACK
             : feedbackCount >= 2
-              ? Math.round(EVOLUTION_WEIGHT_FEEDBACK * 0.6)
+              ? Math.round(MAINTAINABILITY_WEIGHT_FEEDBACK * 0.6)
               : feedbackCount >= 1
-                ? Math.round(EVOLUTION_WEIGHT_FEEDBACK * 0.3)
+                ? Math.round(MAINTAINABILITY_WEIGHT_FEEDBACK * 0.3)
                 : 0;
     score += feedbackScore;
 
     if (feedbackCount > 0) {
         findings.push(`Found ${feedbackCount} feedback mechanism indicators`);
     } else {
-        recommendations.push('Add feedback mechanisms for continuous improvement');
+        recommendations.push('Add feedback and improvement loops for maintaining the config over time');
     }
 
-    // Check for steering file patterns
     const steeringPatterns = [
         /\b(steering|directives?|instructions?)\b/i,
         /\b(preference|preferences?|defaults?)\b/i,
@@ -956,18 +1029,23 @@ function scoreEvolutionReadiness(ctx: EvaluationContext): DimensionResult {
 
     const steeringScore =
         steeringCount >= 2
-            ? EVOLUTION_WEIGHT_STEERING
+            ? MAINTAINABILITY_WEIGHT_STEERING
             : steeringCount >= 1
-              ? Math.round(EVOLUTION_WEIGHT_STEERING * 0.5)
+              ? Math.round(MAINTAINABILITY_WEIGHT_STEERING * 0.5)
               : 0;
     score += steeringScore;
 
     if (steeringCount > 0) {
-        findings.push(`Found ${steeringCount} steering file patterns`);
+        findings.push(`Found ${steeringCount} steering or preference patterns`);
+    } else {
+        recommendations.push('Document steering files, defaults, or persistent preference mechanisms');
     }
 
-    // Check for version history patterns
-    const versionHistoryPatterns = [/\b(changelog|version\s+history|history|revision)\b/i, /\bv\d+\.\d+\.\d+/];
+    const versionHistoryPatterns = [
+        /\b(changelog|version\s+history|revision|release\s+notes|effective\s+date)\b/i,
+        /\bv\d+\.\d+\.\d+/,
+        /\b(last\s+updated|updated_at|effective)\b/i,
+    ];
 
     let versionHistoryCount = 0;
     for (const pattern of versionHistoryPatterns) {
@@ -976,9 +1054,18 @@ function scoreEvolutionReadiness(ctx: EvaluationContext): DimensionResult {
         }
     }
 
+    const versioningScore =
+        versionHistoryCount >= 2
+            ? MAINTAINABILITY_WEIGHT_VERSIONING
+            : versionHistoryCount >= 1
+              ? Math.round(MAINTAINABILITY_WEIGHT_VERSIONING * 0.5)
+              : 0;
+    score += versioningScore;
+
     if (versionHistoryCount > 0) {
-        score += 10;
-        findings.push('Found version history indicators');
+        findings.push('Found versioning or change-tracking indicators');
+    } else {
+        recommendations.push('Track config evolution with a version, effective date, or changelog note');
     }
 
     // Score each section
@@ -987,21 +1074,28 @@ function scoreEvolutionReadiness(ctx: EvaluationContext): DimensionResult {
 
         for (const pattern of memoryPatterns) {
             if (pattern.test(section.content)) {
-                sectionScore += 35;
+                sectionScore += 30;
                 break;
             }
         }
 
         for (const pattern of feedbackPatterns) {
             if (pattern.test(section.content)) {
-                sectionScore += 35;
+                sectionScore += 30;
                 break;
             }
         }
 
         for (const pattern of steeringPatterns) {
             if (pattern.test(section.content)) {
-                sectionScore += 30;
+                sectionScore += 20;
+                break;
+            }
+        }
+
+        for (const pattern of versionHistoryPatterns) {
+            if (pattern.test(section.content)) {
+                sectionScore += 20;
                 break;
             }
         }
@@ -1017,8 +1111,8 @@ function scoreEvolutionReadiness(ctx: EvaluationContext): DimensionResult {
     const percentage = Math.round(Math.max(0, Math.min(100, score)));
 
     return {
-        dimension: 'evolution-readiness',
-        displayName: MAGENT_EVALUATION_CONFIG.dimensionDisplayNames['evolution-readiness'],
+        dimension: 'maintainability',
+        displayName: MAGENT_EVALUATION_CONFIG.dimensionDisplayNames.maintainability,
         score,
         maxScore,
         percentage,
@@ -1158,12 +1252,12 @@ Options:
   --help, -h          Show help
 
 Weight Profiles:
-  standard:  Balanced weights (default) - 25% completeness, 20% specificity,
-              20% verifiability, 20% safety, 15% evolution-readiness
-  minimal:    Higher completeness/safety - 30% completeness, 20% specificity,
-              15% verifiability, 30% safety, 5% evolution-readiness
-  advanced:   Higher evolution/verifiability - 20% completeness, 15% specificity,
-              25% verifiability, 15% safety, 25% evolution-readiness
+  standard:  Balanced weights (default) - 25% coverage, 25% operability,
+              20% grounding, 20% safety, 10% maintainability
+  minimal:   Higher coverage/safety - 30% coverage, 20% operability,
+              15% grounding, 30% safety, 5% maintainability
+  advanced:  Higher maintainability/grounding - 20% coverage, 20% operability,
+              25% grounding, 15% safety, 20% maintainability
 
 Grade Thresholds:
   A: >= 90%  B: >= 80%  C: >= 70%  D: >= 60%  F: < 60%
