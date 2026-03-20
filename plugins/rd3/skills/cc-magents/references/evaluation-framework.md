@@ -1,18 +1,18 @@
 # Evaluation Framework for Main Agent Configurations
 
-This document describes the 5-dimension evaluation framework used by `rd3:cc-magents` to assess the quality of main agent configuration files (AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, etc.).
+This document describes the 5-dimension MECE evaluation framework used by `rd3:cc-magents` to assess the quality of main agent configuration files (AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, etc.).
 
 ## Overview
 
-The evaluation framework scores configurations across 5 dimensions, each weighted according to a profile:
+The evaluation framework scores configurations across 5 mutually exclusive, collectively exhaustive dimensions, each weighted according to a profile:
 
 | Dimension | Weight (standard) | What It Measures |
 |-----------|-------------------|------------------|
-| **Completeness** | 25% | Are all necessary sections present and substantive? |
-| **Specificity** | 20% | Are rules concrete with examples, decision trees, version numbers? |
-| **Verifiability** | 20% | Are there anti-hallucination rules and source citations? |
+| **Coverage** | 25% | Are all core concerns present and substantive? |
+| **Operability** | 25% | Can the agent reliably choose tools, execute steps, and format outputs? |
+| **Grounding** | 20% | Does the config require evidence, verification, and uncertainty handling? |
 | **Safety** | 20% | Are CRITICAL rules, destructive action guards, and permissions defined? |
-| **Evolution-Readiness** | 15% | Are memory architecture and feedback mechanisms present? |
+| **Maintainability** | 10% | Can the config be updated safely through memory, feedback, steering, and versioning? |
 
 **Pass Threshold**: 75% overall score
 
@@ -20,12 +20,13 @@ The evaluation framework scores configurations across 5 dimensions, each weighte
 
 ## Dimension Details
 
-### 1. Completeness (25%)
+### 1. Coverage (25%)
 
 **What it checks:**
 - All expected sections are present (identity, tools, rules, output, workflow, standards, verification, error-handling)
 - Sections have substantive content (not just headings with empty bodies)
 - Platform-specific required sections are present
+- Coverage does not double-count memory/evolution concerns owned by Maintainability
 
 **Scoring criteria:**
 - 100%: All expected categories present with substantive content
@@ -46,19 +47,20 @@ The evaluation framework scores configurations across 5 dimensions, each weighte
 
 ---
 
-### 2. Specificity (20%)
+### 2. Operability (25%)
 
 **What it checks:**
 - Decision trees for tool usage (When-to-Use / When-NOT-to-Use patterns)
-- Example blocks demonstrating expected behavior
+- Example blocks and executable command snippets
 - Version numbers, concrete thresholds, specific tool names
-- Tables for reference data
+- Output contracts and success criteria
+- Stepwise workflow guidance
 
 **Scoring criteria:**
-- 100%: Decision trees + examples + version specificity
-- 75%: Decision trees + examples
-- 50%: Examples only or vague guidelines
-- 25%: Minimal specificity
+- 100%: Tool-routing + executable examples + output contract + workflow guidance
+- 75%: Strong routing and examples, with some output/workflow structure
+- 50%: Some examples or commands, but incomplete operational guidance
+- 25%: Minimal actionability
 - 0%: Generic statements with no concrete details
 
 **Key indicators (from vendor analysis):**
@@ -70,19 +72,19 @@ The evaluation framework scores configurations across 5 dimensions, each weighte
 
 ---
 
-### 3. Verifiability (20%)
+### 3. Grounding (20%)
 
 **What it checks:**
-- Anti-hallucination protocol rules
-- Confidence scoring patterns
-- Source citations for external information
+- Source or evidence requirements for external information
+- Confidence and uncertainty signaling
 - Verification criteria before claiming completion
+- Fallback and escalation rules when evidence is missing
 
 **Scoring criteria:**
-- 100%: All verification mechanisms present
-- 75%: Anti-hallucination + confidence scoring
+- 100%: Evidence + verification + uncertainty handling + fallback rules
+- 75%: Strong verification and evidence requirements
 - 50%: Basic verification rules
-- 25%: Minimal verification
+- 25%: Minimal grounding guidance
 - 0%: No verification guidance
 
 **Key indicators:**
@@ -90,6 +92,7 @@ The evaluation framework scores configurations across 5 dimensions, each weighte
 - Confidence scoring phrases (`high confidence`, `low confidence`)
 - Citation requirements (`cite source`)
 - Self-verification loops
+- "If unsure" fallback / escalation instructions
 
 ---
 
@@ -119,19 +122,19 @@ The evaluation framework scores configurations across 5 dimensions, each weighte
 
 ---
 
-### 5. Evolution-Readiness (15%)
+### 5. Maintainability (10%)
 
 **What it checks:**
 - Memory sections or context persistence
 - Feedback mechanisms
 - Steering file patterns (`.kiro/`, `.agent/`)
-- Version history or changelog guidance
+- Version history, changelog, or effective-date guidance
 
 **Scoring criteria:**
-- 100%: Full memory + feedback + steering
-- 75%: Memory + feedback mechanisms
-- 50%: Basic memory patterns
-- 25%: Minimal evolution support
+- 100%: Memory + feedback + steering + change tracking
+- 75%: Strong memory and improvement mechanisms
+- 50%: Basic maintainability patterns
+- 25%: Minimal maintainability support
 - 0%: No evolution mechanisms
 
 ---
@@ -141,29 +144,29 @@ The evaluation framework scores configurations across 5 dimensions, each weighte
 ### Standard (default)
 
 Balanced weights for general-purpose configs:
-- Completeness: 25%
-- Specificity: 20%
-- Verifiability: 20%
+- Coverage: 25%
+- Operability: 25%
+- Grounding: 20%
 - Safety: 20%
-- Evolution-Readiness: 15%
+- Maintainability: 10%
 
 ### Minimal
 
-Higher weight on completeness and safety for simple configs:
-- Completeness: 30%
-- Specificity: 20%
-- Verifiability: 15%
+Higher weight on coverage and safety for simple configs:
+- Coverage: 30%
+- Operability: 20%
+- Grounding: 15%
 - Safety: 30%
-- Evolution-Readiness: 5%
+- Maintainability: 5%
 
 ### Advanced
 
-Higher weight on evolution and verifiability for self-evolving configs:
-- Completeness: 20%
-- Specificity: 15%
-- Verifiability: 25%
+Higher weight on maintainability and grounding for self-evolving configs:
+- Coverage: 20%
+- Operability: 20%
+- Grounding: 25%
 - Safety: 15%
-- Evolution-Readiness: 25%
+- Maintainability: 20%
 
 ---
 
@@ -241,7 +244,7 @@ The evaluation framework integrates with:
 
 This framework incorporates patterns from 16+ production AI coding agent system prompts:
 
-1. **Decision trees for specificity** - All mature platforms (Claude, Cursor, Gemini, Codex) use explicit When-to-Use/When-NOT-to-Use patterns
+1. **Decision trees for operability** - All mature platforms (Claude, Cursor, Gemini, Codex) use explicit When-to-Use/When-NOT-to-Use patterns
 2. **Example blocks** - Claude and Codex use `<example>` blocks to calibrate behavior more effectively than prose
 3. **Tiered safety** - Safety rules are universal but prioritized differently by platform
 4. **Communication anti-patterns** - All platforms forbid flattery, apologies, filler phrases
