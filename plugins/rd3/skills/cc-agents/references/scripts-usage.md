@@ -171,3 +171,41 @@ bun scripts/adapt.ts ./agents/my-agent.md claude codex --dry-run
 # Output to custom directory
 bun scripts/adapt.ts ./agents/my-agent.md claude all --output ./adapted/
 ```
+
+---
+
+## evolve.ts
+
+```
+bun scripts/evolve.ts <agent-path> --analyze|--propose|--apply <id>|--history|--rollback <ver> [options]
+
+Arguments:
+  <agent-path>              Path to agent .md file
+
+Commands:
+      --analyze             Analyze longitudinal improvement signals
+      --propose             Draft governed improvement proposals
+      --apply <id>          Apply a saved proposal (requires --confirm)
+      --history             Show applied version history
+      --rollback <ver>      Restore a previous version (requires --confirm)
+
+Options:
+      --confirm             Required for apply and rollback
+  -h, --help                Show help
+```
+
+**Examples:**
+
+```bash
+# Analyze current evolution signals
+bun scripts/evolve.ts ./agents/my-agent.md --analyze
+
+# Generate persisted proposals
+bun scripts/evolve.ts ./agents/my-agent.md --propose
+
+# Apply a proposal with backup + history
+bun scripts/evolve.ts ./agents/my-agent.md --apply p1234 --confirm
+
+# Roll back to a previous version
+bun scripts/evolve.ts ./agents/my-agent.md --rollback v1 --confirm
+```
