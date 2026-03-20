@@ -309,16 +309,16 @@ export interface MagentValidationResult {
 // ============================================================================
 
 /**
- * The 5 evaluation dimensions for main agent config quality.
- * Each dimension measures a specific aspect of config quality.
+ * The 5 MECE evaluation dimensions for main agent config quality.
+ * Each dimension owns a distinct concern so scores do not double-count.
  */
-export type EvaluationDimension = 'completeness' | 'specificity' | 'verifiability' | 'safety' | 'evolution-readiness';
+export type EvaluationDimension = 'coverage' | 'operability' | 'grounding' | 'safety' | 'maintainability';
 
 /**
  * Weight profiles for different config types.
  * - standard: Balanced weights (default)
- * - minimal: Higher weight on completeness/safety (simple configs)
- * - advanced: Higher weight on evolution/verifiability (self-evolving configs)
+ * - minimal: Higher weight on coverage/safety (simple configs)
+ * - advanced: Higher weight on maintainability/grounding (self-evolving configs)
  */
 export type MagentWeightProfile = 'standard' | 'minimal' | 'advanced';
 
