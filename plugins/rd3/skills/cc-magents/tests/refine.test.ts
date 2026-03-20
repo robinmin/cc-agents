@@ -205,11 +205,11 @@ describe('refine', () => {
                 platform: 'agents-md',
                 weightProfile: 'standard',
                 dimensions: [
-                    { dimension: 'specificity', displayName: 'Specificity', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'verifiability', displayName: 'Verifiability', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
+                    { dimension: 'operability', displayName: 'Operability', weight: 25, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
+                    { dimension: 'grounding', displayName: 'Grounding', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
                     { dimension: 'safety', displayName: 'Safety', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'completeness', displayName: 'Completeness', weight: 25, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'evolution-readiness', displayName: 'Evolution Readiness', weight: 15, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
+                    { dimension: 'coverage', displayName: 'Coverage', weight: 25, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
+                    { dimension: 'maintainability', displayName: 'Maintainability', weight: 10, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
                 ],
                 overallScore: 80,
                 grade: 'B',
@@ -245,28 +245,26 @@ describe('refine', () => {
                 platform: 'agents-md',
                 weightProfile: 'standard',
                 dimensions: [
-                    { dimension: 'specificity', displayName: 'Specificity', weight: 20, score: 50, maxScore: 100, percentage: 50, findings: [], recommendations: ['Add examples'] },
-                    { dimension: 'verifiability', displayName: 'Verifiability', weight: 20, score: 40, maxScore: 100, percentage: 40, findings: [], recommendations: ['Add verification'] },
+                    { dimension: 'operability', displayName: 'Operability', weight: 25, score: 50, maxScore: 100, percentage: 50, findings: [], recommendations: ['Add decision trees'] },
+                    { dimension: 'grounding', displayName: 'Grounding', weight: 20, score: 40, maxScore: 100, percentage: 40, findings: [], recommendations: ['Add verification'] },
                     { dimension: 'safety', displayName: 'Safety', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'completeness', displayName: 'Completeness', weight: 25, score: 90, maxScore: 100, percentage: 90, findings: [], recommendations: [] },
-                    { dimension: 'evolution-readiness', displayName: 'Evolution Readiness', weight: 15, score: 60, maxScore: 100, percentage: 60, findings: [], recommendations: ['Add memory'] },
+                    { dimension: 'coverage', displayName: 'Coverage', weight: 25, score: 90, maxScore: 100, percentage: 90, findings: [], recommendations: [] },
+                    { dimension: 'maintainability', displayName: 'Maintainability', weight: 10, score: 60, maxScore: 100, percentage: 60, findings: [], recommendations: ['Add memory'] },
                 ],
                 overallScore: 65,
                 grade: 'D',
                 passed: false,
-                topRecommendations: ['Add specificity', 'Add verifiability'],
+                topRecommendations: ['Add operability', 'Add grounding'],
                 timestamp: new Date().toISOString(),
             };
 
             const actions = generateQualitySuggestions(model, report);
 
-            // Specificity < 70, so should have suggestion about adding examples
-            const specificitySuggestions = actions.filter((a) => a.description.includes('specificity'));
-            expect(specificitySuggestions.length).toBeGreaterThan(0);
+            const operabilitySuggestions = actions.filter((a) => a.description.includes('operability'));
+            expect(operabilitySuggestions.length).toBeGreaterThan(0);
 
-            // Verifiability < 70, so should have suggestion about anti-hallucination
-            const verifiabilitySuggestions = actions.filter((a) => a.description.includes('anti-hallucination'));
-            expect(verifiabilitySuggestions.length).toBeGreaterThan(0);
+            const groundingSuggestions = actions.filter((a) => a.description.includes('verification'));
+            expect(groundingSuggestions.length).toBeGreaterThan(0);
 
             // Evolution-readiness < 70, so should have suggestion about memory
             const evolutionSuggestions = actions.filter((a) => a.description.includes('memory'));
@@ -289,11 +287,11 @@ describe('refine', () => {
                 platform: 'agents-md',
                 weightProfile: 'standard',
                 dimensions: [
-                    { dimension: 'completeness', displayName: 'Completeness', weight: 25, score: 90, maxScore: 100, percentage: 90, findings: [], recommendations: [] },
-                    { dimension: 'specificity', displayName: 'Specificity', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'verifiability', displayName: 'Verifiability', weight: 20, score: 75, maxScore: 100, percentage: 75, findings: [], recommendations: [] },
+                    { dimension: 'coverage', displayName: 'Coverage', weight: 25, score: 90, maxScore: 100, percentage: 90, findings: [], recommendations: [] },
+                    { dimension: 'operability', displayName: 'Operability', weight: 25, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
+                    { dimension: 'grounding', displayName: 'Grounding', weight: 20, score: 75, maxScore: 100, percentage: 75, findings: [], recommendations: [] },
                     { dimension: 'safety', displayName: 'Safety', weight: 20, score: 85, maxScore: 100, percentage: 85, findings: [], recommendations: [] },
-                    { dimension: 'evolution-readiness', displayName: 'Evolution Readiness', weight: 15, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
+                    { dimension: 'maintainability', displayName: 'Maintainability', weight: 10, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
                 ],
                 overallScore: 82,
                 grade: 'B',
