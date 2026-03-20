@@ -1069,7 +1069,7 @@ Critical safety rules here.
                         targetSection: 'Rules',
                         changeType: 'modify' as const,
                         description: 'Improve rule clarity',
-                        rationale: 'Rules need better specificity',
+                        rationale: 'Rules need better operability',
                         source: 'ci-results' as const,
                         confidence: 0.85,
                         affectsCritical: false,
