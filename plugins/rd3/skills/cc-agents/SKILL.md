@@ -1,6 +1,6 @@
 ---
 name: cc-agents
-description: "Use this skill when the user asks to 'create a new agent', 'scaffold an agent', 'evaluate agent quality', 'validate agent file', 'refine agent definition', 'adapt agent', 'cross-platform agent'. Creates, validates, evaluates, refines, and adapts subagent definitions across 6 platforms using a Universal Agent Model and 10-dimension scoring."
+description: "Use this skill when the user asks to 'create a new agent', 'scaffold an agent', 'evaluate agent quality', 'validate agent file', 'refine agent definition', 'adapt agent', 'cross-platform agent', or 'plan agent evolution'. Creates, validates, evaluates, refines, adapts, and supports longitudinal evolution workflows for subagent definitions across 6 platforms."
 license: Apache-2.0
 metadata:
   author: cc-agents
@@ -19,6 +19,7 @@ Create subagents that work across ALL platforms from a single source of truth.
 - Scoring quality -> use **evaluate**
 - Fixing quality issues -> use **refine**
 - Cross-platform conversion -> use **adapt**
+- Planning longitudinal improvement -> use **evolve**
 
 ## Quick Start
 
@@ -37,6 +38,9 @@ bun scripts/refine.ts agents/my-agent.md --eval --best-practices
 
 # Generate cross-platform companions
 bun scripts/adapt.ts agents/my-agent.md claude all
+
+# Analyze and propose longitudinal improvements
+bun scripts/evolve.ts agents/my-agent.md --propose
 ```
 
 ## Workflows
@@ -45,10 +49,11 @@ bun scripts/adapt.ts agents/my-agent.md claude all
 - **Improve existing agent**: evaluate → refine → evaluate (verify improvement)
 - **Cross-platform conversion**: validate → adapt → validate (target platform)
 - **Migration from rd2**: refine --migrate → evaluate → adapt
+- **Longitudinal improvement planning**: evaluate → refine → collect feedback → evolve
 
 ## Operations
 
-This skill accepts **5 operations**:
+This skill accepts **6 operations**:
 
 | Operation | Purpose | Script |
 |-----------|---------|--------|
@@ -57,11 +62,14 @@ This skill accepts **5 operations**:
 | **evaluate** | Score agent quality (10 dimensions) | `scripts/evaluate.ts` |
 | **refine** | Fix issues and improve quality | `scripts/refine.ts` |
 | **adapt** | Convert to other platform formats | `scripts/adapt.ts` |
+| **evolve** | Analyze, propose, apply, and rollback deterministic improvements | `scripts/evolve.ts` |
 
 ## Pipeline Architecture
 
 ```
 scaffold → validate → evaluate → refine → adapt
+
+`evolve` is a separate longitudinal loop for proposal-driven maintenance and rollback.
 ```
 
 ## Operation Workflows
@@ -115,6 +123,15 @@ Generate platform-specific companion files:
 2. Use `--dry-run` to preview output without writing
 3. Fields not supported by target platform are dropped with warnings
 4. Review generated companions for platform-specific adjustments
+
+### Evolve Workflow
+
+Use the longitudinal maintenance loop when quality drifts over time:
+
+1. Run `bun scripts/evolve.ts <agent.md> --analyze` or `--propose`
+2. Apply saved proposals with `--apply <id> --confirm`
+3. Inspect applied versions with `--history`
+4. Restore a prior snapshot with `--rollback <version> --confirm`
 
 > For full CLI arguments and defaults, see [references/scripts-usage.md](references/scripts-usage.md).
 
