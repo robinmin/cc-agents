@@ -51,7 +51,7 @@ Validation runs automatically first. Structural issues are reported but refineme
 
 ### Best Practice Fixes (auto-fix)
 - Remove forbidden AI phrases ("great question", "I'm sorry")
-- Add decision trees to tools sections
+- Improve operability signals such as decision trees and clearer tool guidance
 
 ## CRITICAL Section Protection
 
