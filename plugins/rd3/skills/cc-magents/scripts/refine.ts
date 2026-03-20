@@ -203,17 +203,17 @@ export function generateQualitySuggestions(model: UniversalMainAgent, report: Ma
     for (const dimension of report.dimensions) {
         if (dimension.percentage < 70) {
             switch (dimension.dimension) {
-                case 'specificity':
+                case 'operability':
                     actions.push({
                         type: 'quality',
-                        description: 'Add concrete examples and decision trees to improve specificity',
+                        description: 'Add decision trees, executable examples, and output contracts to improve operability',
                         requiresApproval: true,
                     });
                     break;
-                case 'verifiability':
+                case 'grounding':
                     actions.push({
                         type: 'quality',
-                        description: 'Add anti-hallucination rules and confidence scoring guidelines',
+                        description: 'Add verification steps, source requirements, and uncertainty handling',
                         requiresApproval: true,
                     });
                     break;
@@ -224,10 +224,10 @@ export function generateQualitySuggestions(model: UniversalMainAgent, report: Ma
                         requiresApproval: true,
                     });
                     break;
-                case 'evolution-readiness':
+                case 'maintainability':
                     actions.push({
                         type: 'quality',
-                        description: 'Add memory section for context management patterns',
+                        description: 'Add memory, feedback, and versioning patterns for maintainability',
                         requiresApproval: true,
                     });
                     break;
