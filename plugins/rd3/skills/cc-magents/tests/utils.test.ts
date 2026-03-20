@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import {
     parseSections,
     serializeSections,
@@ -12,8 +12,11 @@ import {
     detectSecrets,
     buildUMAM,
     discoverAgentConfigs,
+    detectHierarchy,
 } from '../scripts/utils';
 import type { MagentSection } from '../scripts/types';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 describe('utils', () => {
     // ============================================================================
@@ -311,6 +314,17 @@ Use the test tool.`;
             expect(detectPlatform('/project/.opencode/rules.md')).toBe('opencode-rules');
         });
 
+        it('should detect aider, codex, vscode, warp, roocode, and amp paths', () => {
+            expect(detectPlatform('/project/.aider.conf.yml')).toBe('aider');
+            expect(detectPlatform('/project/.codex/config.md')).toBe('codex');
+            expect(detectPlatform('/project/codex.md')).toBe('codex');
+            expect(detectPlatform('/project/.github/copilot-instructions.md')).toBe('vscode-instructions');
+            expect(detectPlatform('/project/.warp/workflows.md')).toBe('warp');
+            expect(detectPlatform('/project/.roo/rules.md')).toBe('roocode');
+            expect(detectPlatform('/project/.roocode/rules.md')).toBe('roocode');
+            expect(detectPlatform('/project/.amp/rules.md')).toBe('amp');
+        });
+
         it('should return null for unknown files', () => {
             expect(detectPlatform('/project/README.md')).toBe(null);
             expect(detectPlatform('/project/config.json')).toBe(null);
@@ -383,6 +397,25 @@ Just content`;
 
             expect(metadata).toBe(null);
             expect(body).toBe(content);
+        });
+
+        it('should extract HTML comment metadata and parse booleans/numbers', () => {
+            const content = `<!--
+name: comment-agent
+enabled: true
+retries: 3
+owner: "robin"
+-->
+
+# Agent Config`;
+
+            const { metadata, body } = extractMetadata(content);
+
+            expect(metadata?.name).toBe('comment-agent');
+            expect(metadata?.enabled).toBe(true);
+            expect(metadata?.retries).toBe(3);
+            expect(metadata?.owner).toBe('robin');
+            expect(body).toBe('# Agent Config');
         });
     });
 
@@ -472,6 +505,88 @@ Use the tools listed.`;
         it('should override platform when specified', () => {
             const model = buildUMAM('# Test', '/project/CLAUDE.md', 'agents-md');
             expect(model.sourceFormat).toBe('agents-md');
+        });
+
+        it('should include extracted metadata and preamble in the UMAM model', () => {
+            const model = buildUMAM(`---
+name: test-agent
+enabled: false
+---
+
+This is the preamble.
+
+# Identity
+
+I am a test agent.
+`, '/project/AGENTS.md');
+
+            expect(model.metadata?.name).toBe('test-agent');
+            expect(model.metadata?.enabled).toBe(false);
+            expect(model.preamble).toBe('This is the preamble.');
+        });
+    });
+
+    // ============================================================================
+    // discoverAgentConfigs
+    // ============================================================================
+    describe('discoverAgentConfigs', () => {
+        const tempRoot = '/tmp/cc-magents-utils-discovery';
+
+        beforeEach(() => {
+            rmSync(tempRoot, { recursive: true, force: true });
+            mkdirSync(tempRoot, { recursive: true });
+        });
+
+        afterEach(() => {
+            if (existsSync(tempRoot)) {
+                rmSync(tempRoot, { recursive: true, force: true });
+            }
+        });
+
+        it('should discover known platform config files', () => {
+            mkdirSync(join(tempRoot, '.claude'), { recursive: true });
+            mkdirSync(join(tempRoot, '.gemini'), { recursive: true });
+            mkdirSync(join(tempRoot, '.opencode'), { recursive: true });
+
+            writeFileSync(join(tempRoot, 'AGENTS.md'), '# agents', 'utf-8');
+            writeFileSync(join(tempRoot, '.claude', 'CLAUDE.md'), '# claude', 'utf-8');
+            writeFileSync(join(tempRoot, '.gemini', 'GEMINI.md'), '# gemini', 'utf-8');
+            writeFileSync(join(tempRoot, '.opencode', 'rules.md'), '# opencode', 'utf-8');
+
+            const results = discoverAgentConfigs(tempRoot);
+
+            expect(results.some((entry) => entry.platform === 'agents-md')).toBe(true);
+            expect(results.some((entry) => entry.platform === 'claude-md')).toBe(true);
+            expect(results.some((entry) => entry.platform === 'gemini-md')).toBe(true);
+            expect(results.some((entry) => entry.platform === 'opencode-rules')).toBe(true);
+        });
+
+        it('should ignore directories where files are expected', () => {
+            mkdirSync(join(tempRoot, 'AGENTS.md'), { recursive: true });
+
+            const results = discoverAgentConfigs(tempRoot);
+
+            expect(results).toEqual([]);
+        });
+    });
+
+    // ============================================================================
+    // detectHierarchy
+    // ============================================================================
+    describe('detectHierarchy', () => {
+        it('should detect global hierarchy from home config locations', () => {
+            expect(detectHierarchy('/Users/robin/.claude/CLAUDE.md')).toBe('global');
+            expect(detectHierarchy('/home/robin/.gemini/GEMINI.md')).toBe('global');
+        });
+
+        it('should detect directory hierarchy from nested source paths', () => {
+            expect(detectHierarchy('/project/src/agents/AGENTS.md')).toBe('directory');
+            expect(detectHierarchy('/project/lib/agent/CLAUDE.md')).toBe('directory');
+            expect(detectHierarchy('/project/packages/agent/GEMINI.md')).toBe('directory');
+        });
+
+        it('should default to project hierarchy', () => {
+            expect(detectHierarchy('/project/AGENTS.md')).toBe('project');
         });
     });
 });
