@@ -1,10 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { analyzePatterns, generateProposals, applyProposal, rollbackToVersion, runEvolve, formatAnalysis, formatProposals, formatHistory, loadVersionHistory, applyChange, handleEvolveCLI, parseEvolveArgs, getEvolveHelp } from '../scripts/evolve';
 import { existsSync, mkdirSync, readdirSync, rmSync, rmdirSync, unlinkSync, writeFileSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const TEST_DIR = '/tmp/magent-evolve-test';
 const TEST_CONFIG = join(TEST_DIR, 'test-evolve-config.md');
+const EVOLVE_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'evolve.ts');
+
+function runGit(args: string[], cwd: string): void {
+    const result = Bun.spawnSync(['git', ...args], {
+        cwd,
+        stdout: 'pipe',
+        stderr: 'pipe',
+    });
+
+    expect(result.exitCode).toBe(0);
+}
 
 describe('evolve', () => {
     beforeEach(() => {
@@ -138,6 +150,81 @@ Use the Read and Write tools.
             const result = await generateProposals(TEST_CONFIG, analysis);
 
             expect(['A', 'B', 'C', 'D', 'F']).toContain(result.predictedGrade);
+        });
+
+        it('should add an explicit safety warning when a generated proposal is already critical', async () => {
+            const criticalConfig = join(TEST_DIR, 'critical-warning.md');
+            writeFileSync(criticalConfig, `# Identity
+
+I am a critical config.
+
+## Rules
+
+[CRITICAL] Never bypass approval.
+`, 'utf-8');
+
+            const result = await generateProposals(criticalConfig, {
+                patterns: [
+                    {
+                        type: 'improvement',
+                        source: 'user-feedback',
+                        description: 'Clarify the rules section',
+                        evidence: ['Rules need stronger wording'],
+                        confidence: 0.9,
+                        affectedSection: 'rules',
+                    },
+                ],
+                dataSourceAvailability: {
+                    'git-history': false,
+                    'ci-results': false,
+                    'user-feedback': true,
+                    'memory-md': false,
+                    'interaction-logs': false,
+                },
+                summary: 'Manual analysis',
+            });
+
+            expect(result.safetyWarnings.some((warning) => warning.includes('affects CRITICAL section'))).toBe(true);
+        });
+
+        it('should mark non-critical section names as critical when the section body contains CRITICAL markers', async () => {
+            const criticalSectionConfig = join(TEST_DIR, 'critical-section-body.md');
+            writeFileSync(criticalSectionConfig, `# Identity
+
+I am a test agent.
+
+## Protocol
+
+[CRITICAL] Never relax the rollback guard.
+
+## Notes
+
+Document the protocol changes.
+`, 'utf-8');
+
+            const result = await generateProposals(criticalSectionConfig, {
+                patterns: [
+                    {
+                        type: 'improvement',
+                        source: 'ci-results',
+                        description: 'Strengthen the protocol section',
+                        evidence: ['Protocol needs explicit steps'],
+                        confidence: 0.8,
+                        affectedSection: 'Protocol',
+                    },
+                ],
+                dataSourceAvailability: {
+                    'git-history': false,
+                    'ci-results': true,
+                    'user-feedback': false,
+                    'memory-md': false,
+                    'interaction-logs': false,
+                },
+                summary: 'Manual analysis',
+            });
+
+            expect(result.proposals[0]?.affectsCritical).toBe(true);
+            expect(result.safetyWarnings.some((warning) => warning.includes('touches CRITICAL section'))).toBe(true);
         });
     });
 
@@ -652,6 +739,93 @@ Limit to approved actions only.
 
             unlinkSync(rulesConfig);
         });
+
+        it('should generate concrete patterns from git, CI, feedback, memory, and interaction logs', async () => {
+            const workspaceRoot = join(TEST_DIR, 'rich-signals');
+            const configDir = join(workspaceRoot, 'nested', 'agent');
+            const configPath = join(configDir, 'AGENTS.md');
+            mkdirSync(configDir, { recursive: true });
+            writeFileSync(configPath, `# Identity
+
+I am a test agent.
+
+## Rules
+
+Follow the process.
+
+## Tools
+
+Use Read and Write.
+`, 'utf-8');
+
+            mkdirSync(join(workspaceRoot, '.github', 'workflows'), { recursive: true });
+            writeFileSync(
+                join(workspaceRoot, '.github', 'workflows', 'ci.yml'),
+                `name: ci
+jobs:
+  test:
+  lint:
+  security:
+  typecheck:
+`,
+                'utf-8',
+            );
+            writeFileSync(join(workspaceRoot, 'coverage-report.log'), 'failed test in verification\n', 'utf-8');
+            writeFileSync(join(workspaceRoot, 'FEEDBACK.md'), 'Helpful rules guidance.\nWrong tools routing.\n', 'utf-8');
+            writeFileSync(join(workspaceRoot, 'MEMORY.md'), 'Remember this preference.\nTODO next time fix regression.\n', 'utf-8');
+            mkdirSync(join(workspaceRoot, '.logs'), { recursive: true });
+            for (let index = 0; index < 12; index += 1) {
+                writeFileSync(
+                    join(workspaceRoot, '.logs', `session-${index}.log`),
+                    `error while using read and bash tools in rules flow ${index}\n`,
+                    'utf-8',
+                );
+            }
+
+            runGit(['init'], workspaceRoot);
+            runGit(['config', 'user.email', 'test@example.com'], workspaceRoot);
+            runGit(['config', 'user.name', 'Test User'], workspaceRoot);
+            runGit(['add', '.'], workspaceRoot);
+            runGit(['commit', '-m', 'rules improved and working'], workspaceRoot);
+
+            writeFileSync(configPath, `${readFileSync(configPath, 'utf-8')}\n## Notes\n\nAdded context.\n`, 'utf-8');
+            runGit(['add', '.'], workspaceRoot);
+            runGit(['commit', '-m', 'failed test for rules'], workspaceRoot);
+
+            writeFileSync(configPath, `${readFileSync(configPath, 'utf-8')}\n## Rules\n\nRules updated again.\n`, 'utf-8');
+            runGit(['add', '.'], workspaceRoot);
+            runGit(['commit', '-m', 'rules updated and fixed'], workspaceRoot);
+
+            const result = await analyzePatterns(configPath);
+
+            expect(result.patterns.some((pattern) => pattern.source === 'git-history' && pattern.type === 'success')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'git-history' && pattern.type === 'failure')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'git-history' && pattern.description.includes('appears repeatedly'))).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'ci-results' && pattern.type === 'success')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'ci-results' && pattern.type === 'improvement')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'ci-results' && pattern.type === 'failure')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'user-feedback' && pattern.type === 'success')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'user-feedback' && pattern.type === 'failure')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'memory-md' && pattern.type === 'success')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'memory-md' && pattern.type === 'improvement')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'interaction-logs' && pattern.type === 'failure')).toBe(true);
+            expect(result.patterns.some((pattern) => pattern.source === 'interaction-logs' && pattern.type === 'improvement')).toBe(true);
+        });
+
+        it('should tolerate unreadable feedback placeholders', async () => {
+            const workspaceRoot = join(TEST_DIR, 'unreadable-feedback');
+            const configPath = join(workspaceRoot, 'AGENTS.md');
+            mkdirSync(workspaceRoot, { recursive: true });
+            mkdirSync(join(workspaceRoot, 'FEEDBACK.md'), { recursive: true });
+            writeFileSync(configPath, `# Identity
+
+I am a test agent.
+`, 'utf-8');
+
+            const result = await analyzePatterns(configPath);
+
+            expect(result).toBeDefined();
+        });
     });
 
     describe('generateProposals with different grades', () => {
@@ -900,6 +1074,13 @@ Critical safety rules here.
             }
 
             unlinkSync(criticalConfig);
+        });
+
+        it('should return an error when applying without a saved proposal set', async () => {
+            const result = await runEvolve({ configPath: TEST_CONFIG, command: 'apply', proposalId: 'missing', confirm: true });
+
+            expect(result.applyResult?.success).toBe(false);
+            expect(result.applyResult?.error).toContain('Run --propose first');
         });
     });
 
@@ -1671,6 +1852,18 @@ I am a test agent.
         expect(result.exitCode).toBe(0);
     });
 
+    it('should handle history with JSON output', async () => {
+        const configPath = join(TEST_DIR, 'AGENTS.md');
+        writeFileSync(configPath, `# Identity
+
+I am a test agent.
+`, 'utf-8');
+
+        const result = await handleEvolveCLI({ args: [configPath, '--history', '--json'] });
+        expect(result.exitCode).toBe(0);
+        expect(result.output).toBe('[]');
+    });
+
     it('should return error when no command specified', async () => {
         const configPath = join(TEST_DIR, 'AGENTS.md');
         writeFileSync(configPath, `# Identity
@@ -1699,6 +1892,70 @@ I am a test agent.
         }
         });
 
+        it('should return an apply error when no persisted proposals are available', async () => {
+            const configPath = join(TEST_DIR, 'AGENTS.md');
+            writeFileSync(configPath, `# Identity
+
+I am a test agent.
+`, 'utf-8');
+
+            const result = await handleEvolveCLI({ args: [configPath, '--apply', 'missing-id', '--confirm'] });
+            expect(result.exitCode).toBe(1);
+            expect(result.error).toContain('Run --propose first');
+        });
+
+        it('should treat a malformed persisted proposal set as missing', async () => {
+            const configPath = join(TEST_DIR, 'AGENTS.md');
+            const proposalsDir = join(TEST_DIR, '.cc-magents', 'evolution', 'proposals');
+            mkdirSync(proposalsDir, { recursive: true });
+            writeFileSync(configPath, `# Identity
+
+I am a test agent.
+`, 'utf-8');
+            writeFileSync(join(proposalsDir, 'AGENTS.md.proposals.json'), '{invalid-json', 'utf-8');
+
+            const result = await handleEvolveCLI({ args: [configPath, '--apply', 'missing-id', '--confirm'] });
+            expect(result.exitCode).toBe(1);
+            expect(result.error).toContain('Run --propose first');
+        });
+
+        it('should return rollback errors with --confirm when the version is missing', async () => {
+            const configPath = join(TEST_DIR, 'AGENTS.md');
+            writeFileSync(configPath, `# Identity
+
+I am a test agent.
+`, 'utf-8');
+
+            const result = await handleEvolveCLI({ args: [configPath, '--rollback', 'v999', '--confirm'] });
+            expect(result.exitCode).toBe(1);
+            expect(result.error).toContain('Version v999 not found');
+        });
+
+        it('should rollback successfully with --confirm when the version exists', async () => {
+            const configPath = join(TEST_DIR, 'AGENTS.md');
+            const versionHistoryDir = join(TEST_DIR, '.cc-magents', 'evolution', 'versions');
+            mkdirSync(versionHistoryDir, { recursive: true });
+            writeFileSync(configPath, '# New Version\n', 'utf-8');
+            writeFileSync(
+                join(versionHistoryDir, 'AGENTS.md.history.json'),
+                JSON.stringify([
+                    {
+                        version: 'v1',
+                        timestamp: new Date('2024-01-01').toISOString(),
+                        content: '# Old Version\n',
+                        grade: 'C',
+                        changeDescription: 'Initial version',
+                        proposalsApplied: [],
+                    },
+                ]),
+                'utf-8',
+            );
+
+            const result = await handleEvolveCLI({ args: [configPath, '--rollback', 'v1', '--confirm'] });
+            expect(result.exitCode).toBe(0);
+            expect(result.output).toContain('Rolled back to v1 successfully');
+        });
+
         it('should support propose followed by apply through persisted proposal ids', async () => {
             const configPath = join(TEST_DIR, 'AGENTS.md');
             writeFileSync(configPath, `# Identity
@@ -1718,3 +1975,54 @@ Minimal config.
             expect(applyResult.output).toContain('applied successfully');
         });
     });
+
+describe('evolve script main', () => {
+    const SCRIPT_TEST_DIR = '/tmp/magent-evolve-main-test';
+
+    beforeEach(() => {
+        rmSync(SCRIPT_TEST_DIR, { recursive: true, force: true });
+        mkdirSync(SCRIPT_TEST_DIR, { recursive: true });
+    });
+
+    afterEach(() => {
+        rmSync(SCRIPT_TEST_DIR, { recursive: true, force: true });
+    });
+
+    it('should execute the script entry point successfully', async () => {
+        const configPath = join(SCRIPT_TEST_DIR, 'AGENTS.md');
+        writeFileSync(configPath, `# Identity
+
+I am a test agent.
+`, 'utf-8');
+
+        const proc = Bun.spawn(['bun', 'run', EVOLVE_SCRIPT, configPath, '--history'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const [exitCode, stdout, stderr] = await Promise.all([
+            proc.exited,
+            new Response(proc.stdout).text(),
+            new Response(proc.stderr).text(),
+        ]);
+
+        expect(exitCode).toBe(0);
+        expect(`${stdout}\n${stderr}`).toContain('Version History');
+    });
+
+    it('should surface unexpected runtime errors from the script entry point', async () => {
+        const proc = Bun.spawn(['bun', 'run', EVOLVE_SCRIPT, '/tmp', '--analyze'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const [exitCode, stdout, stderr] = await Promise.all([
+            proc.exited,
+            new Response(proc.stdout).text(),
+            new Response(proc.stderr).text(),
+        ]);
+
+        expect(exitCode).toBe(1);
+        expect(`${stdout}\n${stderr}`).toContain('Unexpected error');
+    });
+});
