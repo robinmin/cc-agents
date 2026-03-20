@@ -493,66 +493,66 @@ function printReport(report: AgentValidationReport, verbose: boolean): void {
     if (report.errors.length === 0 && report.warnings.length === 0) {
         logger.success(`Validation passed for ${report.agentName}`);
         if (report.findings.filter((f) => f.severity === 'info').length > 0) {
-            console.log('\nInfo:');
+            logger.log('\nInfo:');
             for (const finding of report.findings.filter((f) => f.severity === 'info')) {
-                console.log(`  [i] ${finding.message}`);
+                logger.log(`  [i] ${finding.message}`);
             }
         }
         return;
     }
 
     if (!report.valid) {
-        console.log(`\nValidation FAILED for ${report.agentName}`);
+        logger.log(`\nValidation FAILED for ${report.agentName}`);
     } else {
-        console.log(`\nValidation passed with warnings for ${report.agentName}`);
+        logger.log(`\nValidation passed with warnings for ${report.agentName}`);
     }
 
     if (report.errors.length > 0) {
-        console.log('\nErrors:');
+        logger.log('\nErrors:');
         for (const error of report.errors) {
-            console.log(`  [X] ${error}`);
+            logger.log(`  [X] ${error}`);
         }
     }
 
     if (report.warnings.length > 0) {
-        console.log('\nWarnings:');
+        logger.log('\nWarnings:');
         for (const warning of report.warnings) {
-            console.log(`  [!] ${warning}`);
+            logger.log(`  [!] ${warning}`);
         }
     }
 
     const infoFindings = report.findings.filter((f) => f.severity === 'info');
     if (infoFindings.length > 0) {
-        console.log('\nInfo:');
+        logger.log('\nInfo:');
         for (const finding of infoFindings) {
-            console.log(`  [i] ${finding.message}`);
+            logger.log(`  [i] ${finding.message}`);
         }
     }
 
     if (verbose) {
-        console.log('\nBody Analysis:');
-        console.log(`  Lines: ${report.bodyAnalysis.lineCount}`);
-        console.log(`  Sections: ${report.bodyAnalysis.sections.length}`);
-        console.log(`  Detected tier: ${report.detectedTier}`);
-        console.log(`  8-section anatomy: ${report.bodyAnalysis.has8SectionAnatomy ? 'yes' : 'no'}`);
+        logger.log('\nBody Analysis:');
+        logger.log(`  Lines: ${report.bodyAnalysis.lineCount}`);
+        logger.log(`  Sections: ${report.bodyAnalysis.sections.length}`);
+        logger.log(`  Detected tier: ${report.detectedTier}`);
+        logger.log(`  8-section anatomy: ${report.bodyAnalysis.has8SectionAnatomy ? 'yes' : 'no'}`);
         if (report.bodyAnalysis.anatomySections.length > 0) {
-            console.log(`  Anatomy sections: ${report.bodyAnalysis.anatomySections.join(', ')}`);
+            logger.log(`  Anatomy sections: ${report.bodyAnalysis.anatomySections.join(', ')}`);
         }
-        console.log(`  Has rules: ${report.bodyAnalysis.hasRules ? 'yes' : 'no'}`);
-        console.log(`  Has output format: ${report.bodyAnalysis.hasOutputFormat ? 'yes' : 'no'}`);
-        console.log(`  References skills: ${report.bodyAnalysis.referencesSkills ? 'yes' : 'no'}`);
+        logger.log(`  Has rules: ${report.bodyAnalysis.hasRules ? 'yes' : 'no'}`);
+        logger.log(`  Has output format: ${report.bodyAnalysis.hasOutputFormat ? 'yes' : 'no'}`);
+        logger.log(`  References skills: ${report.bodyAnalysis.referencesSkills ? 'yes' : 'no'}`);
 
         if (report.frontmatter) {
-            console.log('\nFrontmatter:');
-            console.log(`  name: ${report.frontmatter.name}`);
+            logger.log('\nFrontmatter:');
+            logger.log(`  name: ${report.frontmatter.name}`);
             const desc = report.frontmatter.description as string | undefined;
             if (desc) {
-                console.log(`  description: ${desc.substring(0, 80)}...`);
+                logger.log(`  description: ${desc.substring(0, 80)}...`);
             }
         }
 
         if (report.unknownFields.length > 0) {
-            console.log(`\nUnknown fields: ${report.unknownFields.join(', ')}`);
+            logger.log(`\nUnknown fields: ${report.unknownFields.join(', ')}`);
         }
     }
 
@@ -562,13 +562,13 @@ function printReport(report: AgentValidationReport, verbose: boolean): void {
         .map((f) => f.suggestion ?? '')
         .filter(Boolean);
     if (suggestions.length > 0) {
-        console.log('\nSuggestions:');
+        logger.log('\nSuggestions:');
         for (const suggestion of suggestions) {
-            console.log(`  -> ${suggestion}`);
+            logger.log(`  -> ${suggestion}`);
         }
     }
 
-    console.log(`\nSummary: ${report.errors.length} error(s), ${report.warnings.length} warning(s)`);
+    logger.log(`\nSummary: ${report.errors.length} error(s), ${report.warnings.length} warning(s)`);
 }
 
 // ============================================================================
@@ -588,16 +588,16 @@ function parseCliArgs(): { path: string; platform: AgentPlatform | 'all'; verbos
     });
 
     if (args.values.help) {
-        console.log('Usage: validate.ts <agent-path> [options]');
-        console.log('');
-        console.log('Arguments:');
-        console.log('  <agent-path>       Path to agent .md file');
-        console.log('');
-        console.log('Options:');
-        console.log('  --platform <name>  Platform: claude, gemini, opencode, codex, all (default: claude)');
-        console.log('  --verbose, -v      Show detailed output');
-        console.log('  --json             Output as JSON');
-        console.log('  --help, -h         Show help');
+        logger.log('Usage: validate.ts <agent-path> [options]');
+        logger.log('');
+        logger.log('Arguments:');
+        logger.log('  <agent-path>       Path to agent .md file');
+        logger.log('');
+        logger.log('Options:');
+        logger.log('  --platform <name>  Platform: claude, gemini, opencode, codex, all (default: claude)');
+        logger.log('  --verbose, -v      Show detailed output');
+        logger.log('  --json             Output as JSON');
+        logger.log('  --help, -h         Show help');
         process.exit(0);
     }
 
@@ -630,7 +630,7 @@ async function main() {
     const report = await validateAgent(agentPath, platform);
 
     if (json) {
-        console.log(JSON.stringify(report, null, 2));
+        logger.log(JSON.stringify(report, null, 2));
         process.exit(report.valid ? 0 : 1);
     }
 
