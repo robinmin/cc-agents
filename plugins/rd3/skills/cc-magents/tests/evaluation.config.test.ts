@@ -5,7 +5,7 @@ import {
     getGradeForPercentage,
     validateWeightProfile,
     EXPECTED_CATEGORIES,
-    SPECIFICITY_INDICATORS,
+    OPERABILITY_INDICATORS,
     SAFETY_INDICATORS,
 } from '../scripts/evaluation.config';
 
@@ -19,19 +19,19 @@ describe('evaluation.config', () => {
 
         it('should have weights that sum to 100 for standard profile', () => {
             const weights = MAGENT_EVALUATION_CONFIG.profiles.standard;
-            const sum = weights.completeness + weights.specificity + weights.verifiability + weights.safety + weights.evolutionReadiness;
+            const sum = weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
             expect(sum).toBe(100);
         });
 
         it('should have weights that sum to 100 for minimal profile', () => {
             const weights = MAGENT_EVALUATION_CONFIG.profiles.minimal;
-            const sum = weights.completeness + weights.specificity + weights.verifiability + weights.safety + weights.evolutionReadiness;
+            const sum = weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
             expect(sum).toBe(100);
         });
 
         it('should have weights that sum to 100 for advanced profile', () => {
             const weights = MAGENT_EVALUATION_CONFIG.profiles.advanced;
-            const sum = weights.completeness + weights.specificity + weights.verifiability + weights.safety + weights.evolutionReadiness;
+            const sum = weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
             expect(sum).toBe(100);
         });
 
@@ -57,31 +57,31 @@ describe('evaluation.config', () => {
 
         it('should have dimension display names for all dimensions', () => {
             const displayNames = MAGENT_EVALUATION_CONFIG.dimensionDisplayNames;
-            expect(displayNames.completeness).toBeDefined();
-            expect(displayNames.specificity).toBeDefined();
-            expect(displayNames.verifiability).toBeDefined();
+            expect(displayNames.coverage).toBeDefined();
+            expect(displayNames.operability).toBeDefined();
+            expect(displayNames.grounding).toBeDefined();
             expect(displayNames.safety).toBeDefined();
-            expect(displayNames['evolution-readiness']).toBeDefined();
+            expect(displayNames.maintainability).toBeDefined();
         });
     });
 
     describe('getWeightsForProfile', () => {
         it('should return standard weights by default', () => {
             const weights = getWeightsForProfile('standard');
-            expect(weights.completeness).toBe(25);
-            expect(weights.specificity).toBe(20);
+            expect(weights.coverage).toBe(25);
+            expect(weights.operability).toBe(25);
         });
 
         it('should return minimal weights for minimal profile', () => {
             const weights = getWeightsForProfile('minimal');
-            expect(weights.completeness).toBe(30);
+            expect(weights.coverage).toBe(30);
             expect(weights.safety).toBe(30);
         });
 
         it('should return advanced weights for advanced profile', () => {
             const weights = getWeightsForProfile('advanced');
-            expect(weights.evolutionReadiness).toBe(25);
-            expect(weights.verifiability).toBe(25);
+            expect(weights.maintainability).toBe(20);
+            expect(weights.grounding).toBe(25);
         });
     });
 
@@ -119,11 +119,11 @@ describe('evaluation.config', () => {
     describe('validateWeightProfile', () => {
         it('should return valid for weights summing to 100', () => {
             const result = validateWeightProfile({
-                completeness: 25,
-                specificity: 20,
-                verifiability: 20,
+                coverage: 25,
+                operability: 25,
+                grounding: 20,
                 safety: 20,
-                evolutionReadiness: 15,
+                maintainability: 10,
             });
             expect(result.valid).toBe(true);
             expect(result.sum).toBe(100);
@@ -131,11 +131,11 @@ describe('evaluation.config', () => {
 
         it('should return invalid for weights not summing to 100', () => {
             const result = validateWeightProfile({
-                completeness: 30,
-                specificity: 20,
-                verifiability: 20,
+                coverage: 30,
+                operability: 25,
+                grounding: 20,
                 safety: 20,
-                evolutionReadiness: 15,
+                maintainability: 10,
             });
             expect(result.valid).toBe(false);
             expect(result.sum).toBe(105);
@@ -159,17 +159,17 @@ describe('evaluation.config', () => {
         });
     });
 
-    describe('SPECIFICITY_INDICATORS', () => {
+    describe('OPERABILITY_INDICATORS', () => {
         it('should have decision tree patterns', () => {
-            expect(SPECIFICITY_INDICATORS.decisionTrees.length).toBeGreaterThan(0);
+            expect(OPERABILITY_INDICATORS.decisionTrees.length).toBeGreaterThan(0);
         });
 
         it('should have example patterns', () => {
-            expect(SPECIFICITY_INDICATORS.examples.length).toBeGreaterThan(0);
+            expect(OPERABILITY_INDICATORS.examples.length).toBeGreaterThan(0);
         });
 
-        it('should have version patterns', () => {
-            expect(SPECIFICITY_INDICATORS.versions.length).toBeGreaterThan(0);
+        it('should have constraint patterns', () => {
+            expect(OPERABILITY_INDICATORS.constraints.length).toBeGreaterThan(0);
         });
     });
 
