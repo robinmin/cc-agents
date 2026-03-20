@@ -984,65 +984,65 @@ export function printTextReport(report: AgentEvaluationReport, verbose: boolean)
     const { COLORS: C } = { COLORS };
 
     // Header
-    console.log('');
-    console.log(`${C.cyan}Agent Evaluation Report${C.reset}`);
-    console.log(`${'='.repeat(60)}`);
-    console.log(`  Agent:    ${report.agentName}`);
-    console.log(`  Path:     ${report.agentPath}`);
-    console.log(`  Profile:  ${report.weightProfile}`);
-    console.log(`  Scope:    ${report.scope}`);
-    console.log('');
+    logger.log('');
+    logger.log(`${C.cyan}Agent Evaluation Report${C.reset}`);
+    logger.log(`${'='.repeat(60)}`);
+    logger.log(`  Agent:    ${report.agentName}`);
+    logger.log(`  Path:     ${report.agentPath}`);
+    logger.log(`  Profile:  ${report.weightProfile}`);
+    logger.log(`  Scope:    ${report.scope}`);
+    logger.log('');
 
     // Rejection check
     if (report.rejected) {
-        console.log(`${C.red}  REJECTED: ${report.rejectReason}${C.reset}`);
-        console.log('');
+        logger.log(`${C.red}  REJECTED: ${report.rejectReason}${C.reset}`);
+        logger.log('');
         return;
     }
 
     // Overall score
     const gradeColor = report.passed ? C.green : C.red;
-    console.log(`  Grade:    ${gradeColor}${report.grade}${C.reset} (${report.percentage}%)`);
-    console.log(`  Score:    ${report.overallScore} / ${report.maxScore}`);
-    console.log(`  Status:   ${report.passed ? `${C.green}PASS${C.reset}` : `${C.red}FAIL${C.reset}`}`);
-    console.log('');
+    logger.log(`  Grade:    ${gradeColor}${report.grade}${C.reset} (${report.percentage}%)`);
+    logger.log(`  Score:    ${report.overallScore} / ${report.maxScore}`);
+    logger.log(`  Status:   ${report.passed ? `${C.green}PASS${C.reset}` : `${C.red}FAIL${C.reset}`}`);
+    logger.log('');
 
     // Dimension breakdown
-    console.log(`${C.cyan}Dimension Breakdown${C.reset}`);
-    console.log(`${'-'.repeat(60)}`);
+    logger.log(`${C.cyan}Dimension Breakdown${C.reset}`);
+    logger.log(`${'-'.repeat(60)}`);
 
     for (const dim of report.dimensions) {
         const dimPct = dim.maxScore > 0 ? Math.round((dim.score / dim.maxScore) * 100) : 0;
         const dimColor = dimPct >= 70 ? C.green : dimPct >= 40 ? C.yellow : C.red;
         const bar = renderBar(dim.score, dim.maxScore);
 
-        console.log(`  ${dim.displayName.padEnd(26)} ${bar}  ${dimColor}${dim.score}/${dim.maxScore}${C.reset}`);
+        logger.log(`  ${dim.displayName.padEnd(26)} ${bar}  ${dimColor}${dim.score}/${dim.maxScore}${C.reset}`);
 
         if (verbose) {
             for (const finding of dim.findings) {
-                console.log(`    [i] ${finding}`);
+                logger.log(`    [i] ${finding}`);
             }
             for (const rec of dim.recommendations) {
-                console.log(`    [>] ${rec}`);
+                logger.log(`    [>] ${rec}`);
             }
         }
     }
 
-    console.log('');
+    logger.log('');
 
     // Recommendations summary (non-verbose)
     if (!verbose) {
         const allRecs = report.dimensions.flatMap((d) => d.recommendations);
         if (allRecs.length > 0) {
-            console.log(`${C.cyan}Top Recommendations${C.reset}`);
-            console.log(`${'-'.repeat(60)}`);
+            logger.log(`${C.cyan}Top Recommendations${C.reset}`);
+            logger.log(`${'-'.repeat(60)}`);
             for (const rec of allRecs.slice(0, 5)) {
-                console.log(`  [>] ${rec}`);
+                logger.log(`  [>] ${rec}`);
             }
             if (allRecs.length > 5) {
-                console.log(`  ... and ${allRecs.length - 5} more (use --verbose for all)`);
+                logger.log(`  ... and ${allRecs.length - 5} more (use --verbose for all)`);
             }
-            console.log('');
+            logger.log('');
         }
     }
 }
@@ -1052,17 +1052,17 @@ export function printTextReport(report: AgentEvaluationReport, verbose: boolean)
 // ============================================================================
 
 export function printUsage(): void {
-    console.log('Usage: evaluate.ts <agent-path> [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <agent-path>                Path to agent .md file');
-    console.log('');
-    console.log('Options:');
-    console.log('  --scope <basic|full>        Evaluation scope (default: full)');
-    console.log('  --profile <name|auto>       Weight profile: thin-wrapper, specialist, auto (default: auto)');
-    console.log('  --output <json|text>        Output format (default: text)');
-    console.log('  --verbose, -v               Show detailed findings');
-    console.log('  --help, -h                  Show help');
+    logger.log('Usage: evaluate.ts <agent-path> [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <agent-path>                Path to agent .md file');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  --scope <basic|full>        Evaluation scope (default: full)');
+    logger.log('  --profile <name|auto>       Weight profile: thin-wrapper, specialist, auto (default: auto)');
+    logger.log('  --output <json|text>        Output format (default: text)');
+    logger.log('  --verbose, -v               Show detailed findings');
+    logger.log('  --help, -h                  Show help');
 }
 
 export function parseCliArgs(): {
@@ -1134,7 +1134,7 @@ async function main(): Promise<void> {
     const report = await evaluateAgent(agentPath, scope, profile);
 
     if (output === 'json') {
-        console.log(JSON.stringify(report, null, 2));
+        logger.log(JSON.stringify(report, null, 2));
     } else {
         printTextReport(report, verbose);
     }
