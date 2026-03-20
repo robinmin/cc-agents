@@ -17,9 +17,7 @@
         "lint:fix:all": "biome lint --write plugins/rd3",
         "check": "bun run lint && bun run typecheck && bun run test",
         "typecheck": "tsc --noEmit",
-        "test": "bun test",
-        "test:watch": "bun test --watch",
-        "test:coverage": "bun test --coverage"
+        "test": "bun test --reporter=dots"
     },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",
