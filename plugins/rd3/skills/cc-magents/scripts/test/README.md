@@ -66,14 +66,14 @@ Expected validation result for `agents-md-dev-agent.md`:
 ### evaluate-output.json
 
 Expected evaluation result for `agents-md-dev-agent.md`:
-- Grade: C (75%)
+- Grade: F (51%)
 - Pass threshold: 75%
 - Dimension scores:
-  - Completeness: 85%
-  - Specificity: 65%
-  - Verifiability: 70%
-  - Safety: 90%
-  - Evolution-Readiness: 60%
+  - Coverage: 69%
+  - Operability: 49%
+  - Grounding: 64%
+  - Safety: 12%
+  - Maintainability: 60%
 
 ### adapt-output.json
 
