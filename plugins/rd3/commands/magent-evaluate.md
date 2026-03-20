@@ -15,7 +15,7 @@ examples:
 
 # magent-evaluate
 
-Evaluate the quality of a main agent configuration across 5 dimensions.
+Evaluate the quality of a main agent configuration across 5 MECE dimensions.
 
 ## When to Use
 
@@ -42,19 +42,19 @@ Validation runs automatically before evaluation. Structural issues are reported 
 
 | Dimension | Weight | Measures |
 |-----------|--------|----------|
-| **Completeness** | 25% | All necessary sections present and substantive |
-| **Specificity** | 20% | Concrete examples, decision trees, version numbers |
-| **Verifiability** | 20% | Anti-hallucination protocol, confidence scoring |
-| **Safety** | 20% | CRITICAL rules, destructive action warnings |
-| **Evolution-Readiness** | 15% | Memory architecture, feedback mechanisms |
+| **Coverage** | 25% | Core sections and concerns are present and substantive |
+| **Operability** | 25% | Decision trees, executable examples, output contracts |
+| **Grounding** | 20% | Evidence, verification steps, uncertainty handling |
+| **Safety** | 20% | CRITICAL rules, approvals, destructive action warnings |
+| **Maintainability** | 10% | Memory, feedback, steering, version tracking |
 
 ## Weight Profiles
 
 | Profile | Best For |
 |---------|----------|
 | `standard` | Balanced evaluation (default) |
-| `minimal` | Simple configs prioritizing completeness/safety |
-| `advanced` | Self-evolving configs prioritizing evolution/verifiability |
+| `minimal` | Simple configs prioritizing coverage/safety |
+| `advanced` | Self-evolving configs prioritizing maintainability/grounding |
 
 ## Grade Thresholds
 
