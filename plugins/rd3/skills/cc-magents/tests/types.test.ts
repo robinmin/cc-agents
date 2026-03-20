@@ -159,8 +159,8 @@ describe('types', () => {
     describe('DimensionScore', () => {
         it('should accept valid dimension score', () => {
             const score: DimensionScore = {
-                dimension: 'completeness',
-                displayName: 'Completeness',
+                dimension: 'coverage',
+                displayName: 'Coverage',
                 weight: 25,
                 score: 80,
                 maxScore: 100,
@@ -168,7 +168,7 @@ describe('types', () => {
                 findings: ['Found identity section'],
                 recommendations: ['Add tools section'],
             };
-            expect(score.dimension).toBe('completeness');
+            expect(score.dimension).toBe('coverage');
             expect(score.percentage).toBe(80);
         });
     });
