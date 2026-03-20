@@ -622,11 +622,11 @@ function generateProposalsFromEvaluation(
 
 function dimensionToSection(dimension: string): string {
     const map: Record<string, string> = {
-        completeness: 'rules',
-        specificity: 'tools',
-        verifiability: 'verification',
+        coverage: 'rules',
+        operability: 'tools',
+        grounding: 'verification',
         safety: 'rules',
-        'evolution-readiness': 'memory',
+        maintainability: 'memory',
     };
     return map[dimension] || 'rules';
 }
