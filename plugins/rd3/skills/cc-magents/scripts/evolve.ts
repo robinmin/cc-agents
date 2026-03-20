@@ -1295,18 +1295,6 @@ export async function handleEvolveCLI(options: EvolveCLIOptions = {}): Promise<E
     };
 }
 
-async function main(): Promise<void> {
-    const result = await handleEvolveCLI();
-
-    if (result.error) {
-        logger.error(result.error);
-    }
-    if (result.output) {
-        logger.log(result.output);
-    }
-    process.exit(result.exitCode);
-}
-
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -1457,8 +1445,18 @@ function countSubstringMatches(text: string, needle: string): number {
 
 // Run if executed directly
 if (import.meta.main) {
-    main().catch((error) => {
+    try {
+        const result = await handleEvolveCLI();
+
+        if (result.error) {
+            logger.error(result.error);
+        }
+        if (result.output) {
+            logger.log(result.output);
+        }
+        process.exit(result.exitCode);
+    } catch (error) {
         logger.error(`Unexpected error: ${error}`);
         process.exit(1);
-    });
+    }
 }
