@@ -34,6 +34,24 @@ export const COLORS = {
     magenta: '\x1b[35m',
 };
 
+/** Global silent flag - when set to true, all logger output is suppressed */
+let globalSilent = false;
+
+/**
+ * Set global silent mode for all logger instances.
+ * Useful during testing to suppress all output.
+ */
+export function setGlobalSilent(silent: boolean): void {
+    globalSilent = silent;
+}
+
+/**
+ * Check if global silent mode is enabled
+ */
+export function isGlobalSilent(): boolean {
+    return globalSilent;
+}
+
 export class Logger {
     private level: number;
     private prefix: string;
@@ -57,32 +75,32 @@ export class Logger {
     }
 
     debug(message: string, ...args: unknown[]): void {
-        if (this.level <= LOG_LEVELS.debug) {
+        if (!globalSilent && this.level <= LOG_LEVELS.debug) {
             console.debug(this.format('DEBUG', message, COLORS.cyan), ...args);
         }
     }
 
     info(message: string, ...args: unknown[]): void {
-        if (this.level <= LOG_LEVELS.info) {
+        if (!globalSilent && this.level <= LOG_LEVELS.info) {
             console.info(this.format('INFO', message, COLORS.green), ...args);
         }
     }
 
     warn(message: string, ...args: unknown[]): void {
-        if (this.level <= LOG_LEVELS.warn) {
+        if (!globalSilent && this.level <= LOG_LEVELS.warn) {
             console.warn(this.format('WARN', message, COLORS.yellow), ...args);
         }
     }
 
     error(message: string, ...args: unknown[]): void {
-        if (this.level <= LOG_LEVELS.error) {
+        if (!globalSilent && this.level <= LOG_LEVELS.error) {
             console.error(this.format('ERROR', message, COLORS.red), ...args);
         }
     }
 
     /** Log a success message with checkmark */
     success(message: string): void {
-        if (this.level <= LOG_LEVELS.info) {
+        if (!globalSilent && this.level <= LOG_LEVELS.info) {
             const check = this.color ? `${COLORS.green}[OK]${COLORS.reset}` : '[OK]';
             console.log(`${check} ${message}`);
         }
@@ -90,9 +108,20 @@ export class Logger {
 
     /** Log an error with X mark */
     fail(message: string): void {
-        if (this.level <= LOG_LEVELS.error) {
+        if (!globalSilent && this.level <= LOG_LEVELS.error) {
             const x = this.color ? `${COLORS.red}[X]${COLORS.reset}` : '[X]';
             console.error(`${x} ${message}`);
+        }
+    }
+
+    /**
+     * General-purpose log that respects globalSilent.
+     * Does not add prefixes or timestamps - outputs exactly what console.log would.
+     * Use this for CLI output that should be suppressed during tests.
+     */
+    log(...args: unknown[]): void {
+        if (!globalSilent) {
+            console.log(...args);
         }
     }
 }
