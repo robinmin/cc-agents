@@ -111,7 +111,7 @@ I am a test.
             const result = await evaluateMagentConfig(filePath, content);
 
             // Should have findings about empty sections
-            const completenessDim = result.dimensions.find((d) => d.dimension === 'completeness');
+            const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
             expect(completenessDim!.findings.some((f) => f.includes('empty'))).toBe(true);
             unlinkSync(filePath);
@@ -135,7 +135,7 @@ Another example:
             const filePath = createTestFile('examples.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const specificityDim = result.dimensions.find((d) => d.dimension === 'specificity');
+            const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
             // Should find example blocks
             expect(specificityDim!.findings.some((f) => f.includes('example'))).toBe(true);
@@ -156,7 +156,7 @@ Version 3.0 added feature X`;
             const filePath = createTestFile('versions.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const specificityDim = result.dimensions.find((d) => d.dimension === 'specificity');
+            const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
             expect(specificityDim!.findings.some((f) => f.includes('version'))).toBe(true);
             unlinkSync(filePath);
@@ -177,30 +177,30 @@ I am a test.
             const filePath = createTestFile('thresholds.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const specificityDim = result.dimensions.find((d) => d.dimension === 'specificity');
+            const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
-            expect(specificityDim!.findings.some((f) => f.includes('threshold'))).toBe(true);
+            expect(specificityDim!.findings.some((f) => f.includes('constraint'))).toBe(true);
             unlinkSync(filePath);
         });
 
-        it('should detect tables in content', async () => {
+        it('should detect output contract patterns in content', async () => {
             const content = `# Identity
 
 I am a test.
 
-## Rules
+## Output
 
-| Priority | Task | Status |
-|----------|------|--------|
-| High | A | Done |
-| Low | B | Pending |`;
+Response format:
+- Start with a short summary
+- End with JSON
+- Include file references in markdown`;
 
             const filePath = createTestFile('tables.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const specificityDim = result.dimensions.find((d) => d.dimension === 'specificity');
+            const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
-            expect(specificityDim!.findings.some((f) => f.includes('table'))).toBe(true);
+            expect(specificityDim!.findings.some((f) => f.includes('output contract'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -220,7 +220,7 @@ When NOT to Use:
             const filePath = createTestFile('decisions.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const specificityDim = result.dimensions.find((d) => d.dimension === 'specificity');
+            const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
             // Decision tree findings say "Decision tree" or contain "When"
             expect(specificityDim!.findings.some((f) => f.includes('Decision') || f.includes('When'))).toBe(true);
@@ -241,9 +241,9 @@ IF error THEN retry with exponential backoff
             const filePath = createTestFile('ifthen.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const specificityDim = result.dimensions.find((d) => d.dimension === 'specificity');
+            const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
-            // IF-THEN pattern should contribute to specificity score
+            // IF-THEN pattern should contribute to operability score
             expect(specificityDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
@@ -262,9 +262,9 @@ Version 3.0.0 added feature X`;
             const filePath = createTestFile('versions.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const specificityDim = result.dimensions.find((d) => d.dimension === 'specificity');
+            const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
-            // Version patterns should contribute to specificity score
+            // Version patterns should contribute to operability score
             expect(specificityDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
@@ -284,9 +284,9 @@ $ npm test
             const filePath = createTestFile('commands.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const specificityDim = result.dimensions.find((d) => d.dimension === 'specificity');
+            const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
-            // Command patterns should contribute to specificity score
+            // Command patterns should contribute to operability score
             expect(specificityDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
@@ -305,10 +305,9 @@ I am a test.
             const filePath = createTestFile('antihall.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'verifiability');
+            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
-            // Should find anti-hallucination indicators
-            expect(verifiabilityDim!.findings.some((f) => f.includes('anti-hallucination'))).toBe(true);
+            expect(verifiabilityDim!.findings.some((f) => f.includes('uncertainty') || f.includes('verification'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -406,7 +405,7 @@ Handle errors gracefully.`;
 
             expect(result.overallScore).toBeGreaterThan(0);
             // Should have completeness dimension with optional category findings
-            const completenessDim = result.dimensions.find((d) => d.dimension === 'completeness');
+            const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
             // Should find optional categories
             const foundOptionalFindings = completenessDim!.findings.filter((f) => f.includes('optional'));
@@ -414,7 +413,7 @@ Handle errors gracefully.`;
             unlinkSync(filePath);
         });
 
-        it('should calculate specificity with multiple substance levels', async () => {
+        it('should calculate coverage with multiple substance levels', async () => {
             const content = `# Identity
 
 Short.
@@ -447,12 +446,12 @@ Even more substantial content here that continues to build out the section with 
             const result = await evaluateMagentConfig(filePath, content);
 
             expect(result.overallScore).toBeGreaterThan(0);
-            const completenessDim = result.dimensions.find((d) => d.dimension === 'completeness');
+            const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
             unlinkSync(filePath);
         });
 
-        it('should detect steering/preferences patterns for evolution-readiness', async () => {
+        it('should detect steering/preferences patterns for maintainability', async () => {
             const content = `# Identity
 
 I am a test.
@@ -474,7 +473,7 @@ Prefer async operations.`;
             const filePath = createTestFile('preferences.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const evolutionDim = result.dimensions.find((d) => d.dimension === 'evolution-readiness');
+            const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
             // Should have steering/preference findings
             expect(evolutionDim!.findings.some((f) => f.includes('steering') || f.includes('preference'))).toBe(true);
@@ -503,14 +502,13 @@ v2.0.0: Major rewrite`;
             const filePath = createTestFile('changelog.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const evolutionDim = result.dimensions.find((d) => d.dimension === 'evolution-readiness');
+            const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
-            // Should have version history findings
-            expect(evolutionDim!.findings.some((f) => f.includes('version history') || f.includes('changelog'))).toBe(true);
+            expect(evolutionDim!.findings.some((f) => f.includes('versioning') || f.includes('change-tracking'))).toBe(true);
             unlinkSync(filePath);
         });
 
-        it('should detect feedback patterns for evolution-readiness', async () => {
+        it('should detect feedback patterns for maintainability', async () => {
             const content = `# Identity
 
 I am a test.
@@ -532,7 +530,7 @@ Iterate based on user ratings.`;
             const filePath = createTestFile('feedback.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const evolutionDim = result.dimensions.find((d) => d.dimension === 'evolution-readiness');
+            const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
             expect(evolutionDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -709,7 +707,7 @@ Always state your confidence when uncertain.`;
             const filePath = createTestFile('confidence.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'verifiability');
+            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
             expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -730,7 +728,7 @@ I am a test agent.
             const filePath = createTestFile('verify.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'verifiability');
+            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
             expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -753,13 +751,13 @@ Sources: https://example.org`;
             const filePath = createTestFile('citations.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'verifiability');
+            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
             expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
-        it('should calculate verifiability score with multiple indicators', async () => {
+        it('should calculate grounding score with multiple indicators', async () => {
             const content = `# Identity
 
 I am a test agent.
@@ -779,7 +777,7 @@ Run: npm test`;
             const filePath = createTestFile('multi-verify.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'verifiability');
+            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
             expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
             expect(verifiabilityDim!.findings.length).toBeGreaterThan(0);
@@ -802,13 +800,13 @@ I am a test agent.
             const filePath = createTestFile('uncertainty.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'verifiability');
+            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
             expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
-        it('should score sections with verifiability indicators', async () => {
+        it('should score sections with grounding indicators', async () => {
             const content = `# Identity
 
 I am a test agent.
@@ -822,10 +820,10 @@ Cross-ref with reliable sources.`;
             const filePath = createTestFile('section-verify.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            // Should have dimensions with verifiability
+            // Should have dimensions with grounding
             expect(result.dimensions).toBeDefined();
             expect(result.dimensions.length).toBeGreaterThan(0);
-            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'verifiability');
+            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
             expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -845,7 +843,7 @@ Persist important facts across interactions.`;
             const filePath = createTestFile('memory.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const evolutionDim = result.dimensions.find((d) => d.dimension === 'evolution-readiness');
+            const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
             expect(evolutionDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -865,7 +863,7 @@ Update context after each operation.`;
             const filePath = createTestFile('context.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const evolutionDim = result.dimensions.find((d) => d.dimension === 'evolution-readiness');
+            const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
             expect(evolutionDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -895,7 +893,7 @@ v3.0: Improved feedback`;
             const filePath = createTestFile('multi-evolution.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const evolutionDim = result.dimensions.find((d) => d.dimension === 'evolution-readiness');
+            const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
             expect(evolutionDim!.percentage).toBeGreaterThan(0);
             expect(evolutionDim!.findings.length).toBeGreaterThan(0);
@@ -933,7 +931,7 @@ v1.0.0: Initial release`;
             const filePath = createTestFile('all-evolution.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const evolutionDim = result.dimensions.find((d) => d.dimension === 'evolution-readiness');
+            const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
             expect(evolutionDim!.percentage).toBeGreaterThan(50);
             unlinkSync(filePath);
@@ -979,7 +977,7 @@ Rule 3: Follow best practices`;
             const filePath = createTestFile('rules-section.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const completenessDim = result.dimensions.find((d) => d.dimension === 'completeness');
+            const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
             expect(completenessDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -1000,7 +998,7 @@ Grep: Search for patterns in files`;
             const filePath = createTestFile('tools-specific.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const completenessDim = result.dimensions.find((d) => d.dimension === 'completeness');
+            const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
             expect(completenessDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -1086,8 +1084,8 @@ v1.0: Initial release`;
 
             expect(result.weightProfile).toBe('advanced');
             expect(result.overallScore).toBeGreaterThan(0);
-            // Advanced profile should have higher verifiability weight
-            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'verifiability');
+            // Advanced profile should have higher grounding weight
+            const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim!.weight).toBe(25);
             unlinkSync(filePath);
         });
@@ -1110,8 +1108,8 @@ Use Read.`;
             const result = await evaluateMagentConfig(filePath, content, 'minimal');
 
             expect(result.weightProfile).toBe('minimal');
-            // Minimal profile should have higher completeness weight
-            const completenessDim = result.dimensions.find((d) => d.dimension === 'completeness');
+            // Minimal profile should have higher coverage weight
+            const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim!.weight).toBe(30);
             unlinkSync(filePath);
         });
@@ -1189,7 +1187,7 @@ v2.0.0: Stable release`;
             const filePath = createTestFile('semver.md', content);
             const result = await evaluateMagentConfig(filePath, content);
 
-            const evolutionDim = result.dimensions.find((d) => d.dimension === 'evolution-readiness');
+            const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
             expect(evolutionDim!.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
@@ -1231,7 +1229,7 @@ Be helpful.`;
             const result = await runEvaluate({ configPath: filePath, profile: 'minimal' });
 
             expect(result.report.weightProfile).toBe('minimal');
-            expect(result.report.dimensions.find((d) => d.dimension === 'completeness')?.weight).toBe(30);
+            expect(result.report.dimensions.find((d) => d.dimension === 'coverage')?.weight).toBe(30);
             unlinkSync(filePath);
         });
 
@@ -1328,8 +1326,8 @@ Be helpful.`;
                 weightProfile: 'standard' as const,
                 dimensions: [
                     {
-                        dimension: 'completeness' as const,
-                        displayName: 'Completeness',
+                        dimension: 'coverage' as const,
+                        displayName: 'Coverage',
                         weight: 25,
                         score: 80,
                         maxScore: 100,
@@ -1348,7 +1346,7 @@ Be helpful.`;
             const result = formatEvaluateReport(validation, report, '/test.md');
 
             expect(result).toContain('EVALUATION REPORT');
-            expect(result).toContain('Completeness');
+            expect(result).toContain('Coverage');
             expect(result).toContain('80%');
             expect(result).toContain('B');
             expect(result).toContain('PASS');
@@ -1363,8 +1361,8 @@ Be helpful.`;
                 weightProfile: 'standard' as const,
                 dimensions: [
                     {
-                        dimension: 'completeness' as const,
-                        displayName: 'Completeness',
+                        dimension: 'coverage' as const,
+                        displayName: 'Coverage',
                         weight: 25,
                         score: 50,
                         maxScore: 100,
@@ -1395,8 +1393,8 @@ Be helpful.`;
                 weightProfile: 'standard' as const,
                 dimensions: [
                     {
-                        dimension: 'completeness' as const,
-                        displayName: 'Completeness',
+                        dimension: 'coverage' as const,
+                        displayName: 'Coverage',
                         weight: 25,
                         score: 80,
                         maxScore: 100,
