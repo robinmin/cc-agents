@@ -2,6 +2,65 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-03-20
+
+### ✨ New Features
+
+- **cc-magents Skill**: Complete meta-skill for managing main agent configuration files
+  - `add` - Create new AGENTS.md, CLAUDE.md, GEMINI.md from templates
+  - `evaluate` - Score config quality across 5 dimensions (A-F grade)
+  - `refine` - Auto-fix issues with dry-run preview
+  - `evolve` - Self-improvement proposals from interaction patterns
+  - `adapt` - Convert between platform formats
+
+- **23+ Platform Adapters**: Universal Main Agent Model (UMAM) support
+  - Claude Code (CLAUDE.md, AGENTS.md)
+  - Cursor (.cursorrules)
+  - Windsurf (.windsurfrules)
+  - Zed (zed-rules)
+  - OpenCode (opencode-rules)
+  - Aider, Warp, RooCode, Amp, VSCode instructions
+  - Junie, Augment, Cline, and more
+
+- **6 Main Agent Templates**: Ready-to-use configurations
+  - `dev-agent` - Development-focused agent
+  - `devops-agent` - DevOps/infrastructure agent
+  - `research-agent` - Research and analysis agent
+  - `data-agent` - Data science agent
+  - `content-agent` - Content creation agent
+  - `general-agent` - General-purpose agent
+
+- **Evolution Capability**: Added to cc-skills
+  - `evolve` operation for self-improvement proposals
+  - Pattern-based improvement suggestions
+
+- **Slash Commands for Main Agents**: Five new wrapper commands
+  - `/rd3:magent-add` - Create new main agent config
+  - `/rd3:magent-evaluate` - Score config quality
+  - `/rd3:magent-refine` - Fix config issues
+  - `/rd3:magent-evolve` - Generate improvement proposals
+  - `/rd3:magent-adapt` - Cross-platform conversion
+
+### 🔧 Improvements
+
+- **5-Dimension Evaluation Framework**: Main agent quality scoring
+  - Structural Integrity (20%)
+  - Content Quality (25%)
+  - Platform Compatibility (20%)
+  - Behavioral Clarity (20%)
+  - Maintainability (15%)
+
+- **Comprehensive Test Coverage**: Full test suites for cc-magents
+  - Unit tests for all operations
+  - Adapter tests for all platforms
+  - Integration tests with fixtures
+
+### 📝 Documentation
+
+- Updated README.md with four meta-skill architecture guide
+- Skill selection decision matrix
+- Recommended workflows for all four skills
+
 ## [0.2.0] - 2026-03-19
 
 ### ✨ New Features
