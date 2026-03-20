@@ -36,7 +36,6 @@
       "WebFetch(domain:almcorp.com)",
       "WebFetch(domain:developers.openai.com)",
       "Bash(ast-grep:*)",
-      "Bash(mgrep:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(make:*)",
