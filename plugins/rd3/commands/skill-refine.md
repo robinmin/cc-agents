@@ -1,8 +1,32 @@
 ---
-description: Evaluate and fix skill issues in one step
-argument-hint: "<skill-path> [description] [--best-practices] [--migrate] [--dry-run]"
+description: "Evaluate and fix skill issues in one step"
+argument-hint: "<skill-path> [description] [--migrate] [--dry-run]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
+
+# Skill Refine
+
+Wraps **rd3:cc-skills** skill.
+
+Run evaluation internally then apply fixes in one step. **Best practices auto-fixes are enabled by default.**
+
+## When to Use
+
+- Fix skill issues without running evaluate separately
+- Apply deterministic fixes automatically (best practices enabled by default)
+- Migrate existing rd2 skills to rd3 format
+- Clean up a skill after updating its type, docs, or interaction-pattern guidance
+
+## Arguments
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `skill-path` | Path to the skill directory | (required) |
+| `description` | Optional free-text goal to guide refinement | (none) |
+| `--migrate` | Migrate rd2 to rd3 format | false |
+| `--dry-run` | Preview changes without applying | false |
+| `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
+| `--no-best-practices` | Disable best practice auto-fixes | false |
 
 # Skill Refine
 
@@ -13,8 +37,7 @@ Run evaluation internally then apply fixes in one step.
 ## When to Use
 
 - Fix skill issues without running evaluate separately
-- Apply best practice fixes automatically
-- Use LLM to fix style and voice issues
+- Apply deterministic fixes automatically
 - Migrate existing rd2 skills to rd3 format
 - Clean up a skill after updating its type, docs, or interaction-pattern guidance
 
@@ -24,7 +47,6 @@ Run evaluation internally then apply fixes in one step.
 |----------|-------------|---------|
 | `skill-path` | Path to the skill directory | (required) |
 | `description` | Optional free-text goal to guide refinement | (none) |
-| `--best-practices` | Auto-fix TODOs, Windows paths, formatting | false |
 | `--migrate` | Migrate rd2 to rd3 format | false |
 | `--dry-run` | Preview changes without applying | false |
 | `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
@@ -32,11 +54,8 @@ Run evaluation internally then apply fixes in one step.
 ## Examples
 
 ```bash
-# Evaluate then apply deterministic fixes (most common)
-/rd3:skill-refine ./skills/my-skill --best-practices
-
-# Refine with a goal description
-/rd3:skill-refine ./skills/my-skill "REST API scaffolding with OpenAPI integration"
+# Evaluate then apply fixes (most common)
+/rd3:skill-refine ./skills/my-skill
 
 # Migrate rd2 skill to rd3 format
 /rd3:skill-refine ./skills/my-skill --migrate
