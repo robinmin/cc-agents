@@ -15,6 +15,7 @@ Analyze skill quality over time, persist refine-backed proposals, and apply or r
 - Generate proposals after evaluation drift or repeated review feedback
 - Apply low-risk fixes through `refine.ts` with snapshot-backed rollback
 - Inspect current evolution history
+- Propose follow-up changes when a skill's interaction-pattern design needs to mature over time
 
 ## Arguments
 
