@@ -10,6 +10,18 @@ metadata:
     - generator
     - reviewer
     - pipeline
+  severity_levels:
+    - critical
+    - major
+    - minor
+    - info
+  pipeline_steps:
+    - scaffold
+    - validate
+    - evaluate
+    - refine
+    - adapt
+    - evolve
 ---
 
 # cc-agents: Universal Subagent Creator
