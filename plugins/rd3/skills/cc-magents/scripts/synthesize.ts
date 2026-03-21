@@ -221,15 +221,15 @@ export function detectProject(projectRoot: string): ProjectDetection {
     const suggestedTemplate = language ? (LANGUAGE_TO_DOMAIN[language] ?? 'general-agent') : 'general-agent';
 
     return {
-        language,
         frameworks,
-        packageManager,
-        testRunner,
-        ciPlatform,
         linters,
         formatters,
         existingConfigs,
         suggestedTemplate,
+        ...(language ? { language } : {}),
+        ...(packageManager ? { packageManager } : {}),
+        ...(testRunner ? { testRunner } : {}),
+        ...(ciPlatform ? { ciPlatform } : {}),
     };
 }
 
@@ -486,9 +486,7 @@ export async function synthesize(options: SynthesizeOptions): Promise<Synthesize
     }
 
     // Always run detection to get project info for template processing
-    detection = options.detectionOverride
-        ? options.detectionOverride(projectRoot)
-        : detectProject(projectRoot);
+    detection = options.detectionOverride ? options.detectionOverride(projectRoot) : detectProject(projectRoot);
     warnings.push(...detection.existingConfigs.map((c) => `Found existing config: ${c.path}`));
 
     // If no template provided, use detected template
