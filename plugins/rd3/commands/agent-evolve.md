@@ -1,14 +1,14 @@
 ---
 description: Analyze agent evolution signals and draft proposals
 argument-hint: "<agent-path> --analyze|--propose|--apply <id>|--history|--rollback <ver>"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Agent Evolve
 
 Wraps **rd3:cc-agents** skill.
 
-Analyze agent quality over time, persist refine-backed proposals, apply deterministic proposals, and rollback via saved version history.
+Analyze agent quality over time, persist refine-backed proposals, apply deterministic proposals, and rollback via saved version history. **See [Evolve Workflow](references/workflows.md#evolve-workflow) for full step details.**
 
 ## When to Use
 
