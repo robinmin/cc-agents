@@ -1,10 +1,20 @@
 # Skill Patterns Guide
 
-This guide documents the five proven patterns for building rd3 skills. Each pattern addresses a specific category of use cases.
+This guide documents the proven rd3 workflow patterns for building skills. Each pattern addresses a specific category of use cases.
 
 ## Overview
 
-rd3 skills follow five distinct patterns that represent best practices. Understanding these patterns helps skill creators choose the right approach.
+rd3 skills follow a small set of workflow patterns that represent best practices. Understanding these patterns helps skill creators choose the right approach.
+
+## Relationship to ADK Patterns
+
+These rd3 patterns are **workflow heuristics** for authors.
+
+They complement, rather than replace, the ADK interaction patterns documented in [skill-patterns-adk.md](skill-patterns-adk.md):
+- rd3 patterns help you shape overall workflow logic
+- ADK patterns help you label runtime behavior such as `pipeline` or `reviewer`
+
+Use both when useful.
 
 | Pattern | Use Case | Key Technique |
 | ------- |----------|---------------|
@@ -55,6 +65,7 @@ rd3 skills follow five distinct patterns that represent best practices. Understa
 - Document generation pipelines
 - Approval workflows
 - Configuration setups
+- ADK `pipeline` skills that need stronger gates
 
 ### When NOT to Use
 
@@ -175,6 +186,7 @@ rd3 skills follow five distinct patterns that represent best practices. Understa
 - Code review automation
 - Document refinement
 - Testing and validation loops
+- ADK `reviewer` skills that may need multiple improvement passes
 
 ### When NOT to Use
 
@@ -231,6 +243,7 @@ IF file is document:
 - Environment detection
 - Service selection based on context
 - Adaptive behavior
+- ADK `tool-wrapper` skills that load the right reference set for the current task
 
 ### When NOT to Use
 
