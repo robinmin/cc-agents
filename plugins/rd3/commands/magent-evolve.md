@@ -74,6 +74,10 @@ Reverts to a previous version. Requires `--confirm`.
 
 Sections containing `[CRITICAL]` markers can NEVER be auto-modified. All proposals affecting CRITICAL sections require explicit `--confirm`.
 
+## Workflow
+
+See [Evolve Workflow](references/workflows.md#evolve-workflow) for detailed step-by-step flow, safety levels (L1/L2/L3), and history/rollback operations.
+
 ## Implementation
 
 Delegates to evolve.ts script:
