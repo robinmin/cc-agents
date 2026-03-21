@@ -1,19 +1,13 @@
 ---
 description: Convert between platform formats
-argument-hint: <source-path> --to <platform|all> [--output <path>]
-triggers:
-  - "convert to cursorrules"
-  - "adapt for Cursor"
-  - "convert CLAUDE.md to AGENTS.md"
-  - "migrate to .cursorrules"
-  - "cross-platform conversion"
-examples:
-  - "magent-adapt CLAUDE.md --to agents-md"
-  - "magent-adapt AGENTS.md --to cursorrules"
-  - "magent-adapt CLAUDE.md --to all --output ./converted/"
+argument-hint: "<source-path> --to <platform|all> [--output <path>]"
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
+disable-model-invocation: true
 ---
 
 # magent-adapt
+
+Wraps **rd3:cc-magents** skill.
 
 Convert main agent configurations between different platform formats.
 
@@ -69,12 +63,17 @@ Some features may be lost or degraded when converting between platforms:
 
 ## Workflow
 
-See [Adapt Workflow](references/workflows.md#adapt-workflow) for detailed step-by-step flow, platform tiers, and conversion warnings.
+See [references/workflows.md](references/workflows.md#adapt-workflow) for detailed step-by-step flow, platform tiers, and conversion warnings.
 
 ## Implementation
 
-Delegates to adapt.ts script:
+Delegates to **rd3:cc-magents** skill:
 
+```
+Skill(skill="rd3:cc-magents", args="adapt $ARGUMENTS")
+```
+
+**Direct script execution:**
 ```bash
 bun plugins/rd3/skills/cc-magents/scripts/adapt.ts $ARGUMENTS
 ```
@@ -91,3 +90,8 @@ bun plugins/rd3/skills/cc-magents/scripts/adapt.ts $ARGUMENTS
 # Convert to all supported platforms
 /rd3:magent-adapt CLAUDE.md --to all --output ./converted/
 ```
+
+## Platform Notes
+
+- Claude Code: Invoke via `Skill()` delegation
+- Other platforms: Run script directly via Bash tool
