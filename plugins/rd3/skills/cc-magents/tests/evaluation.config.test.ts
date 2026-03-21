@@ -19,19 +19,22 @@ describe('evaluation.config', () => {
 
         it('should have weights that sum to 100 for standard profile', () => {
             const weights = MAGENT_EVALUATION_CONFIG.profiles.standard;
-            const sum = weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
+            const sum =
+                weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
             expect(sum).toBe(100);
         });
 
         it('should have weights that sum to 100 for minimal profile', () => {
             const weights = MAGENT_EVALUATION_CONFIG.profiles.minimal;
-            const sum = weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
+            const sum =
+                weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
             expect(sum).toBe(100);
         });
 
         it('should have weights that sum to 100 for advanced profile', () => {
             const weights = MAGENT_EVALUATION_CONFIG.profiles.advanced;
-            const sum = weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
+            const sum =
+                weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
             expect(sum).toBe(100);
         });
 
