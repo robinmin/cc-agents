@@ -1,7 +1,8 @@
 ---
-description: Create a new skill with scaffolding, templates, and optio...
+description: Create a new skill with scaffolding, templates, and optional ADK behavior
 argument-hint: "<skill-name> [description] [--template technique|pattern|reference] [--interactions tool-wrapper|generator|reviewer|inversion|pipeline|(none)] [--path <dir>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
+disable-model-invocation: true
 ---
 
 # Skill Add
