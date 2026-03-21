@@ -1,0 +1,11 @@
+name: cc-magents
+description: Use this skill when the user asks to 'create an AGENTS.md',
+  'evaluate config quality', 'refine CLAUDE.md', 'evolve agent config', 'convert
+  between platforms', 'adapt AGENTS.md to CLAUDE.md', 'score main agent config',
+  'generate agent rules', 'create a main agent', 'main agent configuration'.
+  Creates, evaluates, refines, evolves, and adapts main agent configuration
+  files (AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, etc.) across 23+
+  platforms using a Universal Main Agent Model (UMAM) and 5-dimension quality
+  scoring.
+version: 1.0.0
+emoji: 🛠️
