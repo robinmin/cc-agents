@@ -9,7 +9,7 @@
  *   bun evaluate.ts <command-path> [options]
  *
  * Options:
- *   --scope <level>      Evaluation scope: basic, full (default: basic)
+ *   --scope <level>      Evaluation scope: basic, full (default: full)
  *   --platform <name>   Target platform: claude, codex, gemini, openclaw, opencode, antigravity, all
  *   --json               Output results as JSON
  *   --verbose, -v        Show detailed evaluation output
@@ -1011,7 +1011,7 @@ export function printUsage(): void {
     console.log('  <command-path>     Path to command .md file');
     console.log('');
     console.log('Options:');
-    console.log('  --scope <level>    Evaluation scope: basic, full (default: basic)');
+    console.log('  --scope <level>    Evaluation scope: basic, full (default: full)');
     console.log('  --platform <name>  Platform: claude, codex, gemini, openclaw, opencode, antigravity, all');
     console.log('  --json             Output results as JSON');
     console.log('  --verbose, -v      Show detailed evaluation output');
@@ -1031,7 +1031,7 @@ export function parseCliArgs(): {
         args: process.argv.slice(2),
         allowPositionals: true,
         options: {
-            scope: { type: 'string', default: 'basic' },
+            scope: { type: 'string', default: 'full' },
             platform: { type: 'string', default: 'all' },
             json: { type: 'boolean', default: false },
             verbose: { type: 'boolean', short: 'v', default: false },
