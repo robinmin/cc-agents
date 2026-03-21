@@ -16,6 +16,7 @@ Run evaluation internally then apply fixes in one step.
 - Apply best practice fixes automatically
 - Use LLM to fix style and voice issues
 - Migrate existing rd2 skills to rd3 format
+- Clean up a skill after updating its type, docs, or interaction-pattern guidance
 
 ## Arguments
 
