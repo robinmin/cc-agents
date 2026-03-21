@@ -6,6 +6,11 @@ metadata:
   author: [author]
   version: "1.0"
   platforms: "claude-code,codex,openclaw,opencode,antigravity"
+  # Add interaction patterns when runtime behavior matters.
+  # Common technique examples:
+  # interactions:
+  #   - pipeline
+  #   - inversion
   openclaw:
     emoji: "🛠️"
 ---
@@ -41,6 +46,14 @@ Follow these steps to complete the workflow:
 ### Step 3: [third step]
 
 [Description of what to do in this step]
+
+## Behavior
+
+[Describe the runtime behavior of this skill. If relevant, note whether it acts as a pipeline, generator, inversion interview, reviewer, or combination.]
+
+**Interaction patterns (if used):**
+- [Primary behavior]
+- [Secondary behavior, if any]
 
 ## Code Examples
 
