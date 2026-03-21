@@ -1,6 +1,6 @@
 ---
-description: Create a new skill with scaffolding and templates
-argument-hint: "<skill-name> [description] [--template technique|pattern|reference] [--path <dir>]"
+description: Create a new skill with scaffolding, templates, and optional ADK interaction patterns
+argument-hint: "<skill-name> [description] [--template technique|pattern|reference] [--interactions tool-wrapper|generator|reviewer|inversion|pipeline|(none)] [--path <dir>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -22,6 +22,7 @@ Scaffold a new skill directory from a template.
 | `skill-name` | Name of the skill to create | (required) |
 | `description` | Optional free-text description of the skill's purpose | auto-generated |
 | `--template` | Template type: technique, pattern, or reference | technique |
+| `--interactions` | Comma-separated ADK behavior patterns: tool-wrapper, generator, reviewer, inversion, pipeline | (none) |
 | `--path` | Output directory for the skill | ./skills |
 | `--resources` | Comma-separated list: scripts, references, assets | (none) |
 | `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
@@ -38,6 +39,9 @@ Scaffold a new skill directory from a template.
 
 # Scaffold a pattern skill with resources
 /rd3:skill-add decision-framework --template pattern --resources scripts,references
+
+# Scaffold a pipeline skill with reviewer behavior
+/rd3:skill-add doc-pipeline --template technique --interactions pipeline,reviewer --resources references,assets
 ```
 
 ## Implementation
