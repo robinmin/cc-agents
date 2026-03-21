@@ -6,6 +6,11 @@ metadata:
   author: [author]
   version: "1.0"
   platforms: "claude-code,codex,openclaw,opencode,antigravity"
+  # Add interaction patterns when this pattern also defines runtime behavior.
+  # Common pattern examples:
+  # interactions:
+  #   - reviewer
+  #   - tool-wrapper
   openclaw:
     emoji: "🛠️"
 ---
@@ -65,6 +70,10 @@ metadata:
 ### Step 3: [third step]
 
 [Description of how to complete the implementation]
+
+## Behavior
+
+[If this pattern also defines runtime behavior, explain it here. Example: reviewer output grouped by severity, or tool-wrapper loading references on demand.]
 
 ## Code Examples
 
