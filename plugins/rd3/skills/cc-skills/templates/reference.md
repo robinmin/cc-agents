@@ -6,6 +6,10 @@ metadata:
   author: [author]
   version: "1.0"
   platforms: "claude-code,codex,openclaw,opencode,antigravity"
+  # Add interaction patterns when this reference should be loaded as behavior.
+  # Common reference example:
+  # interactions:
+  #   - tool-wrapper
   openclaw:
     emoji: "🛠️"
 ---
@@ -42,6 +46,10 @@ metadata:
 
 #### [Item 3]
 [Detailed description with examples]
+
+## Behavior
+
+[If this reference is meant to act as a tool wrapper, explain when references must be loaded and treated as the source of truth.]
 
 ### [Category 2]
 
