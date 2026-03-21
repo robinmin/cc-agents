@@ -1,19 +1,13 @@
 ---
-description: Synthesize a new main agent configuration
-argument-hint: <template> [--platform <platform>] [--output <path>]
-triggers:
-  - "create agent config"
-  - "generate AGENTS.md"
-  - "scaffold main agent"
-  - "new CLAUDE.md"
-  - "start agent project"
-examples:
-  - "magent-add dev-agent"
-  - "magent-add --platform claude-md"
-  - "magent-add research-agent --output GEMINI.md"
+description: "Synthesize a new main agent configuration"
+argument-hint: "<template> [--platform <platform>] [--output <path>]"
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
+disable-model-invocation: true
 ---
 
-# magent-add
+# Magent Add
+
+Wraps **rd3:cc-magents** skill.
 
 Generate a new main agent configuration file from templates with automatic project detection.
 
@@ -27,10 +21,10 @@ Generate a new main agent configuration file from templates with automatic proje
 ## Arguments
 
 | Argument | Description | Default |
-|----------|-------------|---------|
+|---------|-------------|---------|
 | `template` | Domain template (dev-agent, research-agent, content-agent, data-agent, devops-agent, general-agent) | auto-detect |
 | `--platform` | Target platform format | agents-md |
-| `--output` | Output file path | AGENTS.md (or based on platform) |
+| `--output` | Output file path | AGENTS.md |
 
 ## Available Templates
 
@@ -43,22 +37,15 @@ Generate a new main agent configuration file from templates with automatic proje
 | `devops-agent` | DevOps and infrastructure |
 | `general-agent` | General purpose assistant |
 
-## Workflow
-
-1. Detect project type from files (package.json, go.mod, etc.)
-2. Select appropriate template or use provided template
-3. Process template with project-specific variables
-4. Generate platform-specific output
-5. Write to target file
-
-## Workflow
-
-See [Add Workflow](references/workflows.md#add-workflow) for detailed step-by-step flow, branching logic, and retry policy.
-
 ## Implementation
 
-Delegates to synthesize.ts script:
+Delegates to **rd3:cc-magents** skill:
 
+```
+Skill(skill="rd3:cc-magents", args="add $ARGUMENTS")
+```
+
+**Direct script execution:**
 ```bash
 bun plugins/rd3/skills/cc-magents/scripts/synthesize.ts $ARGUMENTS
 ```
@@ -75,3 +62,8 @@ bun plugins/rd3/skills/cc-magents/scripts/synthesize.ts $ARGUMENTS
 # Create from specific template
 /rd3:magent-add data-agent --platform agents-md
 ```
+
+## Platform Notes
+
+- Claude Code: Invoke via `Skill()` delegation
+- Other platforms: Run script directly via Bash tool
