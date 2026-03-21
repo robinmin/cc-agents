@@ -27,6 +27,7 @@ tools:
   - Read
 model: inherit
 color: teal
+skills: [rd3:cc-magents]
 ---
 
 # 1. METADATA
