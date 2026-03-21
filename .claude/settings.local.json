@@ -12,7 +12,6 @@
       "Skill(rd3:skill-evaluate)",
       "Skill(rd3:command-evaluate)",
       "Skill(rd3:agent-evaluate)",
-      
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -24,7 +23,6 @@
       "mcp__huggingface__model_search",
       "mcp__huggingface__gr1_z_image_turbo_generate",
       "mcp__brave-search__brave_web_search",
-      
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
@@ -42,11 +40,11 @@
       "Bash(tasks:*)",
       "Bash(bun run:*)",
       "Bash(bun test:*)",
-
       "Read(//tmp/**)",
       "Write(//tmp/**)",
       "Edit(//tmp/**)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(bun:*)"
     ],
     "deny": [],
     "ask": []
