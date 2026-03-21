@@ -51,6 +51,10 @@ Generate a new main agent configuration file from templates with automatic proje
 4. Generate platform-specific output
 5. Write to target file
 
+## Workflow
+
+See [Add Workflow](references/workflows.md#add-workflow) for detailed step-by-step flow, branching logic, and retry policy.
+
 ## Implementation
 
 Delegates to synthesize.ts script:
