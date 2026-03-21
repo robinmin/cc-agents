@@ -258,7 +258,7 @@ function printUsage(): void {
     console.log('');
     console.log('Options:');
     console.log('  --migrate             Enable rd2 to rd3 migration mode');
-    console.log('  --best-practices      Apply best practice auto-fixes (deterministic)');
+    console.log('  --best-practices      Apply best practice auto-fixes (deterministic, default: true)');
     console.log(
         '  --platform <name>     Target platform: claude, codex, openclaw, opencode, antigravity (default: all)',
     );
@@ -316,7 +316,7 @@ function parseCliArgs(): {
         allowPositionals: true,
         options: {
             migrate: { type: 'boolean', default: false },
-            'best-practices': { type: 'boolean', default: false },
+            'best-practices': { type: 'boolean', default: true },
             platform: { type: 'string', default: 'all' },
             'dry-run': { type: 'boolean', default: false },
             verbose: { type: 'boolean', short: 'v', default: false },
