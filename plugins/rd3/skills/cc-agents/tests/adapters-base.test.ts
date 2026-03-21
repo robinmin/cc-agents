@@ -426,19 +426,19 @@ describe('ClaudeAgentAdapter - validatePlatform tests', () => {
     it('should detect command syntax in body', async () => {
         const agentWithCmdSyntax = { ...sampleAgent, body: 'Use !`ls -la` to list files' };
         const result = await adapter.validate(agentWithCmdSyntax);
-        expect(result.messages.join(' ')).toContain('command syntax');
+        expect(result.messages?.join(' ') ?? '').toContain('command syntax');
     });
 
     it('should detect argument references in body', async () => {
         const agentWithArgs = { ...sampleAgent, body: 'Reference $ARGUMENTS and $1, $2 for parameters' };
         const result = await adapter.validate(agentWithArgs);
-        expect(result.messages.join(' ')).toContain('argument references');
+        expect(result.messages?.join(' ') ?? '').toContain('argument references');
     });
 
     it('should detect context fork in body', async () => {
         const agentWithFork = { ...sampleAgent, body: 'Use context: fork for parallel execution' };
         const result = await adapter.validate(agentWithFork);
-        expect(result.messages.join(' ')).toContain('context: fork');
+        expect(result.messages?.join(' ') ?? '').toContain('context: fork');
     });
 
     it('should report non-portable fields as messages', async () => {
@@ -454,15 +454,16 @@ describe('ClaudeAgentAdapter - validatePlatform tests', () => {
             isolation: 'worktree',
         };
         const result = await adapter.validate(agentWithNonPortable);
-        expect(result.messages.join(' ')).toContain('Claude-only fields');
-        expect(result.messages.join(' ')).toContain('disallowedTools');
-        expect(result.messages.join(' ')).toContain('permissionMode');
-        expect(result.messages.join(' ')).toContain('skills');
-        expect(result.messages.join(' ')).toContain('mcpServers');
-        expect(result.messages.join(' ')).toContain('hooks');
-        expect(result.messages.join(' ')).toContain('memory');
-        expect(result.messages.join(' ')).toContain('background');
-        expect(result.messages.join(' ')).toContain('isolation');
+        const messages = result.messages?.join(' ') ?? '';
+        expect(messages).toContain('Claude-only fields');
+        expect(messages).toContain('disallowedTools');
+        expect(messages).toContain('permissionMode');
+        expect(messages).toContain('skills');
+        expect(messages).toContain('mcpServers');
+        expect(messages).toContain('hooks');
+        expect(messages).toContain('memory');
+        expect(messages).toContain('background');
+        expect(messages).toContain('isolation');
     });
 
     it('should generate with dropped non-Claude fields', async () => {
@@ -473,7 +474,7 @@ describe('ClaudeAgentAdapter - validatePlatform tests', () => {
             temperature: 0.7,
             kind: 'task',
             hidden: true,
-            permissions: ['read', 'write'],
+            permissions: { read: true, write: true },
             sandboxMode: 'local',
             reasoningEffort: 'high',
         };
@@ -571,6 +572,10 @@ class TestBaseAdapter extends BaseAgentAdapter {
     readonly platform: AgentPlatform = 'claude';
     readonly displayName = 'Test Adapter';
 
+    static create(): TestBaseAdapter {
+        return new TestBaseAdapter();
+    }
+
     async parse(_input: string, _filePath: string) {
         return {
             success: true,
@@ -593,6 +598,10 @@ class TestBaseAdapter extends BaseAgentAdapter {
 class DirectBaseHarnessAdapter extends DirectBaseAdapter {
     readonly platform: AgentPlatform = 'claude';
     readonly displayName = 'Direct Base Harness';
+
+    static create(): DirectBaseHarnessAdapter {
+        return new DirectBaseHarnessAdapter();
+    }
 
     async parse(_input: string, _filePath: string) {
         return {
@@ -622,7 +631,7 @@ class DirectBaseHarnessAdapter extends DirectBaseAdapter {
 }
 
 describe('BaseAgentAdapter - protected methods', () => {
-    const adapter = new TestBaseAdapter();
+    const adapter = TestBaseAdapter.create();
 
     it('should return empty array from base detectPlatformFeatures', () => {
         // The base class detectPlatformFeatures returns empty array
@@ -649,7 +658,7 @@ describe('BaseAgentAdapter - protected methods', () => {
     });
 
     it('should directly call base protected methods through a direct-import subclass', async () => {
-        const harness = new DirectBaseHarnessAdapter();
+        const harness = DirectBaseHarnessAdapter.create();
 
         await expect(harness.callBaseValidatePlatform(sampleAgent)).resolves.toEqual({
             errors: [],
@@ -685,6 +694,10 @@ describe('base.ts - direct imports', () => {
 class CustomPlatformAdapter extends BaseAgentAdapter {
     readonly platform: AgentPlatform = 'gemini';
     readonly displayName = 'Custom Platform';
+
+    static create(): CustomPlatformAdapter {
+        return new CustomPlatformAdapter();
+    }
 
     async parse(_input: string, _filePath: string) {
         return {
@@ -728,7 +741,7 @@ class CustomPlatformAdapter extends BaseAgentAdapter {
 }
 
 describe('BaseAgentAdapter - polymorphism with custom subclass', () => {
-    const adapter = new CustomPlatformAdapter();
+    const adapter = CustomPlatformAdapter.create();
 
     it('should use custom detectPlatformFeatures', () => {
         const agent = { ...sampleAgent, description: 'A custom agent' };
@@ -745,7 +758,7 @@ describe('BaseAgentAdapter - polymorphism with custom subclass', () => {
     it('should use custom validatePlatform with messages', async () => {
         const result = await adapter.validate(sampleAgent);
         expect(result.success).toBe(true);
-        expect(result.messages).toContain('Platform validation ran');
+        expect(result.messages ?? []).toContain('Platform validation ran');
     });
 
     it('should use custom validatePlatform warnings', async () => {
@@ -818,18 +831,16 @@ describe('index.ts - factory functions', () => {
 
 describe('BaseAgentAdapter - constructor and prototype coverage', () => {
     it('should have BaseAgentAdapter as prototype of subclass instances', () => {
-        const adapter = new TestBaseAdapter();
+        const adapter = TestBaseAdapter.create();
         const proto = Object.getPrototypeOf(adapter);
         expect(proto.constructor).toBe(TestBaseAdapter);
         expect(Object.getPrototypeOf(proto).constructor).toBe(BaseAgentAdapter);
     });
 
     it('should construct via Reflect.construct targeting BaseAgentAdapter', () => {
-        // Reflect.construct calls BaseAgentAdapter's constructor directly
-        // with TestBaseAdapter as newTarget — may trigger bun's function coverage
-        const instance = Reflect.construct(BaseAgentAdapter, [], TestBaseAdapter);
-        expect(instance).toBeInstanceOf(BaseAgentAdapter);
+        const instance = Reflect.construct(TestBaseAdapter, []);
         expect(instance).toBeInstanceOf(TestBaseAdapter);
+        expect(instance).toBeInstanceOf(BaseAgentAdapter);
     });
 
     it('should verify BaseAgentAdapter.prototype methods exist', () => {
@@ -839,15 +850,14 @@ describe('BaseAgentAdapter - constructor and prototype coverage', () => {
     });
 
     it('should call constructor through dynamic new expression', () => {
-        const Ctor = TestBaseAdapter;
-        const instance = new Ctor();
+        const instance = TestBaseAdapter.create();
         expect(instance.platform).toBe('claude');
         expect(instance.displayName).toBe('Test Adapter');
     });
 
     it('should exercise base class via multiple distinct subclass instances', async () => {
         // Create 3 separate instances to ensure constructor is called multiple times
-        const adapters = [new TestBaseAdapter(), new TestBaseAdapter(), new TestBaseAdapter()];
+        const adapters = [TestBaseAdapter.create(), TestBaseAdapter.create(), TestBaseAdapter.create()];
         for (const a of adapters) {
             const result = await a.validate(sampleAgent);
             expect(result.success).toBe(true);
@@ -909,6 +919,23 @@ describe('index.ts - module exports and singleton', () => {
         // Verify re-exports from index.ts are the same references
         expect(BaseAgentAdapter).toBe(DirectBaseAdapter);
         expect(createAgentAdapterContext).toBe(directCreateCtx);
+    });
+
+    it('should exercise singleton lifecycle methods from index exports', () => {
+        agentAdapterRegistry.clear();
+
+        expect(agentAdapterRegistry.platforms).toContain('claude');
+        expect(agentAdapterRegistry.has('claude')).toBe(true);
+        expect(agentAdapterRegistry.getAll().claude).toBeDefined();
+        expect(getAgentAdapter('claude').platform).toBe('claude');
+        expect(hasAgentAdapter('claude')).toBe(true);
+
+        const replacement = createClaudeAgentAdapter();
+        agentAdapterRegistry.register('claude', () => replacement);
+        expect(agentAdapterRegistry.get('claude')).toBe(replacement);
+
+        agentAdapterRegistry.clear();
+        expect(agentAdapterRegistry.get('claude').platform).toBe('claude');
     });
 });
 
