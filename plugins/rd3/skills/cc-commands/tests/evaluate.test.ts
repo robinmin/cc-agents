@@ -1609,7 +1609,7 @@ describe('Unit: CLI functions', () => {
             const result = parseCliArgs();
 
             expect(result.path).toBe('/test/cmd.md');
-            expect(result.options.scope).toBe('basic');
+            expect(result.options.scope).toBe('full');
             expect(result.options.platform).toBe('all');
             expect(result.options.verbose).toBe(false);
             expect(result.options.json).toBe(false);
