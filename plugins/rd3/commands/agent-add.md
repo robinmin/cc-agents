@@ -1,14 +1,19 @@
 ---
 description: Create a new agent with scaffolding and templates
 argument-hint: "<agent-name> [description] [--path <dir>] [--template <tier>] [--skills <list>] [--tools <list>]"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Agent Add
 
 Wraps **rd3:cc-agents** skill.
 
-Scaffold a new subagent file from a tiered template.
+Scaffold a new subagent file from a tiered template. **This command delegates to the rd3:cc-agents skill** — the invoking agent follows the [Scaffold Workflow](references/workflows.md#scaffold-workflow) which includes:
+
+1. **Scaffold** — Run `scaffold.ts` to create agent .md file
+2. **Validate** — Check structure and required fields
+3. **LLM Verify** — Agent verifies description pattern, trigger phrases, examples, voice
+4. **Platform Check** — Verify compatibility with target platforms
 
 ## When to Use
 
@@ -44,18 +49,33 @@ Scaffold a new subagent file from a tiered template.
 
 ## Implementation
 
-Pass `$ARGUMENTS` to the underlying skill for processing.
-
-Delegates to **rd3:cc-agents** skill:
+**Claude Code delegates via Skill():**
 
 ```
 Skill(skill="rd3:cc-agents", args="scaffold $ARGUMENTS")
 ```
 
-**Direct script execution:**
+The invoking agent:
+1. Loads `plugins/rd3/skills/cc-agents/SKILL.md`
+2. Reads `plugins/rd3/skills/cc-agents/references/workflows.md`
+3. Follows the Scaffold Workflow — running scaffold script, then performing LLM checklist
+
+**Direct script execution (other platforms):**
 ```bash
 bun plugins/rd3/skills/cc-agents/scripts/scaffold.ts $ARGUMENTS
 ```
+
+## LLM Checklist (Agent Step)
+
+After scaffolding, the invoking agent performs these checks:
+
+| # | Item | Check |
+|---|------|-------|
+| 1 | Description pattern | Starts with "Use PROACTIVELY" with trigger phrases |
+| 2 | Trigger phrases | 3+ quoted phrases in description |
+| 3 | Example blocks | 2+ `<example>` with `<commentary>` |
+| 4 | Voice consistency | Imperative, no "I can help you" |
+| 5 | Tier appropriateness | Structure matches selected template tier |
 
 ## Platform Notes
 
