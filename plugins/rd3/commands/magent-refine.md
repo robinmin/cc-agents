@@ -57,6 +57,10 @@ Validation runs automatically first. Structural issues are reported but refineme
 
 Sections containing `[CRITICAL]` markers are NEVER modified, even with `--apply`. This ensures safety rules remain intact.
 
+## Workflow
+
+See [Refine Workflow](references/workflows.md#refine-workflow) for detailed step-by-step flow, action types (structural/quality/best-practice), and CRITICAL protection.
+
 ## Implementation
 
 Delegates to refine.ts script:
