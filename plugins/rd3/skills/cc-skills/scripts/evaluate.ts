@@ -22,6 +22,7 @@ import type {
     EvaluationFeatures,
     EvaluationReport,
     EvaluationScope,
+    InteractionPattern,
     Platform,
     SkillFrontmatter,
     SkillResources,
@@ -37,6 +38,218 @@ interface SecurityScanResult {
     blacklistFindings: string[];
     greylistFindings: string[];
     greylistPenalty: number;
+}
+
+interface InteractionAdvisories {
+    frontmatterFindings: string[];
+    frontmatterRecommendations: string[];
+    triggerFindings: string[];
+    triggerRecommendations: string[];
+    contentFindings: string[];
+    contentRecommendations: string[];
+}
+
+const ALLOWED_INTERACTION_PATTERNS: readonly InteractionPattern[] = [
+    'tool-wrapper',
+    'generator',
+    'reviewer',
+    'inversion',
+    'pipeline',
+];
+
+function asStringArray(value: unknown): string[] | null {
+    if (!Array.isArray(value)) {
+        return null;
+    }
+
+    const strings = value.filter((item): item is string => typeof item === 'string').map((item) => item.trim());
+    return strings.length === value.length ? strings : null;
+}
+
+function pushUnique(target: string[], values: string[]): void {
+    for (const value of values) {
+        if (!target.includes(value)) {
+            target.push(value);
+        }
+    }
+}
+
+function collectInteractionAdvisories(
+    skillPath: string,
+    frontmatter: SkillFrontmatter | null,
+    body: string,
+    resources: SkillResources,
+): InteractionAdvisories {
+    const advisories: InteractionAdvisories = {
+        frontmatterFindings: [],
+        frontmatterRecommendations: [],
+        triggerFindings: [],
+        triggerRecommendations: [],
+        contentFindings: [],
+        contentRecommendations: [],
+    };
+
+    const metadata = frontmatter?.metadata;
+    if (!metadata) {
+        return advisories;
+    }
+
+    const rawInteractions = metadata.interactions;
+    let interactions: InteractionPattern[] = [];
+
+    if (rawInteractions == null) {
+        advisories.frontmatterFindings.push('No metadata.interactions declared');
+        advisories.frontmatterRecommendations.push(
+            'Add metadata.interactions when the skill has a clear ADK runtime behavior',
+        );
+    } else {
+        const interactionValues = asStringArray(rawInteractions);
+        if (!interactionValues) {
+            advisories.frontmatterFindings.push('metadata.interactions must be an array of strings');
+            advisories.frontmatterRecommendations.push(
+                'Use metadata.interactions as a YAML list, for example: [pipeline, reviewer]',
+            );
+        } else {
+            const invalidInteractions = interactionValues.filter(
+                (interaction) => !ALLOWED_INTERACTION_PATTERNS.includes(interaction as InteractionPattern),
+            );
+            if (invalidInteractions.length > 0) {
+                advisories.frontmatterFindings.push(
+                    `Unknown interaction pattern(s): ${invalidInteractions.join(', ')}`,
+                );
+                advisories.frontmatterRecommendations.push(
+                    `Use only supported interaction patterns: ${ALLOWED_INTERACTION_PATTERNS.join(', ')}`,
+                );
+            }
+
+            interactions = interactionValues.filter((interaction): interaction is InteractionPattern =>
+                ALLOWED_INTERACTION_PATTERNS.includes(interaction as InteractionPattern),
+            );
+        }
+    }
+
+    const triggerKeywords = metadata.trigger_keywords;
+    const severityLevels = metadata.severity_levels;
+    const pipelineSteps = metadata.pipeline_steps;
+    const hasStepHeadings = /^#{2,3}\s+Step\b/m.test(body);
+    const hasPipelineStructure =
+        hasStepHeadings ||
+        /workflow flow pattern/i.test(body) ||
+        /step 1[^\n]*step 2/ims.test(body) ||
+        /step-by-step workflow/i.test(body);
+    const hasGeneratorArtifacts = (resources.assets?.length ?? 0) > 0 || existsSync(join(skillPath, 'templates'));
+    const lowerBody = body.toLowerCase();
+
+    if (triggerKeywords != null) {
+        const keywords = asStringArray(triggerKeywords);
+        if (!keywords) {
+            advisories.frontmatterFindings.push('metadata.trigger_keywords must be an array of strings');
+            advisories.frontmatterRecommendations.push('Use metadata.trigger_keywords as a YAML list');
+        } else if (!interactions.includes('tool-wrapper')) {
+            advisories.triggerFindings.push('trigger_keywords provided without tool-wrapper interaction');
+            advisories.triggerRecommendations.push('Use trigger_keywords with tool-wrapper skills or remove the field');
+        }
+    }
+
+    if (severityLevels != null) {
+        const levels = asStringArray(severityLevels);
+        if (!levels) {
+            advisories.frontmatterFindings.push('metadata.severity_levels must be an array of strings');
+            advisories.frontmatterRecommendations.push('Use metadata.severity_levels as a YAML list');
+        } else if (!interactions.includes('reviewer')) {
+            advisories.contentFindings.push('severity_levels provided without reviewer interaction');
+            advisories.contentRecommendations.push('Use severity_levels with reviewer skills or remove the field');
+        }
+    } else if (interactions.includes('reviewer')) {
+        advisories.contentFindings.push('Reviewer interaction declared without severity_levels metadata');
+        advisories.contentRecommendations.push('Add metadata.severity_levels to document reviewer output severity');
+    }
+
+    if (pipelineSteps != null) {
+        const steps = asStringArray(pipelineSteps);
+        if (!steps) {
+            advisories.frontmatterFindings.push('metadata.pipeline_steps must be an array of strings');
+            advisories.frontmatterRecommendations.push('Use metadata.pipeline_steps as a YAML list');
+        } else if (!interactions.includes('pipeline')) {
+            advisories.contentFindings.push('pipeline_steps provided without pipeline interaction');
+            advisories.contentRecommendations.push('Use pipeline_steps with pipeline skills or remove the field');
+        }
+    } else if (interactions.includes('pipeline') && !hasPipelineStructure) {
+        advisories.contentFindings.push('Pipeline interaction declared without explicit step headings');
+        advisories.contentRecommendations.push('Add named Step sections or metadata.pipeline_steps');
+    }
+
+    if (interactions.includes('tool-wrapper') && (resources.references?.length ?? 0) === 0) {
+        advisories.contentFindings.push('Tool-wrapper interaction declared without reference documents');
+        advisories.contentRecommendations.push('Add references/ files or remove tool-wrapper');
+    }
+
+    if (interactions.includes('generator') && !hasGeneratorArtifacts) {
+        advisories.contentFindings.push('Generator interaction declared without assets/');
+        advisories.contentRecommendations.push('Add generator templates or assets/ resources, or remove generator');
+    }
+
+    if (
+        interactions.includes('inversion') &&
+        !/ask one question at a time|do not start|before acting|before building/.test(lowerBody)
+    ) {
+        advisories.contentFindings.push('Inversion interaction declared without explicit gating language');
+        advisories.contentRecommendations.push(
+            'Add interview-first instructions such as "ask one question at a time" or "do not start until..."',
+        );
+    }
+
+    if (!interactions.includes('generator') && /template/.test(lowerBody) && /fill|populate/.test(lowerBody)) {
+        advisories.contentFindings.push('Body suggests generator behavior but generator interaction is not declared');
+        advisories.contentRecommendations.push('Consider adding metadata.interactions: [generator]');
+    }
+
+    if (!interactions.includes('reviewer') && /severity/.test(lowerBody) && /checklist|rubric|review/.test(lowerBody)) {
+        advisories.contentFindings.push('Body suggests reviewer behavior but reviewer interaction is not declared');
+        advisories.contentRecommendations.push('Consider adding metadata.interactions: [reviewer]');
+    }
+
+    if (!interactions.includes('pipeline') && /do not proceed/.test(lowerBody) && hasPipelineStructure) {
+        advisories.contentFindings.push('Body suggests pipeline behavior but pipeline interaction is not declared');
+        advisories.contentRecommendations.push('Consider adding metadata.interactions: [pipeline]');
+    }
+
+    if (
+        !interactions.includes('inversion') &&
+        /ask one question at a time|do not start building|do not start designing/.test(lowerBody)
+    ) {
+        advisories.contentFindings.push('Body suggests inversion behavior but inversion interaction is not declared');
+        advisories.contentRecommendations.push('Consider adding metadata.interactions: [inversion]');
+    }
+
+    return advisories;
+}
+
+function applyInteractionAdvisories(
+    dimensions: EvaluationDimension[],
+    advisories: InteractionAdvisories,
+): EvaluationDimension[] {
+    const findDimension = (name: string) => dimensions.find((dimension) => dimension.name === name);
+
+    const frontmatter = findDimension('Frontmatter');
+    if (frontmatter) {
+        pushUnique(frontmatter.findings, advisories.frontmatterFindings);
+        pushUnique(frontmatter.recommendations, advisories.frontmatterRecommendations);
+    }
+
+    const triggerDesign = findDimension('Trigger Design');
+    if (triggerDesign) {
+        pushUnique(triggerDesign.findings, advisories.triggerFindings);
+        pushUnique(triggerDesign.recommendations, advisories.triggerRecommendations);
+    }
+
+    const content = findDimension('Content');
+    if (content) {
+        pushUnique(content.findings, advisories.contentFindings);
+        pushUnique(content.recommendations, advisories.contentRecommendations);
+    }
+
+    return dimensions;
 }
 
 // ============================================================================
@@ -1388,6 +1601,7 @@ async function evaluateSkill(
     // STEP 2: Compute dimension scores from features (centralized scoring)
     // ==========================================================================
     const dimensions = computeDimensionScores(features, weights, hasScripts, scope);
+    applyInteractionAdvisories(dimensions, collectInteractionAdvisories(resolvedPath, frontmatter, body, resources));
 
     // Calculate overall score
     const weightedScore = dimensions.reduce((sum, d) => sum + d.score, 0);
