@@ -1,7 +1,8 @@
 ---
 description: "Evaluate and fix skill issues in one step"
-argument-hint: "<skill-path> [description] [--migrate] [--dry-run]"
+argument-hint: "<skill-path> [description] [--migrate] [--dry-run] [--platform all|claude|codex|openclaw|opencode|antigravity]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
+disable-model-invocation: true
 ---
 
 # Skill Refine
@@ -27,29 +28,6 @@ Run evaluation internally then apply fixes in one step. **Best practices auto-fi
 | `--dry-run` | Preview changes without applying | false |
 | `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
 | `--no-best-practices` | Disable best practice auto-fixes | false |
-
-# Skill Refine
-
-Wraps **rd3:cc-skills** skill.
-
-Run evaluation internally then apply fixes in one step.
-
-## When to Use
-
-- Fix skill issues without running evaluate separately
-- Apply deterministic fixes automatically
-- Migrate existing rd2 skills to rd3 format
-- Clean up a skill after updating its type, docs, or interaction-pattern guidance
-
-## Arguments
-
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `skill-path` | Path to the skill directory | (required) |
-| `description` | Optional free-text goal to guide refinement | (none) |
-| `--migrate` | Migrate rd2 to rd3 format | false |
-| `--dry-run` | Preview changes without applying | false |
-| `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
 
 ## Examples
 
