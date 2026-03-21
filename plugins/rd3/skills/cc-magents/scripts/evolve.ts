@@ -268,14 +268,7 @@ export async function applyProposal(
     const currentEval = await evaluateMagentConfig(configPath, content);
     const existingVersions = await loadVersionHistory(configPath);
     if (existingVersions.length === 0) {
-        await recordVersion(
-            configPath,
-            content,
-            currentEval.grade,
-            [],
-            'Baseline before first evolve apply',
-            'v0',
-        );
+        await recordVersion(configPath, content, currentEval.grade, [], 'Baseline before first evolve apply', 'v0');
     }
 
     // Create backup
@@ -395,8 +388,13 @@ function checkDataSourceAvailability(configPath: string): Record<EvolutionDataSo
 
     return {
         'git-history': existsSync(join(workspaceRoot, '.git')),
-        'ci-results': existsSync(join(workspaceRoot, '.github', 'workflows')) || existsSync(join(workspaceRoot, '.gitlab-ci.yml')),
-        'user-feedback': existsSync(join(workspaceRoot, 'FEEDBACK.md')) || existsSync(join(workspaceRoot, 'feedback.md')) || existsSync(join(workspaceRoot, '.feedback')),
+        'ci-results':
+            existsSync(join(workspaceRoot, '.github', 'workflows')) ||
+            existsSync(join(workspaceRoot, '.gitlab-ci.yml')),
+        'user-feedback':
+            existsSync(join(workspaceRoot, 'FEEDBACK.md')) ||
+            existsSync(join(workspaceRoot, 'feedback.md')) ||
+            existsSync(join(workspaceRoot, '.feedback')),
         'memory-md': existsSync(join(workspaceRoot, 'MEMORY.md')) || existsSync(join(workspaceRoot, '.memory')),
         'interaction-logs': Boolean(logsDir),
     };
@@ -537,24 +535,26 @@ function analyzeUserFeedback(_configPath: string, _sections: MagentSection[]): D
     const negativeMentions = countPatternMatches(feedbackText, NEGATIVE_FEEDBACK_PATTERNS);
 
     if (positiveMentions > 0) {
+        const affectedSection = inferAffectedSection(feedbackText, _sections);
         patterns.push({
             type: 'success',
             source: 'user-feedback',
             description: `User feedback includes ${positiveMentions} positive signal(s)`,
             evidence: sampleMatchingLines(feedbackText, POSITIVE_FEEDBACK_PATTERNS, 3),
             confidence: 0.65,
-            affectedSection: inferAffectedSection(feedbackText, _sections),
+            ...(affectedSection ? { affectedSection } : {}),
         });
     }
 
     if (negativeMentions > 0) {
+        const affectedSection = inferAffectedSection(feedbackText, _sections);
         patterns.push({
             type: 'failure',
             source: 'user-feedback',
             description: `User feedback includes ${negativeMentions} negative signal(s)`,
             evidence: sampleMatchingLines(feedbackText, NEGATIVE_FEEDBACK_PATTERNS, 3),
             confidence: 0.8,
-            affectedSection: inferAffectedSection(feedbackText, _sections),
+            ...(affectedSection ? { affectedSection } : {}),
         });
     }
 
@@ -607,13 +607,14 @@ function analyzeInteractionLogs(_configPath: string, _sections: MagentSection[])
     const logText = readFilesSafely(logFiles, 50000);
 
     if (countPatternMatches(logText, FAILURE_PATTERNS) > 0) {
+        const affectedSection = inferAffectedSection(logText, _sections);
         patterns.push({
             type: 'failure',
             source: 'interaction-logs',
             description: 'Interaction logs contain execution failures or regressions',
             evidence: sampleMatchingLines(logText, FAILURE_PATTERNS, 3),
             confidence: 0.75,
-            affectedSection: inferAffectedSection(logText, _sections),
+            ...(affectedSection ? { affectedSection } : {}),
         });
     }
 
@@ -995,7 +996,12 @@ async function saveProposalSet(configPath: string, result: EvolutionResult): Pro
 }
 
 async function loadProposalSet(configPath: string): Promise<EvolutionResult | null> {
-    const proposalPath = join(dirname(configPath), EVOLUTION_DIR, 'proposals', `${basename(configPath)}.proposals.json`);
+    const proposalPath = join(
+        dirname(configPath),
+        EVOLUTION_DIR,
+        'proposals',
+        `${basename(configPath)}.proposals.json`,
+    );
     if (!existsSync(proposalPath)) {
         return null;
     }
@@ -1125,11 +1131,24 @@ export interface EvolveCLIResult {
     error?: string;
 }
 
+interface EvolveArgValues {
+    analyze?: boolean;
+    propose?: boolean;
+    apply?: string;
+    history?: boolean;
+    rollback?: string;
+    confirm?: boolean;
+    safety?: string;
+    json?: boolean;
+    verbose?: boolean;
+    help?: boolean;
+}
+
 /**
  * Parse CLI arguments for evolve command
  */
 export function parseEvolveArgs(args: string[]): {
-    values: Record<string, any>;
+    values: EvolveArgValues;
     positionals: string[];
 } {
     return parseArgs({
@@ -1147,7 +1166,7 @@ export function parseEvolveArgs(args: string[]): {
             help: { type: 'boolean', short: 'h' },
         },
         allowPositionals: true,
-    });
+    }) as { values: EvolveArgValues; positionals: string[] };
 }
 
 /**
@@ -1209,7 +1228,7 @@ export async function handleEvolveCLI(options: EvolveCLIOptions = {}): Promise<E
     }
 
     const safetyLevel = (values.safety as EvolutionSafetyLevel) || 'L1';
-    const outputJson = values.json ?? false;
+    const outputJson = values.json === true;
 
     // Handle different commands using runEvolve
     if (values.analyze) {
@@ -1217,7 +1236,8 @@ export async function handleEvolveCLI(options: EvolveCLIOptions = {}): Promise<E
 
         if (outputJson) {
             return { exitCode: 0, output: JSON.stringify(result.analysis, null, 2) };
-        } else if (result.analysis) {
+        }
+        if (result.analysis) {
             return { exitCode: 0, output: formatAnalysis(result.analysis) };
         }
         return { exitCode: 0 };
@@ -1228,7 +1248,8 @@ export async function handleEvolveCLI(options: EvolveCLIOptions = {}): Promise<E
 
         if (outputJson) {
             return { exitCode: 0, output: JSON.stringify(result.proposals, null, 2) };
-        } else if (result.proposals) {
+        }
+        if (result.proposals) {
             return { exitCode: 0, output: formatProposals(result.proposals) };
         }
         return { exitCode: 0 };
@@ -1262,7 +1283,8 @@ export async function handleEvolveCLI(options: EvolveCLIOptions = {}): Promise<E
 
         if (outputJson) {
             return { exitCode: 0, output: JSON.stringify(result.versions, null, 2) };
-        } else if (result.versions) {
+        }
+        if (result.versions) {
             return { exitCode: 0, output: formatHistory(result.versions) };
         }
         return { exitCode: 0 };
@@ -1400,7 +1422,16 @@ function findFilesByPattern(root: string, pattern: RegExp, limit: number): strin
 }
 
 function countPatternMatches(text: string, patterns: RegExp[]): number {
-    return patterns.reduce((count, pattern) => count + (text.match(new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`)) || []).length, 0);
+    return patterns.reduce(
+        (count, pattern) =>
+            count +
+            (
+                text.match(
+                    new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`),
+                ) || []
+            ).length,
+        0,
+    );
 }
 
 function sampleMatchingLines(text: string, patterns: RegExp[], limit: number): string[] {
