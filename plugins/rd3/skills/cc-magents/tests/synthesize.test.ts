@@ -31,7 +31,9 @@ describe('synthesize', () => {
     afterEach(() => {
         try {
             rmdirSync(TEST_DIR, { recursive: true });
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     });
 
     describe('AVAILABLE_TEMPLATES', () => {
@@ -617,7 +619,7 @@ line-length = 100
         it('should use default critical rule for unknown language', () => {
             const template = 'Rule: [platform_specific_critical_rule_1]';
             const detection = {
-                language: 'java' as any,
+                language: 'java',
                 frameworks: [] as string[],
                 packageManager: 'maven',
                 linters: [] as string[],
@@ -634,7 +636,7 @@ line-length = 100
         it('should use default critical rule 2 for unknown language', () => {
             const template = 'Rule: [platform_specific_critical_rule_2]';
             const detection = {
-                language: 'csharp' as any,
+                language: 'csharp',
                 frameworks: [] as string[],
                 packageManager: 'nuget',
                 linters: [] as string[],
@@ -651,7 +653,7 @@ line-length = 100
         it('should use default indentation for unknown language', () => {
             const template = 'Indent: [indentation_style]';
             const detection = {
-                language: 'ruby' as any,
+                language: 'ruby',
                 frameworks: [] as string[],
                 packageManager: 'bundle',
                 linters: [] as string[],
@@ -668,7 +670,7 @@ line-length = 100
         it('should use default file naming for unknown language', () => {
             const template = 'Files: [file_naming_convention]';
             const detection = {
-                language: 'kotlin' as any,
+                language: 'kotlin',
                 frameworks: [] as string[],
                 packageManager: 'gradle',
                 linters: [] as string[],
@@ -685,7 +687,7 @@ line-length = 100
         it('should return N/A lint command when no linter matches', () => {
             const template = 'Lint: [lint_command]';
             const detection = {
-                language: 'ruby' as any,
+                language: 'ruby',
                 frameworks: [] as string[],
                 packageManager: 'bundle',
                 linters: ['rubocop'],
@@ -709,7 +711,7 @@ line-length = 100
                 formatters: [] as string[],
                 existingConfigs: [] as { path: string; platform: MagentPlatform }[],
                 suggestedTemplate: 'dev-agent' as DomainTemplate,
-                testRunner: 'unknown' as any,
+                testRunner: 'unknown',
             };
 
             const result = processTemplate(template, detection);
@@ -720,7 +722,7 @@ line-length = 100
         it('should return N/A for unknown language type check', () => {
             const template = 'Type check: [type_check_command]';
             const detection = {
-                language: 'ruby' as any,
+                language: 'ruby',
                 frameworks: [] as string[],
                 packageManager: 'bundle',
                 linters: [] as string[],
@@ -737,7 +739,7 @@ line-length = 100
         it('should return make build for unknown language build', () => {
             const template = 'Build: [build_command]';
             const detection = {
-                language: 'scala' as any,
+                language: 'scala',
                 frameworks: [] as string[],
                 packageManager: 'sbt',
                 linters: [] as string[],
@@ -754,7 +756,7 @@ line-length = 100
         it('should return make install for unknown language/package manager', () => {
             const template = 'Install: [install_command]';
             const detection = {
-                language: 'elixir' as any,
+                language: 'elixir',
                 frameworks: [] as string[],
                 packageManager: 'mix',
                 linters: [] as string[],
@@ -771,7 +773,7 @@ line-length = 100
         it('should return default tools for unknown language', () => {
             const template = 'Tools: [primary_tools]';
             const detection = {
-                language: 'haskell' as any,
+                language: 'haskell',
                 frameworks: [] as string[],
                 packageManager: 'cabal',
                 linters: [] as string[],
@@ -907,7 +909,9 @@ I am a test.
             // Should succeed but with auto-detected 'general-agent' template
             expect(result.success).toBe(true);
             // Should have a warning about auto-detecting the template
-            expect(result.warnings.some((w) => w.includes('Auto-detected template') || w.includes('general-agent'))).toBe(true);
+            expect(
+                result.warnings.some((w) => w.includes('Auto-detected template') || w.includes('general-agent')),
+            ).toBe(true);
         });
     });
 
@@ -921,11 +925,15 @@ I am a test.
     describe('processTemplate', () => {
         it('should process template with detection info', () => {
             const template = 'Language: [primary_language]';
-            const detection: any = {
+            const detection: ProjectDetection = {
                 language: 'typescript',
                 frameworks: ['express'],
+                packageManager: 'npm',
                 linters: ['eslint'],
                 testRunner: 'jest',
+                formatters: [],
+                existingConfigs: [],
+                suggestedTemplate: 'dev-agent',
             };
             const result = processTemplate(template, detection);
             expect(result).toBe('Language: TYPESCRIPT');
@@ -934,18 +942,25 @@ I am a test.
         it('should leave unchanged vars if no detection', () => {
             const template = 'Language: [primary_language]';
             const result = processTemplate(template, {
-                language: undefined,
                 frameworks: [],
                 linters: [],
-                testRunner: undefined,
-            } as any);
+                formatters: [],
+                existingConfigs: [],
+                suggestedTemplate: 'dev-agent',
+            } satisfies ProjectDetection);
             expect(result).toBe('Language: TypeScript'); // default when language is undefined
         });
     });
 
     describe('main CLI function', () => {
         // Suppress console output during CLI tests
-        const originalConsole = { debug: console.debug, info: console.info, warn: console.warn, error: console.error, log: console.log };
+        const originalConsole = {
+            debug: console.debug,
+            info: console.info,
+            warn: console.warn,
+            error: console.error,
+            log: console.log,
+        };
 
         beforeEach(() => {
             mkdirSync(TEST_DIR, { recursive: true });
@@ -960,7 +975,9 @@ I am a test.
         afterEach(() => {
             try {
                 rmdirSync(TEST_DIR, { recursive: true });
-            } catch { /* ignore */ }
+            } catch {
+                /* ignore */
+            }
             // Restore console
             console.debug = originalConsole.debug;
             console.info = originalConsole.info;
@@ -1096,7 +1113,11 @@ describe('synthesize with overrides', () => {
     });
 
     afterEach(() => {
-        try { rmdirSync(TEST_DIR, { recursive: true }); } catch { /* ignore */ }
+        try {
+            rmdirSync(TEST_DIR, { recursive: true });
+        } catch {
+            /* ignore */
+        }
     });
 
     it('should return error when templateLoaderOverride returns null', async () => {
@@ -1146,7 +1167,7 @@ describe('synthesize with overrides', () => {
             outputPath,
             projectRoot: TEST_DIR,
             detectionOverride: () => mockDetection,
-            templateLoaderOverride: (domain) => `# ${domain}\n\nTest content` as any,
+            templateLoaderOverride: (domain) => `# ${domain}\n\nTest content`,
         });
 
         expect(result.success).toBe(true);
