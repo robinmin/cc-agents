@@ -245,6 +245,35 @@ All new development targets rd3. The migration from rd2 to rd3 includes:
 - Implement proper error handling
 - Follow single responsibility principle
 
+### Fat Skills, Thin Wrappers
+
+The rd3 plugin uses a **single source of truth** architecture where skills contain all logic, and commands/agents are thin wrappers.
+
+| Layer | Type | Role | Lines |
+|-------|------|------|-------|
+| **Core** | rd3:cc-{skills,agents,commands,magents} | Source of truth — all logic, scripts, workflows | 500+ |
+| **Commands** | skill-*, agent-*, command-*, magent-* | Thin human CLI wrappers | ~50 |
+| **Agents** | expert-* | Thin AI-to-AI delegation wrappers | ~100 |
+
+**Delegation pattern:**
+```
+Commands → Skill("rd3:cc-X", args="operation") → cc-X skill scripts
+Agents   → skills: [rd3:cc-X]                   → cc-X skill
+```
+
+**Why this matters:**
+- Logic changes happen in ONE place (the skill) — not in every wrapper
+- Consistent behavior whether accessed via command or agent
+- Easy to test and verify the skill in isolation
+
+**Circular Reference Rule:**
+Skills MUST NOT reference their associated agents or commands. This includes:
+- ❌ Bad: `See also: my-agent, /plugin:my-command`
+- ❌ Bad: Commands Reference section listing `/rd3:skill-*` commands
+- ✅ Good: `This skill provides workflows for X.`
+
+If you need command examples, reference generic patterns without specific command names (e.g., "Use Task() to delegate to specialist agents" instead of "/rd3:skill-add").
+
 ---
 
 ## Logging
