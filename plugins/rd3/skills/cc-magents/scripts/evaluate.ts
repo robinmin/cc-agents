@@ -263,7 +263,12 @@ export async function runEvaluate(opts: EvaluateOptions): Promise<EvaluateRunRes
     const validation = await validateMagentConfig(resolvedPath, await Bun.file(resolvedPath).text());
 
     // Then run evaluation
-    const report = await evaluateMagentConfig(resolvedPath, await Bun.file(resolvedPath).text(), profile, forcedPlatform);
+    const report = await evaluateMagentConfig(
+        resolvedPath,
+        await Bun.file(resolvedPath).text(),
+        profile,
+        forcedPlatform,
+    );
 
     // Output handling
     if (outputPath) {
@@ -1137,11 +1142,20 @@ export interface EvaluateCLIResult {
     error?: string;
 }
 
+interface EvaluateArgValues {
+    profile?: string;
+    platform?: string;
+    json?: boolean;
+    verbose?: boolean;
+    output?: string;
+    help?: boolean;
+}
+
 /**
  * Parse CLI arguments for evaluate command
  */
 export function parseEvaluateArgs(args: string[]): {
-    values: Record<string, any>;
+    values: EvaluateArgValues;
     positionals: string[];
 } {
     return parseArgs({
@@ -1155,7 +1169,7 @@ export function parseEvaluateArgs(args: string[]): {
             help: { type: 'boolean', short: 'h' },
         },
         allowPositionals: true,
-    });
+    }) as { values: EvaluateArgValues; positionals: string[] };
 }
 
 /**
@@ -1273,9 +1287,7 @@ Examples:
 /**
  * Handle evaluate CLI invocation - separated for testing
  */
-export async function handleEvaluateCLI(
-    options: EvaluateCLIOptions = {},
-): Promise<EvaluateCLIResult> {
+export async function handleEvaluateCLI(options: EvaluateCLIOptions = {}): Promise<EvaluateCLIResult> {
     const args = options.args ?? Bun.argv.slice(2);
     const { values, positionals } = parseEvaluateArgs(args);
 
@@ -1319,12 +1331,12 @@ export async function handleEvaluateCLI(
             exitCode: report.passed && validation.valid ? 0 : 1,
             output: JSON.stringify({ validation, report }, null, 2),
         };
-    } else {
-        return {
-            exitCode: report.passed && validation.valid ? 0 : 1,
-            output: formatEvaluateReport(validation, report, configPath, values.verbose),
-        };
     }
+
+    return {
+        exitCode: report.passed && validation.valid ? 0 : 1,
+        output: formatEvaluateReport(validation, report, configPath, values.verbose),
+    };
 }
 
 async function main(): Promise<void> {
