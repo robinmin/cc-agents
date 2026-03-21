@@ -1,14 +1,14 @@
 ---
 description: Package skill for distribution with companions
 argument-hint: "<skill-path> [--output <dir>] [--platform all|claude|codex|openclaw|opencode|antigravity]"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Skill Package
 
 Wraps **rd3:cc-skills** skill.
 
-Bundle a skill for distribution with platform-specific companions.
+Bundle a skill for distribution with platform-specific companions. See [Package Workflow](references/workflows.md#package-workflow) for full step details.
 
 ## When to Use
 
