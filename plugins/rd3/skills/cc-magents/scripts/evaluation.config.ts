@@ -221,12 +221,7 @@ export function getGradeForPercentage(percentage: number): Grade {
  * Validate that a weight profile sums to exactly 100.
  */
 export function validateWeightProfile(weights: MagentDimensionWeights): { valid: boolean; sum: number } {
-    const sum =
-        weights.coverage +
-        weights.operability +
-        weights.grounding +
-        weights.safety +
-        weights.maintainability;
+    const sum = weights.coverage + weights.operability + weights.grounding + weights.safety + weights.maintainability;
 
     return { valid: sum === 100, sum };
 }
