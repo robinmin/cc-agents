@@ -1,15 +1,8 @@
 name: cc-agents
-description: Use this skill when the user asks to 'create a new agent', 'build a
-  subagent', 'scaffold an agent', 'write an agent definition', 'add a new
-  subagent', 'generate an agent', 'make an agent', 'agent template', 'agent
-  creation', 'agent development', 'evaluate agent quality', 'score agent',
-  'grade agent', 'assess agent structure', 'validate agent file', 'check agent
-  structure', 'test agent', 'rate agent', 'improve existing agent', 'refine
-  agent definition', 'fix agent errors', 'debug agent', 'agent checklist',
-  'agent workflow', 'convert agent to gemini', 'adapt agent', 'cross-platform
-  agent', 'agent for codex', 'agent for opencode'. This skill creates,
-  validates, evaluates, refines, and adapts subagent definitions across 6 target
-  platforms (Claude Code, Gemini CLI, OpenCode, Codex, OpenClaw, Antigravity)
-  using a Universal Agent Model (UAM) and 10-dimension quality scoring.
+description: Use this skill when the user asks to 'create a new agent',
+  'scaffold an agent', 'evaluate agent quality', 'validate agent file', 'refine
+  agent definition', 'adapt agent', 'cross-platform agent', or 'plan agent
+  evolution'. Creates, validates, evaluates, refines, adapts, and supports
+  longitudinal evolution workflows for subagent definitions across 6 platforms.
 version: 1.0.0
 emoji: 🛠️
