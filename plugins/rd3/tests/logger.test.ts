@@ -6,7 +6,13 @@ import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
 import { type LogLevel, Logger, type LoggerOptions, createLogger, logger, setGlobalSilent } from '../scripts/logger';
 
 // Suppress console output during tests
-const originalConsole = { debug: console.debug, info: console.info, warn: console.warn, error: console.error, log: console.log };
+const originalConsole = {
+    debug: console.debug,
+    info: console.info,
+    warn: console.warn,
+    error: console.error,
+    log: console.log,
+};
 
 beforeEach(() => {
     // Also enable global silent mode to suppress all logger output
