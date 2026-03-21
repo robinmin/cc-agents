@@ -8,13 +8,14 @@ allowed-tools: ["Read", "Write", "Glob", "Bash"]
 
 Wraps **rd3:cc-skills** skill.
 
-Score skill quality across 10 dimensions. **Evaluate only — make NO changes.**
+Score skill quality across 10 dimensions and surface advisory checks for ADK interaction metadata. **Evaluate only — make NO changes.**
 
 ## When to Use
 
 - Check current score without making changes
 - Compare scores before and after refinement
 - Verify skill readiness for publishing
+- Check whether `metadata.interactions` matches the skill's documented runtime behavior
 
 ## Arguments
 
@@ -36,6 +37,9 @@ Score skill quality across 10 dimensions. **Evaluate only — make NO changes.**
 
 # JSON output for automation
 /rd3:skill-evaluate ./skills/my-skill --json
+
+# Check interaction metadata after adding ADK patterns
+/rd3:skill-evaluate ./skills/my-skill --scope full
 ```
 
 ## Implementation
