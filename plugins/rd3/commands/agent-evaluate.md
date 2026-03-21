@@ -1,7 +1,7 @@
 ---
 description: Check agent quality score and identify weaknesses
 argument-hint: "<agent-path> [--scope basic|full] [--profile auto|thin-wrapper|specialist]"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Agent Evaluate
