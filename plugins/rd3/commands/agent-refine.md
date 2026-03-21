@@ -72,7 +72,7 @@ After script fixes complete, YOU (the invoking agent) MUST walk through this che
 | 1 | Description pattern | Starts with "Use PROACTIVELY" with trigger phrases | specialist, skill-delegating |
 | 2 | Trigger phrases | 3+ quoted phrases in description | all |
 | 3 | Example blocks | 2+ `<example>` with `<commentary>` in description | standard, specialist |
-| 4 | Voice consistency | Imperative voice, no "I can help you" | all |
+| 4 | Voice consistency | Imperative voice, no "This agent helps" | all |
 | 5 | Persona specificity | Domain-specific role, not generic "helpful assistant" | specialist |
 | 6 | Competency depth | 20+ items (specialist), 10+ (standard) | standard, specialist |
 | 7 | Rules completeness | 8+ DO and 8+ DON'T (specialist), 4+ each (standard) | all except minimal |
