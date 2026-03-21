@@ -6,6 +6,10 @@ metadata:
   author: cc-agents
   version: "3.0.0"
   platforms: "claude-code,gemini-cli,opencode,codex,openclaw,antigravity"
+  interactions:
+    - generator
+    - reviewer
+    - pipeline
 ---
 
 # cc-agents: Universal Subagent Creator
