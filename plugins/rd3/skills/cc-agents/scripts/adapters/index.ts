@@ -53,18 +53,21 @@ import { createOpenCodeAgentAdapter } from './opencode';
  * All 6 platforms are registered.
  */
 export class AgentAdapterRegistry {
-    private cache = new Map<AgentPlatform, IAgentPlatformAdapter>();
+    private cache: Map<AgentPlatform, IAgentPlatformAdapter>;
 
-    private readonly factories: Partial<Record<AgentPlatform, () => IAgentPlatformAdapter>> = {
-        claude: createClaudeAgentAdapter,
-        gemini: createGeminiAgentAdapter,
-        opencode: createOpenCodeAgentAdapter,
-        codex: createCodexAgentAdapter,
-        openclaw: createOpenClawAgentAdapter,
-        antigravity: createAntigravityAgentAdapter,
-    };
+    private readonly factories: Partial<Record<AgentPlatform, () => IAgentPlatformAdapter>>;
 
-    constructor() {}
+    constructor() {
+        this.cache = new Map<AgentPlatform, IAgentPlatformAdapter>();
+        this.factories = {
+            claude: createClaudeAgentAdapter,
+            gemini: createGeminiAgentAdapter,
+            opencode: createOpenCodeAgentAdapter,
+            codex: createCodexAgentAdapter,
+            openclaw: createOpenClawAgentAdapter,
+            antigravity: createAntigravityAgentAdapter,
+        };
+    }
 
     /** Get adapter for a specific platform (lazy-instantiated and cached) */
     get(platform: AgentPlatform): IAgentPlatformAdapter {
