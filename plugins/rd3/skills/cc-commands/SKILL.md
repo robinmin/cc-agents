@@ -6,6 +6,21 @@ metadata:
   author: cc-agents
   version: "3.0.0"
   platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity"
+  interactions:
+    - generator
+    - reviewer
+    - pipeline
+  severity_levels:
+    - error
+    - warning
+    - info
+  pipeline_steps:
+    - scaffold
+    - validate
+    - evaluate
+    - refine
+    - adapt
+    - evolve
 ---
 
 # cc-commands: Universal Command Creator
