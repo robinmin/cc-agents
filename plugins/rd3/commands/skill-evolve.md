@@ -1,14 +1,14 @@
 ---
 description: Analyze skill evolution signals and draft proposals
 argument-hint: "<skill-path> --analyze|--propose|--apply <id>|--history|--rollback <ver>"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Skill Evolve
 
 Wraps **rd3:cc-skills** skill.
 
-Analyze skill quality over time, persist refine-backed proposals, and apply or roll back changes through saved directory snapshots.
+Analyze skill quality over time, persist refine-backed proposals, and apply or roll back changes through saved directory snapshots. See [Evolve Workflow](references/workflows.md#evolve-workflow) for full step details.
 
 ## When to Use
 
