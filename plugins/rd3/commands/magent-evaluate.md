@@ -1,19 +1,13 @@
 ---
-description: Evaluate main agent config quality
-argument-hint: <config-path> [--profile <standard|minimal|advanced>] [--json]
-triggers:
-  - "evaluate AGENTS.md"
-  - "score config quality"
-  - "assess CLAUDE.md quality"
-  - "rate agent config"
-  - "config quality check"
-examples:
-  - "magent-evaluate AGENTS.md"
-  - "magent-evaluate CLAUDE.md --profile minimal"
-  - "magent-evaluate AGENTS.md --json --output report.json"
+description: "Evaluate main agent config quality"
+argument-hint: "<config-path> [--profile <standard|minimal|advanced>] [--json]"
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
+disable-model-invocation: true
 ---
 
-# magent-evaluate
+# Magent Evaluate
+
+Wraps **rd3:cc-magents** skill.
 
 Evaluate the quality of a main agent configuration across 5 MECE dimensions.
 
@@ -28,15 +22,24 @@ Evaluate the quality of a main agent configuration across 5 MECE dimensions.
 ## Arguments
 
 | Argument | Description | Default |
-|----------|-------------|---------|
-| `config-path` | Path to config file | (required) |
+|---------|-------------|---------|
+| `config-path` | Path to config file (AGENTS.md, CLAUDE.md) | (required) |
 | `--profile` | Weight profile | standard |
 | `--json` | Output results as JSON | false |
 | `--output` | Write results to file | stdout |
 
-## Validation (Automatic)
+## Implementation
 
-Validation runs automatically before evaluation. Structural issues are reported but do not block evaluation.
+Delegates to **rd3:cc-magents** skill:
+
+```
+Skill(skill="rd3:cc-magents", args="evaluate $ARGUMENTS")
+```
+
+**Direct script execution:**
+```bash
+bun plugins/rd3/skills/cc-magents/scripts/evaluate.ts $ARGUMENTS
+```
 
 ## Quality Dimensions
 
@@ -66,18 +69,6 @@ Validation runs automatically before evaluation. Structural issues are reported 
 | D | >= 60% | No |
 | F | < 60% | No |
 
-## Workflow
-
-See [Evaluate Workflow](references/workflows.md#evaluate-workflow) for detailed step-by-step flow, Two-Tier Architecture (Structural Validation + Quality Scoring), and LLM Deep Evaluation.
-
-## Implementation
-
-Delegates to evaluate.ts script:
-
-```bash
-bun plugins/rd3/skills/cc-magents/scripts/evaluate.ts $ARGUMENTS
-```
-
 ## Examples
 
 ```bash
@@ -90,3 +81,8 @@ bun plugins/rd3/skills/cc-magents/scripts/evaluate.ts $ARGUMENTS
 # JSON output for CI integration
 /rd3:magent-evaluate AGENTS.md --json --output evaluation.json
 ```
+
+## Platform Notes
+
+- Claude Code: Invoke via `Skill()` delegation
+- Other platforms: Run script directly via Bash tool
