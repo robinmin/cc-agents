@@ -7,7 +7,18 @@ author: cc-agents
 metadata:
   platforms: "claude,codex,openclaw,opencode,antigravity"
   interactions:
+    - generator
+    - reviewer
     - pipeline
+  severity_levels:
+    - error
+    - warning
+    - info
+  pipeline_steps:
+    - add
+    - evaluate
+    - refine
+    - adapt
 ---
 
 # cc-magents: Universal Main Agent Config Manager
