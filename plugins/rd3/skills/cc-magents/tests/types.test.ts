@@ -1,30 +1,16 @@
 import { describe, it, expect } from 'bun:test';
 import type {
     MagentPlatform,
-    PlatformTier,
     SectionCategory,
-    MagentHierarchy,
     UniversalMainAgent,
     MagentSection,
     MagentEvaluationReport,
     DimensionScore,
     Grade,
     MagentWeightProfile,
-    SynthesizeOptions,
-    SynthesizeResult,
-    AdaptOptions,
-    AdaptResult,
-    RefineOptions,
-    RefineResult,
-    EvolveOptions,
-    EvolveResult,
     MagentValidationResult,
 } from '../scripts/types';
-import {
-    PLATFORM_TIERS,
-    ALL_MAGENT_PLATFORMS,
-    ALL_SECTION_CATEGORIES,
-} from '../scripts/types';
+import { PLATFORM_TIERS, ALL_MAGENT_PLATFORMS, ALL_SECTION_CATEGORIES } from '../scripts/types';
 
 describe('types', () => {
     describe('MagentPlatform', () => {
@@ -43,7 +29,16 @@ describe('types', () => {
         });
 
         it('should include tier 3 platforms', () => {
-            const tier3: MagentPlatform[] = ['junie', 'augment', 'cline', 'aider', 'warp', 'roocode', 'amp', 'vscode-instructions'];
+            const tier3: MagentPlatform[] = [
+                'junie',
+                'augment',
+                'cline',
+                'aider',
+                'warp',
+                'roocode',
+                'amp',
+                'vscode-instructions',
+            ];
             for (const platform of tier3) {
                 expect(ALL_MAGENT_PLATFORMS).toContain(platform);
             }
@@ -60,25 +55,36 @@ describe('types', () => {
         });
 
         it('should have correct tier for cursorrules', () => {
-            expect(PLATFORM_TIERS['cursorrules']).toBe(2);
+            expect(PLATFORM_TIERS.cursorrules).toBe(2);
         });
 
         it('should have correct tier for junie', () => {
-            expect(PLATFORM_TIERS['junie']).toBe(3);
+            expect(PLATFORM_TIERS.junie).toBe(3);
         });
 
         it('should have correct tier for generic', () => {
-            expect(PLATFORM_TIERS['generic']).toBe(4);
+            expect(PLATFORM_TIERS.generic).toBe(4);
         });
     });
 
     describe('SectionCategory', () => {
         it('should include all expected categories', () => {
             const categories: SectionCategory[] = [
-                'identity', 'rules', 'workflow', 'tools', 'standards',
-                'verification', 'memory', 'evolution', 'environment',
-                'testing', 'output', 'error-handling', 'planning',
-                'parallel', 'custom'
+                'identity',
+                'rules',
+                'workflow',
+                'tools',
+                'standards',
+                'verification',
+                'memory',
+                'evolution',
+                'environment',
+                'testing',
+                'output',
+                'error-handling',
+                'planning',
+                'parallel',
+                'custom',
             ];
             for (const cat of categories) {
                 expect(ALL_SECTION_CATEGORIES).toContain(cat);
@@ -132,9 +138,9 @@ describe('types', () => {
                 heading: 'Safety Rules',
                 level: 2,
                 content: 'Critical content',
-                criticality: 'required',
+                criticality: 'critical',
             };
-            expect(section.criticality).toBe('required');
+            expect(section.criticality).toBe('critical');
         });
     });
 
@@ -197,12 +203,17 @@ describe('types', () => {
                 valid: true,
                 errors: [],
                 warnings: [],
-                sections: 5,
-                platform: 'agents-md',
-                tokenEstimate: 500,
+                suggestions: [],
+                findings: [],
+                filePath: '/test/AGENTS.md',
+                detectedPlatform: 'agents-md',
+                fileSize: 1024,
+                estimatedTokens: 500,
+                sectionCount: 5,
+                timestamp: new Date().toISOString(),
             };
             expect(result.valid).toBe(true);
-            expect(result.sections).toBe(5);
+            expect(result.sectionCount).toBe(5);
         });
 
         it('should accept invalid validation result', () => {
@@ -210,9 +221,14 @@ describe('types', () => {
                 valid: false,
                 errors: ['File is empty'],
                 warnings: [],
-                sections: 0,
-                platform: 'agents-md',
-                tokenEstimate: 0,
+                suggestions: [],
+                findings: [],
+                filePath: '/test/AGENTS.md',
+                detectedPlatform: 'agents-md',
+                fileSize: 0,
+                estimatedTokens: 0,
+                sectionCount: 0,
+                timestamp: new Date().toISOString(),
             };
             expect(result.valid).toBe(false);
             expect(result.errors).toContain('File is empty');
