@@ -9,11 +9,7 @@ import {
     refine,
     main,
 } from '../scripts/refine';
-import type {
-    MagentEvaluationReport,
-    UniversalMainAgent,
-    RefineAction,
-} from '../scripts/types';
+import type { MagentEvaluationReport, UniversalMainAgent, RefineAction } from '../scripts/types';
 import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
@@ -57,9 +53,7 @@ describe('refine', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
                 estimatedTokens: 100,
                 rawContent: '# Identity\n\nI am a test',
             };
@@ -75,7 +69,12 @@ describe('refine', () => {
                 sourceFormat: 'agents-md',
                 sections: [
                     // Content > 50 chars to avoid low content flag
-                    { heading: 'Identity', level: 1, content: 'I am a test agent with sufficient content here for the identity section', category: 'identity' },
+                    {
+                        heading: 'Identity',
+                        level: 1,
+                        content: 'I am a test agent with sufficient content here for the identity section',
+                        category: 'identity',
+                    },
                     { heading: 'Short', level: 1, content: 'Too short', category: 'custom' },
                 ],
                 estimatedTokens: 100,
@@ -109,9 +108,7 @@ describe('refine', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Empty', level: 1, content: '', category: 'custom' },
-                ],
+                sections: [{ heading: 'Empty', level: 1, content: '', category: 'custom' }],
                 estimatedTokens: 10,
                 rawContent: '# Empty',
             };
@@ -148,9 +145,7 @@ describe('refine', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am a test',
             };
@@ -168,7 +163,12 @@ describe('refine', () => {
                 sourceFormat: 'agents-md',
                 sections: [
                     // This section has CRITICAL marker in content, so it won't be flagged for removal
-                    { heading: 'Safety Rules', level: 1, content: '[CRITICAL] Never delete production data', category: 'rules' },
+                    {
+                        heading: 'Safety Rules',
+                        level: 1,
+                        content: '[CRITICAL] Never delete production data',
+                        category: 'rules',
+                    },
                     { heading: 'Empty', level: 1, content: '', category: 'custom' },
                 ],
                 estimatedTokens: 50,
@@ -192,8 +192,18 @@ describe('refine', () => {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
                 sections: [
-                    { heading: 'Communication', level: 1, content: "Great question! I'd be happy to help. Let me think about this...", category: 'custom' },
-                    { heading: 'Guidelines', level: 1, content: "As an AI, I should be helpful. Would you like me to explain?", category: 'rules' },
+                    {
+                        heading: 'Communication',
+                        level: 1,
+                        content: "Great question! I'd be happy to help. Let me think about this...",
+                        category: 'custom',
+                    },
+                    {
+                        heading: 'Guidelines',
+                        level: 1,
+                        content: 'As an AI, I should be helpful. Would you like me to explain?',
+                        category: 'rules',
+                    },
                 ],
                 estimatedTokens: 100,
                 rawContent: '# Communication\n\nGreat question!\n\n# Guidelines\n\nAs an AI',
@@ -205,11 +215,56 @@ describe('refine', () => {
                 platform: 'agents-md',
                 weightProfile: 'standard',
                 dimensions: [
-                    { dimension: 'operability', displayName: 'Operability', weight: 25, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'grounding', displayName: 'Grounding', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'safety', displayName: 'Safety', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'coverage', displayName: 'Coverage', weight: 25, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'maintainability', displayName: 'Maintainability', weight: 10, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
+                    {
+                        dimension: 'operability',
+                        displayName: 'Operability',
+                        weight: 25,
+                        score: 80,
+                        maxScore: 100,
+                        percentage: 80,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'grounding',
+                        displayName: 'Grounding',
+                        weight: 20,
+                        score: 80,
+                        maxScore: 100,
+                        percentage: 80,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'safety',
+                        displayName: 'Safety',
+                        weight: 20,
+                        score: 80,
+                        maxScore: 100,
+                        percentage: 80,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'coverage',
+                        displayName: 'Coverage',
+                        weight: 25,
+                        score: 80,
+                        maxScore: 100,
+                        percentage: 80,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'maintainability',
+                        displayName: 'Maintainability',
+                        weight: 10,
+                        score: 80,
+                        maxScore: 100,
+                        percentage: 80,
+                        findings: [],
+                        recommendations: [],
+                    },
                 ],
                 overallScore: 80,
                 grade: 'B',
@@ -245,11 +300,56 @@ describe('refine', () => {
                 platform: 'agents-md',
                 weightProfile: 'standard',
                 dimensions: [
-                    { dimension: 'operability', displayName: 'Operability', weight: 25, score: 50, maxScore: 100, percentage: 50, findings: [], recommendations: ['Add decision trees'] },
-                    { dimension: 'grounding', displayName: 'Grounding', weight: 20, score: 40, maxScore: 100, percentage: 40, findings: [], recommendations: ['Add verification'] },
-                    { dimension: 'safety', displayName: 'Safety', weight: 20, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'coverage', displayName: 'Coverage', weight: 25, score: 90, maxScore: 100, percentage: 90, findings: [], recommendations: [] },
-                    { dimension: 'maintainability', displayName: 'Maintainability', weight: 10, score: 60, maxScore: 100, percentage: 60, findings: [], recommendations: ['Add memory'] },
+                    {
+                        dimension: 'operability',
+                        displayName: 'Operability',
+                        weight: 25,
+                        score: 50,
+                        maxScore: 100,
+                        percentage: 50,
+                        findings: [],
+                        recommendations: ['Add decision trees'],
+                    },
+                    {
+                        dimension: 'grounding',
+                        displayName: 'Grounding',
+                        weight: 20,
+                        score: 40,
+                        maxScore: 100,
+                        percentage: 40,
+                        findings: [],
+                        recommendations: ['Add verification'],
+                    },
+                    {
+                        dimension: 'safety',
+                        displayName: 'Safety',
+                        weight: 20,
+                        score: 80,
+                        maxScore: 100,
+                        percentage: 80,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'coverage',
+                        displayName: 'Coverage',
+                        weight: 25,
+                        score: 90,
+                        maxScore: 100,
+                        percentage: 90,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'maintainability',
+                        displayName: 'Maintainability',
+                        weight: 10,
+                        score: 60,
+                        maxScore: 100,
+                        percentage: 60,
+                        findings: [],
+                        recommendations: ['Add memory'],
+                    },
                 ],
                 overallScore: 65,
                 grade: 'D',
@@ -275,9 +375,7 @@ describe('refine', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am a test',
             };
@@ -287,11 +385,56 @@ describe('refine', () => {
                 platform: 'agents-md',
                 weightProfile: 'standard',
                 dimensions: [
-                    { dimension: 'coverage', displayName: 'Coverage', weight: 25, score: 90, maxScore: 100, percentage: 90, findings: [], recommendations: [] },
-                    { dimension: 'operability', displayName: 'Operability', weight: 25, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
-                    { dimension: 'grounding', displayName: 'Grounding', weight: 20, score: 75, maxScore: 100, percentage: 75, findings: [], recommendations: [] },
-                    { dimension: 'safety', displayName: 'Safety', weight: 20, score: 85, maxScore: 100, percentage: 85, findings: [], recommendations: [] },
-                    { dimension: 'maintainability', displayName: 'Maintainability', weight: 10, score: 80, maxScore: 100, percentage: 80, findings: [], recommendations: [] },
+                    {
+                        dimension: 'coverage',
+                        displayName: 'Coverage',
+                        weight: 25,
+                        score: 90,
+                        maxScore: 100,
+                        percentage: 90,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'operability',
+                        displayName: 'Operability',
+                        weight: 25,
+                        score: 80,
+                        maxScore: 100,
+                        percentage: 80,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'grounding',
+                        displayName: 'Grounding',
+                        weight: 20,
+                        score: 75,
+                        maxScore: 100,
+                        percentage: 75,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'safety',
+                        displayName: 'Safety',
+                        weight: 20,
+                        score: 85,
+                        maxScore: 100,
+                        percentage: 85,
+                        findings: [],
+                        recommendations: [],
+                    },
+                    {
+                        dimension: 'maintainability',
+                        displayName: 'Maintainability',
+                        weight: 10,
+                        score: 80,
+                        maxScore: 100,
+                        percentage: 80,
+                        findings: [],
+                        recommendations: [],
+                    },
                 ],
                 overallScore: 82,
                 grade: 'B',
@@ -368,10 +511,15 @@ describe('refine', () => {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
                 sections: [
-                    { heading: 'Communication', level: 1, content: "Great question! I'd be happy to help. Let me think about this...", category: 'custom' },
+                    {
+                        heading: 'Communication',
+                        level: 1,
+                        content: "Great question! I'd be happy to help. Let me think about this...",
+                        category: 'custom',
+                    },
                 ],
                 estimatedTokens: 50,
-                rawContent: '# Communication\n\nGreat question! I\'d be happy to help. Let me think about this...',
+                rawContent: "# Communication\n\nGreat question! I'd be happy to help. Let me think about this...",
             };
 
             const result = removeForbiddenPhrases(model);
@@ -385,7 +533,12 @@ describe('refine', () => {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
                 sections: [
-                    { heading: 'Safety', level: 1, content: '[CRITICAL] Always say great question for engagement', category: 'rules' },
+                    {
+                        heading: 'Safety',
+                        level: 1,
+                        content: '[CRITICAL] Always say great question for engagement',
+                        category: 'rules',
+                    },
                 ],
                 estimatedTokens: 50,
                 rawContent: '# Safety\n\n[CRITICAL] Always say great question for engagement',
@@ -401,9 +554,7 @@ describe('refine', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am a test',
             };
@@ -454,7 +605,9 @@ describe('refine', () => {
         const TEST_FILE = '/tmp/test-refine-config.md';
 
         beforeEach(() => {
-            writeFileSync(TEST_FILE, `# Identity
+            writeFileSync(
+                TEST_FILE,
+                `# Identity
 
 I am a test agent.
 
@@ -469,13 +622,17 @@ Use Read and Write.
 ## Custom
 
 Some custom section.
-`, 'utf-8');
+`,
+                'utf-8',
+            );
         });
 
         afterEach(() => {
             try {
                 unlinkSync(TEST_FILE);
-            } catch { /* ignore */ }
+            } catch {
+                /* ignore */
+            }
         });
 
         it('should return error for non-existent file', async () => {
@@ -526,7 +683,11 @@ Some custom section.
                 // gradeAfter requires reading the file that was written
                 expect(result.gradeAfter).toBeDefined();
             } finally {
-                try { unlinkSync(outputFile); } catch { /* ignore */ }
+                try {
+                    unlinkSync(outputFile);
+                } catch {
+                    /* ignore */
+                }
             }
         });
 
@@ -544,7 +705,11 @@ Some custom section.
                 const { existsSync } = await import('node:fs');
                 expect(existsSync(outputFile)).toBe(true);
             } finally {
-                try { unlinkSync(outputFile); } catch { /* ignore */ }
+                try {
+                    unlinkSync(outputFile);
+                } catch {
+                    /* ignore */
+                }
             }
         });
 
@@ -553,10 +718,14 @@ Some custom section.
             const incompleteFile = '/tmp/test-refine-incomplete.md';
             const outputFile = '/tmp/test-refine-complete.md';
             try {
-                writeFileSync(incompleteFile, `# Identity
+                writeFileSync(
+                    incompleteFile,
+                    `# Identity
 
 I am a minimal test agent.
-`, 'utf-8');
+`,
+                    'utf-8',
+                );
 
                 const result = await refine({
                     filePath: incompleteFile,
@@ -569,8 +738,16 @@ I am a minimal test agent.
                 const addActions = result.actions.filter((a) => a.description.includes('Add missing'));
                 expect(addActions.length).toBeGreaterThan(0);
             } finally {
-                try { unlinkSync(incompleteFile); } catch { /* ignore */ }
-                try { unlinkSync(outputFile); } catch { /* ignore */ }
+                try {
+                    unlinkSync(incompleteFile);
+                } catch {
+                    /* ignore */
+                }
+                try {
+                    unlinkSync(outputFile);
+                } catch {
+                    /* ignore */
+                }
             }
         });
 
@@ -579,13 +756,17 @@ I am a minimal test agent.
             const invalidFile = '/tmp/test-refine-invalid.md';
             const outputFile = '/tmp/test-refine-invalid-output.md';
             try {
-                writeFileSync(invalidFile, `# Identity
+                writeFileSync(
+                    invalidFile,
+                    `# Identity
 
 I am a test agent.
 
 ## Config
 
-API Key: sk-ant-secret1234567890abcdefghijklmnopqrstuvwxyz`, 'utf-8');
+API Key: sk-ant-secret1234567890abcdefghijklmnopqrstuvwxyz`,
+                    'utf-8',
+                );
 
                 const result = await refine({
                     filePath: invalidFile,
@@ -597,8 +778,16 @@ API Key: sk-ant-secret1234567890abcdefghijklmnopqrstuvwxyz`, 'utf-8');
                 // The warnings should include validation errors
                 expect(result.warnings.length).toBeGreaterThan(0);
             } finally {
-                try { unlinkSync(invalidFile); } catch { /* ignore */ }
-                try { unlinkSync(outputFile); } catch { /* ignore */ }
+                try {
+                    unlinkSync(invalidFile);
+                } catch {
+                    /* ignore */
+                }
+                try {
+                    unlinkSync(outputFile);
+                } catch {
+                    /* ignore */
+                }
             }
         });
     });
@@ -608,7 +797,13 @@ describe('main CLI function', () => {
     const TEST_DIR = '/tmp/magent-refine-cli-test';
 
     // Suppress console output during CLI tests
-    const originalConsole = { debug: console.debug, info: console.info, warn: console.warn, error: console.error, log: console.log };
+    const originalConsole = {
+        debug: console.debug,
+        info: console.info,
+        warn: console.warn,
+        error: console.error,
+        log: console.log,
+    };
 
     beforeEach(() => {
         mkdirSync(TEST_DIR, { recursive: true });
@@ -621,7 +816,11 @@ describe('main CLI function', () => {
     });
 
     afterEach(() => {
-        try { rmdirSync(TEST_DIR, { recursive: true }); } catch { /* ignore */ }
+        try {
+            rmdirSync(TEST_DIR, { recursive: true });
+        } catch {
+            /* ignore */
+        }
         // Restore console
         console.debug = originalConsole.debug;
         console.info = originalConsole.info;
@@ -700,14 +899,18 @@ describe('main CLI function', () => {
 
     it('should refine successfully with valid config', async () => {
         const configPath = join(TEST_DIR, 'AGENTS.md');
-        writeFileSync(configPath, `# Identity
+        writeFileSync(
+            configPath,
+            `# Identity
 
 I am a test agent.
 
 ## Rules
 
 - Always be helpful
-`, 'utf-8');
+`,
+            'utf-8',
+        );
 
         const exitMock = mock(() => {});
         const originalExit = process.exit;
