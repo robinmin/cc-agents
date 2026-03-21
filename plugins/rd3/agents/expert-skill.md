@@ -93,7 +93,6 @@ rd3:cc-skills package ./skills/my-skill --output ./dist
 |----------|-------------|---------|
 | `skill-path` | Path to the skill directory | (required) |
 | `--best-practices` | Auto-fix TODOs, Windows paths, formatting | false |
-| `--llm-refine` | Use LLM for style/voice fixes | false |
 | `--migrate` | Migrate rd2 to rd3 format | false |
 | `--dry-run` | Preview changes without applying | false |
 | `--platform` | Target: all, claude, codex, openclaw, opencode, antigravity | all |
