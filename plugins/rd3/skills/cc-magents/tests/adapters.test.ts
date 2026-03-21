@@ -29,7 +29,12 @@ describe('adapters', () => {
             readonly displayName = 'Test';
             readonly tier = 1 as const;
 
-            protected async generatePlatform(): Promise<{ success: boolean; output?: string; errors: string[]; warnings: string[] }> {
+            protected async generatePlatform(): Promise<{
+                success: boolean;
+                output?: string;
+                errors: string[];
+                warnings: string[];
+            }> {
                 return { success: true, output: 'test output', errors: [], warnings: [] };
             }
         }
@@ -46,9 +51,7 @@ describe('adapters', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am a test agent', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am a test agent', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am a test agent',
             };
@@ -76,9 +79,7 @@ describe('adapters', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Test', level: 1, content: 'x'.repeat(60 * 1024), category: 'custom' },
-                ],
+                sections: [{ heading: 'Test', level: 1, content: 'x'.repeat(60 * 1024), category: 'custom' }],
                 estimatedTokens: 1000,
                 rawContent: 'x'.repeat(60 * 1024),
             };
@@ -91,9 +92,7 @@ describe('adapters', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Test', level: 1, content: 'x', category: 'custom' },
-                ],
+                sections: [{ heading: 'Test', level: 1, content: 'x', category: 'custom' }],
                 estimatedTokens: 1000,
                 rawContent: 'x'.repeat(210 * 1024),
             };
@@ -120,9 +119,7 @@ describe('adapters', () => {
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am a test',
             };
@@ -244,9 +241,7 @@ I am a test.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/AGENTS.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am a test',
                 metadata: {
@@ -318,9 +313,7 @@ I am Claude Code.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/CLAUDE.md',
                 sourceFormat: 'claude-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am Claude', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am Claude', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am Claude',
             };
@@ -343,7 +336,7 @@ I am Claude Code.`;
                 rawContent: '# Hooks\n\nUse PreToolUse hook for validation',
             };
 
-            const features = (adapter as any).detectPlatformFeatures(model);
+            const features = adapter.detectFeatures(model);
             expect(features).toContain('hooks');
         });
 
@@ -353,13 +346,18 @@ I am Claude Code.`;
                 sourcePath: '/test/CLAUDE.md',
                 sourceFormat: 'claude-md',
                 sections: [
-                    { heading: 'MCP', level: 1, content: 'Configure mcp__github__issues for issue tracking', category: 'custom' },
+                    {
+                        heading: 'MCP',
+                        level: 1,
+                        content: 'Configure mcp__github__issues for issue tracking',
+                        category: 'custom',
+                    },
                 ],
                 estimatedTokens: 50,
                 rawContent: '# MCP\n\nConfigure mcp__github__issues for issue tracking',
             };
 
-            const features = (adapter as any).detectPlatformFeatures(model);
+            const features = adapter.detectFeatures(model);
             expect(features).toContain('mcp-servers');
         });
 
@@ -375,7 +373,7 @@ I am Claude Code.`;
                 rawContent: '# Memory\n\nEnable auto-memory for context',
             };
 
-            const features = (adapter as any).detectPlatformFeatures(model);
+            const features = adapter.detectFeatures(model);
             expect(features).toContain('memory-md');
         });
 
@@ -385,13 +383,18 @@ I am Claude Code.`;
                 sourcePath: '/test/CLAUDE.md',
                 sourceFormat: 'claude-md',
                 sections: [
-                    { heading: 'Instructions', level: 1, content: 'Use system-reminder for context', category: 'custom' },
+                    {
+                        heading: 'Instructions',
+                        level: 1,
+                        content: 'Use system-reminder for context',
+                        category: 'custom',
+                    },
                 ],
                 estimatedTokens: 50,
                 rawContent: '# Instructions\n\nUse system-reminder for context',
             };
 
-            const features = (adapter as any).detectPlatformFeatures(model);
+            const features = adapter.detectFeatures(model);
             expect(features).toContain('progressive-complexity');
         });
 
@@ -400,9 +403,7 @@ I am Claude Code.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/CLAUDE.md',
                 sourceFormat: 'claude-md',
-                sections: [
-                    { heading: 'Hooks', level: 1, content: 'Use PreToolUse hook', category: 'custom' },
-                ],
+                sections: [{ heading: 'Hooks', level: 1, content: 'Use PreToolUse hook', category: 'custom' }],
                 estimatedTokens: 50,
                 rawContent: '# Hooks\n\nUse PreToolUse hook',
             };
@@ -544,9 +545,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.windsurfrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
             };
@@ -560,9 +559,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/rules.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
             };
@@ -576,9 +573,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/opencode.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
             };
@@ -592,9 +587,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.cursorrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
             };
@@ -608,9 +601,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.cursorrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
             };
@@ -625,9 +616,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.windsurfrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
             };
@@ -641,9 +630,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/rules.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
             };
@@ -657,9 +644,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/opencode.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
             };
@@ -734,9 +719,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/junie.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am Junie', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am Junie', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am Junie',
             };
@@ -751,9 +734,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/vscode.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am VSCode', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am VSCode', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am VSCode',
             };
@@ -767,9 +748,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/augment.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am Augment', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am Augment', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am Augment',
             };
@@ -783,9 +762,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/cline.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am Cline', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am Cline', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am Cline',
             };
@@ -799,9 +776,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/junie.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Identity', level: 1, content: 'I am Junie', category: 'identity' },
-                ],
+                sections: [{ heading: 'Identity', level: 1, content: 'I am Junie', category: 'identity' }],
                 estimatedTokens: 50,
                 rawContent: '# Identity\n\nI am Junie',
                 preamble: 'Preamble text',
@@ -862,7 +837,12 @@ Be helpful.`;
                 sourcePath: '/test/augment.md',
                 sourceFormat: 'agents-md',
                 sections: [
-                    { heading: 'Context', level: 1, content: 'Use knowledge integration for context', category: 'custom' },
+                    {
+                        heading: 'Context',
+                        level: 1,
+                        content: 'Use knowledge integration for context',
+                        category: 'custom',
+                    },
                 ],
                 estimatedTokens: 50,
                 rawContent: '# Context\n\nUse knowledge integration for context',
@@ -877,9 +857,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.cursorrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
                 metadata: { name: 'test-agent' },
@@ -895,9 +873,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/opencode.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Model', level: 1, content: 'Use GPT-4 for complex tasks', category: 'custom' },
-                ],
+                sections: [{ heading: 'Model', level: 1, content: 'Use GPT-4 for complex tasks', category: 'custom' }],
                 estimatedTokens: 50,
                 rawContent: '# Model\n\nUse GPT-4 for complex tasks',
             };
@@ -943,9 +919,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.windsurfrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Base Rules', level: 1, content: 'Follow cascade hierarchy', category: 'rules' },
-                ],
+                sections: [{ heading: 'Base Rules', level: 1, content: 'Follow cascade hierarchy', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Base Rules\n\nFollow cascade hierarchy',
             };
@@ -960,7 +934,12 @@ Be helpful.`;
                 sourcePath: '/test/.windsurfrules',
                 sourceFormat: 'agents-md',
                 sections: [
-                    { heading: 'Safety', level: 1, content: 'Cannot allow override for security rules', category: 'rules' },
+                    {
+                        heading: 'Safety',
+                        level: 1,
+                        content: 'Cannot allow override for security rules',
+                        category: 'rules',
+                    },
                 ],
                 estimatedTokens: 50,
                 rawContent: '# Safety\n\nCannot allow override for security rules',
@@ -976,7 +955,12 @@ Be helpful.`;
                 sourcePath: '/test/.windsurfrules',
                 sourceFormat: 'agents-md',
                 sections: [
-                    { heading: 'Planning', level: 1, content: 'Use update_plan for progress tracking', category: 'custom' },
+                    {
+                        heading: 'Planning',
+                        level: 1,
+                        content: 'Use update_plan for progress tracking',
+                        category: 'custom',
+                    },
                 ],
                 estimatedTokens: 50,
                 rawContent: '# Planning\n\nUse update_plan for progress tracking',
@@ -991,9 +975,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.windsurfrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' },
-                ],
+                sections: [{ heading: 'Rules', level: 1, content: 'Be helpful', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Rules\n\nBe helpful',
                 metadata: { name: 'windsurf-agent', version: '1.0' },
@@ -1013,9 +995,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/rules.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'LSP', level: 1, content: 'Configure language server', category: 'custom' },
-                ],
+                sections: [{ heading: 'LSP', level: 1, content: 'Configure language server', category: 'custom' }],
                 estimatedTokens: 50,
                 rawContent: '# LSP\n\nConfigure language server',
             };
@@ -1031,9 +1011,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/opencode.md',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Model', level: 1, content: 'Use GPT-4 for complex tasks', category: 'custom' },
-                ],
+                sections: [{ heading: 'Model', level: 1, content: 'Use GPT-4 for complex tasks', category: 'custom' }],
                 estimatedTokens: 50,
                 rawContent: '# Model\n\nUse GPT-4 for complex tasks',
             };
@@ -1048,9 +1026,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.cursorrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'File Patterns', level: 1, content: '.ts: use 4 spaces', category: 'custom' },
-                ],
+                sections: [{ heading: 'File Patterns', level: 1, content: '.ts: use 4 spaces', category: 'custom' }],
                 estimatedTokens: 50,
                 rawContent: '# File Patterns\n\n.ts: use 4 spaces',
             };
@@ -1065,9 +1041,7 @@ Be helpful.`;
             const model: UniversalMainAgent = {
                 sourcePath: '/test/.windsurfrules',
                 sourceFormat: 'agents-md',
-                sections: [
-                    { heading: 'Base Rules', level: 1, content: 'Follow cascade hierarchy', category: 'rules' },
-                ],
+                sections: [{ heading: 'Base Rules', level: 1, content: 'Follow cascade hierarchy', category: 'rules' }],
                 estimatedTokens: 50,
                 rawContent: '# Base Rules\n\nFollow cascade hierarchy',
                 metadata: { name: 'windsurf-agent' },
@@ -1082,7 +1056,7 @@ Be helpful.`;
             // AgentsMdAdapter (Tier 1) does not have getConversionWarningsFrom
             // This test verifies the method doesn't exist on Tier 1 adapters
             const adapter = new AgentsMdAdapter();
-            expect(typeof (adapter as any).getConversionWarningsFrom).toBe('undefined');
+            expect('getConversionWarningsFrom' in adapter).toBe(false);
         });
     });
 
@@ -1138,7 +1112,12 @@ Be helpful.`;
                 readonly displayName = 'New Platform';
                 readonly tier = 1 as const;
 
-                protected async generatePlatform(): Promise<{ success: boolean; output?: string; errors: string[]; warnings: string[] }> {
+                protected async generatePlatform(): Promise<{
+                    success: boolean;
+                    output?: string;
+                    errors: string[];
+                    warnings: string[];
+                }> {
                     return { success: true, output: 'new', errors: [], warnings: [] };
                 }
             }
@@ -1216,7 +1195,12 @@ Be helpful.`;
             readonly displayName = 'Mock Tier 3';
             readonly tier = 3 as const;
 
-            protected async generatePlatform(): Promise<{ success: boolean; output?: string; errors: string[]; warnings: string[] }> {
+            protected async generatePlatform(): Promise<{
+                success: boolean;
+                output?: string;
+                errors: string[];
+                warnings: string[];
+            }> {
                 return { success: true, output: '# Mock\n\nContent', errors: [], warnings: [] };
             }
         }
