@@ -51,9 +51,11 @@ Examples (Claude Code syntax — adapt to your platform):
 rd3:cc-commands scaffold my-command --template workflow
 rd3:cc-commands validate ./commands/my-command.md
 rd3:cc-commands evaluate ./commands/my-command.md --scope full
-rd3:cc-commands refine ./commands/my-command.md --best-practices
+rd3:cc-commands refine ./commands/my-command.md --migrate
 rd3:cc-commands adapt ./commands/ --platform all
 ```
+
+**IMPORTANT**: When evaluating or refining ANY command file (including command-* and agent-* files), ALWAYS use `cc-commands` scripts — never `cc-agents` scripts. Command files are evaluated with command criteria, not agent criteria.
 
 **On platforms without agent support**, invoke `rd3:cc-commands` directly as a skill — agents are optional wrappers.
 
@@ -98,9 +100,9 @@ rd3:cc-commands adapt ./commands/ --platform all
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `command-path` | Path to the command file | (required) |
-| `--best-practices` | Auto-fix formatting and style issues | false |
-| `--eval` | Run evaluate before refining | false |
+| `--migrate` | Migrate rd2 command to rd3 format | false |
 | `--dry-run` | Preview changes without applying | false |
+| `--platform` | Target: all, claude, codex, gemini, openclaw, opencode, antigravity | all |
 
 ### adapt — Generate platform companions
 
