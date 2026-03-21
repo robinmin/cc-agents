@@ -81,7 +81,7 @@ Section content`;
         });
 
         it('should handle content without headings', () => {
-            const markdown = `Just plain text without any headings.`;
+            const markdown = 'Just plain text without any headings.';
 
             const { sections, preamble } = parseSections(markdown);
 
@@ -123,9 +123,7 @@ Content`;
         });
 
         it('should include preamble when provided', () => {
-            const sections: MagentSection[] = [
-                { heading: 'Main', level: 1, content: 'Main content' },
-            ];
+            const sections: MagentSection[] = [{ heading: 'Main', level: 1, content: 'Main content' }];
 
             const result = serializeSections(sections, 'Preamble text');
 
@@ -134,9 +132,7 @@ Content`;
         });
 
         it('should handle empty sections gracefully', () => {
-            const sections: MagentSection[] = [
-                { heading: 'Empty', level: 1, content: '' },
-            ];
+            const sections: MagentSection[] = [{ heading: 'Empty', level: 1, content: '' }];
 
             const result = serializeSections(sections);
 
@@ -240,9 +236,7 @@ Use the test tool.`;
         });
 
         it('should not override existing categories', () => {
-            const sections: MagentSection[] = [
-                { heading: 'Identity', level: 1, content: '', category: 'custom' },
-            ];
+            const sections: MagentSection[] = [{ heading: 'Identity', level: 1, content: '', category: 'custom' }];
 
             classifySections(sections);
 
@@ -410,11 +404,12 @@ owner: "robin"
 # Agent Config`;
 
             const { metadata, body } = extractMetadata(content);
+            const metadataRecord = metadata as Record<string, unknown> | null;
 
             expect(metadata?.name).toBe('comment-agent');
-            expect(metadata?.enabled).toBe(true);
-            expect(metadata?.retries).toBe(3);
-            expect(metadata?.owner).toBe('robin');
+            expect(metadataRecord?.enabled).toBe(true);
+            expect(metadataRecord?.retries).toBe(3);
+            expect(metadataRecord?.owner).toBe('robin');
             expect(body).toBe('# Agent Config');
         });
     });
@@ -508,7 +503,8 @@ Use the tools listed.`;
         });
 
         it('should include extracted metadata and preamble in the UMAM model', () => {
-            const model = buildUMAM(`---
+            const model = buildUMAM(
+                `---
 name: test-agent
 enabled: false
 ---
@@ -518,10 +514,13 @@ This is the preamble.
 # Identity
 
 I am a test agent.
-`, '/project/AGENTS.md');
+`,
+                '/project/AGENTS.md',
+            );
+            const metadataRecord = model.metadata as Record<string, unknown> | undefined;
 
             expect(model.metadata?.name).toBe('test-agent');
-            expect(model.metadata?.enabled).toBe(false);
+            expect(metadataRecord?.enabled).toBe(false);
             expect(model.preamble).toBe('This is the preamble.');
         });
     });
