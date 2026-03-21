@@ -1,14 +1,14 @@
 ---
 description: Check skill quality score and identify weaknesses
 argument-hint: "<skill-path> [--scope basic|full] [--platform all|claude|codex|openclaw|opencode|antigravity]"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Skill Evaluate
 
 Wraps **rd3:cc-skills** skill.
 
-Score skill quality across 10 dimensions and surface advisory checks for ADK interaction metadata. **Evaluate only — make NO changes.**
+Score skill quality across 10 dimensions and surface advisory checks for ADK interaction metadata. **Evaluate only — make NO changes.** See [Evaluate Workflow](references/workflows.md#evaluate-workflow) for full two-tier architecture details.
 
 ## When to Use
 
