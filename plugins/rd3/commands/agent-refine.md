@@ -1,7 +1,7 @@
 ---
 description: Evaluate and fix agent issues in one step
 argument-hint: "<agent-path> [description] [--eval] [--best-practices] [--migrate] [--dry-run]"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Agent Refine
@@ -43,6 +43,8 @@ Run evaluation, apply deterministic fixes, then perform LLM quality checklist â€
 ```
 
 ## Implementation
+
+**See [Refine Workflow](references/workflows.md#refine-workflow) for full step details.**
 
 This command has THREE phases: script fixes (deterministic) then LLM checklist (fuzzy) then re-evaluate.
 
