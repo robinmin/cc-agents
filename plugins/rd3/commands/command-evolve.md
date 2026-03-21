@@ -1,14 +1,14 @@
 ---
 description: Analyze slash definition evolution and draft proposals
 argument-hint: "<command-path> --analyze|--propose|--apply <id>|--history|--rollback <ver>"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Command Evolve
 
 Wraps **rd3:cc-commands** skill.
 
-Analyze command quality over time, persist refine-backed proposals, and apply or roll back changes through saved companion snapshots.
+Analyze command quality over time, persist refine-backed proposals, and apply or roll back changes through saved companion snapshots. **This command delegates to the rd3:cc-commands skill** — see [Evolve Workflow](references/workflows.md#evolve-workflow) for full step details.
 
 ## When to Use
 
