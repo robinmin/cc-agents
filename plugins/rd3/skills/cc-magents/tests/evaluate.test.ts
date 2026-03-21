@@ -1,8 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { evaluateMagentConfig, runEvaluate, handleEvaluateCLI, parseEvaluateArgs, formatEvaluateReport, getEvaluateHelp } from '../scripts/evaluate';
+import {
+    evaluateMagentConfig,
+    runEvaluate,
+    handleEvaluateCLI,
+    parseEvaluateArgs,
+    formatEvaluateReport,
+    getEvaluateHelp,
+} from '../scripts/evaluate';
 import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
+import type { MagentValidationResult } from '../scripts/types';
 
 const TEST_DIR = '/tmp/magent-evaluate-test';
 
@@ -10,6 +18,25 @@ function createTestFile(name: string, content: string): string {
     const filePath = join(TEST_DIR, name);
     writeFileSync(filePath, content, 'utf-8');
     return filePath;
+}
+
+function createValidationResult(
+    overrides: Partial<MagentValidationResult> = {},
+): MagentValidationResult {
+    return {
+        valid: true,
+        errors: [],
+        warnings: [],
+        suggestions: [],
+        findings: [],
+        filePath: "/test.md",
+        detectedPlatform: "agents-md",
+        fileSize: 0,
+        estimatedTokens: 0,
+        sectionCount: 0,
+        timestamp: "2024-01-01T00:00:00.000Z",
+        ...overrides,
+    };
 }
 
 describe('evaluate', () => {
@@ -22,7 +49,9 @@ describe('evaluate', () => {
         setGlobalSilent(false);
         try {
             rmdirSync(TEST_DIR, { recursive: true });
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     });
 
     describe('evaluateMagentConfig', () => {
@@ -113,7 +142,7 @@ I am a test.
             // Should have findings about empty sections
             const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
-            expect(completenessDim!.findings.some((f) => f.includes('empty'))).toBe(true);
+            expect(completenessDim?.findings.some((f) => f.includes('empty'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -138,7 +167,7 @@ Another example:
             const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
             // Should find example blocks
-            expect(specificityDim!.findings.some((f) => f.includes('example'))).toBe(true);
+            expect(specificityDim?.findings.some((f) => f.includes('example'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -158,7 +187,7 @@ Version 3.0 added feature X`;
 
             const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
-            expect(specificityDim!.findings.some((f) => f.includes('version'))).toBe(true);
+            expect(specificityDim?.findings.some((f) => f.includes('version'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -179,7 +208,7 @@ I am a test.
 
             const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
-            expect(specificityDim!.findings.some((f) => f.includes('constraint'))).toBe(true);
+            expect(specificityDim?.findings.some((f) => f.includes('constraint'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -200,7 +229,7 @@ Response format:
 
             const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
-            expect(specificityDim!.findings.some((f) => f.includes('output contract'))).toBe(true);
+            expect(specificityDim?.findings.some((f) => f.includes('output contract'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -223,7 +252,7 @@ When NOT to Use:
             const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
             // Decision tree findings say "Decision tree" or contain "When"
-            expect(specificityDim!.findings.some((f) => f.includes('Decision') || f.includes('When'))).toBe(true);
+            expect(specificityDim?.findings.some((f) => f.includes('Decision') || f.includes('When'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -244,7 +273,7 @@ IF error THEN retry with exponential backoff
             const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
             // IF-THEN pattern should contribute to operability score
-            expect(specificityDim!.percentage).toBeGreaterThan(0);
+            expect(specificityDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -265,7 +294,7 @@ Version 3.0.0 added feature X`;
             const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
             // Version patterns should contribute to operability score
-            expect(specificityDim!.percentage).toBeGreaterThan(0);
+            expect(specificityDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -287,7 +316,7 @@ $ npm test
             const specificityDim = result.dimensions.find((d) => d.dimension === 'operability');
             expect(specificityDim).toBeDefined();
             // Command patterns should contribute to operability score
-            expect(specificityDim!.percentage).toBeGreaterThan(0);
+            expect(specificityDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -307,7 +336,9 @@ I am a test.
 
             const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
-            expect(verifiabilityDim!.findings.some((f) => f.includes('uncertainty') || f.includes('verification'))).toBe(true);
+            expect(
+                verifiabilityDim?.findings.some((f) => f.includes('uncertainty') || f.includes('verification')),
+            ).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -327,7 +358,9 @@ I am a test.
 
             const safetyDim = result.dimensions.find((d) => d.dimension === 'safety');
             expect(safetyDim).toBeDefined();
-            expect(safetyDim!.findings.some((f) => f.toLowerCase().includes('anti') || f.includes('pattern'))).toBe(true);
+            expect(safetyDim?.findings.some((f) => f.toLowerCase().includes('anti') || f.includes('pattern'))).toBe(
+                true,
+            );
             unlinkSync(filePath);
         });
 
@@ -408,7 +441,7 @@ Handle errors gracefully.`;
             const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
             // Should find optional categories
-            const foundOptionalFindings = completenessDim!.findings.filter((f) => f.includes('optional'));
+            const foundOptionalFindings = completenessDim?.findings.filter((f) => f.includes('optional')) ?? [];
             expect(foundOptionalFindings.length).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
@@ -476,7 +509,7 @@ Prefer async operations.`;
             const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
             // Should have steering/preference findings
-            expect(evolutionDim!.findings.some((f) => f.includes('steering') || f.includes('preference'))).toBe(true);
+            expect(evolutionDim?.findings.some((f) => f.includes('steering') || f.includes('preference'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -504,7 +537,9 @@ v2.0.0: Major rewrite`;
 
             const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
-            expect(evolutionDim!.findings.some((f) => f.includes('versioning') || f.includes('change-tracking'))).toBe(true);
+            expect(evolutionDim?.findings.some((f) => f.includes('versioning') || f.includes('change-tracking'))).toBe(
+                true,
+            );
             unlinkSync(filePath);
         });
 
@@ -532,7 +567,7 @@ Iterate based on user ratings.`;
 
             const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
-            expect(evolutionDim!.percentage).toBeGreaterThan(0);
+            expect(evolutionDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -555,7 +590,9 @@ I am a test agent.
             const safetyDim = result.dimensions.find((d) => d.dimension === 'safety');
             expect(safetyDim).toBeDefined();
             // Should have findings about destructive warnings
-            expect(safetyDim!.findings.some((f) => f.toLowerCase().includes('destructive') || f.includes('warnings'))).toBe(true);
+            expect(
+                safetyDim?.findings.some((f) => f.toLowerCase().includes('destructive') || f.includes('warnings')),
+            ).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -577,7 +614,7 @@ I am a test agent.
             const safetyDim = result.dimensions.find((d) => d.dimension === 'safety');
             expect(safetyDim).toBeDefined();
             // Should have findings about permission boundaries
-            expect(safetyDim!.findings.some((f) => f.toLowerCase().includes('permission'))).toBe(true);
+            expect(safetyDim?.findings.some((f) => f.toLowerCase().includes('permission'))).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -599,7 +636,9 @@ I am a test agent.
             const safetyDim = result.dimensions.find((d) => d.dimension === 'safety');
             expect(safetyDim).toBeDefined();
             // Should have findings about PII protection
-            expect(safetyDim!.findings.some((f) => f.toLowerCase().includes('pii') || f.toLowerCase().includes('privacy'))).toBe(true);
+            expect(
+                safetyDim?.findings.some((f) => f.toLowerCase().includes('pii') || f.toLowerCase().includes('privacy')),
+            ).toBe(true);
             unlinkSync(filePath);
         });
 
@@ -622,8 +661,8 @@ I am a secure agent.
 
             const safetyDim = result.dimensions.find((d) => d.dimension === 'safety');
             expect(safetyDim).toBeDefined();
-            expect(safetyDim!.percentage).toBeGreaterThan(0);
-            expect(safetyDim!.findings.length).toBeGreaterThan(0);
+            expect(safetyDim?.percentage).toBeGreaterThan(0);
+            expect(safetyDim?.findings.length).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -643,7 +682,7 @@ MUST NOT proceed without validation`;
 
             const safetyDim = result.dimensions.find((d) => d.dimension === 'safety');
             expect(safetyDim).toBeDefined();
-            expect(safetyDim!.percentage).toBeGreaterThan(0);
+            expect(safetyDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -664,7 +703,7 @@ Protect your API keys`;
 
             const safetyDim = result.dimensions.find((d) => d.dimension === 'safety');
             expect(safetyDim).toBeDefined();
-            expect(safetyDim!.percentage).toBeGreaterThan(0);
+            expect(safetyDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -686,7 +725,7 @@ Use reversible operations`;
             const safetyDim = result.dimensions.find((d) => d.dimension === 'safety');
             expect(safetyDim).toBeDefined();
             // Backup/rollback patterns should contribute to safety
-            expect(safetyDim!.percentage).toBeGreaterThan(0);
+            expect(safetyDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -709,7 +748,7 @@ Always state your confidence when uncertain.`;
 
             const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
-            expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
+            expect(verifiabilityDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -730,7 +769,7 @@ I am a test agent.
 
             const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
-            expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
+            expect(verifiabilityDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -753,7 +792,7 @@ Sources: https://example.org`;
 
             const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
-            expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
+            expect(verifiabilityDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -779,8 +818,8 @@ Run: npm test`;
 
             const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
-            expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
-            expect(verifiabilityDim!.findings.length).toBeGreaterThan(0);
+            expect(verifiabilityDim?.percentage).toBeGreaterThan(0);
+            expect(verifiabilityDim?.findings.length).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -802,7 +841,7 @@ I am a test agent.
 
             const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
-            expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
+            expect(verifiabilityDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -825,7 +864,7 @@ Cross-ref with reliable sources.`;
             expect(result.dimensions.length).toBeGreaterThan(0);
             const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
             expect(verifiabilityDim).toBeDefined();
-            expect(verifiabilityDim!.percentage).toBeGreaterThan(0);
+            expect(verifiabilityDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -845,7 +884,7 @@ Persist important facts across interactions.`;
 
             const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
-            expect(evolutionDim!.percentage).toBeGreaterThan(0);
+            expect(evolutionDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -865,7 +904,7 @@ Update context after each operation.`;
 
             const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
-            expect(evolutionDim!.percentage).toBeGreaterThan(0);
+            expect(evolutionDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -895,8 +934,8 @@ v3.0: Improved feedback`;
 
             const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
-            expect(evolutionDim!.percentage).toBeGreaterThan(0);
-            expect(evolutionDim!.findings.length).toBeGreaterThan(0);
+            expect(evolutionDim?.percentage).toBeGreaterThan(0);
+            expect(evolutionDim?.findings.length).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -933,7 +972,7 @@ v1.0.0: Initial release`;
 
             const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
-            expect(evolutionDim!.percentage).toBeGreaterThan(50);
+            expect(evolutionDim?.percentage).toBeGreaterThan(50);
             unlinkSync(filePath);
         });
 
@@ -979,7 +1018,7 @@ Rule 3: Follow best practices`;
 
             const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
-            expect(completenessDim!.percentage).toBeGreaterThan(0);
+            expect(completenessDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -1000,7 +1039,7 @@ Grep: Search for patterns in files`;
 
             const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
             expect(completenessDim).toBeDefined();
-            expect(completenessDim!.percentage).toBeGreaterThan(0);
+            expect(completenessDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
 
@@ -1086,7 +1125,7 @@ v1.0: Initial release`;
             expect(result.overallScore).toBeGreaterThan(0);
             // Advanced profile should have higher grounding weight
             const verifiabilityDim = result.dimensions.find((d) => d.dimension === 'grounding');
-            expect(verifiabilityDim!.weight).toBe(25);
+            expect(verifiabilityDim?.weight).toBe(25);
             unlinkSync(filePath);
         });
 
@@ -1110,7 +1149,7 @@ Use Read.`;
             expect(result.weightProfile).toBe('minimal');
             // Minimal profile should have higher coverage weight
             const completenessDim = result.dimensions.find((d) => d.dimension === 'coverage');
-            expect(completenessDim!.weight).toBe(30);
+            expect(completenessDim?.weight).toBe(30);
             unlinkSync(filePath);
         });
 
@@ -1161,8 +1200,7 @@ I am a minimal agent.`;
         });
 
         it('should handle file with very long content', async () => {
-            const longContent = '# Identity\n\nI am a test agent.\n\n## Rules\n\n' +
-                '- Rule 1: '.repeat(100) + '\n\n## Tools\n\nUse Read.\n\n'.repeat(50);
+            const longContent = `# Identity\n\nI am a test agent.\n\n## Rules\n\n${'- Rule 1: '.repeat(100)}${'\n\n## Tools\n\nUse Read.\n\n'.repeat(50)}`;
 
             const filePath = createTestFile('long.md', longContent);
             const result = await evaluateMagentConfig(filePath, longContent);
@@ -1189,7 +1227,7 @@ v2.0.0: Stable release`;
 
             const evolutionDim = result.dimensions.find((d) => d.dimension === 'maintainability');
             expect(evolutionDim).toBeDefined();
-            expect(evolutionDim!.percentage).toBeGreaterThan(0);
+            expect(evolutionDim?.percentage).toBeGreaterThan(0);
             unlinkSync(filePath);
         });
     });
@@ -1239,7 +1277,15 @@ Be helpful.`;
 I am a test.`;
             const filePath = createTestFile('run-eval-invalid.md', content);
 
-            await expect(runEvaluate({ configPath: filePath, profile: 'invalid-profile' as any })).rejects.toThrow();
+            await expect(
+                runEvaluate({
+                    configPath: filePath,
+                    profile:
+                        'invalid-profile' as unknown as NonNullable<
+                            Parameters<typeof runEvaluate>[0]['profile']
+                        >,
+                }),
+            ).rejects.toThrow();
             unlinkSync(filePath);
         });
 
@@ -1319,7 +1365,7 @@ Be helpful.`;
 
     describe('formatEvaluateReport', () => {
         it('should format report with validation passed', () => {
-            const validation = { valid: true, errors: [], warnings: [] };
+            const validation = createValidationResult();
             const report = {
                 filePath: '/test.md',
                 platform: 'agents-md' as const,
@@ -1354,7 +1400,10 @@ Be helpful.`;
         });
 
         it('should format report with validation errors', () => {
-            const validation = { valid: false, errors: ['Missing required section'], warnings: [] };
+            const validation = createValidationResult({
+                valid: false,
+                errors: ['Missing required section'],
+            });
             const report = {
                 filePath: '/test.md',
                 platform: 'agents-md' as const,
@@ -1386,7 +1435,7 @@ Be helpful.`;
         });
 
         it('should format report with verbose output', () => {
-            const validation = { valid: true, errors: [], warnings: [] };
+            const validation = createValidationResult();
             const report = {
                 filePath: '/test.md',
                 platform: 'agents-md' as const,
@@ -1418,7 +1467,7 @@ Be helpful.`;
         });
 
         it('should format report with grade colors', () => {
-            const validation = { valid: true, errors: [], warnings: [] };
+            const validation = createValidationResult();
             const report = {
                 filePath: '/test.md',
                 platform: 'agents-md' as const,
@@ -1614,7 +1663,8 @@ I am a test agent that helps with development tasks.
 
             expect(result.exitCode).toBe(0);
             expect(result.output).toBeDefined();
-            const parsed = JSON.parse(result.output!);
+            expect(result.output).toBeDefined();
+            const parsed = JSON.parse(result.output ?? '{}');
             expect(parsed.report).toBeDefined();
             expect(parsed.validation).toBeDefined();
             unlinkSync(filePath);
