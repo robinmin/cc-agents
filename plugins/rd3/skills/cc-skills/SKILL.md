@@ -46,7 +46,23 @@ This skill accepts **5 operations**:
 
 ## Workflow Design
 
-Each operation has a **step-by-step workflow** combining scripts and checklists:
+Each operation has a **step-by-step workflow** combining scripts and checklists.
+
+### Hybrid Workflow Architecture
+
+Workflow-related agent skills use a **hybrid approach** combining scripting for deterministic steps with markdown (checklists) for non-deterministic steps:
+
+| Step Type | Handler | When to Use |
+|-----------|---------|-------------|
+| **Deterministic** | Script | File I/O, validation, parsing, generation, cross-platform adaptation |
+| **Non-deterministic** | Markdown checklist | Quality assessment, voice consistency, trigger effectiveness, judgment calls |
+
+**This hybrid approach is optimal** — it combines reliability (scripting) with flexibility (LLM judgment). However, the approach is not dogma:
+- **Pure scripting** is appropriate when steps are fully deterministic (e.g., validate.ts, package.ts)
+- **Pure markdown** is appropriate when fuzzy human judgment is required throughout
+- **Hybrid** (default) combines both for workflow-related skills
+
+**Key insight**: Scripts handle what machines do well (repetition, precision); checklists handle what LLMs do well (nuance, creativity).
 
 ### Workflow Components
 
