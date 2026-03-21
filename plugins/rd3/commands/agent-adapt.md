@@ -1,14 +1,14 @@
 ---
 description: Adapt a Claude Code agent for other AI coding platforms
 argument-hint: "<source-file> <source-platform> [target-platform]"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Agent Adapt
 
 Wraps **rd3:cc-agents** skill.
 
-Convert a Claude Code agent to other platform formats.
+Convert a Claude Code agent to other platform formats. **See [Adapt Workflow](references/workflows.md#adapt-workflow) for full step details.**
 
 ## When to Use
 
