@@ -187,12 +187,19 @@ Each script operates independently and can be invoked from CLI or slash commands
 
 ## Workflows
 
-| Workflow | Steps |
-|----------|-------|
-| **Create Command** | scaffold → validate → refine |
-| **Quality Check** | evaluate → refine → evaluate |
-| **Longitudinal Planning** | evaluate → refine → collect feedback → evolve |
-| **Cross-Platform** | scaffold → adapt |
+Each operation has a **step-by-step workflow** combining scripts and checklists:
+
+| Component | Purpose | Examples |
+|-----------|---------|----------|
+| **Scripts** | Deterministic tasks | File creation, validation, companion generation |
+| **Checklists** | Fuzzy verification | Imperative form, description clarity, voice |
+
+**See [references/workflows.md](references/workflows.md)** for:
+- Visual flow diagrams
+- Step-by-step tables with handlers
+- Success/failure criteria
+- Mandatory checklist items
+- Retry policies
 
 ## Evaluation Dimensions (10)
 
