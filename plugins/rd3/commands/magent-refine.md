@@ -1,19 +1,13 @@
 ---
-description: Refine and improve existing configs
-argument-hint: <config-path> [--dry-run] [--apply] [--output <path>]
-triggers:
-  - "improve AGENTS.md"
-  - "refine config"
-  - "fix config issues"
-  - "enhance CLAUDE.md"
-  - "clean up agent config"
-examples:
-  - "magent-refine AGENTS.md --dry-run"
-  - "magent-refine CLAUDE.md --apply"
-  - "magent-refine AGENTS.md --output refined.md"
+description: "Refine and improve main agent config files"
+argument-hint: "<config-path> [--dry-run] [--apply] [--output <path>]"
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
+disable-model-invocation: true
 ---
 
-# magent-refine
+# Magent Refine
+
+Wraps **rd3:cc-magents** skill.
 
 Auto-fix structural issues and suggest quality improvements for main agent configs.
 
@@ -28,15 +22,24 @@ Auto-fix structural issues and suggest quality improvements for main agent confi
 ## Arguments
 
 | Argument | Description | Default |
-|----------|-------------|---------|
-| `config-path` | Path to config file | (required) |
+|---------|-------------|---------|
+| `config-path` | Path to config file (AGENTS.md, CLAUDE.md) | (required) |
 | `--dry-run` | Preview changes without applying | true |
 | `--apply` | Actually apply fixes | false |
-| `--output` | Output path (for dry-run with custom output) | in-place |
+| `--output` | Output path for refined config | in-place |
 
-## Validation (Automatic)
+## Implementation
 
-Validation runs automatically first. Structural issues are reported but refinement continues regardless.
+Delegates to **rd3:cc-magents** skill:
+
+```
+Skill(skill="rd3:cc-magents", args="refine $ARGUMENTS")
+```
+
+**Direct script execution:**
+```bash
+bun plugins/rd3/skills/cc-magents/scripts/refine.ts $ARGUMENTS
+```
 
 ## Refinement Actions
 
@@ -51,23 +54,11 @@ Validation runs automatically first. Structural issues are reported but refineme
 
 ### Best Practice Fixes (auto-fix)
 - Remove forbidden AI phrases ("great question", "I'm sorry")
-- Improve operability signals such as decision trees and clearer tool guidance
+- Improve operability signals
 
 ## CRITICAL Section Protection
 
 Sections containing `[CRITICAL]` markers are NEVER modified, even with `--apply`. This ensures safety rules remain intact.
-
-## Workflow
-
-See [Refine Workflow](references/workflows.md#refine-workflow) for detailed step-by-step flow, action types (structural/quality/best-practice), and CRITICAL protection.
-
-## Implementation
-
-Delegates to refine.ts script:
-
-```bash
-bun plugins/rd3/skills/cc-magents/scripts/refine.ts $ARGUMENTS
-```
 
 ## Examples
 
@@ -81,3 +72,8 @@ bun plugins/rd3/skills/cc-magents/scripts/refine.ts $ARGUMENTS
 # Save refined version to new file
 /rd3:magent-refine AGENTS.md --output refined-AGENTS.md
 ```
+
+## Platform Notes
+
+- Claude Code: Invoke via `Skill()` delegation
+- Other platforms: Run script directly via Bash tool
