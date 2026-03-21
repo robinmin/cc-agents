@@ -1646,7 +1646,7 @@ function printUsage(): void {
     console.log('  <skill-path>          Path to skill directory');
     console.log('');
     console.log('Options:');
-    console.log('  --scope <level>      Evaluation scope: basic, full (default: basic)');
+    console.log('  --scope <level>      Evaluation scope: basic, full (default: full)');
     console.log('  --platform <name>    Platform: claude, codex, openclaw, opencode, antigravity, all');
     console.log('  --json                Output results as JSON');
     console.log('  --verbose, -v         Show detailed evaluation output');
@@ -1739,7 +1739,7 @@ function parseCliArgs(): {
         args: process.argv.slice(2),
         allowPositionals: true,
         options: {
-            scope: { type: 'string', default: 'basic' },
+            scope: { type: 'string', default: 'full' },
             platform: { type: 'string', default: 'all' },
             json: { type: 'boolean', default: false },
             verbose: { type: 'boolean', short: 'v', default: false },
