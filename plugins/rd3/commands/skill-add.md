@@ -1,5 +1,5 @@
 ---
-description: Create a new skill with scaffolding, templates, and optional ADK interaction patterns
+description: Create a new skill with scaffolding, templates, and optio...
 argument-hint: "<skill-name> [description] [--template technique|pattern|reference] [--interactions tool-wrapper|generator|reviewer|inversion|pipeline|(none)] [--path <dir>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
