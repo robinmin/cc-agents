@@ -2,6 +2,7 @@
 description: Adapt a slash definition for other AI coding platforms
 argument-hint: "<plugin|path> [targets] [--component commands|all] [--dry-run]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
+disable-model-invocation: true
 ---
 
 # Command Adapt

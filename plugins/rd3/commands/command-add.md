@@ -2,6 +2,7 @@
 description: Scaffold a new slash definition with best practices
 argument-hint: "<command-name> [description] [--template simple|workflow|plugin] [--path <dir>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
+disable-model-invocation: true
 ---
 
 # Command Add

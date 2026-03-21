@@ -2,6 +2,7 @@
 description: Evaluate and fix command issues in one step
 argument-hint: "<command-path> [--migrate] [--dry-run] [--platform all|claude|codex|gemini|openclaw|opencode|antigravity]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
+disable-model-invocation: true
 ---
 
 # Command Refine

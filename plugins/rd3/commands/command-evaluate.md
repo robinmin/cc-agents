@@ -2,6 +2,7 @@
 description: Score slash definition quality across 10 dimensions
 argument-hint: "<command-path> [--scope basic|full] [--json]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
+disable-model-invocation: true
 ---
 
 # Command Evaluate
