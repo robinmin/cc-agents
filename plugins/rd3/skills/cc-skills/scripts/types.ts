@@ -29,10 +29,20 @@ export interface SkillFrontmatter {
 /**
  * Skill metadata structure
  */
+export type InteractionPattern = 'tool-wrapper' | 'generator' | 'reviewer' | 'inversion' | 'pipeline';
+
 export interface SkillMetadata {
     author?: string;
     version?: string;
     platforms?: string;
+    /** ADK interaction patterns describing runtime behavior */
+    interactions?: InteractionPattern[];
+    /** Optional keyword hints for tool-wrapper skills */
+    trigger_keywords?: string[];
+    /** Optional severity levels for reviewer skills */
+    severity_levels?: string[];
+    /** Optional named steps for pipeline skills */
+    pipeline_steps?: string[];
     /** OpenClaw-specific metadata */
     openclaw?: OpenClawMetadata;
     /** Other platform metadata */
@@ -231,6 +241,8 @@ export interface ScaffoldOptions {
     description?: string;
     /** Resource directories to create */
     resources?: ResourceType[];
+    /** ADK interaction patterns to inject into metadata */
+    interactions?: InteractionPattern[];
     /** Create example files in resource directories */
     examples?: boolean;
     /** Platform targets for companion generation */
