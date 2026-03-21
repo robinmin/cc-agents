@@ -49,7 +49,7 @@ function migrateFromRd2(content: string): MigrationResult {
             actions.push('Added empty tools field');
         }
 
-        updated = content.replace(fmMatch[0], `---\n${fmContent}---`);
+        updated = content.replace(fmMatch[0], `---\n${fmContent}\n---`);
     }
 
     return {
