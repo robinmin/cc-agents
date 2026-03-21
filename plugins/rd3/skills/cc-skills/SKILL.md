@@ -6,6 +6,25 @@ metadata:
   author: cc-agents
   version: "3.0.0"
   platforms: "claude-code,codex,antigravity,opencode,openclaw"
+  openclaw:
+    emoji: "🛠️"
+    requires:
+      bins:
+        - bun
+  interactions:
+    - generator
+    - reviewer
+    - pipeline
+  severity_levels:
+    - error
+    - warning
+    - info
+  pipeline_steps:
+    - select-operation
+    - run-deterministic-handler
+    - verify-with-checklists
+    - iterate-on-failure
+    - package-or-evolve
 ---
 
 # cc-skills: Universal Skill Creator
@@ -54,9 +73,12 @@ Each workflow follows this pattern:
 
 ## Quick Start
 
-```bash
+```sh
 # Add: Initialize a new skill
 bun scripts/scaffold.ts my-skill --path ./skills
+
+# Add with ADK interaction patterns
+bun scripts/scaffold.ts my-skill --path ./skills --interactions pipeline,reviewer
 
 # Evaluate: Validate skill structure (Two-Tier: Structural + Quality)
 bun scripts/evaluate.ts ./skills/my-skill --scope full
@@ -131,6 +153,29 @@ Choose based on content:
 
 See [references/skill-patterns.md](references/skill-patterns.md) for advanced workflow patterns.
 
+## Interaction Patterns (ADK)
+
+ADK interaction patterns describe **runtime behavior**, not content structure.
+
+Use them alongside skill types:
+- **Type** answers: what does the skill contain?
+- **Interaction pattern** answers: how should the skill behave?
+
+Supported patterns:
+- **Tool Wrapper**: load references or conventions on demand
+- **Generator**: fill templates into structured output
+- **Reviewer**: apply a rubric or checklist and return findings
+- **Inversion**: ask questions before acting
+- **Pipeline**: enforce ordered stages with gates
+
+These patterns compose. A skill can combine them, such as:
+- `["inversion", "generator"]` for requirement interview then document generation
+- `["pipeline", "reviewer"]` for staged execution with a final audit
+
+Add them in frontmatter under `metadata.interactions` when they materially describe the skill's behavior.
+
+See [references/skill-patterns-adk.md](references/skill-patterns-adk.md) for the decision tree, composition guidance, and mapping to rd3 workflow heuristics.
+
 ## Directory Structure
 
 ```
@@ -151,9 +196,9 @@ skill-name/
 
 | Platform | Extensions | Companion Files |
 |----------|------------|-----------------|
-| **Claude Code** | `!`cmd``, `$ARGUMENTS`, `context: fork`, `hooks:` | None (native) |
+| **Claude Code** | Inline command syntax, argument placeholders, forked context mode, hooks | None (native) |
 | **Codex** | `agents/openai.yaml` (UI metadata) | agents/openai.yaml |
-| **OpenClaw** | `metadata.openclaw` (emoji, requires) | None (embedded) |
+| **OpenClaw** | Frontmatter `openclaw` metadata (emoji, requires) | None (embedded) |
 | **OpenCode** | Config-level `permission.skill` | None (hints only) |
 | **Antigravity** | Gemini CLI compatible | None (validates) |
 
@@ -161,8 +206,8 @@ skill-name/
 
 | rd2 Feature | Migration Action |
 |-------------|-----------------|
-| `!`cmd`` syntax | Keep for Claude, add Platform Notes |
-| `$ARGUMENTS`, `$N` | Keep for Claude, document limitation |
+| Claude inline command syntax | Keep for Claude, add Platform Notes |
+| Claude argument placeholders | Keep for Claude, document limitation |
 | Missing `name:` field | Add explicit `name:` from directory |
 | Python scripts | Keep (scripts are platform-agnostic) |
 
@@ -193,7 +238,7 @@ Each platform adapter validates different aspects:
 |----------|-----------|
 | Claude Code | Frontmatter, structure, syntax compatibility |
 | Codex | openai.yaml format, agent metadata |
-| OpenClaw | metadata.openclaw format, emoji, requirements |
+| OpenClaw | frontmatter `openclaw` metadata, emoji, requirements |
 | OpenCode | Permission hints, configuration |
 | Antigravity | Gemini CLI compatibility |
 
@@ -209,16 +254,16 @@ When migrating from rd2:
 ## Platform Notes
 
 ### Claude Code
-- Use `!`cmd`` for live command execution (e.g., `!\`ls -la\``)
-- Use `$ARGUMENTS` to reference command-line arguments provided by user
-- Use `context: fork` for parallel reasoning in separate context
-- Use `hooks:` for pre/post tool execution automation
+- Use Claude inline command execution syntax for live shell commands
+- Use Claude argument placeholders to reference command-line arguments from the user
+- Use Claude forked context mode for parallel reasoning in separate context
+- Use Claude `hooks:` frontmatter for pre/post tool execution automation
 - **Note**: These features are Claude-specific and not available on other platforms
 
 ### Codex / OpenClaw / OpenCode / Antigravity
 - Run commands via Bash tool: use standard shell commands
-- Arguments are provided directly in chat, not via `$ARGUMENTS`
-- Platform companions (openai.yaml, metadata.openclaw) are auto-generated
+- Arguments are provided directly in chat, not via Claude argument placeholders
+- Platform companions (`openai.yaml`, OpenClaw metadata) are auto-generated
 
 ## Best Practices
 
