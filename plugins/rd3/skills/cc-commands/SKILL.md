@@ -187,7 +187,9 @@ Each script operates independently and can be invoked from CLI or slash commands
 
 ## Workflows
 
-Each operation has a **step-by-step workflow** combining scripts and checklists:
+Each operation has a **step-by-step workflow** combining scripts and checklists.
+
+> **Hybrid Workflow Architecture**: Workflow-related skills use a hybrid approach — scripting for deterministic steps (file I/O, validation, parsing) and markdown checklists for non-deterministic steps (quality assessment, voice consistency). This ensures reliability while preserving flexibility. Pure scripting or pure markdown is valid when the step type demands it.
 
 | Component | Purpose | Examples |
 |-----------|---------|----------|
