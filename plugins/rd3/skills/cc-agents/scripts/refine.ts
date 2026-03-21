@@ -34,8 +34,9 @@ function migrateFromRd2(content: string): MigrationResult {
     if (fmMatch) {
         let fmContent = fmMatch[1];
 
-        // Check if name is missing
-        if (!fmContent.includes('name:')) {
+        // Check if name is missing (skip for command files - they use argument-hint not name)
+        // Command files have argument-hint in frontmatter, agent files do not
+        if (!fmContent.includes('name:') && !fmContent.includes('argument-hint:')) {
             const dirMatch = content.match(/#\s+([a-z0-9-]+)/i);
             if (dirMatch) {
                 fmContent = `name: ${dirMatch[1]}\n${fmContent}`;
