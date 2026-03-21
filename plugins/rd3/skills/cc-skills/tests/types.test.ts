@@ -10,6 +10,7 @@ import type {
     EvaluationDimension,
     EvaluationReport,
     EvaluationScope,
+    InteractionPattern,
     Platform,
     ScaffoldOptions,
     Skill,
@@ -70,6 +71,27 @@ describe('Type Definitions', () => {
             expect(metadata.openclaw?.emoji).toBe('🛠️');
             expect(metadata.openclaw?.requires?.bins).toContain('git');
         });
+
+        it('should allow ADK interaction metadata', () => {
+            const metadata: SkillMetadata = {
+                interactions: ['pipeline', 'reviewer'],
+                trigger_keywords: ['fastapi', 'pydantic'],
+                severity_levels: ['error', 'warning', 'info'],
+                pipeline_steps: ['inventory', 'draft', 'review'],
+            };
+
+            expect(metadata.interactions).toEqual(['pipeline', 'reviewer']);
+            expect(metadata.trigger_keywords).toContain('fastapi');
+            expect(metadata.severity_levels).toContain('error');
+            expect(metadata.pipeline_steps).toContain('review');
+        });
+    });
+
+    describe('InteractionPattern type', () => {
+        it('should accept valid interaction patterns', () => {
+            const patterns: InteractionPattern[] = ['tool-wrapper', 'generator', 'reviewer', 'inversion', 'pipeline'];
+            expect(patterns.length).toBe(5);
+        });
     });
 
     describe('Platform type', () => {
@@ -95,11 +117,13 @@ describe('Type Definitions', () => {
                 path: '/skills/my-skill',
                 template: 'technique',
                 resources: ['scripts', 'references'],
+                interactions: ['generator'],
                 examples: true,
                 platforms: ['claude', 'codex'],
                 migrate: true,
             };
             expect(options.template).toBe('technique');
+            expect(options.interactions).toEqual(['generator']);
             expect(options.examples).toBe(true);
             expect(options.migrate).toBe(true);
         });
