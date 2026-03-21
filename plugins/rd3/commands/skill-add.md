@@ -1,14 +1,19 @@
 ---
 description: Create a new skill with scaffolding, templates, and optio...
 argument-hint: "<skill-name> [description] [--template technique|pattern|reference] [--interactions tool-wrapper|generator|reviewer|inversion|pipeline|(none)] [--path <dir>]"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Skill Add
 
 Wraps **rd3:cc-skills** skill.
 
-Scaffold a new skill directory from a template.
+Scaffold a new skill directory from a template. **This command delegates to the rd3:cc-skills skill** — the invoking agent follows the [Scaffold Workflow](references/workflows.md#add-workflow) which includes:
+
+1. **Scaffold** — Run `scaffold.ts` to create skill directory and files
+2. **Validate** — Check structure and required fields
+3. **LLM Verify** — Agent verifies description pattern, trigger phrases, examples, voice
+4. **Generate Companions** — Generate platform-specific companions
 
 ## When to Use
 
