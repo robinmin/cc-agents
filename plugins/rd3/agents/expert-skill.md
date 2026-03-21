@@ -1,7 +1,7 @@
 ---
 name: expert-skill
 description: |
-  Use PROACTIVELY when asked to create, evaluate, refine, or package skills. Trigger phrases: "create a skill", "scaffold a skill", "skill quality", "evaluate skill", "fix skill", "refine skill", "package skill", "skill for distribution".
+  Use PROACTIVELY when asked to create, evaluate, refine, or package skills. Trigger phrases: "create a skill", "scaffold a skill", "skill quality", "evaluate skill", "fix skill", "refine skill", "package skill", "skill for distribution", "tool wrapper skill", "generator skill", "reviewer skill", "inversion skill", "pipeline skill".
 
   <example>
   Context: Create a new technique skill
@@ -71,6 +71,7 @@ rd3:cc-skills package ./skills/my-skill --output ./dist
 |----------|-------------|---------|
 | `skill-name` | Name of the skill to create | (required) |
 | `--template` | Template type: technique, pattern, or reference | technique |
+| `--interactions` | ADK interaction patterns: tool-wrapper, generator, reviewer, inversion, pipeline | (none) |
 | `--resources` | Comma-separated: scripts, references, assets, agents | (none) |
 | `--path` | Output directory | ./skills |
 | `--platform` | Target: all, claude, codex, openclaw, opencode, antigravity | all |
@@ -83,6 +84,8 @@ rd3:cc-skills package ./skills/my-skill --output ./dist
 | `--scope` | Scope: basic or full | basic |
 | `--platform` | Target: all, claude, codex, openclaw, opencode, antigravity | all |
 | `--json` | Output results as JSON | false |
+
+`evaluate` also surfaces advisory findings for `metadata.interactions` and related fields such as `trigger_keywords`, `severity_levels`, and `pipeline_steps`.
 
 ### refine — Fix issues and improve
 
