@@ -206,7 +206,8 @@ export function generateQualitySuggestions(model: UniversalMainAgent, report: Ma
                 case 'operability':
                     actions.push({
                         type: 'quality',
-                        description: 'Add decision trees, executable examples, and output contracts to improve operability',
+                        description:
+                            'Add decision trees, executable examples, and output contracts to improve operability',
                         requiresApproval: true,
                     });
                     break;
@@ -561,10 +562,10 @@ export async function refine(options: RefineOptions): Promise<RefineResult> {
         filePath: resolvedPath,
         dryRun,
         actions,
-        gradeBefore: gradeBefore as 'A' | 'B' | 'C' | 'D' | 'F' | undefined,
-        gradeAfter: gradeAfter as 'A' | 'B' | 'C' | 'D' | 'F' | undefined,
         errors,
         warnings,
+        ...(gradeBefore ? { gradeBefore: gradeBefore as 'A' | 'B' | 'C' | 'D' | 'F' } : {}),
+        ...(gradeAfter ? { gradeAfter: gradeAfter as 'A' | 'B' | 'C' | 'D' | 'F' } : {}),
     };
 }
 
@@ -624,7 +625,7 @@ Examples:
         filePath: configPath,
         evaluate: true,
         dryRun,
-        outputPath: values.output,
+        ...(values.output ? { outputPath: values.output } : {}),
     };
 
     const result = await refine(options);
