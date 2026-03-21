@@ -1,15 +1,15 @@
 ---
 name: enhance agent skill design patterns
 description: Enhance rd3:cc-skills with additive Google ADK interaction patterns as behavior metadata and guidance, while preserving the existing rd3 type and category model and aligning the user-facing wrappers.
-status: Backlog
+status: Done
 created_at: 2026-03-20 09:49:57
 updated_at: 2026-03-20 14:45:00
 impl_progress:
   planning: completed
-  design: pending
-  implementation: pending
-  review: pending
-  testing: pending
+  design: completed
+  implementation: completed
+  review: completed
+  testing: completed
 ---
 
 ## 0249. enhance agent skill design patterns
