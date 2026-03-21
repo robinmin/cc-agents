@@ -119,6 +119,10 @@ evolve --analyze -> evolve --propose -> evolve --apply -> evaluate
 3. **evolve --apply**: Apply approved proposals (with --confirm)
 4. **evaluate**: Verify grade improvement
 
+For detailed workflow definitions with step-by-step flows, branching logic, retry policies, and LLM checklists:
+
+**See [references/workflows.md](references/workflows.md)**
+
 ## Add Operation
 
 Generate new main agent configuration files from templates.
