@@ -74,7 +74,7 @@ After scaffolding, the invoking agent performs these checks:
 | 1 | Description pattern | Starts with "Use PROACTIVELY" with trigger phrases |
 | 2 | Trigger phrases | 3+ quoted phrases in description |
 | 3 | Example blocks | 2+ `<example>` with `<commentary>` |
-| 4 | Voice consistency | Imperative, no "I can help you" |
+| 4 | Voice consistency | Imperative, no "This agent helps" |
 | 5 | Tier appropriateness | Structure matches selected template tier |
 
 ## Platform Notes
