@@ -1,28 +1,13 @@
 ---
 name: cc-magents
-description: "Use this skill when the user asks to 'create an AGENTS.md', 'evaluate config quality', 'refine CLAUDE.md', 'evolve agent config', 'convert between platforms', 'adapt AGENTS.md to CLAUDE.md', 'score main agent config', 'generate agent rules', 'create a main agent', 'main agent configuration'. Creates, evaluates, refines, evolves, and adapts main agent configuration files (AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, etc.) across 23+ platforms using a Universal Main Agent Model (UMAM) and 5-dimension quality scoring."
+description: "Use PROACTIVELY for creating AGENTS.md, evaluating config quality, refining CLAUDE.md, evolving agent configs, converting between platforms, adapting AGENTS.md to CLAUDE.md, scoring main agent configs, generating agent rules, creating main agent configurations. Supports 23+ platforms using a Universal Main Agent Model (UMAM) and 5-dimension quality scoring."
 license: Apache-2.0
 version: "1.0.0"
 author: cc-agents
-platforms: "agents-md,claude-md,gemini-md,codex,cursorrules,windsurfrules,zed-rules,opencode-rules,aider,warp,roocode,amp,vscode-instructions,junie,augment,cline"
-tags: ["agents-md", "claude-md", "gemini-md", "main-agent", "configuration", "multi-platform"]
-triggers:
-  - "create an AGENTS.md"
-  - "create CLAUDE.md"
-  - "generate AGENTS.md"
-  - "evaluate config quality"
-  - "score main agent config"
-  - "refine CLAUDE.md"
-  - "improve AGENTS.md"
-  - "evolve agent config"
-  - "convert between platforms"
-  - "adapt AGENTS.md to CLAUDE.md"
-  - "convert to cursorrules"
-  - "generate agent rules"
-  - "create main agent configuration"
-  - "score AGENTS.md"
-  - "assess CLAUDE.md quality"
-  - "lint agent config"
+metadata:
+  platforms: "claude,codex,openclaw,opencode,antigravity"
+  interactions:
+    - pipeline
 ---
 
 # cc-magents: Universal Main Agent Config Manager
@@ -55,22 +40,16 @@ Invoke operations via slash commands:
 
 ```bash
 # Create a new AGENTS.md with auto-detection
-/rd3:magent-add dev-agent
 
 # Score quality (5 dimensions, A-F grade) - validation runs automatically
-/rd3:magent-evaluate AGENTS.md
 
 # Fix issues (preview first)
-/rd3:magent-refine AGENTS.md --dry-run
 
 # Apply fixes
-/rd3:magent-refine AGENTS.md --apply
 
 # Suggest improvements from patterns
-/rd3:magent-evolve AGENTS.md --propose
 
 # Convert CLAUDE.md to .cursorrules
-/rd3:magent-adapt CLAUDE.md --to cursorrules
 ```
 
 ## Operations
@@ -157,13 +136,8 @@ Add auto-detects:
 
 ```bash
 # Auto-detect project and create AGENTS.md
-/rd3:magent-add
-
-# Create CLAUDE.md for Go project
-/rd3:magent-add dev-agent --platform claude-md --output CLAUDE.md
 
 # Create for specific template
-/rd3:magent-add data-agent
 ```
 
 ## Evaluate Operation
@@ -202,16 +176,12 @@ Quality scoring across 5 MECE dimensions.
 
 ```bash
 # Standard evaluation
-/rd3:magent-evaluate AGENTS.md
 
 # For simple configs (prioritize coverage/safety)
-/rd3:magent-evaluate CLAUDE.md --profile minimal
 
 # For self-evolving configs
-/rd3:magent-evaluate AGENTS.md --profile advanced
 
 # JSON for CI
-/rd3:magent-evaluate AGENTS.md --json --output report.json
 ```
 
 ## Refine Operation
@@ -242,13 +212,10 @@ Sections containing `[CRITICAL]` markers are NEVER modified, even with `--apply`
 
 ```bash
 # Preview changes
-/rd3:magent-refine AGENTS.md --dry-run
 
 # Apply fixes
-/rd3:magent-refine CLAUDE.md --apply
 
 # Output to new file
-/rd3:magent-refine AGENTS.md --output refined.md
 ```
 
 ## Evolve Operation
@@ -277,19 +244,14 @@ Self-improvement based on pattern analysis.
 
 ```bash
 # Analyze patterns
-/rd3:magent-evolve AGENTS.md --analyze
 
 # Generate proposals
-/rd3:magent-evolve AGENTS.md --propose
 
 # Apply approved proposal
-/rd3:magent-evolve AGENTS.md --apply p1abc1234 --confirm
 
 # View history
-/rd3:magent-evolve AGENTS.md --history
 
 # Rollback
-/rd3:magent-evolve AGENTS.md --rollback v2 --confirm
 ```
 
 ## Adapt Operation
@@ -343,13 +305,10 @@ Some features may be lost in conversion:
 
 ```bash
 # Convert to AGENTS.md
-/rd3:magent-adapt CLAUDE.md --to agents-md
 
 # Convert to .cursorrules
-/rd3:magent-adapt AGENTS.md --to cursorrules
 
 # Convert to all platforms
-/rd3:magent-adapt CLAUDE.md --to all --output ./converted/
 ```
 
 ## Architecture
@@ -397,6 +356,10 @@ Both use similar quality frameworks but different models:
 
 - [AGENTS.md Official Specification](https://agents.md/)
 - [Agentic AI Foundation](https://aaif.io)
-- Internal: `plugins/rd3/skills/cc-agents/SKILL.md` (subagent meta skill)
 - `references/evaluation-framework.md` (scoring rubric)
 - `references/evolution-protocol.md` (self-evolution safety)
+
+## Additional Resources
+
+- [Platform Compatibility Guide](references/platform-compatibility.md)
+- [Skill Patterns Reference](references/skill-patterns.md)
