@@ -67,6 +67,10 @@ Some features may be lost or degraded when converting between platforms:
 | Claude hooks | .cursorrules | Not portable |
 | Gemini save_memory | Any except Gemini | Not portable |
 
+## Workflow
+
+See [Adapt Workflow](references/workflows.md#adapt-workflow) for detailed step-by-step flow, platform tiers, and conversion warnings.
+
 ## Implementation
 
 Delegates to adapt.ts script:
