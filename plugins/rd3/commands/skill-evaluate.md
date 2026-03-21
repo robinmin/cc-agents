@@ -22,7 +22,7 @@ Score skill quality across 10 dimensions and surface advisory checks for ADK int
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `skill-path` | Path to the skill directory | (required) |
-| `--scope` | Evaluation scope: basic or full | basic |
+| `--scope` | Evaluation scope: basic or full | full |
 | `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
 | `--json` | Output results as JSON | false |
 
