@@ -84,6 +84,31 @@ describe('Integration: scaffold command', () => {
         expect(existsSync(join(TEST_DIR, 'resource-test', 'resource-test', 'assets'))).toBe(true);
     });
 
+    it('should scaffold skill with interaction metadata', async () => {
+        const { spawn } = await import('bun');
+
+        const proc = spawn([
+            'bun',
+            'run',
+            join(SCRIPTS_DIR, 'scaffold.ts'),
+            'interaction-test',
+            '--path',
+            join(TEST_DIR, 'interaction-test'),
+            '--template',
+            'technique',
+            '--interactions',
+            'pipeline,reviewer',
+        ]);
+
+        const exitCode = await proc.exited;
+        expect(exitCode).toBe(0);
+
+        const content = readFileSync(join(TEST_DIR, 'interaction-test', 'interaction-test', 'SKILL.md'), 'utf-8');
+        expect(content).toContain('interactions:');
+        expect(content).toContain('- pipeline');
+        expect(content).toContain('- reviewer');
+    });
+
     it('should scaffold skill with platforms', async () => {
         const { spawn } = await import('bun');
 
@@ -217,6 +242,54 @@ Advanced content.`,
         const exitCode = await proc.exited;
         // Exit code 0 = pass, 1 = reject (both valid), only crash codes (>1) are failures
         expect(exitCode).toBeLessThanOrEqual(1);
+    });
+
+    it('should report advisory findings for interaction metadata mismatches', async () => {
+        const skillPath = join(TEST_DIR, 'interaction-eval-skill');
+        mkdirSync(join(skillPath, 'references'), { recursive: true });
+        writeFileSync(join(skillPath, 'references', 'rules.md'), '# Rules', 'utf-8');
+        writeFileSync(
+            join(skillPath, 'SKILL.md'),
+            `---
+name: interaction-eval-skill
+description: Evaluate a skill with interaction metadata checks when reviewing code and applying a checklist.
+metadata:
+  interactions:
+    - reviewer
+---
+
+# Interaction Eval Skill
+
+## When to Use
+
+Use this when reviewing code with a checklist.
+
+## Workflow
+
+### Step 1
+Load references/review-checklist.md and inspect the code.
+
+### Step 2
+Group findings by severity and explain the fixes.
+`,
+            'utf-8',
+        );
+
+        const { spawn } = await import('bun');
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'evaluate.ts'), skillPath, '--scope', 'full', '--json'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const [exitCode, stdout] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
+        expect(exitCode).toBeLessThanOrEqual(1);
+
+        const report = JSON.parse(stdout) as { dimensions: Array<{ name: string; findings: string[] }> };
+        const contentDimension = report.dimensions.find((dimension) => dimension.name === 'Content');
+        expect(contentDimension).toBeDefined();
+        expect(contentDimension?.findings.join('\n')).toContain(
+            'Reviewer interaction declared without severity_levels metadata',
+        );
     });
 
     it('should show help', async () => {
@@ -360,5 +433,18 @@ Use this skill when validating packaged companions.
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
+    });
+});
+
+describe('Wrapper documentation alignment', () => {
+    it('should expose interactions in skill-add command docs', () => {
+        const content = readFileSync(join(__dirname, '..', '..', '..', 'commands', 'skill-add.md'), 'utf-8');
+        expect(content).toContain('--interactions');
+    });
+
+    it('should expose interaction-aware guidance in expert-skill agent docs', () => {
+        const content = readFileSync(join(__dirname, '..', '..', '..', 'agents', 'expert-skill.md'), 'utf-8');
+        expect(content).toContain('tool-wrapper');
+        expect(content).toContain('metadata.interactions');
     });
 });
