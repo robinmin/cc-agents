@@ -1,6 +1,6 @@
 ---
 description: Evaluate and fix skill issues in one step
-argument-hint: "<skill-path> [description] [--best-practices] [--llm-refine] [--migrate] [--dry-run]"
+argument-hint: "<skill-path> [description] [--best-practices] [--migrate] [--dry-run]"
 allowed-tools: ["Read", "Write", "Glob", "Bash"]
 ---
 
@@ -25,7 +25,6 @@ Run evaluation internally then apply fixes in one step.
 | `skill-path` | Path to the skill directory | (required) |
 | `description` | Optional free-text goal to guide refinement | (none) |
 | `--best-practices` | Auto-fix TODOs, Windows paths, formatting | false |
-| `--llm-refine` | Use LLM for style/voice fixes | false |
 | `--migrate` | Migrate rd2 to rd3 format | false |
 | `--dry-run` | Preview changes without applying | false |
 | `--platform` | Target platform: all, claude, codex, openclaw, opencode, antigravity | all |
