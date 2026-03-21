@@ -1,15 +1,19 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
+import type { AdaptResult, ConversionWarning } from '../scripts/types';
+
+type WarningWithSeverity = Pick<ConversionWarning, 'severity' | 'feature' | 'description'>;
+type AdaptSummary = Pick<AdaptResult, 'sourcePath' | 'sourcePlatform' | 'conversions' | 'allWarnings' | 'errors'>;
 
 // Mock adapt.ts module to avoid CLI side effects
-const mockFormatWarnings = (warnings: any[]): string => {
+const mockFormatWarnings = (warnings: WarningWithSeverity[]): string => {
     if (warnings.length === 0) return '';
 
     const lines: string[] = [];
     lines.push('\n⚠️  Conversion Warnings:\n');
 
-    const critical = warnings.filter((w: any) => w.severity === 'critical');
-    const warning = warnings.filter((w: any) => w.severity === 'warning');
-    const info = warnings.filter((w: any) => w.severity === 'info');
+    const critical = warnings.filter((warning) => warning.severity === 'critical');
+    const warning = warnings.filter((warningItem) => warningItem.severity === 'warning');
+    const info = warnings.filter((warningItem) => warningItem.severity === 'info');
 
     if (critical.length > 0) {
         lines.push('  🔴 CRITICAL:');
@@ -38,7 +42,7 @@ const mockFormatWarnings = (warnings: any[]): string => {
     return lines.join('\n');
 };
 
-const mockFormatResult = (result: any): string => {
+const mockFormatResult = (result: AdaptSummary): string => {
     const lines: string[] = [];
 
     lines.push('\n🔄 Adaptation Complete');
@@ -79,9 +83,6 @@ const mockFormatResult = (result: any): string => {
 
     return lines.join('\n');
 };
-
-// Import types directly
-import type { AdaptResult, ConversionWarning } from '../scripts/types';
 
 describe('adapt', () => {
     describe('formatWarnings', () => {
