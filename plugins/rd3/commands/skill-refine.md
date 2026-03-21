@@ -1,7 +1,7 @@
 ---
 description: Evaluate and fix skill issues in one step
 argument-hint: "<skill-path> [description] [--best-practices] [--migrate] [--dry-run]"
-allowed-tools: ["Read", "Write", "Glob", "Bash"]
+allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Skill Refine
