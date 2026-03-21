@@ -146,10 +146,12 @@ function parseCliArgs(argv = process.argv.slice(2)): InstallOptions {
     return {
         sources,
         targetPlatform,
-        sourcePlatform: args.values['source-platform'] as AgentPlatform | undefined,
         global: args.values.global as boolean,
         dryRun: args.values['dry-run'] as boolean,
         verbose: args.values.verbose as boolean,
+        ...(args.values['source-platform']
+            ? { sourcePlatform: args.values['source-platform'] as AgentPlatform }
+            : {}),
     };
 }
 
