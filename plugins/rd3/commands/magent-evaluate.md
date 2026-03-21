@@ -66,6 +66,10 @@ Validation runs automatically before evaluation. Structural issues are reported 
 | D | >= 60% | No |
 | F | < 60% | No |
 
+## Workflow
+
+See [Evaluate Workflow](references/workflows.md#evaluate-workflow) for detailed step-by-step flow, Two-Tier Architecture (Structural Validation + Quality Scoring), and LLM Deep Evaluation.
+
 ## Implementation
 
 Delegates to evaluate.ts script:
