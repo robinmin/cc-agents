@@ -22,20 +22,13 @@ function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
     }
 
     // Determine project root
-    const projectRoot =
-        process.env.CLAUDE_PROJECT_DIR ||
-        findProjectRoot();
+    const projectRoot = process.env.CLAUDE_PROJECT_DIR || findProjectRoot();
 
     if (!projectRoot) {
         // Fallback to legacy hardcoded patterns if no project root found
         cachedPatterns = {
-            protected: [
-                /^docs\/tasks\/.+\.md$/,
-                /^docs\/prompts\/.+\.md$/,
-            ],
-            exempt: [
-                /^docs\/tasks\/\d{4}\/.+$/,
-            ],
+            protected: [/^docs\/tasks\/.+\.md$/, /^docs\/prompts\/.+\.md$/],
+            exempt: [/^docs\/tasks\/\d{4}\/.+$/],
         };
         return cachedPatterns;
     }
