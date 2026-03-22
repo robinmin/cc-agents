@@ -12,7 +12,7 @@ import {
     saveConfig,
     LEGACY_META_DIR,
     LEGACY_DIR,
-} from "../scripts/lib/config";
+} from '../scripts/lib/config';
 
 describe('getProjectRoot', () => {
     test('returns project root from current directory', () => {
