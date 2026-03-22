@@ -129,11 +129,11 @@ describe('tasks CLI contracts', () => {
 
         const result = runCli(tempDir, ['list']);
         expect(result.exitCode).toBe(0);
-        expect(result.stdout).toContain('# Kanban Board - tasks');
-        expect(result.stdout).toContain('## Backlog');
+        expect(result.stdout).toContain('# Kanban Board - Primary');
+        expect(result.stdout).toContain('## 🔴 Backlog');
         expect(result.stdout).toContain('_Queued work that is not ready to start yet. 1 task._');
         expect(result.stdout).toContain('[ ] 0001_Backlog_Task');
-        expect(result.stdout).toContain('## Done');
+        expect(result.stdout).toContain('## 🟢 Done');
         expect(result.stdout).toContain('_Completed work. 1 task._');
         expect(result.stdout).toContain('[✓] 0002_Done_Task');
         expect(result.stdout).not.toContain('Tasks in docs/tasks');
@@ -147,15 +147,15 @@ describe('tasks CLI contracts', () => {
 
         const focused = runCli(tempDir, ['list']);
         expect(focused.exitCode).toBe(0);
-        expect(focused.stdout).toContain('# Kanban Board - tasks');
+        expect(focused.stdout).toContain('# Kanban Board - Primary');
         expect(focused.stdout).toContain('[ ] 0001_Current_Phase_Task');
         expect(focused.stdout).not.toContain('Legacy_Phase_Task');
-        expect(focused.stdout).not.toContain('# Kanban Board - prompts');
+        expect(focused.stdout).not.toContain('# Kanban Board - Legacy');
 
         const allFolders = runCli(tempDir, ['list', '--all']);
         expect(allFolders.exitCode).toBe(0);
-        expect(allFolders.stdout).toContain('# Kanban Board - tasks');
-        expect(allFolders.stdout).toContain('# Kanban Board - prompts');
+        expect(allFolders.stdout).toContain('# Kanban Board - Primary');
+        expect(allFolders.stdout).toContain('# Kanban Board - Legacy');
         expect(allFolders.stdout).toContain('[ ] 0001_Current_Phase_Task');
         expect(allFolders.stdout).toContain('[ ] 0002_Legacy_Phase_Task');
     });
