@@ -113,6 +113,14 @@ impl_progress:
 
 [Step-by-step implementation plan with checkbox markers]
 
+### Review
+
+[Review findings, risks, and approval notes]
+
+### Testing
+
+[Verification evidence, commands run, and outcomes]
+
 ### Artifacts
 
 | Type | Path | Agent | Date |
