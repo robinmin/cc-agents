@@ -1,12 +1,27 @@
-id: async-no-trycatch
+id: async-no-trycatch-javascript
 language: javascript
-message: "async function without try-catch error handling"
+message: "async function without catch-based error handling"
 severity: warning
 
 rule:
-  pattern: async function $NAME() { $$$ }
-  not:
-    inside:
-      any:
-        - pattern: try { $BODY } catch ($E) { $$$ }
-        - pattern: try { $BODY } finally { $$$ }
+  all:
+    - kind: function_declaration
+    - regex: "^async\\s+function"
+    - not:
+        has:
+          kind: catch_clause
+          stopBy: end
+---
+id: async-no-trycatch-typescript
+language: typescript
+message: "async function without catch-based error handling"
+severity: warning
+
+rule:
+  all:
+    - kind: function_declaration
+    - regex: "^async\\s+function"
+    - not:
+        has:
+          kind: catch_clause
+          stopBy: end
