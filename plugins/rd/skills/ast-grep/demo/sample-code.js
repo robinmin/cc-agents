@@ -64,7 +64,7 @@ class UserService {
 
 // Example 5: Variable declarations
 var oldStyleVar = 'should be let or const';
-let modernLet = 'good';
+const modernLet = 'good';
 const modernConst = 'also good';
 var anotherOldVar = 42;
 
