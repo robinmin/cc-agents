@@ -239,6 +239,7 @@ All new development targets rd3. The migration from rd2 to rd3 includes:
 
 ## Architecture Principles
 
+- Do not multiply entities unnecessarily -- Occam's Razor
 - Organize code by feature, not by file type
 - Keep related files close together
 - Use dependency injection for better testability
