@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { runInit } from "../scripts/commands/init";
-import { createTask } from "../scripts/commands/create";
-import { PRIMARY_TASKS_DIR, LEGACY_DIR, LEGACY_META_DIR } from "../scripts/lib/config";
+import { runInit } from '../scripts/commands/init';
+import { createTask } from '../scripts/commands/create';
+import { PRIMARY_TASKS_DIR, LEGACY_DIR, LEGACY_META_DIR } from '../scripts/lib/config';
 import { setGlobalSilent } from '../../../scripts/logger';
 
 const repoRoot = resolve(import.meta.dir, '../../../../..');
