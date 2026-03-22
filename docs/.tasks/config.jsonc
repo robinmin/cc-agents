@@ -1,5 +1,5 @@
 // Tasks CLI configuration — managed by `tasks init`
-// See: plugins/rd2/skills/tasks/SKILL.md
+// See: plugins/rd3/skills/tasks/SKILL.md
 {
   "$schema_version": 1,
   "active_folder": "docs/tasks",
