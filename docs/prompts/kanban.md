@@ -15,6 +15,7 @@ kanban-plugin: board
 - [ ] 0154_"Command_Router_Update"
 - [ ] 0160_"Performance_Testing"
 - [ ] 0159_"Documentation_Update"
+- [ ] kanban.md_kanban
 - [ ] 0151_0151_taskget-adapter
 - [ ] 0152_0152_taskupdate-adapter
 - [ ] 0153_"WBS_Dependency_Support"
