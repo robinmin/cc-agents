@@ -1,11 +1,11 @@
 // list command — list tasks, optionally filtered by status
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { err, isErr, ok, type Result } from '../lib/result';
-import { loadConfig } from '../lib/config';
+import { getMetaDir, loadConfig } from '../lib/config';
 import { parseFrontmatter } from '../lib/taskFile';
-import { VALID_STATUSES, type TaskListItem, type TaskStatus } from '../types';
+import { type TaskListItem, type TaskStatus } from '../types';
 import { displayMarkdown } from "../lib/terminal";
 
 const STATUS_SUMMARY: Record<TaskStatus, string> = {
@@ -39,27 +39,64 @@ function formatTaskStem(task: TaskListItem): string {
     return `${task.wbs}_${normalizedName}`;
 }
 
-function renderKanbanList(tasks: TaskListItem[], folder: string, statusFilter?: TaskStatus): string {
-    const folderName = basename(folder);
-    const statuses = statusFilter ? [statusFilter] : VALID_STATUSES;
-    const lines: string[] = [`# Kanban Board - ${folderName}`, ""];
+function renderTaskListForStatus(tasks: TaskListItem[], status: TaskStatus): string {
+    const tasksForStatus = tasks.filter((task) => task.status === status);
+    const taskLabel = tasksForStatus.length === 1 ? "task" : "tasks";
+    const lines: string[] = [];
 
-    for (const status of statuses) {
-        const tasksForStatus = tasks.filter((task) => task.status === status);
-        const taskLabel = tasksForStatus.length === 1 ? "task" : "tasks";
+    lines.push(`_${STATUS_SUMMARY[status]} ${tasksForStatus.length} ${taskLabel}._`);
+    lines.push("");
+    for (const task of tasksForStatus) {
+        lines.push(`${getCheckbox(task.status)} ${formatTaskStem(task)}`);
+    }
+    lines.push("");
 
-        lines.push(`## ${status}`);
-        lines.push("");
-        lines.push(`_${STATUS_SUMMARY[status]} ${tasksForStatus.length} ${taskLabel}._`);
-        lines.push("");
-        for (const task of tasksForStatus) {
-            lines.push(`${getCheckbox(task.status)} ${formatTaskStem(task)}`);
-        }
+    return lines.join("\n");
+}
 
-        lines.push("");
+function loadKanbanTemplate(projectRoot: string): string | null {
+    const templatePath = resolve(getMetaDir(projectRoot), 'kanban.md');
+    if (!existsSync(templatePath)) {
+        return null;
     }
 
-    return lines.join("\n").trimEnd();
+    try {
+        const content = readFileSync(templatePath, 'utf-8');
+        // Strip frontmatter (--- ... --- block at the start)
+        return content.replace(/^---\n[\s\S]*?---\n/, '');
+    } catch {
+        return null;
+    }
+}
+
+function renderKanbanFromTemplate(
+    template: string,
+    tasks: TaskListItem[],
+    phaseLabel: string,
+): string {
+    let content = template;
+
+    // Substitute PHASE_LABEL
+    content = content.replace(/\{\{\s*PHASE_LABEL\s*\}\}/g, phaseLabel || '');
+
+    // Substitute status task placeholders: {{ BACKLOG_TASKS }}, {{ TODO_TASKS }}, etc.
+    const statusPlaceholders: Record<TaskStatus, string> = {
+        Backlog: 'BACKLOG_TASKS',
+        Todo: 'TODO_TASKS',
+        WIP: 'WIP_TASKS',
+        Testing: 'TESTING_TASKS',
+        Blocked: 'BLOCKED_TASKS',
+        Done: 'DONE_TASKS',
+    };
+
+    for (const [status, placeholder] of Object.entries(statusPlaceholders)) {
+        const regex = new RegExp(`\\{\\{\\s*${placeholder}\\s*\\}\\}`, 'g');
+        content = content.replace(regex, () => {
+            return renderTaskListForStatus(tasks, status as TaskStatus);
+        });
+    }
+
+    return content.trimEnd();
 }
 
 function collectTasksForFolder(
@@ -104,6 +141,11 @@ function getOrderedFolders(activeFolder: string, folders: Record<string, unknown
     return [activeFolder, ...otherFolders];
 }
 
+function getPhaseLabel(config: ReturnType<typeof loadConfig>, folder: string): string {
+    const folderConfig = config.folders[folder];
+    return folderConfig?.label || '';
+}
+
 export function listTasks(
     projectRoot: string,
     cliFolder?: string,
@@ -119,6 +161,9 @@ export function listTasks(
     const tasks: TaskListItem[] = [];
     const boards: string[] = [];
 
+    // Load kanban template once (same template used for all folders)
+    const kanbanTemplate = loadKanbanTemplate(projectRoot);
+
     for (const targetFolder of foldersToShow) {
         const result = collectTasksForFolder(projectRoot, targetFolder, statusFilter);
         if (isErr(result)) {
@@ -128,8 +173,16 @@ export function listTasks(
             continue;
         }
 
+        const phaseLabel = getPhaseLabel(config, targetFolder);
+
+        if (kanbanTemplate) {
+            // Use template-based rendering
+            boards.push(renderKanbanFromTemplate(kanbanTemplate, result.value, phaseLabel));
+        } else {
+            // Fallback: no template, return empty
+            boards.push(`# Kanban Board - ${phaseLabel}\n\n_No template found_`);
+        }
         tasks.push(...result.value);
-        boards.push(renderKanbanList(result.value, targetFolder, statusFilter));
     }
 
     if (!quiet) {
