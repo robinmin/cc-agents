@@ -11,17 +11,50 @@ export interface TemplateVars {
     FOLDER: string;
 }
 
-export function renderTemplate(content: string, vars: TemplateVars): string {
+/**
+ * Substitute template variables in content.
+ * Supports multiple placeholder formats: {{ VARIABLE }}, {{VARIABLE}}, and { { VARIABLE } }
+ */
+export function substituteTemplateVars(content: string, vars: TemplateVars): string {
     let rendered = content;
-    rendered = rendered.replace(/\{\{\s*WBS\s*\}\}/g, vars.WBS);
-    rendered = rendered.replace(/\{\{\s*PROMPT_NAME\s*\}\}/g, vars.PROMPT_NAME);
-    rendered = rendered.replace(/\{\{\s*DESCRIPTION\s*\}\}/g, vars.DESCRIPTION);
-    rendered = rendered.replace(/\{\{\s*CREATED_AT\s*\}\}/g, vars.CREATED_AT);
-    rendered = rendered.replace(/\{\{\s*UPDATED_AT\s*\}\}/g, vars.UPDATED_AT);
-    rendered = rendered.replace(/\{\{\s*FOLDER\s*\}\}/g, vars.FOLDER);
+
+    for (const [key, value] of Object.entries(vars)) {
+        const upperKey = key.toUpperCase();
+        // Match {{VARIABLE}} or {{ VARIABLE }} (with optional spaces inside braces)
+        rendered = rendered.replace(new RegExp(`\\{\\{\\s*${upperKey}\\s*\\}\\}`, 'g'), value);
+        // Match { { VARIABLE } } (with spaces between braces, note the \s* before final })
+        rendered = rendered.replace(new RegExp(`\\{\\s*\\{\\s*${upperKey}\\s*\\}\\s*\\}`, 'g'), value);
+    }
+
     // Clean up any remaining placeholders
     rendered = rendered.replace(/\{\{[^}]+\}\}/g, '');
+    rendered = rendered.replace(/\{\s*\{[^}]+\}\s*\}/g, '');
+
     return rendered;
+}
+
+/**
+ * Strip input tip placeholders like [Context and motivation — why this task exists]
+ * from the content body. Only strips bracketed content that looks like placeholder tips
+ * (single-line text without structural markers like pipes or dashes).
+ */
+export function stripInputTips(content: string): string {
+    return content.replace(/\[([^\]]+)\]/g, (_, bracketContent) => {
+        // Don't strip if content has newlines (e.g., table cells)
+        if (bracketContent.includes('\n')) return _;
+        // Don't strip if content looks like table formatting (----)
+        if (bracketContent.trim().startsWith('-')) return _;
+        // Strip placeholder tips like [Context and motivation — why this task exists]
+        return '';
+    });
+}
+
+/**
+ * Full template rendering: substitute variables and strip input tips.
+ */
+export function renderTemplate(content: string, vars: TemplateVars): string {
+    const substituted = substituteTemplateVars(content, vars);
+    return stripInputTips(substituted);
 }
 
 export function loadTemplate(templatePath: string): string | null {
