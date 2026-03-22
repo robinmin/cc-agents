@@ -1,0 +1,17 @@
+{
+  "description": "Hooks for rd3 plugin - write guard for task file protection",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${CLAUDE_PLUGIN_ROOT}/skills/tasks/scripts/tasks.ts write-guard",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
