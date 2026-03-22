@@ -2,6 +2,99 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-03-22
+
+### ✨ New Features
+
+- **rd3:quick-grep Skill**: Strategic code search and rewrite agent skill
+  - AST-based structural code search
+  - Find function patterns across codebase
+
+- **rd3:cc-magents Skill**: Meta agent configuration management
+  - `add` - Create new main agent configs (AGENTS.md, CLAUDE.md, GEMINI.md)
+  - `evaluate` - Score config quality across 5 dimensions
+  - `refine` - Auto-fix issues with dry-run preview
+  - `evolve` - Self-improvement proposals from interaction patterns
+  - `adapt` - Convert between platform formats
+
+- **15+ New Agent Skills**: Expanded specialist capabilities
+  - `advanced-testing` - Mutation testing and property-based testing
+  - `ast-grep` - Structural code pattern analysis
+  - `code-review-common` - Unified code review coordinator
+  - `coder-auggie` - Auggie-powered code generation
+  - `coder-claude` - Claude-native code generation
+  - `coder-gemini` - Gemini CLI code generation
+  - `coder-opencode` - OpenCode CLI code generation
+  - `knowledge-seeker` - Research and knowledge synthesis
+  - `lead-research-assistant` - Lead generation research
+  - `pl-python` - Python project planning
+  - `task-decomposition` - Domain-specific task breakdown
+  - `tdd-workflow` - Test-driven development orchestration
+  - `test-coverage` - Coverage measurement and targets
+  - `anti-hallucination` - Verification-first development
+  - `frontend-design` / `ui-ux-design` - UI/UX design capabilities
+
+- **12+ New Subagents**: Expanded agent ecosystem
+  - `super-reve` - High-level design and codebase analysis
+  - `super-designer` - Senior UI/UX design specialist
+  - `super-brain` - Brainstorming and ideation specialist
+  - `super-publisher` - Multi-platform publishing orchestration
+  - `super-architect` - Solution architecture for backend/frontend/cloud
+  - `super-coder` - Full-stack code implementation (with dynamic language support)
+  - `super-planner` - Workflow orchestration and task breakdown
+  - `super-code-reviewer` - Comprehensive code review coordinator
+  - `wt:image-generator` / `wt:image-cover` / `wt:image-illustrator` - Image generation
+  - `agen-browser` - Browser automation specialist
+  - `orchestrator-expert` - Multi-agent workflow coordination
+  - `tc-writer` / `it-writer` - Technical content orchestration
+  - `magent-browser` - Browser-based document conversion
+
+- **14+ New Slash Commands**: Enhanced developer productivity
+  - `tasks-unit` - Generate unit tests
+  - `tasks-plan` - Workflow-aware task planning
+  - `tasks` - Task management (create, list, update, refresh)
+  - `agent-meta` / `task-review` / `translate` - Meta operations
+  - `cleanup` / `fixall` / `gitmsg` / `livingspec` - Development utilities
+  - `info-research` / `info-reve` - Research and documentation
+  - `code-generate` - Code generation workflow
+  - `open` - Task file opening
+
+- **New Platform Plugins**: Extended ecosystem support
+  - `rd3` - Primary rd3 plugin (main development focus)
+  - `rd2` - Legacy plugin (superseded by rd3)
+  - `appwrite` - Appwrite integration
+  - `dokploy` - Dokploy deployment integration
+  - `wt` - Technical writing workflow plugin
+  - `openclaw` - OpenClaw subagent support
+
+- **ADK Behavior Support**: Added to cc-skills for Gemini integration
+
+- **Installation Enhancement**: Use rulesync for installation to selected vibe coding tools
+
+### 🔧 Improvements
+
+- **Dynamic Programming Language Support**: super-coder now auto-detects and uses appropriate coder skill
+- **sys-debugging & code-patterns**: Added to super-coder for enhanced problem-solving
+- **Google Stitch AI Integration**: Added to super-designer for AI-powered UI generation
+- **Task Management**: Enhanced with WBS numbering, multi-folder support, kanban board sync
+- **Multi-Platform Publishing**: Enhanced publish-to-* skills with advanced options
+
+### 🐛 Fixes
+
+- Fixed sed cross-platform compatibility issue
+- Fixed various naming convention issues across agents and commands
+- Fixed permission issues with hook execution and slash commands
+- Fixed installation issues (Makefile, mke setup-cc)
+- Fixed hook errors on Stop event
+- Fixed frontmatter issues in agents and subagents
+- Fixed test and lint issues in skill scripts
+- Fixed publication script exit issues
+- Fixed super-planner stability issues
+
+### 🔒 Security
+
+- Removed `notebooklm-skill-master` and `playwright-skill` skills for security reasons
+
 ## [0.2.2] - 2026-03-20
 
 ### ✨ New Features
