@@ -6,7 +6,8 @@ kanban-plugin: board
 
 ## 🔴 Backlog
 
-<!-- No tasks in Backlog -->
+- [ ] kanban.md_kanban
+- [ ] 0252_add_new_agent_skill_run-acp
 
 ## 🔵 Todo
 
