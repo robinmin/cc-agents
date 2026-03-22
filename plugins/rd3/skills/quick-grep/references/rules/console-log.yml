@@ -1,0 +1,12 @@
+id: console-log
+language: javascript
+message: "Avoid console.log in production code"
+severity: warning
+
+rule:
+  any:
+    - pattern: console.log($$$)
+    - pattern: console.warn($$$)
+    - pattern: console.error($$$)
+    - pattern: console.debug($$$)
+    - pattern: console.info($$$)

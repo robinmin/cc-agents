@@ -1,0 +1,13 @@
+id: impure-pipe
+language: javascript
+message: "Promise chain without error handling"
+severity: warning
+
+rule:
+  pattern: $PROMISE.then($CB)
+  not:
+    inside:
+      any:
+        - pattern: .catch($ERR_CB)
+        - pattern: try { $BODY } catch ($E) { $$$ }
+

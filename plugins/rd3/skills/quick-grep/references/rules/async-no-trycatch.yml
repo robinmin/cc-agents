@@ -1,0 +1,12 @@
+id: async-no-trycatch
+language: javascript
+message: "async function without try-catch error handling"
+severity: warning
+
+rule:
+  pattern: async function $NAME() { $$$ }
+  not:
+    inside:
+      any:
+        - pattern: try { $BODY } catch ($E) { $$$ }
+        - pattern: try { $BODY } finally { $$$ }
