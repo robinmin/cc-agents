@@ -12,6 +12,8 @@
       "Skill(rd3:skill-evaluate)",
       "Skill(rd3:command-evaluate)",
       "Skill(rd3:agent-evaluate)",
+      "Skill(rd3:quick-grep)",
+
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -33,6 +35,8 @@
       "WebFetch(domain:dev.to)",
       "WebFetch(domain:almcorp.com)",
       "WebFetch(domain:developers.openai.com)",
+      "WebFetch(domain:ast-grep.github.io)",
+
       "Bash(ast-grep:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
@@ -40,11 +44,15 @@
       "Bash(tasks:*)",
       "Bash(bun run:*)",
       "Bash(bun test:*)",
+
       "Read(//tmp/**)",
       "Write(//tmp/**)",
       "Edit(//tmp/**)",
+
       "Bash(wc:*)",
-      "Bash(bun:*)"
+      "Bash(bun:*)",
+      "Bash(sg scan:*)",
+      "Bash(sg run:*)"
     ],
     "deny": [],
     "ask": []
