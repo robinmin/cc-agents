@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { createTask } from "../scripts/commands/create";
+import { createTask } from '../scripts/commands/create';
 import { setGlobalSilent } from '../../../scripts/logger';
 
 describe('createTask', () => {
