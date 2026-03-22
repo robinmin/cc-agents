@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { err, ok, type Result } from '../lib/result';
 import { loadConfig, resolveFolderPath, getMetaDir } from '../lib/config';
 import { getNextWbs, formatWbs } from '../lib/wbs';
-import { getTemplateVars, renderTemplate } from '../lib/template';
+import { getTemplateVars, substituteTemplateVars, stripInputTips } from '../lib/template';
 import { logger } from '../../../../scripts/logger';
 
 export function createTask(
@@ -30,7 +30,7 @@ export function createTask(
     const wbs = formatWbs(nextNum);
 
     // Load template
-    const templatePath = resolve(getMetaDir(projectRoot), 'template.md');
+    const templatePath = resolve(getMetaDir(projectRoot), 'task.md');
     let templateContent: string;
     try {
         templateContent = readFileSync(templatePath, 'utf-8');
@@ -38,14 +38,17 @@ export function createTask(
         templateContent = getDefaultTemplate();
     }
 
-    // Render template
+    // Render template (substitute variables first, strip input tips after override)
     const vars = getTemplateVars(name, wbs, folder, options.requirements || '');
-    let content = renderTemplate(templateContent, vars);
+    let content = substituteTemplateVars(templateContent, vars);
 
-    // Override Background if provided
+    // Override Background if provided (before stripping input tips)
     if (options.background) {
         content = content.replace(/(#+\s*Background\n\n)\[.*?\]/s, `$1${options.background}`);
     }
+
+    // Strip input tips like [Context and motivation — why this task exists]
+    content = stripInputTips(content);
 
     // Write file
     const fileName = `${wbs}_${name.replace(/\s+/g, '_')}.md`;
