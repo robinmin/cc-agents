@@ -19,7 +19,7 @@ const blockRule =
 const inlineLatexRule = /^\\\(([^\\]*(?:\\.[^\\]*)*?)\\\)/;
 const blockLatexRule = /^\\\[([^\\]*(?:\\.[^\\]*)*?)\\\]/;
 
-function createRenderer(display: boolean, withStyle: boolean = true) {
+function createRenderer(display: boolean, withStyle = true) {
 	return (token: Tokens.Generic) => {
 		// Type-safe MathJax access (types defined in katex.d.ts)
 		window.MathJax.texReset();
@@ -172,7 +172,7 @@ function blockLatexKatex(
 
 export function MDKatex(
 	options: MarkedKatexOptions | undefined,
-	withStyle: boolean = true,
+	withStyle = true,
 ): MarkedExtension {
 	return {
 		extensions: [
