@@ -2,29 +2,29 @@
 kanban-plugin: board
 ---
 
-# Kanban Board
+# Kanban Board - {{ PHASE_LABEL }}
 
 ## 🔴 Backlog
 
-<!-- Tasks waiting to be picked up -->
+{{ BACKLOG_TASKS }}
 
 ## 🔵 Todo
 
-<!-- Tasks ready to start -->
+{{ TODO_TASKS }}
 
 ## 🟡 WIP
 
-<!-- Tasks in active implementation -->
+{{ WIP_TASKS }}
 
 ## 🟠 Testing
 
-<!-- Tasks in testing/verification -->
+{{ TESTING_TASKS }}
 
 ## ⛔ Blocked
 
-<!-- Tasks blocked on external dependencies -->
+{{ BLOCKED_TASKS }}
 
 ## 🟢 Done
 
-<!-- Tasks completed -->
+{{ DONE_TASKS }}
 
