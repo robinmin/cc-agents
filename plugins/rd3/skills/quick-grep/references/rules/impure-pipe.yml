@@ -1,13 +1,25 @@
-id: impure-pipe
+id: impure-pipe-javascript
 language: javascript
-message: "Promise chain without error handling"
+message: "Promise chain without catch-based error handling"
 severity: warning
 
 rule:
-  pattern: $PROMISE.then($CB)
-  not:
-    inside:
-      any:
-        - pattern: .catch($ERR_CB)
-        - pattern: try { $BODY } catch ($E) { $$$ }
+  all:
+    - pattern: $PROMISE.then($CB)
+    - not:
+        inside:
+          pattern: $PROMISE.then($CB).catch($ERR_CB)
+          stopBy: end
+---
+id: impure-pipe-typescript
+language: typescript
+message: "Promise chain without catch-based error handling"
+severity: warning
 
+rule:
+  all:
+    - pattern: $PROMISE.then($CB)
+    - not:
+        inside:
+          pattern: $PROMISE.then($CB).catch($ERR_CB)
+          stopBy: end
