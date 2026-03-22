@@ -1448,15 +1448,15 @@ async function main(): Promise<void> {
 		} else if (arg === "--use-existing") {
 			useExisting = true;
 		} else if (arg === "--debug-port" && args[i + 1]) {
-			debugPort = parseInt(args[++i] ?? "0", 10);
+			debugPort = Number.parseInt(args[++i] ?? "0", 10);
 		} else if (arg.startsWith("--debug-port=")) {
 			// Handle --debug-port=54042 format
 			const portStr = arg.split("=")[1];
 			if (portStr) {
-				debugPort = parseInt(portStr, 10);
+				debugPort = Number.parseInt(portStr, 10);
 			}
 		} else if (arg === "--retry-attempts" && args[i + 1]) {
-			retryAttempts = parseInt(args[++i] ?? "0", 10);
+			retryAttempts = Number.parseInt(args[++i] ?? "0", 10);
 		} else if (arg === "--convert-tables") {
 			convertTables = true;
 		} else if (arg === "--no-tables") {
