@@ -1,6 +1,6 @@
 ---
 name: quick-grep
-description: "Strategic code search and rewrite: use 'find function patterns', 'search code structure', 'grep for strings', 'replace with ast-grep' to activate. Ideal for locating code by structure (functions, classes, async patterns) or text (strings, comments, FIXMEs), or when refactoring code with safe AST-based rewrites."
+description: "Strategic code search and rewrite: use 'find function patterns', 'search code structure', 'grep for strings', 'replace with ast-grep' to activate. Ideal for locating code by structure (functions, classes, async patterns) or text (strings, comments, FIXMEs), or when refactoring code with safe AST-based rewrites. Includes prebuilt JavaScript and TypeScript ast-grep rules for common code smells."
 license: Apache-2.0
 version: 1.0.0
 created_at: 2026-03-21
@@ -19,6 +19,7 @@ see_also:
 ## quick-grep
 
 Strategic code search and rewrite skill that selects the optimal tool based on query characteristics.
+The bundled `references/rules/*.yml` files are detection-oriented `ast-grep` rules with JavaScript and TypeScript variants in a single YAML file.
 
 ## When to Use
 
@@ -98,16 +99,18 @@ rg [OPTIONS] PATTERN [FILES...]
 sg run --pattern 'PATTERN' --lang LANG [DIR]
 sg scan --rule RULE.yml [DIR]
 sg run --pattern 'A' --rewrite 'B' --lang LANG
-sg scan --rule RULE.yml --update-all
+sg scan --rule RULE.yml --files-with-matches
+# Rule-based rewrites require a rule file that defines a fix/rewrite payload.
 ```
 
 ### Rewrite Safety
 
 When using sg rewrite:
-- Preview first: `sg scan --rule fix.yml --files-with-matches [DIR]` to see affected files
-- Use interactive mode: `sg scan --rule fix.yml --interactive [DIR]` to confirm each change
+- Preview detection rules first: `sg scan --rule detect.yml --files-with-matches [DIR]`
+- Use `sg run --pattern 'A' --rewrite 'B' --lang LANG --interactive [DIR]` for ad hoc rewrites
+- Use `sg scan --rule fix.yml --interactive [DIR]` only when the rule file defines a fix/rewrite payload
 - After rewrite, verify changed files manually or with tests
-- On parse failure: `git checkout HEAD -- [files]`
+- Roll back with: `git restore --source=HEAD -- [files]`
 
 ### Pre-built Rules
 
@@ -118,6 +121,8 @@ Located in `references/rules/`:
 - `impure-pipe.yml` — find promise chains without catch
 - `hardcoded-secret.yml` — find hardcoded API keys/secrets
 
+Each rule file bundles JavaScript and TypeScript variants so the same command works across JavaScript and TypeScript source files supported by `ast-grep`.
+
 ```bash
 # Use a pre-built rule
 sg scan --rule references/rules/console-log.yml
@@ -125,5 +130,7 @@ sg scan --rule references/rules/console-log.yml
 # Preview files affected by a rule
 sg scan --rule references/rules/console-log.yml --files-with-matches
 ```
+
+Use `sg run --pattern ... --rewrite ...` for rewrites unless you have authored a dedicated fix rule.
 
 See `references/rules-format.md` for rule format documentation.
