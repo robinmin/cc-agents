@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { renderTemplate, loadTemplate, getTemplateVars } from "../scripts/lib/template";
-import type { TemplateVars } from "../scripts/lib/template";
+import { renderTemplate, loadTemplate, getTemplateVars } from '../scripts/lib/template';
+import type { TemplateVars } from '../scripts/lib/template';
 
 const defaultVars: TemplateVars = {
     WBS: '0001',
