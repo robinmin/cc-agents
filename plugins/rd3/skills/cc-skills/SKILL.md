@@ -48,6 +48,25 @@ This skill accepts **5 operations**:
 
 Each operation has a **step-by-step workflow** combining scripts and checklists.
 
+### Task-Backed Execution
+
+When a `cc-skills` workflow is tracked in a task file under `docs/tasks/`, do not mutate the task
+record with isolated `tasks update --section ...` or `tasks update --phase ...` calls when a
+canonical lifecycle operation exists.
+
+Use the predefined `rd3:tasks` operations in
+[../tasks/references/workflows.md](../tasks/references/workflows.md):
+
+- `create`
+- `planning`
+- `design`
+- `implementation`
+- `review`
+- `testing`
+
+Each operation defines the required section updates, `impl_progress` target, and `status` target.
+Follow the full command bundle for the operation rather than changing only one field.
+
 ### Hybrid Workflow Architecture
 
 Workflow-related agent skills use a **hybrid approach** combining scripting for deterministic steps with markdown (checklists) for non-deterministic steps:
