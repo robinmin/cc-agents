@@ -72,7 +72,7 @@ tasks open 0047
 tasks update 0047 --section Solution --from-file /tmp/solution.md
 
 # Update implementation phase progress
-tasks update 0047 --phase planning --phase-status done
+tasks update 0047 --phase planning --phase-status completed
 tasks update 0047 --phase design --phase-status in_progress
 
 # Batch create from JSON array
@@ -103,6 +103,33 @@ tasks config                              # show current config
 tasks config set-active docs/tasks        # switch active folder
 tasks config add-folder docs/prompts --base-counter 100 --label legacy
 ```
+
+These commands are low-level primitives. For lifecycle mutations, do not invent ad-hoc sequences.
+Use the canonical operation bundles in [references/workflows.md](references/workflows.md) so
+section updates, `impl_progress`, and task `status` move together.
+
+## Canonical Lifecycle Operations
+
+Use one of these named operations when advancing a task:
+
+| Operation | Primary Sections | Phase Target | Status Target |
+|-----------|------------------|--------------|---------------|
+| `create` | `Background`, `Requirements` | all `pending` | `Backlog` |
+| `planning` | `Q&A` | `planning: completed` | `Todo` |
+| `design` | `Design` | `design: completed` | `Todo` |
+| `implementation` | `Solution`, `Plan`, `Artifacts` | `implementation: completed` | `WIP` |
+| `review` | `Review` | `review: completed` | `Testing` |
+| `testing` | `Testing`, `Artifacts`, `References` | `testing: completed` | `Done` |
+
+Rule:
+
+- Do not update `--section`, `--phase`, or `status` in isolation when one of the lifecycle
+  operations applies.
+- Execute the full command bundle for the chosen operation.
+- Use `--force` only when validation warnings are understood and intentional.
+
+See [references/workflows.md](references/workflows.md) for the exact command sequence for each
+operation.
 
 ## WBS Numbering
 
@@ -177,6 +204,9 @@ tasks update 0047 wip
 tasks update 0047 --section Solution --from-file /tmp/solution.md
 tasks put 0047 /tmp/screenshot.png --name screenshot.png
 ```
+
+When performing lifecycle progress, prefer the canonical operation bundles from
+`references/workflows.md` over one-off command combinations.
 
 ### Forbidden: Path-Based CLI Invocation
 
