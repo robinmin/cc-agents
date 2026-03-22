@@ -20,21 +20,19 @@ function createTestFile(name: string, content: string): string {
     return filePath;
 }
 
-function createValidationResult(
-    overrides: Partial<MagentValidationResult> = {},
-): MagentValidationResult {
+function createValidationResult(overrides: Partial<MagentValidationResult> = {}): MagentValidationResult {
     return {
         valid: true,
         errors: [],
         warnings: [],
         suggestions: [],
         findings: [],
-        filePath: "/test.md",
-        detectedPlatform: "agents-md",
+        filePath: '/test.md',
+        detectedPlatform: 'agents-md',
         fileSize: 0,
         estimatedTokens: 0,
         sectionCount: 0,
-        timestamp: "2024-01-01T00:00:00.000Z",
+        timestamp: '2024-01-01T00:00:00.000Z',
         ...overrides,
     };
 }
@@ -1280,10 +1278,7 @@ I am a test.`;
             await expect(
                 runEvaluate({
                     configPath: filePath,
-                    profile:
-                        'invalid-profile' as unknown as NonNullable<
-                            Parameters<typeof runEvaluate>[0]['profile']
-                        >,
+                    profile: 'invalid-profile' as unknown as NonNullable<Parameters<typeof runEvaluate>[0]['profile']>,
                 }),
             ).rejects.toThrow();
             unlinkSync(filePath);
