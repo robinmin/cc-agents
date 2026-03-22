@@ -4,6 +4,8 @@ description: { { DESCRIPTION } }
 status: Backlog
 created_at: { { CREATED_AT } }
 updated_at: { { UPDATED_AT } }
+folder: { { FOLDER } }
+type: task
 impl_progress:
   planning: pending
   design: pending
@@ -16,11 +18,11 @@ impl_progress:
 
 ### Background
 
-[Context and motivation - why this task exists]
+[Context and motivation — why this task exists]
 
 ### Requirements
 
-[What needs to be done - acceptance criteria]
+[What needs to be done — acceptance criteria]
 
 ### Q&A
 
@@ -32,11 +34,11 @@ impl_progress:
 
 ### Solution
 
-[Solution added by specialists]
+[Solution added by specialists — must exist before transitioning to WIP/Testing/Done]
 
 ### Plan
 
-[Step-by-step implementation plan]
+[Step-by-step implementation plan with checkbox markers]
 
 ### Artifacts
 
