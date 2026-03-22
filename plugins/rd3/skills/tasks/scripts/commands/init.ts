@@ -40,12 +40,12 @@ export function runInit(projectRoot: string): Result<boolean> {
         const skillTemplates = resolve(process.env.CLAUDE_PLUGIN_ROOT || '', 'plugins/rd3/skills/tasks/templates');
 
         // Task template
-        const taskTemplateDest = resolve(metaDir, 'template.md');
+        const taskTemplateDest = resolve(metaDir, 'task.md');
         if (!existsSync(taskTemplateDest)) {
             const taskTemplateSrc = resolve(skillTemplates, 'task.md');
             if (existsSync(taskTemplateSrc)) {
                 copyFileSync(taskTemplateSrc, taskTemplateDest);
-                logger.success(`Copied template: ${LEGACY_META_DIR}/template.md`);
+                logger.success(`Copied template: ${LEGACY_META_DIR}/task.md`);
             }
         }
 
