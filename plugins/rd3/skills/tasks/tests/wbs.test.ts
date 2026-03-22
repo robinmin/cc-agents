@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { getNextWbs, formatWbs, findTaskByWbs } from "../scripts/lib/wbs";
-import type { TasksConfig } from "../scripts/types";
+import { getNextWbs, formatWbs, findTaskByWbs } from '../scripts/lib/wbs';
+import type { TasksConfig } from '../scripts/types';
 
 function makeConfig(tempDir: string): TasksConfig {
     return {
