@@ -6,14 +6,7 @@ kanban-plugin: board
 
 ## Backlog
 
-- [ ] 0241_0235:_cc-magents_Foundation_-_types.ts_(UMAM)
-- [ ] 0242_0236:_cc-magents_Foundation_-_utils.ts_(parsing_utilities)
-- [ ] 0243_0237:_cc-magents_Foundation_-_base_adapter_interface
-- [ ] 0244_0238:_cc-magents_Foundation_-_agents-md_adapter_(Tier_1)
-- [ ] 0245_0239:_cc-magents_Foundation_-_claude-md_adapter_(Tier_1)
-- [ ] 0246_0240:_cc-magents_Foundation_-_adapter_registry
-- [ ] 0247_0241:_cc-magents_Foundation_-_validate.ts
-- [ ] 0248_0242:_cc-magents_Foundation_SKILL.md_skeleton
+
 
 ## Todo
 
@@ -89,6 +82,14 @@ kanban-plugin: board
 - [x] 0238_Phase_4:_cc-magents_Adaptation_-_Tier_2_3_adapters,_adapt.ts
 - [x] 0239_Phase_5:_cc-magents_Evolution_-_evolve.ts,_safety_protocols,_version_history
 - [x] 0240_Phase_6_cc-magents_Commands_Agent_Tests_SKILL_completion
+- [x] 0241_0235:_cc-magents_Foundation_-_types.ts_(UMAM)
+- [x] 0242_0236:_cc-magents_Foundation_-_utils.ts_(parsing_utilities)
+- [x] 0243_0237:_cc-magents_Foundation_-_base_adapter_interface
+- [x] 0244_0238:_cc-magents_Foundation_-_agents-md_adapter_(Tier_1)
+- [x] 0245_0239:_cc-magents_Foundation_-_claude-md_adapter_(Tier_1)
+- [x] 0246_0240:_cc-magents_Foundation_-_adapter_registry
+- [x] 0247_0241:_cc-magents_Foundation_-_validate.ts
+- [x] 0248_0242:_cc-magents_Foundation_SKILL.md_skeleton
 - [x] 0249_enhance_agent_skill_design_patterns
 - [x] 0250_add_new_agent_skill_quick-grep
 
