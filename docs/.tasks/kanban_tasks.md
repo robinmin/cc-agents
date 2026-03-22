@@ -6,7 +6,7 @@ kanban-plugin: board
 
 ## Backlog
 
-
+- [ ] 0251_upgarde_and_simplify_tasks
 
 ## Todo
 
