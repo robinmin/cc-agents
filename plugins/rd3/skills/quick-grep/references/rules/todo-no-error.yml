@@ -1,5 +1,14 @@
-id: todo-no-error
+id: todo-no-error-javascript
 language: javascript
+message: "TODO/FIXME comment found"
+severity: info
+
+rule:
+  kind: comment
+  regex: "(TODO|FIXME|HACK|XXX)"
+---
+id: todo-no-error-typescript
+language: typescript
 message: "TODO/FIXME comment found"
 severity: info
 
