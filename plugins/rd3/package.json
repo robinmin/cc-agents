@@ -7,10 +7,16 @@
     "scripts": {
         "dev": "bun run --watch",
         "build": "bun build",
-        "test": "bun test ./tests",
-        "test:watch": "bun test ./tests --watch",
-        "test:coverage": "bun test ./tests --coverage",
-        "test:coverage:watch": "bun test ./tests --coverage --watch"
+        "check": "bun run lint && bun run typecheck && bun run test",
+        "lint": "biome lint .",
+        "lint:fix": "biome lint --write .",
+        "format": "biome format --write .",
+        "typecheck": "tsc --noEmit --project ../../tsconfig.json",
+        "test": "bun test ./tests ./skills/*/tests --reporter=dots",
+        "test:watch": "bun test ./tests ./skills/*/tests --watch",
+        "test:coverage": "bun test ./tests ./skills/*/tests --coverage",
+        "test:coverage:watch": "bun test ./tests ./skills/*/tests --coverage --watch",
+        "tasks": "bun ./skills/tasks/scripts/tasks.ts"
     },
     "dependencies": {
         "yaml": "^2.6.1"
