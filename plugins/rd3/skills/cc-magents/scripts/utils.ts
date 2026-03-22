@@ -67,14 +67,14 @@ const CATEGORY_PATTERNS: Array<{ pattern: RegExp; category: SectionCategory }> =
 const SECRET_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
     { name: 'AWS Access Key', pattern: /AKIA[0-9A-Z]{16}/ },
     { name: 'AWS Secret Key', pattern: /[A-Za-z0-9/+=]{40}(?=\s|$|")/ },
-    { name: 'Generic API Key', pattern: /(?:api[_-]?key|apikey)\s*[=:]\s*['"][A-Za-z0-9_\-]{20,}['"]/i },
-    { name: 'Generic Token', pattern: /(?:token|secret|password)\s*[=:]\s*['"][A-Za-z0-9_\-]{16,}['"]/i },
+    { name: 'Generic API Key', pattern: /(?:api[_-]?key|apikey)\s*[=:]\s*['"][A-Za-z0-9_-]{20,}['"]/i },
+    { name: 'Generic Token', pattern: /(?:token|secret|password)\s*[=:]\s*['"][A-Za-z0-9_-]{16,}['"]/i },
     { name: 'GitHub Token', pattern: /gh[pousr]_[A-Za-z0-9_]{36,}/ },
     { name: 'Bearer Token', pattern: /Bearer\s+[A-Za-z0-9_\-.]{20,}/ },
     { name: 'Private Key', pattern: /-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/ },
     { name: 'OpenAI API Key', pattern: /sk-[A-Za-z0-9]{32,}/ },
-    { name: 'Anthropic API Key', pattern: /sk-ant-[A-Za-z0-9_\-]{32,}/ },
-    { name: 'Slack Token', pattern: /xox[bprs]-[A-Za-z0-9\-]+/ },
+    { name: 'Anthropic API Key', pattern: /sk-ant-[A-Za-z0-9_-]{32,}/ },
+    { name: 'Slack Token', pattern: /xox[bprs]-[A-Za-z0-9-]+/ },
 ];
 
 /**
