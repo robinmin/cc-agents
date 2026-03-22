@@ -1,0 +1,10 @@
+name: run-acp
+description: Use acpx as a headless ACP CLI for agent-to-agent communication.
+  Trigger when user mentions "run agent", "delegate to", "use acpx", "ACP
+  session", "agent prompt", "multi-agent workflow", "codex", "claude agent",
+  "openclaw agent".
+version: 1.0.0
+icon: 🛠️
+category: debugging
+tags:
+  - code
