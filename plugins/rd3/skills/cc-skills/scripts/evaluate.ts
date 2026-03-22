@@ -525,9 +525,9 @@ function computeDimensionScores(
     });
 
     // ==========================================================================
-    // 2. STRUCTURE (Core Quality - 5pts)
+    // 2. STRUCTURE (Core Quality - 5pts/10pts)
     // ==========================================================================
-    let structureScore = 5;
+    let structureScore = weights.structure;
     const structureFindings: string[] = [];
     const structureRecommendations: string[] = [];
 
@@ -547,15 +547,15 @@ function computeDimensionScores(
         category: DIMENSION_CATEGORIES.Structure,
         weight: weights.structure,
         score: Math.max(0, structureScore),
-        maxScore: 5,
+        maxScore: weights.structure,
         findings: structureFindings,
         recommendations: structureRecommendations,
     });
 
     // ==========================================================================
-    // 3. CONTENT (Core Quality - 15pts)
+    // 3. CONTENT (Core Quality - 15pts/20pts)
     // ==========================================================================
-    let contentScore = 15;
+    let contentScore = weights.content;
     const contentFindings: string[] = [];
     const contentRecommendations: string[] = [];
 
@@ -590,7 +590,7 @@ function computeDimensionScores(
         category: DIMENSION_CATEGORIES.Content,
         weight: weights.content,
         score: Math.max(0, contentScore),
-        maxScore: 15,
+        maxScore: weights.content,
         findings: contentFindings,
         recommendations: contentRecommendations,
     });
