@@ -1,6 +1,6 @@
 # Rule Format
 
-ast-grep rule files are YAML documents defining code patterns to search and (optionally) rewrite.
+`ast-grep` rule files are YAML documents that define structural matches and, optionally, rewrite payloads.
 
 ## Basic Structure
 
@@ -8,13 +8,31 @@ ast-grep rule files are YAML documents defining code patterns to search and (opt
 id: unique-rule-id
 language: javascript
 message: "Human-readable description"
-severity: warning  # warning | error | info
+severity: warning  # error | warning | info | hint
 
 rule:
-  <pattern-definition>
+  <rule-object>
 ```
 
-## Pattern Types
+## Multi-Language Rule Files
+
+If you want one file to cover multiple languages, store multiple YAML documents in the same file:
+
+```yaml
+id: console-log-javascript
+language: javascript
+rule:
+  pattern: console.log($$$)
+---
+id: console-log-typescript
+language: typescript
+rule:
+  pattern: console.log($$$)
+```
+
+This is how the bundled `references/rules/*.yml` files support both JavaScript and TypeScript.
+
+## Valid Rule Patterns
 
 ### Simple Pattern
 
@@ -23,37 +41,29 @@ rule:
   pattern: console.log($$$)
 ```
 
-### With Capture Variables
+### Composite Logic
 
 ```yaml
 rule:
-  pattern: const $NAME = $VALUE
-vars:
-  - name: NAME
-  - name: VALUE
-```
-
-### Logical Operators
-
-```yaml
-rule:
-  any:           # OR
-    - pattern: console.log($$$)
-    - pattern: console.warn($$$)
-  all:           # AND
-    - pattern: function $F()
-    - pattern: async function $F()
-  not:
-    pattern: console.log($$$)
+  all:
+    - kind: function_declaration
+    - regex: "^async\\s+function"
+    - not:
+        has:
+          kind: catch_clause
+          stopBy: end
 ```
 
 ### Context Filtering
 
 ```yaml
 rule:
-  pattern: $FUNC($$$)
-  inside:
-    pattern: class $CLASS
+  all:
+    - pattern: $PROMISE.then($CALLBACK)
+    - not:
+        inside:
+          pattern: $PROMISE.then($CALLBACK).catch($ERROR_HANDLER)
+          stopBy: end
 ```
 
 ### AST Kind Matching
@@ -64,39 +74,38 @@ rule:
   regex: "(TODO|FIXME)"
 ```
 
-### Pair Matching (key-value)
-
-```yaml
-rule:
-  kind: pair
-  any:
-    - key:
-        regex: "api_key"
-```
-
 ## Common AST Kinds
 
 | Kind | Description |
 |------|-------------|
-| `function` | Function declaration |
-| `class` | Class declaration |
-| `method` | Class method |
-| `call` | Function call |
+| `function_declaration` | Function declaration |
+| `class_declaration` | Class declaration |
+| `method_definition` | Class method |
+| `call_expression` | Function or method call |
 | `pair` | Object key-value pair |
 | `comment` | Comment |
-| `import` | Import statement |
-| `export` | Export statement |
+| `import_statement` | Import statement |
+| `export_statement` | Export statement |
 
 ## Metavariables
 
 | Variable | Description |
 |----------|-------------|
-| `$$$` | Any number of arguments/children |
-| `$NAME` | Single capture |
-| `@NAME` | Type capture (AST node kind) |
+| `$NAME` | Match one named AST node |
+| `$$NAME` | Match one node including unnamed syntax |
+| `$$$NODES` | Match zero or more sibling nodes |
+| `$_` | Non-capturing wildcard |
+
+## Rewrite Guidance
+
+Detection-only rules need just `rule:`. To support `sg scan --interactive` or `sg scan --update-all` as an actual rewrite, add a fix/rewrite payload to the rule file; otherwise prefer:
+
+```bash
+sg run --pattern 'A' --rewrite 'B' --lang LANG --interactive
+```
 
 ## Examples
 
-See `references/rules/` for pre-built rules covering common patterns.
+See `references/rules/` for the bundled rule library.
 
 For full documentation, see [ast-grep reference](https://ast-grep.github.io/reference/rule.html).
