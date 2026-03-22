@@ -1,0 +1,12 @@
+name: quick-grep
+description: Use this skill for strategic code search and rewrite workflows with
+  ripgrep and ast-grep. It helps choose between text search, structural search,
+  and safe AST-based rewrites, and ships a prebuilt JavaScript/TypeScript rule
+  library for common code smells.
+version: 1.0.0
+icon: 🛠️
+category: debugging
+tags:
+  - code
+  - search
+  - refactor
