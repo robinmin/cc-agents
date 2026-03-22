@@ -53,7 +53,7 @@ export function getAutoSubmitPreference(): boolean {
  * @returns Profile directory path
  */
 export function getDefaultProfileDir(
-	skillName: string = "publish-to-x",
+	skillName = "publish-to-x",
 ): string {
 	// Try to read from WT config
 	const wtConfig = getWtConfig();
