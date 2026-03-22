@@ -30,8 +30,8 @@ rg "TODO" -l
 # Find all async functions
 sg run --pattern 'async function $F() { $$$ }' --lang javascript
 
-# Find all class constructors
-sg run --pattern 'constructor($ARGS) { $$$ }' --lang typescript
+# Find classes inheriting from a base type
+sg run --pattern 'class $NAME extends $BASE { $$$ }' --lang typescript
 
 # Find promise chains without catch
 sg run --pattern '$P.then($CB)' --lang javascript
@@ -49,13 +49,15 @@ sg scan --rule references/rules/hardcoded-secret.yml
 sg scan --rule references/rules/async-no-trycatch.yml
 ```
 
+The bundled rule files are detection rules. Each one contains JavaScript and TypeScript variants, so a single `sg scan --rule ...` command works for both languages.
+
 ### Rewrite with ast-grep
 ```bash
 # Interactive rewrite
 sg run --pattern 'console.log($$$)' --rewrite 'logger.log($$$)' --lang javascript --interactive
 
-# Apply rule to all files
-sg scan --rule references/rules/console-log.yml --update-all
+# Preview files before writing changes
+sg scan --rule references/rules/console-log.yml --files-with-matches
 ```
 
 ## Decision Tree Applied
@@ -66,4 +68,4 @@ sg scan --rule references/rules/console-log.yml --update-all
 | "find all async functions" | structure | `sg run --pattern 'async function $F()' --lang javascript` |
 | "find TODO in markdown" | text + non-code | `rg "TODO" -g "*.md"` |
 | "replace console.log with logger" | rewrite | `sg run --pattern 'console.log($$$)' --rewrite 'logger.log($$$)' --lang javascript` |
-| "count test files" | quick scan | `rg -l "" -t test \| wc -l` |
+| "count test files" | quick scan | `rg --files -g '*.{test,spec}.{js,jsx,ts,tsx}' \| wc -l` |
