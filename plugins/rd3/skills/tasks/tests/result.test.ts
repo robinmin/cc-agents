@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { ok, err, isOk, isErr } from "../scripts/lib/result";
+import { ok, err, isOk, isErr } from '../scripts/lib/result';
 
 describe('Result type', () => {
     test('ok() creates a successful result', () => {
