@@ -352,6 +352,6 @@ Tasks use dual-mode config:
 - Default active folder: `docs/tasks/`
 - Multiple folders with independent base counters
 - Config stored in `docs/.tasks/config.jsonc`
-- Project templates stored in `docs/.tasks/template.md` and `docs/.tasks/kanban.md`
+- Project templates stored in `docs/.tasks/task.md` and `docs/.tasks/kanban.md`
 
 Run `tasks init` to migrate to config mode.
