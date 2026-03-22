@@ -13,8 +13,7 @@ kanban-plugin: board
 - [ ] 0245_0239:_cc-magents_Foundation_-_claude-md_adapter_(Tier_1)
 - [ ] 0246_0240:_cc-magents_Foundation_-_adapter_registry
 - [ ] 0247_0241:_cc-magents_Foundation_-_validate.ts
-- [ ] 0248_0242:_cc-magents_Foundation_-_SKILL.md_skeleton
-- [ ] 0249_enhance_agent_skill_design_patterns
+- [ ] 0248_0242:_cc-magents_Foundation_SKILL.md_skeleton
 
 ## Todo
 
@@ -89,5 +88,7 @@ kanban-plugin: board
 - [x] 0237_Phase_3:_cc-magents_Creation_and_Refinement_-_templates,_synthesize.ts,_refine.ts
 - [x] 0238_Phase_4:_cc-magents_Adaptation_-_Tier_2_3_adapters,_adapt.ts
 - [x] 0239_Phase_5:_cc-magents_Evolution_-_evolve.ts,_safety_protocols,_version_history
-- [x] 0240_Phase_6:_cc-magents_Commands,_Agent,_Tests,_SKILL.md_completion
+- [x] 0240_Phase_6_cc-magents_Commands_Agent_Tests_SKILL_completion
+- [x] 0249_enhance_agent_skill_design_patterns
+- [x] 0250_add_new_agent_skill_quick-grep
 
