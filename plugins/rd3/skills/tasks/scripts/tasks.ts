@@ -29,23 +29,23 @@
  *   --force                   Bypass warnings
  */
 
-import { getProjectRoot } from "./lib/config";
-import { runInit } from "./commands/init";
-import { createTask } from "./commands/create";
-import { listTasks } from "./commands/list";
-import { updateTask } from "./commands/update";
-import { showTask } from "./commands/show";
-import { openTask } from "./commands/open";
-import { refreshKanbanBoards } from "./commands/refresh";
-import { checkTask } from "./commands/check";
-import { showConfig, setActiveFolder, addFolder } from "./commands/config";
-import { batchCreate } from "./commands/batchCreate";
-import { putArtifact } from "./commands/put";
-import { getArtifacts } from "./commands/get";
-import { showTree } from "./commands/tree";
-import { runWriteGuardStdin } from "./commands/writeGuard";
-import { isErr } from "./lib/result";
-import { VALID_STATUSES, VALID_PHASES } from "./types";
+import { getProjectRoot } from './lib/config';
+import { runInit } from './commands/init';
+import { createTask } from './commands/create';
+import { listTasks } from './commands/list';
+import { updateTask } from './commands/update';
+import { showTask } from './commands/show';
+import { openTask } from './commands/open';
+import { refreshKanbanBoards } from './commands/refresh';
+import { checkTask } from './commands/check';
+import { showConfig, setActiveFolder, addFolder } from './commands/config';
+import { batchCreate } from './commands/batchCreate';
+import { putArtifact } from './commands/put';
+import { getArtifacts } from './commands/get';
+import { showTree } from './commands/tree';
+import { runWriteGuardStdin } from './commands/writeGuard';
+import { isErr } from './lib/result';
+import { VALID_STATUSES, VALID_PHASES } from './types';
 import { logger } from '../../../scripts/logger';
 
 const CLI_USAGE = `
