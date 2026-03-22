@@ -1,9 +1,9 @@
 ---
 name: add new agent skill quick-grep
-description: { { DESCRIPTION } }
+description: Strategic rg/sg search skill with decision tree, references, and prebuilt JS/TS rules
 status: Done
 created_at: 2026-03-21 16:29:04
-updated_at: 2026-03-21 19:48:46
+updated_at: 2026-03-21 22:15:00
 impl_progress:
   planning: completed
   design: completed
@@ -47,12 +47,16 @@ Here I also collected a lots of relevant things for reference:
 - [Source code of sample agent skill](vendors/agent-skill/ast-grep/skills/ast-grep)
 
 ### Requirements
-- Use subagent @"rd3:expert-skill (agent)" to create a tool-wrapper agent skill as the begining.
+- Use subagent @"rd3:expert-skill (agent)" to create the skill, initially following a tool-wrapper interaction pattern.
 - Compose all materials into the new agent skill
 - Create a decision tree as the tool selection policy to see which proper tool we can leverage can how we can deal with the issue.
 - etc.
 
 ### Q&A
+
+#### Q: Should this ship with a wrapper script?
+
+No. The final implementation is a documentation-first tool-wrapper skill: the agent reads the decision tree, chooses `rg` or `sg`, and executes those tools directly. The bundled rule library and companion metadata provide the reusable behavior without an extra wrapper script.
 
 ### Design
 
@@ -162,7 +166,7 @@ CAP_NATIVE_GREP=${TOOL_RG:-true}  # Always have native grep fallback
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**How it works**: The skill is pure guidance. Claude Code reads SKILL.md, applies the decision tree to pick the right tool (rg, sg, or native grep), and executes directly. No wrapper script.
+**How it works**: The skill is pure guidance. Claude Code reads SKILL.md, applies the decision tree to pick the right tool (`rg`, `sg`, or native grep), and executes directly. No wrapper script is required.
 
 #### Tool Selection (Decision Tree)
 
@@ -197,15 +201,16 @@ rg [OPTIONS] PATTERN [FILES...]
 sg run --pattern 'PATTERN' --lang LANG [DIR]    # Simple pattern search
 sg scan --rule RULE.yml [DIR]                    # Rule-based search
 sg run --pattern 'A' --rewrite 'B' --lang LANG   # Pattern-based rewrite
-sg scan --rule RULE.yml --update-all             # Rule-based rewrite all
+sg scan --rule RULE.yml --files-with-matches     # Detection preview
 ```
 
 #### Rewrite/Rollback Guidance
 
 When using ast-grep rewrite:
-- Prefer interactive mode: `sg scan --rule fix.yml --interactive [DIR]`
-- After rewrite, validate with: `sg run --pattern 'any' --lang LANG [files]`
-- On parse failure: `git checkout HEAD -- [files]`
+- Prefer `sg run --pattern 'A' --rewrite 'B' --lang LANG --interactive [DIR]` for ad hoc rewrites
+- Use `sg scan --rule fix.yml --interactive [DIR]` only when the rule file defines a fix/rewrite payload
+- After rewrite, validate with targeted `sg run` checks or project tests
+- On rollback: `git restore --source=HEAD -- [files]`
 
 #### Pre-built Rules Library
 
@@ -220,6 +225,8 @@ references/rules/
   hardcoded-secret.yml  # Find potential hardcoded secrets
 ```
 
+Each rule file now contains JavaScript and TypeScript YAML documents so one `sg scan --rule ...` command works across both languages.
+
 Example rule:
 ```yaml
 id: console-log
@@ -232,20 +239,20 @@ rule:
 ### Plan
 
 #### Phase 1: Skill Structure Setup
-- [ ] Create `plugins/rd3/skills/quick-grep/` directory
-- [ ] Create `SKILL.md` with skill metadata and decision tree
-- [ ] Create `references/rules/` directory for pre-built rules
-- [ ] Create `examples/` directory for working examples
+- [x] Create `plugins/rd3/skills/quick-grep/` directory
+- [x] Create `SKILL.md` with skill metadata and decision tree
+- [x] Create `references/rules/` directory for pre-built rules
+- [x] Create `examples/` directory for working examples
 
 #### Phase 2: Pre-built Rules
-- [ ] Create `references/rules/` directory
-- [ ] Create 5 common rules (console-log, todo-no-error, async-no-trycatch, impure-pipe, hardcoded-secret)
-- [ ] Document rule format in `references/rules-format.md`
+- [x] Create `references/rules/` directory
+- [x] Create 5 common rules (console-log, todo-no-error, async-no-trycatch, impure-pipe, hardcoded-secret)
+- [x] Document rule format in `references/rules-format.md`
 
 #### Phase 3: Documentation & Examples
-- [ ] Write `references/decision-tree.md` - Tool selection heuristics
-- [ ] Write `references/rule-reference.md` - Rule format (adapted from ast-grep reference)
-- [ ] Add usage examples to `examples/` directory
+- [x] Write `references/decision-tree.md` - Tool selection heuristics
+- [x] Write `references/rule-reference.md` - Rule format (adapted from ast-grep reference)
+- [x] Add usage examples to `examples/` directory
 
 ### Artifacts
 
@@ -262,6 +269,15 @@ rule:
 | Rule | `plugins/rd3/skills/quick-grep/references/rules/impure-pipe.yml` | rd3:expert-skill | 2026-03-21 |
 | Rule | `plugins/rd3/skills/quick-grep/references/rules/hardcoded-secret.yml` | rd3:expert-skill | 2026-03-21 |
 | Example | `plugins/rd3/skills/quick-grep/examples/usage-examples.md` | rd3:expert-skill | 2026-03-21 |
+| Companion | `plugins/rd3/skills/quick-grep/agents/openai.yaml` | review fix | 2026-03-21 |
+| Companion | `plugins/rd3/skills/quick-grep/metadata.openclaw` | review fix | 2026-03-21 |
+| Test | `plugins/rd3/skills/quick-grep/tests/rules.test.ts` | review fix | 2026-03-21 |
+
+### Verification
+
+- Smoke-tested all bundled `sg` rules against JavaScript and TypeScript fixtures
+- Fixed false positives in async and promise-chain rules
+- Added regression tests covering the rule library and platform companion files
+- Corrected rewrite guidance so detection rules are no longer documented as auto-fix rules
 
 ### References
-
