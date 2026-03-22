@@ -1,6 +1,19 @@
-id: console-log
+id: console-log-javascript
 language: javascript
-message: "Avoid console.log in production code"
+message: "Avoid console.* calls in production code"
+severity: warning
+
+rule:
+  any:
+    - pattern: console.log($$$)
+    - pattern: console.warn($$$)
+    - pattern: console.error($$$)
+    - pattern: console.debug($$$)
+    - pattern: console.info($$$)
+---
+id: console-log-typescript
+language: typescript
+message: "Avoid console.* calls in production code"
 severity: warning
 
 rule:
