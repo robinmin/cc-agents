@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
-import { renderKanban } from "../scripts/lib/kanban";
-import type { KanbanColumn, KanbanTaskLine } from "../scripts/lib/kanban";
-import { STATUS_EMOJI } from "../scripts/types";
+import { renderKanban } from '../scripts/lib/kanban';
+import type { KanbanColumn, KanbanTaskLine } from '../scripts/lib/kanban';
+import { STATUS_EMOJI } from '../scripts/types';
 
 function makeTask(wbs: string, name: string, status: KanbanTaskLine['status']): KanbanTaskLine {
     return { wbs, name, status, folder: 'docs/tasks', checkbox: '[ ]' };
