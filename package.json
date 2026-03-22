@@ -17,7 +17,8 @@
         "lint:fix:all": "biome lint --write plugins/rd3",
         "check": "bun run lint && bun run typecheck && bun run test",
         "typecheck": "tsc --noEmit",
-        "test": "bun test --reporter=dots"
+        "test": "bun test --reporter=dots",
+        "update-cc": "claude plugin marketplace update cc-agents && claude plugin update rd3@cc-agents"
     },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",
