@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { buildKanbanFromFolder, refreshKanban } from "../scripts/lib/kanban";
-import type { TasksConfig } from "../scripts/types";
+import { buildKanbanFromFolder, refreshKanban } from '../scripts/lib/kanban';
+import type { TasksConfig } from '../scripts/types';
 
 describe('buildKanbanFromFolder', () => {
     const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `kanban-build-test-${Date.now()}`);
