@@ -1626,7 +1626,7 @@ describe('Unit: CLI functions', () => {
 
         try {
             process.argv = ['node', 'evaluate.ts', '--help'];
-            // @ts-ignore - mocking exit
+            // @ts-expect-error - mocking exit
             process.exit = () => {};
 
             // This should call printUsage and exit
@@ -1646,7 +1646,7 @@ describe('Unit: CLI functions', () => {
 
         try {
             process.argv = ['node', 'evaluate.ts'];
-            // @ts-ignore - mocking exit
+            // @ts-expect-error - mocking exit
             process.exit = () => {};
             console.error = () => {};
 
@@ -1668,7 +1668,7 @@ describe('Unit: CLI functions', () => {
 
         try {
             process.argv = ['node', 'evaluate.ts', '/test/cmd.md', '--scope', 'invalid'];
-            // @ts-ignore - mocking exit
+            // @ts-expect-error - mocking exit
             process.exit = () => {};
             console.error = () => {};
 
@@ -1689,7 +1689,7 @@ describe('Unit: CLI functions', () => {
 
         try {
             process.argv = ['node', 'evaluate.ts', '/test/cmd.md', '--platform', 'invalid'];
-            // @ts-ignore - mocking exit
+            // @ts-expect-error - mocking exit
             process.exit = () => {};
             console.error = () => {};
 
