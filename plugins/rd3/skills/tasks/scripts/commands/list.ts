@@ -5,53 +5,53 @@ import { resolve } from 'node:path';
 import { err, isErr, ok, type Result } from '../lib/result';
 import { getMetaDir, loadConfig } from '../lib/config';
 import { parseFrontmatter } from '../lib/taskFile';
-import { type TaskListItem, type TaskStatus } from '../types';
-import { displayMarkdown } from "../lib/terminal";
+import type { TaskListItem, TaskStatus } from '../types';
+import { displayMarkdown } from '../lib/terminal';
 
 const STATUS_SUMMARY: Record<TaskStatus, string> = {
-    Backlog: "Queued work that is not ready to start yet.",
-    Todo: "Ready to pick up next.",
-    WIP: "Work currently in progress.",
-    Testing: "Under verification before completion.",
-    Blocked: "Waiting on an external dependency or decision.",
-    Done: "Completed work.",
+    Backlog: 'Queued work that is not ready to start yet.',
+    Todo: 'Ready to pick up next.',
+    WIP: 'Work currently in progress.',
+    Testing: 'Under verification before completion.',
+    Blocked: 'Waiting on an external dependency or decision.',
+    Done: 'Completed work.',
 };
 
 function getCheckbox(status: TaskStatus): string {
-    if (status === "WIP" || status === "Testing") {
-        return "[.]";
+    if (status === 'WIP' || status === 'Testing') {
+        return '[.]';
     }
 
-    if (status === "Done") {
-        return "[✓]";
+    if (status === 'Done') {
+        return '[✓]';
     }
 
-    return "[ ]";
+    return '[ ]';
 }
 
 function formatTaskStem(task: TaskListItem): string {
     const normalizedName = task.name
-        .replace(/\s+/g, "_")
-        .replace(/[^\w.-]+/g, "_")
-        .replace(/_+/g, "_")
-        .replace(/^_+|_+$/g, "");
+        .replace(/\s+/g, '_')
+        .replace(/[^\w.-]+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
 
     return `${task.wbs}_${normalizedName}`;
 }
 
 function renderTaskListForStatus(tasks: TaskListItem[], status: TaskStatus): string {
     const tasksForStatus = tasks.filter((task) => task.status === status);
-    const taskLabel = tasksForStatus.length === 1 ? "task" : "tasks";
+    const taskLabel = tasksForStatus.length === 1 ? 'task' : 'tasks';
     const lines: string[] = [];
 
     lines.push(`_${STATUS_SUMMARY[status]} ${tasksForStatus.length} ${taskLabel}._`);
-    lines.push("");
+    lines.push('');
     for (const task of tasksForStatus) {
         lines.push(`${getCheckbox(task.status)} ${formatTaskStem(task)}`);
     }
-    lines.push("");
+    lines.push('');
 
-    return lines.join("\n");
+    return lines.join('\n');
 }
 
 function loadKanbanTemplate(projectRoot: string): string | null {
@@ -69,11 +69,7 @@ function loadKanbanTemplate(projectRoot: string): string | null {
     }
 }
 
-function renderKanbanFromTemplate(
-    template: string,
-    tasks: TaskListItem[],
-    phaseLabel: string,
-): string {
+function renderKanbanFromTemplate(template: string, tasks: TaskListItem[], phaseLabel: string): string {
     let content = template;
 
     // Substitute PHASE_LABEL
@@ -99,32 +95,28 @@ function renderKanbanFromTemplate(
     return content.trimEnd();
 }
 
-function collectTasksForFolder(
-    projectRoot: string,
-    folder: string,
-    statusFilter?: TaskStatus,
-): Result<TaskListItem[]> {
+function collectTasksForFolder(projectRoot: string, folder: string, statusFilter?: TaskStatus): Result<TaskListItem[]> {
     const folderPath = resolve(projectRoot, folder);
 
     if (!existsSync(folderPath)) {
         return err(`Task folder does not exist: ${folder}`);
     }
 
-    const files = readdirSync(folderPath).filter((f: string) => f.endsWith(".md") && !f.startsWith("kanban"));
+    const files = readdirSync(folderPath).filter((f: string) => f.endsWith('.md') && !f.startsWith('kanban'));
     const tasks: TaskListItem[] = [];
 
     for (const file of files) {
         const filePath = resolve(folderPath, file);
-        const content = readFileSync(filePath, "utf-8");
+        const content = readFileSync(filePath, 'utf-8');
         const fm = parseFrontmatter(content);
         if (!fm) continue;
 
-        const wbs = file.split("_")[0];
+        const wbs = file.split('_')[0];
         if (statusFilter && fm.status !== statusFilter) continue;
 
         tasks.push({
             wbs,
-            name: fm.name || file.replace(/\.md$/, ""),
+            name: fm.name || file.replace(/\.md$/, ''),
             status: fm.status,
             folder,
         });
@@ -155,9 +147,7 @@ export function listTasks(
 ): Result<TaskListItem[]> {
     const config = loadConfig(projectRoot);
     const folder = cliFolder || config.active_folder;
-    const foldersToShow = includeAll
-        ? getOrderedFolders(folder, config.folders)
-        : [folder];
+    const foldersToShow = includeAll ? getOrderedFolders(folder, config.folders) : [folder];
     const tasks: TaskListItem[] = [];
     const boards: string[] = [];
 
@@ -187,10 +177,10 @@ export function listTasks(
 
     if (!quiet) {
         if (boards.length === 0) {
-            return err("No configured task folders exist.");
+            return err('No configured task folders exist.');
         }
 
-        displayMarkdown(boards.join("\n\n"));
+        displayMarkdown(boards.join('\n\n'));
     }
 
     return ok(tasks);
