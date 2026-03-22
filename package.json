@@ -17,13 +17,15 @@
         "lint:fix:all": "biome lint --write plugins/rd3",
         "check": "bun run lint && bun run typecheck && bun run test",
         "typecheck": "tsc --noEmit",
-        "test": "bun test --reporter=dots",
+        "test": "bun test --coverage --reporter=dots",
+
         "lint:rd3": "bun run --cwd plugins/rd3 lint",
         "format:rd3": "bun run --cwd plugins/rd3 format",
-        "check:rd3": "bun run --cwd plugins/rd3 check",
+        "check:rd3": "bun run lint:rd3 && bun run typecheck:rd3 && bun run test:rd3",
         "typecheck:rd3": "bun run --cwd plugins/rd3 typecheck",
-        "test:rd3": "bun run --cwd plugins/rd3 test --reporter=dots",
+        "test:rd3": "bun run --cwd plugins/rd3 test --coverage --reporter=dots",
         "test:coverage:rd3": "bun run --cwd plugins/rd3 test:coverage",
+
         "update-cc": "claude plugin marketplace update cc-agents && claude plugin update rd3@cc-agents",
         "tasks": "bun run --cwd plugins/rd3 tasks",
         "tasks:check": "bun run --cwd plugins/rd3 check",
