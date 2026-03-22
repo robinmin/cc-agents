@@ -47,6 +47,30 @@ ensure_dir() {
     fi
 }
 
+# Copy a skill directory while skipping transient artifacts that should never
+# be synced into Antigravity skill/workflow locations.
+copy_skill_tree() {
+    local source_dir="$1"
+    local dest_dir="$2"
+
+    rm -rf "$dest_dir"
+    mkdir -p "$dest_dir"
+
+    (
+        cd "$source_dir" || exit 1
+        tar \
+            --exclude="./node_modules" \
+            --exclude="./dist" \
+            --exclude="./coverage" \
+            --exclude="./.git" \
+            --exclude="./.DS_Store" \
+            -cf - .
+    ) | (
+        cd "$dest_dir" || exit 1
+        tar -xf -
+    )
+}
+
 # Copy and rename subagents to global workflows
 copy_subagents() {
     local plugin="$1"
@@ -115,11 +139,11 @@ copy_skills() {
             local new_name="${plugin}_${basename}"
 
             # Copy to global skills
-            cp -r "$skill_dir" "${ANTIGRAVITY_SKILLS}/${new_name}"
+            copy_skill_tree "$skill_dir" "${ANTIGRAVITY_SKILLS}/${new_name}"
             global_count=$((global_count + 1))
 
             # Copy to workspace workflows
-            cp -r "$skill_dir" "${WORKSPACE_WORKFLOWS}/${new_name}"
+            copy_skill_tree "$skill_dir" "${WORKSPACE_WORKFLOWS}/${new_name}"
             workspace_count=$((workspace_count + 1))
         fi
     done
