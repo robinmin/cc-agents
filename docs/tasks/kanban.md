@@ -7,7 +7,6 @@ kanban-plugin: board
 ## 🔴 Backlog
 
 - [ ] kanban.md_kanban
-- [ ] 0252_add_new_agent_skill_run-acp
 
 ## 🔵 Todo
 
@@ -47,6 +46,7 @@ kanban-plugin: board
 - [x] 0239_Phase_5:_cc-magents_Evolution_-_evolve.ts,_safety_protocols,_version_history
 - [x] 0216_Fix_logic_issues_M3_M4_M5_M8:_placeholders,_weights,_ValidationReport,_unused_var
 - [x] 0211_Fix_critical_bugs_C1-C4:_platform_validation,_empty_frontmatter,_exit_code,_adapter_validate
+- [x] 0252_add_new_agent_skill_run-acp
 - [x] 0246_0240:_cc-magents_Foundation_-_adapter_registry
 - [x] 0235_Phase_1:_cc-magents_Foundation_-_types,_utils,_Tier_1_adapters,_validate,_SKILL.md_skeleton
 - [x] 0240_Phase_6:_cc-magents_Commands,_Agent,_Tests,_SKILL.md_completion
