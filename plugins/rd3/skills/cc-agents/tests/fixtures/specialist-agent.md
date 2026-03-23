@@ -19,7 +19,7 @@ description: |
 tools: [Read, Grep, Glob, Bash]
 model: inherit
 color: blue
-skills: [rd2:code-patterns]
+skills: [rd3:sys-developing]
 ---
 
 # 1. METADATA
