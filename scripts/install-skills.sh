@@ -466,6 +466,8 @@ run_rulesync() {
     local targets="$1"
     local rulesync_targets="$targets"
     local rulesync_args=()
+    local rulesync_workdir="$PROJECT_ROOT"
+    local cleanup_workdir=false
 
     # OpenClaw install is handled by direct copy because this workflow does
     # not currently use a rulesync OpenClaw target.
@@ -500,7 +502,7 @@ run_rulesync() {
     if [ "$DRY_RUN" = "true" ]; then
         print_warning "DRY RUN - Would execute:"
         if [ "$GLOBAL" = "true" ]; then
-            echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str --global"
+            echo "   (cd <temp-rulesync-workdir> && $rulesync_cmd generate --targets $rulesync_targets --features $features_str)"
             echo "   Copy to global directories: $HOME/.codex/skills/, etc."
         else
             echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str"
@@ -514,13 +516,38 @@ run_rulesync() {
     fi
 
     if [ "$GLOBAL" = "true" ]; then
-        rulesync_args+=(--global)
+        # rulesync v6 resolves source baseDirs to $HOME in --global mode, so it
+        # can no longer see this repo's .rulesync directory. Run generation in a
+        # temporary workspace instead to validate against the local rulesync
+        # source tree without polluting the current repo with .codex/.gemini/etc.
+        rulesync_workdir=$(mktemp -d "${TMPDIR:-/tmp}/install-skills-rulesync.XXXXXX")
+        cleanup_workdir=true
+
+        if [ -f "${PROJECT_ROOT}/rulesync.jsonc" ]; then
+            cp "${PROJECT_ROOT}/rulesync.jsonc" "${rulesync_workdir}/rulesync.jsonc"
+        fi
+        cp -R "$RULESYNC_DIR" "${rulesync_workdir}/.rulesync"
+
+        if [ "$VERBOSE" = "true" ]; then
+            print_info "Using temporary rulesync workspace: $rulesync_workdir"
+        fi
     fi
 
-    # Generate into the correct rulesync scope first. Without --global, rulesync
-    # will write into project-local targets like .codex/ even if the later copy
-    # step installs into ~/.codex/.
-    $rulesync_cmd generate --targets "$rulesync_targets" --features "$features_str" "${rulesync_args[@]}"
+    local command="$rulesync_cmd generate --targets \"$rulesync_targets\" --features \"$features_str\""
+    for arg in "${rulesync_args[@]}"; do
+        command="${command} ${arg}"
+    done
+
+    (cd "$rulesync_workdir" && eval "$command")
+    local status=$?
+
+    if [ "$cleanup_workdir" = "true" ]; then
+        rm -rf "$rulesync_workdir"
+    fi
+
+    if [ $status -ne 0 ]; then
+        return $status
+    fi
 
     print_success "rulesync completed"
     echo
