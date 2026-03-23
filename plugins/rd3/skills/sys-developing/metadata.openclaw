@@ -1,0 +1,8 @@
+name: sys-developing
+description: "Production-ready implementation patterns for common development
+  tasks: REST/GraphQL API design, testing (unit/integration/E2E), Docker
+  containerization, and database operations. Trigger when: designing an API,
+  writing tests, containerizing an application, setting up database migrations,
+  or optimizing database queries."
+version: 1.0.0
+emoji: 🛠️
