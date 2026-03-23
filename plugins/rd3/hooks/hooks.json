@@ -1,5 +1,5 @@
 {
-    "description": "Hooks for rd3 plugin - write guard for task file protection",
+    "description": "Hooks for rd3 plugin - task write protection and anti-hallucination stop guard",
     "hooks": {
         "PreToolUse": [
             {
@@ -8,6 +8,18 @@
                     {
                         "type": "command",
                         "command": "bun ${CLAUDE_PLUGIN_ROOT}/skills/tasks/scripts/tasks.ts write-guard",
+                        "timeout": 10
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bun ${CLAUDE_PLUGIN_ROOT}/skills/anti-hallucination/scripts/ah_guard.ts",
                         "timeout": 10
                     }
                 ]
