@@ -49,7 +49,7 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
         }
     }
 
-    return {
+    const frontmatter: TaskFrontmatter = {
         name: fm.name || '',
         description: fm.description || '',
         status: (fm.status as TaskStatus) || 'Backlog',
@@ -59,6 +59,48 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
         type: (fm.type as TaskType) || 'task',
         impl_progress: implProgress,
     };
+
+    if (fm.priority !== undefined) {
+        frontmatter.priority = fm.priority;
+    }
+
+    const estimatedHours = parseOptionalNumber(fm.estimated_hours);
+    if (estimatedHours !== undefined) {
+        frontmatter.estimated_hours = estimatedHours;
+    }
+
+    const tags = parseOptionalArray(fm.tags);
+    if (tags !== undefined) {
+        frontmatter.tags = tags;
+    }
+
+    const dependencies = parseOptionalArray(fm.dependencies);
+    if (dependencies !== undefined) {
+        frontmatter.dependencies = dependencies;
+    }
+
+    return frontmatter;
+}
+
+function parseOptionalNumber(value?: string): number | undefined {
+    if (!value) return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseOptionalArray(value?: string): string[] | undefined {
+    if (!value) return undefined;
+
+    try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed) && parsed.every((item) => typeof item === 'string')) {
+            return parsed;
+        }
+    } catch {
+        // Fall back to a single-value array for plain strings.
+    }
+
+    return value ? [value] : undefined;
 }
 
 export function parseSection(content: string, section: string): string {
