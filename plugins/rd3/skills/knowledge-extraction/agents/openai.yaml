@@ -1,0 +1,16 @@
+name: knowledge-extraction
+description: "Extract, synthesize, and validate information from multiple
+  sources with cross-verification, deduplication, and source attribution.
+  Trigger when: researching APIs/libraries/frameworks, verifying facts,
+  consolidating from PDFs/web/code, cross-referencing docs, fact-checking
+  claims, investigating version-specific behavior, or gathering architectural
+  decision info."
+version: 1.0.1
+icon: 🛠️
+category: engineering-core
+tags:
+  - research
+  - verification
+  - synthesis
+  - knowledge
+  - engineering-core
