@@ -74,7 +74,7 @@ All notable changes to this project will be documented in this file.
 ### 🔧 Improvements
 
 - **Dynamic Programming Language Support**: super-coder now auto-detects and uses appropriate coder skill
-- **sys-debugging & code-patterns**: Added to super-coder for enhanced problem-solving
+- **sys-debugging & sys-developing**: Added to super-coder for enhanced problem-solving
 - **Google Stitch AI Integration**: Added to super-designer for AI-powered UI generation
 - **Task Management**: Enhanced with WBS numbering, multi-folder support, kanban board sync
 - **Multi-Platform Publishing**: Enhanced publish-to-* skills with advanced options
