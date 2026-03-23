@@ -22,6 +22,10 @@ export interface TaskFrontmatter {
     updated_at: string;
     folder?: string;
     type?: TaskType;
+    priority?: string;
+    estimated_hours?: number;
+    tags?: string[];
+    dependencies?: string[];
     impl_progress: ImplProgress;
 }
 
@@ -78,6 +82,11 @@ export interface CliArgs {
     name?: string;
     background?: string;
     requirements?: string;
+    solution?: string;
+    priority?: string;
+    estimatedHours?: number;
+    tags?: string[];
+    dependencies?: string[];
     phase?: ImplPhase;
     phaseStatus?: string;
     baseCounter?: number;
@@ -98,6 +107,11 @@ export interface BatchCreateItem {
     name: string;
     background?: string;
     requirements?: string;
+    solution?: string;
+    priority?: string;
+    estimated_hours?: number;
+    dependencies?: string[];
+    tags?: string[];
     folder?: string;
 }
 
