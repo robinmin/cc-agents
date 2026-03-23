@@ -47,6 +47,9 @@ which tasks
 ```bash
 # Create a new task (assigns next available WBS)
 tasks create "Implement user authentication"
+tasks create "Implement user authentication" \
+  --background "Why this work exists" \
+  --requirements $'- Requirement 1\n- Requirement 2'
 
 # List all tasks (optionally filter by status)
 tasks list
@@ -76,6 +79,9 @@ tasks update 0047 --phase design --phase-status in_progress
 
 # Batch create from JSON array
 tasks batch-create --from-json /tmp/tasks.json
+
+# Batch create from an agent <!-- TASKS: [...] --> footer
+tasks batch-create --from-agent-output /tmp/analysis.md
 
 # Store artifact for a task (lazy-creates docs/tasks/<wbs>/)
 tasks put 0047 /tmp/design.png --name design.png
