@@ -1,0 +1,8 @@
+name: task-decomposition
+description: "Structured methodology for breaking complex requirements into
+  actionable tasks with dependency mapping, effort estimation, and
+  batch-creation-compatible JSON output. Use for: planning features, decomposing
+  work, estimating effort, creating WBS-structured breakdowns. NOT for: task
+  file operations (use rd3:tasks), business analysis, or system architecture."
+version: 1.0.0
+emoji: 🛠️
