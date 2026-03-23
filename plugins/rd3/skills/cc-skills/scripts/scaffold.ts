@@ -35,6 +35,7 @@ const ALLOWED_INTERACTION_PATTERNS: readonly InteractionPattern[] = [
     'reviewer',
     'inversion',
     'pipeline',
+    'knowledge-only',
 ];
 
 // Parse resource types from comma-separated string
@@ -418,7 +419,9 @@ function printUsage(): void {
     logger.log('  -t, --template <type> Template type: technique, pattern, reference (default: technique)');
     logger.log('      --description <text> Skill description (alternative to positional)');
     logger.log('  -r, --resources <list> Comma-separated: scripts,references,assets');
-    logger.log('      --interactions <list> Comma-separated: tool-wrapper,generator,reviewer,inversion,pipeline');
+    logger.log(
+        '      --interactions <list> Comma-separated: tool-wrapper,generator,reviewer,inversion,pipeline,knowledge-only',
+    );
     logger.log(
         '  --platform <name>     Target platform: all, claude, codex, openclaw, opencode, antigravity (default: all)',
     );
