@@ -12,7 +12,16 @@ export function createTask(
     projectRoot: string,
     name: string,
     cliFolder?: string,
-    options: { background?: string; requirements?: string; quiet?: boolean } = {},
+    options: {
+        background?: string;
+        requirements?: string;
+        solution?: string;
+        priority?: string;
+        estimatedHours?: number;
+        dependencies?: string[];
+        tags?: string[];
+        quiet?: boolean;
+    } = {},
 ): Result<{ wbs: string; path: string }> {
     const config = loadConfig(projectRoot);
     const folder = cliFolder || config.active_folder;
@@ -38,17 +47,26 @@ export function createTask(
         templateContent = getDefaultTemplate();
     }
 
-    // Render template (substitute variables first, strip input tips after override)
-    const vars = getTemplateVars(name, wbs, folder, options.requirements || '');
+    // Render template with placeholder cleanup first so section overrides work on both
+    // the built-in template and customized project templates.
+    const vars = getTemplateVars(name, wbs, folder, name);
     let content = substituteTemplateVars(templateContent, vars);
+    content = stripInputTips(content);
 
-    // Override Background if provided (before stripping input tips)
     if (options.background) {
-        content = content.replace(/(#+\s*Background\n\n)\[.*?\]/s, `$1${options.background}`);
+        content = replaceSectionContent(content, 'Background', options.background);
+    }
+    if (options.requirements) {
+        content = replaceSectionContent(content, 'Requirements', options.requirements);
+    }
+    if (options.solution) {
+        content = replaceSectionContent(content, 'Solution', options.solution);
     }
 
-    // Strip input tips like [Context and motivation — why this task exists]
-    content = stripInputTips(content);
+    content = upsertFrontmatterField(content, 'priority', options.priority);
+    content = upsertFrontmatterField(content, 'estimated_hours', options.estimatedHours);
+    content = upsertFrontmatterField(content, 'dependencies', options.dependencies);
+    content = upsertFrontmatterField(content, 'tags', options.tags);
 
     // Write file
     const fileName = `${wbs}_${name.replace(/\s+/g, '_')}.md`;
@@ -68,6 +86,45 @@ export function createTask(
         logger.success(`Created ${wbs} ${name} → ${folder}/${fileName}`);
     }
     return ok({ wbs, path: filePath });
+}
+
+function replaceSectionContent(content: string, section: string, newContent: string): string {
+    const sectionPattern = new RegExp(`(### ${section}\\n\\n)[\\s\\S]*?(?=\\n### |$)`, 'm');
+    if (!sectionPattern.test(content)) {
+        return content;
+    }
+
+    return content.replace(sectionPattern, `$1${newContent.trim()}\n`);
+}
+
+function upsertFrontmatterField(content: string, field: string, value: string | number | string[] | undefined): string {
+    if (value === undefined) {
+        return content;
+    }
+
+    const renderedValue = renderFrontmatterValue(value);
+    const fieldPattern = new RegExp(`^${field}: .+$`, 'm');
+    if (fieldPattern.test(content)) {
+        return content.replace(fieldPattern, `${field}: ${renderedValue}`);
+    }
+
+    if (/^impl_progress:\n/m.test(content)) {
+        return content.replace(/^impl_progress:\n/m, `${field}: ${renderedValue}\nimpl_progress:\n`);
+    }
+
+    return content.replace(/\n---\n/, `\n${field}: ${renderedValue}\n---\n`);
+}
+
+function renderFrontmatterValue(value: string | number | string[]): string {
+    if (Array.isArray(value)) {
+        return JSON.stringify(value);
+    }
+
+    if (typeof value === 'number') {
+        return String(value);
+    }
+
+    return JSON.stringify(value);
 }
 
 function getDefaultTemplate(): string {
