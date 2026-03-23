@@ -1,0 +1,8 @@
+name: pl-typescript
+description: "TypeScript project planning skill: architectural guidance, type
+  system design, tsconfig configuration, and best practices for TypeScript 5.x.
+  Trigger when: planning a TypeScript project, designing TypeScript
+  architecture, structuring type systems, or selecting configuration
+  strategies."
+version: 1.0.0
+emoji: 🛠️
