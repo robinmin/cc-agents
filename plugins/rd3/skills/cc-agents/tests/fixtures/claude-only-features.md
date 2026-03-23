@@ -12,7 +12,7 @@ description: |
 tools: [Read, Write, Edit, Bash]
 model: claude-sonnet-4-20250514
 maxTurns: 25
-skills: [rd2:code-patterns]
+skills: [rd3:sys-developing]
 mcpServers: [filesystem]
 color: blue
 permissionMode: bypassPermissions
