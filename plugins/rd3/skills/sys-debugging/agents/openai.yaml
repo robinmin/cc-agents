@@ -1,0 +1,13 @@
+name: sys-debugging
+description: "Four-phase debugging methodology: root cause first, then fix. For
+  investigating bugs, test failures, and unexpected behavior. Applies to all
+  languages."
+version: 1.0.0
+icon: 🛠️
+category: engineering-core
+tags:
+  - debugging
+  - root-cause
+  - engineering-core
+  - troubleshooting
+  - code
