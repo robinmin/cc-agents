@@ -170,6 +170,23 @@ describe('CodexAdapter', () => {
         expect(existsSync(join(TEST_DIR, 'agents', 'openai.yaml'))).toBe(true);
     });
 
+    it('should accept rd3 taxonomy categories in openai.yaml', async () => {
+        mkdirSync(join(TEST_DIR, 'agents'), { recursive: true });
+        writeFileSync(
+            join(TEST_DIR, 'agents', 'openai.yaml'),
+            `name: test-skill
+description: A test skill
+category: engineering-core
+`,
+            'utf-8',
+        );
+
+        const skill = createMockSkill();
+        const result = await adapter.validate(skill);
+
+        expect(result.warnings).not.toContain('Unusual category: engineering-core');
+    });
+
     it('should detect platform features', () => {
         const skill = createMockSkill();
         const features = adapter.detectPlatformFeatures(skill);
@@ -292,6 +309,26 @@ describe('OpenCodeAdapter', () => {
         });
 
         expect(result.success).toBe(true);
+    });
+
+    it('should not warn on bash blocks when permissions are documented in platform notes', async () => {
+        const skill = createMockSkill({
+            body: `# Test
+
+## Platform Notes
+
+### Permissions
+
+These bash examples only require normal local developer permissions.
+
+\`\`\`bash
+git status
+\`\`\`
+`,
+        });
+
+        const result = await adapter.validate(skill);
+        expect(result.warnings).not.toContain('Skill uses bash blocks - consider documenting required permissions');
     });
 
     it('should detect permission features', () => {
