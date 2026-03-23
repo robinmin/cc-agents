@@ -1798,9 +1798,10 @@ function parseCliArgs(): {
 async function main() {
     const { path: skillPath, options } = parseCliArgs();
 
-    const log = options.json ? console.error : console.log;
-    log(`[INFO] Evaluating skill at: ${skillPath}`);
-    log(`[INFO] Scope: ${options.scope}, Platform: ${options.platform}`);
+    if (!options.json) {
+        logger.info(`Evaluating skill at: ${skillPath}`);
+        logger.info(`Scope: ${options.scope}, Platform: ${options.platform}`);
+    }
 
     const platformsArg =
         options.platform === 'all'
