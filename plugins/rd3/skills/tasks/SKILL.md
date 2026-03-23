@@ -1,6 +1,6 @@
 ---
 name: tasks
-description: "Markdown-based task management with WBS numbering and kanban boards. Use when: creating tasks, updating task status, listing tasks, managing task artifacts (put/get), validating task content, or refreshing kanban boards. Triggers: 'create task', 'new task', 'update task status', 'list tasks', 'show task', 'task artifacts', 'put file for task', 'get task artifacts', 'refresh kanban'. NOT for: code decomposition (use rd3:task-decomposition instead)."
+description: "Markdown-based task management with WBS numbering and kanban boards. Use when: creating tasks, updating task status, listing tasks, managing task artifacts (put/get), validating task content, or refreshing kanban boards. Triggers: 'create task', 'new task', 'update task status', 'list tasks', 'show task', 'task artifacts', 'put file for task', 'get task artifacts', 'refresh kanban'. NOT for: requirement decomposition or scope analysis."
 license: Apache-2.0
 version: 1.0.0
 created_at: 2026-03-21
@@ -19,7 +19,6 @@ metadata:
         - tasks
         - bun
 see_also:
-  - rd3:task-decomposition
   - rd3:cc-skills
 ---
 
@@ -155,15 +154,11 @@ Activate rd3:tasks when you encounter:
 | "get task artifacts", "list task files" | `tasks get <wbs>` |
 | "task tree", "task directory" | `tasks tree <wbs>` |
 
-### Decomposition Routing
+### Scope Boundary
 
-For requirement decomposition, do NOT use rd3:tasks. Instead:
+The rd3:tasks skill manages task records and lifecycle state. It does not perform requirement decomposition, business analysis, or system analysis.
 
-| User Says | Route To |
-|-----------|----------|
-| "decompose this requirement", "break down into tasks", "create subtasks" | `rd3:task-decomposition` skill |
-
-The rd3:tasks skill manages existing tasks — it does not decompose requirements into tasks.
+If the request is still about clarifying scope, breaking work down, or shaping requirements, do not activate rd3:tasks yet. Use the appropriate planning or analysis workflow first, then return to rd3:tasks once concrete task records should be created or updated.
 
 ## Prohibited Behaviors (STRICT)
 
