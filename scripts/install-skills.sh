@@ -465,6 +465,7 @@ EOF
 run_rulesync() {
     local targets="$1"
     local rulesync_targets="$targets"
+    local rulesync_args=()
 
     # OpenClaw install is handled by direct copy because this workflow does
     # not currently use a rulesync OpenClaw target.
@@ -499,7 +500,7 @@ run_rulesync() {
     if [ "$DRY_RUN" = "true" ]; then
         print_warning "DRY RUN - Would execute:"
         if [ "$GLOBAL" = "true" ]; then
-            echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str"
+            echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str --global"
             echo "   Copy to global directories: $HOME/.codex/skills/, etc."
         else
             echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str"
@@ -509,10 +510,17 @@ run_rulesync() {
 
     # Execute rulesync with appropriate verbosity
     if [ "$VERBOSE" = "true" ]; then
-        $rulesync_cmd generate --targets "$rulesync_targets" --features "$features_str" --verbose
-    else
-        $rulesync_cmd generate --targets "$rulesync_targets" --features "$features_str"
+        rulesync_args+=(--verbose)
     fi
+
+    if [ "$GLOBAL" = "true" ]; then
+        rulesync_args+=(--global)
+    fi
+
+    # Generate into the correct rulesync scope first. Without --global, rulesync
+    # will write into project-local targets like .codex/ even if the later copy
+    # step installs into ~/.codex/.
+    $rulesync_cmd generate --targets "$rulesync_targets" --features "$features_str" "${rulesync_args[@]}"
 
     print_success "rulesync completed"
     echo
