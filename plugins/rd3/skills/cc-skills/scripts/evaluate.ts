@@ -55,6 +55,7 @@ const ALLOWED_INTERACTION_PATTERNS: readonly InteractionPattern[] = [
     'reviewer',
     'inversion',
     'pipeline',
+    'knowledge-only',
 ];
 
 function asStringArray(value: unknown): string[] | null {
