@@ -29,7 +29,13 @@ export interface SkillFrontmatter {
 /**
  * Skill metadata structure
  */
-export type InteractionPattern = 'tool-wrapper' | 'generator' | 'reviewer' | 'inversion' | 'pipeline';
+export type InteractionPattern =
+    | 'tool-wrapper'
+    | 'generator'
+    | 'reviewer'
+    | 'inversion'
+    | 'pipeline'
+    | 'knowledge-only';
 
 export interface SkillMetadata {
     author?: string;
