@@ -73,13 +73,18 @@ export class CodexAdapter implements IPlatformAdapter {
 
                 if (yaml.category) {
                     const validCategories = [
+                        'architecture-design',
                         'coding',
+                        'engineering-core',
+                        'plugin-dev',
+                        'qa-depth',
                         'debugging',
                         'testing',
                         'refactoring',
                         'documentation',
                         'devops',
                         'data',
+                        'workflow-core',
                         'other',
                     ];
                     if (!validCategories.includes(yaml.category)) {
