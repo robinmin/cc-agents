@@ -95,6 +95,43 @@ impl_progress:
         expect(content).toContain('### Background\n\nSpecific background content.');
     });
 
+    test('persists structured planning fields when richer creation content is provided', () => {
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            JSON.stringify(
+                {
+                    $schema_version: 1,
+                    active_folder: 'docs/tasks',
+                    folders: {
+                        'docs/tasks': { base_counter: 0 },
+                    },
+                },
+                null,
+                2,
+            ),
+        );
+
+        const result = createTask(tempDir, 'Rich Metadata', undefined, {
+            background: 'Why the work exists.',
+            requirements: '- Requirement A\n- Requirement B',
+            solution: 'Implement the core flow and verify it with tests.',
+            priority: 'high',
+            estimatedHours: 6,
+            dependencies: ['0001', '0002'],
+            tags: ['planning', 'workflow-core'],
+            quiet: true,
+        });
+        expect(result.ok).toBe(true);
+
+        const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_Rich_Metadata.md'), 'utf-8');
+        expect(content).toContain('priority: "high"');
+        expect(content).toContain('estimated_hours: 6');
+        expect(content).toContain('dependencies: ["0001","0002"]');
+        expect(content).toContain('tags: ["planning","workflow-core"]');
+        expect(content).toContain('### Requirements\n\n- Requirement A\n- Requirement B');
+        expect(content).toContain('### Solution\n\nImplement the core flow and verify it with tests.');
+    });
+
     test('returns an error when the configured task folder is not writable as a directory', () => {
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),
