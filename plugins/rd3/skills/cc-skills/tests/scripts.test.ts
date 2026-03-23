@@ -193,6 +193,47 @@ description: A valid skill for testing
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
     });
+
+    it('should allow knowledge-only workflow skills without scripts warnings', async () => {
+        const skillPath = join(TEST_DIR, 'knowledge-workflow-skill');
+        mkdirSync(skillPath, { recursive: true });
+        writeFileSync(
+            join(skillPath, 'SKILL.md'),
+            `---
+name: knowledge-workflow-skill
+description: A knowledge-only workflow skill used to validate workflow-only guidance.
+metadata:
+  interactions:
+    - knowledge-only
+  openclaw:
+    emoji: "🛠️"
+---
+
+# Knowledge Workflow Skill
+
+## When to Use
+
+Use this skill when you need a documented workflow without executable scripts.
+
+## Workflows
+
+1. Capture the symptom.
+2. Trace the cause.
+3. Verify the fix.
+`,
+            'utf-8',
+        );
+
+        const { spawn } = await import('bun');
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'validate.ts'), skillPath], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const [exitCode, stdout] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
+        expect(exitCode).toBe(0);
+        expect(stdout).not.toContain('Skill has workflow but no scripts/ directory');
+    });
 });
 
 describe('Integration: evaluate command', () => {
