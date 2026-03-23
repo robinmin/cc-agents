@@ -1,0 +1,13 @@
+name: tdd-workflow
+description: "Test-driven development with strict red-green-refactor cycle. For
+  writing features, fixing bugs, and refactoring with tests first. Enforces: no
+  production code without a failing test first."
+version: 1.0.0
+icon: 🛠️
+category: engineering-core
+tags:
+  - tdd
+  - testing
+  - red-green-refactor
+  - engineering-core
+  - code
