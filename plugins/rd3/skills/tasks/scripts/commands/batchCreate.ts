@@ -8,27 +8,28 @@ import type { BatchCreateItem } from '../types';
 
 export function batchCreate(
     projectRoot: string,
-    jsonPath: string,
+    inputPath: string,
     cliFolder?: string,
     quiet = false,
+    mode: 'json' | 'agent-output' = 'json',
 ): Result<{ created: string[]; errors: string[] }> {
-    if (!existsSync(jsonPath)) {
-        return err(`JSON file not found: ${jsonPath}`);
+    if (!existsSync(inputPath)) {
+        return err(`${mode === 'json' ? 'JSON' : 'Agent output'} file not found: ${inputPath}`);
     }
 
     let raw: string;
     try {
-        raw = readFileSync(jsonPath, 'utf-8');
+        raw = readFileSync(inputPath, 'utf-8');
     } catch (e) {
-        return err(`Cannot read JSON file: ${e}`);
+        return err(`Cannot read ${mode === 'json' ? 'JSON' : 'agent output'} file: ${e}`);
     }
 
     let items: BatchCreateItem[];
     try {
-        const parsed = JSON.parse(raw);
+        const parsed = mode === 'agent-output' ? extractTasksFromAgentOutput(raw) : JSON.parse(raw);
         items = Array.isArray(parsed) ? parsed : parsed.tasks || [];
     } catch (e) {
-        return err(`Invalid JSON: ${e}`);
+        return err(mode === 'agent-output' ? `Invalid TASKS footer: ${e}` : `Invalid JSON: ${e}`);
     }
 
     if (items.length === 0) {
@@ -47,6 +48,11 @@ export function batchCreate(
         const result = createTask(projectRoot, item.name, cliFolder || item.folder, {
             ...(item.background ? { background: item.background } : {}),
             ...(item.requirements ? { requirements: item.requirements } : {}),
+            ...(item.solution ? { solution: item.solution } : {}),
+            ...(item.priority ? { priority: item.priority } : {}),
+            ...(item.estimated_hours !== undefined ? { estimatedHours: item.estimated_hours } : {}),
+            ...(item.dependencies ? { dependencies: item.dependencies } : {}),
+            ...(item.tags ? { tags: item.tags } : {}),
             quiet,
         });
 
@@ -68,4 +74,13 @@ export function batchCreate(
     }
 
     return ok({ created, errors });
+}
+
+function extractTasksFromAgentOutput(content: string): unknown {
+    const match = content.match(/<!--\s*TASKS:\s*([\s\S]*?)\s*-->/);
+    if (!match) {
+        throw new Error('No <!-- TASKS: [...] --> footer found');
+    }
+
+    return JSON.parse(match[1]);
 }
