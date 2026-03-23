@@ -363,11 +363,11 @@ function parseCliArgs(): {
 async function main() {
     const { path: skillPath, options } = parseCliArgs();
 
-    console.log(`[INFO] Refining skill at: ${skillPath}`);
-    console.log(`[INFO] Migrate: ${options.migrate}, BestPractices: ${options.bestPractices}`);
-    console.log(`[INFO] Platforms: ${options.platforms.join(', ')}`);
+    logger.info(`Refining skill at: ${skillPath}`);
+    logger.info(`Migrate: ${options.migrate}, BestPractices: ${options.bestPractices}`);
+    logger.info(`Platforms: ${options.platforms.join(', ')}`);
     if (options.dryRun) {
-        console.log('[INFO] Dry run mode - no changes will be made');
+        logger.info('Dry run mode - no changes will be made');
     }
 
     const result = await refineSkill(skillPath, options);
