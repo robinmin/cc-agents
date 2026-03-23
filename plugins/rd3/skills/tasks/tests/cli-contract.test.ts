@@ -51,6 +51,46 @@ describe('tasks CLI contracts', () => {
         expect(content).not.toContain('{ {');
     });
 
+    test('create preserves rich decomposition fields passed on the CLI', () => {
+        expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+
+        const result = runCli(tempDir, [
+            'create',
+            'Rich CLI Contract',
+            '--background',
+            'Why this work exists.',
+            '--requirements',
+            '- Requirement 1\n- Requirement 2',
+            '--solution',
+            'Implement the documented handoff path.',
+            '--priority',
+            'high',
+            '--estimated-hours',
+            '5',
+            '--dependencies',
+            '0001,0002',
+            '--tags',
+            'planning,workflow-core',
+            '--json',
+        ]);
+        expect(result.exitCode).toBe(0);
+
+        const payload = JSON.parse(result.stdout) as {
+            ok: boolean;
+            data: { wbs: string; path: string };
+        };
+        expect(payload.ok).toBe(true);
+
+        const content = readFileSync(payload.data.path, 'utf-8');
+        expect(content).toContain('description: Rich CLI Contract');
+        expect(content).toContain('priority: "high"');
+        expect(content).toContain('estimated_hours: 5');
+        expect(content).toContain('dependencies: ["0001","0002"]');
+        expect(content).toContain('tags: ["planning","workflow-core"]');
+        expect(content).toContain('### Background\n\nWhy this work exists.');
+        expect(content).toContain('### Solution\n\nImplement the documented handoff path.');
+    });
+
     test('update accepts lowercase statuses and emits JSON on dry run', () => {
         expect(runCli(tempDir, ['init']).exitCode).toBe(0);
         expect(runCli(tempDir, ['create', 'Status Parse']).exitCode).toBe(0);
@@ -119,6 +159,57 @@ describe('tasks CLI contracts', () => {
         const result = runCli(tempDir, ['batch-create', '--from-json', batchFile]);
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('<!-- TASKS:');
+    });
+
+    test('batch-create can extract task definitions from an agent TASKS footer', () => {
+        expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+
+        const agentOutput = join(tempDir, 'analysis.md');
+        writeFileSync(
+            agentOutput,
+            [
+                '# Analysis',
+                '',
+                'Some planning notes.',
+                '',
+                '<!-- TASKS:',
+                JSON.stringify(
+                    [
+                        {
+                            name: 'Agent Footer One',
+                            background: 'Created from agent output.',
+                            requirements: 'Must preserve structured footer fields.',
+                            solution: 'Parse the footer and create the task.',
+                            priority: 'medium',
+                            estimated_hours: 3,
+                            dependencies: ['0007'],
+                            tags: ['agent-output'],
+                        },
+                    ],
+                    null,
+                    2,
+                ),
+                '-->',
+            ].join('\n'),
+        );
+
+        const result = runCli(tempDir, ['batch-create', '--from-agent-output', agentOutput, '--json']);
+        expect(result.exitCode).toBe(0);
+
+        const payload = JSON.parse(result.stdout) as {
+            ok: boolean;
+            data: { created: string[]; errors: string[] };
+        };
+        expect(payload.ok).toBe(true);
+        expect(payload.data.created).toEqual(['0001']);
+        expect(payload.data.errors).toEqual([]);
+
+        const content = readFileSync(join(tempDir, 'docs/tasks/0001_Agent_Footer_One.md'), 'utf-8');
+        expect(content).toContain('priority: "medium"');
+        expect(content).toContain('estimated_hours: 3');
+        expect(content).toContain('dependencies: ["0007"]');
+        expect(content).toContain('tags: ["agent-output"]');
+        expect(content).toContain('### Solution\n\nParse the footer and create the task.');
     });
 
     test('list human output renders a grouped kanban-style board', () => {
