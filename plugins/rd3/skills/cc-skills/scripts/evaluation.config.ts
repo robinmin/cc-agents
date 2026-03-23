@@ -165,7 +165,9 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
                 reason: 'Obfuscated code execution',
             },
             {
-                pattern: /password|api[_-]?key|secret\s*=/i,
+                // Match literal credential assignments: password = "xxx", api_key: "xxx", secret = 'xxx'
+                // Does NOT match: "password reset", "email/password", "forgot my password"
+                pattern: /(?:password|api[_-]?key|secret)\s*[=:]\s*["'][^"']+["']/i,
                 severity: 'critical',
                 reason: 'Hardcoded credentials',
             },
