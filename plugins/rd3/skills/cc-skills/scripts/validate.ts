@@ -100,8 +100,10 @@ function validateBodyContent(skill: Skill, report: ValidationReport): void {
 function validateResources(skill: Skill, report: ValidationReport): void {
     const { resources } = skill;
     const hasWorkflow = skill.body.toLowerCase().includes('workflow');
+    const interactions = skill.frontmatter?.metadata?.interactions ?? [];
+    const isKnowledgeOnly = Array.isArray(interactions) && interactions.includes('knowledge-only');
 
-    if (hasWorkflow && !resources.scripts?.length) {
+    if (hasWorkflow && !isKnowledgeOnly && !resources.scripts?.length) {
         report.warnings.push('Skill has workflow but no scripts/ directory');
     }
 
