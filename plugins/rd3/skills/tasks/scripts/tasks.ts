@@ -17,6 +17,7 @@
  *   check [WBS]               Validate tasks
  *   config [set-active|add-folder]
  *   batch-create --from-json FILE
+ *   batch-create --from-agent-output FILE
  *   put <WBS> <file> [--name <name>]
  *   get <WBS> [--artifact-type <type>]
  *   tree <WBS>
@@ -57,6 +58,12 @@ Usage:
 Commands:
   init                          Initialize tasks metadata (idempotent)
   create <name>                 Create a new task
+  create <name> --background <text> --requirements <text>
+                                 Seed key task sections during creation
+  create <name> --solution <text> [--priority <level>] [--estimated-hours <N>]
+                                 Preserve decomposition metadata at creation time
+  create <name> --dependencies <a,b> [--tags <x,y>]
+                                 Attach structured planning metadata
   list [stage]                  List all tasks, optionally filtered by stage
   update <WBS> <stage>          Update task status (Backlog|Todo|WIP|Testing|Blocked|Done)
   update <WBS> --section <name> --from-file <path>
@@ -72,6 +79,8 @@ Commands:
   config add-folder <path> --base-counter <N> [--label <label>]
                                  Add a new task folder
   batch-create --from-json FILE Create multiple tasks from JSON array
+  batch-create --from-agent-output FILE
+                                 Extract tasks from an agent <!-- TASKS: [...] --> footer
   put <WBS> <file> [--name <display-name>]
                                  Store a file in docs/tasks/<wbs>/
   get <WBS> [--artifact-type <type>]
@@ -89,6 +98,7 @@ Global Flags:
 Examples:
   tasks init
   tasks create "Implement user auth"
+  tasks create "Implement user auth" --background "Why this exists" --requirements "What success looks like"
   tasks list
   tasks list --all
   tasks list wip
@@ -115,6 +125,17 @@ function normalizeStatusInput(input?: string) {
 
     const normalized = input.toLowerCase();
     return VALID_STATUSES.find((status) => status.toLowerCase() === normalized);
+}
+
+function parseListOption(value?: string): string[] | undefined {
+    if (!value) return undefined;
+
+    const items = value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    return items.length > 0 ? items : undefined;
 }
 
 async function main() {
@@ -181,16 +202,84 @@ async function main() {
         }
 
         case 'create': {
-            if (!rest[0]) {
-                if (json) {
-                    emitJsonError('Usage: tasks create <name>');
+            const createOptions: {
+                background?: string;
+                requirements?: string;
+                solution?: string;
+                priority?: string;
+                estimatedHours?: number;
+                dependencies?: string[];
+                tags?: string[];
+                quiet: boolean;
+            } = { quiet: json };
+            const nameParts: string[] = [];
+
+            for (let i = 0; i < cmdArgs.length; i++) {
+                const arg = cmdArgs[i];
+                if (arg === '--background' && i + 1 < cmdArgs.length) {
+                    createOptions.background = cmdArgs[++i];
+                } else if (arg === '--requirements' && i + 1 < cmdArgs.length) {
+                    createOptions.requirements = cmdArgs[++i];
+                } else if (arg === '--solution' && i + 1 < cmdArgs.length) {
+                    createOptions.solution = cmdArgs[++i];
+                } else if (arg === '--priority' && i + 1 < cmdArgs.length) {
+                    createOptions.priority = cmdArgs[++i];
+                } else if (arg === '--estimated-hours' && i + 1 < cmdArgs.length) {
+                    const parsed = Number(cmdArgs[++i]);
+                    if (!Number.isFinite(parsed)) {
+                        const error = `Invalid value for --estimated-hours: ${cmdArgs[i]}`;
+                        if (json) {
+                            emitJsonError(error);
+                        } else {
+                            logger.error(error);
+                        }
+                        exitCode = 1;
+                        break;
+                    }
+                    createOptions.estimatedHours = parsed;
+                } else if (arg === '--dependencies' && i + 1 < cmdArgs.length) {
+                    const dependencies = parseListOption(cmdArgs[++i]);
+                    if (dependencies) {
+                        createOptions.dependencies = dependencies;
+                    }
+                } else if (arg === '--tags' && i + 1 < cmdArgs.length) {
+                    const tags = parseListOption(cmdArgs[++i]);
+                    if (tags) {
+                        createOptions.tags = tags;
+                    }
+                } else if (arg.startsWith('--')) {
+                    const error = `Unknown create flag: ${arg}`;
+                    if (json) {
+                        emitJsonError(error);
+                    } else {
+                        logger.error(error);
+                    }
+                    exitCode = 1;
+                    break;
                 } else {
-                    logger.error('Usage: tasks create <name>');
+                    nameParts.push(arg);
+                }
+            }
+
+            if (exitCode !== 0) {
+                break;
+            }
+
+            const taskName = nameParts.join(' ').trim();
+            if (!taskName) {
+                if (json) {
+                    emitJsonError(
+                        'Usage: tasks create <name> [--background TEXT] [--requirements TEXT] [--solution TEXT]',
+                    );
+                } else {
+                    logger.error(
+                        'Usage: tasks create <name> [--background TEXT] [--requirements TEXT] [--solution TEXT]',
+                    );
                 }
                 exitCode = 1;
                 break;
             }
-            const result = createTask(projectRoot, rest[0], cliFolder, { quiet: json });
+            const result = createTask(projectRoot, taskName, cliFolder, createOptions);
             if (isErr(result)) {
                 if (json) {
                     emitJsonError(result.error);
@@ -505,21 +594,41 @@ async function main() {
 
         case 'batch-create': {
             let jsonPath: string | undefined;
+            let agentOutputPath: string | undefined;
             for (let i = 0; i < cmdArgs.length; i++) {
                 if (cmdArgs[i] === '--from-json' && i + 1 < cmdArgs.length) {
                     jsonPath = cmdArgs[++i];
+                } else if (cmdArgs[i] === '--from-agent-output' && i + 1 < cmdArgs.length) {
+                    agentOutputPath = cmdArgs[++i];
                 }
             }
-            if (!jsonPath) {
+            if (!!jsonPath === !!agentOutputPath) {
                 if (json) {
-                    emitJsonError('Usage: tasks batch-create --from-json FILE');
+                    emitJsonError('Usage: tasks batch-create --from-json FILE | --from-agent-output FILE');
                 } else {
-                    logger.error('Usage: tasks batch-create --from-json FILE');
+                    logger.error('Usage: tasks batch-create --from-json FILE | --from-agent-output FILE');
                 }
                 exitCode = 1;
                 break;
             }
-            const result = batchCreate(projectRoot, jsonPath, cliFolder, json);
+            const inputPath = jsonPath ?? agentOutputPath;
+            if (!inputPath) {
+                if (json) {
+                    emitJsonError('Usage: tasks batch-create --from-json FILE | --from-agent-output FILE');
+                } else {
+                    logger.error('Usage: tasks batch-create --from-json FILE | --from-agent-output FILE');
+                }
+                exitCode = 1;
+                break;
+            }
+
+            const result = batchCreate(
+                projectRoot,
+                inputPath,
+                cliFolder,
+                json,
+                jsonPath ? 'json' : 'agent-output',
+            );
             if (isErr(result)) {
                 if (json) {
                     emitJsonError(result.error);
