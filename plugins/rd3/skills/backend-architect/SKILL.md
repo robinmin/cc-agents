@@ -1,12 +1,12 @@
 ---
 name: backend-architect
-description: "Backend architecture patterns and systems design: API design (REST/GraphQL/gRPC), database architecture (PostgreSQL/MongoDB/Redis), microservices, event-driven architecture, CQRS, saga patterns, caching strategies, scalability, security, and observability. Trigger when: designing APIs, database schemas, microservices, event-driven systems, or planning backend scalability."
+description: "Backend architecture patterns and systems design: API design (REST/GraphQL/gRPC), database architecture (PostgreSQL/MongoDB/Redis), microservices, event-driven architecture, CQRS, saga patterns, caching strategies, scalability, security, observability, and cloud-native architecture (serverless, Kubernetes, FinOps, DR/HA, IaC). Trigger when: designing APIs, database schemas, microservices, event-driven systems, planning backend scalability, or making cloud infrastructure decisions."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.1
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 type: technique
-tags: [backend, architecture, api-design, database, microservices, event-driven, scalability, security, architecture-design]
+tags: [backend, architecture, api-design, database, microservices, event-driven, scalability, security, architecture-design, cloud-native, serverless, kubernetes, finops, iac, disaster-recovery]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,antigravity,opencode,openclaw"
@@ -54,7 +54,7 @@ This skill is not the right fit when:
 - Debugging existing backend code (use `rd3:sys-debugging` instead)
 - Writing backend implementation code (use `rd3:sys-developing` instead)
 - Frontend architecture decisions (use `rd3:frontend-architect` instead)
-- Infrastructure planning requiring cloud-specific guidance
+- Pure implementation work such as writing Terraform, deployment scripts, or operational runbooks when the architecture decision is already settled
 
 ## Workflow
 
@@ -64,9 +64,31 @@ This skill is not the right fit when:
    - `references/database-patterns.md`
    - `references/microservices-patterns.md`
    - `references/caching-patterns.md`
+   - `references/cloud-native-patterns.md`
 3. Compare at least two viable options and document the tradeoff in terms of correctness, operability, latency, cost, and team complexity.
 4. Verify any framework-, vendor-, or version-specific claim before recommending it.
 5. End with an explicit recommendation, key risks, and an ADR-style rationale when the decision is material.
+
+## Example
+
+Use a small decision note before going deep into a reference:
+
+```markdown
+Decision: Choose the runtime model for webhook ingestion.
+
+Options considered:
+- Serverless functions behind an API gateway
+- Containerized service on managed Kubernetes
+
+Recommendation:
+- Start with serverless if traffic is bursty and handlers are short-lived.
+- Prefer Kubernetes when workloads need long-running processing, custom networking, or tighter runtime control.
+
+Key checks before finalizing:
+- Current provider timeout, concurrency, and pricing limits
+- Team operational maturity for Kubernetes
+- DR and observability requirements
+```
 
 ## Core Principles
 
@@ -117,458 +139,68 @@ This skill is not the right fit when:
 
 ## API Design
 
-### API Gateway Architecture
+API design covers contract-first design, REST/GraphQL/gRPC patterns, versioning strategies, and API Gateway architecture.
 
-**API Gateway Responsibilities:**
-- **Authentication/Authorization**: Centralized OAuth2/JWT validation
-- **Rate Limiting**: Token bucket per user/API key
-- **Request Routing**: Path-based, header-based, or weighted routing
-- **Request/Response Transformation**: Protocol translation (REST → gRPC)
-- **Service Composition**: Aggregating multiple service responses
-- **Caching**: Edge caching for GET requests
-
-**API Gateway Options:**
-- **Kong**: Open-source, plugin-rich
-- **AWS API Gateway**: AWS-integrated, serverless-friendly
-- **Envoy**: Cloud-native, high-performance
-- **NGINX**: Lightweight, battle-tested
-
-### REST API Best Practices
-
-**Resource Naming**:
-```
-GET    /api/v1/users          # List users
-GET    /api/v1/users/{id}     # Get specific user
-POST   /api/v1/users           # Create user
-PUT    /api/v1/users/{id}      # Replace user
-PATCH  /api/v1/users/{id}      # Update user
-DELETE /api/v1/users/{id}      # Delete user
-```
-
-**HTTP Status Codes**:
-- 2xx: Success (200 OK, 201 Created, 204 No Content)
-- 3xx: Redirection (301 Moved Permanently, 304 Not Modified)
-- 4xx: Client Error (400 Bad Request, 401 Unauthorized, 404 Not Found, 429 Too Many Requests)
-- 5xx: Server Error (500 Internal Server Error, 502 Bad Gateway, 503 Service Unavailable)
-
-**API Versioning**:
-```
-# URL versioning (recommended for public APIs)
-/api/v1/users
-/api/v2/users
-
-# Header versioning (recommended for private APIs)
-Accept: application/vnd.api+json; version=1
-
-# Deprecation header (RFC 8594)
-Sunset: Fri, 01 Jan 2027 00:00:00 GMT
-Deprecation: true
-```
-
-### GraphQL Best Practices
-
-**Schema Design**:
-```graphql
-type User {
-  id: ID!
-  email: String!
-  profile: Profile
-  posts(first: Int, after: String): PostConnection!
-}
-
-type PostConnection {
-  edges: [PostEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-type PostEdge {
-  node: Post!
-  cursor: String!
-}
-```
-
-**N+1 Prevention**:
-- Use DataLoader for batch loading
-- Use `@include` and `@skip` directives selectively
-- Enable query complexity analysis
-- Set maximum query depth
-
-### gRPC Best Practices
-
-**Service Definition**:
-```protobuf
-service UserService {
-  rpc GetUser(GetUserRequest) returns (User);
-  rpc CreateUser(CreateUserRequest) returns (User);
-  rpc ListUsers(ListUsersRequest) returns (stream User);
-}
-
-message GetUserRequest {
-  string user_id = 1;
-  google.protobuf.FieldMask field_mask = 2;  # Partial response
-}
-```
+See [API Design Reference](references/api-design.md) for detailed guidance on REST resource naming, HTTP status codes, versioning strategies, GraphQL schema design, N+1 prevention, gRPC service definitions, and API Gateway responsibilities.
 
 ## Database Architecture
 
-### PostgreSQL Best Practices
+Database architecture covers PostgreSQL indexing and partitioning, MongoDB and Redis technology selection, connection pooling, and data modeling trade-offs.
 
-**Indexing Strategy**:
-```sql
--- B-tree index (default, most common)
-CREATE INDEX idx_users_email ON users(email);
+See [Database Patterns Reference](references/database-patterns.md) for detailed PostgreSQL indexing examples (B-tree, GIN, composite, partial), range partitioning, PgBouncer configuration, MongoDB schema design, and technology selection criteria.
 
--- Composite index for multi-column queries
-CREATE INDEX idx_orders_user_created ON orders(user_id, created_at DESC);
+## Caching Strategies
 
--- Partial index for specific conditions
-CREATE INDEX idx_active_users ON users(email) WHERE active = true;
+Caching strategies determine how data is stored and retrieved to reduce database load.
 
--- GIN index for JSONB
-CREATE INDEX idx_users_metadata ON users USING GIN (metadata jsonb_path_ops);
-
--- Expression index for computed values
-CREATE INDEX idx_users_lower_email ON users(LOWER(email));
-```
-
-**Partitioning**:
-```sql
--- Range partitioning by date
-CREATE TABLE events (
-    id SERIAL,
-    created_at TIMESTAMPTZ NOT NULL,
-    data JSONB
-) PARTITION BY RANGE (created_at);
-
--- Create partitions
-CREATE TABLE events_2024_q1 PARTITION OF events
-    FOR VALUES FROM ('2024-01-01') TO ('2024-04-01');
-```
-
-**Connection Pooling (PgBouncer)**:
-```yaml
-pool_mode: transaction
-max_client_conn: 10000
-default_pool_size: 25
-min_pool_size: 5
-reserve_pool_size: 5
-reserve_pool_timeout: 3s
-```
-
-### Technology Selection
-
-```
-Choose PostgreSQL when:
-- ACID transactions required
-- Complex relationships (foreign keys)
-- JSONB flexibility needed
-- Full-text search required
-- Geospatial queries (PostGIS)
-
-Choose MongoDB when:
-- Flexible schema evolution
-- Document-heavy workloads
-- Horizontal scaling built-in
-- Unstructured/semi-structured data
-
-Choose Redis when:
-- Sub-millisecond latency required
-- In-memory data structures
-- Pub/Sub messaging
-- Session storage
-```
-
-### Caching Strategies
-
-**Cache-Aside (Lazy Loading)**:
-```
-1. Application checks cache
-2. If cache miss: fetch from database
-3. Write to cache with TTL
-4. Return data
-```
-
-**Write-Through**:
-```
-1. Application writes to cache
-2. Cache synchronously writes to database
-3. Return success
-```
-
-**TTL Strategy**:
-```
-Hot data (frequently accessed): 5-15 minutes
-Warm data (moderately accessed): 1-5 minutes
-Cold data (rarely accessed): 30-60 seconds
-Never cache: User sessions, financial data, security tokens
-```
+See [Caching Patterns Reference](references/caching-patterns.md) for detailed guidance on Cache-Aside, Write-Through, Write-Behind patterns, TTL strategies, distributed caching, and invalidation approaches.
 
 ## Distributed Systems
 
-### Microservices Architecture
+Distributed systems architecture covers microservices decomposition, event-driven patterns, saga coordination, and resilience mechanisms.
 
-**Core Principles:**
-```
-1. Single Responsibility: One service per business capability
-2. Bounded Context: Align with DDD domains
-3. Decentralized Data: Each service owns its database
-4. Fault Isolation: Failure in one service doesn't cascade
-5. Independent Deployment: Deploy without affecting other services
-```
+See [Microservices Patterns Reference](references/microservices-patterns.md) for detailed guidance on service decomposition strategies, Event Sourcing patterns and schema evolution, CQRS read/write model separation, saga orchestrator implementation, and circuit breaker configuration.
 
-**When to Use Microservices:**
-```
-Use when:
-- Multiple teams developing independently
-- Different scaling requirements per service
-- Different technology stacks needed
-- Complex business domains (DDD bounded contexts)
-- Need for independent deployment
+### Circuit Breaker Summary
 
-Avoid when:
-- Small team (<5 developers)
-- Simple application
-- Startup/MVP phase
-- Low traffic (<10K requests/sec)
-```
-
-### Event Sourcing
-
-```
-Event {
-  event_id: UUID
-  aggregate_id: UUID
-  event_type: String
-  event_data: JSON
-  version: Int
-  timestamp: Timestamp
-}
-
-# Benefits
-- Complete audit trail
-- Temporal queries (state at any point in time)
-- Event replay for bug fixing
-- Scalable event processing
-
-# Considerations
-- Event schema evolution
-- Duplicate event handling
-- Snapshot aggregation (for performance)
-```
-
-### CQRS (Command Query Responsibility Segregation)
-
-```
-# Write Model (Command)
-- Optimized for writes
-- Eventual consistency
-- Validation and business logic
-- Emits events
-
-# Read Model (Query)
-- Optimized for reads
-- Denormalized data
-- Materialized views
-- Updated via events
-```
-
-### Saga Pattern
-
-**Orchestrator Saga** (centralized coordination):
-```typescript
-async function orderSaga(orderId: string) {
-  // Step 1: Create order
-  const order = await createOrder(orderId);
-
-  // Step 2: Reserve inventory
-  const inventory = await reserveInventory(order.items);
-
-  // Step 3: Process payment
-  const payment = await processPayment(order.total);
-
-  // Step 4: Confirm order
-  await confirmOrder(orderId);
-
-  // Compensating transactions on failure
-  saga.execute(compensation);
-}
-```
-
-### Circuit Breaker
-
-```
-States:
-- CLOSED: Normal operation, requests pass through
-- OPEN: Circuit tripped, requests fail immediately
-- HALF-OPEN: Test if service recovered
-
-Configuration:
-- Failure threshold: 5 failures
-- Timeout: 30 seconds
-- Half-open attempts: 3 test requests
-- Reset timeout: 60 seconds
-```
+Circuit breaker states: **CLOSED** (normal) → **OPEN** (fail-fast) → **HALF-OPEN** (probe recovery). Configure failure threshold, timeout, and reset timeout based on service SLAs.
 
 ## Scalability Patterns
 
-### Horizontal Scaling
+Scalability patterns cover horizontal scaling strategies, load balancing algorithms, and health check design for stateless services.
 
-```
-Stateless services:
-- Remove session state from application
-- Use external session store (Redis, database)
-- Load balance across instances
-- Auto-scaling based on metrics
-
-Health checks:
-GET /health          # Returns 200 OK
-GET /health/ready    # Check dependencies
-GET /health/live    # Check if service should restart
-```
-
-### Load Balancing Algorithms
-
-```
-Round Robin: Simple, works for similar capacity
-Least Connections: Accounts for current load
-IP Hash: Session affinity
-Consistent Hashing: Minimizes reconfiguration
-Weighted: Different server capacities
-```
+See [Microservices Patterns Reference](references/microservices-patterns.md) for detailed horizontal scaling patterns, load balancing algorithm trade-offs, and auto-scaling configuration.
 
 ## Security Architecture
 
-### OAuth2 Flows
+Security architecture covers authentication flows, token-based auth, secrets management, and defense-in-depth strategies.
 
-**Authorization Code Flow** (for web apps):
-```
-1. Redirect user to: /authorize?response_type=code&client_id=...&redirect_uri=...&scope=...
-2. User approves, receives code
-3. Exchange code for token: POST /oauth/token (server-to-server)
-4. Use access token to access API
-```
-
-**JWT Best Practices**:
-```
-# Structure
-{
-  "sub": "user_id",           # Subject
-  "iss": "issuer",            # Issuer
-  "aud": "audience",          # Audience
-  "exp": 1234567890,          # Expiration
-  "iat": 1234567890,          # Issued at
-  "jti": "token_id",          # JWT ID
-  "scope": "read write"       # Permissions
-}
-
-# Best practices
-- Short-lived access tokens (5-15 minutes)
-- Long-lived refresh tokens (30 days)
-- Signed with RS256 (asymmetric keys)
-- Validate all claims
-- Include jti for revocation
-- Store in httpOnly cookies (not localStorage)
-```
+See [API Design Reference](references/api-design.md) for detailed OAuth2 authorization code flow, JWT structure and best practices (RS256, short-lived tokens, httpOnly cookies), and API security patterns.
 
 ## Observability
 
-### Three Pillars
+Observability covers metrics (RED method), structured logging with trace context, distributed tracing (OpenTelemetry), and SLO/SLI error budget calculations.
 
-**Metrics** (RED method):
-- Rate: Requests per second
-- Errors: Error rate (4xx, 5xx)
-- Duration: Response time (p50, p95, p99)
-
-**Logs**:
-```json
-{
-  "timestamp": "2024-01-15T10:30:00Z",
-  "level": "INFO",
-  "service": "api",
-  "trace_id": "abc123",
-  "span_id": "def456",
-  "message": "User logged in",
-  "user_id": "123",
-  "duration_ms": 45
-}
-```
-
-**Traces** (OpenTelemetry):
-```
-Span:
-- Trace ID: Correlates all spans in a request
-- Span ID: Identifies specific span
-- Parent Span ID: Identifies parent span
-- Start/End time: Duration
-- Attributes: Key-value metadata
-- Events: Timed events within span
-```
-
-### SLO/SLI
-
-```
-Example SLO:
-- 99.9% of requests succeed in <300ms (monthly)
-- 99.95% availability (monthly)
-
-Error Budget = 1 - SLO
-- 99.9% SLO = 0.1% error budget
-```
+See [Microservices Patterns Reference](references/microservices-patterns.md) for detailed observability patterns including three-pillar implementation (metrics, logs, traces), SLO/SLI design, and error budget calculations.
 
 ## Cloud-Native Patterns
 
 ### 12-Factor App
 
-```
-1. Codebase: One repo per app
-2. Dependencies: Declare and isolate
-3. Config: Store in environment variables
-4. Backing services: Treat as attached resources
-5. Build, release, run: Separate stages
-6. Processes: Stateless, share-nothing
-7. Port binding: Export services via port binding
-8. Concurrency: Scale out via process model
-9. Disposability: Fast startup, graceful shutdown
-10. Dev/prod parity: Keep environments similar
-11. Logs: Treat as event streams
-12. Admin processes: One-off admin tasks
-```
+Cloud-native applications follow 12 key principles: single codebase, explicit dependencies, config via environment variables, backing services as attached resources, strict build/release/run separation, stateless processes, port binding via self-contained services, concurrency via scaling, fast startup/shutdown, dev/prod parity, treating logs as event streams, and one-off admin processes for maintenance tasks.
+
+Cloud-specific architecture decisions remain in scope here when they affect backend system design, especially provider selection, serverless vs Kubernetes, resilience, cost controls, and IaC boundaries. Verify current provider limits, pricing, and regional capabilities before making a final recommendation.
+
+See [Cloud-Native Patterns Reference](references/cloud-native-patterns.md) for detailed serverless, Kubernetes, multi-cloud, FinOps, DR, and IaC guidance.
 
 ## Architecture Decision Records (ADRs)
 
-```markdown
-# ADR-001: Use PostgreSQL for User Data
+Document significant architectural decisions with: **Context** (why the decision is needed), **Decision** (what was chosen), **Consequences** (positive/negative), and **Alternatives Considered** (why alternatives were rejected). See reference files for pattern ADRs covering API design, database selection, and cloud-native decisions.
 
-## Context
-Need persistent storage for user accounts with ACID transactions and complex relationships.
+## Platform Notes
 
-## Decision
-Use PostgreSQL as the primary database for user data.
-
-## Consequences
-
-### Positive
-- ACID guarantees for data consistency
-- Foreign keys for referential integrity
-- Mature ecosystem and tooling
-- Team expertise available
-
-### Negative
-- Vertical scaling limitations
-- Connection pooling complexity
-- Sharding challenges at extreme scale
-
-### Alternatives Considered
-- **MongoDB**: Rejected due to ACID requirements
-- **DynamoDB**: Rejected due to cost and complexity
-
-## Status
-Accepted
-
-## Date
-2025-01-24
-```
+- **Claude Code**: Use `/rd3:skill-refine` to self-improve this skill after architectural changes. Reference files use `see_also` frontmatter for cross-navigation.
+- **All platforms**: Skill is `knowledge-only` — it provides guidance but does not generate code or create files directly. Delegates to `rd3:sys-developing` for implementation.
 
 ## Quick Reference
 
@@ -616,3 +248,4 @@ Accepted
 - [Database Patterns Reference](references/database-patterns.md) for PostgreSQL, MongoDB, Redis, partitioning, indexing, and technology selection.
 - [Microservices Patterns Reference](references/microservices-patterns.md) for service decomposition, event sourcing, CQRS, saga patterns, and service communication.
 - [Caching Patterns Reference](references/caching-patterns.md) for cache-aside, write-through, write-behind, refresh-ahead, TTL, and invalidation strategies.
+- [Cloud-Native Patterns Reference](references/cloud-native-patterns.md) for serverless, Kubernetes, multi-cloud, edge computing, FinOps, DR/HA, and IaC patterns.
