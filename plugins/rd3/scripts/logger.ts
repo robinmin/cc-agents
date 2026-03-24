@@ -37,6 +37,11 @@ export const COLORS = {
 /** Global silent flag - when set to true, all logger output is suppressed */
 let globalSilent = false;
 
+function isQuietModeEnabled(): boolean {
+    const value = process.env.RD3_LOG_QUIET;
+    return value === '1' || value === 'true';
+}
+
 /**
  * Set global silent mode for all logger instances.
  * Useful during testing to suppress all output.
@@ -75,32 +80,32 @@ export class Logger {
     }
 
     debug(message: string, ...args: unknown[]): void {
-        if (!globalSilent && this.level <= LOG_LEVELS.debug) {
+        if (!globalSilent && !isQuietModeEnabled() && this.level <= LOG_LEVELS.debug) {
             console.debug(this.format('DEBUG', message, COLORS.cyan), ...args);
         }
     }
 
     info(message: string, ...args: unknown[]): void {
-        if (!globalSilent && this.level <= LOG_LEVELS.info) {
+        if (!globalSilent && !isQuietModeEnabled() && this.level <= LOG_LEVELS.info) {
             console.info(this.format('INFO', message, COLORS.green), ...args);
         }
     }
 
     warn(message: string, ...args: unknown[]): void {
-        if (!globalSilent && this.level <= LOG_LEVELS.warn) {
+        if (!globalSilent && !isQuietModeEnabled() && this.level <= LOG_LEVELS.warn) {
             console.warn(this.format('WARN', message, COLORS.yellow), ...args);
         }
     }
 
     error(message: string, ...args: unknown[]): void {
-        if (!globalSilent && this.level <= LOG_LEVELS.error) {
+        if (!globalSilent && !isQuietModeEnabled() && this.level <= LOG_LEVELS.error) {
             console.error(this.format('ERROR', message, COLORS.red), ...args);
         }
     }
 
     /** Log a success message with checkmark */
     success(message: string): void {
-        if (!globalSilent && this.level <= LOG_LEVELS.info) {
+        if (!globalSilent && !isQuietModeEnabled() && this.level <= LOG_LEVELS.info) {
             const check = this.color ? `${COLORS.green}[OK]${COLORS.reset}` : '[OK]';
             console.log(`${check} ${message}`);
         }
@@ -108,7 +113,7 @@ export class Logger {
 
     /** Log an error with X mark */
     fail(message: string): void {
-        if (!globalSilent && this.level <= LOG_LEVELS.error) {
+        if (!globalSilent && !isQuietModeEnabled() && this.level <= LOG_LEVELS.error) {
             const x = this.color ? `${COLORS.red}[X]${COLORS.reset}` : '[X]';
             console.error(`${x} ${message}`);
         }
