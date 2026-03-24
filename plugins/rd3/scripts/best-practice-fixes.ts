@@ -113,47 +113,50 @@ interface ExtractionCandidate {
 /**
  * Standard extraction candidates for rd3 skills.
  * These patterns identify sections that are conventionally reference-level.
+ *
+ * The endPattern matches a newline followed by ## H2 heading (not ### subsection).
+ * Using newline-prefixed pattern avoids subsection matching issues.
  */
 const STANDARD_EXTRACTION_CANDIDATES: ExtractionCandidate[] = [
     {
         sectionTitle: 'Quick Reference',
         startMatch: /^## Quick Reference$/m,
-        endPattern: /^## [^#\n].*/m,
+        endPattern: /\n## [^*].*/m,
         referenceFile: 'quick-reference.md',
         summary: 'Quick reference tables for common decisions',
     },
     {
         sectionTitle: 'Additional Resources',
         startMatch: /^## Additional Resources$/m,
-        endPattern: /^## [^#\n].*/m,
+        endPattern: /\n## [^*].*/m,
         referenceFile: 'external-resources.md',
         summary: 'External links and further reading',
     },
     {
         sectionTitle: 'Extended Examples',
         startMatch: /^## Extended Examples$/m,
-        endPattern: /^## [^#\n].*/m,
+        endPattern: /\n## [^*].*/m,
         referenceFile: 'examples.md',
         summary: 'Detailed code examples and patterns',
     },
     {
         sectionTitle: 'Detailed Patterns',
         startMatch: /^## Detailed Patterns$/m,
-        endPattern: /^## [^#\n].*/m,
+        endPattern: /\n## [^*].*/m,
         referenceFile: 'detailed-patterns.md',
         summary: 'In-depth pattern descriptions',
     },
     {
         sectionTitle: 'Technology Selection',
         startMatch: /^## Technology Selection$/m,
-        endPattern: /^## [^#\n].*/m,
+        endPattern: /\n## [^*].*/m,
         referenceFile: 'technology-selection.md',
         summary: 'Technology comparison tables and recommendations',
     },
     {
         sectionTitle: 'Architecture Decision Records',
         startMatch: /^## Architecture Decision Records \(ADRs\)$/m,
-        endPattern: /^## [^#\n].*/m,
+        endPattern: /\n## [^*].*/m,
         referenceFile: 'adr-examples.md',
         summary: 'ADR templates and examples',
         minLines: 20,
@@ -161,14 +164,14 @@ const STANDARD_EXTRACTION_CANDIDATES: ExtractionCandidate[] = [
     {
         sectionTitle: 'Monitoring Stack',
         startMatch: /^## Monitoring Stack$/m,
-        endPattern: /^## [^#\n].*/m,
+        endPattern: /\n## [^*].*/m,
         referenceFile: 'monitoring-stack.md',
         summary: 'Observability stack recommendations',
     },
     {
         sectionTitle: 'Breakdown Checklist',
         startMatch: /^## Breakdown Checklist$/m,
-        endPattern: /^## [^#\n].*/m,
+        endPattern: /\n## [^*].*/m,
         referenceFile: 'checklists.md',
         summary: 'Task decomposition checklists',
         minLines: 10,
@@ -211,6 +214,81 @@ function extractSection(
     return { extracted: sectionContent, remaining };
 }
 
+/**
+ * Fallback generic extraction: When standard patterns don't match but content >= 500 lines,
+ * extract the largest sections generically by finding all H2 sections and extracting
+ * the largest ones until content is < 500 lines.
+ */
+function extractLargeSectionsGeneric(
+    _skillDir: string,
+    content: string,
+    _skillName: string,
+): { sections: ExtractedSection[]; remaining: string; actions: string[] } {
+    const sections: ExtractedSection[] = [];
+    const actions: string[] = [];
+    let remaining = content;
+
+    // Parse all H2 sections from the remaining content
+    const h2Pattern = /^##\s+(.+)$/gm;
+    const matches = [...remaining.matchAll(h2Pattern)];
+
+    if (matches.length === 0) {
+        return { sections, remaining, actions };
+    }
+
+    // Build list of sections with their start/end positions and line counts
+    type SectionInfo = { title: string; start: number; end: number; lines: number };
+    const sectionInfos: SectionInfo[] = [];
+
+    for (let i = 0; i < matches.length; i++) {
+        const match = matches[i];
+        const title = match[1].trim();
+        const start = match.index ?? 0;
+
+        // Find end: either next H2 or end of content
+        const nextMatch = i + 1 < matches.length ? matches[i + 1] : null;
+        const end = nextMatch ? (nextMatch.index ?? 0) : remaining.length;
+
+        // Skip sections that are too small (less than 30 lines)
+        const sectionContent = remaining.slice(start, end).trim();
+        const lines = sectionContent.split('\n').length;
+        if (lines >= 30) {
+            sectionInfos.push({ title, start, end, lines });
+        }
+    }
+
+    // Sort by line count descending (largest first)
+    sectionInfos.sort((a, b) => b.lines - a.lines);
+
+    // Extract sections until content is < 500 lines
+    const TARGET_LINES = 450; // Leave some margin
+    for (const info of sectionInfos) {
+        const currentLines = remaining.split('\n').length;
+        if (currentLines < TARGET_LINES) {
+            break;
+        }
+
+        const sectionContent = remaining.slice(info.start, info.end).trim();
+        const slugifiedTitle = info.title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+        const referenceFile = `${slugifiedTitle}.md`;
+
+        sections.push({
+            title: info.title,
+            content: sectionContent,
+            referenceFile,
+            summary: `Extracted section: ${info.title}`,
+        });
+
+        remaining = `${remaining.slice(0, info.start).trimEnd()}\n${remaining.slice(info.end)}`;
+        actions.push(`Extracted ## ${info.title} (${info.lines} lines) → references/${referenceFile}`);
+    }
+
+    return { sections, remaining, actions };
+}
+
 // ============================================================================
 // Implementation
 // ============================================================================
@@ -235,10 +313,15 @@ function extractSection(
  *
  * Returns actions describing what was extracted.
  */
-export function extractToReferences(skillDir: string, content: string): BestPracticeFixResult {
+export function extractToReferences(
+    skillDir: string,
+    content: string,
+    options: { writeFiles?: boolean } = {},
+): BestPracticeFixResult {
     const actions: string[] = [];
     let fixed = content;
     const extractedSections: ExtractedSection[] = [];
+    const writeFiles = options.writeFiles ?? true;
 
     // Count lines (accounting for frontmatter)
     const lines = content.split('\n').length;
@@ -286,8 +369,24 @@ export function extractToReferences(skillDir: string, content: string): BestPrac
         }
     }
 
+    // Fallback: If no standard sections matched AND content is still >= 500 lines,
+    // extract the largest sections generically
+    if (extractedSections.length === 0 && fixed.split('\n').length >= 500) {
+        const genericResult = extractLargeSectionsGeneric(skillDir, fixed, skillName);
+        if (genericResult.sections.length > 0) {
+            extractedSections.push(...genericResult.sections);
+            fixed = genericResult.remaining;
+            actions.push(...genericResult.actions);
+        }
+    }
+
     // Write extracted sections to reference files
     for (const section of extractedSections) {
+        if (!writeFiles) {
+            actions.push(`Would create ${join(skillDir, 'references', section.referenceFile)}`);
+            continue;
+        }
+
         try {
             const refPath = createReferenceFile(skillDir, skillName, section);
             actions.push(`Created ${refPath}`);
