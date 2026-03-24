@@ -3,7 +3,16 @@
  */
 
 import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
-import { type LogLevel, Logger, type LoggerOptions, createLogger, logger, setGlobalSilent } from '../scripts/logger';
+import {
+    COLORS,
+    type LogLevel,
+    Logger,
+    type LoggerOptions,
+    createLogger,
+    isGlobalSilent,
+    logger,
+    setGlobalSilent,
+} from '../scripts/logger';
 
 // Suppress console output during tests
 const originalConsole = {
@@ -14,9 +23,12 @@ const originalConsole = {
     log: console.log,
 };
 
+const originalQuietMode = process.env.RD3_LOG_QUIET;
+
 beforeEach(() => {
     // Also enable global silent mode to suppress all logger output
     setGlobalSilent(true);
+    process.env.RD3_LOG_QUIET = undefined;
     console.debug = () => {};
     console.info = () => {};
     console.warn = () => {};
@@ -31,6 +43,11 @@ afterEach(() => {
     console.warn = originalConsole.warn;
     console.error = originalConsole.error;
     console.log = originalConsole.log;
+    if (originalQuietMode === undefined) {
+        process.env.RD3_LOG_QUIET = undefined;
+    } else {
+        process.env.RD3_LOG_QUIET = originalQuietMode;
+    }
 });
 
 describe('Logger', () => {
@@ -123,6 +140,80 @@ describe('Logger', () => {
     it('should log with additional arguments', () => {
         const log = new Logger({ level: 'debug' });
         expect(() => log.debug('message', { key: 'value' }, 123)).not.toThrow();
+    });
+
+    it('should report global silent state changes', () => {
+        expect(isGlobalSilent()).toBe(true);
+        setGlobalSilent(false);
+        expect(isGlobalSilent()).toBe(false);
+        setGlobalSilent(true);
+        expect(isGlobalSilent()).toBe(true);
+    });
+
+    it('should format colored output when logging is enabled', () => {
+        setGlobalSilent(false);
+        const calls: unknown[][] = [];
+        console.info = (...args: unknown[]) => {
+            calls.push(args);
+        };
+
+        const log = new Logger({ level: 'info', prefix: 'TEST' });
+        log.info('formatted message');
+
+        expect(calls.length).toBe(1);
+        const [formatted] = calls[0];
+        expect(typeof formatted).toBe('string');
+        expect(formatted as string).toContain(COLORS.dim);
+        expect(formatted as string).toContain(COLORS.green);
+        expect(formatted as string).toContain('[TEST] formatted message');
+    });
+
+    it('should format non-colored output when color is disabled', () => {
+        setGlobalSilent(false);
+        const calls: unknown[][] = [];
+        console.info = (...args: unknown[]) => {
+            calls.push(args);
+        };
+
+        const log = new Logger({ level: 'info', color: false, prefix: 'PLAIN' });
+        log.info('plain message');
+
+        expect(calls.length).toBe(1);
+        const [formatted] = calls[0];
+        expect(typeof formatted).toBe('string');
+        expect(formatted as string).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+        expect(formatted as string).toContain('INFO ');
+        expect(formatted as string).toContain('[PLAIN] plain message');
+        expect(formatted as string).not.toContain(COLORS.dim);
+        expect(formatted as string).not.toContain(COLORS.green);
+    });
+
+    it('should suppress level-based logs when quiet mode env is enabled', () => {
+        setGlobalSilent(false);
+        process.env.RD3_LOG_QUIET = '1';
+        let called = false;
+        console.warn = () => {
+            called = true;
+        };
+
+        const log = new Logger({ level: 'warn' });
+        log.warn('suppressed');
+
+        expect(called).toBe(false);
+    });
+
+    it('should still allow logger.log in quiet mode when not globally silent', () => {
+        setGlobalSilent(false);
+        process.env.RD3_LOG_QUIET = 'true';
+        const calls: unknown[][] = [];
+        console.log = (...args: unknown[]) => {
+            calls.push(args);
+        };
+
+        const log = new Logger();
+        log.log('plain cli output', 123);
+
+        expect(calls).toEqual([['plain cli output', 123]]);
     });
 });
 
