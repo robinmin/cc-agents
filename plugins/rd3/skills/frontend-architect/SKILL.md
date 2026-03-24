@@ -12,6 +12,7 @@ metadata:
   platforms: "claude-code,codex,antigravity,opencode,openclaw"
   category: architecture-design
   interactions:
+    - inversion
     - knowledge-only
   openclaw:
     emoji: "🛠️"
@@ -772,29 +773,6 @@ function useProducts() {
 - Architecture decision group
 - Governance board
 - Standards committee
-
-## Technology Selection
-
-### Framework Selection Matrix
-
-| Framework | Best For | Team Size | Complexity | Ecosystem | 2025 Recommendation |
-|-----------|----------|-----------|------------|-----------|---------------------|
-| **Next.js** | Full-stack, SEO, SaaS | Any | Medium | Excellent | **Top choice for most projects** |
-| **Remix** | Web apps, progressive enhancement | Small-medium | Low-Medium | Good | Choose for simplicity |
-| **Nuxt** | Vue ecosystem, enterprise | Any | Medium | Excellent | Choose if Vue preferred |
-| **SvelteKit** | Performance, simplicity | Small | Low | Good | Choose for small teams |
-| **Astro** | Content sites, marketing | Small | Low | Growing | Choose for static content |
-
-### State Management Selection
-
-| Library | Use Case | Bundle Size | Learning Curve | 2025 Recommendation |
-|---------|----------|-------------|----------------|---------------------|
-| **Zustand** | Global client state | Small | Low | **Recommended for most apps** |
-| **React Query** | Server state | Medium | Low | **Essential for API data** |
-| **Jotai** | Atomic state | Small | Low | Choose for granular updates |
-| **Redux Toolkit** | Complex state, time-travel | Medium | Medium | Choose for complex apps |
-| **XState** | Complex workflows | Large | High | Choose for state machines |
-
 ## Architecture Decision Records (ADRs)
 
 ```markdown
@@ -831,68 +809,22 @@ Accepted
 ## Date
 2025-01-24
 ```
-
-## Quick Reference
-
-### Rendering Strategy Quick Decision
-
-| Requirement | Recommended Strategy |
-|-------------|---------------------|
-| SEO-critical + dynamic | SSR |
-| SEO-critical + cacheable | ISR |
-| No SEO + highly interactive | SPA |
-| Static content | SSG |
-| Complex page + slow components | SSR + Streaming |
-| Geo-specific + personalization | Edge SSR |
-
-### Microfrontends Signal
-
-**Consider microfrontends when:**
-- 10+ frontend teams
-- Different technology stacks required
-- Independent deployment cycles needed
-- Teams have different release cadences
-
-**Avoid microfrontends when:**
-- Small team (<10 developers)
-- Single technology stack preferred
-- Shared state is complex
-- Simple deployment is valued
-
-### Performance Targets
-
-| Metric | Target | Tool |
-|--------|--------|------|
-| LCP | <2.5s | Lighthouse |
-| INP | <200ms | RUM / CrUX |
-| CLS | <0.1 | Lighthouse |
-| TTFB | <600ms | WebPageTest |
-| Bundle size | <244KB | webpack-bundle-analyzer |
-
-### Monitoring Stack
-
-```json
-{
-  "metrics": "Datadog / New Relic / Prometheus",
-  "logs": "ELK Stack / CloudWatch / Loki",
-  "traces": "Jaeger / Tempo / Datadog APM",
-  "errors": "Sentry / Bugsnag / Rollbar",
-  "rum": "Google Analytics / Posthog / Plausible"
-}
-```
-
 ## Additional Resources
 
-### Primary References
-- [Next.js App Router Caching and Rendering](https://nextjs.org/docs/app/deep-dive/caching)
-- [Next.js Proxy Guide](https://nextjs.org/docs/app/getting-started/proxy)
-- [Next.js NextRequest API](https://nextjs.org/docs/app/api-reference/functions/next-request)
-- [Next.js Multi-Zones Guide](https://nextjs.org/docs/app/guides/multi-zones)
-- [Next.js Backend-for-Frontend Guide](https://nextjs.org/docs/app/guides/backend-for-frontend)
-- [Next.js Content Security Policy Guide](https://nextjs.org/docs/app/guides/content-security-policy)
-- [Next.js useReportWebVitals API](https://nextjs.org/docs/app/api-reference/functions/use-report-web-vitals)
-- [Next.js SPA Guide](https://nextjs.org/docs/app/guides/single-page-applications)
-- [web.dev: INP replaces FID as a Core Web Vital](https://web.dev/blog/inp-cwv-march-12)
-- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
-- [Sentry for Next.js](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
-- [Module Federation Documentation](https://module-federation.io/guide/start/)
+- [Next.js Documentation](https://nextjs.org/docs) — Official Next.js docs for App Router, SSR, ISR patterns
+- [Module Federation](https://module-federation.io/) — Module Federation plugin and microfrontends
+- [Web Vitals](https://web.dev/vitals/) — Core Web Vitals guidance from Google
+- [Turborepo](https://turbo.build/repo) — Monorepo build system for frontend
+- [OpenTelemetry](https://opentelemetry.io/) — Observability and distributed tracing
+
+## Platform Notes
+
+### Claude Code
+- Use !`cmd` for live command execution
+- Use `$ARGUMENTS` or `$1`, `$2` etc. for parameter references
+- Use `context: fork` for parallel task execution
+- Hooks can be registered in `.claude/hooks.json`
+
+See [Technology Selection](references/technology-selection.md) for detailed content.
+
+See [Quick Reference](references/quick-reference.md) for detailed content.
