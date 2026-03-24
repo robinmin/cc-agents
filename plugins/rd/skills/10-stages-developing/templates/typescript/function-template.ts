@@ -27,7 +27,7 @@ export function functionName(param1: string, param2: number): { key1: string; ke
     // Implementation
     const result = {
         key1: `processed_${param1}`,
-        key2: param2 * 2
+        key2: param2 * 2,
     };
 
     return result;

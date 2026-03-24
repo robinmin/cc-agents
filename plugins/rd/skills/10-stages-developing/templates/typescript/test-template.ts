@@ -20,13 +20,11 @@ describe('functionName', () => {
     });
 
     test('throws error for empty string', () => {
-        expect(() => functionName('', 10))
-            .toThrow('param1 cannot be empty');
+        expect(() => functionName('', 10)).toThrow('param1 cannot be empty');
     });
 
     test('throws error for negative number', () => {
-        expect(() => functionName('test', -1))
-            .toThrow('param2 must be non-negative');
+        expect(() => functionName('test', -1)).toThrow('param2 must be non-negative');
     });
 
     test('handles zero correctly', () => {
