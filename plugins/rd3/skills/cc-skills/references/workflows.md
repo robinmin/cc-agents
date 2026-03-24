@@ -490,6 +490,7 @@ bun scripts/refine.ts <skill-path> --best-practices
 - Convert Windows paths to forward slashes
 - Remove Commands Reference sections
 - Remove slash command references
+- **Extract long content to references** (SKILL.md >= 500 lines): Moves `## Quick Reference`, `## Additional Resources`, `## Technology Selection`, `## Extended Examples`, `## Detailed Patterns`, `## Architecture Decision Records`, `## Monitoring Stack`, and `## Breakdown Checklist` sections to `references/` with proper frontmatter
 
 **Output:** Modified SKILL.md, report of changes
 
@@ -507,7 +508,8 @@ The invoking agent performs fuzzy quality checks via checklist (not an external 
 | 5 | Circular references | No `/rd3:command-*` slash refs |
 | 6 | Commands Reference | Section not present (removed by best-practices) |
 | 7 | Section structure | Progressive disclosure with `## ` headers |
-| 8 | Line budget | Within tier template limits |
+| 8 | Line budget | SKILL.md under 500 lines (long sections extracted to references/) |
+| 9 | Reference frontmatter | Extracted reference files have proper `name:`, `description:`, `see_also:` |
 
 **If all items pass:** Continue to Step 4
 **If failures:** Back to Step 2 for additional fixes
