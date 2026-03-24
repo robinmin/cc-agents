@@ -30,9 +30,59 @@ export type EvolutionChangeType = (typeof EVOLUTION_CHANGE_TYPES)[number];
 export const EVOLUTION_PATTERN_TYPES = ['success', 'failure', 'improvement', 'degradation', 'gap'] as const;
 export type EvolutionPatternType = (typeof EVOLUTION_PATTERN_TYPES)[number];
 
+export const EVOLUTION_TARGET_KINDS = ['skill', 'command', 'agent', 'magent'] as const;
+export type EvolutionTargetKind = (typeof EVOLUTION_TARGET_KINDS)[number];
+
+export const EVOLUTION_IMPROVEMENT_OBJECTIVES = [
+    'quality',
+    'portability',
+    'safety',
+    'maintainability',
+    'discoverability',
+    'evolution-readiness',
+] as const;
+export type EvolutionImprovementObjective = (typeof EVOLUTION_IMPROVEMENT_OBJECTIVES)[number];
+
+export const EVOLUTION_PROPOSAL_SCOPES = [
+    'content',
+    'structure',
+    'metadata',
+    'adapters',
+    'tests',
+    'workflows',
+] as const;
+export type EvolutionProposalScope = (typeof EVOLUTION_PROPOSAL_SCOPES)[number];
+
+export const EVOLUTION_EVIDENCE_TYPES = [
+    'evaluation',
+    'adaptation-warning',
+    'test-failure',
+    'platform-gap',
+    'user-feedback',
+    'history-pattern',
+] as const;
+export type EvolutionEvidenceType = (typeof EVOLUTION_EVIDENCE_TYPES)[number];
+
+export const EVOLUTION_APPLY_RISKS = ['low', 'medium', 'high'] as const;
+export type EvolutionApplyRisk = (typeof EVOLUTION_APPLY_RISKS)[number];
+
+export const EVOLUTION_APPLY_MODES = ['auto', 'confirm-required', 'manual-only'] as const;
+export type EvolutionApplyMode = (typeof EVOLUTION_APPLY_MODES)[number];
+
 export interface EvolutionDiffPreview {
     before: string;
     after: string;
+}
+
+export interface EvolutionVerificationPlan {
+    checks: string[];
+    testsRequired: boolean;
+    rollbackAvailable: boolean;
+    mustPass?: boolean;
+    minimumScore?: number;
+    requiresImprovement?: boolean;
+    mustNotDecrease?: boolean;
+    rationale?: string;
 }
 
 export interface EvolutionProposal<SectionName extends string = string, Source extends string = EvolutionDataSource> {
@@ -44,6 +94,14 @@ export interface EvolutionProposal<SectionName extends string = string, Source e
     source: Source;
     confidence: number;
     affectsCritical: boolean;
+    targetKind?: EvolutionTargetKind;
+    objective?: EvolutionImprovementObjective;
+    scope?: EvolutionProposalScope;
+    evidenceType?: EvolutionEvidenceType;
+    applyRisk?: EvolutionApplyRisk;
+    applyMode?: EvolutionApplyMode;
+    verificationPlan?: EvolutionVerificationPlan;
+    evidence?: string[];
     diff?: EvolutionDiffPreview;
 }
 
@@ -59,6 +117,7 @@ export interface EvolutionResult<
     predictedGrade: Grade;
     safetyWarnings: string[];
     timestamp: string;
+    targetKind?: EvolutionTargetKind;
 }
 
 export interface EvolutionHistoryEntry<Grade extends string = string> {
