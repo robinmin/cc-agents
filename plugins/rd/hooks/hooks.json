@@ -1,17 +1,17 @@
 {
-  "description": "Hooks for rd plugin - Notification hook only (other hooks migrated to rd2)",
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/notification.sh",
-            "timeout": 10
-          }
+    "description": "Hooks for rd plugin - Notification hook only (other hooks migrated to rd2)",
+    "hooks": {
+        "Notification": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/notification.sh",
+                        "timeout": 10
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
