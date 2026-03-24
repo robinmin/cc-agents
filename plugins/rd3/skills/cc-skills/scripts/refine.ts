@@ -6,7 +6,8 @@
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { applyBestPracticeFixes, extractToReferences } from '../../../scripts/best-practice-fixes';
 import { logger } from '../../../scripts/logger';
@@ -311,6 +312,37 @@ function printReport(report: RefineReport, _verbose: boolean): void {
     }
 }
 
+/**
+ * Find project root by searching for package.json upward from the script location.
+ * This ensures relative paths work regardless of where the user runs the script from.
+ * Uses .git as the primary project marker (more reliable than package.json alone).
+ */
+function findProjectRoot(): string {
+    const scriptDir = dirname(fileURLToPath(import.meta.url));
+    let dir = scriptDir;
+    while (dir !== resolve(dir, '..')) {
+        // .git indicates a real project root (cache dirs don't have .git)
+        if (existsSync(join(dir, '.git'))) {
+            return dir;
+        }
+        dir = resolve(dir, '..');
+    }
+    // Fallback: find package.json while skipping cache directories
+    dir = scriptDir;
+    while (dir !== resolve(dir, '..')) {
+        if (existsSync(join(dir, 'package.json'))) {
+            // Skip cache directories - they have 'cache' in their path
+            const pathParts = dir.split('/');
+            const hasCacheDir = pathParts.includes('cache');
+            if (!hasCacheDir) {
+                return dir;
+            }
+        }
+        dir = resolve(dir, '..');
+    }
+    return scriptDir; // Final fallback to script directory
+}
+
 function parseCliArgs(): {
     path: string;
     options: {
@@ -339,12 +371,33 @@ function parseCliArgs(): {
         process.exit(0);
     }
 
-    const path = args.positionals?.[0];
+    const rawPath = args.positionals?.[0];
 
-    if (!path) {
+    if (!rawPath) {
         logger.error('Error: Missing required argument <skill-path>');
         printUsage();
         process.exit(1);
+    }
+
+    // Resolve relative paths against project root, not CWD
+    // This allows running from any directory (e.g., cd into cc-skills cache)
+    const projectRoot = findProjectRoot();
+    let path = rawPath.startsWith('/') ? rawPath : resolve(projectRoot, rawPath);
+
+    // If resolved path doesn't exist, search upward from script location to find valid path
+    // This handles cases where script is run from a cache installation
+    if (!rawPath.startsWith('/') && !existsSync(join(path, 'SKILL.md'))) {
+        // Search upward from script location for a directory containing the skill
+        const scriptDir = dirname(fileURLToPath(import.meta.url));
+        let searchDir = scriptDir;
+        while (searchDir !== resolve(searchDir, '..')) {
+            const candidatePath = join(searchDir, rawPath);
+            if (existsSync(join(candidatePath, 'SKILL.md'))) {
+                path = candidatePath;
+                break;
+            }
+            searchDir = resolve(searchDir, '..');
+        }
     }
 
     const validPlatforms = ['all', 'claude', 'codex', 'openclaw', 'opencode', 'antigravity'];
