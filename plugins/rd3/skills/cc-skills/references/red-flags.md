@@ -148,7 +148,7 @@ Skills **must not** reference their associated agents or commands by name:
 
 | Issue | Why | Fix |
 |-------|-----|-----|
-| SKILL.md >500 lines | Too much in main file | Move details to references/ |
+| SKILL.md >500 lines | Too much in main file | Run `refine --best-practices` to auto-extract standard sections to references/ |
 | No references/ directory | No progressive disclosure | Create references/ with detail docs |
 | All content in SKILL.md | No separation of concerns | Split into SKILL.md + references/ |
 
