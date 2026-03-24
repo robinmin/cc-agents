@@ -110,139 +110,6 @@ Do not recommend until requirements are understood: team size, content type, SEO
 - Core Web Vitals guide performance architecture
 - Load testing before launch
 - Cost-per-request guides infrastructure decisions
-
-## Rendering Strategy Decision Matrix
-
-### Comparison Table
-
-| Strategy | Best For | TTFB | JavaScript | SEO | Dynamic Data | Complexity | 2025 Recommendation |
-|----------|----------|------|------------|-----|--------------|------------|---------------------|
-| **SPA** | Highly interactive, auth-required apps | Slow | Heavy | Poor | Excellent | Low | Use for dashboards |
-| **SSR** | SEO-critical, dynamic content | Fast | Medium | Good | Excellent | Medium | Use for e-commerce |
-| **SSG** | Static content, marketing pages | Fastest | Light | Perfect | None | Low | Use for marketing |
-| **ISR** | Dynamic but cacheable content | Fast | Medium | Perfect | Good | Medium | Use for blogs/catalogs |
-| **SSR + Streaming** | Complex pages with slow components | Medium | Medium | Good | Excellent | High | Use for complex dashboards |
-| **Edge SSR** | Geo-specific, personalization | Fastest | Light | Perfect | Good | Medium | **Emerging 2025** |
-
-### Decision Framework
-
-**Choose SPA when:**
-- Authentication required (no SEO needed)
-- Highly interactive dashboard
-- Real-time updates (WebSocket-heavy)
-- Small to medium content size
-- Example: Internal admin panel, SaaS dashboard
-
-**Choose SSR when:**
-- SEO is critical
-- Dynamic content on every request
-- Social media sharing important
-- First-render performance matters
-- Example: E-commerce product page, news site
-
-**Choose SSG when:**
-- Content changes infrequently
-- Maximum performance required
-- Zero server costs desired
-- Example: Marketing pages, documentation, blog
-
-**Choose ISR when:**
-- Dynamic but cacheable content
-- Updated frequently but not real-time
-- CDN distribution needed
-- Example: Blog with daily updates, product catalog
-
-**Choose SSR + Streaming when:**
-- Complex pages with slow sections
-- Multiple data sources with different latencies
-- Need progressive page rendering
-- Example: Dashboard with multiple widgets
-
-**Choose Edge SSR when:**
-- Geo-specific content (localization, A/B testing)
-- Personalization without revalidation
-- Low latency required globally
-- Example: Global SaaS with regional customization
-
-### Current Next.js App Router Patterns
-
-```typescript
-// SPA (Client-side rendering)
-// app/dashboard/page.tsx
-'use client'  // Forces client-side rendering
-
-export default function Dashboard() {
-  // Full React interactivity
-}
-
-// App Router pages are Server Components by default.
-// If data is cacheable, the route can stay static by default.
-// app/marketing/page.tsx
-export const revalidate = 3600
-
-export default async function MarketingPage() {
-  const res = await fetch('https://api.example.com/marketing', {
-    next: { revalidate: 3600 },
-  })
-  const data = await res.json()
-  return <MarketingPageView data={data} />
-}
-
-// SSG (Static site generation)
-// app/blog/[slug]/page.tsx
-export async function generateStaticParams() {
-  return posts.map(post => ({ slug: post.slug }))
-}
-// Static generation at build time
-
-// Dynamic SSR / request-time rendering
-// app/products/[id]/page.tsx
-export const dynamic = 'force-dynamic'
-
-export default async function ProductPage() {
-  const res = await fetch('https://api.example.com/products', {
-    cache: 'no-store',
-  })
-  const data = await res.json()
-  return <ProductView data={data} />
-}
-
-// ISR (Incremental Static Regeneration)
-// app/products/page.tsx
-export const revalidate = 3600  // Revalidate every hour
-
-export default async function ProductsPage() {
-  const res = await fetch('https://api.example.com/products', {
-    next: { revalidate: 3600 },
-  })
-  const data = await res.json()
-  return <ProductsView data={data} />
-}
-
-// SSR + Streaming (React Suspense)
-// app/dashboard/page.tsx
-import { Suspense } from 'react'
-
-export default function Dashboard() {
-  return (
-    <div>
-      <h1>Dashboard</h1>
-      <Suspense fallback={<StatsSkeleton />}>
-        <Stats />  {/* Streams in when ready */}
-      </Suspense>
-    </div>
-  )
-}
-
-// Edge runtime for latency-sensitive server rendering
-// app/page.tsx
-export const runtime = 'edge'
-
-export default function Page() {
-  // Runs on edge network (Cloudflare Workers, Vercel Edge)
-}
-```
-
 ## Application Architecture
 
 ### Monolith vs Microfrontends
@@ -415,129 +282,8 @@ jobs:
 - Prefer config-based `redirects`/`rewrites` when the routing is static
 
 **Good use cases:**
-- Geo-specific content (A/B testing, localization)
-- Personalization without revalidation
-- Rate limiting and auth checks
-- Dynamic routing based on user attributes
-- API proxying with low latency
-
-```typescript
-// proxy.ts (called middleware.ts in older Next.js versions)
-import { NextRequest, NextResponse } from 'next/server'
-
-export function proxy(request: NextRequest) {
-  const url = request.nextUrl.clone()
-  const country = request.headers.get('x-country') ?? 'US'  // Set by CDN/proxy
-
-  // A/B test routing
-  if (url.pathname.startsWith('/landing') && Math.random() < 0.5) {
-    url.pathname = `/new-design${url.pathname}`
-  }
-
-  // Geographic routing
-  if (country !== 'US') {
-    url.pathname = `/intl${url.pathname}`
-  }
-
-  // Authentication check should stay lightweight
-  const session = request.cookies.get('session')
-  if (!session && url.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  return NextResponse.rewrite(url)
-}
-```
-
-### CDN Strategy
-
-**Cache Hierarchy:**
-1. **Browser cache** (1 hour - 1 day)
-2. **CDN edge cache** (1 hour - 7 days)
-3. **CDN regional cache** (1 day - 30 days)
-4. **Origin** (source of truth)
-
-**CDN Selection:**
-
-| CDN | Best For | Edge Computing | Pricing |
-|-----|----------|----------------|---------|
-| **Cloudflare** | Global performance, security | Workers (JS), Pages | Free tier |
-| **Vercel** | Next.js apps, developer DX | Edge Functions, ISR | Simple, usage-based |
-| **AWS CloudFront** | AWS integration | Lambda@Edge | Complex, pay-per-use |
-| **Fastly** | Enterprise, edge logic | Compute@Edge | Expensive, powerful |
-
-## Frontend Security Architecture
-
-### Authentication Patterns
-
-```typescript
-// Store tokens securely
-// Use httpOnly cookies for server sessions
-// Use memory or httpOnly cookies for JWT (never localStorage)
-
-// Bad (vulnerable to XSS):
-localStorage.setItem('token', jwt)  // DON'T DO THIS
-
-// Good (httpOnly cookie):
-fetch('/api/login', {
-  method: 'POST',
-  credentials: 'include',  // Sends cookies
-})
-
-// Good (memory + refresh token):
-let accessToken = null
-async function refreshToken() {
-  const res = await fetch('/api/refresh', {
-    credentials: 'include',  // httpOnly refresh token
-  })
-  accessToken = await res.json()
-}
-```
-
-### Authorization Architecture
-
-```typescript
-// Middleware-based authorization
-export async function requireRole(role: string) {
-  const session = await getSession()
-  if (!session?.roles.includes(role)) {
-    throw new RedirectError('/403')
-  }
-}
-
-// Component-level authorization
-export function withRole<P>(
-  Component: React.ComponentType<P>,
-  role: string
-) {
-  return function ProtectedComponent(props: P) {
-    const { roles } = useSession()
-    if (!roles.includes(role)) {
-      return <Forbidden />
-    }
-    return <Component {...props} />
-  }
-}
-```
-
-### Security Headers
-
-```typescript
-// next.config.js
-const securityHeaders = [
-  {
-    key: 'X-DNS-Prefetch-Control',
-    value: 'on'
-  },
-  {
-    key: 'Strict-Transport-Security',
-    value: 'max-age=63072000; includeSubDomains; preload'
-  },
-  {
-    key: 'X-Frame-Options',
-    value: 'SAMEORIGIN'
-  },
-  {
+- Geo-specific content (A/B tes
+{
     key: 'X-Content-Type-Options',
     value: 'nosniff'
   },
@@ -699,132 +445,31 @@ const AdminPanel = dynamic(() =>
 // Static assets: 1 year
 // next.config.js
 module.exports = {
-  headers: async () => [{
-    source: '/static/:path*',
-    headers: [{
-      key: 'Cache-Control',
-      value: 'public, max-age=31536000, immutable',
-    }],
-  }],
-}
-
-// API Caching (Next.js fetch caching)
-export const revalidate = 3600  // 1 hour
-
-// Client-side caching (React Query)
-import { useQuery } from '@tanstack/react-query'
-
-function useProducts() {
-  return useQuery({
-    queryKey: ['products'],
-    queryFn: fetchProducts,
-    staleTime: 5 * 60 * 1000,  // 5 minutes
-    gcTime: 60 * 60 * 1000,
-  })
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+    ]
+  },
 }
 ```
 
-## Multi-Team Coordination
+## Additional Resources {#additional-resources}
 
-### Design System Governance
+See [Additional Resources](references/external-resources.md) for detailed content.
 
-**Versioning Strategy:**
-```json
-{
-  "name": "@company/design-system",
-  "version": "3.2.1",
-  "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0"
-  }
-}
-```
+See [Observability and Monitoring](references/observability-and-monitoring.md) for detailed content.
 
-**Component Ownership:**
-- Core components: Design system team
-- Business components: Product teams
-- Shared business components: Governance board
+See [Build and Deployment Architecture](references/build-and-deployment-architecture.md) for detailed content.
 
-### Code Review Guidelines
+See [Frontend Security Architecture](references/frontend-security-architecture.md) for detailed content.
 
-**Frontend-specific checklist:**
-- [ ] Accessibility (WCAG 2.1 AA)
-- [ ] Performance (Lighthouse score >90)
-- [ ] TypeScript strict mode
-- [ ] Test coverage >80%
-- [ ] No console.log in production
-- [ ] Proper error handling
-- [ ] Loading/error states
-- [ ] Responsive design
+See [Application Architecture](references/application-architecture.md) for detailed content.
 
-### Team Topology Patterns
-
-**Stream-aligned teams** (feature teams):
-- End-to-end ownership
-- 5-8 developers
-- Full-stack capability
-
-**Enabling teams** (platform):
-- Design system team
-- Developer experience team
-- Infrastructure team
-
-**Subsystem teams:**
-- Architecture decision group
-- Governance board
-- Standards committee
-## Architecture Decision Records (ADRs)
-
-```markdown
-# ADR-001: Use Next.js 16 with SSR for E-commerce Platform
-
-## Context
-Building an e-commerce platform with 100K products, requiring SEO, dynamic content, and high performance.
-
-## Decision
-Use Next.js 16 with Server-Side Rendering (SSR) and Incremental Static Regeneration (ISR).
-
-## Consequences
-
-### Positive
-- SEO-friendly with server-rendered HTML
-- Fast first content paint (FCP)
-- Incremental static regeneration for product pages
-- Built-in image optimization
-- API routes for BFF pattern
-
-### Negative
-- Higher server costs than SPA
-- More complex deployment than static site
-- Requires Node.js server
-
-### Alternatives Considered
-- **SPA (React)**: Rejected due to poor SEO
-- **SSG (Astro)**: Rejected due to dynamic content requirements
-- **Remix**: Rejected due to smaller ecosystem
-
-## Status
-Accepted
-
-## Date
-2025-01-24
-```
-## Additional Resources
-
-- [Next.js Documentation](https://nextjs.org/docs) — Official Next.js docs for App Router, SSR, ISR patterns
-- [Module Federation](https://module-federation.io/) — Module Federation plugin and microfrontends
-- [Web Vitals](https://web.dev/vitals/) — Core Web Vitals guidance from Google
-- [Turborepo](https://turbo.build/repo) — Monorepo build system for frontend
-- [OpenTelemetry](https://opentelemetry.io/) — Observability and distributed tracing
-
-## Platform Notes
-
-### Claude Code
-- Use !`cmd` for live command execution
-- Use `$ARGUMENTS` or `$1`, `$2` etc. for parameter references
-- Use `context: fork` for parallel task execution
-- Hooks can be registered in `.claude/hooks.json`
-
-See [Technology Selection](references/technology-selection.md) for detailed content.
+See [Rendering Strategy Decision Matrix](references/rendering-strategy-decision-matrix.md) for detailed content.
 
 See [Quick Reference](references/quick-reference.md) for detailed content.
+
+See [Technology Selection](references/technology-selection.md) for detailed content.
