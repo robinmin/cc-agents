@@ -35,6 +35,8 @@ export class OpenClawAdapter implements IPlatformAdapter {
         const messages: string[] = [];
 
         const skillPath = skill.directory;
+        const metadataFile = join(skillPath, 'metadata.openclaw');
+        const hasMetadataFile = existsSync(metadataFile);
 
         // Check for metadata.openclaw in frontmatter
         const fm = skill.frontmatter;
@@ -58,13 +60,12 @@ export class OpenClawAdapter implements IPlatformAdapter {
             }
 
             messages.push('Valid OpenClaw metadata found');
-        } else {
+        } else if (!hasMetadataFile) {
             warnings.push('No metadata.openclaw found - OpenClaw will use defaults');
         }
 
         // Check for metadata.openclaw file (alternative location)
-        const metadataFile = join(skillPath, 'metadata.openclaw');
-        if (existsSync(metadataFile)) {
+        if (hasMetadataFile) {
             messages.push('Found metadata.openclaw file');
             try {
                 const content = readFileSync(metadataFile, 'utf-8');
