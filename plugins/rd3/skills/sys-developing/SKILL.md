@@ -202,7 +202,7 @@ Language-bound code examples are TypeScript-first where practical. Infrastructur
 For rd3 work, prefer:
 - `bun test` and `bun:test` for test examples
 - `bun install --frozen-lockfile` and `bun run <script>` for Bun projects
-- `bun biome format` / `bun biome lint` when formatter or lint examples are needed
+- `biome format` / `biome lint` when formatter or lint examples are needed
 
 ## Security Considerations
 
