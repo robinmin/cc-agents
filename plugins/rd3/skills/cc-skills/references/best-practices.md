@@ -464,7 +464,8 @@ Always use forward slashes:
 - [ ] Description includes both what the skill does AND when to use it
 - [ ] Description written in third person
 - [ ] SKILL.md body is under 500 lines
-- [ ] Additional details are in separate files (if needed)
+- [ ] If over 500 lines: `## Quick Reference`, `## Additional Resources`, `## Technology Selection`, `## Extended Examples`, `## Detailed Patterns`, `## Architecture Decision Records`, `## Monitoring Stack`, and `## Breakdown Checklist` sections are extracted to `references/` with proper frontmatter
+- [ ] Extracted references have `name:`, `description:`, and `see_also:` frontmatter
 - [ ] No time-sensitive information (or in "old patterns" section)
 - [ ] Consistent terminology throughout
 - [ ] Examples are concrete, not abstract
