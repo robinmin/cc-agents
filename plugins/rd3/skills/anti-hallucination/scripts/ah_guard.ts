@@ -31,7 +31,7 @@ const SOURCE_PATTERNS = [
     /\[Source:\s*[^\]]+\]/i, // [Source: URL or Title]
     /Source:\s*\[?[^\n]+\]?/i, // Source: URL or Title
     /Sources:\s*\n\s*-\s*\[?[^\n]+\]/i, // Sources: list format
-    /https?:\/\/[^\s\)]+/i, // Any HTTP/HTTPS URL
+    /https?:\/\/[^\s)]+/i, // Any HTTP/HTTPS URL
     /\*\*Source\*\*:\s*[^\n]+/i, // Markdown bold Source:
 ];
 
