@@ -4,6 +4,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { logger } from '../../../../scripts/logger';
 import type { ToolInput } from '../types';
 
 const LEGACY_META_DIR = 'docs/.tasks';
@@ -140,13 +141,13 @@ export function runWriteGuardStdin(): number {
         const result = checkWriteGuard(toolName, filePath);
 
         if (result.reason) {
-            console.error(`[GUARD] ${result.reason}`);
+            logger.error(`[GUARD] ${result.reason}`);
         }
 
         return result.code;
     } catch {
         // If we can't parse input, allow by default
-        console.error('[GUARD] Failed to parse stdin input, allowing by default');
+        logger.error('[GUARD] Failed to parse stdin input, allowing by default');
         return 0;
     }
 }
