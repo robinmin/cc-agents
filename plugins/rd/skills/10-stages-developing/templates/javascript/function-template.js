@@ -36,7 +36,7 @@ function functionName(param1, param2) {
     // Implementation
     const result = {
         key1: `processed_${param1}`,
-        key2: param2 * 2
+        key2: param2 * 2,
     };
 
     return result;
