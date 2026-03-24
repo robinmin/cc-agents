@@ -12,32 +12,32 @@
  * Basic async function with error handling
  */
 async function fetchUser(userId) {
-  try {
-    const response = await fetch(`/api/users/${userId}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Failed to fetch user ${userId}:`, error);
+        return null;
     }
-    return await response.json();
-  } catch (error) {
-    console.error(`Failed to fetch user ${userId}:`, error);
-    return null;
-  }
 }
 
 /**
  * Multiple sequential async operations
  */
 async function fetchUserData(userId) {
-  try {
-    const user = await fetch(`/api/users/${userId}`).then(r => r.json());
-    const posts = await fetch(`/api/users/${userId}/posts`).then(r => r.json());
-    const comments = await fetch(`/api/users/${userId}/comments`).then(r => r.json());
+    try {
+        const user = await fetch(`/api/users/${userId}`).then((r) => r.json());
+        const posts = await fetch(`/api/users/${userId}/posts`).then((r) => r.json());
+        const comments = await fetch(`/api/users/${userId}/comments`).then((r) => r.json());
 
-    return { user, posts, comments };
-  } catch (error) {
-    console.error('Failed to fetch user data:', error);
-    throw error;
-  }
+        return { user, posts, comments };
+    } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        throw error;
+    }
 }
 
 // ============================================================================
@@ -48,37 +48,31 @@ async function fetchUserData(userId) {
  * Parallel execution with Promise.all
  */
 async function fetchUserDataParallel(userId) {
-  try {
-    const [user, posts, comments] = await Promise.all([
-      fetch(`/api/users/${userId}`).then(r => r.json()),
-      fetch(`/api/users/${userId}/posts`).then(r => r.json()),
-      fetch(`/api/users/${userId}/comments`).then(r => r.json())
-    ]);
+    try {
+        const [user, posts, comments] = await Promise.all([
+            fetch(`/api/users/${userId}`).then((r) => r.json()),
+            fetch(`/api/users/${userId}/posts`).then((r) => r.json()),
+            fetch(`/api/users/${userId}/comments`).then((r) => r.json()),
+        ]);
 
-    return { user, posts, comments };
-  } catch (error) {
-    console.error('Failed to fetch user data:', error);
-    throw error;
-  }
+        return { user, posts, comments };
+    } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        throw error;
+    }
 }
 
 /**
  * Promise.allSettled - wait for all to complete
  */
 async function fetchMultiple(urls) {
-  const results = await Promise.allSettled(
-    urls.map(url => fetch(url).then(r => r.json()))
-  );
+    const results = await Promise.allSettled(urls.map((url) => fetch(url).then((r) => r.json())));
 
-  const successful = results
-    .filter(r => r.status === 'fulfilled')
-    .map(r => r.value);
+    const successful = results.filter((r) => r.status === 'fulfilled').map((r) => r.value);
 
-  const failed = results
-    .filter(r => r.status === 'rejected')
-    .map(r => r.reason);
+    const failed = results.filter((r) => r.status === 'rejected').map((r) => r.reason);
 
-  return { successful, failed };
+    return { successful, failed };
 }
 
 // Demo: fetchMultiple (commented - requires actual URLs)
@@ -95,20 +89,20 @@ async function fetchMultiple(urls) {
  * Retry fetch with exponential backoff
  */
 async function fetchWithRetry(url, retries = 3, delay = 1000) {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        if (retries <= 0) {
+            throw error;
+        }
+        console.log(`Retrying... (${retries} attempts left)`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return fetchWithRetry(url, retries - 1, delay * 2);
     }
-    return await response.json();
-  } catch (error) {
-    if (retries <= 0) {
-      throw error;
-    }
-    console.log(`Retrying... (${retries} attempts left)`);
-    await new Promise(resolve => setTimeout(resolve, delay));
-    return fetchWithRetry(url, retries - 1, delay * 2);
-  }
 }
 
 // ============================================================================
@@ -119,23 +113,23 @@ async function fetchWithRetry(url, retries = 3, delay = 1000) {
  * Fetch with timeout using AbortController
  */
 async function fetchWithTimeout(url, timeout = 5000) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout');
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
     }
-    return await response.json();
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      throw new Error('Request timeout');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
 }
 
 // ============================================================================
@@ -148,56 +142,56 @@ async function fetchWithTimeout(url, timeout = 5000) {
 const fetchCache = new Map();
 
 async function cachedFetch(url) {
-  if (fetchCache.has(url)) {
-    return fetchCache.get(url);
-  }
+    if (fetchCache.has(url)) {
+        return fetchCache.get(url);
+    }
 
-  const response = await fetch(url);
-  const data = await response.json();
-  fetchCache.set(url, data);
-  return data;
+    const response = await fetch(url);
+    const data = await response.json();
+    fetchCache.set(url, data);
+    return data;
 }
 
 /**
  * Cache with TTL (time-to-live)
  */
 class CacheWithTTL {
-  constructor() {
-    this.cache = new Map();
-  }
-
-  set(key, value, ttl = 60000) {
-    this.cache.set(key, {
-      value,
-      expires: Date.now() + ttl
-    });
-  }
-
-  get(key) {
-    const item = this.cache.get(key);
-    if (!item) {
-      return null;
+    constructor() {
+        this.cache = new Map();
     }
-    if (Date.now() > item.expires) {
-      this.cache.delete(key);
-      return null;
+
+    set(key, value, ttl = 60000) {
+        this.cache.set(key, {
+            value,
+            expires: Date.now() + ttl,
+        });
     }
-    return item.value;
-  }
+
+    get(key) {
+        const item = this.cache.get(key);
+        if (!item) {
+            return null;
+        }
+        if (Date.now() > item.expires) {
+            this.cache.delete(key);
+            return null;
+        }
+        return item.value;
+    }
 }
 
 const cache = new CacheWithTTL();
 
 async function fetchWithCache(url, ttl = 60000) {
-  const cached = cache.get(url);
-  if (cached) {
-    return cached;
-  }
+    const cached = cache.get(url);
+    if (cached) {
+        return cached;
+    }
 
-  const response = await fetch(url);
-  const data = await response.json();
-  cache.set(url, data, ttl);
-  return data;
+    const response = await fetch(url);
+    const data = await response.json();
+    cache.set(url, data, ttl);
+    return data;
 }
 
 // ============================================================================
@@ -208,17 +202,17 @@ async function fetchWithCache(url, ttl = 60000) {
  * Debounce function for rate limiting
  */
 function debounce(fn, delay) {
-  let timeoutId;
-  return function(...args) {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn.apply(this, args), delay);
-  };
+    let timeoutId;
+    return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+    };
 }
 
 // Usage example:
 const debouncedSearch = debounce(async (query) => {
-  const results = await fetch(`/api/search?q=${query}`).then(r => r.json());
-  return results;
+    const results = await fetch(`/api/search?q=${query}`).then((r) => r.json());
+    return results;
 }, 300);
 
 // Demo: debouncedSearch (commented - requires actual API)
@@ -235,19 +229,19 @@ export const demo_debouncedSearch = debouncedSearch;
  * Throttle function for rate limiting
  */
 function throttle(fn, limit) {
-  let inThrottle;
-  return function(...args) {
-    if (!inThrottle) {
-      fn.apply(this, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
+    let inThrottle;
+    return function (...args) {
+        if (!inThrottle) {
+            fn.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => (inThrottle = false), limit);
+        }
+    };
 }
 
 // Usage example:
 const throttledScroll = throttle(() => {
-  console.log('Scroll position:', window.scrollY);
+    console.log('Scroll position:', window.scrollY);
 }, 100);
 
 // Demo: throttledScroll (attach to window scroll event)
@@ -264,12 +258,12 @@ export const demo_throttledScroll = throttledScroll;
  * Process array items sequentially
  */
 async function processSequentially(items, processor) {
-  const results = [];
-  for (const item of items) {
-    const result = await processor(item);
-    results.push(result);
-  }
-  return results;
+    const results = [];
+    for (const item of items) {
+        const result = await processor(item);
+        results.push(result);
+    }
+    return results;
 }
 
 // Usage example:
@@ -290,17 +284,15 @@ export const demo_users = users;
  * Process array items in batches
  */
 async function processBatch(items, batchSize, processor) {
-  const results = [];
+    const results = [];
 
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    const batchResults = await Promise.all(
-      batch.map(item => processor(item))
-    );
-    results.push(...batchResults);
-  }
+    for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch.map((item) => processor(item)));
+        results.push(...batchResults);
+    }
 
-  return results;
+    return results;
 }
 
 // Usage example:
@@ -321,22 +313,22 @@ export const demo_allUsers = allUsers;
  * Prevent race conditions with request deduplication
  */
 class RequestDeduplicator {
-  constructor() {
-    this.pending = new Map();
-  }
-
-  async fetch(key, fn) {
-    if (this.pending.has(key)) {
-      return this.pending.get(key);
+    constructor() {
+        this.pending = new Map();
     }
 
-    const promise = fn().finally(() => {
-      this.pending.delete(key);
-    });
+    async fetch(key, fn) {
+        if (this.pending.has(key)) {
+            return this.pending.get(key);
+        }
 
-    this.pending.set(key, promise);
-    return promise;
-  }
+        const promise = fn().finally(() => {
+            this.pending.delete(key);
+        });
+
+        this.pending.set(key, promise);
+        return promise;
+    }
 }
 
 // Usage example:
@@ -358,34 +350,34 @@ export const demo_deduplicator = deduplicator;
  * Async queue for managing concurrent operations
  */
 class AsyncQueue {
-  constructor(concurrency = 1) {
-    this.concurrency = concurrency;
-    this.running = 0;
-    this.queue = [];
-  }
-
-  async run(fn) {
-    while (this.running >= this.concurrency) {
-      await new Promise(resolve => {
-        this.queue.push(resolve);
-      });
+    constructor(concurrency = 1) {
+        this.concurrency = concurrency;
+        this.running = 0;
+        this.queue = [];
     }
 
-    this.running++;
-    try {
-      return await fn();
-    } finally {
-      this.running--;
-      if (this.queue.length > 0) {
-        const resolve = this.queue.shift();
-        resolve();
-      }
+    async run(fn) {
+        while (this.running >= this.concurrency) {
+            await new Promise((resolve) => {
+                this.queue.push(resolve);
+            });
+        }
+
+        this.running++;
+        try {
+            return await fn();
+        } finally {
+            this.running--;
+            if (this.queue.length > 0) {
+                const resolve = this.queue.shift();
+                resolve();
+            }
+        }
     }
-  }
 }
 
 // Usage example:
-const queue = new AsyncQueue(3);  // Max 3 concurrent operations
+const queue = new AsyncQueue(3); // Max 3 concurrent operations
 
 // Demo: AsyncQueue (commented - requires actual API)
 // Promise.all([
@@ -400,17 +392,17 @@ const queue = new AsyncQueue(3);  // Max 3 concurrent operations
 export const demo_queue = queue;
 
 export {
-  fetchUser,
-  fetchUserData,
-  fetchUserDataParallel,
-  fetchWithRetry,
-  fetchWithTimeout,
-  cachedFetch,
-  fetchWithCache,
-  debounce,
-  throttle,
-  processSequentially,
-  processBatch,
-  RequestDeduplicator,
-  AsyncQueue
+    fetchUser,
+    fetchUserData,
+    fetchUserDataParallel,
+    fetchWithRetry,
+    fetchWithTimeout,
+    cachedFetch,
+    fetchWithCache,
+    debounce,
+    throttle,
+    processSequentially,
+    processBatch,
+    RequestDeduplicator,
+    AsyncQueue,
 };
