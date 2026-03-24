@@ -13,6 +13,8 @@
       "Skill(rd3:command-evaluate)",
       "Skill(rd3:agent-evaluate)",
       "Skill(rd3:quick-grep)",
+      "Skill(migrate-to-rd3)",
+      
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -24,6 +26,7 @@
       "mcp__huggingface__model_search",
       "mcp__huggingface__gr1_z_image_turbo_generate",
       "mcp__brave-search__brave_web_search",
+
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
@@ -35,6 +38,8 @@
       "WebFetch(domain:almcorp.com)",
       "WebFetch(domain:developers.openai.com)",
       "WebFetch(domain:ast-grep.github.io)",
+      "WebFetch(domain:biomejs.dev)",
+
       "Bash(ast-grep:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
@@ -49,20 +54,8 @@
       "Bash(bun:*)",
       "Bash(sg scan:*)",
       "Bash(sg run:*)",
-      "Skill(migrate-to-rd3)",
-      "Bash(rg '^\\(\\(?!\\\\{\\).\\)*$' -v)",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f[''''name''''], f[''''findings'''']\\) for f in d[''''dimensions''''] if f[''''findings'''']]\")",
-      "Bash(for f:*)",
-      "Bash(do echo:*)",
-      "Read(//Users/robin/projects/cc-agents/**)",
-      "Bash(done)",
-      "Bash(find /Users/robin/projects/cc-agents/plugins/rd3/skills -name \"SKILL.md\" -exec wc -l {})",
-      "Bash(ls:*)",
-      "Bash(eval \"bun run check:rd3\")",
-      "Bash(tee /tmp/fixall-rd3.log)",
-      "Bash(echo \"EXIT_CODE=$PIPESTATUS[0]\")",
-      "Bash(echo \"EXIT_CODE=$?\")",
-      "Bash(biome check:*)"
+
+      "Bash(biome lint:*)"
     ],
     "deny": [],
     "ask": []
