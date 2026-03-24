@@ -74,7 +74,7 @@
 2. TypeScript files pass `bun tsc --noEmit` with no errors
 3. New scripts are registered in the skill's `package.json` if applicable
 4. Tests exist for new functionality and pass: `bun test`
-5. Formatting and linting pass: `bun biome format --write . && bun biome lint --write .`
+5. Formatting and linting pass: `biome format --write . && biome lint --write .`
 6. No `console.*` calls remain in new script files — use `logger.*` instead
 7. Git status shows only intentional changes
 
@@ -138,12 +138,12 @@ bun test --coverage
 
 Format all source files (in place). Run after writing new code:
 ```bash
-bun biome format --write .
+biome format --write .
 ```
 
 Lint all source files. Run after formatting, often together with format:
 ```bash
-bun biome lint --write .
+biome lint --write .
 ```
 
 Type-check without emitting files. Run after any TypeScript change:
@@ -153,7 +153,7 @@ bun tsc --noEmit
 
 **One-shot pre-commit (format + lint + type-check):**
 ```bash
-bun biome format --write . && bun biome lint --write . && bun tsc --noEmit
+biome format --write . && biome lint --write . && bun tsc --noEmit
 ```
 
 | Tool | Why | Avoid |
@@ -423,7 +423,7 @@ How to produce and present different kinds of output across code, docs, errors, 
 - Writing to `.claude/` — only within existing skill/plugin directories; AskUserQuestion before creating new ones
 - Modifying `MEMORY.md` — read existing content first; never overwrite without merging
 - Running `bun test` — always allowed; if tests hang for >60s, interrupt and report
-- `bun biome format --write .` — always allowed on changed files; do not run on entire repo unless requested
+- `biome format --write .` — always allowed on changed files; do not run on entire repo unless requested
 
 ---
 
