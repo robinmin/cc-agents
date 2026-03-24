@@ -113,11 +113,11 @@ Examples:
 `.trim();
 
 function emitJsonSuccess(data: unknown) {
-    console.log(JSON.stringify({ ok: true, data }, null, 2));
+    logger.log(JSON.stringify({ ok: true, data }, null, 2));
 }
 
 function emitJsonError(error: string) {
-    console.log(JSON.stringify({ ok: false, error }, null, 2));
+    logger.log(JSON.stringify({ ok: false, error }, null, 2));
 }
 
 function normalizeStatusInput(input?: string) {
@@ -148,7 +148,7 @@ async function main() {
     }
 
     if (args.length === 0 || args[0] === 'help' || args[0] === '--help') {
-        console.log(CLI_USAGE);
+        logger.log(CLI_USAGE);
         process.exit(args[0] === 'help' || args[0] === '--help' ? 0 : 1);
         return;
     }
@@ -729,7 +729,7 @@ async function main() {
             } else {
                 logger.error(`Unknown command: ${cmd}`);
             }
-            console.log(CLI_USAGE);
+            logger.log(CLI_USAGE);
             exitCode = 1;
         }
     }
