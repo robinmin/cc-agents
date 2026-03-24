@@ -23,13 +23,13 @@ import type { Page } from 'playwright';
 // ============================================================================
 
 export interface PlaywrightOptions {
-  profileDir?: string;
-  headless?: boolean;
-  slowMo?: number;
-  viewport?: { width: number; height: number };
-  args?: string[];
-  verbose?: boolean;
-  chromiumPath?: string;
+    profileDir?: string;
+    headless?: boolean;
+    slowMo?: number;
+    viewport?: { width: number; height: number };
+    args?: string[];
+    verbose?: boolean;
+    chromiumPath?: string;
 }
 
 // ============================================================================
@@ -48,8 +48,8 @@ import { chromium } from 'playwright';
  * cross-platform compatibility.
  */
 export async function getChromiumPath(): Promise<string> {
-  const executablePath = chromium.executablePath();
-  return executablePath;
+    const executablePath = chromium.executablePath();
+    return executablePath;
 }
 
 /**
@@ -62,27 +62,27 @@ export async function getChromiumPath(): Promise<string> {
  * const browser = await launchBrowser({ headless: false });
  */
 export async function launchBrowser(options: PlaywrightOptions = {}) {
-  const { profileDir, headless = false, slowMo, viewport, args = [], chromiumPath, verbose } = options;
+    const { profileDir, headless = false, slowMo, viewport, args = [], chromiumPath, verbose } = options;
 
-  const browser = await chromium.launch({
-    headless,
-    executablePath: chromiumPath ?? await getChromiumPath(),
-    args: profileDir ? [`--user-data-dir=${profileDir}`, ...args] : args,
-    slowMo,
-  });
+    const browser = await chromium.launch({
+        headless,
+        executablePath: chromiumPath ?? (await getChromiumPath()),
+        args: profileDir ? [`--user-data-dir=${profileDir}`, ...args] : args,
+        slowMo,
+    });
 
-  if (verbose) {
-    console.log('[pw] Browser launched with executable:', chromiumPath ?? await getChromiumPath());
-  }
+    if (verbose) {
+        console.log('[pw] Browser launched with executable:', chromiumPath ?? (await getChromiumPath()));
+    }
 
-  return browser;
+    return browser;
 }
 
 export interface PlatformConfig {
-  name: string;
-  envVar?: string;
-  defaultProfile?: string;
-  baseUrl?: string;
+    name: string;
+    envVar?: string;
+    defaultProfile?: string;
+    baseUrl?: string;
 }
 
 // ============================================================================
@@ -93,7 +93,7 @@ export interface PlatformConfig {
  * Sleep for specified milliseconds
  */
 export function pwSleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -105,32 +105,32 @@ export function pwSleep(ms: number): Promise<void> {
  * import(), but that adds unnecessary complexity for a synchronous operation.
  */
 export async function getFreePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    // require() is synchronous and safe to use here
-    const server = require('node:net').createServer();
-    server.unref();
-    server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      if (!address || typeof address === 'string') {
-        server.close(() => reject(new Error('Unable to allocate a free TCP port.')));
-        return;
-      }
-      const port = address.port;
-      server.close((err?: NodeJS.ErrnoException) => {
-        if (err) reject(err);
-        else resolve(port);
-      });
+    return new Promise((resolve, reject) => {
+        // require() is synchronous and safe to use here
+        const server = require('node:net').createServer();
+        server.unref();
+        server.on('error', reject);
+        server.listen(0, '127.0.0.1', () => {
+            const address = server.address();
+            if (!address || typeof address === 'string') {
+                server.close(() => reject(new Error('Unable to allocate a free TCP port.')));
+                return;
+            }
+            const port = address.port;
+            server.close((err?: NodeJS.ErrnoException) => {
+                if (err) reject(err);
+                else resolve(port);
+            });
+        });
     });
-  });
 }
 
 /**
  * Get default profile directory for Playwright browser automation
  */
 export function getDefaultProfileDir(platform = 'wt-browser'): string {
-  const base = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
-  return path.join(base, `${platform}-profile`);
+    const base = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
+    return path.join(base, `${platform}-profile`);
 }
 
 // ============================================================================
@@ -138,14 +138,14 @@ export function getDefaultProfileDir(platform = 'wt-browser'): string {
 // ============================================================================
 
 export interface LoginDetectionConfig {
-  /** URLs that indicate login is required */
-  loginUrls?: string[];
-  /** URLs that indicate user is authenticated */
-  authenticatedUrls?: string[];
-  /** Selector for navigation element (visible when logged in) */
-  navSelector?: string;
-  /** Timeout for login detection */
-  timeoutMs?: number;
+    /** URLs that indicate login is required */
+    loginUrls?: string[];
+    /** URLs that indicate user is authenticated */
+    authenticatedUrls?: string[];
+    /** Selector for navigation element (visible when logged in) */
+    navSelector?: string;
+    /** Timeout for login detection */
+    timeoutMs?: number;
 }
 
 const DEFAULT_LOGIN_URLS = ['/login', '/i/flow/login', '/i/flow/signup'];
@@ -155,127 +155,108 @@ const DEFAULT_NAV_SELECTOR = 'nav[aria-label="Primary"]';
 /**
  * Check if the current page indicates user is logged in
  */
-export async function isLoggedIn(
-  page: Page,
-  config: LoginDetectionConfig = {}
-): Promise<boolean> {
-  const {
-    loginUrls = DEFAULT_LOGIN_URLS,
-    authenticatedUrls = DEFAULT_AUTH_URLS,
-    navSelector = DEFAULT_NAV_SELECTOR,
-  } = config;
+export async function isLoggedIn(page: Page, config: LoginDetectionConfig = {}): Promise<boolean> {
+    const {
+        loginUrls = DEFAULT_LOGIN_URLS,
+        authenticatedUrls = DEFAULT_AUTH_URLS,
+        navSelector = DEFAULT_NAV_SELECTOR,
+    } = config;
 
-  const url = page.url();
+    const url = page.url();
 
-  // Check for login pages first
-  for (const loginUrl of loginUrls) {
-    if (url.includes(loginUrl)) {
-      return false;
+    // Check for login pages first
+    for (const loginUrl of loginUrls) {
+        if (url.includes(loginUrl)) {
+            return false;
+        }
     }
-  }
 
-  // Check for authenticated pages
-  for (const authUrl of authenticatedUrls) {
-    if (url.includes(authUrl)) {
-      return true;
+    // Check for authenticated pages
+    for (const authUrl of authenticatedUrls) {
+        if (url.includes(authUrl)) {
+            return true;
+        }
     }
-  }
 
-  // Check for navigation element (visible when logged in)
-  try {
-    const hasNav = await page.locator(navSelector).isVisible({ timeout: 3000 });
-    if (hasNav) return true;
-  } catch {
-    // Nav not visible
-  }
+    // Check for navigation element (visible when logged in)
+    try {
+        const hasNav = await page.locator(navSelector).isVisible({ timeout: 3000 });
+        if (hasNav) return true;
+    } catch {
+        // Nav not visible
+    }
 
-  return false;
+    return false;
 }
 
 /**
  * Wait for user to complete login
  */
-export async function waitForLogin(
-  page: Page,
-  config: LoginDetectionConfig = {}
-): Promise<void> {
-  const {
-    loginUrls = DEFAULT_LOGIN_URLS,
-    authenticatedUrls = DEFAULT_AUTH_URLS,
-    timeoutMs = 300000, // 5 minutes default
-  } = config;
+export async function waitForLogin(page: Page, config: LoginDetectionConfig = {}): Promise<void> {
+    const {
+        loginUrls = DEFAULT_LOGIN_URLS,
+        authenticatedUrls = DEFAULT_AUTH_URLS,
+        timeoutMs = 300000, // 5 minutes default
+    } = config;
 
-  const authPatterns = [
-    ...authenticatedUrls.map((u) => u.replace('/', '\\/')),
-    '/home',
-  ];
+    const authPatterns = [...authenticatedUrls.map((u) => u.replace('/', '\\/')), '/home'];
 
-  try {
-    await page.waitForURL(new RegExp(authPatterns.join('|')), {
-      timeout: timeoutMs,
-    });
-    console.log('[x-article-pw] Login successful!');
-  } catch {
-    throw new Error(
-      `Login timeout (${timeoutMs / 1000}s) - please try again`
-    );
-  }
+    try {
+        await page.waitForURL(new RegExp(authPatterns.join('|')), {
+            timeout: timeoutMs,
+        });
+        console.log('[x-article-pw] Login successful!');
+    } catch {
+        throw new Error(`Login timeout (${timeoutMs / 1000}s) - please try again`);
+    }
 }
 
 /**
  * Handle login flow - detect if login needed and wait for it
  */
-export async function handleLogin(
-  page: Page,
-  targetUrl: string,
-  config: LoginDetectionConfig = {}
-): Promise<boolean> {
-  const { navSelector = DEFAULT_NAV_SELECTOR } = config;
+export async function handleLogin(page: Page, targetUrl: string, config: LoginDetectionConfig = {}): Promise<boolean> {
+    const { navSelector = DEFAULT_NAV_SELECTOR } = config;
 
-  const loggedIn = await isLoggedIn(page, config);
+    const loggedIn = await isLoggedIn(page, config);
 
-  if (!loggedIn) {
-    console.log('');
-    console.log('========================================');
-    console.log('LOGIN REQUIRED');
-    console.log('========================================');
-    console.log('Please log in to the browser window.');
-    console.log('The script will continue automatically');
-    console.log('after you complete the login.');
-    console.log('========================================');
-    console.log('');
+    if (!loggedIn) {
+        console.log('');
+        console.log('========================================');
+        console.log('LOGIN REQUIRED');
+        console.log('========================================');
+        console.log('Please log in to the browser window.');
+        console.log('The script will continue automatically');
+        console.log('after you complete the login.');
+        console.log('========================================');
+        console.log('');
 
-    await waitForLogin(page, config);
+        await waitForLogin(page, config);
 
-    // Navigate to target if needed
-    const urlParts = targetUrl.split('/');
-    const targetBase = urlParts[3] || ''; // e.g., 'compose' from 'x.com/compose/articles'
-    if (targetBase && !page.url().includes(targetBase)) {
-      console.log('[x-article-pw] Navigating to target...');
-      await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        // Navigate to target if needed
+        const urlParts = targetUrl.split('/');
+        const targetBase = urlParts[3] || ''; // e.g., 'compose' from 'x.com/compose/articles'
+        if (targetBase && !page.url().includes(targetBase)) {
+            console.log('[x-article-pw] Navigating to target...');
+            await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        }
+    } else {
+        console.log('[x-article-pw] Already logged in');
     }
-  } else {
-    console.log('[x-article-pw] Already logged in');
-  }
 
-  return loggedIn;
+    return loggedIn;
 }
 
 /**
  * Navigate to URL with login detection
  */
-export async function navigateWithLogin(
-  page: Page,
-  url: string,
-  config: LoginDetectionConfig = {}
-): Promise<void> {
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+export async function navigateWithLogin(page: Page, url: string, config: LoginDetectionConfig = {}): Promise<void> {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-  // Small delay for page to stabilize
-  await pwSleep(2000);
+    // Small delay for page to stabilize
+    await pwSleep(2000);
 
-  // Check if we need to handle login
-  await handleLogin(page, url, config);
+    // Check if we need to handle login
+    await handleLogin(page, url, config);
 }
 
 // ============================================================================
@@ -286,44 +267,40 @@ export async function navigateWithLogin(
  * Execute a Playwright script using the playwright-skill
  */
 export async function runPlaywrightScript(
-  scriptPath: string,
-  options: { verbose?: boolean; cwd?: string } = {}
+    scriptPath: string,
+    options: { verbose?: boolean; cwd?: string } = {},
 ): Promise<string> {
-  const { verbose = false, cwd = getPlaywrightSkillDir() } = options;
+    const { verbose = false, cwd = getPlaywrightSkillDir() } = options;
 
-  return new Promise((resolve, reject) => {
-    const proc = spawn(
-      'node',
-      ['run.js', scriptPath],
-      {
-        cwd,
-        stdio: ['ignore', 'pipe', 'pipe'] as SpawnOptions['stdio'],
-      } as SpawnOptions
-    );
+    return new Promise((resolve, reject) => {
+        const proc = spawn('node', ['run.js', scriptPath], {
+            cwd,
+            stdio: ['ignore', 'pipe', 'pipe'] as SpawnOptions['stdio'],
+        } as SpawnOptions);
 
-    let stdout = '';
-    let stderr = '';
+        let stdout = '';
+        let stderr = '';
 
-    proc.stdout?.on('data', (data: Buffer) => {
-      const output = data.toString();
-      stdout += output;
-      if (verbose) process.stdout.write(output);
+        proc.stdout?.on('data', (data: Buffer) => {
+            const output = data.toString();
+            stdout += output;
+            if (verbose) process.stdout.write(output);
+        });
+
+        proc.stderr?.on('data', (data: Buffer) => {
+            const output = data.toString();
+            stderr += output;
+            if (verbose) process.stderr.write(output);
+        });
+
+        proc.on('close', (code) => {
+            if (code !== 0) {
+                reject(new Error(`Playwright script exited with code ${code}\n${stderr}`));
+            } else {
+                resolve(stdout);
+            }
+        });
     });
-
-    proc.stderr?.on('data', (data: Buffer) => {
-      const output = data.toString();
-      stderr += output;
-      if (verbose) process.stderr.write(output);
-    });
-
-    proc.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`Playwright script exited with code ${code}\n${stderr}`));
-      } else {
-        resolve(stdout);
-      }
-    });
-  });
 }
 
 /**
@@ -331,45 +308,45 @@ export async function runPlaywrightScript(
  * Dynamically discovers the latest version
  */
 export function getPlaywrightSkillDir(): string {
-  const baseDir = path.join(os.homedir(), '.claude', 'plugins', 'cache', 'playwright-skill');
+    const baseDir = path.join(os.homedir(), '.claude', 'plugins', 'cache', 'playwright-skill');
 
-  if (!fs.existsSync(baseDir)) {
-    throw new Error(`Playwright skill cache not found at ${baseDir}`);
-  }
-
-  // Find all versions and use the latest
-  const entries = fs.readdirSync(baseDir, { withFileTypes: true });
-  const versions: string[] = [];
-
-  for (const entry of entries) {
-    if (entry.isDirectory()) {
-      versions.push(entry.name);
+    if (!fs.existsSync(baseDir)) {
+        throw new Error(`Playwright skill cache not found at ${baseDir}`);
     }
-  }
 
-  if (versions.length === 0) {
-    throw new Error('No playwright-skill versions found');
-  }
+    // Find all versions and use the latest
+    const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+    const versions: string[] = [];
 
-  // Sort versions semantically (latest first)
-  versions.sort((a, b) => {
-    const va = a.split('.').map(Number);
-    const vb = b.split('.').map(Number);
-    for (let i = 0; i < Math.max(va.length, vb.length); i++) {
-      const diff = (vb[i] ?? 0) - (va[i] ?? 0);
-      if (diff !== 0) return diff;
+    for (const entry of entries) {
+        if (entry.isDirectory()) {
+            versions.push(entry.name);
+        }
     }
-    return 0;
-  });
 
-  const latestVersion = versions[0]!;
-  const skillDir = path.join(baseDir, 'playwright-skill', latestVersion, 'skills', 'playwright-skill');
+    if (versions.length === 0) {
+        throw new Error('No playwright-skill versions found');
+    }
 
-  if (!fs.existsSync(skillDir)) {
-    throw new Error(`Playwright skill directory not found: ${skillDir}`);
-  }
+    // Sort versions semantically (latest first)
+    versions.sort((a, b) => {
+        const va = a.split('.').map(Number);
+        const vb = b.split('.').map(Number);
+        for (let i = 0; i < Math.max(va.length, vb.length); i++) {
+            const diff = (vb[i] ?? 0) - (va[i] ?? 0);
+            if (diff !== 0) return diff;
+        }
+        return 0;
+    });
 
-  return skillDir;
+    const latestVersion = versions[0]!;
+    const skillDir = path.join(baseDir, 'playwright-skill', latestVersion, 'skills', 'playwright-skill');
+
+    if (!fs.existsSync(skillDir)) {
+        throw new Error(`Playwright skill directory not found: ${skillDir}`);
+    }
+
+    return skillDir;
 }
 
 // ============================================================================
@@ -380,25 +357,25 @@ export function getPlaywrightSkillDir(): string {
  * Generate browser launch script with persistent context
  */
 export function generateLaunchScript(options: {
-  profileDir: string;
-  headless?: boolean;
-  slowMo?: number;
-  args?: string[];
-  viewport?: { width: number; height: number };
-  url?: string;
-  verbose?: boolean;
+    profileDir: string;
+    headless?: boolean;
+    slowMo?: number;
+    args?: string[];
+    viewport?: { width: number; height: number };
+    url?: string;
+    verbose?: boolean;
 }): string {
-  const {
-    profileDir,
-    headless = false,
-    slowMo = 100,
-    args = [],
-    viewport = { width: 1280, height: 900 },
-    url,
-    verbose = false,
-  } = options;
+    const {
+        profileDir,
+        headless = false,
+        slowMo = 100,
+        args = [],
+        viewport = { width: 1280, height: 900 },
+        url,
+        verbose = false,
+    } = options;
 
-  return `
+    return `
 const { chromium } = require('playwright');
 const fs = require('fs');
 
@@ -464,10 +441,14 @@ function logError(...args) {
   }
 
   const page = context.pages()[0] || await context.newPage();
-${url ? `
+${
+    url
+        ? `
   await page.goto(INITIAL_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
   log('Navigated to:', INITIAL_URL);
-` : ''}
+`
+        : ''
+}
 
   // Export for external use
   global.__PW_CONTEXT__ = context;
@@ -486,21 +467,21 @@ ${url ? `
  * Generate login detection and handling script
  */
 export function generateLoginDetectionScript(options: {
-  loginUrls: string[];
-  authenticatedUrls: string[];
-  navSelector?: string;
-  timeoutMs?: number;
-  verbose?: boolean;
+    loginUrls: string[];
+    authenticatedUrls: string[];
+    navSelector?: string;
+    timeoutMs?: number;
+    verbose?: boolean;
 }): string {
-  const {
-    loginUrls,
-    authenticatedUrls,
-    navSelector = 'nav[aria-label="Primary"]',
-    timeoutMs = 300000, // 5 minutes
-    verbose = false,
-  } = options;
+    const {
+        loginUrls,
+        authenticatedUrls,
+        navSelector = 'nav[aria-label="Primary"]',
+        timeoutMs = 300000, // 5 minutes
+        verbose = false,
+    } = options;
 
-  return `
+    return `
 const { chromium } = require('playwright');
 const fs = require('fs');
 
@@ -617,12 +598,12 @@ global.__PW_HANDLE_LOGIN__ = handleLogin;
  * Generate element interaction helpers
  */
 export function generateElementHelpersScript(options: {
-  selectors?: Record<string, string[]>;
-  verbose?: boolean;
+    selectors?: Record<string, string[]>;
+    verbose?: boolean;
 }): string {
-  const { selectors = {}, verbose = false } = options;
+    const { selectors = {}, verbose = false } = options;
 
-  return `
+    return `
 const { chromium } = require('playwright');
 
 const SELECTORS = ${JSON.stringify(selectors)};
@@ -791,12 +772,10 @@ global.__PW_GET_SELECTOR__ = getSelector;
 /**
  * Generate content insertion helpers
  */
-export function generateContentInsertionScript(options: {
-  verbose?: boolean;
-}): string {
-  const { verbose = false } = options;
+export function generateContentInsertionScript(options: { verbose?: boolean }): string {
+    const { verbose = false } = options;
 
-  return `
+    return `
 const { chromium } = require('playwright');
 
 const VERBOSE = ${verbose};
@@ -895,23 +874,23 @@ global.__PW_INSERT_HTML_FILE__ = insertHtmlFromFile;
 // ============================================================================
 
 export interface I18NSelectors {
-  writeButton?: string[];
-  titleInput?: string[];
-  editorBody?: string[];
-  fileInput?: string[];
-  applyButton?: string[];
-  previewButton?: string[];
-  publishButton?: string[];
-  [key: string]: string[] | undefined;
+    writeButton?: string[];
+    titleInput?: string[];
+    editorBody?: string[];
+    fileInput?: string[];
+    applyButton?: string[];
+    previewButton?: string[];
+    publishButton?: string[];
+    [key: string]: string[] | undefined;
 }
 
 /**
  * Generate I18N-aware selector helpers
  */
 export function generateI18NSelectorsScript(selectors: I18NSelectors): string {
-  const SELECTORS = JSON.stringify(selectors, null, 2);
+    const SELECTORS = JSON.stringify(selectors, null, 2);
 
-  return `
+    return `
 const SELECTORS = ${SELECTORS};
 
 /**
@@ -966,19 +945,14 @@ global.__PW_I18N_HAS__ = hasI18NSelectors;
  * Generate retry helper script
  */
 export function generateRetryScript(options: {
-  maxAttempts?: number;
-  delayMs?: number;
-  backoffMultiplier?: number;
-  verbose?: boolean;
+    maxAttempts?: number;
+    delayMs?: number;
+    backoffMultiplier?: number;
+    verbose?: boolean;
 }): string {
-  const {
-    maxAttempts = 3,
-    delayMs = 1000,
-    backoffMultiplier = 2,
-    verbose = false,
-  } = options;
+    const { maxAttempts = 3, delayMs = 1000, backoffMultiplier = 2, verbose = false } = options;
 
-  return `
+    return `
 const { chromium } = require('playwright');
 
 const MAX_ATTEMPTS = ${maxAttempts};
@@ -1037,51 +1011,53 @@ global.__PW_RETRY__ = retry;
 // ============================================================================
 
 export interface PublishingScriptOptions {
-  profileDir: string;
-  url: string;
-  selectors: I18NSelectors;
-  htmlFilePath?: string;
-  htmlContent?: string;
-  title?: string;
-  coverImage?: string;
-  contentImages?: Array<{ placeholder: string; localPath: string; blockIndex: number }>;
-  submit?: boolean;
-  verbose?: boolean;
-  loginTimeoutMs?: number;
+    profileDir: string;
+    url: string;
+    selectors: I18NSelectors;
+    htmlFilePath?: string;
+    htmlContent?: string;
+    title?: string;
+    coverImage?: string;
+    contentImages?: Array<{ placeholder: string; localPath: string; blockIndex: number }>;
+    submit?: boolean;
+    verbose?: boolean;
+    loginTimeoutMs?: number;
 }
 
 /**
  * Generate a complete publishing script with all features
  */
 export function generatePublishingScript(options: PublishingScriptOptions): string {
-  const {
-    profileDir,
-    url,
-    selectors,
-    htmlFilePath,
-    htmlContent,
-    title,
-    coverImage,
-    contentImages = [],
-    submit = false,
-    verbose = false,
-    loginTimeoutMs = 300000,
-  } = options;
+    const {
+        profileDir,
+        url,
+        selectors,
+        htmlFilePath,
+        htmlContent,
+        title,
+        coverImage,
+        contentImages = [],
+        submit = false,
+        verbose = false,
+        loginTimeoutMs = 300000,
+    } = options;
 
-  // Build content loading code
-  let contentLoadingCode = '';
-  if (htmlFilePath) {
-    contentLoadingCode = `
+    // Build content loading code
+    let contentLoadingCode = '';
+    if (htmlFilePath) {
+        contentLoadingCode = `
   // Read HTML from file
   const htmlContent = fs.readFileSync(${JSON.stringify(htmlFilePath)}, 'utf-8');
   log('HTML content length:', htmlContent.length, 'chars');`;
-  } else if (htmlContent) {
-    contentLoadingCode = `
+    } else if (htmlContent) {
+        contentLoadingCode = `
   const htmlContent = ${JSON.stringify(htmlContent)};`;
-  }
+    }
 
-  // Build content images code
-  const imagesCode = contentImages.length > 0 ? `
+    // Build content images code
+    const imagesCode =
+        contentImages.length > 0
+            ? `
   // Content images to insert
   const contentImages = ${JSON.stringify(contentImages)};
   if (contentImages.length > 0) {
@@ -1089,10 +1065,12 @@ export function generatePublishingScript(options: PublishingScriptOptions): stri
     for (const img of contentImages) {
       console.log('[pw]   -', img.placeholder, '->', img.localPath.split('/').pop());
     }
-  }` : '';
+  }`
+            : '';
 
-  // Build cover image code
-  const coverCode = coverImage ? `
+    // Build cover image code
+    const coverCode = coverImage
+        ? `
   // Upload cover image
   if (${JSON.stringify(coverImage)}) {
     console.log('[pw] Uploading cover image...');
@@ -1111,10 +1089,12 @@ export function generatePublishingScript(options: PublishingScriptOptions): stri
     } else {
       console.log('[pw] File input not found, skipping cover image');
     }
-  }` : '';
+  }`
+        : '';
 
-  // Build title code
-  const titleCode = title ? `
+    // Build title code
+    const titleCode = title
+        ? `
   // Fill title
   const titleText = ${JSON.stringify(title)};
   if (titleText) {
@@ -1131,10 +1111,12 @@ export function generatePublishingScript(options: PublishingScriptOptions): stri
     } else {
       console.log('[pw] Title input not found');
     }
-  }` : '';
+  }`
+        : '';
 
-  // Build submit code
-  const submitCode = submit ? `
+    // Build submit code
+    const submitCode = submit
+        ? `
     // Publish
     console.log('[pw] Publishing...');
     const publishResult = await trySelectors(page, SELECTORS.publishButton || [], 5000);
@@ -1144,14 +1126,15 @@ export function generatePublishingScript(options: PublishingScriptOptions): stri
       console.log('[pw] Article published!');
     } else {
       console.log('[pw] Publish button not found');
-    }` : `
+    }`
+        : `
     // Draft mode - keep browser open
     console.log('[pw] Article composed (draft mode)');
     console.log('[pw] Browser remains open for review');
     console.log('[pw] Press Ctrl+C to close');
     await page.waitForTimeout(300000);`;
 
-  return `
+    return `
 const { chromium } = require('playwright');
 const fs = require('fs');
 
@@ -1367,50 +1350,47 @@ ${submitCode}
 // ============================================================================
 
 export interface RetryOptions {
-  maxAttempts?: number;
-  delayMs?: number;
-  backoffMultiplier?: number;
-  shouldRetry?: (error: unknown) => boolean;
-  verbose?: boolean;
+    maxAttempts?: number;
+    delayMs?: number;
+    backoffMultiplier?: number;
+    shouldRetry?: (error: unknown) => boolean;
+    verbose?: boolean;
 }
 
 /**
  * Retry a function with exponential backoff (TypeScript side)
  */
-export async function retry<T>(
-  fn: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
-  const {
-    maxAttempts = 3,
-    delayMs = 1000,
-    backoffMultiplier = 2,
-    shouldRetry = () => true,
-    verbose = false,
-  } = options;
+export async function retry<T>(fn: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
+    const {
+        maxAttempts = 3,
+        delayMs = 1000,
+        backoffMultiplier = 2,
+        shouldRetry = () => true,
+        verbose = false,
+    } = options;
 
-  let lastError: unknown;
-  let delay = delayMs;
+    let lastError: unknown;
+    let delay = delayMs;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      lastError = error;
-      if (attempt < maxAttempts && shouldRetry(error)) {
-        if (verbose) {
-          console.log(`[pw:retry] Attempt ${attempt}/${maxAttempts} failed, retrying in ${delay}ms...`);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error;
+            if (attempt < maxAttempts && shouldRetry(error)) {
+                if (verbose) {
+                    console.log(`[pw:retry] Attempt ${attempt}/${maxAttempts} failed, retrying in ${delay}ms...`);
+                }
+                await pwSleep(delay);
+                delay *= backoffMultiplier;
+            } else {
+                if (verbose && attempt === maxAttempts) {
+                    console.log(`[pw:retry] All ${maxAttempts} attempts failed`);
+                }
+                break;
+            }
         }
-        await pwSleep(delay);
-        delay *= backoffMultiplier;
-      } else {
-        if (verbose && attempt === maxAttempts) {
-          console.log(`[pw:retry] All ${maxAttempts} attempts failed`);
-        }
-        break;
-      }
     }
-  }
 
-  throw lastError;
+    throw lastError;
 }

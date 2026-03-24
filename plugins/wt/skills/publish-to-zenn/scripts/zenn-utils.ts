@@ -4,34 +4,34 @@
  * This module provides shared utilities for Zenn publishing.
  */
 
-import * as fs from "node:fs";
-import { getWtConfig } from "@wt/web-automation/config";
+import * as fs from 'node:fs';
+import { getWtConfig } from '@wt/web-automation/config';
 
 // ============================================================================
 // WT Configuration
 // ============================================================================
 
 interface ZennConfig {
-	method?: "cli" | "browser";
-	github_repo?: string;
-	auto_publish?: boolean;
-	profile_dir?: string;
+    method?: 'cli' | 'browser';
+    github_repo?: string;
+    auto_publish?: boolean;
+    profile_dir?: string;
 }
 
 /**
  * Get Zenn config from WT config
  */
 export function getZennConfig(): ZennConfig {
-	const wtConfig = getWtConfig();
-	return (wtConfig["publish-to-zenn"] as ZennConfig) || {};
+    const wtConfig = getWtConfig();
+    return (wtConfig['publish-to-zenn'] as ZennConfig) || {};
 }
 
 /**
  * Get WT profile directory for browser automation
  */
 export function getWtProfileDir(): string | undefined {
-	const config = getZennConfig();
-	return config.profile_dir;
+    const config = getZennConfig();
+    return config.profile_dir;
 }
 
 // ============================================================================
@@ -39,10 +39,10 @@ export function getWtProfileDir(): string | undefined {
 // ============================================================================
 
 export const ZENN_URLS = {
-	home: "https://zenn.dev",
-	login: "https://zenn.dev/login",
-	githubSetup: "https://zenn.dev/settings/github",
-	articleCreate: "https://zenn.dev/articles/new",
+    home: 'https://zenn.dev',
+    login: 'https://zenn.dev/login',
+    githubSetup: 'https://zenn.dev/settings/github',
+    articleCreate: 'https://zenn.dev/articles/new',
 } as const;
 
 // ============================================================================
@@ -50,14 +50,14 @@ export const ZENN_URLS = {
 // ============================================================================
 
 export interface ParsedArticle {
-	title: string;
-	content: string;
-	slug?: string;
-	type?: "tech" | "idea";
-	emoji?: string;
-	topics?: string[];
-	published?: boolean;
-	cover?: string;
+    title: string;
+    content: string;
+    slug?: string;
+    type?: 'tech' | 'idea';
+    emoji?: string;
+    topics?: string[];
+    published?: boolean;
+    cover?: string;
 }
 
 // ============================================================================
@@ -68,85 +68,79 @@ export interface ParsedArticle {
  * Extract frontmatter from markdown content
  */
 function extractFrontmatter(content: string): {
-	frontmatter: Record<string, unknown>;
-	body: string;
+    frontmatter: Record<string, unknown>;
+    body: string;
 } {
-	const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
-	const match = content.match(frontmatterRegex);
+    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+    const match = content.match(frontmatterRegex);
 
-	if (!match) {
-		return { frontmatter: {}, body: content };
-	}
+    if (!match) {
+        return { frontmatter: {}, body: content };
+    }
 
-	const frontmatterLines = match[1]?.split("\n");
-	const frontmatter: Record<string, unknown> = {};
+    const frontmatterLines = match[1]?.split('\n');
+    const frontmatter: Record<string, unknown> = {};
 
-	for (const line of frontmatterLines) {
-		const colonIndex = line.indexOf(":");
-		if (colonIndex === -1) continue;
+    for (const line of frontmatterLines) {
+        const colonIndex = line.indexOf(':');
+        if (colonIndex === -1) continue;
 
-		const key = line.slice(0, colonIndex).trim();
-		let value: unknown = line.slice(colonIndex + 1).trim();
+        const key = line.slice(0, colonIndex).trim();
+        let value: unknown = line.slice(colonIndex + 1).trim();
 
-		// Handle boolean and number types
-		if (value === "true") value = true;
-		else if (value === "false") value = false;
-		else if (!Number.isNaN(Number(value))) value = Number(value);
-		// Handle array syntax
-		else if (
-			typeof value === "string" &&
-			value.startsWith("[") &&
-			value.endsWith("]")
-		) {
-			value = value
-				.slice(1, -1)
-				.split(",")
-				.map((v: string) => v.trim())
-				.filter((v) => v);
-		}
+        // Handle boolean and number types
+        if (value === 'true') value = true;
+        else if (value === 'false') value = false;
+        else if (!Number.isNaN(Number(value))) value = Number(value);
+        // Handle array syntax
+        else if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
+            value = value
+                .slice(1, -1)
+                .split(',')
+                .map((v: string) => v.trim())
+                .filter((v) => v);
+        }
 
-		frontmatter[key] = value;
-	}
+        frontmatter[key] = value;
+    }
 
-	return { frontmatter, body: match[2] ?? "" };
+    return { frontmatter, body: match[2] ?? '' };
 }
 
 /**
  * Parse markdown file and extract article data
  */
 export function parseMarkdownFile(filePath: string): ParsedArticle {
-	const content = fs.readFileSync(filePath, "utf-8");
-	const { frontmatter, body } = extractFrontmatter(content);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const { frontmatter, body } = extractFrontmatter(content);
 
-	const title = (frontmatter.title as string) || "";
-	const slug = frontmatter.slug as string | undefined;
-	const type = (frontmatter.type as string) || "tech";
-	const emoji = frontmatter.emoji as string | undefined;
-	const topics = frontmatter.topics as string[] | undefined;
-	const published = frontmatter.published as boolean | undefined;
-	const cover = frontmatter.cover as string | undefined;
+    const title = (frontmatter.title as string) || '';
+    const slug = frontmatter.slug as string | undefined;
+    const type = (frontmatter.type as string) || 'tech';
+    const emoji = frontmatter.emoji as string | undefined;
+    const topics = frontmatter.topics as string[] | undefined;
+    const published = frontmatter.published as boolean | undefined;
+    const cover = frontmatter.cover as string | undefined;
 
-	if (!title) {
-		throw new Error(
-			'Title is required. Add "title: Your Title" to frontmatter or use --title flag.',
-		);
-	}
+    if (!title) {
+        throw new Error('Title is required. Add "title: Your Title" to frontmatter or use --title flag.');
+    }
 
-	// Validate type
-	if (type !== "tech" && type !== "idea") {
-		throw new Error(`Invalid type: ${type}. Must be 'tech' or 'idea'.`);
-	}
+    // Validate type
+    if (type !== 'tech' && type !== 'idea') {
+        throw new Error(`Invalid type: ${type}. Must be 'tech' or 'idea'.`);
+    }
 
-	return {
-		title,
-		content: body,
-		slug,
-		type: type as "tech" | "idea",
-		emoji,
-		topics,
-		published,
-		cover,
-	};
+    return {
+        title,
+        content: body,
+        slug,
+        type: type as 'tech' | 'idea',
+        emoji,
+        topics,
+        published,
+        cover,
+    };
 }
 
 // ============================================================================
@@ -157,30 +151,30 @@ export function parseMarkdownFile(filePath: string): ParsedArticle {
  * Generate slug from title
  */
 export function generateSlug(title: string): string {
-	// Transliterate to ASCII (basic implementation)
-	let slug = title
-		.toLowerCase()
-		.replace(/[^\w\s-]/g, "-") // Remove special chars
-		.replace(/\s+/g, "-") // Spaces to hyphens
-		.replace(/-+/g, "-") // Multiple hyphens to single
-		.trim();
+    // Transliterate to ASCII (basic implementation)
+    let slug = title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '-') // Remove special chars
+        .replace(/\s+/g, '-') // Spaces to hyphens
+        .replace(/-+/g, '-') // Multiple hyphens to single
+        .trim();
 
-	// Remove leading/trailing hyphens
-	slug = slug.replace(/^-+|-+$/g, "");
+    // Remove leading/trailing hyphens
+    slug = slug.replace(/^-+|-+$/g, '');
 
-	// Ensure minimum length (Zenn requires 12 characters)
-	if (slug.length < 12) {
-		// Add timestamp or random suffix
-		const timestamp = Date.now().toString(36);
-		slug = `${slug}-${timestamp}`;
-	}
+    // Ensure minimum length (Zenn requires 12 characters)
+    if (slug.length < 12) {
+        // Add timestamp or random suffix
+        const timestamp = Date.now().toString(36);
+        slug = `${slug}-${timestamp}`;
+    }
 
-	// Limit to reasonable length
-	if (slug.length > 100) {
-		slug = slug.substring(0, 100);
-	}
+    // Limit to reasonable length
+    if (slug.length > 100) {
+        slug = slug.substring(0, 100);
+    }
 
-	return slug;
+    return slug;
 }
 
 // ============================================================================
@@ -197,5 +191,5 @@ export function generateSlug(title: string): string {
  * - Prevents XSS attacks from malicious content
  */
 export function sanitizeForJavaScript(str: string): string {
-	return JSON.stringify(str);
+    return JSON.stringify(str);
 }

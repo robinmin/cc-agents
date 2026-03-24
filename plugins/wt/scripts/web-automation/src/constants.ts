@@ -104,20 +104,21 @@ export const DEFAULT_SLOW_MO = 100;
  * Platform-specific user agent strings
  */
 export const USER_AGENTS = {
-  /**
-   * Generic user agent (cross-platform)
-   */
-  DEFAULT: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    /**
+     * Generic user agent (cross-platform)
+     */
+    DEFAULT:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 
-  /**
-   * Chrome-specific user agent
-   */
-  CHROME: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    /**
+     * Chrome-specific user agent
+     */
+    CHROME: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 
-  /**
-   * Safari-specific user agent (macOS)
-   */
-  SAFARI: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
+    /**
+     * Safari-specific user agent (macOS)
+     */
+    SAFARI: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15',
 } as const;
 
 // ============================================================================
@@ -151,13 +152,13 @@ export const VALID_VIDEO_FORMATS = ['mp4', 'mov', 'webm'] as const;
  * @returns Timeout value in milliseconds
  */
 export function getTimeoutFromEnv(envVar: string, defaultValue: number): number {
-  const value = process.env[envVar];
-  if (!value) return defaultValue;
+    const value = process.env[envVar];
+    if (!value) return defaultValue;
 
-  const parsed = Number.parseInt(value, 10);
-  if (isNaN(parsed)) return defaultValue;
+    const parsed = Number.parseInt(value, 10);
+    if (isNaN(parsed)) return defaultValue;
 
-  return parsed;
+    return parsed;
 }
 
 /**
@@ -168,8 +169,8 @@ export function getTimeoutFromEnv(envVar: string, defaultValue: number): number 
  * @returns Boolean value
  */
 export function getBooleanFromEnv(envVar: string, defaultValue: boolean): boolean {
-  const value = process.env[envVar];
-  if (!value) return defaultValue;
+    const value = process.env[envVar];
+    if (!value) return defaultValue;
 
-  return value.toLowerCase() === 'true' || value === '1';
+    return value.toLowerCase() === 'true' || value === '1';
 }

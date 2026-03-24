@@ -19,12 +19,12 @@
  * const safe = escapeHtml(userInput); // "&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;"
  */
 export function escapeHtml(unsafe: string): string {
-  return String(unsafe)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 /**
@@ -34,19 +34,19 @@ export function escapeHtml(unsafe: string): string {
  * Uses entity encoding that works within HTML attribute context.
  */
 export function escapeHtmlAttribute(value: string): string {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 /**
  * Valid theme names for WeChat MP articles
  */
 const VALID_THEMES = ['default', 'grace', 'simple'] as const;
-export type ValidTheme = typeof VALID_THEMES[number];
+export type ValidTheme = (typeof VALID_THEMES)[number];
 
 /**
  * Check if theme string is valid
@@ -55,7 +55,7 @@ export type ValidTheme = typeof VALID_THEMES[number];
  * @returns true if theme is valid
  */
 export function isValidTheme(theme: string): theme is ValidTheme {
-  return VALID_THEMES.includes(theme as ValidTheme);
+    return VALID_THEMES.includes(theme as ValidTheme);
 }
 
 /**
@@ -68,12 +68,10 @@ export function isValidTheme(theme: string): theme is ValidTheme {
  * @throws Error if theme is invalid
  */
 export function sanitizeTheme(theme: string): ValidTheme {
-  if (!isValidTheme(theme)) {
-    throw new Error(
-      `Invalid theme: ${theme}. Valid themes: ${VALID_THEMES.join(', ')}`
-    );
-  }
-  return theme;
+    if (!isValidTheme(theme)) {
+        throw new Error(`Invalid theme: ${theme}. Valid themes: ${VALID_THEMES.join(', ')}`);
+    }
+    return theme;
 }
 
 /**
@@ -96,10 +94,10 @@ export const validateTheme = sanitizeTheme;
  * @throws Error if theme is invalid (not undefined and not in whitelist)
  */
 export function getValidTheme(theme: string | undefined, fallback: ValidTheme = 'default'): ValidTheme {
-  if (!theme) {
-    return fallback;
-  }
-  return validateTheme(theme);
+    if (!theme) {
+        return fallback;
+    }
+    return validateTheme(theme);
 }
 
 /**
@@ -112,16 +110,16 @@ export function getValidTheme(theme: string | undefined, fallback: ValidTheme = 
  * @returns Sanitized URL or safe fallback
  */
 export function sanitizeUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const safeProtocols = ['http:', 'https:', 'mailto:', 'tel:'];
-    if (!safeProtocols.includes(parsed.protocol)) {
-      return 'javascript:void(0)';
+    try {
+        const parsed = new URL(url);
+        const safeProtocols = ['http:', 'https:', 'mailto:', 'tel:'];
+        if (!safeProtocols.includes(parsed.protocol)) {
+            return 'javascript:void(0)';
+        }
+        return url;
+    } catch {
+        return 'javascript:void(0)';
     }
-    return url;
-  } catch {
-    return 'javascript:void(0)';
-  }
 }
 
 /**
@@ -133,7 +131,7 @@ export function sanitizeUrl(url: string): string {
  * @returns Plain text without HTML tags
  */
 export function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '');
+    return html.replace(/<[^>]*>/g, '');
 }
 
 /**
@@ -147,6 +145,6 @@ export function stripHtml(html: string): string {
  * @returns Truncated string
  */
 export function truncate(str: string, maxLength: number, suffix = '...'): string {
-  if (str.length <= maxLength) return str;
-  return str.substring(0, maxLength - suffix.length) + suffix;
+    if (str.length <= maxLength) return str;
+    return str.substring(0, maxLength - suffix.length) + suffix;
 }

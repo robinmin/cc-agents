@@ -34,22 +34,22 @@ import { FileValidationError } from './errors.js';
  * ```
  */
 export async function safeWriteFile(
-  filePath: string,
-  content: string,
-  encoding: BufferEncoding = 'utf-8'
+    filePath: string,
+    content: string,
+    encoding: BufferEncoding = 'utf-8',
 ): Promise<void> {
-  let handle: fs.FileHandle | null = null;
+    let handle: fs.FileHandle | null = null;
 
-  try {
-    handle = await fs.open(filePath, 'w');
-    // FileHandle.writeFile doesn't support encoding option, convert to Buffer first
-    const buffer = Buffer.from(content, encoding);
-    await handle.writeFile(buffer);
-  } catch (err) {
-    throw new FileValidationError(filePath, `Failed to write file: ${err}`, 'WRITE_ERROR', { error: err });
-  } finally {
-    await handle?.close();
-  }
+    try {
+        handle = await fs.open(filePath, 'w');
+        // FileHandle.writeFile doesn't support encoding option, convert to Buffer first
+        const buffer = Buffer.from(content, encoding);
+        await handle.writeFile(buffer);
+    } catch (err) {
+        throw new FileValidationError(filePath, `Failed to write file: ${err}`, 'WRITE_ERROR', { error: err });
+    } finally {
+        await handle?.close();
+    }
 }
 
 /**
@@ -67,21 +67,18 @@ export async function safeWriteFile(
  * const content = await safeReadFile('/path/to/file.txt', 'utf-8');
  * ```
  */
-export async function safeReadFile(
-  filePath: string,
-  encoding: BufferEncoding = 'utf-8'
-): Promise<string> {
-  let handle: fs.FileHandle | null = null;
+export async function safeReadFile(filePath: string, encoding: BufferEncoding = 'utf-8'): Promise<string> {
+    let handle: fs.FileHandle | null = null;
 
-  try {
-    handle = await fs.open(filePath, 'r');
-    const { bytesRead, buffer } = await handle.read();
-    return buffer.subarray(0, bytesRead).toString(encoding);
-  } catch (err) {
-    throw new FileValidationError(filePath, `Failed to read file: ${err}`, 'READ_ERROR', { error: err });
-  } finally {
-    await handle?.close();
-  }
+    try {
+        handle = await fs.open(filePath, 'r');
+        const { bytesRead, buffer } = await handle.read();
+        return buffer.subarray(0, bytesRead).toString(encoding);
+    } catch (err) {
+        throw new FileValidationError(filePath, `Failed to read file: ${err}`, 'READ_ERROR', { error: err });
+    } finally {
+        await handle?.close();
+    }
 }
 
 /**
@@ -93,22 +90,22 @@ export async function safeReadFile(
  * @throws {FileValidationError} If file cannot be appended to
  */
 export async function safeAppendFile(
-  filePath: string,
-  content: string,
-  encoding: BufferEncoding = 'utf-8'
+    filePath: string,
+    content: string,
+    encoding: BufferEncoding = 'utf-8',
 ): Promise<void> {
-  let handle: fs.FileHandle | null = null;
+    let handle: fs.FileHandle | null = null;
 
-  try {
-    handle = await fs.open(filePath, 'a');
-    // FileHandle.appendFile doesn't support encoding option, convert to Buffer first
-    const buffer = Buffer.from(content, encoding);
-    await handle.appendFile(buffer);
-  } catch (err) {
-    throw new FileValidationError(filePath, `Failed to append to file: ${err}`, 'APPEND_ERROR', { error: err });
-  } finally {
-    await handle?.close();
-  }
+    try {
+        handle = await fs.open(filePath, 'a');
+        // FileHandle.appendFile doesn't support encoding option, convert to Buffer first
+        const buffer = Buffer.from(content, encoding);
+        await handle.appendFile(buffer);
+    } catch (err) {
+        throw new FileValidationError(filePath, `Failed to append to file: ${err}`, 'APPEND_ERROR', { error: err });
+    } finally {
+        await handle?.close();
+    }
 }
 
 // ============================================================================
@@ -132,25 +129,22 @@ export async function safeAppendFile(
  * });
  * ```
  */
-export async function processStream(
-  stream: Readable,
-  processor: (chunk: Buffer) => void
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const cleanup = () => {
-      stream.removeAllListeners();
-    };
+export async function processStream(stream: Readable, processor: (chunk: Buffer) => void): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const cleanup = () => {
+            stream.removeAllListeners();
+        };
 
-    stream.on('data', processor);
-    stream.on('end', () => {
-      cleanup();
-      resolve();
+        stream.on('data', processor);
+        stream.on('end', () => {
+            cleanup();
+            resolve();
+        });
+        stream.on('error', (err) => {
+            cleanup();
+            reject(err);
+        });
     });
-    stream.on('error', (err) => {
-      cleanup();
-      reject(err);
-    });
-  });
 }
 
 /**
@@ -163,30 +157,28 @@ export async function processStream(
  * @throws {FileValidationError} If copy fails
  */
 export async function copyFile(sourcePath: string, destPath: string): Promise<void> {
-  let readStream: ReturnType<typeof createReadStream> | null = null;
-  let writeStream: ReturnType<typeof createWriteStream> | null = null;
+    let readStream: ReturnType<typeof createReadStream> | null = null;
+    let writeStream: ReturnType<typeof createWriteStream> | null = null;
 
-  try {
-    readStream = createReadStream(sourcePath);
-    writeStream = createWriteStream(destPath);
+    try {
+        readStream = createReadStream(sourcePath);
+        writeStream = createWriteStream(destPath);
 
-    await pipeline(readStream, writeStream);
-  } catch (err) {
-    throw new FileValidationError(
-      destPath,
-      `Failed to copy from ${sourcePath}: ${err}`,
-      'COPY_ERROR',
-      { sourcePath, error: err }
-    );
-  } finally {
-    // Ensure streams are closed
-    if (readStream && !readStream.destroyed) {
-      readStream.destroy();
+        await pipeline(readStream, writeStream);
+    } catch (err) {
+        throw new FileValidationError(destPath, `Failed to copy from ${sourcePath}: ${err}`, 'COPY_ERROR', {
+            sourcePath,
+            error: err,
+        });
+    } finally {
+        // Ensure streams are closed
+        if (readStream && !readStream.destroyed) {
+            readStream.destroy();
+        }
+        if (writeStream && !writeStream.destroyed) {
+            writeStream.destroy();
+        }
     }
-    if (writeStream && !writeStream.destroyed) {
-      writeStream.destroy();
-    }
-  }
 }
 
 // ============================================================================
@@ -202,11 +194,11 @@ export async function copyFile(sourcePath: string, destPath: string): Promise<vo
  * @throws {Error} If directory creation fails
  */
 export async function ensureDir(dirPath: string): Promise<void> {
-  try {
-    await fs.mkdir(dirPath, { recursive: true });
-  } catch (err) {
-    throw new Error(`Failed to create directory ${dirPath}: ${err}`);
-  }
+    try {
+        await fs.mkdir(dirPath, { recursive: true });
+    } catch (err) {
+        throw new Error(`Failed to create directory ${dirPath}: ${err}`);
+    }
 }
 
 /**
@@ -216,11 +208,11 @@ export async function ensureDir(dirPath: string): Promise<void> {
  * @throws {Error} If removal fails
  */
 export async function removeDir(dirPath: string): Promise<void> {
-  try {
-    await fs.rm(dirPath, { recursive: true, force: true });
-  } catch (err) {
-    throw new Error(`Failed to remove directory ${dirPath}: ${err}`);
-  }
+    try {
+        await fs.rm(dirPath, { recursive: true, force: true });
+    } catch (err) {
+        throw new Error(`Failed to remove directory ${dirPath}: ${err}`);
+    }
 }
 
 /**
@@ -230,11 +222,11 @@ export async function removeDir(dirPath: string): Promise<void> {
  * @returns True if file exists
  */
 export function fileExists(filePath: string): boolean {
-  try {
-    return fsSync.existsSync(filePath);
-  } catch {
-    return false;
-  }
+    try {
+        return fsSync.existsSync(filePath);
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -245,12 +237,12 @@ export function fileExists(filePath: string): boolean {
  * @throws {FileValidationError} If file cannot be accessed
  */
 export async function getFileSize(filePath: string): Promise<number> {
-  try {
-    const stats = await fs.stat(filePath);
-    return stats.size;
-  } catch (err) {
-    throw new FileValidationError(filePath, `Cannot access file: ${err}`, 'ACCESS_ERROR', { error: err });
-  }
+    try {
+        const stats = await fs.stat(filePath);
+        return stats.size;
+    } catch (err) {
+        throw new FileValidationError(filePath, `Cannot access file: ${err}`, 'ACCESS_ERROR', { error: err });
+    }
 }
 
 // ============================================================================
@@ -264,15 +256,15 @@ export async function getFileSize(filePath: string): Promise<number> {
  * @returns File extension without dot, or empty string
  */
 export function getFileExtension(filePath: string): string {
-  // Check if there's a dot in the filename (after the last slash)
-  const lastSlash = filePath.lastIndexOf('/');
-  const lastDot = filePath.lastIndexOf('.');
-  // Only consider it an extension if there's a dot after the last slash
-  // and the dot is not at the start of the filename (hidden files)
-  if (lastDot > lastSlash && lastDot > (lastSlash >= 0 ? lastSlash + 1 : 0)) {
-    return filePath.slice(lastDot + 1);
-  }
-  return '';
+    // Check if there's a dot in the filename (after the last slash)
+    const lastSlash = filePath.lastIndexOf('/');
+    const lastDot = filePath.lastIndexOf('.');
+    // Only consider it an extension if there's a dot after the last slash
+    // and the dot is not at the start of the filename (hidden files)
+    if (lastDot > lastSlash && lastDot > (lastSlash >= 0 ? lastSlash + 1 : 0)) {
+        return filePath.slice(lastDot + 1);
+    }
+    return '';
 }
 
 /**
@@ -282,6 +274,6 @@ export function getFileExtension(filePath: string): string {
  * @returns File name without extension
  */
 export function getFileNameWithoutExtension(filePath: string): string {
-  const fileName = filePath.split('/').pop() || filePath;
-  return fileName.replace(/\.[^/.]+$/, '');
+    const fileName = filePath.split('/').pop() || filePath;
+    return fileName.replace(/\.[^/.]+$/, '');
 }

@@ -1,18 +1,18 @@
 {
-	"name": "publish-to-xhs",
-	"version": "1.0.0",
-	"description": "XHS (Xiaohongshu) publishing skill with unit tests",
-	"type": "module",
-	"scripts": {
-		"test": "bun test",
-		"test:coverage": "bun test --coverage",
-		"test:watch": "bun test --watch"
-	},
-	"dependencies": {
-		"playwright": "^1.40.0"
-	},
-	"devDependencies": {
-		"bun-types": "latest",
-		"@wt/web-automation": "workspace:*"
-	}
+    "name": "publish-to-xhs",
+    "version": "1.0.0",
+    "description": "XHS (Xiaohongshu) publishing skill with unit tests",
+    "type": "module",
+    "scripts": {
+        "test": "bun test",
+        "test:coverage": "bun test --coverage",
+        "test:watch": "bun test --watch"
+    },
+    "dependencies": {
+        "playwright": "^1.40.0"
+    },
+    "devDependencies": {
+        "bun-types": "latest",
+        "@wt/web-automation": "workspace:*"
+    }
 }

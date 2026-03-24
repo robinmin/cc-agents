@@ -11,118 +11,118 @@
  * integration testing with actual Chrome/Chromium.
  */
 
-import { describe, expect, test } from "bun:test";
-import * as path from "node:path";
+import { describe, expect, test } from 'bun:test';
+import * as path from 'node:path';
 
 // Import functions under test
 import {
-	CHROME_CANDIDATES_FULL,
-	findChromeExecutable,
-	getDefaultProfileDir,
-	getFreePort,
-	sleep,
-} from "../scripts/cdp.js";
+    CHROME_CANDIDATES_FULL,
+    findChromeExecutable,
+    getDefaultProfileDir,
+    getFreePort,
+    sleep,
+} from '../scripts/cdp.js';
 
-describe("zenn cdp utilities", () => {
-	describe("sleep", () => {
-		test("should resolve after specified milliseconds", async () => {
-			const start = Date.now();
-			await sleep(100);
-			const elapsed = Date.now() - start;
+describe('zenn cdp utilities', () => {
+    describe('sleep', () => {
+        test('should resolve after specified milliseconds', async () => {
+            const start = Date.now();
+            await sleep(100);
+            const elapsed = Date.now() - start;
 
-			expect(elapsed).toBeGreaterThanOrEqual(100);
-			expect(elapsed).toBeLessThan(200);
-		});
+            expect(elapsed).toBeGreaterThanOrEqual(100);
+            expect(elapsed).toBeLessThan(200);
+        });
 
-		test("should resolve immediately for 0ms", async () => {
-			const start = Date.now();
-			await sleep(0);
-			const elapsed = Date.now() - start;
+        test('should resolve immediately for 0ms', async () => {
+            const start = Date.now();
+            await sleep(0);
+            const elapsed = Date.now() - start;
 
-			expect(elapsed).toBeLessThan(20);
-		});
-	});
+            expect(elapsed).toBeLessThan(20);
+        });
+    });
 
-	describe("getFreePort", () => {
-		test("should allocate a free port", async () => {
-			const port = await getFreePort();
+    describe('getFreePort', () => {
+        test('should allocate a free port', async () => {
+            const port = await getFreePort();
 
-			expect(port).toBeGreaterThan(0);
-			expect(port).toBeLessThan(65536);
-		});
+            expect(port).toBeGreaterThan(0);
+            expect(port).toBeLessThan(65536);
+        });
 
-		test("should allocate different ports on consecutive calls", async () => {
-			const port1 = await getFreePort();
-			const port2 = await getFreePort();
+        test('should allocate different ports on consecutive calls', async () => {
+            const port1 = await getFreePort();
+            const port2 = await getFreePort();
 
-			expect(port1).toBeDefined();
-			expect(port2).toBeDefined();
-		});
-	});
+            expect(port1).toBeDefined();
+            expect(port2).toBeDefined();
+        });
+    });
 
-	describe("findChromeExecutable", () => {
-		test("should return executable path or undefined", () => {
-			const result = findChromeExecutable();
+    describe('findChromeExecutable', () => {
+        test('should return executable path or undefined', () => {
+            const result = findChromeExecutable();
 
-			expect(result === undefined || typeof result === "string").toBe(true);
+            expect(result === undefined || typeof result === 'string').toBe(true);
 
-			if (result) {
-				expect(path.isAbsolute(result)).toBe(true);
-			}
-		});
-	});
+            if (result) {
+                expect(path.isAbsolute(result)).toBe(true);
+            }
+        });
+    });
 
-	describe("getDefaultProfileDir", () => {
-		test("should return profile directory path for current platform", () => {
-			const result = getDefaultProfileDir();
+    describe('getDefaultProfileDir', () => {
+        test('should return profile directory path for current platform', () => {
+            const result = getDefaultProfileDir();
 
-			expect(result).toBeDefined();
-			expect(typeof result).toBe("string");
-			expect(result.length).toBeGreaterThan(0);
+            expect(result).toBeDefined();
+            expect(typeof result).toBe('string');
+            expect(result.length).toBeGreaterThan(0);
 
-			expect(path.isAbsolute(result)).toBe(true);
-			expect(result).toContain("zenn-browser-profile");
-		});
+            expect(path.isAbsolute(result)).toBe(true);
+            expect(result).toContain('zenn-browser-profile');
+        });
 
-		test("should return consistent results on multiple calls", () => {
-			const result1 = getDefaultProfileDir();
-			const result2 = getDefaultProfileDir();
+        test('should return consistent results on multiple calls', () => {
+            const result1 = getDefaultProfileDir();
+            const result2 = getDefaultProfileDir();
 
-			expect(result1).toBe(result2);
-		});
-	});
+            expect(result1).toBe(result2);
+        });
+    });
 
-	describe("CHROME_CANDIDATES_FULL", () => {
-		test("should define candidates for all platforms", () => {
-			expect(CHROME_CANDIDATES_FULL).toBeDefined();
-			expect(CHROME_CANDIDATES_FULL.darwin).toBeDefined();
-			expect(CHROME_CANDIDATES_FULL.default).toBeDefined();
-			expect(CHROME_CANDIDATES_FULL.win32).toBeDefined();
-		});
+    describe('CHROME_CANDIDATES_FULL', () => {
+        test('should define candidates for all platforms', () => {
+            expect(CHROME_CANDIDATES_FULL).toBeDefined();
+            expect(CHROME_CANDIDATES_FULL.darwin).toBeDefined();
+            expect(CHROME_CANDIDATES_FULL.default).toBeDefined();
+            expect(CHROME_CANDIDATES_FULL.win32).toBeDefined();
+        });
 
-		test("darwin candidates should include common macOS paths", () => {
-			const darwinPaths = CHROME_CANDIDATES_FULL.darwin;
+        test('darwin candidates should include common macOS paths', () => {
+            const darwinPaths = CHROME_CANDIDATES_FULL.darwin;
 
-			expect(darwinPaths).toBeDefined();
-			expect(darwinPaths?.length).toBeGreaterThan(0);
+            expect(darwinPaths).toBeDefined();
+            expect(darwinPaths?.length).toBeGreaterThan(0);
 
-			const hasChrome = darwinPaths?.some((p) => p.includes("Google Chrome"));
-			const hasChromium = darwinPaths?.some((p) => p.includes("Chromium"));
-			const hasEdge = darwinPaths?.some((p) => p.includes("Edge"));
+            const hasChrome = darwinPaths?.some((p) => p.includes('Google Chrome'));
+            const hasChromium = darwinPaths?.some((p) => p.includes('Chromium'));
+            const hasEdge = darwinPaths?.some((p) => p.includes('Edge'));
 
-			expect(hasChrome || hasChromium || hasEdge).toBe(true);
-		});
+            expect(hasChrome || hasChromium || hasEdge).toBe(true);
+        });
 
-		test("default candidates should include Linux paths", () => {
-			const defaultPaths = CHROME_CANDIDATES_FULL.default;
+        test('default candidates should include Linux paths', () => {
+            const defaultPaths = CHROME_CANDIDATES_FULL.default;
 
-			expect(defaultPaths).toBeDefined();
-			expect(defaultPaths?.length).toBeGreaterThan(0);
+            expect(defaultPaths).toBeDefined();
+            expect(defaultPaths?.length).toBeGreaterThan(0);
 
-			const hasChrome = defaultPaths?.some((p) => p.includes("chrome"));
-			const hasChromium = defaultPaths?.some((p) => p.includes("chromium"));
+            const hasChrome = defaultPaths?.some((p) => p.includes('chrome'));
+            const hasChromium = defaultPaths?.some((p) => p.includes('chromium'));
 
-			expect(hasChrome || hasChromium).toBe(true);
-		});
-	});
+            expect(hasChrome || hasChromium).toBe(true);
+        });
+    });
 });

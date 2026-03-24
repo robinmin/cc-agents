@@ -14,7 +14,7 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 // Import functions under test
-import { getPlatform, inferImageMimeType, resolvePath, } from '../src/clipboard';
+import { getPlatform, inferImageMimeType, resolvePath } from '../src/clipboard';
 describe('getPlatform', () => {
     test('should return darwin on macOS', () => {
         const original = process.platform;
@@ -126,8 +126,7 @@ describe('copyHtmlFileToClipboard - validation', () => {
             const htmlPath = path.join(tempDir, 'test.html');
             await writeFile(htmlPath, '<html><body>Test</body></html>', 'utf8');
             expect(fs.existsSync(htmlPath)).toBe(true);
-        }
-        finally {
+        } finally {
             await rm(tempDir, { recursive: true, force: true });
         }
     });

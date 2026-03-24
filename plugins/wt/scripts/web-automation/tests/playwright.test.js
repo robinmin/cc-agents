@@ -5,7 +5,19 @@ import { describe, it, expect, vi } from 'bun:test';
 import * as path from 'node:path';
 import * as os from 'node:os';
 // Import functions to test
-import { pwSleep, getFreePort, getDefaultProfileDir, retry, generateLaunchScript, generateLoginDetectionScript, generateElementHelpersScript, generateContentInsertionScript, generateI18NSelectorsScript, generateRetryScript, generatePublishingScript, } from '../src/playwright';
+import {
+    pwSleep,
+    getFreePort,
+    getDefaultProfileDir,
+    retry,
+    generateLaunchScript,
+    generateLoginDetectionScript,
+    generateElementHelpersScript,
+    generateContentInsertionScript,
+    generateI18NSelectorsScript,
+    generateRetryScript,
+    generatePublishingScript,
+} from '../src/playwright';
 describe('pwSleep', () => {
     it('should resolve after specified ms', async () => {
         const start = Date.now();
@@ -37,12 +49,10 @@ describe('getDefaultProfileDir', () => {
             process.env.XDG_DATA_HOME = '/custom/data';
             const dir = getDefaultProfileDir('test');
             expect(dir).toBe('/custom/data/test-profile');
-        }
-        finally {
+        } finally {
             if (original !== undefined) {
                 process.env.XDG_DATA_HOME = original;
-            }
-            else {
+            } else {
                 delete process.env.XDG_DATA_HOME;
             }
         }
@@ -54,8 +64,7 @@ describe('getDefaultProfileDir', () => {
             const dir = getDefaultProfileDir('myapp');
             const expected = path.join(os.homedir(), '.local', 'share', 'myapp-profile');
             expect(dir).toBe(expected);
-        }
-        finally {
+        } finally {
             if (original !== undefined) {
                 process.env.XDG_DATA_HOME = original;
             }
@@ -67,8 +76,7 @@ describe('getDefaultProfileDir', () => {
         try {
             const dir = getDefaultProfileDir();
             expect(dir.endsWith('wt-browser-profile')).toBe(true);
-        }
-        finally {
+        } finally {
             if (original !== undefined) {
                 process.env.XDG_DATA_HOME = original;
             }
@@ -112,11 +120,13 @@ describe('retry', () => {
             callCount++;
             throw new Error('retryable');
         });
-        await expect(retry(fn, {
-            maxAttempts: 5,
-            delayMs: 10,
-            shouldRetry: () => false,
-        })).rejects.toThrow('retryable');
+        await expect(
+            retry(fn, {
+                maxAttempts: 5,
+                delayMs: 10,
+                shouldRetry: () => false,
+            }),
+        ).rejects.toThrow('retryable');
         expect(callCount).toBe(1);
     });
     it('should use exponential backoff', async () => {
@@ -153,7 +163,7 @@ describe('generateLaunchScript', () => {
         expect(script).toContain('/test/profile');
         expect(script).toContain('https://example.com');
         expect(script).toContain('HEADLESS = true');
-        expect(script).toContain("global.__PW_CONTEXT__");
+        expect(script).toContain('global.__PW_CONTEXT__');
     });
     it('should use default values when not provided', () => {
         const script = generateLaunchScript({
@@ -216,7 +226,7 @@ describe('generateElementHelpersScript', () => {
         expect(script).toContain('fillContent');
         expect(script).toContain('uploadFiles');
         expect(script).toContain('[data-testid=\\"btn\\"]');
-        expect(script).toContain("global.__PW_CLICK__");
+        expect(script).toContain('global.__PW_CLICK__');
     });
     it('should handle empty selectors', () => {
         const script = generateElementHelpersScript({});
@@ -257,9 +267,9 @@ describe('generateI18NSelectorsScript', () => {
     });
     it('should export helper functions globally', () => {
         const script = generateI18NSelectorsScript({});
-        expect(script).toContain("global.__PW_I18N_GET__");
-        expect(script).toContain("global.__PW_I18N_FIRST__");
-        expect(script).toContain("global.__PW_I18N_HAS__");
+        expect(script).toContain('global.__PW_I18N_GET__');
+        expect(script).toContain('global.__PW_I18N_FIRST__');
+        expect(script).toContain('global.__PW_I18N_HAS__');
     });
 });
 describe('generateRetryScript', () => {

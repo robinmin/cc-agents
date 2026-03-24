@@ -6,7 +6,15 @@ import fs from 'node:fs';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { analyzeMarkdown, parseTable, parseCodeBlock, formatCodeBlockBordered, formatCodeBlockSimple, tableToText, convertTablesAndCodeBlocks, } from '../src/table-code-converter.js';
+import {
+    analyzeMarkdown,
+    parseTable,
+    parseCodeBlock,
+    formatCodeBlockBordered,
+    formatCodeBlockSimple,
+    tableToText,
+    convertTablesAndCodeBlocks,
+} from '../src/table-code-converter.js';
 // ============================================================================
 // Test Utilities
 // ============================================================================
@@ -81,16 +89,15 @@ describe('analyzeMarkdown', () => {
 // ============================================================================
 describe('parseTable', () => {
     test('should parse a simple table', () => {
-        const lines = [
-            '| Col1 | Col2 |',
-            '|------|------|',
-            '| A    | B    |',
-        ];
+        const lines = ['| Col1 | Col2 |', '|------|------|', '| A    | B    |'];
         const table = parseTable(lines, 0);
         expect(table).not.toBeNull();
         expect(table.type).toBe('table');
         expect(table.headers).toEqual(['Col1', 'Col2']);
-        expect(table.rows).toEqual([['Col1', 'Col2'], ['A', 'B']]);
+        expect(table.rows).toEqual([
+            ['Col1', 'Col2'],
+            ['A', 'B'],
+        ]);
         expect(table.startIndex).toBe(0);
         expect(table.endIndex).toBe(3);
     });
@@ -111,30 +118,18 @@ describe('parseTable', () => {
     });
     test('should not parse table without leading pipes (implementation constraint)', () => {
         // Current implementation requires leading pipe for table detection
-        const lines = [
-            'Col1 | Col2',
-            '-----|------',
-            'A    | B',
-        ];
+        const lines = ['Col1 | Col2', '-----|------', 'A    | B'];
         const table = parseTable(lines, 0);
         expect(table).toBeNull(); // Current behavior: requires leading pipe
     });
     test('should parse table with alignment markers', () => {
-        const lines = [
-            '| Left | Center | Right |',
-            '|:-----|:------:|------:|',
-            '| L    | C      | R     |',
-        ];
+        const lines = ['| Left | Center | Right |', '|:-----|:------:|------:|', '| L    | C      | R     |'];
         const table = parseTable(lines, 0);
         expect(table).not.toBeNull();
         expect(table.headers).toEqual(['Left', 'Center', 'Right']);
     });
     test('should parse table with empty cells', () => {
-        const lines = [
-            '| Col1 | Col2 | Col3 |',
-            '|------|------|------|',
-            '| A    |      | C    |',
-        ];
+        const lines = ['| Col1 | Col2 | Col3 |', '|------|------|------|', '| A    |      | C    |'];
         const table = parseTable(lines, 0);
         expect(table).not.toBeNull();
         expect(table.rows[1]).toEqual(['A', '', 'C']);
@@ -152,20 +147,13 @@ describe('parseTable', () => {
         expect(table.rows[2][1]).toBe('[text](url)');
     });
     test('should return null for non-table content', () => {
-        const lines = [
-            '# Header',
-            'Some text',
-            'More text',
-        ];
+        const lines = ['# Header', 'Some text', 'More text'];
         const table = parseTable(lines, 0);
         expect(table).toBeNull();
     });
     test('should return null when not enough lines for a table (no data rows)', () => {
         // containsTable requires at least 3 lines: header | separator | data
-        const lines = [
-            '| Col1 | Col2 |',
-            '|------|------|',
-        ];
+        const lines = ['| Col1 | Col2 |', '|------|------|'];
         const table = parseTable(lines, 0);
         expect(table).toBeNull(); // Current behavior: requires data row
     });
@@ -175,23 +163,13 @@ describe('parseTable', () => {
         expect(table).toBeNull();
     });
     test('should stop parsing at non-table line', () => {
-        const lines = [
-            '| Col1 | Col2 |',
-            '|------|------|',
-            '| A    | B    |',
-            'Some text',
-            '| C    | D    |',
-        ];
+        const lines = ['| Col1 | Col2 |', '|------|------|', '| A    | B    |', 'Some text', '| C    | D    |'];
         const table = parseTable(lines, 0);
         expect(table).not.toBeNull();
         expect(table.endIndex).toBe(3); // Should stop before "Some text"
     });
     test('should include full table markdown', () => {
-        const lines = [
-            '| Name | Value |',
-            '|------|-------|',
-            '| A    | 1     |',
-        ];
+        const lines = ['| Name | Value |', '|------|-------|', '| A    | 1     |'];
         const table = parseTable(lines, 0);
         expect(table.markdown).toBe('| Name | Value |\n|------|-------|\n| A    | 1     |');
     });
@@ -201,11 +179,7 @@ describe('parseTable', () => {
 // ============================================================================
 describe('parseCodeBlock', () => {
     test('should parse code block with language', () => {
-        const lines = [
-            '```javascript',
-            'console.log("hello");',
-            '```',
-        ];
+        const lines = ['```javascript', 'console.log("hello");', '```'];
         const block = parseCodeBlock(lines, 0);
         expect(block).not.toBeNull();
         expect(block.type).toBe('code');
@@ -215,48 +189,26 @@ describe('parseCodeBlock', () => {
         expect(block.endIndex).toBe(3);
     });
     test('should parse code block without language', () => {
-        const lines = [
-            '```',
-            'some code',
-            '```',
-        ];
+        const lines = ['```', 'some code', '```'];
         const block = parseCodeBlock(lines, 0);
         expect(block).not.toBeNull();
         expect(block.language).toBe('text');
         expect(block.code).toBe('some code');
     });
     test('should parse multi-line code block', () => {
-        const lines = [
-            '```python',
-            'def hello():',
-            '    print("world")',
-            '    return True',
-            '```',
-        ];
+        const lines = ['```python', 'def hello():', '    print("world")', '    return True', '```'];
         const block = parseCodeBlock(lines, 0);
         expect(block).not.toBeNull();
         expect(block.code).toBe('def hello():\n    print("world")\n    return True');
     });
     test('should parse code block with backticks inside', () => {
-        const lines = [
-            '```js',
-            'const str = `hello`; // template literal',
-            'console.log(str);',
-            '```',
-        ];
+        const lines = ['```js', 'const str = `hello`; // template literal', 'console.log(str);', '```'];
         const block = parseCodeBlock(lines, 0);
         expect(block).not.toBeNull();
         expect(block.code).toContain('`hello`');
     });
     test('should parse code block with empty lines', () => {
-        const lines = [
-            '```typescript',
-            'function test() {',
-            '',
-            '    return true;',
-            '}',
-            '```',
-        ];
+        const lines = ['```typescript', 'function test() {', '', '    return true;', '}', '```'];
         const block = parseCodeBlock(lines, 0);
         expect(block).not.toBeNull();
         expect(block.code).toBe('function test() {\n\n    return true;\n}');
@@ -279,39 +231,22 @@ describe('parseCodeBlock', () => {
         }
     });
     test('should return null for non-code block', () => {
-        const lines = [
-            'Regular text',
-            'More text',
-        ];
+        const lines = ['Regular text', 'More text'];
         const block = parseCodeBlock(lines, 0);
         expect(block).toBeNull();
     });
     test('should return null for unclosed code block', () => {
-        const lines = [
-            '```javascript',
-            'console.log("no closing");',
-            'more lines',
-        ];
+        const lines = ['```javascript', 'console.log("no closing");', 'more lines'];
         const block = parseCodeBlock(lines, 0);
         expect(block).toBeNull();
     });
     test('should include full markdown in block', () => {
-        const lines = [
-            '```python',
-            'print("test")',
-            '```',
-        ];
+        const lines = ['```python', 'print("test")', '```'];
         const block = parseCodeBlock(lines, 0);
         expect(block.markdown).toBe('```python\nprint("test")\n```');
     });
     test('should handle code block starting after index 0', () => {
-        const lines = [
-            '# Header',
-            'Text before',
-            '```js',
-            'code',
-            '```',
-        ];
+        const lines = ['# Header', 'Text before', '```js', 'code', '```'];
         const block = parseCodeBlock(lines, 2);
         expect(block).not.toBeNull();
         expect(block.code).toBe('code');
@@ -481,7 +416,10 @@ describe('tableToText', () => {
             startIndex: 0,
             endIndex: 3,
             headers: ['Col1', 'Col2'],
-            rows: [['Col1', 'Col2'], ['A', 'B']],
+            rows: [
+                ['Col1', 'Col2'],
+                ['A', 'B'],
+            ],
         };
         const result = tableToText(table);
         expect(result).toContain('+');
@@ -494,7 +432,8 @@ describe('tableToText', () => {
     test('should handle varying column widths', () => {
         const table = {
             type: 'table',
-            markdown: '| Name | Description | Value |\n|------|-------------|-------|\n| A | Short | 1 |\n| B | A much longer description | 2 |',
+            markdown:
+                '| Name | Description | Value |\n|------|-------------|-------|\n| A | Short | 1 |\n| B | A much longer description | 2 |',
             startIndex: 0,
             endIndex: 4,
             headers: ['Name', 'Description', 'Value'],
@@ -530,7 +469,11 @@ describe('tableToText', () => {
             startIndex: 0,
             endIndex: 4,
             headers: ['Col1', 'Col2'],
-            rows: [['Col1', 'Col2'], ['A', ''], ['', 'B']],
+            rows: [
+                ['Col1', 'Col2'],
+                ['A', ''],
+                ['', 'B'],
+            ],
         };
         const result = tableToText(table);
         expect(result).toContain('|A     |'); // Uses plain ASCII |, no space before
@@ -543,7 +486,10 @@ describe('tableToText', () => {
             startIndex: 0,
             endIndex: 3,
             headers: ['A', 'B'],
-            rows: [['A', 'B'], ['1', '2']],
+            rows: [
+                ['A', 'B'],
+                ['1', '2'],
+            ],
         };
         const result = tableToText(table);
         expect(result).toContain('+'); // Uses + for corners
@@ -558,7 +504,11 @@ describe('tableToText', () => {
             startIndex: 0,
             endIndex: 4,
             headers: ['Symbol', 'Code'],
-            rows: [['Symbol', 'Code'], ['`<>`', 'tags'], ['**bold**', 'text']],
+            rows: [
+                ['Symbol', 'Code'],
+                ['`<>`', 'tags'],
+                ['**bold**', 'text'],
+            ],
         };
         const result = tableToText(table);
         expect(result).toContain('`<>`');

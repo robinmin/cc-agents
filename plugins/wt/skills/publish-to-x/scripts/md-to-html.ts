@@ -1,549 +1,509 @@
-import { createHash } from "node:crypto";
-import fs from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
-import http from "node:http";
-import https from "node:https";
-import os from "node:os";
-import path from "node:path";
-import process from "node:process";
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
+import http from 'node:http';
+import https from 'node:https';
+import os from 'node:os';
+import path from 'node:path';
+import process from 'node:process';
 
 import {
-	type ConverterOptions,
-	convertTablesAndCodeBlocks,
-} from "../../../scripts/web-automation/dist/table-code-converter.js";
+    type ConverterOptions,
+    convertTablesAndCodeBlocks,
+} from '../../../scripts/web-automation/dist/table-code-converter.js';
 
 // Extend the options to include table/code conversion options
 interface ParseMarkdownOptions {
-	coverImage?: string;
-	title?: string;
-	tempDir?: string;
-	// Table and code block conversion options
-	convertTables?: boolean;
-	formatCodeBlocks?: boolean;
-	converterOptions?: Omit<ConverterOptions, "cdp" | "sessionId">;
+    coverImage?: string;
+    title?: string;
+    tempDir?: string;
+    // Table and code block conversion options
+    convertTables?: boolean;
+    formatCodeBlocks?: boolean;
+    converterOptions?: Omit<ConverterOptions, 'cdp' | 'sessionId'>;
 }
 
 interface ImageInfo {
-	placeholder: string;
-	localPath: string;
-	originalPath: string;
-	blockIndex: number;
+    placeholder: string;
+    localPath: string;
+    originalPath: string;
+    blockIndex: number;
 }
 
 interface ParsedMarkdown {
-	title: string;
-	coverImage: string | null;
-	contentImages: ImageInfo[];
-	html: string;
-	totalBlocks: number;
+    title: string;
+    coverImage: string | null;
+    contentImages: ImageInfo[];
+    html: string;
+    totalBlocks: number;
 }
 
 function parseFrontmatter(content: string): {
-	frontmatter: Record<string, string>;
-	body: string;
+    frontmatter: Record<string, string>;
+    body: string;
 } {
-	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
-	if (!match) return { frontmatter: {}, body: content };
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+    if (!match) return { frontmatter: {}, body: content };
 
-	const frontmatter: Record<string, string> = {};
-	const lines = (match[1] ?? "").split("\n");
-	for (const line of lines) {
-		const colonIdx = line.indexOf(":");
-		if (colonIdx > 0) {
-			const key = line.slice(0, colonIdx).trim();
-			let value = line.slice(colonIdx + 1).trim();
-			if (
-				(value.startsWith('"') && value.endsWith('"')) ||
-				(value.startsWith("'") && value.endsWith("'"))
-			) {
-				value = value.slice(1, -1);
-			}
-			frontmatter[key] = value;
-		}
-	}
+    const frontmatter: Record<string, string> = {};
+    const lines = (match[1] ?? '').split('\n');
+    for (const line of lines) {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx > 0) {
+            const key = line.slice(0, colonIdx).trim();
+            let value = line.slice(colonIdx + 1).trim();
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+                value = value.slice(1, -1);
+            }
+            frontmatter[key] = value;
+        }
+    }
 
-	return { frontmatter, body: match[2] ?? "" };
+    return { frontmatter, body: match[2] ?? '' };
 }
 
 function downloadFile(url: string, destPath: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const protocol = url.startsWith("https") ? https : http;
-		const file = fs.createWriteStream(destPath);
+    return new Promise((resolve, reject) => {
+        const protocol = url.startsWith('https') ? https : http;
+        const file = fs.createWriteStream(destPath);
 
-		const request = protocol.get(
-			url,
-			{ headers: { "User-Agent": "Mozilla/5.0" } },
-			(response) => {
-				if (response.statusCode === 301 || response.statusCode === 302) {
-					const redirectUrl = response.headers.location;
-					if (redirectUrl) {
-						file.close();
-						fs.unlinkSync(destPath);
-						downloadFile(redirectUrl, destPath).then(resolve).catch(reject);
-						return;
-					}
-				}
+        const request = protocol.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (response) => {
+            if (response.statusCode === 301 || response.statusCode === 302) {
+                const redirectUrl = response.headers.location;
+                if (redirectUrl) {
+                    file.close();
+                    fs.unlinkSync(destPath);
+                    downloadFile(redirectUrl, destPath).then(resolve).catch(reject);
+                    return;
+                }
+            }
 
-				if (response.statusCode !== 200) {
-					file.close();
-					fs.unlinkSync(destPath);
-					reject(new Error(`Failed to download: ${response.statusCode}`));
-					return;
-				}
+            if (response.statusCode !== 200) {
+                file.close();
+                fs.unlinkSync(destPath);
+                reject(new Error(`Failed to download: ${response.statusCode}`));
+                return;
+            }
 
-				response.pipe(file);
-				file.on("finish", () => {
-					file.close();
-					resolve();
-				});
-			},
-		);
+            response.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                resolve();
+            });
+        });
 
-		request.on("error", (err) => {
-			file.close();
-			fs.unlink(destPath, () => {});
-			reject(err);
-		});
+        request.on('error', (err) => {
+            file.close();
+            fs.unlink(destPath, () => {});
+            reject(err);
+        });
 
-		request.setTimeout(30000, () => {
-			request.destroy();
-			reject(new Error("Download timeout"));
-		});
-	});
+        request.setTimeout(30000, () => {
+            request.destroy();
+            reject(new Error('Download timeout'));
+        });
+    });
 }
 
 function getImageExtension(urlOrPath: string): string {
-	const match = urlOrPath.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i);
-	return match ? match[1]?.toLowerCase() : "png";
+    const match = urlOrPath.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i);
+    return match ? match[1]?.toLowerCase() : 'png';
 }
 
-async function resolveImagePath(
-	imagePath: string,
-	baseDir: string,
-	tempDir: string,
-): Promise<string> {
-	if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-		const hash = createHash("md5").update(imagePath).digest("hex").slice(0, 8);
-		const ext = getImageExtension(imagePath);
-		const localPath = path.join(tempDir, `remote_${hash}.${ext}`);
+async function resolveImagePath(imagePath: string, baseDir: string, tempDir: string): Promise<string> {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        const hash = createHash('md5').update(imagePath).digest('hex').slice(0, 8);
+        const ext = getImageExtension(imagePath);
+        const localPath = path.join(tempDir, `remote_${hash}.${ext}`);
 
-		if (!fs.existsSync(localPath)) {
-			console.error(`[md-to-html] Downloading: ${imagePath}`);
-			await downloadFile(imagePath, localPath);
-		}
-		return localPath;
-	}
+        if (!fs.existsSync(localPath)) {
+            console.error(`[md-to-html] Downloading: ${imagePath}`);
+            await downloadFile(imagePath, localPath);
+        }
+        return localPath;
+    }
 
-	if (path.isAbsolute(imagePath)) {
-		return imagePath;
-	}
+    if (path.isAbsolute(imagePath)) {
+        return imagePath;
+    }
 
-	return path.resolve(baseDir, imagePath);
+    return path.resolve(baseDir, imagePath);
 }
 
 function escapeHtml(text: string): string {
-	return text
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function convertMarkdownToHtml(
-	markdown: string,
-	imageCallback: (src: string, alt: string) => string,
+    markdown: string,
+    imageCallback: (src: string, alt: string) => string,
 ): { html: string; totalBlocks: number } {
-	const lines = markdown.split("\n");
-	const blocks: string[] = [];
-	let inCodeBlock = false;
-	let codeBlockContent: string[] = [];
-	let inList = false;
-	let listItems: string[] = [];
-	let listType: "ul" | "ol" = "ul";
+    const lines = markdown.split('\n');
+    const blocks: string[] = [];
+    let inCodeBlock = false;
+    let codeBlockContent: string[] = [];
+    let inList = false;
+    let listItems: string[] = [];
+    let listType: 'ul' | 'ol' = 'ul';
 
-	// Table parsing state
-	let inTable = false;
-	let tableRows: string[][] = [];
-	let tableHeaders: string[] | null = null;
+    // Table parsing state
+    let inTable = false;
+    let tableRows: string[][] = [];
+    let tableHeaders: string[] | null = null;
 
-	const flushList = () => {
-		if (listItems.length > 0) {
-			const tag = listType === "ol" ? "ol" : "ul";
-			blocks.push(
-				`<${tag}>${listItems.map((item) => `<li>${item}</li>`).join("")}</${tag}>`,
-			);
-			listItems = [];
-			inList = false;
-		}
-	};
+    const flushList = () => {
+        if (listItems.length > 0) {
+            const tag = listType === 'ol' ? 'ol' : 'ul';
+            blocks.push(`<${tag}>${listItems.map((item) => `<li>${item}</li>`).join('')}</${tag}>`);
+            listItems = [];
+            inList = false;
+        }
+    };
 
-	const flushTable = () => {
-		if (tableRows.length > 0) {
-			const headers = tableHeaders || tableRows[0] || [];
-			let html = "<table>";
+    const flushTable = () => {
+        if (tableRows.length > 0) {
+            const headers = tableHeaders || tableRows[0] || [];
+            let html = '<table>';
 
-			// Header row
-			html += "<thead><tr>";
-			for (const cell of headers) {
-				html += `<th>${processInline(cell || "")}</th>`;
-			}
-			html += "</tr></thead>";
+            // Header row
+            html += '<thead><tr>';
+            for (const cell of headers) {
+                html += `<th>${processInline(cell || '')}</th>`;
+            }
+            html += '</tr></thead>';
 
-			// Body rows (skip separator row if exists)
-			html += "<tbody>";
-			let _isSeparator = false;
-			for (let i = 1; i < tableRows.length; i++) {
-				const row = tableRows[i];
-				if (!row) continue;
-				// Check if this is a separator row (contains only -, |, spaces)
-				if (
-					row.every(
-						(cell, idx) => idx === 0 || cell === "" || /^[-:|]+$/.test(cell),
-					)
-				) {
-					_isSeparator = true;
-					continue;
-				}
+            // Body rows (skip separator row if exists)
+            html += '<tbody>';
+            let _isSeparator = false;
+            for (let i = 1; i < tableRows.length; i++) {
+                const row = tableRows[i];
+                if (!row) continue;
+                // Check if this is a separator row (contains only -, |, spaces)
+                if (row.every((cell, idx) => idx === 0 || cell === '' || /^[-:|]+$/.test(cell))) {
+                    _isSeparator = true;
+                    continue;
+                }
 
-				html += "<tr>";
-				for (const cell of row) {
-					html += `<td>${processInline(cell || "")}</td>`;
-				}
-				html += "</tr>";
-			}
-			html += "</tbody></table>";
+                html += '<tr>';
+                for (const cell of row) {
+                    html += `<td>${processInline(cell || '')}</td>`;
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
 
-			blocks.push(html);
-			tableRows = [];
-			tableHeaders = null;
-			inTable = false;
-		}
-	};
+            blocks.push(html);
+            tableRows = [];
+            tableHeaders = null;
+            inTable = false;
+        }
+    };
 
-	const processInline = (text: string): string => {
-		// Bold
-		text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-		text = text.replace(/__(.+?)__/g, "<strong>$1</strong>");
+    const processInline = (text: string): string => {
+        // Bold
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
 
-		// Italic
-		text = text.replace(/\*(.+?)\*/g, "<em>$1</em>");
-		text = text.replace(/_(.+?)_/g, "<em>$1</em>");
+        // Italic
+        text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        text = text.replace(/_(.+?)_/g, '<em>$1</em>');
 
-		// Links
-		text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+        // Links
+        text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
-		// Inline code
-		text = text.replace(/`([^`]+)`/g, "<code>$1</code>");
+        // Inline code
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-		return text;
-	};
+        return text;
+    };
 
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i];
-		if (!line) continue;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line) continue;
 
-		// Code block
-		if (line.startsWith("```")) {
-			if (inCodeBlock) {
-				// X doesn't support <pre><code>, convert to blockquote
-				const codeContent = codeBlockContent
-					.map((l) => escapeHtml(l))
-					.join("<br>");
-				blocks.push(`<blockquote>${codeContent}</blockquote>`);
-				codeBlockContent = [];
-				inCodeBlock = false;
-			} else {
-				flushList();
-				flushTable();
-				inCodeBlock = true;
-			}
-			continue;
-		}
+        // Code block
+        if (line.startsWith('```')) {
+            if (inCodeBlock) {
+                // X doesn't support <pre><code>, convert to blockquote
+                const codeContent = codeBlockContent.map((l) => escapeHtml(l)).join('<br>');
+                blocks.push(`<blockquote>${codeContent}</blockquote>`);
+                codeBlockContent = [];
+                inCodeBlock = false;
+            } else {
+                flushList();
+                flushTable();
+                inCodeBlock = true;
+            }
+            continue;
+        }
 
-		if (inCodeBlock) {
-			codeBlockContent.push(line);
-			continue;
-		}
+        if (inCodeBlock) {
+            codeBlockContent.push(line);
+            continue;
+        }
 
-		// Table detection (markdown table syntax)
-		if (line.includes("|") && line.trim().startsWith("|")) {
-			flushList();
+        // Table detection (markdown table syntax)
+        if (line.includes('|') && line.trim().startsWith('|')) {
+            flushList();
 
-			// Parse table row
-			const cells: string[] = [];
-			let start = 0;
-			let inCell = false;
-			for (let j = 0; j < line.length; j++) {
-				const char = line[j];
-				if (!char) continue;
-				if (char === "|") {
-					if (inCell) {
-						cells.push(line.slice(start, j).trim());
-					}
-					start = j + 1;
-					inCell = true;
-				}
-			}
-			// Last cell
-			if (inCell && start <= line.length) {
-				cells.push(line.slice(start).trim());
-			}
+            // Parse table row
+            const cells: string[] = [];
+            let start = 0;
+            let inCell = false;
+            for (let j = 0; j < line.length; j++) {
+                const char = line[j];
+                if (!char) continue;
+                if (char === '|') {
+                    if (inCell) {
+                        cells.push(line.slice(start, j).trim());
+                    }
+                    start = j + 1;
+                    inCell = true;
+                }
+            }
+            // Last cell
+            if (inCell && start <= line.length) {
+                cells.push(line.slice(start).trim());
+            }
 
-			// Check if this is a separator row (only contains -, |, :, spaces)
-			const isSeparator = cells.every((cell) => /^[-:|\s]*$/.test(cell));
+            // Check if this is a separator row (only contains -, |, :, spaces)
+            const isSeparator = cells.every((cell) => /^[-:|\s]*$/.test(cell));
 
-			if (!inTable) {
-				inTable = true;
-				tableRows = [];
-				tableHeaders = null;
-			}
+            if (!inTable) {
+                inTable = true;
+                tableRows = [];
+                tableHeaders = null;
+            }
 
-			if (!isSeparator) {
-				tableRows.push(cells);
-				// First non-separator row becomes headers if we only have one row so far
-				if (tableRows.length === 1) {
-					tableHeaders = cells;
-				}
-			}
+            if (!isSeparator) {
+                tableRows.push(cells);
+                // First non-separator row becomes headers if we only have one row so far
+                if (tableRows.length === 1) {
+                    tableHeaders = cells;
+                }
+            }
 
-			// Check if next line is also a table, if not, close the table
-			const nextLine = lines[i + 1];
-			if (
-				!nextLine ||
-				!nextLine.includes("|") ||
-				!nextLine.trim().startsWith("|")
-			) {
-				flushTable();
-			}
-			continue;
-		}
+            // Check if next line is also a table, if not, close the table
+            const nextLine = lines[i + 1];
+            if (!nextLine || !nextLine.includes('|') || !nextLine.trim().startsWith('|')) {
+                flushTable();
+            }
+            continue;
+        }
 
-		if (inTable) {
-			flushTable();
-		}
+        if (inTable) {
+            flushTable();
+        }
 
-		// Empty line
-		if (line.trim() === "") {
-			flushList();
-			continue;
-		}
+        // Empty line
+        if (line.trim() === '') {
+            flushList();
+            continue;
+        }
 
-		// Image - Handle standard markdown and extended format with title/dimensions
-		// Formats: ![alt](url) ![alt](url "title") ![alt](url width=100 height=200)
-		const imgMatch = line.match(
-			/^!\[([^\]]*)\]\(([^)]+?)(?:\s*"(?:[^"]*)")?(?:\s+width=\d+\s+height=\d+)?\)\s*$/,
-		);
-		if (imgMatch) {
-			flushList();
-			const placeholder = imageCallback(imgMatch[2] ?? "", imgMatch[1] ?? "");
-			blocks.push(`<p>${placeholder}</p>`);
-			continue;
-		}
+        // Image - Handle standard markdown and extended format with title/dimensions
+        // Formats: ![alt](url) ![alt](url "title") ![alt](url width=100 height=200)
+        const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+?)(?:\s*"(?:[^"]*)")?(?:\s+width=\d+\s+height=\d+)?\)\s*$/);
+        if (imgMatch) {
+            flushList();
+            const placeholder = imageCallback(imgMatch[2] ?? '', imgMatch[1] ?? '');
+            blocks.push(`<p>${placeholder}</p>`);
+            continue;
+        }
 
-		// Heading (H1 is title, skip it; H2-H6 become H2)
-		const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-		if (headingMatch) {
-			flushList();
-			const level = headingMatch[1]?.length;
-			if (level === 1) continue; // Skip H1, it's the title
-			blocks.push(`<h2>${processInline(headingMatch[2] ?? "")}</h2>`);
-			continue;
-		}
+        // Heading (H1 is title, skip it; H2-H6 become H2)
+        const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+        if (headingMatch) {
+            flushList();
+            const level = headingMatch[1]?.length;
+            if (level === 1) continue; // Skip H1, it's the title
+            blocks.push(`<h2>${processInline(headingMatch[2] ?? '')}</h2>`);
+            continue;
+        }
 
-		// Blockquote
-		if (line.startsWith("> ")) {
-			flushList();
-			blocks.push(`<blockquote>${processInline(line.slice(2))}</blockquote>`);
-			continue;
-		}
+        // Blockquote
+        if (line.startsWith('> ')) {
+            flushList();
+            blocks.push(`<blockquote>${processInline(line.slice(2))}</blockquote>`);
+            continue;
+        }
 
-		// Unordered list
-		const ulMatch = line.match(/^[-*]\s+(.+)$/);
-		if (ulMatch) {
-			if (!inList || listType !== "ul") {
-				flushList();
-				inList = true;
-				listType = "ul";
-			}
-			listItems.push(processInline(ulMatch[1] ?? ""));
-			continue;
-		}
+        // Unordered list
+        const ulMatch = line.match(/^[-*]\s+(.+)$/);
+        if (ulMatch) {
+            if (!inList || listType !== 'ul') {
+                flushList();
+                inList = true;
+                listType = 'ul';
+            }
+            listItems.push(processInline(ulMatch[1] ?? ''));
+            continue;
+        }
 
-		// Ordered list
-		const olMatch = line.match(/^\d+\.\s+(.+)$/);
-		if (olMatch) {
-			if (!inList || listType !== "ol") {
-				flushList();
-				inList = true;
-				listType = "ol";
-			}
-			listItems.push(processInline(olMatch[1] ?? ""));
-			continue;
-		}
+        // Ordered list
+        const olMatch = line.match(/^\d+\.\s+(.+)$/);
+        if (olMatch) {
+            if (!inList || listType !== 'ol') {
+                flushList();
+                inList = true;
+                listType = 'ol';
+            }
+            listItems.push(processInline(olMatch[1] ?? ''));
+            continue;
+        }
 
-		// Horizontal rule
-		if (/^[-*_]{3,}\s*$/.test(line)) {
-			flushList();
-			blocks.push("<hr>");
-			continue;
-		}
+        // Horizontal rule
+        if (/^[-*_]{3,}\s*$/.test(line)) {
+            flushList();
+            blocks.push('<hr>');
+            continue;
+        }
 
-		// Regular paragraph
-		flushList();
-		blocks.push(`<p>${processInline(line)}</p>`);
-	}
+        // Regular paragraph
+        flushList();
+        blocks.push(`<p>${processInline(line)}</p>`);
+    }
 
-	flushList();
+    flushList();
 
-	return {
-		html: blocks.join("\n"),
-		totalBlocks: blocks.length,
-	};
+    return {
+        html: blocks.join('\n'),
+        totalBlocks: blocks.length,
+    };
 }
 
-export async function parseMarkdown(
-	markdownPath: string,
-	options?: ParseMarkdownOptions,
-): Promise<ParsedMarkdown> {
-	let content = fs.readFileSync(markdownPath, "utf-8");
-	const baseDir = path.dirname(markdownPath);
-	const tempDir =
-		options?.tempDir ?? path.join(os.tmpdir(), "x-article-images");
+export async function parseMarkdown(markdownPath: string, options?: ParseMarkdownOptions): Promise<ParsedMarkdown> {
+    let content = fs.readFileSync(markdownPath, 'utf-8');
+    const baseDir = path.dirname(markdownPath);
+    const tempDir = options?.tempDir ?? path.join(os.tmpdir(), 'x-article-images');
 
-	await mkdir(tempDir, { recursive: true });
+    await mkdir(tempDir, { recursive: true });
 
-	// Convert tables and code blocks if enabled
-	if (options?.convertTables || options?.formatCodeBlocks) {
-		console.log("[md-to-html] Converting tables and code blocks...");
-		const converted = await convertTablesAndCodeBlocks(content, {
-			outputDir: tempDir,
-			renderTables: options.convertTables ?? true,
-			formatCodeBlocks: options.formatCodeBlocks ?? true,
-			verbose: options.converterOptions?.verbose ?? false,
-			// Note: CDP-based table rendering requires CDP connection,
-			// which will be handled by x-article.ts
-			cdp: undefined,
-			sessionId: undefined,
-		});
+    // Convert tables and code blocks if enabled
+    if (options?.convertTables || options?.formatCodeBlocks) {
+        console.log('[md-to-html] Converting tables and code blocks...');
+        const converted = await convertTablesAndCodeBlocks(content, {
+            outputDir: tempDir,
+            renderTables: options.convertTables ?? true,
+            formatCodeBlocks: options.formatCodeBlocks ?? true,
+            verbose: options.converterOptions?.verbose ?? false,
+            // Note: CDP-based table rendering requires CDP connection,
+            // which will be handled by x-article.ts
+            cdp: undefined,
+            sessionId: undefined,
+        });
 
-		content = converted.markdown;
+        content = converted.markdown;
 
-		if (converted.tables.length > 0) {
-			console.log(
-				`[md-to-html] Converted ${converted.tables.length} table(s) to image(s)`,
-			);
-		}
-		if (converted.codeBlocks.length > 0) {
-			console.log(
-				`[md-to-html] Formatted ${converted.codeBlocks.length} code block(s)`,
-			);
-		}
-	}
+        if (converted.tables.length > 0) {
+            console.log(`[md-to-html] Converted ${converted.tables.length} table(s) to image(s)`);
+        }
+        if (converted.codeBlocks.length > 0) {
+            console.log(`[md-to-html] Formatted ${converted.codeBlocks.length} code block(s)`);
+        }
+    }
 
-	const { frontmatter, body } = parseFrontmatter(content);
+    const { frontmatter, body } = parseFrontmatter(content);
 
-	// Extract title from frontmatter, option, or first H1
-	let title = options?.title ?? frontmatter.title ?? "";
-	if (!title) {
-		const h1Match = body.match(/^#\s+(.+)$/m);
-		if (h1Match) title = h1Match[1] ?? "";
-	}
+    // Extract title from frontmatter, option, or first H1
+    let title = options?.title ?? frontmatter.title ?? '';
+    if (!title) {
+        const h1Match = body.match(/^#\s+(.+)$/m);
+        if (h1Match) title = h1Match[1] ?? '';
+    }
 
-	// Extract cover image from frontmatter or option
-	let coverImagePath =
-		options?.coverImage ??
-		frontmatter.cover_image ??
-		frontmatter.coverImage ??
-		frontmatter.cover ??
-		frontmatter.image ??
-		frontmatter.featureImage ??
-		frontmatter.feature_image ??
-		null;
+    // Extract cover image from frontmatter or option
+    let coverImagePath =
+        options?.coverImage ??
+        frontmatter.cover_image ??
+        frontmatter.coverImage ??
+        frontmatter.cover ??
+        frontmatter.image ??
+        frontmatter.featureImage ??
+        frontmatter.feature_image ??
+        null;
 
-	const images: Array<{ src: string; alt: string; blockIndex: number }> = [];
-	let imageCounter = 0;
+    const images: Array<{ src: string; alt: string; blockIndex: number }> = [];
+    let imageCounter = 0;
 
-	const { html, totalBlocks } = convertMarkdownToHtml(body, (src, alt) => {
-		const placeholder = `XIMGPH_${++imageCounter}`;
-		const _currentBlockIndex = images.length; // Will be set properly after HTML generation
+    const { html, totalBlocks } = convertMarkdownToHtml(body, (src, alt) => {
+        const placeholder = `XIMGPH_${++imageCounter}`;
+        const _currentBlockIndex = images.length; // Will be set properly after HTML generation
 
-		images.push({ src, alt, blockIndex: -1 }); // blockIndex set later
-		return placeholder;
-	});
+        images.push({ src, alt, blockIndex: -1 }); // blockIndex set later
+        return placeholder;
+    });
 
-	// Update block indices by finding placeholders in HTML
-	const htmlLines = html.split("\n");
-	let blockIdx = 0;
-	for (const line of htmlLines) {
-		for (let i = 0; i < images.length; i++) {
-			const placeholder = `XIMGPH_${i + 1}`;
-			if (line.includes(placeholder) && images[i]) {
-				images[i].blockIndex = blockIdx;
-			}
-		}
-		blockIdx++;
-	}
+    // Update block indices by finding placeholders in HTML
+    const htmlLines = html.split('\n');
+    let blockIdx = 0;
+    for (const line of htmlLines) {
+        for (let i = 0; i < images.length; i++) {
+            const placeholder = `XIMGPH_${i + 1}`;
+            if (line.includes(placeholder) && images[i]) {
+                images[i].blockIndex = blockIdx;
+            }
+        }
+        blockIdx++;
+    }
 
-	// Resolve image paths (download remote, resolve relative)
-	const contentImages: ImageInfo[] = [];
-	let isFirstImage = true;
-	let coverPlaceholder: string | null = null;
+    // Resolve image paths (download remote, resolve relative)
+    const contentImages: ImageInfo[] = [];
+    let isFirstImage = true;
+    let coverPlaceholder: string | null = null;
 
-	for (let i = 0; i < images.length; i++) {
-		const img = images[i];
-		if (!img) continue;
-		const localPath = await resolveImagePath(img.src, baseDir, tempDir);
+    for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        if (!img) continue;
+        const localPath = await resolveImagePath(img.src, baseDir, tempDir);
 
-		// First image becomes cover if no cover specified
-		if (isFirstImage && !coverImagePath) {
-			coverImagePath = localPath;
-			coverPlaceholder = `XIMGPH_${i + 1}`;
-			isFirstImage = false;
-			// Don't add to contentImages, it's the cover
-			continue;
-		}
+        // First image becomes cover if no cover specified
+        if (isFirstImage && !coverImagePath) {
+            coverImagePath = localPath;
+            coverPlaceholder = `XIMGPH_${i + 1}`;
+            isFirstImage = false;
+            // Don't add to contentImages, it's the cover
+            continue;
+        }
 
-		isFirstImage = false;
-		contentImages.push({
-			placeholder: `XIMGPH_${i + 1}`,
-			localPath,
-			originalPath: img.src,
-			blockIndex: img.blockIndex,
-		});
-	}
+        isFirstImage = false;
+        contentImages.push({
+            placeholder: `XIMGPH_${i + 1}`,
+            localPath,
+            originalPath: img.src,
+            blockIndex: img.blockIndex,
+        });
+    }
 
-	// Remove cover placeholder from HTML if first image was used as cover
-	let finalHtml = html;
-	if (coverPlaceholder) {
-		// Remove the placeholder and its containing <p> tag
-		finalHtml = finalHtml.replace(
-			new RegExp(`<p>${coverPlaceholder}</p>\\n?`, "g"),
-			"",
-		);
-	}
+    // Remove cover placeholder from HTML if first image was used as cover
+    let finalHtml = html;
+    if (coverPlaceholder) {
+        // Remove the placeholder and its containing <p> tag
+        finalHtml = finalHtml.replace(new RegExp(`<p>${coverPlaceholder}</p>\\n?`, 'g'), '');
+    }
 
-	// Resolve cover image path
-	let resolvedCoverImage: string | null = null;
-	if (coverImagePath) {
-		resolvedCoverImage = await resolveImagePath(
-			coverImagePath,
-			baseDir,
-			tempDir,
-		);
-	}
+    // Resolve cover image path
+    let resolvedCoverImage: string | null = null;
+    if (coverImagePath) {
+        resolvedCoverImage = await resolveImagePath(coverImagePath, baseDir, tempDir);
+    }
 
-	return {
-		title,
-		coverImage: resolvedCoverImage,
-		contentImages,
-		html: finalHtml,
-		totalBlocks,
-	};
+    return {
+        title,
+        coverImage: resolvedCoverImage,
+        contentImages,
+        html: finalHtml,
+        totalBlocks,
+    };
 }
 
 function printUsage(): never {
-	console.log(`Convert Markdown to HTML for X Article publishing
+    console.log(`Convert Markdown to HTML for X Article publishing
 
 Usage:
   npx -y bun md-to-html.ts <markdown_file> [options]
@@ -566,70 +526,70 @@ Example:
   npx -y bun md-to-html.ts article.md --html-only > /tmp/article.html
   npx -y bun md-to-html.ts article.md --save-html /tmp/article.html
 `);
-	process.exit(0);
+    process.exit(0);
 }
 
 async function main(): Promise<void> {
-	const args = process.argv.slice(2);
-	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
-		printUsage();
-	}
+    const args = process.argv.slice(2);
+    if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+        printUsage();
+    }
 
-	let markdownPath: string | undefined;
-	let title: string | undefined;
-	let coverImage: string | undefined;
-	let outputFormat: "json" | "html" = "json";
-	let htmlOnly = false;
-	let saveHtmlPath: string | undefined;
+    let markdownPath: string | undefined;
+    let title: string | undefined;
+    let coverImage: string | undefined;
+    let outputFormat: 'json' | 'html' = 'json';
+    let htmlOnly = false;
+    let saveHtmlPath: string | undefined;
 
-	for (let i = 0; i < args.length; i++) {
-		const arg = args[i];
-		if (!arg) continue;
-		if (arg === "--title" && args[i + 1]) {
-			title = args[++i];
-		} else if (arg === "--cover" && args[i + 1]) {
-			coverImage = args[++i];
-		} else if (arg === "--output" && args[i + 1]) {
-			outputFormat = args[++i] as "json" | "html";
-		} else if (arg === "--html-only") {
-			htmlOnly = true;
-		} else if (arg === "--save-html" && args[i + 1]) {
-			saveHtmlPath = args[++i];
-		} else if (!arg.startsWith("-")) {
-			markdownPath = arg;
-		}
-	}
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        if (!arg) continue;
+        if (arg === '--title' && args[i + 1]) {
+            title = args[++i];
+        } else if (arg === '--cover' && args[i + 1]) {
+            coverImage = args[++i];
+        } else if (arg === '--output' && args[i + 1]) {
+            outputFormat = args[++i] as 'json' | 'html';
+        } else if (arg === '--html-only') {
+            htmlOnly = true;
+        } else if (arg === '--save-html' && args[i + 1]) {
+            saveHtmlPath = args[++i];
+        } else if (!arg.startsWith('-')) {
+            markdownPath = arg;
+        }
+    }
 
-	if (!markdownPath) {
-		console.error("Error: Markdown file path required");
-		process.exit(1);
-	}
+    if (!markdownPath) {
+        console.error('Error: Markdown file path required');
+        process.exit(1);
+    }
 
-	if (!fs.existsSync(markdownPath)) {
-		console.error(`Error: File not found: ${markdownPath}`);
-		process.exit(1);
-	}
+    if (!fs.existsSync(markdownPath)) {
+        console.error(`Error: File not found: ${markdownPath}`);
+        process.exit(1);
+    }
 
-	const result = await parseMarkdown(markdownPath, { title, coverImage });
+    const result = await parseMarkdown(markdownPath, { title, coverImage });
 
-	if (saveHtmlPath) {
-		await writeFile(saveHtmlPath, result.html, "utf-8");
-		console.error(`[md-to-html] HTML saved to: ${saveHtmlPath}`);
-	}
+    if (saveHtmlPath) {
+        await writeFile(saveHtmlPath, result.html, 'utf-8');
+        console.error(`[md-to-html] HTML saved to: ${saveHtmlPath}`);
+    }
 
-	if (htmlOnly) {
-		console.log(result.html);
-	} else if (outputFormat === "html") {
-		console.log(result.html);
-	} else {
-		console.log(JSON.stringify(result, null, 2));
-	}
+    if (htmlOnly) {
+        console.log(result.html);
+    } else if (outputFormat === 'html') {
+        console.log(result.html);
+    } else {
+        console.log(JSON.stringify(result, null, 2));
+    }
 }
 
 // Only run main if this is the entry point
 if (import.meta.url === `file://${process.argv[1]}`) {
-	await main().catch((err) => {
-		console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-		process.exit(1);
-	});
+    await main().catch((err) => {
+        console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+        process.exit(1);
+    });
 }

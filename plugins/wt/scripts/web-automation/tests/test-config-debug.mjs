@@ -12,8 +12,8 @@ process.env.TEST_OVERRIDE = JSON.stringify({ envKey: 'envValue' });
 
 clearConfigCache();
 const config1 = getPlatformConfig({
-  configPath: filePath,
-  envVar: 'TEST_OVERRIDE',
+    configPath: filePath,
+    envVar: 'TEST_OVERRIDE',
 });
 
 console.log('Test 1 - config:', JSON.stringify(config1, null, 2));

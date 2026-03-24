@@ -1,254 +1,230 @@
-import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import fs from "node:fs";
-import { writeFile } from "node:fs/promises";
-import http from "node:http";
-import https from "node:https";
-import os from "node:os";
-import path from "node:path";
-import process from "node:process";
-import { fileURLToPath } from "node:url";
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import { writeFile } from 'node:fs/promises';
+import http from 'node:http';
+import https from 'node:https';
+import os from 'node:os';
+import path from 'node:path';
+import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 // Import theme validation for security (command injection prevention)
-import { getValidTheme } from "@wt/web-automation/sanitize.js";
+import { getValidTheme } from '@wt/web-automation/sanitize.js';
 
 interface ImageInfo {
-	placeholder: string;
-	localPath: string;
-	originalPath: string;
+    placeholder: string;
+    localPath: string;
+    originalPath: string;
 }
 
 interface ParsedResult {
-	title: string;
-	author: string;
-	summary: string;
-	coverImage?: string;
-	htmlPath: string;
-	contentImages: ImageInfo[];
+    title: string;
+    author: string;
+    summary: string;
+    coverImage?: string;
+    htmlPath: string;
+    contentImages: ImageInfo[];
 }
 
 function downloadFile(url: string, destPath: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const protocol = url.startsWith("https") ? https : http;
-		const file = fs.createWriteStream(destPath);
+    return new Promise((resolve, reject) => {
+        const protocol = url.startsWith('https') ? https : http;
+        const file = fs.createWriteStream(destPath);
 
-		const request = protocol.get(
-			url,
-			{ headers: { "User-Agent": "Mozilla/5.0" } },
-			(response) => {
-				if (response.statusCode === 301 || response.statusCode === 302) {
-					const redirectUrl = response.headers.location;
-					if (redirectUrl) {
-						file.close();
-						fs.unlinkSync(destPath);
-						downloadFile(redirectUrl, destPath).then(resolve).catch(reject);
-						return;
-					}
-				}
+        const request = protocol.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (response) => {
+            if (response.statusCode === 301 || response.statusCode === 302) {
+                const redirectUrl = response.headers.location;
+                if (redirectUrl) {
+                    file.close();
+                    fs.unlinkSync(destPath);
+                    downloadFile(redirectUrl, destPath).then(resolve).catch(reject);
+                    return;
+                }
+            }
 
-				if (response.statusCode !== 200) {
-					file.close();
-					fs.unlinkSync(destPath);
-					reject(new Error(`Failed to download: ${response.statusCode}`));
-					return;
-				}
+            if (response.statusCode !== 200) {
+                file.close();
+                fs.unlinkSync(destPath);
+                reject(new Error(`Failed to download: ${response.statusCode}`));
+                return;
+            }
 
-				response.pipe(file);
-				file.on("finish", () => {
-					file.close();
-					resolve();
-				});
-			},
-		);
+            response.pipe(file);
+            file.on('finish', () => {
+                file.close();
+                resolve();
+            });
+        });
 
-		request.on("error", (err) => {
-			file.close();
-			fs.unlink(destPath, () => {});
-			reject(err);
-		});
+        request.on('error', (err) => {
+            file.close();
+            fs.unlink(destPath, () => {});
+            reject(err);
+        });
 
-		request.setTimeout(30000, () => {
-			request.destroy();
-			reject(new Error("Download timeout"));
-		});
-	});
+        request.setTimeout(30000, () => {
+            request.destroy();
+            reject(new Error('Download timeout'));
+        });
+    });
 }
 
 function getImageExtension(urlOrPath: string): string {
-	const match = urlOrPath.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i);
-	return match ? match[1]?.toLowerCase() : "png";
+    const match = urlOrPath.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i);
+    return match ? match[1]?.toLowerCase() : 'png';
 }
 
-async function resolveImagePath(
-	imagePath: string,
-	baseDir: string,
-	tempDir: string,
-): Promise<string> {
-	if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-		const hash = createHash("md5").update(imagePath).digest("hex").slice(0, 8);
-		const ext = getImageExtension(imagePath);
-		const localPath = path.join(tempDir, `remote_${hash}.${ext}`);
+async function resolveImagePath(imagePath: string, baseDir: string, tempDir: string): Promise<string> {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        const hash = createHash('md5').update(imagePath).digest('hex').slice(0, 8);
+        const ext = getImageExtension(imagePath);
+        const localPath = path.join(tempDir, `remote_${hash}.${ext}`);
 
-		if (!fs.existsSync(localPath)) {
-			console.error(`[md-to-wechat] Downloading: ${imagePath}`);
-			await downloadFile(imagePath, localPath);
-		}
-		return localPath;
-	}
+        if (!fs.existsSync(localPath)) {
+            console.error(`[md-to-wechat] Downloading: ${imagePath}`);
+            await downloadFile(imagePath, localPath);
+        }
+        return localPath;
+    }
 
-	if (path.isAbsolute(imagePath)) {
-		return imagePath;
-	}
+    if (path.isAbsolute(imagePath)) {
+        return imagePath;
+    }
 
-	return path.resolve(baseDir, imagePath);
+    return path.resolve(baseDir, imagePath);
 }
 
 function parseFrontmatter(content: string): {
-	frontmatter: Record<string, string>;
-	body: string;
+    frontmatter: Record<string, string>;
+    body: string;
 } {
-	const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
-	if (!match) return { frontmatter: {}, body: content };
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+    if (!match) return { frontmatter: {}, body: content };
 
-	const frontmatter: Record<string, string> = {};
-	const lines = match[1]?.split("\n");
-	for (const line of lines) {
-		const colonIdx = line.indexOf(":");
-		if (colonIdx > 0) {
-			const key = line.slice(0, colonIdx).trim();
-			let value = line.slice(colonIdx + 1).trim();
-			if (
-				(value.startsWith('"') && value.endsWith('"')) ||
-				(value.startsWith("'") && value.endsWith("'"))
-			) {
-				value = value.slice(1, -1);
-			}
-			frontmatter[key] = value;
-		}
-	}
+    const frontmatter: Record<string, string> = {};
+    const lines = match[1]?.split('\n');
+    for (const line of lines) {
+        const colonIdx = line.indexOf(':');
+        if (colonIdx > 0) {
+            const key = line.slice(0, colonIdx).trim();
+            let value = line.slice(colonIdx + 1).trim();
+            if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+                value = value.slice(1, -1);
+            }
+            frontmatter[key] = value;
+        }
+    }
 
-	return { frontmatter, body: match[2] ?? "" };
+    return { frontmatter, body: match[2] ?? '' };
 }
 
 export async function convertMarkdown(
-	markdownPath: string,
-	options?: { title?: string; theme?: string },
+    markdownPath: string,
+    options?: { title?: string; theme?: string },
 ): Promise<ParsedResult> {
-	const baseDir = path.dirname(markdownPath);
-	const content = fs.readFileSync(markdownPath, "utf-8");
+    const baseDir = path.dirname(markdownPath);
+    const content = fs.readFileSync(markdownPath, 'utf-8');
 
-	// Validate theme parameter for security (command injection prevention)
-	// This throws an Error if theme is not in the allowed list
-	const theme = getValidTheme(options?.theme, "default");
+    // Validate theme parameter for security (command injection prevention)
+    // This throws an Error if theme is not in the allowed list
+    const theme = getValidTheme(options?.theme, 'default');
 
-	const { frontmatter, body } = parseFrontmatter(content);
+    const { frontmatter, body } = parseFrontmatter(content);
 
-	let title = options?.title ?? frontmatter.title ?? "";
-	if (!title) {
-		const h1Match = body.match(/^#\s+(.+)$/m);
-		if (h1Match) title = h1Match[1] ?? "";
-	}
-	if (!title) title = path.basename(markdownPath, path.extname(markdownPath));
-	const author = frontmatter.author || "";
-	let summary = frontmatter.description || frontmatter.summary || "";
+    let title = options?.title ?? frontmatter.title ?? '';
+    if (!title) {
+        const h1Match = body.match(/^#\s+(.+)$/m);
+        if (h1Match) title = h1Match[1] ?? '';
+    }
+    if (!title) title = path.basename(markdownPath, path.extname(markdownPath));
+    const author = frontmatter.author || '';
+    let summary = frontmatter.description || frontmatter.summary || '';
 
-	if (!summary) {
-		const lines = body.split("\n");
-		for (const line of lines) {
-			const trimmed = line.trim();
-			if (!trimmed) continue;
-			if (trimmed.startsWith("#")) continue;
-			if (trimmed.startsWith("![")) continue;
-			if (trimmed.startsWith(">")) continue;
-			if (trimmed.startsWith("-") || trimmed.startsWith("*")) continue;
-			if (/^\d+\./.test(trimmed)) continue;
+    if (!summary) {
+        const lines = body.split('\n');
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            if (trimmed.startsWith('#')) continue;
+            if (trimmed.startsWith('![')) continue;
+            if (trimmed.startsWith('>')) continue;
+            if (trimmed.startsWith('-') || trimmed.startsWith('*')) continue;
+            if (/^\d+\./.test(trimmed)) continue;
 
-			const cleanText = trimmed
-				.replace(/\*\*(.+?)\*\*/g, "$1")
-				.replace(/\*(.+?)\*/g, "$1")
-				.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-				.replace(/`([^`]+)`/g, "$1");
+            const cleanText = trimmed
+                .replace(/\*\*(.+?)\*\*/g, '$1')
+                .replace(/\*(.+?)\*/g, '$1')
+                .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                .replace(/`([^`]+)`/g, '$1');
 
-			if (cleanText.length > 20) {
-				summary =
-					cleanText.length > 120 ? `${cleanText.slice(0, 117)}...` : cleanText;
-				break;
-			}
-		}
-	}
+            if (cleanText.length > 20) {
+                summary = cleanText.length > 120 ? `${cleanText.slice(0, 117)}...` : cleanText;
+                break;
+            }
+        }
+    }
 
-	const images: Array<{ src: string; placeholder: string }> = [];
-	let imageCounter = 0;
+    const images: Array<{ src: string; placeholder: string }> = [];
+    let imageCounter = 0;
 
-	const modifiedBody = body.replace(
-		/!\[([^\]]*)\]\(([^)]+)\)/g,
-		(_match, _alt, src) => {
-			const placeholder = `WECHATIMGPH_${++imageCounter}`;
-			images.push({ src, placeholder });
-			return placeholder;
-		},
-	);
+    const modifiedBody = body.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, _alt, src) => {
+        const placeholder = `WECHATIMGPH_${++imageCounter}`;
+        images.push({ src, placeholder });
+        return placeholder;
+    });
 
-	const modifiedMarkdown = `---\n${Object.entries(frontmatter)
-		.map(([k, v]) => `${k}: ${v}`)
-		.join("\n")}\n---\n${modifiedBody}`;
+    const modifiedMarkdown = `---\n${Object.entries(frontmatter)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join('\n')}\n---\n${modifiedBody}`;
 
-	const tempDir = fs.mkdtempSync(
-		path.join(os.tmpdir(), "wechat-article-images-"),
-	);
-	const tempMdPath = path.join(tempDir, "temp-article.md");
-	await writeFile(tempMdPath, modifiedMarkdown, "utf-8");
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wechat-article-images-'));
+    const tempMdPath = path.join(tempDir, 'temp-article.md');
+    await writeFile(tempMdPath, modifiedMarkdown, 'utf-8');
 
-	const __filename = fileURLToPath(import.meta.url);
-	const __dirname = path.dirname(__filename);
-	const renderScript = path.join(__dirname, "md", "render.ts");
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const renderScript = path.join(__dirname, 'md', 'render.ts');
 
-	console.error(`[md-to-wechat] Rendering markdown with theme: ${theme}`);
+    console.error(`[md-to-wechat] Rendering markdown with theme: ${theme}`);
 
-	const result = spawnSync(
-		"npx",
-		["-y", "bun", renderScript, tempMdPath, "--theme", theme],
-		{
-			stdio: ["inherit", "pipe", "pipe"],
-			cwd: baseDir,
-		},
-	);
+    const result = spawnSync('npx', ['-y', 'bun', renderScript, tempMdPath, '--theme', theme], {
+        stdio: ['inherit', 'pipe', 'pipe'],
+        cwd: baseDir,
+    });
 
-	if (result.status !== 0) {
-		const stderr = result.stderr?.toString() || "";
-		throw new Error(`Render failed: ${stderr}`);
-	}
+    if (result.status !== 0) {
+        const stderr = result.stderr?.toString() || '';
+        throw new Error(`Render failed: ${stderr}`);
+    }
 
-	const htmlPath = tempMdPath.replace(/\.md$/i, ".html");
-	if (!fs.existsSync(htmlPath)) {
-		throw new Error(`HTML file not generated: ${htmlPath}`);
-	}
+    const htmlPath = tempMdPath.replace(/\.md$/i, '.html');
+    if (!fs.existsSync(htmlPath)) {
+        throw new Error(`HTML file not generated: ${htmlPath}`);
+    }
 
-	const contentImages: ImageInfo[] = [];
-	for (const img of images) {
-		const localPath = await resolveImagePath(img.src, baseDir, tempDir);
-		contentImages.push({
-			placeholder: img.placeholder,
-			localPath,
-			originalPath: img.src,
-		});
-	}
+    const contentImages: ImageInfo[] = [];
+    for (const img of images) {
+        const localPath = await resolveImagePath(img.src, baseDir, tempDir);
+        contentImages.push({
+            placeholder: img.placeholder,
+            localPath,
+            originalPath: img.src,
+        });
+    }
 
-	return {
-		title,
-		author,
-		summary,
-		coverImage:
-			frontmatter.cover_image ||
-			frontmatter.coverImage ||
-			frontmatter["cover-image"],
-		htmlPath,
-		contentImages,
-	};
+    return {
+        title,
+        author,
+        summary,
+        coverImage: frontmatter.cover_image || frontmatter.coverImage || frontmatter['cover-image'],
+        htmlPath,
+        contentImages,
+    };
 }
 
 function printUsage(): never {
-	console.log(`Convert Markdown to WeChat-ready HTML with image placeholders
+    console.log(`Convert Markdown to WeChat-ready HTML with image placeholders
 
 Usage:
   npx -y bun md-to-wechat.ts <markdown_file> [options]
@@ -275,57 +251,57 @@ Example:
   npx -y bun md-to-wechat.ts article.md
   npx -y bun md-to-wechat.ts article.md --theme grace
 `);
-	process.exit(0);
+    process.exit(0);
 }
 
 async function main(): Promise<void> {
-	const args = process.argv.slice(2);
-	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
-		printUsage();
-	}
+    const args = process.argv.slice(2);
+    if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+        printUsage();
+    }
 
-	let markdownPath: string | undefined;
-	let title: string | undefined;
-	let theme: string | undefined;
+    let markdownPath: string | undefined;
+    let title: string | undefined;
+    let theme: string | undefined;
 
-	for (let i = 0; i < args.length; i++) {
-		const arg = args[i];
-		if (!arg) continue;
-		if (arg === "--title" && args[i + 1]) {
-			title = args[++i];
-		} else if (arg === "--theme" && args[i + 1]) {
-			theme = args[++i];
-		} else if (!arg.startsWith("-")) {
-			markdownPath = arg;
-		}
-	}
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        if (!arg) continue;
+        if (arg === '--title' && args[i + 1]) {
+            title = args[++i];
+        } else if (arg === '--theme' && args[i + 1]) {
+            theme = args[++i];
+        } else if (!arg.startsWith('-')) {
+            markdownPath = arg;
+        }
+    }
 
-	if (!markdownPath) {
-		console.error("Error: Markdown file path is required");
-		process.exit(1);
-	}
+    if (!markdownPath) {
+        console.error('Error: Markdown file path is required');
+        process.exit(1);
+    }
 
-	if (!fs.existsSync(markdownPath)) {
-		console.error(`Error: File not found: ${markdownPath}`);
-		process.exit(1);
-	}
+    if (!fs.existsSync(markdownPath)) {
+        console.error(`Error: File not found: ${markdownPath}`);
+        process.exit(1);
+    }
 
-	// Validate theme parameter from command line for security
-	if (theme) {
-		try {
-			theme = getValidTheme(theme);
-		} catch (err) {
-			const errorMsg = err instanceof Error ? err.message : String(err);
-			console.error(`Error: ${errorMsg}`);
-			process.exit(1);
-		}
-	}
+    // Validate theme parameter from command line for security
+    if (theme) {
+        try {
+            theme = getValidTheme(theme);
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            console.error(`Error: ${errorMsg}`);
+            process.exit(1);
+        }
+    }
 
-	const result = await convertMarkdown(markdownPath, { title, theme });
-	console.log(JSON.stringify(result, null, 2));
+    const result = await convertMarkdown(markdownPath, { title, theme });
+    console.log(JSON.stringify(result, null, 2));
 }
 
 await main().catch((err) => {
-	console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
-	process.exit(1);
+    console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
 });
