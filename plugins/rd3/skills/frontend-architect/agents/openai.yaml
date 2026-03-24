@@ -5,7 +5,7 @@ description: "Frontend system architecture: SPA vs SSR vs SSG vs ISR,
   decisions."
 version: 1.0.0
 icon: 🛠️
-category: architecture-design
+category: debugging
 tags:
   - frontend
   - architecture
