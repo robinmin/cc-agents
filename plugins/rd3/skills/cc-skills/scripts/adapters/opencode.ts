@@ -50,8 +50,7 @@ export class OpenCodeAdapter implements IPlatformAdapter {
 
         // Check for shell commands that may need permissions
         const bashCommands = content.match(/```bash\n[\s\S]*?```/g) || [];
-        const documentsPermissions =
-            content.includes('## Platform Notes') && /permission|permissions/i.test(content);
+        const documentsPermissions = content.includes('## Platform Notes') && /permission|permissions/i.test(content);
         if (bashCommands.length > 0 && this.options.validatePermissions && !documentsPermissions) {
             warnings.push('Skill uses bash blocks - consider documenting required permissions');
         }
