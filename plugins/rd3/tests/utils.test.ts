@@ -3,7 +3,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
     ALLOWED_RESOURCE_TYPES,
@@ -30,8 +31,6 @@ import {
     validateResourceTypes,
     writeFile,
 } from '../scripts/utils';
-
-const TEST_DIR = '/tmp/rd3-utils-test';
 
 describe('String Utilities', () => {
     describe('normalizeSkillName', () => {
@@ -109,30 +108,32 @@ describe('String Utilities', () => {
 });
 
 describe('File System Utilities', () => {
+    let testDir = '';
+
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        testDir = mkdtempSync(join(tmpdir(), 'rd3-utils-test-'));
     });
 
     afterEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        rmSync(testDir, { recursive: true, force: true });
     });
 
     describe('ensureDir', () => {
         it('should create directory', () => {
-            ensureDir(TEST_DIR);
-            expect(existsSync(TEST_DIR)).toBe(true);
+            ensureDir(testDir);
+            expect(existsSync(testDir)).toBe(true);
         });
 
         it('should not fail for existing directory', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            expect(() => ensureDir(TEST_DIR)).not.toThrow();
+            mkdirSync(testDir, { recursive: true });
+            expect(() => ensureDir(testDir)).not.toThrow();
         });
     });
 
     describe('pathExists', () => {
         it('should return true for existing path', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            expect(pathExists(TEST_DIR)).toBe(true);
+            mkdirSync(testDir, { recursive: true });
+            expect(pathExists(testDir)).toBe(true);
         });
 
         it('should return false for non-existing path', () => {
@@ -142,33 +143,33 @@ describe('File System Utilities', () => {
 
     describe('readFile', () => {
         it('should read file content', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            writeFileSync(join(TEST_DIR, 'test.txt'), 'hello world', 'utf-8');
-            expect(readFile(join(TEST_DIR, 'test.txt'))).toBe('hello world');
+            mkdirSync(testDir, { recursive: true });
+            writeFileSync(join(testDir, 'test.txt'), 'hello world', 'utf-8');
+            expect(readFile(join(testDir, 'test.txt'))).toBe('hello world');
         });
     });
 
     describe('writeFile', () => {
         it('should write file and create parent directories', () => {
-            writeFile(join(TEST_DIR, 'subdir', 'test.txt'), 'content');
-            expect(readFile(join(TEST_DIR, 'subdir', 'test.txt'))).toBe('content');
+            writeFile(join(testDir, 'subdir', 'test.txt'), 'content');
+            expect(readFile(join(testDir, 'subdir', 'test.txt'))).toBe('content');
         });
     });
 
     describe('listFiles', () => {
         it('should list files in directory', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            writeFileSync(join(TEST_DIR, 'file1.txt'), '', 'utf-8');
-            writeFileSync(join(TEST_DIR, 'file2.txt'), '', 'utf-8');
-            const files = listFiles(TEST_DIR);
+            mkdirSync(testDir, { recursive: true });
+            writeFileSync(join(testDir, 'file1.txt'), '', 'utf-8');
+            writeFileSync(join(testDir, 'file2.txt'), '', 'utf-8');
+            const files = listFiles(testDir);
             expect(files.length).toBe(2);
         });
 
         it('should filter files with pattern', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            writeFileSync(join(TEST_DIR, 'file1.txt'), '', 'utf-8');
-            writeFileSync(join(TEST_DIR, 'file2.md'), '', 'utf-8');
-            const files = listFiles(TEST_DIR, /\.txt$/);
+            mkdirSync(testDir, { recursive: true });
+            writeFileSync(join(testDir, 'file1.txt'), '', 'utf-8');
+            writeFileSync(join(testDir, 'file2.md'), '', 'utf-8');
+            const files = listFiles(testDir, /\.txt$/);
             expect(files.length).toBe(1);
             expect(files[0]).toBe('file1.txt');
         });
@@ -180,27 +181,27 @@ describe('File System Utilities', () => {
 
     describe('isDirectory', () => {
         it('should return true for directory', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            expect(isDirectory(TEST_DIR)).toBe(true);
+            mkdirSync(testDir, { recursive: true });
+            expect(isDirectory(testDir)).toBe(true);
         });
 
         it('should return false for file', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            writeFileSync(join(TEST_DIR, 'file.txt'), '', 'utf-8');
-            expect(isDirectory(join(TEST_DIR, 'file.txt'))).toBe(false);
+            mkdirSync(testDir, { recursive: true });
+            writeFileSync(join(testDir, 'file.txt'), '', 'utf-8');
+            expect(isDirectory(join(testDir, 'file.txt'))).toBe(false);
         });
     });
 
     describe('isFile', () => {
         it('should return true for file', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            writeFileSync(join(TEST_DIR, 'file.txt'), '', 'utf-8');
-            expect(isFile(join(TEST_DIR, 'file.txt'))).toBe(true);
+            mkdirSync(testDir, { recursive: true });
+            writeFileSync(join(testDir, 'file.txt'), '', 'utf-8');
+            expect(isFile(join(testDir, 'file.txt'))).toBe(true);
         });
 
         it('should return false for directory', () => {
-            mkdirSync(TEST_DIR, { recursive: true });
-            expect(isFile(TEST_DIR)).toBe(false);
+            mkdirSync(testDir, { recursive: true });
+            expect(isFile(testDir)).toBe(false);
         });
     });
 });
