@@ -221,7 +221,7 @@ Create comprehensive tests in `scripts/ah_guard.test.ts`:
 **Quality Gates:**
 - All TypeScript compiles: `bun tsc --noEmit`
 - All tests pass: `bun test`
-- Format and lint pass: `bun biome format --write . && bun biome lint --write .`
+- Format and lint pass: `biome format --write . && biome lint --write .`
 
 
 ### Testing
