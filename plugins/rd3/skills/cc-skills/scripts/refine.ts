@@ -8,7 +8,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { applyBestPracticeFixes } from '../../../scripts/best-practice-fixes';
+import { applyBestPracticeFixes, extractToReferences } from '../../../scripts/best-practice-fixes';
 import { logger } from '../../../scripts/logger';
 import { createAntigravityAdapter } from './adapters/antigravity';
 import { createClaudeAdapter } from './adapters/claude';
@@ -160,6 +160,16 @@ async function refineSkill(
 
     // Run best practices auto-fix if requested (deterministic issues)
     if (options.bestPractices) {
+        // Extract long content to references first (SKILL.md >= 500 lines)
+        const extractResult = extractToReferences(resolvedPath, content);
+        if (extractResult.actions.length > 0) {
+            bestPractices.push(...extractResult.actions);
+            if (extractResult.content !== content) {
+                content = extractResult.content;
+                updated = true;
+            }
+        }
+
         const bpResult = applyBestPracticeFixes(content, {
             entityLabel: 'This skill helps',
             removeCircularRefs: true,
