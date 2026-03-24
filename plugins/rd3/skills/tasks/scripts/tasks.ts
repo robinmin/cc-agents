@@ -622,13 +622,7 @@ async function main() {
                 break;
             }
 
-            const result = batchCreate(
-                projectRoot,
-                inputPath,
-                cliFolder,
-                json,
-                jsonPath ? 'json' : 'agent-output',
-            );
+            const result = batchCreate(projectRoot, inputPath, cliFolder, json, jsonPath ? 'json' : 'agent-output');
             if (isErr(result)) {
                 if (json) {
                     emitJsonError(result.error);
