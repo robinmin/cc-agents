@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.5] - 2026-03-24
+
+### 🔧 Improvements
+
+- **Meta-Agent Skills Refactoring**: Replaced "LLM Checklist" pattern with "LLM Content Improvements" across all meta-agent skills for clearer, more actionable feedback
+
+### 📝 Internal Changes
+
+- 395 files changed, 104,066 insertions — internal quality improvements only, no user-facing API or behavior changes
+
 ## [0.3.0] - 2026-03-22
 
 ### ✨ New Features
