@@ -1,15 +1,17 @@
 ---
 name: database-patterns
-description: "Database implementation patterns: migrations, repository pattern, query optimization, indexing strategies, transactions, connection pooling, and ORM usage."
+description: "Database implementation patterns: migrations, repository pattern, query optimization, indexing strategies, transactions, connection pooling, ORM usage, materialized views, RLS, vector search, and WAL patterns."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
-tags: [database, sql, migrations, indexing, orm, patterns, engineering-core]
+updated_at: 2026-03-24
+tags: [database, sql, migrations, indexing, orm, rls, vector-search, patterns, engineering-core]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,antigravity,opencode,openclaw,pi"
   category: engineering-core
+  interactions:
+    - knowledge-only
 see_also:
   - rd3:sys-developing
   - rd3:sys-testing
@@ -344,3 +346,246 @@ const users = await userRepo.find({ relations: ['posts'] });
 | Missing connection pooling | Always use connection pool |
 | No query timeouts | Set statement_timeout |
 | Ignoring EXPLAIN | Analyze slow queries |
+
+## Materialized Views
+
+### Create and Refresh
+
+```sql
+-- Create materialized view
+CREATE MATERIALIZED VIEW user_post_counts AS
+SELECT
+  u.id AS user_id,
+  u.email,
+  COUNT(p.id) AS post_count,
+  MAX(p.created_at) AS last_post_at
+FROM users u
+LEFT JOIN posts p ON u.id = p.author_id
+GROUP BY u.id, u.email;
+
+-- Index the materialized view
+CREATE UNIQUE INDEX ON user_post_counts(user_id);
+
+-- Refresh on demand (blocks reads during refresh)
+REFRESH MATERIALIZED VIEW user_post_counts;
+
+-- Concurrent refresh (requires unique index, no write lock)
+REFRESH MATERIALIZED VIEW CONCURRENTLY user_post_counts;
+```
+
+### When to Use Materialized Views
+
+| Scenario | Use MV | Reason |
+|----------|--------|--------|
+| Complex aggregation, rarely changes | Yes | Pre-compute expensive joins |
+| Real-time dashboards | No | Stale data unacceptable |
+| Historical reports | Yes | Snapshot at point in time |
+| Frequently updated tables | No | Refresh cost too high |
+
+## Row-Level Security (RLS)
+
+### Enable RLS
+
+```sql
+-- Enable RLS on table
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+-- Policy: users see only their own orders
+CREATE POLICY orders_user_policy ON orders
+  FOR ALL
+  USING (user_id = current_user_id());
+
+-- current_user_id() set from JWT claim in application
+```
+
+### RLS in Application Context
+
+```typescript
+// Set the current user ID for each request
+async function withRLS<T>(
+  db: Database,
+  userId: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  return await db.transaction(async (tx) => {
+    // Set the current user context
+    await tx.execute(`SET LOCAL current_user_id = '${userId}'`);
+    return fn();
+  });
+}
+```
+
+### RLS Best Practices
+
+| Do | Don't |
+|----|-------|
+| Use `current_setting()` for custom contexts | Hardcode user IDs in policies |
+| Test with `SET LOCAL` before applying | Forget to apply policies after ALTER TABLE |
+| Combine with connection pooling | Open a new connection per user |
+
+## Vector Similarity Search (pgvector)
+
+### Enable and Use
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Add vector column to table
+ALTER TABLE documents ADD COLUMN embedding vector(1536);
+
+-- Create index for approximate nearest neighbor
+CREATE INDEX ON documents USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
+
+-- Search for similar documents
+SELECT
+  id,
+  content,
+  1 - (embedding <=> $1::vector) AS similarity
+FROM documents
+WHERE 1 - (embedding <=> $1::vector) > 0.8
+ORDER BY embedding <=> $1::vector
+LIMIT 5;
+```
+
+### Embedding Generation (TypeScript)
+
+```typescript
+import { OpenAI } from 'openai';
+
+const openai = new OpenAI();
+
+async function generateEmbedding(text: string): Promise<number[]> {
+  const response = await openai.embeddings.create({
+    model: 'text-embedding-3-small',
+    input: text,
+  });
+  return response.data[0].embedding;
+}
+```
+
+### Vector Index Selection
+
+| Index Type | Use Case | Speed | Accuracy |
+|------------|----------|-------|----------|
+| `ivfflat` | million+ vectors | Fast build | Good |
+| `hnsw` | production, high QPS | Slower build | Excellent |
+| No index | <10k vectors | N/A | Perfect |
+
+## Write-Ahead Log (WAL) Patterns
+
+### Understanding WAL
+
+```
+WAL sequence:
+1. Transaction begins
+2. Write to WAL (durable)
+3. Modify data pages
+4. Transaction commits
+5. Checkpoint periodically flushes pages to disk
+```
+
+### WAL Configuration
+
+```sql
+-- Check current WAL settings
+SHOW wal_level;           -- logical, replica, or minimal
+SHOW max_wal_size;
+SHOW min_wal_size;
+
+-- Set for logical replication (needed for CDC)
+ALTER SYSTEM SET wal_level = 'logical';
+ALTER SYSTEM SET max_wal_size = '1GB';
+ALTER SYSTEM SET wal_keep_size = '256MB';
+
+-- Force checkpoint
+CHECKPOINT;
+```
+
+### Point-in-Time Recovery (PITR)
+
+```bash
+# Base backup with WAL
+pg_basebackup -D /backup/db -Ft -z -P -X fetch
+
+# Archive WAL continuously
+archive_command = 'test ! -f /wal/%f && gzip < %p > /wal/%f'
+
+# Recover to point in time
+# recovery.conf (PG 12-) or postgresql.conf (PG 13+)
+restore_command = 'gunzip < /wal/%f'
+recovery_target_time = '2024-01-15 14:30:00 UTC'
+```
+
+## Advanced Connection Pooling
+
+### PgBouncer Configuration
+
+```ini
+; pgbouncer.ini
+[databases]
+mydb = host=127.0.0.1 port=5432 dbname=mydb
+
+[pgbouncer]
+listen_port = 6432
+listen_addr = 127.0.0.1
+auth_type = md5
+auth_file = /etc/pgbouncer/userlist.txt
+
+; Pool modes
+; session: 1 connection per client session (default)
+; transaction: connection only during transaction
+; statement: connection released after each statement (disallows SET, PREPARE)
+pool_mode = transaction
+
+max_client_conn = 1000
+default_pool_size = 20
+min_pool_size = 5
+reserve_pool_size = 5
+reserve_pool_timeout = 3
+max_db_connections = 100
+```
+
+### Session vs Transaction Pooling
+
+| Mode | Use Case | Limitation |
+|------|----------|------------|
+| `session` | Prepared statements, SET variables | Higher connection usage |
+| `transaction` | Most web apps, stateless | Can't use session-only features |
+| `statement` | High-frequency single queries | No transactions, no SET |
+
+## Common Table Expressions (CTE)
+
+### Recursive CTE for Hierarchies
+
+```sql
+-- Employee hierarchy
+WITH RECURSIVE subordinates AS (
+  -- Base case: direct reports of root
+  SELECT id, name, manager_id, 1 AS depth
+  FROM employees
+  WHERE manager_id = 'ceo-uuid'
+
+  UNION ALL
+
+  -- Recursive case: employees of subordinates
+  SELECT e.id, e.name, e.manager_id, s.depth + 1
+  FROM employees e
+  INNER JOIN subordinates s ON e.manager_id = s.id
+)
+SELECT * FROM subordinates ORDER BY depth, name;
+```
+
+### Writeable CTE
+
+```sql
+-- Insert and return in one query
+WITH inserted AS (
+  INSERT INTO users (name, email)
+  VALUES ('Alice', 'alice@example.com')
+  RETURNING id
+)
+INSERT INTO profiles (user_id, bio)
+SELECT id, 'New user' FROM inserted
+RETURNING *;
+```
