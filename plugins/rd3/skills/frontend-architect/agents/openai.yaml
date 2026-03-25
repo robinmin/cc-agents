@@ -3,12 +3,17 @@ description: "Frontend system architecture: SPA vs SSR vs SSG vs ISR,
   microfrontends, monorepo, CDN/edge strategies, frontend security, and
   scalability patterns. Trigger when making high-level frontend architecture
   decisions."
+author: cc-agents
+interactions:
+  - inversion
 version: 1.0.0
 icon: 🛠️
-category: debugging
+category: architecture-design
 tags:
   - frontend
   - architecture
   - rendering-strategies
   - microfrontends
   - monorepo
+  - scalability
+  - security
