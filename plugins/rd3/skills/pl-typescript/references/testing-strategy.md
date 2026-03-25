@@ -13,10 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/async-patterns
-  - rd3:pl-typescript/references/api-design
-  - rd3:pl-typescript/references/type-system
 ---
 
 # Testing Strategy for TypeScript
