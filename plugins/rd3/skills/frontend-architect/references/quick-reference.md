@@ -7,8 +7,6 @@ see_also:
 
 # Quick Reference
 
-## Quick Reference
-
 ### Rendering Strategy Quick Decision
 
 | Requirement | Recommended Strategy |
