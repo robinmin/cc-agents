@@ -115,10 +115,18 @@ export interface PlatformSupport {
 // Validation Types
 // ============================================================================
 
+export interface ValidationFinding {
+    severity: 'error' | 'warning' | 'info';
+    message: string;
+    suggestion?: string;
+}
+
 export interface ValidationResult {
     valid: boolean;
     errors: string[];
     warnings: string[];
+    /** Structured findings (shared validation-findings compatible) */
+    findings?: ValidationFinding[];
 }
 
 export interface ValidationReport extends ValidationResult {
