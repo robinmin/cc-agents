@@ -104,7 +104,7 @@ Shows changes without writing.
 ### Single Platform
 
 ```bash
-bun scripts/adapt.ts ./agents/my-agent.md --platform gemini
+bun scripts/adapt.ts ./agents/my-agent.md claude gemini
 ```
 
 Generates Gemini CLI format.
@@ -112,7 +112,7 @@ Generates Gemini CLI format.
 ### All Platforms
 
 ```bash
-bun scripts/adapt.ts ./agents/my-agent.md --platform all
+bun scripts/adapt.ts ./agents/my-agent.md claude all
 ```
 
 Generates all 6 platform formats.
@@ -120,7 +120,7 @@ Generates all 6 platform formats.
 ### With Preview
 
 ```bash
-bun scripts/adapt.ts ./agents/my-agent.md --platform all --verbose
+bun scripts/adapt.ts ./agents/my-agent.md claude all --verbose
 ```
 
 Shows loss detection warnings.
@@ -141,7 +141,7 @@ bun scripts/evaluate.ts ./agents/my-agent.md --scope full
 bun scripts/refine.ts ./agents/my-agent.md --best-practices
 
 # 5. Adapt to all platforms
-bun scripts/adapt.ts ./agents/my-agent.md --platform all
+bun scripts/adapt.ts ./agents/my-agent.md claude all
 ```
 
 ## Sample Output
