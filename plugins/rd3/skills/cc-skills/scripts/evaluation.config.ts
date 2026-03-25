@@ -144,18 +144,23 @@ export const EVALUATION_CONFIG: EvaluationConfig = {
                 severity: 'critical',
                 reason: 'Pipe to shell execution (wget | sh)',
             },
+            // Note: Require word character or $ after ( to avoid matching
+            // bare pattern names in documentation like `eval(`, `exec(`, eval(, exec(,
+            // Actual dangerous usage like eval(userInput), eval(code), eval($var) will match
             {
-                pattern: /eval\s*\(/,
+                pattern: /eval\s*\([\w$]/,
                 severity: 'critical',
                 reason: 'Dynamic code execution (eval)',
             },
             {
-                pattern: /exec\s*\(/,
+                pattern: /exec\s*\([\w$]/,
                 severity: 'critical',
                 reason: 'Command execution (exec)',
             },
+            // Note: Require shell=True NOT inside quotes to avoid matching documentation examples
+            // e.g., Grep: "subprocess.*shell=True" won't match, but actual subprocess.run(shell=True) will
             {
-                pattern: /subprocess.*shell\s*=\s*True/,
+                pattern: /[^"']subprocess.*shell\s*=\s*True/,
                 severity: 'critical',
                 reason: 'Shell=True vulnerability',
             },
