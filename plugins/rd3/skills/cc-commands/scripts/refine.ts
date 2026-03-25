@@ -26,6 +26,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { applyBestPracticeFixes } from '../../../scripts/best-practice-fixes';
 import { logger } from '../../../scripts/logger';
 import {
     convertToImperative,
@@ -265,6 +266,19 @@ async function refineCommand(commandPath: string, options: RefineOptions): Promi
 
         content = content + platformNotes;
         migrations.push('Added Platform Notes section');
+        updated = true;
+    }
+
+    // Apply shared best-practice fixes (TODO normalization, Windows paths, structure warnings)
+    const bpResult = applyBestPracticeFixes(content, {
+        entityLabel: 'This command',
+        removeCircularRefs: false,
+        removeSlashRefs: false,
+        extractLongContent: false,
+    });
+    if (bpResult.actions.length > 0) {
+        content = bpResult.content;
+        migrations.push(...bpResult.actions);
         updated = true;
     }
 
