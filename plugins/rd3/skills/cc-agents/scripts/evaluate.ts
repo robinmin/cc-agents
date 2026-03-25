@@ -20,23 +20,11 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { calculateLetterGrade, getEvaluationDecisionState } from '../../../scripts/grading';
 import { COLORS, logger } from '../../../scripts/logger';
-import {
-    AGENT_DIMENSION_CATEGORIES,
-    AGENT_DIMENSION_DISPLAY_NAMES,
-    AGENT_EVALUATION_CONFIG,
-    type AgentDimensionWeights,
-    getWeightsForProfile,
-} from './evaluation.config';
-import type {
-    AgentDimensionName,
-    AgentEvaluationDimension,
-    AgentEvaluationReport,
-    AgentWeightProfile,
-    EvaluationScope,
-    Grade,
-} from './types';
-import { analyzeBody, detectTemplateTier, detectWeightProfile, isValidAgentName, parseFrontmatter } from './utils';
+import { AGENT_DIMENSION_DISPLAY_NAMES, AGENT_EVALUATION_CONFIG, getWeightsForProfile } from './evaluation.config';
+import type { AgentEvaluationDimension, AgentEvaluationReport, AgentWeightProfile, EvaluationScope } from './types';
+import { analyzeBody, detectWeightProfile, isValidAgentName, parseFrontmatter } from './utils';
 
 // ============================================================================
 // TYPES
@@ -705,21 +693,6 @@ function scoreOperationalReadiness(body: string, weight: number, scope: Evaluati
 }
 
 // ============================================================================
-// GRADING
-// ============================================================================
-
-/**
- * Compute letter grade from percentage.
- */
-function computeGrade(percentage: number): Grade {
-    if (percentage >= 90) return 'A';
-    if (percentage >= 80) return 'B';
-    if (percentage >= 70) return 'C';
-    if (percentage >= 60) return 'D';
-    return 'F';
-}
-
-// ============================================================================
 // NEW DIMENSIONS: Security Posture & Instruction Clarity
 // ============================================================================
 
@@ -935,7 +908,7 @@ export async function evaluateAgent(
     const adjustedTotal = Math.max(0, rawTotal - securityResult.greylistPenalty);
 
     const percentage = maxTotal > 0 ? Math.round((adjustedTotal / maxTotal) * 100) : 0;
-    const grade = computeGrade(percentage);
+    const grade = calculateLetterGrade(percentage);
 
     // Add greylist findings to dimensions
     if (securityResult.greylistFindings.length > 0) {
@@ -982,6 +955,7 @@ export function renderBar(score: number, maxScore: number, width = 20): string {
  */
 export function printTextReport(report: AgentEvaluationReport, verbose: boolean): void {
     const { COLORS: C } = { COLORS };
+    const overallStatus = getEvaluationDecisionState(report.passed, report.rejected);
 
     // Header
     logger.log('');
@@ -995,16 +969,18 @@ export function printTextReport(report: AgentEvaluationReport, verbose: boolean)
 
     // Rejection check
     if (report.rejected) {
-        logger.log(`${C.red}  REJECTED: ${report.rejectReason}${C.reset}`);
+        logger.log(`  Status:   ${C.red}${overallStatus}${C.reset}`);
+        logger.log(`  Reason:   ${report.rejectReason}`);
         logger.log('');
         return;
     }
 
     // Overall score
-    const gradeColor = report.passed ? C.green : C.red;
+    const gradeColor = report.passed ? C.green : C.yellow;
+    const statusColor = overallStatus === 'PASS' ? C.green : C.yellow;
     logger.log(`  Grade:    ${gradeColor}${report.grade}${C.reset} (${report.percentage}%)`);
     logger.log(`  Score:    ${report.overallScore} / ${report.maxScore}`);
-    logger.log(`  Status:   ${report.passed ? `${C.green}PASS${C.reset}` : `${C.red}FAIL${C.reset}`}`);
+    logger.log(`  Status:   ${statusColor}${overallStatus}${C.reset}`);
     logger.log('');
 
     // Dimension breakdown
