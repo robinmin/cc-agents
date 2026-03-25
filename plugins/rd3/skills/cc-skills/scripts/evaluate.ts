@@ -272,10 +272,10 @@ function detectHasScripts(body: string, resources: SkillResources): boolean {
         return true;
     }
 
-    // Body content check only applies if scripts/ directory exists
+    // Body content check only applies if scripts/ directory has actual files
     // Bash code blocks in SKILL.md may be documentation examples, not executable scripts
-    // For scriptless skills (no scripts/ dir), body patterns are ignored
-    if (!resources.scripts) {
+    // For scriptless skills (no scripts/ dir OR empty scripts/ dir), body patterns are ignored
+    if (!resources.scripts || resources.scripts.length === 0) {
         return false;
     }
 
