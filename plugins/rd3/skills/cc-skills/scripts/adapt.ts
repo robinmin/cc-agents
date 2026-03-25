@@ -27,7 +27,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { logger, COLORS } from '../../../scripts/logger';
+import { logger } from '../../../scripts/logger';
 
 // ============================================================================
 // Types
@@ -101,21 +101,25 @@ function parseCliArgs(): AdaptOptions {
 }
 
 function printUsage(): void {
-    console.log(`${COLORS.cyan}adapt.ts${COLORS.reset} - Adapt plugin for cross-platform compatibility\n`);
-    console.log(`${COLORS.green}USAGE:${COLORS.reset}`);
-    console.log('    bun adapt.ts <plugin|path> <targets> [options]\n');
-    console.log(`${COLORS.green}ARGUMENTS:${COLORS.reset}`);
-    console.log('    plugin      Plugin name (e.g., rd2, rd3, wt) OR skill path\n');
-    console.log('    targets     Target platforms: all, codex, openclaw, claude (default: all)\n');
-    console.log(`${COLORS.green}OPTIONS:${COLORS.reset}`);
-    console.log('    --component   Component: commands, skills, subagents, all (default: all)');
-    console.log('    --dry-run     Preview changes without applying');
-    console.log('    --verbose     Show detailed output');
-    console.log('    --help        Show this help message\n');
-    console.log(`${COLORS.green}EXAMPLES:${COLORS.reset}`);
-    console.log('    bun adapt.ts rd3 all');
-    console.log('    bun adapt.ts rd2 codex,openclaw --dry-run');
-    console.log('    bun adapt.ts ./skills/my-skill claude --component skills');
+    logger.log('adapt.ts - Adapt plugin for cross-platform compatibility');
+    logger.log('');
+    logger.log('USAGE:');
+    logger.log('    bun adapt.ts <plugin|path> <targets> [options]');
+    logger.log('');
+    logger.log('ARGUMENTS:');
+    logger.log('    plugin      Plugin name (e.g., rd2, rd3, wt) OR skill path');
+    logger.log('    targets     Target platforms: all, codex, openclaw, claude (default: all)');
+    logger.log('');
+    logger.log('OPTIONS:');
+    logger.log('    --component   Component: commands, skills, subagents, all (default: all)');
+    logger.log('    --dry-run     Preview changes without applying');
+    logger.log('    --verbose     Show detailed output');
+    logger.log('    --help        Show this help message');
+    logger.log('');
+    logger.log('EXAMPLES:');
+    logger.log('    bun adapt.ts rd3 all');
+    logger.log('    bun adapt.ts rd2 codex,openclaw --dry-run');
+    logger.log('    bun adapt.ts ./skills/my-skill claude --component skills');
 }
 
 // ============================================================================
@@ -127,7 +131,7 @@ function validateOptions(options: AdaptOptions): void {
     for (const target of options.targets) {
         if (!VALID_TARGETS.includes(target)) {
             logger.error(`Invalid target: ${target}`);
-            console.log(`   Valid: ${VALID_TARGETS.join(', ')}`);
+            logger.log(`   Valid: ${VALID_TARGETS.join(', ')}`);
             process.exit(1);
         }
     }
@@ -135,7 +139,7 @@ function validateOptions(options: AdaptOptions): void {
     // Validate component
     if (!VALID_COMPONENTS.includes(options.component)) {
         logger.error(`Invalid component: ${options.component}`);
-        console.log(`   Valid: ${VALID_COMPONENTS.join(', ')}`);
+        logger.log(`   Valid: ${VALID_COMPONENTS.join(', ')}`);
         process.exit(1);
     }
 
@@ -158,7 +162,7 @@ function validateOptions(options: AdaptOptions): void {
 // Skills 2.0 Compliance - Commands
 // ============================================================================
 
-function auditCommand(cmdFile: string, pluginName: string): AuditResult {
+function auditCommand(cmdFile: string, _pluginName: string): AuditResult {
     const issues: string[] = [];
     const warnings: string[] = [];
     const content = readFileSync(cmdFile, 'utf-8');
@@ -255,16 +259,18 @@ function auditSkill(skillDir: string): AuditResult {
     }
 
     const content = readFileSync(skillFile, 'utf-8');
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    const frontmatter = fmMatch?.[1] ?? '';
 
     // Check 1: 'name:' must match directory name
-    const nameMatch = content.match(/^name:\s*(.+)$/m);
+    const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
     const nameInFile = nameMatch ? nameMatch[1].trim() : '';
     if (nameInFile !== skillName) {
         issues.push(`MISMATCH name: '${nameInFile}' != directory '${skillName}'`);
     }
 
     // Check 2: 'description:' should exist and be descriptive
-    const descMatch = content.match(/^description:\s*(.+)$/m);
+    const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
     if (!descMatch) {
         issues.push('MISSING description: field');
     } else if (descMatch[1].trim().length < 20) {
@@ -292,14 +298,26 @@ function fixSkill(skillDir: string): AuditResult {
     const skillName = basename(skillDir);
     const skillFile = join(skillDir, 'SKILL.md');
     let content = readFileSync(skillFile, 'utf-8');
+    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
 
     // Fix 1: Ensure name matches directory
     if (!new RegExp(`^name: ${skillName}`, 'm').test(content)) {
-        if (/^name:/m.test(content)) {
+        if (fmMatch) {
+            let frontmatter = fmMatch[1];
+            if (/^name:/m.test(frontmatter)) {
+                frontmatter = frontmatter.replace(/^name:.*/m, `name: ${skillName}`);
+                logger.info(`  Fixed name: -> ${skillName}`);
+            } else {
+                frontmatter = `name: ${skillName}\n${frontmatter}`;
+                logger.info(`  Added name: ${skillName}`);
+            }
+
+            content = content.replace(fmMatch[0], `---\n${frontmatter.trimEnd()}\n---`);
+        } else if (/^name:/m.test(content)) {
             content = content.replace(/^name:.*/m, `name: ${skillName}`);
             logger.info(`  Fixed name: -> ${skillName}`);
         } else {
-            content = `---\nname: ${skillName}\n${content}`;
+            content = `---\nname: ${skillName}\n---\n\n${content}`;
             logger.info(`  Added name: ${skillName}`);
         }
     }
@@ -400,7 +418,7 @@ function adaptForOpenclaw(skillDir: string, targets: string[], dryRun: boolean):
 // Process Functions
 // ============================================================================
 
-function processCommands(pluginDir: string, pluginName: string, targets: string[], dryRun: boolean): void {
+function processCommands(pluginDir: string, pluginName: string, _targets: string[], dryRun: boolean): void {
     const commandsDir = join(pluginDir, 'commands');
     if (!existsSync(commandsDir)) {
         logger.info('No commands directory found');
@@ -419,7 +437,7 @@ function processCommands(pluginDir: string, pluginName: string, targets: string[
 
         total++;
         const cmdName = basename(file, '.md');
-        console.log('');
+        logger.log('');
         logger.info(`Auditing: ${cmdName}`);
 
         if (dryRun) {
@@ -433,14 +451,14 @@ function processCommands(pluginDir: string, pluginName: string, targets: string[
                 issues++;
                 logger.info('  Fixing...');
                 fixCommand(cmdFile, pluginName);
-                logger.success('  Fixed');
+                logger.success('  PASS (after fixes)');
             } else {
-                logger.success('  OK');
+                logger.success('  PASS');
             }
         }
     }
 
-    console.log('');
+    logger.log('');
     logger.info(`Commands: ${total} total, ${issues} issues found`);
 }
 
@@ -469,7 +487,7 @@ function processSkills(pluginOrPath: string, isPath: boolean, targets: string[],
     for (const skillDir of skillDirs) {
         total++;
         const skillName = basename(skillDir);
-        console.log('');
+        logger.log('');
         logger.info(`Auditing skill: ${skillName}`);
 
         // Skills 2.0 compliance
@@ -484,9 +502,9 @@ function processSkills(pluginOrPath: string, isPath: boolean, targets: string[],
                 issues++;
                 logger.info('  Fixing...');
                 fixSkill(skillDir);
-                logger.success('  Fixed');
+                logger.success('  PASS (after fixes)');
             } else {
-                logger.success('  OK');
+                logger.success('  PASS');
             }
         }
 
@@ -495,7 +513,7 @@ function processSkills(pluginOrPath: string, isPath: boolean, targets: string[],
         adaptForOpenclaw(skillDir, targets, dryRun);
     }
 
-    console.log('');
+    logger.log('');
     logger.info(`Skills: ${total} total, ${issues} issues found`);
 }
 
@@ -515,7 +533,7 @@ function processSubagents(pluginDir: string): void {
         logger.info(`  - ${agentName} (Claude Code only)`);
     }
 
-    console.log('');
+    logger.log('');
     logger.info(`Subagents: ${files.length} (Claude Code specific - no cross-platform migration)`);
 }
 
@@ -528,20 +546,19 @@ async function main() {
 
     validateOptions(options);
 
-    console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
-    console.log(
-        `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Adaptation        ${COLORS.magenta}║${COLORS.reset}`,
-    );
-    console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
+    logger.log('========================================');
+    logger.log('  adapt.ts - Cross-Platform Adaptation');
+    logger.log('========================================');
+    logger.log('');
 
     const pluginDir = options.isPath ? options.plugin : resolve(PROJECT_ROOT, 'plugins', options.plugin);
     const pluginName = options.isPath ? basename(options.plugin) : options.plugin;
 
-    console.log(`Plugin: ${pluginName}`);
-    console.log(`Targets: ${options.targets.join(', ')}`);
-    console.log(`Component: ${options.component}`);
-    console.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'APPLY'}`);
-    console.log('');
+    logger.log(`Plugin: ${pluginName}`);
+    logger.log(`Targets: ${options.targets.join(', ')}`);
+    logger.log(`Component: ${options.component}`);
+    logger.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'APPLY'}`);
+    logger.log('');
 
     if (options.component.includes('commands') || options.component === 'all') {
         if (!options.isPath) {
@@ -563,17 +580,17 @@ async function main() {
         }
     }
 
-    console.log('');
+    logger.log('');
     logger.success('Adaptation complete!');
-    console.log('');
+    logger.log('');
     logger.info('Next steps:');
-    console.log('  1. Review changes with --dry-run first');
-    console.log('  2. Run install-skills.sh to distribute to target agents');
-    console.log('');
+    logger.log('  1. Review changes with --dry-run first');
+    logger.log('  2. Run install-skills.sh to distribute to target agents');
+    logger.log('');
     logger.info('Platform adaptations applied:');
-    console.log('  - Claude Code: Skills 2.0 compliance (name, description)');
-    console.log('  - Codex: agents/openai.yaml (UI metadata)');
-    console.log('  - OpenClaw: metadata.openclaw in SKILL.md frontmatter');
+    logger.log('  - Claude Code: Skills 2.0 compliance (name, description)');
+    logger.log('  - Codex: agents/openai.yaml (UI metadata)');
+    logger.log('  - OpenClaw: metadata.openclaw in SKILL.md frontmatter');
 }
 
 main();
