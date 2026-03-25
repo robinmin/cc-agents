@@ -12,7 +12,10 @@ metadata:
   category: engineering-core
 see_also:
   - rd3:knowledge-extraction
-  - rd3:sys-debugging
+  - rd3:knowledge-extraction/references/conflict-resolution
+  - rd3:knowledge-extraction/references/deduplication
+  - rd3:knowledge-extraction/references/tool-selection
+  - rd3:anti-hallucination
 ---
 
 # Validation Methods for Information Verification
