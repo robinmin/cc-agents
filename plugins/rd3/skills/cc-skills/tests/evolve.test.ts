@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getEvolutionStoragePaths } from '../../../scripts/evolution-engine';
 
 const TEST_DIR = '/tmp/cc-skills-evolve-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -16,6 +17,10 @@ describe('Integration: evolve command', () => {
     afterEach(() => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
+        }
+        const storage = getEvolutionStoragePaths('.cc-skills', join(TEST_DIR, 'test-skill'));
+        if (existsSync(storage.rootDir)) {
+            rmSync(storage.rootDir, { recursive: true, force: true });
         }
     });
 
@@ -62,7 +67,8 @@ description: A placeholder skill for evolution tests
         expect(exitCode).toBe(0);
         expect(`${stdout}\n${stderr}`).toContain('Evolution Proposals');
 
-        const proposalsPath = join(TEST_DIR, '.cc-skills', 'evolution', 'proposals', 'test-skill.proposals.json');
+        const storage = getEvolutionStoragePaths('.cc-skills', skillPath);
+        const proposalsPath = storage.proposalsPath;
         expect(existsSync(proposalsPath)).toBe(true);
     });
 
@@ -90,7 +96,8 @@ Use /rd3:skill-add before trying this skill.
         const proposeExit = await proposeProc.exited;
         expect(proposeExit).toBe(0);
 
-        const proposalsPath = join(TEST_DIR, '.cc-skills', 'evolution', 'proposals', 'test-skill.proposals.json');
+        const storage = getEvolutionStoragePaths('.cc-skills', skillPath);
+        const proposalsPath = storage.proposalsPath;
         const proposalSet = JSON.parse(readFileSync(proposalsPath, 'utf-8')) as {
             proposals: Array<{ id: string }>;
         };
@@ -120,7 +127,7 @@ Use /rd3:skill-add before trying this skill.
         const appliedContent = readFileSync(join(skillPath, 'SKILL.md'), 'utf-8');
         expect(appliedContent).not.toBe(originalContent);
 
-        const historyPath = join(TEST_DIR, '.cc-skills', 'evolution', 'versions', 'test-skill.history.json');
+        const historyPath = storage.historyPath;
         expect(existsSync(historyPath)).toBe(true);
 
         const rollbackProc = Bun.spawn(['bun', 'run', EVOLVE_SCRIPT, skillPath, '--rollback', 'v0', '--confirm'], {
@@ -138,7 +145,7 @@ Use /rd3:skill-add before trying this skill.
         const rolledBackContent = readFileSync(join(skillPath, 'SKILL.md'), 'utf-8');
         expect(rolledBackContent).toBe(originalContent);
 
-        const backupsDir = join(TEST_DIR, '.cc-skills', 'evolution', 'backups');
+        const backupsDir = storage.backupsDir;
         expect(existsSync(backupsDir)).toBe(true);
     });
 });
