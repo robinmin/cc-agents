@@ -6,19 +6,34 @@ Detailed workflow definitions for cc-agents operations. Each workflow defines:
 - **Branching logic**: What to do when steps fail or succeed
 - **Retry loops**: When to go back and redo previous steps
 
+LLM content improvement is embedded in the normal workflow for every operation.
+It is performed by the invoking agent as checklist-driven review/content improvement, not via a separate CLI mode.
+
+## Shared Workflow Framework
+
+This file follows the shared [Meta-Agent Workflow Schema](../../../references/meta-agent-workflow-schema.md).
+
+Shared Phase 1 conventions:
+
+- concept-level operations use `Create`, `Validate`, `Evaluate`, `Refine`, `Evolve`, and `Adapt`
+- documentation decision states use `BLOCK`, `WARN`, and `PASS`
+- deterministic script work and invoking-agent judgment are documented separately
+- `Evolve` follows the closed loop: Observe -> Analyze -> Propose -> Apply -> Verify -> Snapshot -> Rollback -> Learn
+
 ---
 
 ## Table of Contents
 
-1. [Scaffold Workflow](#scaffold-workflow) - Create new agent
+1. [Create Workflow](#create-workflow) - Create new agent
 2. [Validate Workflow](#validate-workflow) - Check agent structure
 3. [Evaluate Workflow](#evaluate-workflow) - Score agent quality
 4. [Refine Workflow](#refine-workflow) - Fix issues and improve
-5. [Adapt Workflow](#adapt-workflow) - Convert to other platforms
+5. [Evolve Workflow](#evolve-workflow) - Governed longitudinal improvement
+6. [Adapt Workflow](#adapt-workflow) - Convert to other platforms
 
 ---
 
-## Scaffold Workflow
+## Create Workflow
 
 Create a new agent from a tiered template.
 
@@ -26,14 +41,15 @@ Create a new agent from a tiered template.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│ SCAFFOLD WORKFLOW                                                    │
+│ CREATE WORKFLOW                                                      │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
 │  │ Scaffold │    │ Validate  │    │ LLM      │    │ Platform │   │
-│  │ (Script) │    │ (Script)  │    │ Verify   │    │ Check    │   │
-│  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
+│  │ (Script) │    │ (Script)  │    │ Content  │    │ Check    │   │
+│  └──────────┘    └──────────┘    │ Improve  │    └──────────┘   │
+│                                  └──────────┘                   │
 │       │               │              │                │            │
 │       ▼               ▼              ▼                ▼            │
 │  [SUCCESS]       [FAIL: Back 1] [FAIL: Back 1]  [FAIL: Retry]   │
@@ -45,7 +61,7 @@ Create a new agent from a tiered template.
 |------|------|---------|------------------|-------------|
 | 1 | Scaffold | `scaffold.ts` | Creates agent .md file | Retry step 1 |
 | 2 | Validate Structure | `validate.ts` | All required fields exist | Back to step 1 |
-| 3 | LLM Verify | Checklist (invoking agent) | PASS on all mandatory items | Back to step 1 |
+| 3 | LLM Content Improvement | LLM (invoking agent) | Improves content using LLM | Back to step 1 |
 | 4 | Platform Check | `validate.ts --platform all` | Compatible with targets | Retry step 4 |
 
 ### Step Details
@@ -74,17 +90,24 @@ bun scripts/validate.ts <agent.md>
 
 **Success:** Returns validation pass
 
-#### Step 3: LLM Verify (Checklist)
+#### Step 3: LLM Content Improvement
+**Handler:** LLM (invoking agent using its own LLM capability)
 
-The invoking agent checks these items directly:
+**What the invoking agent does:**
+1. Reads the newly scaffolded agent .md file
+2. Identifies weak sections: vague descriptions, inconsistent voice, weak examples
+3. Uses LLM to rewrite content addressing issues
+4. Preserves frontmatter exactly (name, description, tools, model)
+5. Ensures description starts with "Use PROACTIVELY for" for specialist agents
+6. Adds concrete trigger phrases (3+ quoted phrases)
+7. Adds example blocks with proper `<example>` and `<commentary>`
+8. Verifies body matches tier budget (minimal: 20-50, standard: 80-200, specialist: 200-500 lines)
 
-| # | Item | Check |
-|---|------|-------|
-| 1 | Name is kebab-case | Pattern `^[a-z][a-z0-9-]+[a-z0-9]$`, 3-50 chars |
-| 2 | Description starts with "Use PROACTIVELY for" | For specialist agents |
-| 3 | Description has trigger phrases | 3+ quoted phrases |
-| 4 | Description has example blocks | 2+ `<example>` with `<commentary>` |
-| 5 | Body matches tier budget | minimal: 20-50, standard: 80-200, specialist: 200-500 lines |
+**Important:**
+- Frontmatter fields MUST NOT be modified
+- Only the body content is improved
+- Preserve all existing reference links
+- Check agent type matches tier requirements
 
 **If FAIL:** Go back to Step 1 (re-scaffold with corrections)
 
@@ -104,7 +127,7 @@ bun scripts/validate.ts <agent.md> --platform all
 
 ## Validate Workflow
 
-Check agent structure and frontmatter. Purely deterministic.
+Check agent structure and frontmatter, then let the invoking agent review any warnings with an embedded checklist.
 
 ### Workflow Steps
 
@@ -152,6 +175,16 @@ bun scripts/validate.ts <agent.md> --platform claude|gemini|opencode|codex|openc
 - Platform-specific field validation
 - Warns about dropped or incompatible fields
 
+### Embedded LLM Content Improvement
+
+After deterministic validation, the invoking agent reviews WARN output using an LLM checklist:
+
+1. Decide whether warnings are acceptable or should escalate into `refine.ts`
+2. Tighten weak trigger phrases, examples, or platform notes without changing the core contract
+3. Confirm the file is ready for evaluate/adapt or needs another validation pass
+
+This review is part of the normal validate workflow.
+
 ---
 
 ## Evaluate Workflow
@@ -160,10 +193,10 @@ Score agent quality using **Two-Tier Architecture**.
 
 ### Two-Tier Architecture
 
-| Tier | Purpose | Handler | Continues on STOP? |
+| Tier | Purpose | Handler | Continues on BLOCK? |
 |------|---------|---------|-------------------|
 | **Tier 1** | Structural Validation | Scripts | Yes (for diagnostics) |
-| **Tier 2** | Quality Scoring | Scripts + LLM | N/A |
+| **Tier 2** | Quality Scoring | Scripts + invoking-agent checklist | N/A |
 
 ### Workflow Steps
 
@@ -179,12 +212,12 @@ Score agent quality using **Two-Tier Architecture**.
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐                    │
 │  │ Step 1.1 │───▶│ Step 1.2 │───▶│ Step 1.3 │                    │
 │  │ Parse    │    │ Check    │    │ Action   │                    │
-│  │ Agent .md│    │Frontmatter│   │ STOP/    │                    │
-│  │          │    │          │    │ SUGGEST  │                    │
+│  │ Agent .md│    │Frontmatter│   │ BLOCK/   │                    │
+│  │          │    │          │    │ WARN/PASS│                    │
 │  └──────────┘    └──────────┘    └──────────┘                    │
 │       │              │              │                               │
 │       ▼              ▼              ▼                               │
-│  [FAIL: Abort]  [FAIL: STOP] [STOP → Continue to Tier 2]         │
+│  [BLOCK: Abort] [BLOCK]      [BLOCK → Continue to Tier 2]        │
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │ TIER 2: QUALITY SCORING (Script + LLM)                     │   │
@@ -192,8 +225,8 @@ Score agent quality using **Two-Tier Architecture**.
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 2.1 │───▶│ Step 2.2 │───▶│ Step 2.3 │───▶│ Step 2.4 │   │
-│  │ Dimension│    │ Calculate│    │ LLM      │    │ Generate │   │
-│  │ Scoring  │    │ Grade    │    │ Deep Eval│    │ Report   │   │
+│  │ Dimension│    │ Calculate│    │ Embedded │    │ Generate │   │
+│  │ Scoring  │    │ Grade    │    │ LLM Review│   │ Report   │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │              │                │            │
 │       ▼              ▼              ▼                ▼            │
@@ -211,17 +244,17 @@ Score agent quality using **Two-Tier Architecture**.
 | Step | Name | Handler | Success Criteria | On Failure |
 |------|------|---------|------------------|-------------|
 | 1.1 | Parse Agent .md | Script | Valid markdown + YAML | Abort |
-| 1.2 | Check Frontmatter | Script | name + description exist | STOP |
-| 1.3 | Action Decision | Script | No STOP → Continue | Continue to Tier 2 |
+| 1.2 | Check Frontmatter | Script | name + description exist | BLOCK |
+| 1.3 | Action Decision | Script | No BLOCK → Continue | Continue to Tier 2 |
 
 #### Tier 1 Action Types
 
 | Action | Icon | Meaning | Tier 2 Continues? |
 |--------|------|---------|-------------------|
-| **STOP** | ⏹ | Critical failure — agent cannot function | Yes (for diagnostics) |
-| **SUGGEST** | 💡 | Warning — improvement suggested | Yes |
+| **BLOCK** | ⏹ | Critical failure — agent cannot function | Yes (for diagnostics) |
+| **WARN** | ⚠ | Improvement is suggested before shipping | Yes |
 
-**STOP criteria:**
+**BLOCK criteria:**
 - Missing agent file
 - Invalid YAML frontmatter
 - Missing required `name` field
@@ -239,7 +272,7 @@ Score agent quality using **Two-Tier Architecture**.
 |------|------|---------|------------------|
 | 2.1 | Dimension Scoring | Script | Returns scores for all 10 dimensions |
 | 2.2 | Calculate Grade | Script | Returns A/B/C/D/F |
-| 2.3 | LLM Deep Eval | Checklist (optional) | Returns detailed analysis |
+| 2.3 | Embedded LLM Checklist Review | Checklist (optional) | Returns nuanced quality feedback |
 | 2.4 | Generate Report | Script | JSON/text output |
 
 #### Scoring Dimensions
@@ -275,7 +308,7 @@ Pass threshold: **75%** (C grade or above).
 
 ---
 
-### LLM Deep Evaluation (Step 2.3 — Optional)
+### Embedded LLM Checklist Review (Step 2.3 — Optional)
 
 For human-level nuance beyond pattern matching. The invoking agent performs these checks:
 
@@ -350,7 +383,7 @@ bun scripts/evaluate.ts <agent.md> --scope basic
 - `description` field exists, is a string
 - Valid YAML syntax
 
-**If FAIL:** STOP — critical failure
+**If BLOCK:** Stop — critical failure
 
 #### Step 2.1: Dimension Scoring (Script)
 ```bash
@@ -374,7 +407,7 @@ bun scripts/evaluate.ts <agent.md> --scope full
 
 ## Refine Workflow
 
-Fix issues and improve quality. **Key design:** scripts handle deterministic fixes; the invoking LLM agent handles fuzzy quality improvements via checklist.
+Fix issues and improve quality. **Key design:** scripts handle deterministic fixes; the invoking LLM agent handles fuzzy quality improvements via LLM content improvement.
 
 ### Workflow Steps
 
@@ -386,8 +419,8 @@ Fix issues and improve quality. **Key design:** scripts handle deterministic fix
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
 │  │ Evaluate │    │ Script   │    │ LLM      │    │ Re-      │   │
-│  │ (Script) │    │ Fixes    │    │ Checklist│    │ evaluate │   │
-│  │          │    │ (Script) │    │ (Agent)  │    │ (Script) │   │
+│  │ (Script) │    │ Fixes    │    │ Content  │    │ evaluate │   │
+│  │          │    │ (Script) │    │ Improve  │    │ (Script) │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │               │                │            │
 │       ▼              ▼               ▼                ▼            │
@@ -414,7 +447,7 @@ Fix issues and improve quality. **Key design:** scripts handle deterministic fix
 |------|------|---------|------------------|-------------|
 | 1 | Evaluate | `evaluate.ts` | Identifies issues | Continue |
 | 2 | Script Fixes | `refine.ts --best-practices` | Deterministic fixes applied | Warn only |
-| 3 | LLM Checklist | Checklist (invoking agent) | All items verified | Back to step 2 |
+| 3 | LLM Content Improvement | LLM (invoking agent) | Improves content using LLM | Back to step 2 |
 | 4 | Re-evaluate | `evaluate.ts` | Score improved | Retry step 3 |
 
 ### Step Details
@@ -445,30 +478,29 @@ bun scripts/refine.ts <agent.md> --best-practices
 
 **Output:** Modified agent .md file, report of changes
 
-#### Step 3: LLM Checklist (Invoking Agent — Fuzzy)
+#### Step 3: LLM Content Improvement
+**Handler:** LLM (invoking agent using its own LLM capability)
 
-The invoking agent (the LLM that triggered the refine skill) performs these checks directly. **No external API call** — the agent already IS the LLM.
+**What the invoking agent does:**
+1. Reads the agent .md file after script fixes
+2. Identifies weak sections: vague descriptions, inconsistent voice, weak examples
+3. Uses LLM to rewrite content addressing issues
+4. Preserves frontmatter exactly (name, description, tools, model)
+5. Ensures description starts with "Use PROACTIVELY for" for specialist agents
+6. Adds concrete trigger phrases (3+ quoted phrases)
+7. Adds example blocks with proper `<example>` and `<commentary>`
+8. Verifies voice consistency (third-person imperative throughout)
+9. Checks persona specificity for specialist agents (domain-specific)
+10. Verifies rules completeness (8+ DO and 8+ DON'T for specialist, 4+ each for standard)
+11. Checks verification protocol has confidence scoring and red flags
 
-| # | Item | What the Agent Checks | Applies To |
-|---|------|-----------------------|------------|
-| 1 | Description pattern | Starts with "Use PROACTIVELY for" | specialist |
-| 2 | Trigger phrases | 3+ quoted phrases in description | all |
-| 3 | Example blocks | 2+ `<example>` with `<commentary>` | standard, specialist |
-| 4 | Voice consistency | Third-person, no "I can help you" | all |
-| 5 | Persona specificity | Domain-specific, not generic | specialist |
-| 6 | Competency depth | 20+ items (specialist), 10+ (standard) | standard, specialist |
-| 7 | Rules completeness | 8+ DO and 8+ DON'T (specialist), 4+ each (standard) | standard, specialist |
-| 8 | Verification protocol | Has confidence scoring, red flags | specialist |
-| 9 | Output format | Concrete template with examples | specialist |
-| 10 | Line budget | Within tier: minimal (20-50), standard (80-200), specialist (200-500) | all |
+**Important:**
+- Frontmatter fields MUST NOT be modified
+- Only the body content is improved
+- Preserve all existing reference links
+- Check tier-specific requirements match agent type
 
-**How the agent applies fixes:**
-1. Read the agent .md file after script fixes
-2. Walk through each checklist item
-3. For each failure: edit the file to fix the issue
-4. Re-read and verify the fix
-
-**If FAIL on multiple items:** Go back to Step 2 (re-run script fixes after agent edits)
+**If FAIL:** Go back to Step 2 (re-run script fixes after agent edits)
 
 #### Step 4: Re-evaluate (Script)
 ```bash
@@ -492,7 +524,7 @@ bun scripts/evaluate.ts <agent.md> --scope full
 - Add `name` field if missing (derived from heading)
 - Add `tools` field if missing (empty array)
 - Best practice fixes (TODO normalization, voice fixes, path fixes)
-- LLM fuzzy refinement (via checklist, same as Step 3)
+- LLM fuzzy refinement (same as Step 3)
 
 ---
 
@@ -531,6 +563,68 @@ If you did not watch the main agent fail without the subagent, you do not know i
 | **TDD Refine** | Behavioral changes, agent compliance |
 
 Use TDD when standard refine doesn't achieve desired agent behavior.
+
+---
+
+## Evolve Workflow
+
+Analyze longitudinal improvements with persisted proposals and embedded LLM review before apply.
+
+### Closed-Loop Phases
+
+This workflow follows the shared evolution loop:
+
+1. Observe signals from evaluation and history
+2. Analyze patterns and gaps
+3. Propose bounded improvements
+4. Apply approved changes
+5. Verify the resulting behavior
+6. Snapshot version history
+7. Roll back if needed
+8. Learn from the recorded outcome
+
+### Standard Evolve Flow
+
+| Step | Name | Handler | Success Criteria | On Failure |
+|------|------|---------|------------------|-------------|
+| 1 | Analyze Signals | `evolve.ts --analyze` | Signal report generated | Abort |
+| 2 | Generate Proposals | `evolve.ts --propose` | Proposal set persisted | Retry step 2 |
+| 3 | Embedded LLM Proposal Review | LLM (invoking agent) | Proposal set is reviewed, clarified, and prioritized | Back to step 2 |
+| 4 | Apply or Roll Back | `evolve.ts --apply` / `--rollback` | Approved change applied safely | Abort |
+
+### Step Details
+
+#### Step 1: Analyze Signals
+```bash
+bun scripts/evolve.ts <agent.md> --analyze
+```
+
+#### Step 2: Generate Proposals
+```bash
+bun scripts/evolve.ts <agent.md> --propose
+```
+
+The script persists deterministic proposals and supporting rationale.
+
+#### Step 3: Embedded LLM Proposal Review
+
+The invoking agent reviews the proposal set before any apply step:
+
+1. Remove weak or duplicate proposals
+2. Tighten rationale and expected behavioral impact
+3. Confirm proposal order matches risk and value
+4. Decide whether to apply, defer, or collect more evidence
+
+This review is part of the normal evolve workflow.
+
+#### Step 4: Apply or Roll Back
+```bash
+bun scripts/evolve.ts <agent.md> --apply <proposal-id> --confirm
+```
+
+```bash
+bun scripts/evolve.ts <agent.md> --rollback <version> --confirm
+```
 
 ---
 
@@ -598,6 +692,16 @@ bun scripts/validate.ts <generated-file> --platform <target>
 
 **If FAIL:** Warn but complete (some platform constraints are advisory)
 
+### Embedded LLM Content Improvement
+
+After deterministic generation and validation, the invoking agent reviews the adapted output:
+
+1. Check that target-platform instructions still preserve the source intent
+2. Tighten weak examples, trigger wording, or platform notes that became misleading after conversion
+3. Loop back to adapt or refine if the source file needs improvement before regeneration
+
+This review is part of the normal adapt workflow.
+
 ### Platform Output Formats
 
 | Target | Output File | Format |
@@ -615,13 +719,14 @@ bun scripts/validate.ts <generated-file> --platform <target>
 
 | Situation | Workflow | Steps |
 |-----------|----------|-------|
-| New agent | Scaffold | 1 → 2 → 3 → 4 |
+| New agent | Create | 1 → 2 → 3 → 4 |
 | Structure check | Validate | 1 → 2 → 3 |
 | Quality score | Evaluate | 1.1 → 1.2 → 1.3 → 2.1 → 2.2 → 2.4 |
-| Quality score + deep eval | Evaluate | 1.1 → 1.2 → 1.3 → 2.1 → 2.2 → 2.3 → 2.4 |
+| Quality score + checklist review | Evaluate | 1.1 → 1.2 → 1.3 → 2.1 → 2.2 → 2.3 → 2.4 |
 | Fix deterministic issues | Refine (--best-practices) | 1 → 2 → 4 |
 | Fix all issues | Refine (--eval --best-practices) | 1 → 2 → 3 → 4 |
 | Migrate from rd2 | Refine (--migrate) | M1 → M2 |
+| Longitudinal improve | Evolve | 1 → 2 → 3 → 4 |
 | Cross-platform convert | Adapt | 1 → 2 → 3 → 4 |
 
 ---
@@ -632,7 +737,7 @@ bun scripts/validate.ts <generated-file> --platform <target>
 |---------------|--------------|-------------|
 | Scaffold | Re-run scaffold | 3 |
 | Validate structure | Abort | N/A |
-| LLM Verify checklist | Back to appropriate step | 2 |
+| LLM Content Improvement | Back to appropriate step | 2 |
 | Script fixes | Warn only | N/A |
 | Generate platform output | Re-generate | 3 |
-| Re-evaluate (score drop) | Retry LLM checklist | 2 |
+| Re-evaluate (score drop) | Retry LLM content improvement | 2 |
