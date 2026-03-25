@@ -123,7 +123,7 @@ Avoid placeholder text like "TBD", "[placeholder]", or "See above". Empty or ske
 - External dependencies without clear ownership
 - Critical path identified but no buffers included
 - No relevant codebase files to reference
-- Empty Background/Requirements content
+- Empty Background/Requirements content (signals over-decomposition — merge into fewer, richer tasks)
 
 ### Confidence Scoring
 
@@ -234,7 +234,7 @@ tasks create "implement-oauth2-flow" \
 | Unclear success | Add specific criteria in Requirements |
 | Optimistic estimation | Use PERT or add buffers (see references/estimation.md) |
 | Critical path ignored | Identify and add buffers |
-| Empty sections | Populate with meaningful content (min 50 chars) |
+| Empty sections | Signals over-decomposition — merge into fewer, richer tasks instead |
 | No codebase references | Search and link relevant files |
 | Skeleton tasks | Provide substantive content upfront |
 
@@ -306,7 +306,7 @@ tasks create "implement-oauth2-flow" \
 - [ ] Proceed with unclear requirements
 - [ ] Create tasks smaller than 1 hour (over-decomposition)
 - [ ] Ignore critical path without buffers
-- [ ] Leave task file sections empty
+- [ ] Leave task file sections empty (signals over-decomposition — each task must have substantive Background/Requirements, min 50 chars)
 - [ ] Skip codebase reference gathering
 - [ ] Generate breakdowns without verification
 - [ ] Ignore red flags from verification protocol
@@ -404,6 +404,8 @@ The rd3:task-decomposition produces two types of output: The first is the task f
 **Avoid:** "auth-stuff", "fix-bugs", "work-on-feature"
 
 **Use action verbs:** implement, add, create, update, refactor, fix, design, test, document
+
+**Subtask naming (WBS embedding):** When decomposing into subtasks, use the format `{new_wbs}_{parent_wbs}_{task_name}.md` — embed the parent WBS for traceability. See `references/task-template.md` for the full convention including examples of correct vs. incorrect subtask filenames. The WBS system already assigns sequential numbers — do NOT append `.1`, `.2` etc. after the parent WBS.
 
 ### Task Content Quality
 
