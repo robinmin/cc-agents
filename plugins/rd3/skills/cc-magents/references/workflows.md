@@ -6,19 +6,34 @@ Detailed workflow definitions for cc-magents operations. Each workflow defines:
 - **Branching logic**: What to do when steps fail or succeed
 - **Retry loops**: When to go back and redo previous steps
 
+LLM content improvement is embedded in the normal workflow for every operation.
+It is performed by the invoking agent as checklist-driven review/content improvement, not via a separate `--llm-eval` CLI mode.
+
+## Shared Workflow Framework
+
+This file follows the shared [Meta-Agent Workflow Schema](../../../references/meta-agent-workflow-schema.md).
+
+Shared Phase 1 conventions:
+
+- concept-level operations use `Create`, `Validate`, `Evaluate`, `Refine`, `Evolve`, and `Adapt`
+- documentation decision states use `BLOCK`, `WARN`, and `PASS`
+- deterministic script work and invoking-agent judgment are documented separately
+- `Evolve` follows the closed loop: Observe -> Analyze -> Propose -> Apply -> Verify -> Snapshot -> Rollback -> Learn
+
 ---
 
 ## Table of Contents
 
-1. [Add Workflow](#add-workflow) - Create new main agent config
-2. [Evaluate Workflow](#evaluate-workflow) - Validate and score quality
-3. [Refine Workflow](#refine-workflow) - Fix issues and improve
-4. [Evolve Workflow](#evolve-workflow) - Self-improvement proposals
-5. [Adapt Workflow](#adapt-workflow) - Cross-platform conversion
+1. [Create Workflow](#create-workflow) - Create new main agent config
+2. [Validate Workflow](#validate-workflow) - Check config structure
+3. [Evaluate Workflow](#evaluate-workflow) - Validate and score quality
+4. [Refine Workflow](#refine-workflow) - Fix issues and improve
+5. [Evolve Workflow](#evolve-workflow) - Self-improvement proposals
+6. [Adapt Workflow](#adapt-workflow) - Cross-platform conversion
 
 ---
 
-## Add Workflow
+## Create Workflow
 
 Create a new main agent configuration from template with auto-detection.
 
@@ -26,7 +41,7 @@ Create a new main agent configuration from template with auto-detection.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│ ADD WORKFLOW                                                         │
+│ CREATE WORKFLOW                                                      │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
@@ -56,7 +71,7 @@ Create a new main agent configuration from template with auto-detection.
 
 #### Step 1: Auto-Detect (Script)
 ```bash
-bun scripts/synthesize.ts --detect
+bun scripts/synthesize.ts --auto-detect
 ```
 
 **What script detects:**
@@ -83,7 +98,7 @@ bun scripts/synthesize.ts --detect
 
 #### Step 3: Generate Config (Script)
 ```bash
-bun scripts/synthesize.ts <output-path> --template <template>
+bun scripts/synthesize.ts <template> --output <output-path>
 ```
 
 **What script does:**
@@ -100,6 +115,54 @@ bun scripts/validate.ts <config-path>
 
 **If FAIL:** Retry from step 1 with corrections
 
+### Embedded LLM Content Improvement
+
+After deterministic generation and validation, the invoking agent reviews the generated config:
+
+1. Tighten vague sections, examples, and decision trees
+2. Ensure auto-detected project details were incorporated coherently
+3. Confirm the config is ready for evaluate/refine without introducing unsupported claims
+
+This review is part of the normal create workflow.
+
+---
+
+## Validate Workflow
+
+Validate config structure before evaluation, refinement, or adaptation.
+
+### Workflow Steps
+
+| Step | Name | Handler | Success Criteria | On Failure |
+|------|------|---------|------------------|-------------|
+| 1 | Parse Config | `validate.ts` | Config can be parsed | Abort |
+| 2 | Check Required Structure | `validate.ts` | Required sections and UMAM expectations pass | Retry after fixes |
+| 3 | Action Decision | `validate.ts` + invoking agent | Returns BLOCK/WARN/PASS with follow-up action | Continue |
+
+### Step Details
+
+#### Step 1: Parse Config
+```bash
+bun scripts/validate.ts <config-path>
+```
+
+#### Step 2: Check Required Structure
+
+Deterministic validation checks:
+
+- readable markdown structure
+- required sections present
+- UMAM-relevant shape is valid
+- no critical format breakage
+
+#### Step 3: Action Decision
+
+The invoking agent reviews the validation output and decides whether to:
+
+- stop on `BLOCK`
+- continue with caveats on `WARN`
+- proceed directly on `PASS`
+
 ---
 
 ## Evaluate Workflow
@@ -108,10 +171,10 @@ Validate config structure and score quality using **Two-Tier Architecture**.
 
 ### Two-Tier Architecture
 
-| Tier | Purpose | Handler | Continues on STOP? |
+| Tier | Purpose | Handler | Continues on BLOCK? |
 |------|---------|---------|-------------------|
 | **Tier 1** | Structural Validation | Scripts | Yes (for diagnostics) |
-| **Tier 2** | Quality Scoring | Scripts + LLM | N/A |
+| **Tier 2** | Quality Scoring | Scripts + invoking-agent checklist | N/A |
 
 ### Workflow Steps
 
@@ -127,14 +190,15 @@ Validate config structure and score quality using **Two-Tier Architecture**.
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐                    │
 │  │ Step 1.1 │───▶│ Step 1.2 │───▶│ Step 1.3 │                    │
 │  │ Parse    │    │ Validate │    │ Action   │                    │
-│  │ Config   │    │ UMAM     │    │ STOP/SUGGEST│                 │
+│  │ Config   │    │ UMAM     │    │ BLOCK/WARN │                 │
+│  │          │    │          │    │ /PASS      │                 │
 │  └──────────┘    └──────────┘    └──────────┘                    │
 │       │              │              │                               │
 │       ▼              ▼              ▼                               │
-│  [Valid?]       [Valid?]    [STOP → Continue to Tier 2]          │
+│  [Valid?]       [Valid?]    [BLOCK → Continue to Tier 2]         │
 │     │              │              │                               │
 │     ▼              ▼              ▼                               │
-│  [FAIL: Abort] [FAIL: STOP]                                    │
+│  [BLOCK: Abort] [BLOCK]                                       │
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │ TIER 2: QUALITY SCORING (Script + LLM)                     │   │
@@ -142,8 +206,8 @@ Validate config structure and score quality using **Two-Tier Architecture**.
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 2.1 │───▶│ Step 2.2 │───▶│ Step 2.3 │───▶│ Step 2.4 │   │
-│  │ Dimension│    │ Calculate│    │ LLM      │    │ Generate │   │
-│  │ Scoring  │    │ Grade    │    │ Deep Eval│    │ Report   │   │
+│  │ Dimension│    │ Calculate│    │ Checklist│    │ Generate │   │
+│  │ Scoring  │    │ Grade    │    │ Review   │    │ Report   │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │              │                │            │
 │       ▼              ▼              ▼                ▼            │
@@ -164,17 +228,17 @@ Validate config structure and score quality using **Two-Tier Architecture**.
 | Step | Name | Handler | Success Criteria | On Failure |
 |------|------|---------|------------------|-------------|
 | 1.1 | Parse Config | Script | Valid markdown + UMAM | Abort |
-| 1.2 | Validate UMAM | Script | All required fields | STOP |
-| 1.3 | Action Decision | Script | No STOP → Continue | Continue to Tier 2 |
+| 1.2 | Validate UMAM | Script | All required fields | BLOCK |
+| 1.3 | Action Decision | Script | No BLOCK → Continue | Continue to Tier 2 |
 
 #### Tier 1 Action Types
 
 | Action | Icon | Meaning | Tier 2 Continues? |
 |--------|------|---------|-------------------|
-| **STOP** | ⏹ | Critical failure - config cannot function | Yes (for diagnostics) |
-| **SUGGEST** | 💡 | Warning - improvement suggested | Yes |
+| **BLOCK** | ⏹ | Critical failure - config cannot function | Yes (for diagnostics) |
+| **WARN** | ⚠ | Improvement is suggested before shipping | Yes |
 
-**STOP criteria:**
+**BLOCK criteria:**
 - Missing config file
 - Invalid markdown structure
 - Empty config (no sections)
@@ -190,7 +254,7 @@ Validate config structure and score quality using **Two-Tier Architecture**.
 |------|------|---------|------------------|
 | 2.1 | Dimension Scoring | Script | Returns scores for all dimensions |
 | 2.2 | Calculate Grade | Script | Returns A/B/C/D/F |
-| 2.3 | LLM Deep Eval | LLM (optional) | Returns detailed analysis |
+| 2.3 | Embedded LLM Checklist Review | LLM (invoking agent) | Returns detailed follow-up guidance |
 | 2.4 | Generate Report | Script | JSON/text output |
 
 #### Scoring Dimensions
@@ -225,9 +289,9 @@ Validate config structure and score quality using **Two-Tier Architecture**.
 
 ---
 
-### LLM Deep Evaluation (Optional)
+### Embedded LLM Checklist Review
 
-For human-level nuance beyond pattern matching.
+Use the invoking agent's LLM judgment to strengthen the script findings with qualitative review.
 
 #### When to Use
 
@@ -235,15 +299,14 @@ For human-level nuance beyond pattern matching.
 - Want Claude's opinion on quality
 - Need structured scoring against criteria
 
-#### How to Run
+#### How to Use
 
 ```bash
 # Standard evaluation
 bun scripts/evaluate.ts <config-path>
-
-# With LLM deep evaluation
-bun scripts/evaluate.ts <config-path> --llm-eval
 ```
+
+Then the invoking agent reviews the generated findings and applies the checklist below before deciding whether to proceed, refine, or stop.
 
 #### LLM Checks
 
@@ -259,7 +322,7 @@ bun scripts/evaluate.ts <config-path> --llm-eval
 
 ## Refine Workflow
 
-Fix issues and apply best practices. Supports preview and apply modes.
+Fix issues and apply best practices. Supports preview and apply modes, with embedded LLM content improvement after scripted fixes.
 
 ### Workflow Steps
 
@@ -270,16 +333,16 @@ Fix issues and apply best practices. Supports preview and apply modes.
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
-│  │ Detect   │    │ Apply    │    │ Validate │    │ Generate │   │
-│  │ Issues   │    │ Fixes    │    │ Changes  │    │ Report   │   │
-│  │ (Script) │    │ (Script) │    │ (Script) │    │ (Script) │   │
+│  │ Detect   │    │ Apply    │    │ LLM      │    │ Validate │   │
+│  │ Issues   │    │ Fixes    │    │ Content  │    │ Result   │   │
+│  │ (Script) │    │ (Script) │    │ Improve  │    │ (Script) │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │              │                │            │
 │       ▼              ▼              ▼                ▼            │
-│  [No issues]    [Apply]         [Valid]         [COMPLETE]        │
+│  [No issues]    [Apply]       [Improved]      [COMPLETE]          │
 │     │              │              │                              │
 │     ▼              ▼              ▼                              │
-│  [COMPLETE]    [Nothing to fix] [INVALID: Back to 2]           │
+│  [COMPLETE]    [Nothing to fix] [FAIL: Back to 2]              │
 │                                                                      │
 │  ─────────────────────────────────────────────────────────────     │
 │  Branch: CRITICAL Protection                                       │
@@ -292,10 +355,10 @@ Fix issues and apply best practices. Supports preview and apply modes.
 
 | Step | Name | Handler | Success Criteria | On Failure |
 |------|------|---------|------------------|-------------|
-| 1 | Detect Issues | `refine.ts` | Detects what needs fixing | Continue |
+| 1 | Detect Issues | `refine.ts --dry-run` | Detects what needs fixing | Continue |
 | 2 | Apply Fixes | `refine.ts` | Applies deterministic fixes | Warn only |
-| 3 | Validate Changes | `validate.ts` | Output is valid UMAM | Back to step 2 |
-| 4 | Generate Report | `refine.ts` | Report of changes | Complete |
+| 3 | Embedded LLM Content Improvement | LLM (invoking agent) | Soft-quality issues are addressed | Back to step 2 |
+| 4 | Validate Changes | `validate.ts` | Output is valid UMAM | Retry step 3 |
 
 ### Step Details
 
@@ -314,7 +377,7 @@ bun scripts/refine.ts <config-path> --dry-run
 #### Step 2: Apply Fixes
 ```bash
 # Apply fixes
-bun scripts/refine.ts <config-path>
+bun scripts/refine.ts <config-path> --apply
 ```
 
 **What script fixes (deterministic):**
@@ -329,7 +392,18 @@ bun scripts/refine.ts <config-path>
 
 **CRITICAL Protection:** Sections containing `[CRITICAL]` markers are NEVER modified.
 
-#### Step 3: Validate Changes
+#### Step 3: Embedded LLM Content Improvement
+
+The invoking agent reviews the refined config before validation:
+
+1. Tighten vague sections and examples
+2. Improve decision trees, output contracts, and verification instructions
+3. Preserve CRITICAL rules and factual intent while improving clarity
+4. Decide whether another refine pass is needed before validation
+
+This review is part of the normal refine flow.
+
+#### Step 4: Validate Changes
 ```bash
 bun scripts/validate.ts <config-path>
 ```
@@ -349,6 +423,19 @@ bun scripts/validate.ts <config-path>
 ## Evolve Workflow
 
 Self-improvement based on pattern analysis. Three safety levels control autonomy.
+
+### Closed-Loop Phases
+
+This workflow follows the shared evolution loop:
+
+1. Observe data sources and evaluation signals
+2. Analyze patterns and gaps
+3. Propose bounded improvements
+4. Apply approved changes
+5. Verify the resulting behavior
+6. Snapshot version history
+7. Roll back if needed
+8. Learn from the recorded outcome
 
 ### Workflow Steps
 
@@ -389,7 +476,7 @@ Self-improvement based on pattern analysis. Three safety levels control autonomy
 |-------|----------|-------------|
 | **L1** (default) | Suggest-only, all changes require approval | No |
 | **L2** | Semi-auto, low-risk changes auto-apply | Low-risk only |
-| **L3** | Auto, fully autonomous | Yes |
+| **L3** | Reserved for high-autonomy environments with explicit project policy | Policy-gated |
 
 ### Data Sources
 
@@ -428,6 +515,17 @@ bun scripts/evolve.ts <config-path> --propose
   - Expected benefit
   - Risk assessment
 
+#### Embedded LLM Proposal Review
+
+After `--propose`, the invoking agent reviews the proposal set before any apply step:
+
+1. Remove weak or duplicate proposals
+2. Tighten rationale and expected impact
+3. Confirm ordering matches risk and expected benefit
+4. Decide whether to apply, defer, or gather more evidence
+
+This review is part of the normal evolve workflow.
+
 #### Step 3: Apply (--apply)
 ```bash
 bun scripts/evolve.ts <config-path> --apply <proposal-id> --confirm
@@ -465,8 +563,8 @@ Convert between platform formats via Universal Main Agent Model (UMAM).
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
-│  │ Parse    │    │ Convert  │    │ Validate │    │ Generate │   │
-│  │ Source   │    │ to UMAM  │    │ Target   │    │ Output   │   │
+│  │ Parse    │    │ Convert  │    │ Generate │    │ Validate │   │
+│  │ Source   │    │ to UMAM  │    │ Output   │    │ Target   │   │
 │  │ (Script) │    │ (Script) │    │ (Script) │    │ (Script) │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │                                                    │       │
@@ -511,7 +609,7 @@ Some features may be lost in conversion:
 
 #### Step 1: Parse Source (Script)
 ```bash
-bun scripts/adapt.ts <source-path> --detect
+bun scripts/adapt.ts <source-path> --to <target-platform>
 ```
 
 **What script does:**
@@ -536,7 +634,16 @@ interface UniversalMainAgent {
 }
 ```
 
-#### Step 3: Validate Target (Script)
+#### Step 3: Generate Output (Script)
+```bash
+bun scripts/adapt.ts <source-path> --to <platform> --output <target-path>
+```
+
+**What script does:**
+- Generates target platform format from UMAM
+- Applies platform-specific transformations
+
+#### Step 4: Validate Target (Script)
 ```bash
 bun scripts/validate.ts <target-path>
 ```
@@ -546,14 +653,15 @@ bun scripts/validate.ts <target-path>
 - Required sections present
 - No critical data loss
 
-#### Step 4: Generate Output (Script)
-```bash
-bun scripts/adapt.ts <source-path> --output <target-path> --platform <platform>
-```
+### Embedded LLM Content Improvement
 
-**What script does:**
-- Generates target platform format from UMAM
-- Applies platform-specific transformations
+After deterministic generation and validation, the invoking agent reviews the converted output:
+
+1. Check that target-platform instructions still preserve the source intent
+2. Tighten weak examples, decision trees, or platform notes that became misleading after conversion
+3. Loop back to adapt or refine if the source needs improvement before regeneration
+
+This review is part of the normal adapt workflow.
 
 ---
 
@@ -561,7 +669,8 @@ bun scripts/adapt.ts <source-path> --output <target-path> --platform <platform>
 
 | Situation | Workflow | Steps |
 |-----------|----------|-------|
-| New project config | Add | 1 → 2 → 3 → 4 |
+| New project config | Create | 1 → 2 → 3 → 4 |
+| Structure check | Validate | 1 → 2 → 3 |
 | Quality check | Evaluate | 1 → 2 → 3 → 4 |
 | Preview fixes | Refine --dry-run | 1 → 2 |
 | Apply fixes | Refine | 1 → 2 → 3 → 4 |
