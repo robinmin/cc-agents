@@ -1,0 +1,13 @@
+name: advanced-testing
+description: "Advanced testing techniques: mutation testing, property-based
+  testing (including AI-augmented), accessibility testing (WCAG 2.2), and code
+  permutation testing for deeper QA workflows and SOTA test quality validation."
+version: 1.1.0
+icon: 🧪
+category: debugging
+tags:
+  - qa-depth
+  - testing
+  - mutation-testing
+  - property-based-testing
+  - accessibility
