@@ -13,7 +13,7 @@ Scaffold a new skill directory from a template. **This command delegates to the 
 
 1. **Scaffold** — Run `scaffold.ts` to create skill directory and files
 2. **Validate** — Check structure and required fields
-3. **LLM Verify** — Agent verifies description pattern, trigger phrases, examples, voice
+3. **LLM Content Improvement** — Agent verifies description pattern, trigger phrases, examples, voice
 4. **Generate Companions** — Generate platform-specific companions
 
 ## When to Use
