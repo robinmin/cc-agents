@@ -1,0 +1,8 @@
+name: pl-python
+description: "Python project planning skill: architectural guidance, async
+  patterns, type system design, tooling selection, and best practices for Python
+  3.11-3.13. Trigger when: planning a Python project, designing Python
+  architecture, structuring async pipelines, FastAPI planning, or Python best
+  practices."
+version: 1.0.0
+emoji: 🛠️
