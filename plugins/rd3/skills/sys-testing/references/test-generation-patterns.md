@@ -2,9 +2,9 @@
 name: test-generation-patterns
 description: "Language-specific test patterns for extending existing test suites: Python, TypeScript, and Go."
 license: Apache-2.0
-version: 1.0.0
+version: 1.2.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 tags: [testing, test-patterns, unit-tests, engineering-core]
 metadata:
   author: cc-agents
@@ -15,6 +15,7 @@ metadata:
 see_also:
   - rd3:sys-testing
   - rd3:sys-testing/coverage-analysis
+  - rd3:sys-testing/python-module-registration
 ---
 
 # Test Generation Patterns Reference
@@ -241,6 +242,117 @@ func TestUserService_CreateUser(t *testing.T) {
         t.Errorf("ID not set, got %d", user.ID)
     }
 }
+```
+
+## Project Setup Examples
+
+### Pytest Project Structure
+
+```
+project/
+├── src/
+│   ├── __init__.py
+│   └── auth.py
+├── tests/
+│   ├── conftest.py          # Shared fixtures
+│   └── test_auth.py         # Auth tests
+└── pyproject.toml           # Dependencies
+```
+
+**pyproject.toml configuration:**
+
+```toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = ["--cov=src", "--cov-report=term-missing", "--cov-report=html"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0", "pytest-cov>=4.0.0", "pytest-mock>=3.10.0"]
+```
+
+**conftest.py shared fixtures:**
+
+```python
+import pytest
+from unittest.mock import Mock
+
+@pytest.fixture
+def sample_user():
+    return {"id": 1, "username": "testuser", "email": "test@example.com", "is_active": True}
+
+@pytest.fixture
+def mock_repo():
+    class MockRepository:
+        def __init__(self):
+            self._users = {1: sample_user()}
+        def find_by_id(self, user_id: int):
+            return self._users.get(user_id)
+    return MockRepository()
+```
+
+**Running pytest:**
+
+```bash
+pytest                          # Run all tests
+pytest --cov=src               # With coverage
+pytest tests/test_auth.py       # Specific file
+pytest --cov=src --cov-report=html && open htmlcov/index.html  # HTML report
+```
+
+### Jest/TypeScript Project Structure
+
+```
+project/
+├── src/
+│   └── auth.ts
+├── tests/
+│   ├── setup.ts
+│   └── auth.test.ts
+├── package.json
+└── jest.config.js
+```
+
+**jest.config.js:**
+
+```javascript
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  testMatch: ['**/?(*.)+(spec|test).ts'],
+  transform: { '^.+\\.ts$': 'ts-jest' },
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.d.ts'],
+  coverageThreshold: {
+    global: { branches: 85, functions: 85, lines: 85, statements: 85 }
+  },
+  coverageReporters: ['text', 'text-summary', 'html'],
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts']
+};
+```
+
+**tests/setup.ts:**
+
+```typescript
+// Global mocks
+global.console = { ...console, log: jest.fn(), debug: jest.fn() };
+
+// Mock environment variables
+process.env.DATABASE_URL = 'sqlite:///:memory:';
+process.env.SECRET_KEY = 'test-secret-key';
+process.env.NODE_ENV = 'test';
+```
+
+**Running jest:**
+
+```bash
+npm test                        # Run all tests
+npm run test:coverage          # With coverage
+npm test -t "should login"     # Specific test
 ```
 
 ## Common Test Generation Issues
