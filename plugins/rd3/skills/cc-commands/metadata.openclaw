@@ -1,7 +1,7 @@
 name: cc-commands
-description: Create, validate, evaluate, and adapt slash commands across
-  platforms. This skill should be used when you want to scaffold a new command,
-  validate command structure, evaluate command quality, refine commands based on
-  evaluation, or generate cross-platform command equivalents.
+description: Create, validate, evaluate, refine, evolve, and adapt slash
+  commands across platforms. Use for scaffolding new commands, validating
+  structure, evaluating quality, refining based on feedback, planning
+  longitudinal improvements, or generating cross-platform equivalents.
 version: 1.0.0
 emoji: 🛠️
