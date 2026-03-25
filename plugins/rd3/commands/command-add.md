@@ -13,7 +13,7 @@ Scaffold a new slash definition file from a template. **This command delegates t
 
 1. **Template Select** — Run `scaffold.ts` to create .md file
 2. **Name Validate** — Ensure kebab-case, no conflicts
-3. **LLM Checklist** — Agent verifies fuzzy quality (description form, argument-hint, allowed-tools)
+3. **LLM Content Improvement** — Agent verifies fuzzy quality (description form, argument-hint, allowed-tools)
 4. **Generate Companions** — Run `adapt.ts` for platform variants
 
 ## When to Use
@@ -57,14 +57,14 @@ Skill(skill="rd3:cc-commands", args="scaffold $ARGUMENTS")
 The invoking agent:
 1. Loads `plugins/rd3/skills/cc-commands/SKILL.md`
 2. Reads `plugins/rd3/skills/cc-commands/references/workflows.md`
-3. Follows the Scaffold Workflow — running scaffold script, then performing LLM checklist
+3. Follows the Scaffold Workflow — running scaffold script, then performing LLM content improvement
 
 **Direct script execution (other platforms):**
 ```bash
 bun plugins/rd3/skills/cc-commands/scripts/scaffold.ts $ARGUMENTS
 ```
 
-## LLM Checklist (Agent Step)
+## LLM Content Improvement (Agent Step)
 
 After scaffolding, the invoking agent performs these checks:
 
@@ -81,5 +81,5 @@ After scaffolding, the invoking agent performs these checks:
 
 ## Platform Notes
 
-- Claude Code: Invoke via `Skill()` delegation (includes LLM checklist)
+- Claude Code: Invoke via `Skill()` delegation (includes LLM content improvement)
 - Other platforms: Run script directly via Bash tool
