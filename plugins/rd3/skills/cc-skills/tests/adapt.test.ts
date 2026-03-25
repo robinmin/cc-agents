@@ -175,6 +175,41 @@ Content here.
         expect(content).not.toContain('name: wrong-name');
     });
 
+    it('should add a missing name inside existing frontmatter without corrupting it', async () => {
+        const skillDir = join(TEST_DIR, 'missing-name-skill');
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(
+            join(skillDir, 'SKILL.md'),
+            `---
+description: A skill missing a name field but otherwise valid enough for adapt testing
+---
+
+# Missing Name Skill
+
+## When to use
+
+Use this skill to validate frontmatter repair.
+`,
+            'utf-8',
+        );
+
+        const proc = Bun.spawn(['bun', 'run', ADAPT_SCRIPT, skillDir, 'claude', '--component', 'skills'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const exitCode = await proc.exited;
+        expect(exitCode).toBe(0);
+
+        const content = readFileSync(join(skillDir, 'SKILL.md'), 'utf-8');
+        expect(content).toContain('name: missing-name-skill');
+        expect(content).toContain(
+            'description: A skill missing a name field but otherwise valid enough for adapt testing',
+        );
+        expect(content.match(/^---$/gm)?.length).toBe(2);
+        expect(content).not.toContain('---\ndescription:');
+    });
+
     it('should skip existing codex yaml', async () => {
         const skillDir = join(TEST_DIR, 'existing-skill');
         mkdirSync(join(skillDir, 'agents'), { recursive: true });
