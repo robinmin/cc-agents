@@ -13,9 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/utility-types
-  - rd3:pl-typescript/references/patterns
 ---
 
 # TypeScript Type System Reference
