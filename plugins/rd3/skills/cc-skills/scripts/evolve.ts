@@ -18,25 +18,32 @@ import type {
     EvolutionRunResultBase,
 } from '../../../scripts/evolution-contract';
 import {
+    type GenericEvaluationReport,
+    type MultiFileVersionSnapshot,
+    type StoredProposalSet,
     analyzeEvaluationReport,
     captureDirectorySnapshot,
+    createSupplementalSignalsFromMessages,
     formatAnalysis,
     formatHistory,
     formatProposals,
-    getNextVersionId,
+    generateHistorySignals,
     generateRefineBackedProposals,
-    loadVersionHistory,
+    generateWorkspaceSignals,
+    getNextVersionId,
     loadProposalSet,
+    loadVersionHistory,
     restoreDirectorySnapshot,
     runScript,
     saveProposalSet,
     saveSnapshotBackup,
     saveVersionSnapshot,
-    type GenericEvaluationReport,
-    type MultiFileVersionSnapshot,
-    type StoredProposalSet,
+    verifyProposalOutcome,
 } from '../../../scripts/evolution-engine';
+import { calculateLetterGrade } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
+import { evaluateSkill } from './evaluate';
+import { validateSkill } from './validate';
 
 const EVOLUTION_NAMESPACE = '.cc-skills';
 
@@ -52,14 +59,6 @@ export interface SkillEvolveResult
 export interface SkillEvolvePlaceholderResult extends EvolutionPlaceholderResultBase {
     skill: 'rd3:cc-skills';
     skillPath: string;
-}
-
-function getSkillGrade(percentage: number): string {
-    if (percentage >= 90) return 'A';
-    if (percentage >= 80) return 'B';
-    if (percentage >= 70) return 'C';
-    if (percentage >= 60) return 'D';
-    return 'F';
 }
 
 export function printUsage(): void {
@@ -143,37 +142,14 @@ export function parseCliArgs(argv: string[] = process.argv.slice(2)): SkillEvolv
 }
 
 async function buildEvaluationReport(skillPath: string): Promise<GenericEvaluationReport> {
-    const evaluateScript = join(import.meta.dir, 'evaluate.ts');
-    const result = await runScript(evaluateScript, [skillPath, '--scope', 'full', '--json']);
-
-    if (result.exitCode > 1) {
-        throw new Error((result.stderr || result.stdout || 'evaluate.ts failed').trim());
-    }
-
-    const report = JSON.parse(result.stdout) as {
-        skillPath: string;
-        skillName: string;
-        percentage: number;
-        passed: boolean;
-        rejected?: boolean;
-        rejectReason?: string;
-        dimensions: Array<{
-            name: string;
-            category?: string;
-            score: number;
-            maxScore: number;
-            percentage?: number;
-            findings: string[];
-            recommendations: string[];
-        }>;
-    };
+    const report = await evaluateSkill(skillPath, 'full', ['claude', 'codex', 'openclaw', 'opencode', 'antigravity']);
 
     return {
         targetPath: report.skillPath,
         targetName: report.skillName,
         percentage: report.percentage,
         passed: report.passed,
-        grade: getSkillGrade(report.percentage),
+        grade: calculateLetterGrade(report.percentage),
         dimensions: report.dimensions.map((dimension) => ({
             name: dimension.name,
             displayName: dimension.category ? `${dimension.category}: ${dimension.name}` : dimension.name,
@@ -188,6 +164,11 @@ async function buildEvaluationReport(skillPath: string): Promise<GenericEvaluati
     };
 }
 
+function validateSkillForVerification(skillPath: string): boolean {
+    const report = validateSkill(skillPath, { platform: 'all', verbose: false, json: false });
+    return report.valid;
+}
+
 async function analyzeSkill(skillPath: string): Promise<SkillPatternAnalysis> {
     const report = await buildEvaluationReport(skillPath);
     return analyzeEvaluationReport(report);
@@ -196,10 +177,20 @@ async function analyzeSkill(skillPath: string): Promise<SkillPatternAnalysis> {
 async function proposeSkillEvolution(skillPath: string): Promise<StoredProposalSet> {
     const report = await buildEvaluationReport(skillPath);
     const analysis = analyzeEvaluationReport(report);
+    const validationReport = validateSkill(skillPath, { platform: 'all', verbose: false, json: false });
     const proposalSet = generateRefineBackedProposals(report, analysis, {
         defaultFlags: ['--best-practices'],
         migrateFlags: ['--migrate'],
         applySupported: true,
+        targetKind: 'skill',
+        objective: 'quality',
+        verificationChecks: ['validate', 'evaluate'],
+        supplementalSignals: [
+            ...createSupplementalSignalsFromMessages(validationReport.errors, 'error'),
+            ...createSupplementalSignalsFromMessages(validationReport.warnings, 'warning'),
+            ...generateHistorySignals(EVOLUTION_NAMESPACE, skillPath, report.grade),
+            ...generateWorkspaceSignals(skillPath, report.targetName),
+        ],
     });
 
     saveProposalSet(EVOLUTION_NAMESPACE, skillPath, proposalSet);
@@ -220,6 +211,12 @@ async function applySkillProposal(skillPath: string, proposalId?: string) {
     if (!proposal) {
         return { success: false, error: `Proposal ${proposalId} not found` };
     }
+    if (proposal.applyMode === 'manual-only') {
+        return {
+            success: false,
+            error: `Proposal ${proposalId} is recommendation-only and must be applied manually.`,
+        };
+    }
 
     const baselineReport = await buildEvaluationReport(skillPath);
     let history = loadVersionHistory<MultiFileVersionSnapshot>(EVOLUTION_NAMESPACE, skillPath);
@@ -238,17 +235,38 @@ async function applySkillProposal(skillPath: string, proposalId?: string) {
         history = loadVersionHistory<MultiFileVersionSnapshot>(EVOLUTION_NAMESPACE, skillPath);
     }
 
+    const preApplySnapshot = captureDirectorySnapshot(
+        skillPath,
+        'pre-apply',
+        baselineReport.grade || 'unknown',
+        `Pre-apply snapshot for ${proposal.id}`,
+        [],
+    );
+
     const refineScript = join(import.meta.dir, 'refine.ts');
     const refineResult = await runScript(refineScript, [skillPath, ...proposal.action.flags]);
 
     if (refineResult.exitCode !== 0) {
+        restoreDirectorySnapshot(preApplySnapshot);
         return {
             success: false,
             error: (refineResult.stderr || refineResult.stdout || 'refine.ts failed').trim(),
         };
     }
 
+    const validationPassed = proposal.verificationPlan?.checks.includes('validate')
+        ? validateSkillForVerification(skillPath)
+        : undefined;
     const updatedReport = await buildEvaluationReport(skillPath);
+    const verification = verifyProposalOutcome(proposal, baselineReport, updatedReport, validationPassed);
+    if (!verification.success) {
+        restoreDirectorySnapshot(preApplySnapshot);
+        return {
+            success: false,
+            error: `Verification failed after apply. ${verification.issues.join(' ')} Rolled back to the pre-apply state.`,
+        };
+    }
+
     const snapshot = captureDirectorySnapshot(
         skillPath,
         getNextVersionId(history),
