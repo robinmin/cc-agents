@@ -13,6 +13,7 @@ import YAML from 'yaml';
 
 import { getValidationDecisionState } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
+import { countTodoMarkers } from '../../../scripts/markdown-analysis';
 import type { Platform, Skill, SkillFrontmatter, ValidationReport } from './types.ts';
 import { discoverResources, parseFrontmatter } from './utils';
 
@@ -92,7 +93,7 @@ function validateBodyContent(skill: Skill, report: ValidationReport): void {
         report.warnings.push("Missing 'When to use' section");
     }
 
-    const todoCount = (body.match(/\bTODO\b/gi) || []).length;
+    const todoCount = countTodoMarkers(body);
     if (todoCount > 0) {
         report.warnings.push(`Found ${todoCount} TODO marker(s)`);
     }
