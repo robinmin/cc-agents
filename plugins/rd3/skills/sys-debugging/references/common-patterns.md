@@ -2,9 +2,9 @@
 name: sys-debugging-common-patterns
 description: "Common bug patterns: null/undefined handling, race conditions, async issues, memory leaks, and type errors with root cause indicators."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 tags: [debugging, common-patterns, null-checks, race-conditions, async]
 metadata:
   author: cc-agents
@@ -475,6 +475,79 @@ EXPLAIN ANALYZE SELECT * FROM orders WHERE user_email = 'test@example.com';
 -- Look for "Seq Scan" on large tables = missing index
 ```
 
+## Connection & Resource Leaks
+
+### Database Connection Leaking
+
+**Symptom:** Database connections exhausted, new requests fail
+
+**Root Cause Pattern:**
+```go
+func ProcessRequest(ctx context.Context) error {
+    conn, err := db.Acquire(ctx)
+    if err != nil {
+        return err
+    }
+    // Missing conn.Release() on early returns
+
+    if req.Amount > limit {
+        return errors.New("amount too large")  // Connection leaked!
+    }
+
+    conn.Release()  // Only reached if no early return
+    return nil
+}
+```
+
+**Fix Pattern:**
+```go
+func ProcessRequest(ctx context.Context) error {
+    conn, err := db.Acquire(ctx)
+    if err != nil {
+        return err
+    }
+    defer conn.Release()  // Always release on function exit
+
+    if req.Amount > limit {
+        return errors.New("amount too large")  // Connection released via defer
+    }
+
+    return nil
+}
+```
+
+### HTTP Client Connection Pool Exhaustion
+
+**Symptom:** HTTP requests hang, timeout errors
+
+**Root Cause Pattern:**
+```go
+// Creating new client per request
+func handler(w http.ResponseWriter, r *http.Request) {
+    client := &http.Client{}  // New client each time, no connection reuse
+    resp, err := client.Get("https://api.example.com/data")
+    // ...
+}
+```
+
+**Fix Pattern:**
+```go
+// Reuse HTTP client at package level
+var client = &http.Client{
+    Timeout: 30 * time.Second,
+    Transport: &http.Transport{
+        MaxIdleConns:        100,
+        MaxIdleConnsPerHost: 10,
+        IdleConnTimeout:     90 * time.Second,
+    },
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+    resp, err := client.Get("https://api.example.com/data")
+    // ...
+}
+```
+
 ## Quick Pattern Detection Checklist
 
 When debugging, check for these common patterns:
@@ -489,3 +562,5 @@ When debugging, check for these common patterns:
 - [ ] Queries in loops (N+1)
 - [ ] Missing database indexes
 - [ ] Memory retained by closures
+- [ ] Connections released on all code paths
+- [ ] Error handling missing on early returns
