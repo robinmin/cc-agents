@@ -15,7 +15,7 @@ metadata:
     - warning
     - info
   pipeline_steps:
-    - scaffold
+    - create
     - validate
     - evaluate
     - refine
@@ -266,6 +266,7 @@ See [references/command-examples.md](references/command-examples.md) for detaile
 - **Evaluation Framework:** [references/evaluation-framework.md](references/evaluation-framework.md)
 - **Platform Compatibility:** [references/platform-compatibility.md](references/platform-compatibility.md)
 - **Troubleshooting:** [references/troubleshooting.md](references/troubleshooting.md)
+- **Evolution Protocol:** [references/evolution-protocol.md](references/evolution-protocol.md)
 
 ## Advanced
 
