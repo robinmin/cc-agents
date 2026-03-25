@@ -7,11 +7,9 @@ see_also:
 
 # Technology Selection
 
-## Technology Selection
-
 ### Framework Selection Matrix
 
-| Framework | Best For | Team Size | Complexity | Ecosystem | 2025 Recommendation |
+| Framework | Best For | Team Size | Complexity | Ecosystem | 2026 Recommendation |
 |-----------|----------|-----------|------------|-----------|---------------------|
 | **Next.js** | Full-stack, SEO, SaaS | Any | Medium | Excellent | **Top choice for most projects** |
 | **Remix** | Web apps, progressive enhancement | Small-medium | Low-Medium | Good | Choose for simplicity |
@@ -21,7 +19,7 @@ see_also:
 
 ### State Management Selection
 
-| Library | Use Case | Bundle Size | Learning Curve | 2025 Recommendation |
+| Library | Use Case | Bundle Size | Learning Curve | 2026 Recommendation |
 |---------|----------|-------------|----------------|---------------------|
 | **Zustand** | Global client state | Small | Low | **Recommended for most apps** |
 | **React Query** | Server state | Medium | Low | **Essential for API data** |
