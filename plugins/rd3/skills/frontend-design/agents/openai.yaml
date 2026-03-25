@@ -1,0 +1,14 @@
+name: frontend-design
+description: "Frontend implementation patterns: component architecture, state
+  management (Zustand/React Query), data fetching, Core Web Vitals optimization,
+  and testing strategies. Trigger when designing component architecture,
+  planning state management, or optimizing frontend performance."
+version: 1.1.0
+icon: 🛠️
+category: debugging
+tags:
+  - frontend
+  - react
+  - nextjs
+  - component-architecture
+  - state-management
