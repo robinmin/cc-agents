@@ -13,10 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/backend-patterns
-  - rd3:pl-typescript/references/async-patterns
-  - rd3:pl-typescript/references/security-patterns
 ---
 
 # Type-Safe API Design Guide
