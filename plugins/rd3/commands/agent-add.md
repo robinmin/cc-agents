@@ -12,7 +12,7 @@ Scaffold a new subagent file from a tiered template. **This command delegates to
 
 1. **Scaffold** — Run `scaffold.ts` to create agent .md file
 2. **Validate** — Check structure and required fields
-3. **LLM Verify** — Agent verifies description pattern, trigger phrases, examples, voice
+3. **LLM Content Improvement** — Agent verifies description pattern, trigger phrases, examples, voice
 4. **Platform Check** — Verify compatibility with target platforms
 
 ## When to Use
@@ -58,14 +58,14 @@ Skill(skill="rd3:cc-agents", args="scaffold $ARGUMENTS")
 The invoking agent:
 1. Loads `plugins/rd3/skills/cc-agents/SKILL.md`
 2. Reads `plugins/rd3/skills/cc-agents/references/workflows.md`
-3. Follows the Scaffold Workflow — running scaffold script, then performing LLM checklist
+3. Follows the Scaffold Workflow — running scaffold script, then performing LLM content improvement
 
 **Direct script execution (other platforms):**
 ```bash
 bun plugins/rd3/skills/cc-agents/scripts/scaffold.ts $ARGUMENTS
 ```
 
-## LLM Checklist (Agent Step)
+## LLM Content Improvement (Agent Step)
 
 After scaffolding, the invoking agent performs these checks:
 
