@@ -17,7 +17,7 @@ metadata:
 
 # {{skill_title}}
 
-[1-2 sentences explaining what this skill enables and what workflows it accompl.]
+[1-2 sentences explaining what this skill enables and what workflows it accomplishes.]
 
 ## When to use
 
@@ -100,7 +100,7 @@ Files used in output (templates, icons, fonts, etc.).
 ## Platform Notes
 
 ### Claude Code
-Use `!`cmd`` for live data injection. Use `$ARGUMENTS` for command arguments.
+Use `!cmd` for live command execution. Use `$ARGUMENTS` for parameter references.
 
 ### Codex / OpenClaw / OpenCode / Antigravity
 Run commands via Bash tool. Arguments provided in chat.
