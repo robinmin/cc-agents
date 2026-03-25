@@ -1,10 +1,11 @@
 name: backend-architect
-description: "Backend architecture patterns and systems design: API design
-  (REST/GraphQL/gRPC), database architecture (PostgreSQL/MongoDB/Redis),
-  microservices, event-driven architecture, CQRS, saga patterns, caching
-  strategies, scalability, security, observability, and cloud-native
-  architecture (serverless, Kubernetes, FinOps, DR/HA, IaC). Trigger when:
-  designing APIs, database schemas, microservices, event-driven systems,
-  planning backend scalability, or making cloud infrastructure decisions."
-version: 1.1.1
+description: "Backend architecture patterns and systems design for 2026: API
+  design (REST/GraphQL/gRPC/MCP), database architecture
+  (PostgreSQL/MongoDB/Redis/vector DBs), microservices, event-driven
+  architecture, CQRS, saga patterns, caching strategies, scalability, security,
+  observability (eBPF/OpenTelemetry), and cloud-native architecture (serverless,
+  Kubernetes, FinOps, DR/HA, IaC). Trigger when: designing APIs, database
+  schemas, microservices, event-driven systems, planning backend scalability, or
+  making cloud infrastructure decisions."
+version: 1.2.0
 emoji: 🛠️
