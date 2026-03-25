@@ -13,9 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/type-system
-  - rd3:pl-typescript/references/api-design
 ---
 
 # Async Patterns in TypeScript
