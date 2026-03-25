@@ -2,9 +2,9 @@
 name: coverage-analysis
 description: "Interpreting coverage reports, categorizing gaps, threshold selection, and coverage vs. quality tradeoffs."
 license: Apache-2.0
-version: 1.0.0
+version: 1.2.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 tags: [testing, coverage, gap-analysis, engineering-core]
 metadata:
   author: cc-agents
@@ -15,6 +15,7 @@ metadata:
 see_also:
   - rd3:sys-testing
   - rd3:sys-testing/test-generation-patterns
+  - rd3:sys-testing/python-module-registration
 ---
 
 # Coverage Analysis and Gap Interpretation
@@ -232,6 +233,83 @@ When accepting lower coverage, document rationale:
 def handle_hardware_error():
     if hardware_state == IMPOSSIBLE_STATE:
         log_and_reboot()  # Not tested - unreachable in production
+```
+
+## Tool Configuration
+
+### Python (.coveragerc)
+
+```ini
+[run]
+source = app
+omit =
+    */tests/*
+    */__pycache__/*
+    */venv/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+```
+
+### TypeScript (vitest.config.ts)
+
+```typescript
+export default defineConfig({
+  test: {
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      exclude: ['**/node_modules/**', '**/tests/**']
+    }
+  }
+})
+```
+
+### Go (built-in)
+
+```bash
+go test -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out
+```
+
+### Java (JaCoCo via Maven)
+
+```bash
+mvn test jacoco:report
+# Report at: target/site/jacoco/index.html
+```
+
+### Pre-Commit Hook
+
+```bash
+#!/bin/bash
+npm test -- --coverage --coverageReporters=text
+
+COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+if [ $COVERAGE -lt 70 ]; then
+  echo "Coverage ($COVERAGE%) below 70% threshold"
+  exit 1
+fi
+```
+
+### CI/CD Coverage Gate (GitHub Actions)
+
+```yaml
+- name: Run tests with coverage
+  run: npx vitest run --coverage
+
+- name: Check coverage threshold
+  run: |
+    COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
+    if (( $(echo "$COVERAGE < 75" | bc -l) )); then
+      echo "Coverage ($COVERAGE%) below threshold (75%)"
+      exit 1
+    fi
 ```
 
 ## Iteration Strategy
