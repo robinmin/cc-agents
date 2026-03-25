@@ -1,19 +1,27 @@
 ---
 name: knowledge-extraction
-description: "Extract, synthesize, and validate information from multiple sources with cross-verification, deduplication, and source attribution. Trigger when: researching APIs/libraries/frameworks, verifying facts, consolidating from PDFs/web/code, cross-referencing docs, fact-checking claims, investigating version-specific behavior, or gathering architectural decision info."
+description: "Extract, synthesize, and validate information from multiple sources with cross-verification, chain-of-verification, RAG-grounded synthesis, deduplication, and source attribution. Trigger when: researching APIs/libraries/frameworks, verifying facts, consolidating from PDFs/web/code, cross-referencing docs, fact-checking claims, investigating version-specific behavior, gathering architectural decision info, or performing multi-hop reasoning across interconnected sources."
 license: Apache-2.0
-version: 1.0.1
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 type: technique
-tags: [research, verification, synthesis, knowledge, engineering-core]
+tags: [research, verification, synthesis, knowledge, chain-of-verification, RAG, multi-hop, engineering-core]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,antigravity,opencode,openclaw"
   category: engineering-core
+  interactions: knowledge-only
 see_also:
   - rd3:anti-hallucination
   - rd3:sys-debugging
+  - rd3:sys-developing
+  - rd3:sys-testing
+  - rd3:knowledge-extraction/references/validation-methods
+  - rd3:knowledge-extraction/references/conflict-resolution
+  - rd3:knowledge-extraction/references/deduplication
+  - rd3:knowledge-extraction/references/tool-selection
+  - rd3:knowledge-extraction/references/synthesis-patterns
 ---
 
 # rd3:knowledge-extraction — Information Extraction and Synthesis
@@ -41,48 +49,6 @@ Activate this skill when:
 **Key distinction:**
 - **`rd3:knowledge-extraction`** = Information extraction, verification, and synthesis
 - **Other skills** = Information access (execution, debugging, testing)
-
-## Core Principles
-
-### 1. Verification Before Synthesis [CRITICAL]
-
-**Never present information without verification.**
-
-```
-EXTRACT → VERIFY → CONSOLIDATE → CITE
-```
-
-- Extract information from primary source
-- Cross-verify with 2+ independent sources
-- Flag conflicts for manual resolution
-- Always attribute sources
-
-### 2. Confidence Scoring
-
-| Level | Score | Criteria |
-|-------|-------|----------|
-| **HIGH** | >90% | Direct quotes from official docs (2024+), verified today |
-| **MEDIUM** | 70-90% | Synthesized from 2+ authoritative sources |
-| **LOW** | <70% | Unclear sourcing, outdated, single source |
-| **UNVERIFIED** | 0% | No sources found — do not present |
-
-### 3. Tool Priority
-
-1. **`ref` (MCP)** — API/Library official documentation
-2. **`mcp__grep__searchGitHub`** — GitHub code examples
-3. **`WebSearch`** — Recent facts (< 6 months)
-4. **`WebFetch`** — Static content, specific URLs
-5. **`rd3:quick-grep` + `Read`** — Local codebase discovery and file inspection
-
-### 4. Credibility Hierarchy
-
-1. **Official documentation** (python.org, react.dev) — HIGHEST
-2. **Official engineering blogs** (Google, Meta, OpenAI) — HIGH
-3. **Well-maintained GitHub repos** — MEDIUM-HIGH
-4. **Peer-reviewed papers** — MEDIUM
-5. **Technical blogs** — MEDIUM
-6. **StackOverflow, forums** — LOW-MEDIUM
-
 ## Quick Start
 
 **Basic extraction workflow:**
@@ -391,10 +357,11 @@ Before presenting extracted information:
 
 For comprehensive patterns and examples, see:
 
-- **`references/tool-selection.md`** — Detailed MCP tool usage, decision trees, source type handling
+- **`references/tool-selection.md`** — Detailed MCP tool usage, decision trees, source type handling, including HuggingFace papers and W&B Weave traces
 - **`references/validation-methods.md`** — Triangulation, credibility assessment, confidence scoring
 - **`references/conflict-resolution.md`** — Handling factual, interpretive, temporal, and scope disagreements
 - **`references/deduplication.md`** — Content merging and duplicate elimination strategies
+- **`references/synthesis-patterns.md`** — Chain-of-Verification, RAG-grounded synthesis, multi-hop reasoning, and citation verification (SOTA techniques)
 
 ## Platform Notes
 
@@ -426,3 +393,5 @@ For comprehensive patterns and examples, see:
 ---
 
 **Remember**: Verification before synthesis. Never present information as fact without cross-checking. Multiple sources > single source. Always cite your sources with dates.
+
+See [Core Principles](references/core-principles.md) for detailed content.
