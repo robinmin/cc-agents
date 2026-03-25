@@ -11,12 +11,11 @@ metadata:
     - reviewer
     - pipeline
   severity_levels:
-    - critical
-    - major
-    - minor
+    - error
+    - warning
     - info
   pipeline_steps:
-    - scaffold
+    - create
     - validate
     - evaluate
     - refine
