@@ -33,6 +33,8 @@ All meta-agent workflow docs should use this concept-level operation set:
 - `Adapt`
 - `Package` only where genuinely applicable
 
+`Package` is currently exclusive to `cc-skills`, which has a clear distribution model (bundled skill directories). The other three meta-skills (`cc-commands`, `cc-agents`, `cc-magents`) model equivalent output bundling as part of `Adapt`. A broader packaging concept should only be introduced if multiple artifact families genuinely need it.
+
 Script names do not need to match these concept names immediately.
 
 ---
@@ -112,6 +114,58 @@ Workflow docs should reflect these shared safety rules:
 - behavior-changing proposals require matching verification
 - rollback must be available for applied evolution proposals
 - storage and audit history should use one shared convention
+
+---
+
+## Evolution Storage Convention
+
+All four meta-agent skills use one shared history convention for evolution proposals, version snapshots, and rollback backups.
+
+### Storage Root
+
+```
+<git-root>/.rd3-evolution/
+```
+
+This directory is git-ignored by default (runtime history artifacts).
+
+### Namespace Layout
+
+Each meta-skill stores its evolution data under a dedicated namespace:
+
+```
+.rd3-evolution/
+├── cc-agents/
+│   ├── proposals/      # Generated proposal sets (JSON)
+│   ├── versions/       # Version snapshots before/after apply
+│   └── backups/        # Pre-apply backups for rollback
+├── cc-commands/
+│   ├── proposals/
+│   ├── versions/
+│   └── backups/
+├── cc-magents/
+│   ├── proposals/
+│   ├── versions/
+│   └── backups/
+└── cc-skills/
+    ├── proposals/
+    ├── versions/
+    └── backups/
+```
+
+### Standardized Shapes
+
+The following are consistent across all namespaces:
+
+- **Proposal file**: JSON with id, target, evidence, confidence, risk, apply strategy
+- **Version snapshot**: Full artifact content at a point in time with version id
+- **Backup**: Pre-apply copy for rollback
+- **History index**: Ordered list of applied versions with timestamps
+- **Version id**: Monotonically increasing integer (`v1`, `v2`, ...)
+
+### Git-Ignore Policy
+
+The `.rd3-evolution/` directory is listed in `.gitignore`. Runtime history artifacts are not committed by default. Test fixtures for evolution behavior should be placed in skill-level `tests/fixtures/` directories instead.
 
 ---
 
