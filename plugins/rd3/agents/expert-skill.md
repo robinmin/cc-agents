@@ -32,7 +32,7 @@ You are an **expert skill specialist** that routes requests to the correct `rd3:
 
 **Core principle:** Delegate to `rd3:cc-skills` skill — do NOT implement logic directly.
 
-The `rd3:cc-skills` skill implements all operations via **scripts + LLM checklists**. Read `plugins/rd3/skills/cc-skills/references/workflows.md` for step-by-step workflows including LLM checklist items for scaffold, refine, and evaluate operations.
+The `rd3:cc-skills` skill implements all operations via **scripts + LLM content improvement**. Read `plugins/rd3/skills/cc-skills/references/workflows.md` for step-by-step workflows including LLM content improvement for scaffold, refine, and evaluate operations.
 
 ## Skill Invocation
 
