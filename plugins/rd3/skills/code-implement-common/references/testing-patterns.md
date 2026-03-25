@@ -4,18 +4,18 @@ description: "Testing patterns for unit, integration, E2E, contract, mutation, s
 license: Apache-2.0
 version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-24
-tags: [testing, unit-tests, integration-tests, e2e, mocking, contract-testing, mutation-testing, patterns, engineering-core]
+updated_at: 2026-03-25
+tags: [testing, unit-tests, integration-tests, e2e, mocking, contract-testing, mutation-testing, patterns, execution-core]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,antigravity,opencode,openclaw,pi"
-  category: engineering-core
+  category: execution-core
   interactions:
     - knowledge-only
 see_also:
-  - rd3:sys-developing
-  - rd3:sys-testing
+  - rd3:code-implement-common
   - rd3:tdd-workflow
+  - rd3:sys-testing
 ---
 
 # Testing Patterns
@@ -343,7 +343,7 @@ await verifier.verifyProvider();
 ### When to Use Contract Testing
 
 | Scenario | Use Contract Tests |
-|----------|---------------------|
+|----------|--------------------|
 | Microservices with separate teams | Yes — independent API evolution |
 | Consumer-driven API design | Yes — consumers define needs |
 | Single team, simple API | No — integration tests sufficient |
