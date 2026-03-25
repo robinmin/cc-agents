@@ -5,12 +5,17 @@ description: "Test execution, coverage measurement, gap analysis, and iterative
   with targeted tests. Trigger when: running tests, measuring coverage, finding
   untested code paths, or knowing what to test but not how to structure tests
   for coverage."
-version: 1.1.0
+version: 1.2.0
 icon: 🛠️
 category: engineering-core
+platforms:
+  - claude-code
+  - codex
+  - antigravity
+  - opencode
+  - openclaw
 tags:
   - testing
   - coverage
   - test-execution
   - gap-analysis
-  - engineering-core
