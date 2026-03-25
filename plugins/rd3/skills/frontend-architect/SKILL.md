@@ -13,7 +13,6 @@ metadata:
   category: architecture-design
   interactions:
     - inversion
-    - knowledge-only
   openclaw:
     emoji: "🛠️"
 see_also:
@@ -24,7 +23,7 @@ see_also:
 
 # rd3:frontend-architect — Frontend Architecture Patterns
 
-Frontend system architecture and scalability patterns for building large-scale, maintainable frontend applications using 2024-2025 best practices.
+Frontend system architecture and scalability patterns for building large-scale, maintainable frontend applications using 2025-2026 best practices.
 
 ## Overview
 
@@ -123,7 +122,7 @@ Do not recommend until requirements are understood: team size, content type, SEO
 
 **Microfrontends Advantages:**
 - Independent team deployment
-- Technology diversity (React, Vue, Angular共存)
+- Technology diversity (React, Vue, Angular)
 - Fault isolation
 - Scalable team structure
 - Better for large organizations (10+ teams)
@@ -145,7 +144,7 @@ Use Microfrontends when:
 
 ### Microfrontends Patterns
 
-**1. Module Federation (Recommended for 2025)**
+**1. Module Federation (Recommended for 2026)**
 
 ```typescript
 // webpack.config.js (host app)
@@ -232,7 +231,7 @@ export async function GET(request: Request) {
 - Flexible technology choices
 - Reduced blast radius
 
-**Recommendation for 2025:**
+**Recommendation for 2026:**
 - **Start with monorepo** using Nx or Turborepo
 - Move to microfrontends only when team pain points emerge
 - Use Module Federation within monorepo for best DX
@@ -277,43 +276,16 @@ jobs:
 ### Proxy and Edge Routing Strategy
 
 **Current Next.js guidance:**
-- In Next.js 16+, use `proxy.ts` for request-time routing logic
+- In Next.js 15+, use `proxy.ts` for request-time routing logic
 - Keep routing decisions fast and avoid slow backend work in proxy
 - Prefer config-based `redirects`/`rewrites` when the routing is static
 
 **Good use cases:**
-- Geo-specific content (A/B tes
-{
-    key: 'X-Content-Type-Options',
-    value: 'nosniff'
-  },
-  {
-    key: 'Referrer-Policy',
-    value: 'strict-origin-when-cross-origin'
-  },
-  {
-    key: 'Content-Security-Policy',
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https:",
-      "object-src 'none'",
-    ].join('; ')
-  },
-]
-
-module.exports = {
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: securityHeaders,
-      },
-    ]
-  },
-}
-```
+- Geo-specific content (A/B testing, localization)
+- Personalization without revalidation
+- Rate limiting and auth checks
+- Dynamic routing based on user attributes
+- API proxying with low latency
 
 ## Observability and Monitoring
 
@@ -473,3 +445,28 @@ See [Rendering Strategy Decision Matrix](references/rendering-strategy-decision-
 See [Quick Reference](references/quick-reference.md) for detailed content.
 
 See [Technology Selection](references/technology-selection.md) for detailed content.
+
+## Platform Notes
+
+### Claude Code
+
+- Use `!command` for live command execution (e.g., `!npm run build`)
+- Use `$ARGUMENTS` or `$1`, `$2` for parameter references in agent prompts
+- Use `context: fork` for parallel task execution
+- Hooks can be registered in `.claude/hooks.json`
+
+### Next.js Specifics
+
+- Next.js App Router uses Server Components by default
+- Use `'use client'` directive for client-side rendering
+- `export const dynamic = 'force-dynamic'` for SSR
+- `export const revalidate = N` for ISR (N = seconds)
+- `export const runtime = 'edge'` for edge runtime
+- Module Federation requires webpack configuration
+- Next.js Multi-Zones use `rewrites` in `next.config.js`
+
+### General
+
+- All code examples use TypeScript unless explicitly noted as JavaScript
+- Framework-agnostic concepts apply across React, Vue, Svelte, and Angular
+- Architecture patterns are portable across build tools (Vite, webpack, Turbopack)
