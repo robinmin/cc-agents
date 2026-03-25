@@ -10,7 +10,7 @@
  * and support hierarchical config discovery across 23+ platforms.
  */
 
-import { existsSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import type {
     MagentHierarchy,
@@ -20,7 +20,7 @@ import type {
     SectionCategory,
     UniversalMainAgent,
 } from './types';
-import { ALL_MAGENT_PLATFORMS, PLATFORM_FILENAMES, PLATFORM_TIERS } from './types';
+import { ALL_MAGENT_PLATFORMS, PLATFORM_FILENAMES } from './types';
 
 // ============================================================================
 // Constants

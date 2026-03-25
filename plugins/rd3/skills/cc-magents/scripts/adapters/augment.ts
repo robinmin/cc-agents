@@ -29,7 +29,7 @@ import { BaseMagentAdapter } from './base';
 // ============================================================================
 
 /** Features that Augment Code focuses on */
-const AUGMENT_FOCUS_FEATURES = ['task-management', 'knowledge-integration', 'multi-file-awareness'];
+const _AUGMENT_FOCUS_FEATURES = ['task-management', 'knowledge-integration', 'multi-file-awareness'];
 
 /** Features that are NOT applicable to Augment Code (Tier 3 limitations) */
 const AUGMENT_UNSUPPORTED_FEATURES = ['hooks', 'mcp-servers', 'skills', 'memory-md', 'progressive-complexity'];

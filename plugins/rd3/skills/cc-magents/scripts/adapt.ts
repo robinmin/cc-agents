@@ -19,6 +19,7 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
+import { logger } from '../../../scripts/logger';
 import { getMagentAdapter, magentAdapterRegistry } from './adapters';
 import {
     ALL_MAGENT_PLATFORMS,
@@ -369,7 +370,7 @@ function getLossyConversionWarnings(
  * Determine output file path for converted content.
  */
 function getOutputPath(sourcePath: string, targetPlatform: MagentPlatform, outputDir?: string): string {
-    const sourceBasename = basename(sourcePath, '.md');
+    const _sourceBasename = basename(sourcePath, '.md');
     const targetDir = outputDir ?? dirname(sourcePath);
 
     const extensionMap: Record<MagentPlatform, string> = {
@@ -403,7 +404,7 @@ export function formatWarnings(warnings: ConversionWarning[]): string {
     if (warnings.length === 0) return '';
 
     const lines: string[] = [];
-    lines.push('\n⚠️  Conversion Warnings:\n');
+    lines.push('\n⚠️  Conversion Decisions:\n');
 
     // Group by severity
     const critical = warnings.filter((w) => w.severity === 'critical');
@@ -411,7 +412,7 @@ export function formatWarnings(warnings: ConversionWarning[]): string {
     const info = warnings.filter((w) => w.severity === 'info');
 
     if (critical.length > 0) {
-        lines.push('  🔴 CRITICAL:');
+        lines.push('  🔴 BLOCK:');
         for (const w of critical) {
             lines.push(`    - ${w.feature}: ${w.description}`);
         }
@@ -419,7 +420,7 @@ export function formatWarnings(warnings: ConversionWarning[]): string {
     }
 
     if (warning.length > 0) {
-        lines.push('  🟡 WARNINGS:');
+        lines.push('  🟡 WARN:');
         for (const w of warning) {
             lines.push(`    - ${w.feature}: ${w.description}`);
         }
@@ -449,13 +450,13 @@ export function formatResult(result: AdaptResult): string {
 
     for (const conversion of result.conversions) {
         if (conversion.success) {
-            lines.push(`\n✅ ${PLATFORM_DISPLAY_NAMES[conversion.targetPlatform]}`);
+            lines.push(`\n✅ PASS ${PLATFORM_DISPLAY_NAMES[conversion.targetPlatform]}`);
             if (conversion.outputPath) {
                 lines.push(`   Output: ${conversion.outputPath}`);
             }
         } else {
-            lines.push(`\n❌ ${PLATFORM_DISPLAY_NAMES[conversion.targetPlatform]}`);
-            lines.push(`   Errors: ${conversion.errors.join(', ')}`);
+            lines.push(`\n❌ BLOCK ${PLATFORM_DISPLAY_NAMES[conversion.targetPlatform]}`);
+            lines.push(`   BLOCK findings: ${conversion.errors.join(', ')}`);
         }
     }
 
@@ -464,7 +465,7 @@ export function formatResult(result: AdaptResult): string {
     }
 
     if (result.errors.length > 0) {
-        lines.push('\n❌ Errors:');
+        lines.push('\n❌ BLOCK findings:');
         for (const error of result.errors) {
             lines.push(`   - ${error}`);
         }
@@ -478,7 +479,7 @@ export function formatResult(result: AdaptResult): string {
 // ============================================================================
 
 function showUsage(): void {
-    console.log(`
+    logger.log(`
 rd3:cc-magents adapt - Cross-platform adaptation
 
 Usage:
@@ -517,7 +518,7 @@ const toIndex = args.indexOf('--to');
 const outputIndex = args.indexOf('--output');
 
 if (toIndex === -1) {
-    console.error('Error: --to <target-platform> is required');
+    logger.error('Error: --to <target-platform> is required');
     showUsage();
     process.exit(1);
 }
@@ -529,8 +530,8 @@ const outputPath = outputIndex !== -1 ? args[outputIndex + 1] : undefined;
 const targetPlatform = targetPlatformStr === 'all' ? ('all' as const) : (targetPlatformStr as MagentPlatform);
 
 if (targetPlatform !== 'all' && !ALL_MAGENT_PLATFORMS.includes(targetPlatform)) {
-    console.error(`Error: Unknown platform '${targetPlatform}'`);
-    console.error(`Supported platforms: ${ALL_MAGENT_PLATFORMS.join(', ')}`);
+    logger.error(`Error: Unknown platform '${targetPlatform}'`);
+    logger.error(`Supported platforms: ${ALL_MAGENT_PLATFORMS.join(', ')}`);
     process.exit(1);
 }
 
@@ -545,7 +546,7 @@ if (outputPath !== undefined) {
 const result = await adapt(adaptOptions);
 
 // Output result
-console.log(formatResult(result));
+logger.log(formatResult(result));
 
 // Exit with error code if any conversion failed
 const hasErrors = result.errors.length > 0 || result.conversions.some((c) => !c.success);

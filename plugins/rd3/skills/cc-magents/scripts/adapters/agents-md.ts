@@ -163,7 +163,7 @@ export class AgentsMdAdapter extends BaseMagentAdapter {
      */
     protected async generatePlatform(
         model: UniversalMainAgent,
-        options?: MagentGenerateOptions,
+        _options?: MagentGenerateOptions,
     ): Promise<MagentAdapterResult> {
         const parts: string[] = [];
 

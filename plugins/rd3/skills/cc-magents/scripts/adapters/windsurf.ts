@@ -61,14 +61,9 @@ export class WindsurfAdapter extends BaseMagentAdapter {
     readonly platform: MagentPlatform = 'windsurfrules';
     readonly displayName = '.windsurfrules (Windsurf)';
     readonly tier: PlatformTier = 2;
-    private options: WindsurfAdapterOptions;
 
-    constructor(options: WindsurfAdapterOptions = {}) {
+    constructor(_options: WindsurfAdapterOptions = {}) {
         super();
-        this.options = {
-            flagNonPortable: true,
-            ...options,
-        };
     }
 
     /**

@@ -29,7 +29,7 @@ import { BaseMagentAdapter } from './base';
 // ============================================================================
 
 /** Features that Junie focuses on (read-only exploration) */
-const JUNIE_FOCUS_FEATURES = ['query-based-exploration', 'clear-headings', 'discovery-friendly'];
+const _JUNIE_FOCUS_FEATURES = ['query-based-exploration', 'clear-headings', 'discovery-friendly'];
 
 /** Features that are NOT applicable to Junie (Tier 3 limitations) */
 const JUNIE_UNSUPPORTED_FEATURES = ['hooks', 'mcp-servers', 'skills', 'memory-md', 'progressive-complexity'];
@@ -51,14 +51,9 @@ export class JunieAdapter extends BaseMagentAdapter {
     readonly platform: MagentPlatform = 'junie';
     readonly displayName = 'Junie (Exploration Agent)';
     readonly tier: PlatformTier = 3;
-    private options: JunieAdapterOptions;
 
-    constructor(options: JunieAdapterOptions = {}) {
+    constructor(_options: JunieAdapterOptions = {}) {
         super();
-        this.options = {
-            queryFriendly: true,
-            ...options,
-        };
     }
 
     /**

@@ -29,7 +29,7 @@ import { BaseMagentAdapter } from './base';
 // ============================================================================
 
 /** Features that Cline focuses on */
-const CLINE_FOCUS_FEATURES = ['planning-mode', 'task-decomposition', 'autonomy-boundaries'];
+const _CLINE_FOCUS_FEATURES = ['planning-mode', 'task-decomposition', 'autonomy-boundaries'];
 
 /** Features that are NOT applicable to Cline (Tier 3 limitations) */
 const CLINE_UNSUPPORTED_FEATURES = [

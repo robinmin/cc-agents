@@ -27,7 +27,7 @@
  *   bun synthesize.ts --list
  */
 
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -37,14 +37,13 @@ import { magentAdapterRegistry } from './adapters/index';
 import type {
     DomainTemplate,
     MagentPlatform,
-    MagentSection,
     ProjectDetection,
     SynthesizeOptions,
     SynthesizeResult,
     UniversalMainAgent,
 } from './types';
-import { PLATFORM_DISPLAY_NAMES, PLATFORM_FILENAMES, PLATFORM_TIERS } from './types';
-import { buildUMAM, classifySections, detectPlatform, estimateTokens, parseSections, serializeSections } from './utils';
+import { PLATFORM_DISPLAY_NAMES, PLATFORM_FILENAMES } from './types';
+import { classifySections, detectPlatform, estimateTokens, parseSections } from './utils';
 
 // ============================================================================
 // Constants
@@ -678,14 +677,15 @@ Examples:
     const result = await synthesize(options);
 
     if (!result.success) {
-        logger.error('Synthesis failed:');
+        logger.error('Synthesis decision: BLOCK');
         for (const error of result.errors) {
             logger.log(`  - ${error}`);
         }
         process.exit(1);
     }
 
-    logger.success(`Generated: ${result.outputPath}`);
+    logger.success('Synthesis decision: PASS');
+    logger.log(`Generated: ${result.outputPath}`);
     logger.log(`Platform: ${PLATFORM_DISPLAY_NAMES[result.platform]}`);
     logger.log(`Template: ${result.template}`);
 
@@ -701,7 +701,7 @@ Examples:
         if (result.detection.testRunner) logger.log(`  Test Runner: ${result.detection.testRunner}`);
         if (result.detection.ciPlatform) logger.log(`  CI Platform: ${result.detection.ciPlatform}`);
         if (result.warnings.length > 0) {
-            logger.log('\nWarnings:');
+            logger.log('\nWARN findings:');
             for (const warning of result.warnings) {
                 logger.log(`  - ${warning}`);
             }

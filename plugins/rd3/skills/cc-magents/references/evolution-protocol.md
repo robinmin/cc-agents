@@ -137,7 +137,7 @@ bun evolve.ts AGENTS.md --rollback v2 --confirm
 
 ## Version History
 
-Evolution creates snapshots stored in `.cc-magents/evolution/versions/`:
+Evolution creates snapshots stored in `<git-root>/.rd3-evolution/cc-magents/versions/`:
 
 ```typescript
 interface VersionSnapshot {
@@ -153,8 +153,8 @@ interface VersionSnapshot {
 ### Backup System
 
 Before any change:
-1. Current content backed up to `.cc-magents/evolution/backups/`
-2. Rollback backups stored in `.cc-magents/evolution/rollback-backups/`
+1. Current content backed up to `<git-root>/.rd3-evolution/cc-magents/backups/`
+2. Rollback backups stored in `<git-root>/.rd3-evolution/cc-magents/rollback-backups/`
 
 ## Evaluation Integration
 
@@ -179,10 +179,10 @@ Before any proposal is applied:
 
 | Path | Purpose |
 |------|---------|
-| `.cc-magents/evolution/` | Root evolution directory |
-| `.cc-magents/evolution/backups/` | Pre-change backups |
-| `.cc-magents/evolution/rollback-backups/` | Rollback backups |
-| `.cc-magents/evolution/versions/` | Version snapshots |
+| `.rd3-evolution/cc-magents/` | Root evolution directory |
+| `.rd3-evolution/cc-magents/backups/` | Pre-change backups |
+| `.rd3-evolution/cc-magents/rollback-backups/` | Rollback backups |
+| `.rd3-evolution/cc-magents/versions/` | Version snapshots |
 
 ## CLI Reference
 

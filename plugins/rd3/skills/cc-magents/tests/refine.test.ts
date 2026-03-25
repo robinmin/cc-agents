@@ -11,7 +11,7 @@ import {
 } from '../scripts/refine';
 import type { MagentEvaluationReport, UniversalMainAgent, RefineAction } from '../scripts/types';
 import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 
 describe('refine', () => {
     describe('analyzeStructuralIssues', () => {

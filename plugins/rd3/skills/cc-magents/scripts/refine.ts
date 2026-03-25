@@ -32,14 +32,13 @@ import { evaluateMagentConfig } from './evaluate';
 import type {
     MagentEvaluationReport,
     MagentSection,
-    MagentValidationResult,
     RefineAction,
     RefineOptions,
     RefineResult,
     SectionCategory,
     UniversalMainAgent,
 } from './types';
-import { buildUMAM, classifySections, detectPlatform, estimateTokens, parseSections, serializeSections } from './utils';
+import { buildUMAM, detectPlatform, serializeSections } from './utils';
 import { validateMagentConfig } from './validate';
 
 // ============================================================================
@@ -240,7 +239,7 @@ export function generateQualitySuggestions(model: UniversalMainAgent, report: Ma
     for (const section of model.sections) {
         if (isCriticalSection(section)) continue;
         const forbidden = detectForbiddenPhrases(section.content);
-        for (const { phrase, suggestion } of forbidden) {
+        for (const { phrase, suggestion: _suggestion } of forbidden) {
             actions.push({
                 type: 'best-practice',
                 description: `Remove forbidden phrase "${phrase}" from "${section.heading}"`,
@@ -669,14 +668,14 @@ Examples:
     }
 
     if (result.errors.length > 0) {
-        logger.log('\nErrors:');
+        logger.log('\nBLOCK findings:');
         for (const error of result.errors) {
             logger.log(`  - ${error}`);
         }
     }
 
     if (result.warnings.length > 0) {
-        logger.log('\nWarnings:');
+        logger.log('\nWARN findings:');
         for (const warning of result.warnings) {
             logger.log(`  - ${warning}`);
         }
@@ -685,9 +684,10 @@ Examples:
     logger.log('');
 
     if (result.dryRun) {
+        logger.log(`Refinement decision: ${result.success ? 'PASS' : 'BLOCK'}`);
         logger.log('Use --apply to apply these changes.');
     } else {
-        logger.success('Refinement applied successfully.');
+        logger.success(`Refinement decision: ${result.success ? 'PASS' : 'BLOCK'}`);
     }
 
     logger.log('');

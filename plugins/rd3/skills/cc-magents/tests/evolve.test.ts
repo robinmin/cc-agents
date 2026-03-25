@@ -1,36 +1,45 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import {
-    analyzePatterns,
-    generateProposals,
-    applyProposal,
-    rollbackToVersion,
-    runEvolve,
-    formatAnalysis,
-    formatProposals,
-    formatHistory,
-    loadVersionHistory,
-    applyChange,
-    handleEvolveCLI,
-    parseEvolveArgs,
-    getEvolveHelp,
-} from '../scripts/evolve';
-import type { EvolutionDataSource } from '../scripts/types';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import {
     existsSync,
     mkdirSync,
+    readFileSync,
     readdirSync,
     rmSync,
     rmdirSync,
     unlinkSync,
     writeFileSync,
-    readFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getEvolutionStoragePaths } from '../../../scripts/evolution-engine';
+import {
+    analyzePatterns,
+    applyChange,
+    applyProposal,
+    formatAnalysis,
+    formatHistory,
+    formatProposals,
+    generateProposals,
+    getEvolveHelp,
+    handleEvolveCLI,
+    loadVersionHistory,
+    parseEvolveArgs,
+    rollbackToVersion,
+    runEvolve,
+} from '../scripts/evolve';
+import type { EvolutionDataSource } from '../scripts/types';
 
 const TEST_DIR = '/tmp/magent-evolve-test';
 const TEST_CONFIG = join(TEST_DIR, 'test-evolve-config.md');
 const EVOLVE_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'evolve.ts');
+
+function getStoragePaths(configPath: string): ReturnType<typeof getEvolutionStoragePaths> {
+    return getEvolutionStoragePaths('.cc-magents', configPath);
+}
+
+function getRollbackBackupsDir(configPath: string): string {
+    return join(getStoragePaths(configPath).rootDir, 'rollback-backups');
+}
 
 function runGit(args: string[], cwd: string): void {
     const result = Bun.spawnSync(['git', ...args], {
@@ -71,7 +80,7 @@ Use the Read and Write tools.
 
     afterEach(() => {
         rmSync(TEST_DIR, { recursive: true, force: true });
-        rmSync('/tmp/.cc-magents', { recursive: true, force: true });
+        rmSync(getStoragePaths(TEST_CONFIG).rootDir, { recursive: true, force: true });
     });
 
     describe('analyzePatterns', () => {
@@ -352,9 +361,9 @@ Some content
 
         it('should successfully rollback to existing version', async () => {
             // Create version history first
-            const versionHistoryDir = join(TEST_DIR, '.cc-magents', 'evolution', 'versions');
+            const { historyPath } = getStoragePaths(TEST_CONFIG);
+            const versionHistoryDir = dirname(historyPath);
             mkdirSync(versionHistoryDir, { recursive: true });
-            const historyPath = join(versionHistoryDir, 'test-evolve-config.md.history.json');
             const versions = [
                 {
                     version: 'v1',
@@ -382,9 +391,9 @@ Some content
 
         it('should create rollback backup before restoring version', async () => {
             // Create version history first
-            const versionHistoryDir = join(TEST_DIR, '.cc-magents', 'evolution', 'versions');
+            const { historyPath } = getStoragePaths(TEST_CONFIG);
+            const versionHistoryDir = dirname(historyPath);
             mkdirSync(versionHistoryDir, { recursive: true });
-            const historyPath = join(versionHistoryDir, 'test-evolve-config.md.history.json');
             const versions = [
                 {
                     version: 'v1',
@@ -400,7 +409,7 @@ Some content
 
             expect(result.success).toBe(true);
             // Check rollback backup was created
-            const rollbackBackupDir = join(TEST_DIR, '.cc-magents', 'evolution', 'rollback-backups');
+            const rollbackBackupDir = getRollbackBackupsDir(TEST_CONFIG);
             expect(existsSync(rollbackBackupDir)).toBe(true);
             expect(readdirSync(rollbackBackupDir).length).toBeGreaterThan(0);
         });
@@ -731,9 +740,9 @@ I am minimal.
 
         it('should handle malformed version history gracefully', async () => {
             // Create malformed version history
-            const versionHistoryDir = join(TEST_DIR, '.cc-magents', 'evolution', 'versions');
+            const { historyPath } = getStoragePaths(TEST_CONFIG);
+            const versionHistoryDir = dirname(historyPath);
             mkdirSync(versionHistoryDir, { recursive: true });
-            const historyPath = join(versionHistoryDir, 'test-evolve-config.md.history.json');
             writeFileSync(historyPath, '{ invalid json }', 'utf-8');
 
             // The function should handle this gracefully
@@ -1686,9 +1695,9 @@ Critical safety rules here.
 
         it('should load version history from file', async () => {
             // Create version history first
-            const versionHistoryDir = join(TEST_DIR, '.cc-magents', 'evolution', 'versions');
+            const { historyPath } = getStoragePaths(TEST_CONFIG);
+            const versionHistoryDir = dirname(historyPath);
             mkdirSync(versionHistoryDir, { recursive: true });
-            const historyPath = join(versionHistoryDir, 'test-evolve-config.md.history.json');
             const versions = [
                 {
                     version: 'v1',
@@ -1718,9 +1727,9 @@ Critical safety rules here.
 
         it('should return empty array for malformed JSON', async () => {
             // Create malformed version history
-            const versionHistoryDir = join(TEST_DIR, '.cc-magents', 'evolution', 'versions');
+            const { historyPath } = getStoragePaths(TEST_CONFIG);
+            const versionHistoryDir = dirname(historyPath);
             mkdirSync(versionHistoryDir, { recursive: true });
-            const historyPath = join(versionHistoryDir, 'test-evolve-config.md.history.json');
             writeFileSync(historyPath, '{ invalid json }', 'utf-8');
 
             const result = await loadVersionHistory(TEST_CONFIG);
@@ -2160,7 +2169,8 @@ I am a test agent.
 
     it('should treat a malformed persisted proposal set as missing', async () => {
         const configPath = join(TEST_DIR, 'AGENTS.md');
-        const proposalsDir = join(TEST_DIR, '.cc-magents', 'evolution', 'proposals');
+        const { proposalsPath } = getStoragePaths(configPath);
+        const proposalsDir = dirname(proposalsPath);
         mkdirSync(proposalsDir, { recursive: true });
         writeFileSync(
             configPath,
@@ -2170,7 +2180,7 @@ I am a test agent.
 `,
             'utf-8',
         );
-        writeFileSync(join(proposalsDir, 'AGENTS.md.proposals.json'), '{invalid-json', 'utf-8');
+        writeFileSync(proposalsPath, '{invalid-json', 'utf-8');
 
         const result = await handleEvolveCLI({ args: [configPath, '--apply', 'missing-id', '--confirm'] });
         expect(result.exitCode).toBe(1);
@@ -2195,11 +2205,12 @@ I am a test agent.
 
     it('should rollback successfully with --confirm when the version exists', async () => {
         const configPath = join(TEST_DIR, 'AGENTS.md');
-        const versionHistoryDir = join(TEST_DIR, '.cc-magents', 'evolution', 'versions');
+        const { historyPath } = getStoragePaths(configPath);
+        const versionHistoryDir = dirname(historyPath);
         mkdirSync(versionHistoryDir, { recursive: true });
         writeFileSync(configPath, '# New Version\n', 'utf-8');
         writeFileSync(
-            join(versionHistoryDir, 'AGENTS.md.history.json'),
+            historyPath,
             JSON.stringify([
                 {
                     version: 'v1',
@@ -2286,6 +2297,10 @@ I am a test agent.
 
     it('should surface unexpected runtime errors from the script entry point', async () => {
         const proc = Bun.spawn(['bun', 'run', EVOLVE_SCRIPT, '/tmp', '--analyze'], {
+            env: {
+                ...process.env,
+                RD3_LOG_QUIET: '0',
+            },
             stdout: 'pipe',
             stderr: 'pipe',
         });

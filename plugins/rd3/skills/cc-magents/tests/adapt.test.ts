@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import type { AdaptResult, ConversionWarning } from '../scripts/types';
 
 type WarningWithSeverity = Pick<ConversionWarning, 'severity' | 'feature' | 'description'>;
@@ -9,14 +9,14 @@ const mockFormatWarnings = (warnings: WarningWithSeverity[]): string => {
     if (warnings.length === 0) return '';
 
     const lines: string[] = [];
-    lines.push('\n⚠️  Conversion Warnings:\n');
+    lines.push('\n⚠️  Conversion Decisions:\n');
 
     const critical = warnings.filter((warning) => warning.severity === 'critical');
     const warning = warnings.filter((warningItem) => warningItem.severity === 'warning');
     const info = warnings.filter((warningItem) => warningItem.severity === 'info');
 
     if (critical.length > 0) {
-        lines.push('  🔴 CRITICAL:');
+        lines.push('  🔴 BLOCK:');
         for (const w of critical) {
             lines.push(`    - ${w.feature}: ${w.description}`);
         }
@@ -24,7 +24,7 @@ const mockFormatWarnings = (warnings: WarningWithSeverity[]): string => {
     }
 
     if (warning.length > 0) {
-        lines.push('  🟡 WARNINGS:');
+        lines.push('  🟡 WARN:');
         for (const w of warning) {
             lines.push(`    - ${w.feature}: ${w.description}`);
         }
@@ -53,20 +53,20 @@ const mockFormatResult = (result: AdaptSummary): string => {
     if (result.conversions && result.conversions.length > 0) {
         lines.push('Conversions:');
         for (const conv of result.conversions) {
-            const status = conv.success ? '✅' : '❌';
+            const status = conv.success ? '✅ PASS' : '❌ BLOCK';
             lines.push(`  ${status} → ${conv.targetPlatform}`);
             if (conv.outputPath) {
                 lines.push(`     Output: ${conv.outputPath}`);
             }
             if (conv.errors && conv.errors.length > 0) {
-                lines.push(`     Errors: ${conv.errors.join(', ')}`);
+                lines.push(`     BLOCK findings: ${conv.errors.join(', ')}`);
             }
         }
         lines.push('');
     }
 
     if (result.allWarnings && result.allWarnings.length > 0) {
-        lines.push('Conversion Warnings:');
+        lines.push('Conversion Decisions:');
         for (const w of result.allWarnings) {
             lines.push(`  [${w.severity.toUpperCase()}] ${w.feature}: ${w.description}`);
         }
@@ -74,7 +74,7 @@ const mockFormatResult = (result: AdaptSummary): string => {
     }
 
     if (result.errors && result.errors.length > 0) {
-        lines.push('Errors:');
+        lines.push('BLOCK findings:');
         for (const err of result.errors) {
             lines.push(`  ❌ ${err}`);
         }
@@ -102,7 +102,7 @@ describe('adapt', () => {
                 },
             ];
             const result = mockFormatWarnings(warnings);
-            expect(result).toContain('CRITICAL');
+            expect(result).toContain('BLOCK');
             expect(result).toContain('memory-md');
         });
 
@@ -117,7 +117,7 @@ describe('adapt', () => {
                 },
             ];
             const result = mockFormatWarnings(warnings);
-            expect(result).toContain('WARNINGS');
+            expect(result).toContain('WARN');
             expect(result).toContain('hooks');
         });
 
@@ -161,8 +161,8 @@ describe('adapt', () => {
                 },
             ];
             const result = mockFormatWarnings(warnings);
-            expect(result).toContain('CRITICAL');
-            expect(result).toContain('WARNINGS');
+            expect(result).toContain('BLOCK');
+            expect(result).toContain('WARN');
             expect(result).toContain('INFO');
         });
     });
@@ -208,7 +208,7 @@ describe('adapt', () => {
                 errors: [],
             };
             const formatted = mockFormatResult(result);
-            expect(formatted).toContain('❌');
+            expect(formatted).toContain('BLOCK');
             expect(formatted).toContain('Generation failed');
         });
 
@@ -229,7 +229,7 @@ describe('adapt', () => {
                 errors: [],
             };
             const formatted = mockFormatResult(result);
-            expect(formatted).toContain('Conversion Warnings');
+            expect(formatted).toContain('Conversion Decisions');
         });
 
         it('should include error section', () => {
@@ -241,7 +241,7 @@ describe('adapt', () => {
                 errors: ['Source file not found'],
             };
             const formatted = mockFormatResult(result);
-            expect(formatted).toContain('Errors');
+            expect(formatted).toContain('BLOCK findings');
             expect(formatted).toContain('Source file not found');
         });
 

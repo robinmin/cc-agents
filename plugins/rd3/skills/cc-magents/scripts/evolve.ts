@@ -27,17 +27,17 @@
  *   L3: Auto - fully autonomous (monitoring only)
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { logger } from '../../../scripts/logger';
 import type {
-    EvolutionAnalysis as SharedEvolutionAnalysis,
-    EvolutionCommand,
     EvolutionRunOptionsBase,
     EvolutionRunResultBase,
+    EvolutionAnalysis as SharedEvolutionAnalysis,
 } from '../../../scripts/evolution-contract';
+import { getEvolutionStoragePaths } from '../../../scripts/evolution-engine';
+import { logger } from '../../../scripts/logger';
 import { evaluateMagentConfig } from './evaluate';
 import { MAGENT_EVALUATION_CONFIG, getGradeForPercentage } from './evaluation.config';
 import type {
@@ -48,7 +48,6 @@ import type {
     EvolutionSafetyLevel,
     Grade,
     MagentSection,
-    SectionCategory,
     VersionSnapshot,
 } from './types';
 import { classifySections, detectInjectionPatterns, detectSecrets, parseSections } from './utils';
@@ -59,13 +58,6 @@ import { classifySections, detectInjectionPatterns, detectSecrets, parseSections
 
 /** Evolution analysis result */
 interface PatternAnalysis extends SharedEvolutionAnalysis<EvolutionDataSource, DetectedPattern> {}
-
-/** Proposal with additional metadata */
-interface ProposalWithMeta extends EvolutionProposal {
-    safetyLevel: 'safe' | 'moderate' | 'risky';
-    impactScore: number;
-    rollbackDifficulty: 'easy' | 'medium' | 'hard';
-}
 
 interface StoredProposalSet {
     filePath: string;
@@ -93,8 +85,8 @@ export interface EvolveRunResult extends EvolutionRunResultBase<PatternAnalysis,
 // Constants
 // ============================================================================
 
-/** Directory for evolution data storage */
-const EVOLUTION_DIR = '.cc-magents/evolution';
+/** Shared evolution storage namespace for main agent configs */
+const EVOLUTION_NAMESPACE = '.cc-magents';
 
 /** CRITICAL rule patterns that can NEVER be auto-evolved */
 const CRITICAL_PATTERNS: RegExp[] = [
@@ -137,6 +129,14 @@ const POSITIVE_FEEDBACK_PATTERNS = [/\b(helpful|clear|accurate|worked|useful|gre
 const NEGATIVE_FEEDBACK_PATTERNS = [/\b(confusing|wrong|bad|failed|missing|unsafe|broken)\b/i, ...FAILURE_PATTERNS];
 const MEMORY_PATTERNS = [/\b(remember|learned|recurring|repeat|preference|context)\b/i];
 const LOG_TOOL_PATTERNS = [/\b(read|write|edit|bash|grep|glob|search|task)\b/i];
+
+function getStoragePaths(configPath: string) {
+    return getEvolutionStoragePaths(EVOLUTION_NAMESPACE, configPath);
+}
+
+function getRollbackBackupsDir(configPath: string): string {
+    return join(getStoragePaths(configPath).rootDir, 'rollback-backups');
+}
 
 // ============================================================================
 // Main Evolution Functions
@@ -303,7 +303,7 @@ export async function rollbackToVersion(
 
     // Create backup of current state before rollback
     const currentContent = await Bun.file(configPath).text();
-    const rollbackBackupDir = join(dirname(configPath), EVOLUTION_DIR, 'rollback-backups');
+    const rollbackBackupDir = getRollbackBackupsDir(configPath);
     mkdirSync(rollbackBackupDir, { recursive: true });
     const rollbackBackupPath = join(rollbackBackupDir, `rollback-${Date.now()}.md`);
     await Bun.write(rollbackBackupPath, currentContent);
@@ -714,7 +714,7 @@ function generateAnalysisSummary(
 // Proposal Generation Functions
 // ============================================================================
 
-function patternToProposal(pattern: DetectedPattern, configPath: string, content: string): EvolutionProposal | null {
+function patternToProposal(pattern: DetectedPattern, _configPath: string, content: string): EvolutionProposal | null {
     const id = generateProposalId();
 
     switch (pattern.type) {
@@ -771,9 +771,10 @@ function generateProposalsFromEvaluation(
     _content: string,
 ): EvolutionProposal[] {
     const proposals: EvolutionProposal[] = [];
+    const passThreshold = MAGENT_EVALUATION_CONFIG.passThreshold;
 
     for (const dim of evalResult.dimensions) {
-        if (dim.percentage < 75) {
+        if (dim.percentage < passThreshold) {
             for (const rec of dim.recommendations.slice(0, 2)) {
                 const id = generateProposalId();
                 const section = dimensionToSection(dim.dimension);
@@ -783,7 +784,7 @@ function generateProposalsFromEvaluation(
                     targetSection: section,
                     changeType: 'modify',
                     description: `Improve ${dim.dimension}: ${rec}`,
-                    rationale: `Evaluation score: ${dim.percentage}% (below 75% threshold)`,
+                    rationale: `Evaluation score: ${dim.percentage}% (below ${passThreshold}% threshold)`,
                     source: 'ci-results',
                     confidence: 0.7,
                     affectsCritical: CRITICAL_SECTIONS.includes(section.toLowerCase()),
@@ -837,13 +838,7 @@ function estimatePredictedGrade(currentGrade: Grade, proposalCount: number): Gra
     const gradeScores: Record<Grade, number> = { A: 90, B: 80, C: 70, D: 60, F: 50 };
     const currentScore = gradeScores[currentGrade];
     const predictedScore = Math.min(100, currentScore + proposalCount * 5);
-
-    for (const [grade, threshold] of Object.entries({ A: 90, B: 80, C: 70, D: 60 })) {
-        if (predictedScore >= threshold) {
-            return grade as Grade;
-        }
-    }
-    return 'F';
+    return getGradeForPercentage(predictedScore);
 }
 
 function getUsedSources(analysis: PatternAnalysis): EvolutionDataSource[] {
@@ -915,7 +910,7 @@ export async function applyChange(content: string, proposal: EvolutionProposal):
 }
 
 async function createBackup(configPath: string, proposalId: string): Promise<string> {
-    const backupDir = join(dirname(configPath), EVOLUTION_DIR, 'backups');
+    const { backupsDir: backupDir } = getStoragePaths(configPath);
     mkdirSync(backupDir, { recursive: true });
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -939,8 +934,8 @@ async function recordVersion(
     changeDescription: string,
     explicitVersion?: string,
 ): Promise<void> {
-    const historyDir = join(dirname(configPath), EVOLUTION_DIR, 'versions');
-    mkdirSync(historyDir, { recursive: true });
+    const { historyPath } = getStoragePaths(configPath);
+    mkdirSync(dirname(historyPath), { recursive: true });
 
     const versions = await loadVersionHistory(configPath);
     const versionId = explicitVersion ?? getNextVersionId(versions);
@@ -957,13 +952,11 @@ async function recordVersion(
     versions.push(snapshot);
 
     // Save updated history
-    const historyPath = join(historyDir, `${basename(configPath)}.history.json`);
     await Bun.write(historyPath, JSON.stringify(versions, null, 2));
 }
 
 export async function loadVersionHistory(configPath: string): Promise<VersionSnapshot[]> {
-    const historyDir = join(dirname(configPath), EVOLUTION_DIR, 'versions');
-    const historyPath = join(historyDir, `${basename(configPath)}.history.json`);
+    const { historyPath } = getStoragePaths(configPath);
 
     if (!existsSync(historyPath)) {
         return [];
@@ -978,10 +971,8 @@ export async function loadVersionHistory(configPath: string): Promise<VersionSna
 }
 
 async function saveProposalSet(configPath: string, result: EvolutionResult): Promise<string> {
-    const proposalsDir = join(dirname(configPath), EVOLUTION_DIR, 'proposals');
-    mkdirSync(proposalsDir, { recursive: true });
-
-    const proposalPath = join(proposalsDir, `${basename(configPath)}.proposals.json`);
+    const { proposalsPath: proposalPath } = getStoragePaths(configPath);
+    mkdirSync(dirname(proposalPath), { recursive: true });
     const payload: StoredProposalSet = {
         filePath: result.filePath,
         generatedAt: result.timestamp,
@@ -996,12 +987,7 @@ async function saveProposalSet(configPath: string, result: EvolutionResult): Pro
 }
 
 async function loadProposalSet(configPath: string): Promise<EvolutionResult | null> {
-    const proposalPath = join(
-        dirname(configPath),
-        EVOLUTION_DIR,
-        'proposals',
-        `${basename(configPath)}.proposals.json`,
-    );
+    const { proposalsPath: proposalPath } = getStoragePaths(configPath);
     if (!existsSync(proposalPath)) {
         return null;
     }
@@ -1266,7 +1252,13 @@ export async function handleEvolveCLI(options: EvolveCLIOptions = {}): Promise<E
             };
         }
 
-        const result = await runEvolve({ configPath, command: 'apply', safetyLevel, proposalId });
+        const result = await runEvolve({
+            configPath,
+            command: 'apply',
+            safetyLevel,
+            proposalId,
+            confirm: values.confirm,
+        });
 
         if (result.applyResult && !result.applyResult.success) {
             return { exitCode: 1, error: `Error: ${result.applyResult.error}` };

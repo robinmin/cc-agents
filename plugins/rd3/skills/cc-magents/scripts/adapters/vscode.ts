@@ -30,7 +30,7 @@ import { BaseMagentAdapter } from './base';
 // ============================================================================
 
 /** Features that VSCode Copilot focuses on */
-const VSCODE_FOCUS_FEATURES = ['checkpoint-cadence', 'github-integration', 'copilot-agent-protocol'];
+const _VSCODE_FOCUS_FEATURES = ['checkpoint-cadence', 'github-integration', 'copilot-agent-protocol'];
 
 /** Features that are NOT applicable to VSCode Copilot (Tier 3 limitations) */
 const VSCODE_UNSUPPORTED_FEATURES = [

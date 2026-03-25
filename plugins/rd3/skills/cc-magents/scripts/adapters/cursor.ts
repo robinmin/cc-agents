@@ -61,14 +61,9 @@ export class CursorAdapter extends BaseMagentAdapter {
     readonly platform: MagentPlatform = 'cursorrules';
     readonly displayName = '.cursorrules (Cursor)';
     readonly tier: PlatformTier = 2;
-    private options: CursorAdapterOptions;
 
-    constructor(options: CursorAdapterOptions = {}) {
+    constructor(_options: CursorAdapterOptions = {}) {
         super();
-        this.options = {
-            flagNonPortable: true,
-            ...options,
-        };
     }
 
     /**

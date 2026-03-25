@@ -29,6 +29,11 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import {
+    getEvaluationDecisionState,
+    getValidationDecisionState,
+    meetsPercentageThreshold,
+} from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
 import {
     EXPECTED_CATEGORIES,
@@ -132,8 +137,6 @@ const MAINTAINABILITY_WEIGHT_FEEDBACK = 30;
 const MAINTAINABILITY_WEIGHT_STEERING = 20;
 const MAINTAINABILITY_WEIGHT_VERSIONING = 20;
 
-const PASS_THRESHOLD = 75;
-
 // ============================================================================
 // Main Evaluation Function
 // ============================================================================
@@ -202,7 +205,7 @@ export async function evaluateMagentConfig(
 
     const overallScore = Math.round((totalScore / totalWeight) * 100);
     const grade = getGradeForPercentage(overallScore);
-    const passed = overallScore >= PASS_THRESHOLD;
+    const passed = meetsPercentageThreshold(overallScore, MAGENT_EVALUATION_CONFIG.passThreshold);
 
     // Collect top recommendations
     const allRecommendations: Array<{ dimension: string; recommendation: string; priority: number }> = [];
@@ -1182,6 +1185,8 @@ export function formatEvaluateReport(
     verbose?: boolean,
 ): string {
     const lines: string[] = [];
+    const validationDecision = getValidationDecisionState(validation.valid, validation.warnings.length);
+    const overallDecision = getEvaluationDecisionState(report.passed);
 
     const gradeColor =
         report.grade === 'A'
@@ -1211,13 +1216,15 @@ export function formatEvaluateReport(
         }
     }
     if (validation.valid && validation.warnings.length === 0) {
-        lines.push(`\n${'\x1b[32m'}✓ Validation passed${reset}`);
+        lines.push(`\n${'\x1b[32m'}✓ Validation decision: ${validationDecision}${reset}`);
+    } else if (validation.valid) {
+        lines.push(`\n${'\x1b[33m'}⚠ Validation decision: ${validationDecision}${reset}`);
+    } else {
+        lines.push(`\n${'\x1b[31m'}✗ Validation decision: ${validationDecision}${reset}`);
     }
 
     lines.push(`\nPlatform: ${report.platform} | Profile: ${report.weightProfile}`);
-    lines.push(
-        `\nOverall Score: ${gradeColor}${report.grade}${reset} (${report.overallScore}%) ${report.passed ? 'PASS' : 'FAIL'}`,
-    );
+    lines.push(`\nOverall Score: ${gradeColor}${report.grade}${reset} (${report.overallScore}%) ${overallDecision}`);
     lines.push('\n--- Dimension Scores ---');
 
     for (const dim of report.dimensions) {
@@ -1275,7 +1282,7 @@ Weight Profiles:
 
 Grade Thresholds:
   A: >= 90%  B: >= 80%  C: >= 70%  D: >= 60%  F: < 60%
-  Pass threshold: 75%
+  Pass threshold: ${MAGENT_EVALUATION_CONFIG.passThreshold}%
 
 Examples:
   bun evaluate.ts AGENTS.md
@@ -1346,7 +1353,7 @@ async function main(): Promise<void> {
         logger.error(result.error);
     }
     if (result.output) {
-        console.log(result.output);
+        logger.log(result.output);
     }
     process.exit(result.exitCode);
 }

@@ -22,10 +22,12 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { getValidationDecisionState } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
 import { pathExists } from '../../../scripts/utils';
+import { type ValidationFindingAccumulator, addValidationFinding } from '../../../scripts/validation-findings';
 import { magentAdapterRegistry } from './adapters/index';
-import type { MagentPlatform, MagentValidationResult, ValidationFinding, ValidationSeverity } from './types';
+import type { MagentPlatform, MagentValidationResult, ValidationFinding } from './types';
 import {
     buildUMAM,
     detectInjectionPatterns,
@@ -59,7 +61,7 @@ interface ValidationContext {
     forcedPlatform: MagentPlatform | null;
 }
 
-interface MutableReport {
+interface MutableReport extends ValidationFindingAccumulator<ValidationFinding> {
     errors: string[];
     warnings: string[];
     suggestions: string[];
@@ -68,19 +70,12 @@ interface MutableReport {
 
 function addFinding(
     report: MutableReport,
-    severity: ValidationSeverity,
+    severity: ValidationFinding['severity'],
     message: string,
     section?: string,
     suggestion?: string,
 ): void {
-    const finding: ValidationFinding = { severity, message };
-    if (section !== undefined) finding.section = section;
-    if (suggestion !== undefined) finding.suggestion = suggestion;
-    report.findings.push(finding);
-
-    if (severity === 'error') report.errors.push(message);
-    else if (severity === 'warning') report.warnings.push(message);
-    else if (severity === 'suggestion') report.suggestions.push(message);
+    addValidationFinding(report, severity, message, section, suggestion, 'section');
 }
 
 // ============================================================================
@@ -409,22 +404,22 @@ Examples:
     } else {
         // Formatted output
         const platform = result.detectedPlatform ?? 'unknown';
-        const status = result.valid ? '✅ VALID' : '❌ INVALID';
+        const decision = getValidationDecisionState(result.valid, result.warnings.length);
 
-        logger.log(`\n${status} - ${configPath} (${platform})`);
+        logger.log(`\nValidation decision: ${decision} - ${configPath} (${platform})`);
         logger.log(
             `  Size: ${(result.fileSize / 1024).toFixed(1)}KB | Tokens: ~${result.estimatedTokens} | Sections: ${result.sectionCount}`,
         );
 
         if (result.errors.length > 0) {
-            logger.log('\nErrors:');
+            logger.log('\nBLOCK findings:');
             for (const error of result.errors) {
                 logger.log(`  ❌ ${error}`);
             }
         }
 
         if (result.warnings.length > 0) {
-            logger.log('\nWarnings:');
+            logger.log('\nWARN findings:');
             for (const warning of result.warnings) {
                 logger.log(`  ⚠️  ${warning}`);
             }

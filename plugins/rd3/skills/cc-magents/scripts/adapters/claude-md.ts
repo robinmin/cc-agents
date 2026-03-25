@@ -71,14 +71,9 @@ export class ClaudeMdAdapter extends BaseMagentAdapter {
     readonly platform: MagentPlatform = 'claude-md';
     readonly displayName = 'CLAUDE.md (Claude Code)';
     readonly tier: PlatformTier = 1;
-    private options: ClaudeMdAdapterOptions;
 
-    constructor(options: ClaudeMdAdapterOptions = {}) {
+    constructor(_options: ClaudeMdAdapterOptions = {}) {
         super();
-        this.options = {
-            flagNonPortable: true,
-            ...options,
-        };
     }
 
     /**

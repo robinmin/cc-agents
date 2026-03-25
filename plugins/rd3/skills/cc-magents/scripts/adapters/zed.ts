@@ -28,7 +28,7 @@ import { BaseMagentAdapter } from './base';
 // ============================================================================
 
 /** Zed rules files use markdown with special markers */
-const ZED_RULES_SECTION_PATTERN = /^(?:---|\+\+\+)\s*$/; // Zed uses --- as section markers
+const _ZED_RULES_SECTION_PATTERN = /^(?:---|\+\+\+)\s*$/; // Zed uses --- as section markers
 
 /** Zed-specific section heading patterns */
 const ZED_SECTION_PATTERNS = {
@@ -42,7 +42,7 @@ const ZED_SECTION_PATTERNS = {
 const ZED_ONLY_FEATURES = ['lsp-configuration', 'collaboration-settings', 'zed-specific-sections'];
 
 /** Standard markdown heading pattern for sections */
-const MARKDOWN_HEADING_PATTERN = /^(#{1,6})\s+(.+)$/;
+const _MARKDOWN_HEADING_PATTERN = /^(#{1,6})\s+(.+)$/;
 
 // ============================================================================
 // Options
@@ -61,14 +61,9 @@ export class ZedAdapter extends BaseMagentAdapter {
     readonly platform: MagentPlatform = 'zed-rules';
     readonly displayName = '.zed/rules (Zed)';
     readonly tier: PlatformTier = 2;
-    private options: ZedAdapterOptions;
 
-    constructor(options: ZedAdapterOptions = {}) {
+    constructor(_options: ZedAdapterOptions = {}) {
         super();
-        this.options = {
-            flagNonPortable: true,
-            ...options,
-        };
     }
 
     /**

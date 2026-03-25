@@ -1,15 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import {
-    evaluateMagentConfig,
-    runEvaluate,
-    handleEvaluateCLI,
-    parseEvaluateArgs,
-    formatEvaluateReport,
-    getEvaluateHelp,
-} from '../scripts/evaluate';
-import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from 'node:fs';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
+import {
+    evaluateMagentConfig,
+    formatEvaluateReport,
+    getEvaluateHelp,
+    handleEvaluateCLI,
+    parseEvaluateArgs,
+    runEvaluate,
+} from '../scripts/evaluate';
+import { MAGENT_EVALUATION_CONFIG } from '../scripts/evaluation.config';
 import type { MagentValidationResult } from '../scripts/types';
 
 const TEST_DIR = '/tmp/magent-evaluate-test';
@@ -1391,7 +1392,7 @@ Be helpful.`;
             expect(result).toContain('80%');
             expect(result).toContain('B');
             expect(result).toContain('PASS');
-            expect(result).toContain('✓ Validation passed');
+            expect(result).toContain('Validation decision: PASS');
         });
 
         it('should format report with validation errors', () => {
@@ -1426,7 +1427,7 @@ Be helpful.`;
 
             expect(result).toContain('Validation Errors');
             expect(result).toContain('Missing required section');
-            expect(result).toContain('FAIL');
+            expect(result).toContain('BLOCK');
         });
 
         it('should format report with verbose output', () => {
@@ -1490,6 +1491,7 @@ Be helpful.`;
             expect(result).toContain('--profile');
             expect(result).toContain('--json');
             expect(result).toContain('Weight Profiles');
+            expect(result).toContain(`Pass threshold: ${MAGENT_EVALUATION_CONFIG.passThreshold}%`);
         });
     });
 

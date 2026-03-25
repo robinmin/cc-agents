@@ -55,14 +55,9 @@ export class OpenCodeAdapter extends BaseMagentAdapter {
     readonly platform: MagentPlatform = 'opencode-rules';
     readonly displayName = 'opencode.md (OpenCode)';
     readonly tier: PlatformTier = 2;
-    private options: OpenCodeAdapterOptions;
 
-    constructor(options: OpenCodeAdapterOptions = {}) {
+    constructor(_options: OpenCodeAdapterOptions = {}) {
         super();
-        this.options = {
-            flagNonPortable: true,
-            ...options,
-        };
     }
 
     /**
