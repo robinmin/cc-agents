@@ -6,18 +6,35 @@ Detailed workflow definitions for cc-skills operations. Each workflow defines:
 - **Branching logic**: What to do when steps fail or succeed
 - **Retry loops**: When to go back and redo previous steps
 
+LLM content improvement is embedded in the normal workflow for every operation.
+It is performed by the invoking agent as checklist-driven review/content improvement, not via a separate `--llm-eval` CLI mode.
+
+## Shared Workflow Framework
+
+This file follows the shared [Meta-Agent Workflow Schema](../../../references/meta-agent-workflow-schema.md).
+
+Shared Phase 1 conventions:
+
+- concept-level operations use `Create`, `Validate`, `Evaluate`, `Refine`, `Evolve`, `Adapt`, and `Package`
+- documentation decision states use `BLOCK`, `WARN`, and `PASS`
+- deterministic script work and invoking-agent judgment are documented separately
+- `Evolve` follows the closed loop: Observe -> Analyze -> Propose -> Apply -> Verify -> Snapshot -> Rollback -> Learn
+
 ---
 
 ## Table of Contents
 
-1. [Add Workflow](#add-workflow) - Create new skill
-2. [Evaluate Workflow](#evaluate-workflow) - Validate and score quality
-3. [Refine Workflow](#refine-workflow) - Fix issues and improve
-4. [Package Workflow](#package-workflow) - Prepare for distribution
+1. [Create Workflow](#create-workflow) - Create new skill
+2. [Validate Workflow](#validate-workflow) - Check skill structure
+3. [Evaluate Workflow](#evaluate-workflow) - Validate and score quality
+4. [Refine Workflow](#refine-workflow) - Fix issues and improve
+5. [Evolve Workflow](#evolve-workflow) - Analyze and apply longitudinal improvements
+6. [Adapt Workflow](#adapt-workflow) - Generate cross-platform companions
+7. [Package Workflow](#package-workflow) - Prepare for distribution
 
 ---
 
-## Add Workflow
+## Create Workflow
 
 Create a new skill from scratch with proper structure.
 
@@ -25,13 +42,13 @@ Create a new skill from scratch with proper structure.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│ ADD WORKFLOW                                                         │
+│ CREATE WORKFLOW                                                      │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
 │  │ Scaffold │    │ Validate  │    │ LLM      │    │ Generate │   │
-│  │ (Script) │    │ (Script)  │    │ Verify   │    │ Companions│  │
+│  │ (Script) │    │ (Script)  │    │ Content  │    │ Companions│  │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │                                                 │           │
 │       ▼                                                 ▼           │
@@ -44,7 +61,7 @@ Create a new skill from scratch with proper structure.
 |------|------|---------|------------------|-------------|
 | 1 | Scaffold | `scaffold.ts` | Creates directory + SKILL.md | Retry step 1 |
 | 2 | Validate Structure | `validate.ts` | All required files exist | Back to step 1 |
-| 3 | LLM Verify | Checklist (human/AI) | PASS on all mandatory items | Back to step 1 |
+| 3 | LLM Content Improvement | LLM (invoking agent) | Improves content using LLM | Back to step 1 |
 | 4 | Generate Companions | Platform adapters | All companions generated | Retry step 4 |
 
 ### Step Details
@@ -74,30 +91,75 @@ bun scripts/validate.ts <skill-path>
 
 **Success:** Returns validation pass
 
-#### Step 3: LLM Verify (Checklist)
-**Mandatory checklist:**
+#### Step 3: LLM Content Improvement
+**Handler:** LLM (invoking agent using its own LLM capability)
 
-| # | Item | Check |
-|---|------|-------|
-| 1 | Description in third person | "This skill..." not "I can..." |
-| 2 | Description includes trigger | Contains "Use when..." |
-| 3 | Description is specific | Not vague like "helper" |
-| 4 | Name is kebab-case | e.g., "pdf-processing" |
-| 5 | "When to Use" is clear | Lists specific triggers |
+**What the invoking agent does:**
+1. Reads the newly scaffolded SKILL.md
+2. Identifies weak sections: vague descriptions, inconsistent voice, missing examples
+3. Uses LLM to rewrite content addressing issues found in Steps 1-2
+4. Preserves frontmatter exactly
+5. Maintains third-person imperative voice ("This skill..." not "I can...")
+6. Adds concrete examples if missing
+7. Keeps SKILL.md under 500 lines (extract to references/ if needed)
+
+**Important:**
+- Frontmatter MUST NOT be modified (name, description, type, etc.)
+- Only the body content is improved
+- Preserve all existing reference links
+- Add examples where patterns are described
 
 **If FAIL:** Go back to Step 1 (re-scaffold with corrections)
 
 #### Step 4: Generate Companions (Script)
 ```bash
-bun scripts/refine.ts <skill-path> --platform all
+bun scripts/adapt.ts <skill-path> all
 ```
 
 **What script does:**
-- Generates agents/openai.yaml (Codex)
-- Generates metadata.openclaw (OpenClaw)
-- Validates platform compatibility
+- Generates platform companions from the current SKILL.md
+- Validates companion compatibility with target platforms
+- Reports any lossy or advisory transformations
 
 **If FAIL:** Retry step 4 (max 3 times)
+
+---
+
+## Validate Workflow
+
+Validate skill structure, frontmatter, resources, and companion readiness before evaluation or packaging.
+
+### Workflow Steps
+
+| Step | Name | Handler | Success Criteria | On Failure |
+|------|------|---------|------------------|-------------|
+| 1 | Parse SKILL.md | `validate.ts` | File can be parsed | Abort |
+| 2 | Check Required Structure | `validate.ts` | Required fields and resource expectations pass | Retry after fixes |
+| 3 | Action Decision | `validate.ts` + invoking agent | Returns BLOCK/WARN/PASS with next step | Continue |
+
+### Step Details
+
+#### Step 1: Parse SKILL.md
+```bash
+bun scripts/validate.ts <skill-path>
+```
+
+#### Step 2: Check Required Structure
+
+Deterministic validation checks:
+
+- valid frontmatter
+- required name and description fields
+- resource discovery and companion readiness
+- no critical structure breakage
+
+#### Step 3: Action Decision
+
+The invoking agent reviews the validation output and decides whether to:
+
+- stop on `BLOCK`
+- continue with caveats on `WARN`
+- proceed directly on `PASS`
 
 ---
 
@@ -107,10 +169,10 @@ Validate skill structure and score quality using **Two-Tier Architecture**.
 
 ### Two-Tier Architecture
 
-| Tier | Purpose | Handler | Continues on STOP? |
+| Tier | Purpose | Handler | Continues on BLOCK? |
 |------|---------|---------|-------------------|
 | **Tier 1** | Structural Validation | Scripts | Yes (for diagnostics) |
-| **Tier 2** | Quality Scoring | Scripts + LLM | N/A |
+| **Tier 2** | Quality Scoring | Scripts + invoking-agent checklist | N/A |
 
 ### Workflow Steps
 
@@ -126,14 +188,15 @@ Validate skill structure and score quality using **Two-Tier Architecture**.
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐                    │
 │  │ Step 1.1 │───▶│ Step 1.2 │───▶│ Step 1.3 │                    │
 │  │ Parse    │    │ Check    │    │ Action   │                    │
-│  │ SKILL.md │    │ Frontmatter│   │ STOP/SUGGEST│                 │
+│  │ SKILL.md │    │ Frontmatter│   │ BLOCK/WARN│                  │
+│  │          │    │            │   │ /PASS     │                  │
 │  └──────────┘    └──────────┘    └──────────┘                    │
 │       │              │              │                               │
 │       ▼              ▼              ▼                               │
-│  [Valid?]       [Valid?]    [STOP → Continue to Tier 2]          │
+│  [Valid?]       [Valid?]    [BLOCK → Continue to Tier 2]         │
 │     │              │              │                               │
 │     ▼              ▼              ▼                               │
-│  [FAIL: Abort] [FAIL: STOP]                                    │
+│  [BLOCK: Abort] [BLOCK]                                      │
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │ TIER 2: QUALITY SCORING (Script + LLM)                     │   │
@@ -141,8 +204,8 @@ Validate skill structure and score quality using **Two-Tier Architecture**.
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 2.1 │───▶│ Step 2.2 │───▶│ Step 2.3 │───▶│ Step 2.4 │   │
-│  │ Dimension│    │ Score    │    │ LLM      │    │ Generate │   │
-│  │ Scoring  │    │ Calculate│    │ Deep Eval│    │ Report   │   │
+│  │ Dimension│    │ Score    │    │ Checklist│    │ Generate │   │
+│  │ Scoring  │    │ Calculate│    │ Review   │    │ Report   │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │              │                │            │
 │       ▼              ▼              ▼                ▼            │
@@ -163,17 +226,17 @@ Validate skill structure and score quality using **Two-Tier Architecture**.
 | Step | Name | Handler | Success Criteria | On Failure |
 |------|------|---------|------------------|-------------|
 | 1.1 | Parse SKILL.md | Script | Valid markdown + YAML | Abort |
-| 1.2 | Check Frontmatter | Script | name + description exist | STOP |
-| 1.3 | Action Decision | Script | No STOP → Continue | Continue to Tier 2 |
+| 1.2 | Check Frontmatter | Script | name + description exist | BLOCK |
+| 1.3 | Action Decision | Script | No BLOCK → Continue | Continue to Tier 2 |
 
 #### Tier 1 Action Types
 
 | Action | Icon | Meaning | Tier 2 Continues? |
 |--------|------|---------|-------------------|
-| **STOP** | ⏹ | Critical failure - skill cannot function | Yes (for diagnostics) |
-| **SUGGEST** | 💡 | Warning - improvement suggested | Yes |
+| **BLOCK** | ⏹ | Critical failure - skill cannot function | Yes (for diagnostics) |
+| **WARN** | ⚠ | Improvement is suggested before shipping | Yes |
 
-**STOP criteria:**
+**BLOCK criteria:**
 - Missing SKILL.md
 - Invalid YAML frontmatter
 - Missing required `name` field
@@ -190,7 +253,7 @@ Validate skill structure and score quality using **Two-Tier Architecture**.
 |------|------|---------|------------------|
 | 2.1 | Dimension Scoring | Script | Returns scores for all dimensions |
 | 2.2 | Calculate Grade | Script | Returns A/B/C/D/F |
-| 2.3 | LLM Deep Eval | LLM (optional) | Returns detailed analysis |
+| 2.3 | Embedded LLM Checklist Review | LLM (invoking agent) | Returns nuanced follow-up guidance |
 | 2.4 | Generate Report | Script | JSON/text output |
 
 #### Scoring Dimensions
@@ -292,9 +355,9 @@ Organized by category for comprehensive validation:
 
 ---
 
-### LLM Deep Evaluation (Optional)
+### Embedded LLM Checklist Review
 
-For human-level nuance beyond pattern matching.
+Use the invoking agent's LLM judgment to strengthen the script findings with qualitative review.
 
 #### When to Use
 
@@ -302,15 +365,14 @@ For human-level nuance beyond pattern matching.
 - Want Claude's opinion on quality
 - Need structured scoring against criteria
 
-#### How to Run
+#### How to Use
 
 ```bash
-# Basic evaluation (script-based)
+# Run the normal deterministic evaluation
 bun scripts/evaluate.ts <skill-path> --scope full
-
-# Deep evaluation (LLM-based)
-bun scripts/evaluate.ts <skill-path> --llm-eval
 ```
+
+Then the invoking agent reviews the generated findings and applies the checklist below before deciding whether to proceed, refine, or stop.
 
 #### LLM Checks
 
@@ -389,7 +451,7 @@ bun scripts/evaluate.ts <skill-path> --scope basic
 - `description` field exists, 50-1024 chars
 - Valid YAML syntax
 
-**If FAIL:** STOP - critical failure
+**If BLOCK:** Stop - critical failure
 
 #### Step 2.1: Dimension Scoring (Script)
 ```bash
@@ -404,12 +466,9 @@ bun scripts/evaluate.ts <skill-path> --scope full
 
 **Output:** Score per dimension, total (out of 100), grade (A/B/C/D/F)
 
-#### Step 2.3: LLM Deep Evaluation (LLM)
-```bash
-bun scripts/evaluate.ts <skill-path> --llm-eval
-```
+#### Step 2.3: Embedded LLM Checklist Review (Invoking Agent)
 
-**What LLM evaluates:**
+**What the invoking agent evaluates:**
 - Description quality (rubric-based)
 - Trigger effectiveness
 - Content helpfulness
@@ -438,15 +497,15 @@ Fix issues and improve quality. Supports multiple refinement modes.
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
 │  │ Parse +  │    │ Apply     │    │ Apply    │    │ Validate │   │
-│  │ Detect   │    │ BestPrac  │    │ LLM      │    │ Result   │   │
-│  │ Issues   │    │ (Script)  │    │ Refine   │    │ (Script) │   │
+│  │ Detect   │    │ BestPrac  │    │ Content  │    │ Result   │   │
+│  │ Issues   │    │ (Script)  │    │ Improve  │    │ (Script) │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │               │                │            │
 │       ▼              ▼               ▼                ▼            │
-│  [No issues]    [Apply]         [Apply]          [COMPLETE]      │
+│  [No issues]    [Apply]         [Improve]       [COMPLETE]      │
 │     │              │               │                              │
 │     ▼              ▼               ▼                              │
-│  [COMPLETE]    [Nothing to fix] [Nothing to change]             │
+│  [COMPLETE]    [Nothing to fix] [Content improved]              │
 │                                                                      │
 │  ─────────────────────────────────────────────────────────────     │
 │  Branch: Migration Mode (--migrate)                                │
@@ -465,7 +524,7 @@ Fix issues and improve quality. Supports multiple refinement modes.
 |------|------|---------|------------------|-------------|
 | 1 | Detect Issues | `refine.ts` | Detects what needs fixing | Continue |
 | 2 | Apply BestPrac | `refine.ts --best-practices` | Fixes deterministic issues | Warn only |
-| 3 | LLM Checklist | Checklist (invoking agent) | Verifies fuzzy issues | Back to 2 |
+| 3 | LLM Content Improvement | LLM (invoking agent) | Improves content using LLM | Back to 2 |
 | 4 | Validate Result | `validate.ts` | Validation passes | Retry step 3 |
 
 ### Step Details
@@ -494,25 +553,29 @@ bun scripts/refine.ts <skill-path> --best-practices
 
 **Output:** Modified SKILL.md, report of changes
 
-#### Step 3: LLM Checklist (Invoking Agent)
-The invoking agent performs fuzzy quality checks via checklist (not an external API call).
+#### Step 3: LLM Content Improvement (Invoking Agent)
+The invoking agent uses the LLM to improve skill content based on evaluation findings from Step 1.
 
-**Checklist items:**
+**What the agent does:**
 
-| # | Item | What the Agent Checks |
-|---|------|-----------------------|
-| 1 | Description pattern | Starts with "Use PROACTIVELY for" |
-| 2 | Trigger phrases | 3+ quoted phrases in description |
-| 3 | Example blocks | 2+ `<example>` with `<commentary>` |
-| 4 | Voice consistency | Third-person, no "I can help you" |
-| 5 | Circular references | No `/rd3:command-*` slash refs |
-| 6 | Commands Reference | Section not present (removed by best-practices) |
-| 7 | Section structure | Progressive disclosure with `## ` headers |
-| 8 | Line budget | SKILL.md under 500 lines (long sections extracted to references/) |
-| 9 | Reference frontmatter | Extracted reference files have proper `name:`, `description:`, `see_also:` |
+1. **Analyze findings**: Review evaluation findings and recommendations from Step 1
+2. **Identify weak sections**: Find content that failed scoring or needs improvement
+3. **Use LLM to rewrite**: Use the agent's LLM capability to rewrite weak sections:
+   - Preserve frontmatter exactly (YAML at top of SKILL.md)
+   - Maintain third-person imperative voice ("This skill helps..." not "I can help you")
+   - Keep SKILL.md under 500 lines (extract long sections to references/)
+   - Address all findings from the evaluation report
+4. **Apply improvements**: Write improved content back to SKILL.md
 
-**If all items pass:** Continue to Step 4
-**If failures:** Back to Step 2 for additional fixes
+**Key principles:**
+- **Frontmatter protection**: Never modify the YAML frontmatter
+- **Voice consistency**: Maintain imperative form throughout
+- **Concrete over abstract**: Use specific examples and trigger phrases
+- **Progressive disclosure**: Extract detailed content to references/ as needed
+
+**If improvements made:** Continue to Step 4
+**If no improvements needed:** Continue to Step 4
+**If LLM fails or unavailable:** Warn and continue to Step 4 (deterministic fixes already applied in Step 2)
 
 #### Step 4: Validate Result
 ```bash
@@ -583,6 +646,115 @@ Use TDD when standard refine doesn't achieve desired agent behavior.
 
 ---
 
+## Evolve Workflow
+
+Analyze longitudinal improvements with persisted proposals and embedded LLM review before apply.
+
+### Closed-Loop Phases
+
+This workflow follows the shared evolution loop:
+
+1. Observe signals from evaluation and history
+2. Analyze patterns and gaps
+3. Propose bounded improvements
+4. Apply approved changes
+5. Verify the resulting behavior
+6. Snapshot version history
+7. Roll back if needed
+8. Learn from the recorded outcome
+
+### Workflow Steps
+
+| Step | Name | Handler | Success Criteria | On Failure |
+|------|------|---------|------------------|-------------|
+| 1 | Analyze Signals | `evolve.ts --analyze` | Signal report generated | Abort |
+| 2 | Generate Proposals | `evolve.ts --propose` | Proposal set persisted | Retry step 2 |
+| 3 | Embedded LLM Content Improvement | LLM (invoking agent) | Proposals are reviewed, tightened, and prioritized | Back to step 2 |
+| 4 | Apply or Roll Back | `evolve.ts --apply` / `--rollback` | Approved change applied safely | Abort |
+
+### Step Details
+
+#### Step 1: Analyze Signals
+```bash
+bun scripts/evolve.ts <skill-path> --analyze
+```
+
+#### Step 2: Generate Proposals
+```bash
+bun scripts/evolve.ts <skill-path> --propose
+```
+
+The script persists deterministic proposals and supporting rationale.
+
+#### Step 3: Embedded LLM Content Improvement
+
+The invoking agent reviews the proposal set before any apply step:
+
+1. Check that each proposal matches the actual findings
+2. Remove weak or redundant proposals
+3. Tighten descriptions and rationale where they are vague
+4. Confirm the proposal order matches risk and expected benefit
+5. Decide whether to apply, defer, or request more evidence
+
+This review is part of the normal evolve flow. It does not require a separate CLI flag.
+
+#### Step 4: Apply or Roll Back
+```bash
+bun scripts/evolve.ts <skill-path> --apply <proposal-id> --confirm
+```
+
+```bash
+bun scripts/evolve.ts <skill-path> --rollback <version> --confirm
+```
+
+---
+
+## Adapt Workflow
+
+Generate or refresh cross-platform companions for the skill.
+
+### Workflow Steps
+
+| Step | Name | Handler | Success Criteria | On Failure |
+|------|------|---------|------------------|-------------|
+| 1 | Inspect Source Skill | `adapt.ts` | Source skill is readable | Abort |
+| 2 | Generate Companions | `adapt.ts` | Target companions created | Retry step 2 |
+| 3 | Validate Output | `validate.ts` / adapter checks | Generated companions are structurally valid | Warn |
+| 4 | Embedded LLM Review | LLM (invoking agent) | Platform notes and examples stay aligned with generated companions | Loop back to step 2 |
+
+### Step Details
+
+#### Step 1: Inspect Source Skill
+```bash
+bun scripts/adapt.ts <skill-path> all
+```
+
+#### Step 2: Generate Companions
+
+The script generates platform-specific outputs such as:
+
+- `agents/openai.yaml`
+- `metadata.openclaw`
+- other supported platform companions
+
+#### Step 3: Validate Output
+
+Deterministic checks confirm:
+
+- generated files are present
+- generated metadata is structurally valid
+- no critical companion-generation failure occurred
+
+#### Step 4: Embedded LLM Review
+
+The invoking agent reviews the adapted output to:
+
+1. confirm examples and guidance still match generated companions
+2. tighten weak platform notes
+3. loop back to regenerate if the source skill needs improvement first
+
+---
+
 ## Package Workflow
 
 Prepare skill for distribution.
@@ -597,7 +769,7 @@ Prepare skill for distribution.
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
 │  │ Pre-     │    │ Copy     │    │ Generate │    │ LLM      │   │
-│  │ Validate │    │ Files    │    │ Companions│   │ Verify   │   │
+│  │ Validate │    │ Files    │    │ Companions│   │ Content  │   │
 │  │ (Script) │    │ (Script) │    │ (Script)  │   │ (Checklist)│ │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │                                                    │       │
@@ -624,7 +796,7 @@ Prepare skill for distribution.
 | 1 | Pre-Validate | `validate.ts` | Validation passes | Abort |
 | 2 | Copy Files | `package.ts` | Files copied | Abort |
 | 3 | Generate Companions | `package.ts` | Companions exist | Retry step 3 |
-| 4 | LLM Verify | Checklist | PASS on all items | Warn |
+| 4 | LLM Content Improvement | LLM (invoking agent) | Improves content using LLM | Warn |
 | 5 | Archive | `package.ts` | Archive created | Retry step 5 |
 
 ### Step Details
@@ -655,14 +827,23 @@ bun scripts/package.ts <skill-path> --output ./dist --platform all
 - Generates platform companions
 - Validates companions
 
-#### Step 4: LLM Verify (Checklist)
+#### Step 4: LLM Content Improvement
+**Handler:** LLM (invoking agent using its own LLM capability)
 
-| # | Item | Check |
-|---|------|-------|
-| 1 | SKILL.md valid markdown | Parses without error |
-| 2 | Frontmatter complete | name + description |
-| 3 | No circular refs | No command references |
-| 4 | References accessible | All paths valid |
+**What the invoking agent does:**
+1. Reads the packaged SKILL.md and companions
+2. Identifies content issues: inconsistent voice, weak descriptions, missing examples
+3. Uses LLM to rewrite and strengthen content
+4. Preserves frontmatter exactly (name, description, type, metadata)
+5. Ensures companions are consistent with improved SKILL.md
+6. Adds Examples section if missing or weak
+7. Validates "When to Use" section is specific and actionable
+
+**Important:**
+- Frontmatter MUST NOT be modified
+- Only improve body content and examples
+- Ensure all companions reflect SKILL.md updates
+- Verify no circular references were introduced
 
 **If FAIL:** Warn but continue
 
@@ -677,12 +858,15 @@ bun scripts/package.ts <skill-path> --output ./dist --platform all
 
 | Situation | Workflow | Steps |
 |-----------|----------|-------|
-| New skill | Add | 1 → 2 → 3 → 4 |
+| New skill | Create | 1 → 2 → 3 → 4 |
+| Structure check | Validate | 1 → 2 → 3 |
 | Quality check | Evaluate | 1 → 2 → 3 → 4 |
 | Fix deterministic | Refine --best-practices | 1 → 2 → 4 |
 | Fix fuzzy | Refine checklist | 1 → 2 → 3 → 4 |
 | Fix all | Refine --both | 1 → 2 → 3 → 4 |
 | Migrate from rd2 | Refine --migrate | M1 → M2 |
+| Longitudinal improve | Evolve | 1 → 2 → 3 → 4 |
+| Cross-platform companions | Adapt | 1 → 2 → 3 → 4 |
 | Pre-publish | Package | 1 → 2 → 3 → 4 → 5 |
 
 ---
@@ -693,6 +877,6 @@ bun scripts/package.ts <skill-path> --output ./dist --platform all
 |---------------|--------------|-------------|
 | Scaffold | Re-run scaffold | 3 |
 | Validate structure | Abort | N/A |
-| LLM Verify | Back to appropriate step | 2 |
+| LLM Content Improvement | Back to appropriate step | 2 |
 | Generate companions | Re-generate | 3 |
 | Package files | Re-package | 3 |
