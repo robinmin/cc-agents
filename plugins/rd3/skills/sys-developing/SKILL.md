@@ -66,8 +66,8 @@ User Request
     ├─ API/Endpoints/GraphQL?
     │   └─> references/api-patterns.md
     │
-    ├─ Tests/Testing/Mocking?
-    │   └─> references/testing-patterns.md
+    ├─ Tests/Testing/Mocking/TDD?
+    │   └─> [rd3:code-implement-common/references/testing-patterns.md](references/testing-patterns.md)
     │
     ├─ Docker/Container/Deployment?
     │   └─> references/docker-patterns.md
@@ -93,7 +93,7 @@ User Request
 | Pattern | File | Topics |
 |---------|------|--------|
 | API Design | [references/api-patterns.md](references/api-patterns.md) | REST, GraphQL, error handling, pagination, authentication |
-| Testing | [references/testing-patterns.md](references/testing-patterns.md) | Unit, integration, E2E, mocking, test data |
+| Testing | **Moved to** [rd3:code-implement-common](references/testing-patterns.md) | Unit, integration, E2E, mocking, test data |
 | Docker | [references/docker-patterns.md](references/docker-patterns.md) | Multi-stage builds, security, compose, health checks |
 | Database | [references/database-patterns.md](references/database-patterns.md) | Migrations, queries, indexing, ORM, transactions |
 
@@ -108,10 +108,7 @@ User Request
 
 ### Testing
 
-- **Unit tests**: Isolate dependencies, test behavior not implementation
-- **Integration tests**: Real dependencies, cleanup after
-- **E2E tests**: Critical paths only, stable selectors
-- **Test pyramid**: 70% unit, 20% integration, 10% E2E
+> **Note:** Testing patterns (including TDD, unit, integration, E2E) are now in [rd3:code-implement-common/references/testing-patterns.md](references/testing-patterns.md). This includes AAA structure, mocking, test factories, page objects, contract testing, and the test pyramid.
 
 ### Docker
 
@@ -142,21 +139,6 @@ User: "Design a REST API for user management"
    - Add standard error response format
    - Include cursor-based pagination
 4. Adapt: Add custom fields based on requirements
-```
-
-### Example: Writing Unit Tests
-
-```
-User: "Add unit tests for the UserService.createUser method"
-
-1. Identify domain: Testing
-2. Read: references/testing-patterns.md
-3. Apply:
-   - Use AAA pattern (Arrange, Act, Assert)
-   - Mock external dependencies (userRepository)
-   - Test both success and error cases
-   - Use descriptive test names (methodName_scenario_expectedResult)
-4. Adapt: Add edge cases specific to business rules
 ```
 
 ### Example: Containerizing a Bun/TypeScript App
@@ -194,10 +176,11 @@ User: "Add a migration to add a roles table to the database"
 Reference these patterns when:
 
 1. Starting a new API or service
-2. Setting up test infrastructure
-3. Containerizing an application
-4. Designing database schema
-5. Reviewing code for best practices
+2. Containerizing an application
+3. Designing database schema
+4. Reviewing code for best practices
+
+**For testing patterns**, use [rd3:code-implement-common/references/testing-patterns.md](references/testing-patterns.md) which includes TDD, unit, integration, E2E, and contract testing.
 
 ## Platform Notes
 
