@@ -128,6 +128,35 @@ describe('Integration: scaffold command', () => {
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
         expect(existsSync(join(TEST_DIR, 'platform-test', 'platform-test', 'agents', 'openai.yaml'))).toBe(true);
+        const skillContent = readFileSync(join(TEST_DIR, 'platform-test', 'platform-test', 'SKILL.md'), 'utf-8');
+        expect(skillContent).toContain('openclaw:');
+    });
+
+    it('should tailor next steps for non-codex platforms', async () => {
+        const { spawn } = await import('bun');
+
+        const proc = spawn(
+            [
+                'bun',
+                'run',
+                join(SCRIPTS_DIR, 'scaffold.ts'),
+                'openclaw-test',
+                '--path',
+                join(TEST_DIR, 'openclaw-test'),
+                '--platform',
+                'openclaw',
+            ],
+            {
+                stdout: 'pipe',
+                stderr: 'pipe',
+            },
+        );
+
+        const [exitCode, stdout] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
+        expect(exitCode).toBe(0);
+        const skillContent = readFileSync(join(TEST_DIR, 'openclaw-test', 'openclaw-test', 'SKILL.md'), 'utf-8');
+        expect(skillContent).toContain('openclaw:');
+        expect(stdout).not.toContain('agents/openai.yaml');
     });
 
     it('should show help', async () => {
@@ -167,7 +196,10 @@ description: A valid skill for testing
 
         const { spawn } = await import('bun');
 
-        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'validate.ts'), skillPath]);
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'validate.ts'), skillPath], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
@@ -179,7 +211,10 @@ description: A valid skill for testing
 
         const { spawn } = await import('bun');
 
-        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'validate.ts'), skillPath]);
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'validate.ts'), skillPath], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(1);
@@ -188,7 +223,10 @@ description: A valid skill for testing
     it('should show help', async () => {
         const { spawn } = await import('bun');
 
-        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'validate.ts'), '--help']);
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'validate.ts'), '--help'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
@@ -278,7 +316,10 @@ Advanced content.`,
 
         const { spawn } = await import('bun');
 
-        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'evaluate.ts'), skillPath, '--scope', 'full']);
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'evaluate.ts'), skillPath, '--scope', 'full'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         // Exit code 0 = pass, 1 = reject (both valid), only crash codes (>1) are failures
@@ -333,10 +374,55 @@ Group findings by severity and explain the fixes.
         );
     });
 
+    it('should mark low-quality skills as failed in json output', async () => {
+        const skillPath = join(TEST_DIR, 'low-quality-skill');
+        mkdirSync(skillPath, { recursive: true });
+        writeFileSync(
+            join(skillPath, 'SKILL.md'),
+            `---
+name: low-quality-skill
+description: short
+---
+
+# Low Quality Skill
+
+TODO
+`,
+            'utf-8',
+        );
+
+        const { spawn } = await import('bun');
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'evaluate.ts'), skillPath, '--scope', 'full', '--json'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const [exitCode, stdout] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
+        expect(exitCode).toBe(1);
+
+        const report = JSON.parse(stdout) as {
+            percentage: number;
+            passed: boolean;
+            dimensions: Array<{ name: string; percentage?: number; passed?: boolean }>;
+        };
+
+        expect(report.percentage).toBeLessThan(70);
+        expect(report.passed).toBe(false);
+        expect(
+            report.dimensions.some(
+                (dimension) =>
+                    typeof dimension.percentage === 'number' && dimension.percentage < 70 && dimension.passed === false,
+            ),
+        ).toBe(true);
+    });
+
     it('should show help', async () => {
         const { spawn } = await import('bun');
 
-        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'evaluate.ts'), '--help']);
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'evaluate.ts'), '--help'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
 
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
@@ -388,6 +474,66 @@ Body.`,
         const content = readFileSync(join(skillPath, 'SKILL.md'), 'utf-8');
         expect(content).toContain('description: legacy skill description long enough for migration testing\n---');
         expect(content).not.toContain('testing---');
+    });
+
+    it('should not create files during dry-run refinement', async () => {
+        const skillPath = join(TEST_DIR, 'dry-run-skill');
+        mkdirSync(skillPath, { recursive: true });
+
+        const lines = Array.from({ length: 520 }, (_, index) => `filler line ${index + 1}`).join('\n');
+        writeFileSync(
+            join(skillPath, 'SKILL.md'),
+            `---
+name: dry-run-skill
+description: A dry-run refinement regression test skill with enough content to trigger extraction behavior.
+---
+
+# Dry Run Skill
+
+## When to Use
+
+Use this skill when validating dry-run behavior.
+
+## Quick Reference
+
+| Key | Value |
+|-----|-------|
+| 1 | a |
+| 2 | b |
+| 3 | c |
+| 4 | d |
+| 5 | e |
+| 6 | f |
+| 7 | g |
+| 8 | h |
+| 9 | i |
+| 10 | j |
+| 11 | k |
+| 12 | l |
+
+${lines}
+`,
+            'utf-8',
+        );
+
+        const original = readFileSync(join(skillPath, 'SKILL.md'), 'utf-8');
+        const { spawn } = await import('bun');
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'refine.ts'), skillPath, '--best-practices', '--dry-run'], {
+            env: {
+                ...process.env,
+                RD3_LOG_QUIET: '0',
+            },
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const [exitCode, stdout] = await Promise.all([proc.exited, new Response(proc.stdout).text()]);
+        expect(exitCode).toBe(0);
+        expect(stdout).toContain('Dry run mode');
+        expect(readFileSync(join(skillPath, 'SKILL.md'), 'utf-8')).toBe(original);
+        expect(existsSync(join(skillPath, 'references', 'quick-reference.md'))).toBe(false);
+        expect(existsSync(join(skillPath, 'agents', 'openai.yaml'))).toBe(false);
+        expect(existsSync(join(skillPath, 'metadata.openclaw'))).toBe(false);
     });
 });
 
@@ -465,6 +611,41 @@ Use this skill when validating packaged companions.
 
         const openaiYaml = readFileSync(join(outputPath, 'agents', 'openai.yaml'), 'utf-8');
         expect(openaiYaml).toContain('icon: 🧪');
+    });
+
+    it('should package skill resources into the output', async () => {
+        const skillPath = join(TEST_DIR, 'package-skill-resources');
+        mkdirSync(join(skillPath, 'scripts'), { recursive: true });
+        mkdirSync(join(skillPath, 'references'), { recursive: true });
+        mkdirSync(join(skillPath, 'assets'), { recursive: true });
+        writeFileSync(
+            join(skillPath, 'SKILL.md'),
+            `---
+name: package-skill-resources
+description: A skill for packaging with scripts, references, and assets.
+---
+
+# Package Skill Resources
+
+## When to Use
+
+Use this skill when validating package completeness.
+`,
+            'utf-8',
+        );
+        writeFileSync(join(skillPath, 'scripts', 'helper.ts'), 'export const helper = true;\n', 'utf-8');
+        writeFileSync(join(skillPath, 'references', 'guide.md'), '# Guide\n', 'utf-8');
+        writeFileSync(join(skillPath, 'assets', 'example.txt'), 'asset\n', 'utf-8');
+
+        const outputPath = join(TEST_DIR, 'dist-resources');
+        const { spawn } = await import('bun');
+        const proc = spawn(['bun', 'run', join(SCRIPTS_DIR, 'package.ts'), skillPath, '--output', outputPath]);
+
+        const exitCode = await proc.exited;
+        expect(exitCode).toBe(0);
+        expect(existsSync(join(outputPath, 'scripts', 'helper.ts'))).toBe(true);
+        expect(existsSync(join(outputPath, 'references', 'guide.md'))).toBe(true);
+        expect(existsSync(join(outputPath, 'assets', 'example.txt'))).toBe(true);
     });
 
     it('should show help', async () => {
