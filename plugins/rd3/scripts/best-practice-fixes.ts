@@ -215,9 +215,9 @@ function extractSection(
 }
 
 /**
- * Fallback generic extraction: When standard patterns don't match but content >= 500 lines,
+ * Fallback generic extraction: When standard patterns don't match but content >= 400 lines,
  * extract the largest sections generically by finding all H2 sections and extracting
- * the largest ones until content is < 500 lines.
+ * the largest ones until content is < 400 lines.
  */
 function extractLargeSectionsGeneric(
     _skillDir: string,
@@ -260,8 +260,8 @@ function extractLargeSectionsGeneric(
     // Sort by line count descending (largest first)
     sectionInfos.sort((a, b) => b.lines - a.lines);
 
-    // Extract sections until content is < 500 lines
-    const TARGET_LINES = 450; // Leave some margin
+    // Extract sections until content is < 400 lines
+    const TARGET_LINES = 400; // Progressive Disclosure target
     for (const info of sectionInfos) {
         const currentLines = remaining.split('\n').length;
         if (currentLines < TARGET_LINES) {
@@ -296,7 +296,7 @@ function extractLargeSectionsGeneric(
 /**
  * Extract long content sections from SKILL.md into references.
  *
- * When SKILL.md exceeds 500 lines, this function identifies sections that
+ * When SKILL.md exceeds 400 lines, this function identifies sections that
  * are conventionally reference-level (tables, checklists, examples) and
  * extracts them to the references/ subdirectory, replacing them with
  * summaries and links.
@@ -325,7 +325,7 @@ export function extractToReferences(
 
     // Count lines (accounting for frontmatter)
     const lines = content.split('\n').length;
-    if (lines < 500) {
+    if (lines < 400) {
         return { success: true, actions: [], content: fixed };
     }
 
@@ -369,9 +369,9 @@ export function extractToReferences(
         }
     }
 
-    // Fallback: If no standard sections matched AND content is still >= 500 lines,
+    // Fallback: If no standard sections matched AND content is still >= 400 lines,
     // extract the largest sections generically
-    if (extractedSections.length === 0 && fixed.split('\n').length >= 500) {
+    if (extractedSections.length === 0 && fixed.split('\n').length >= 400) {
         const genericResult = extractLargeSectionsGeneric(skillDir, fixed, skillName);
         if (genericResult.sections.length > 0) {
             extractedSections.push(...genericResult.sections);
