@@ -67,7 +67,7 @@ bun scripts/evolve.ts agents/my-agent.md --propose
 - **Migration from rd2**: refine --migrate → evaluate → adapt
 - **Longitudinal improvement planning**: evaluate → refine → collect feedback → evolve
 
-> **Hybrid Workflow Architecture**: Workflow-related skills use a hybrid approach — scripting for deterministic steps (file I/O, validation, parsing) and markdown checklists for non-deterministic steps (quality assessment, voice consistency). This ensures reliability while preserving flexibility. See [references/workflows.md](references/workflows.md) for detailed step definitions.
+> **Hybrid Workflow Architecture**: Workflow-related skills use a hybrid approach — scripting for deterministic steps (file I/O, validation, parsing) and markdown checklists for non-deterministic steps (quality assessment, voice consistency). LLM content improvement is embedded in the normal workflow; it is not a separate CLI mode. See [references/workflows.md](references/workflows.md) for detailed step definitions.
 
 ## Operations
 
