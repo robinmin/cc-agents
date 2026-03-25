@@ -13,7 +13,7 @@ Run evaluation internally then apply fixes in one step. **This command delegates
 
 1. **Detect Issues** — Run evaluation to identify what needs fixing
 2. **Apply Scripted Fixes** — Run `refine.ts` for deterministic fixes
-3. **LLM Checklist** — Agent verifies fuzzy quality issues (description quality, voice consistency, circular references)
+3. **LLM Content Improvement** — Agent verifies fuzzy quality issues (description quality, voice consistency, circular references)
 4. **Validate Result** — Confirm validation passes
 
 ## When to Use
@@ -56,7 +56,7 @@ Skill(skill="rd3:cc-commands", args="refine $ARGUMENTS")
 The invoking agent:
 1. Loads `plugins/rd3/skills/cc-commands/SKILL.md`
 2. Reads `plugins/rd3/skills/cc-commands/references/workflows.md`
-3. Follows the Refine Workflow — running scripted fixes, then performing LLM checklist
+3. Follows the Refine Workflow — running scripted fixes, then performing LLM content improvement
 
 **Direct script execution (other platforms):**
 ```bash
@@ -71,7 +71,7 @@ bun plugins/rd3/skills/cc-commands/scripts/refine.ts $ARGUMENTS
 - Unfilled "See Also" sections with template placeholders removed
 - Platform Notes section added if missing
 
-## LLM Checklist (Agent Step)
+## LLM Content Improvement (Agent Step)
 
 The invoking agent performs these fuzzy checks:
 
@@ -87,5 +87,5 @@ The invoking agent performs these fuzzy checks:
 
 ## Platform Notes
 
-- Claude Code: Invoke via `Skill()` delegation (includes LLM checklist)
+- Claude Code: Invoke via `Skill()` delegation (includes LLM content improvement)
 - Other platforms: Run script directly via Bash tool (scripted fixes only)
