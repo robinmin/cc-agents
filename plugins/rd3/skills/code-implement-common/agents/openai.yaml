@@ -1,0 +1,13 @@
+name: code-implement-common
+description: Unified code implementation skill with task-file-driven workflow,
+  git worktree isolation, and TDD enforcement. Primary skill for code
+  implementation across all channels.
+version: 1.0.0
+icon: 🛠️
+category: execution-core
+tags:
+  - execution-core
+  - implementation
+  - code-generation
+  - task-driven
+  - git-worktree
