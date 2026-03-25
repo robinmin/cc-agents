@@ -1,16 +1,20 @@
 ---
 name: sys-developing
-description: "Production-ready implementation patterns for common development tasks: REST/GraphQL API design, testing (unit/integration/E2E), Docker containerization, and database operations. Trigger when: designing an API, writing tests, containerizing an application, setting up database migrations, or optimizing database queries."
+description: "Production-ready implementation patterns: REST/GraphQL API design, unit/integration/E2E testing, Docker containerization, and database operations. Use when designing APIs, writing tests, containerizing apps, or optimizing DB queries."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 type: pattern
 tags: [coding, patterns, api-design, testing, docker, database, engineering-core]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,antigravity,opencode,openclaw,pi"
   category: engineering-core
+  interactions:
+    - knowledge-only
+  openclaw:
+    emoji: "🛠️"
 see_also:
   - rd3:tdd-workflow
   - rd3:sys-testing
@@ -22,10 +26,10 @@ see_also:
 A curated collection of production-ready patterns for common development tasks. This is the **execution knowledge hub** — the default skill for routine implementation work.
 
 **Trigger when:**
-- Designing a REST API or adding endpoints
-- Writing unit, integration, or E2E tests
-- Containerizing an application with Docker
-- Setting up database migrations or optimizing queries
+- Applying REST/GraphQL API conventions (URL structure, error format, pagination, auth)
+- Using testing patterns (AAA structure, mocking, page objects, contract tests)
+- Containerizing an application with Docker (multi-stage builds, security hardening)
+- Designing database schema, migrations, or query patterns (repository, indexing, transactions)
 
 ## Overview
 
