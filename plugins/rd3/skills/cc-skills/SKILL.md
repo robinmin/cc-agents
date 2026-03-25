@@ -20,11 +20,13 @@ metadata:
     - warning
     - info
   pipeline_steps:
-    - select-operation
-    - run-deterministic-handler
-    - verify-with-checklists
-    - iterate-on-failure
-    - package-or-evolve
+    - create
+    - validate
+    - evaluate
+    - refine
+    - adapt
+    - evolve
+    - package
 ---
 
 # cc-skills: Universal Skill Creator
