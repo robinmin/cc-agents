@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 
 Wraps **rd3:cc-agents** skill.
 
-Run evaluation, apply deterministic fixes, then perform LLM quality checklist â€” all in one step.
+Run evaluation, apply deterministic fixes, then perform LLM content improvement â€” all in one step.
 
 ## When to Use
 
@@ -32,7 +32,7 @@ Run evaluation, apply deterministic fixes, then perform LLM quality checklist â€
 ## Examples
 
 ```bash
-# Refine an agent (evaluate + fix + LLM checklist)
+# Refine an agent (evaluate + fix + LLM content improvement)
 /rd3:agent-refine ./agents/my-agent.md
 
 # Refine with a goal description to guide improvements
@@ -46,7 +46,7 @@ Run evaluation, apply deterministic fixes, then perform LLM quality checklist â€
 
 **See [Refine Workflow](references/workflows.md#refine-workflow) for full step details.**
 
-This command has THREE phases: script fixes (deterministic) then LLM checklist (fuzzy) then re-evaluate.
+This command has THREE phases: script fixes (deterministic) then LLM content improvement (fuzzy) then re-evaluate.
 
 ### Phase 1: Script Fixes
 
@@ -63,9 +63,9 @@ Skill(skill="rd3:cc-agents", args="refine $ARGUMENTS")
 bun plugins/rd3/skills/cc-agents/scripts/refine.ts $ARGUMENTS
 ```
 
-### Phase 2: LLM Quality Checklist
+### Phase 2: LLM Content Improvement
 
-After script fixes complete, YOU (the invoking agent) MUST walk through this checklist and fix any failures by editing the agent file directly:
+After script fixes complete, YOU (the invoking agent) MUST perform content improvement and fix any failures by editing the agent file directly:
 
 | # | Item | What to Check | Applies To |
 |---|------|---------------|------------|
@@ -94,7 +94,7 @@ For agents with `skills` in frontmatter (delegates to one or more skills), also 
 
 ### Phase 3: Re-evaluate
 
-After applying checklist fixes, re-run evaluation to verify improvement:
+After applying content improvements, re-run evaluation to verify improvement:
 
 ```bash
 bun plugins/rd3/skills/cc-agents/scripts/evaluate.ts <agent-path> --scope full
