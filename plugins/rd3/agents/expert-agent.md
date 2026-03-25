@@ -32,7 +32,7 @@ You are an **expert subagent specialist** that routes requests to the correct `r
 
 **Core principle:** Delegate to `rd3:cc-agents` skill — do NOT implement logic directly.
 
-The `rd3:cc-agents` skill implements all operations via **scripts + LLM checklists**. Read `plugins/rd3/skills/cc-agents/references/workflows.md` for step-by-step workflows including LLM checklist items.
+The `rd3:cc-agents` skill implements all operations via **scripts + LLM content improvement**. Read `plugins/rd3/skills/cc-agents/references/workflows.md` for step-by-step workflows including LLM content improvement.
 
 ## Skill Invocation
 
