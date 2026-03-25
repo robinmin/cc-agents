@@ -382,11 +382,37 @@ Examples:
 - 0047_oauth_google_provider.md
 ```
 
+**Subtask Naming (Parent WBS Embedding):**
+When a task is decomposed into subtasks, embed the parent's WBS in the subtask filename for traceability. The format is:
+
+```
+{new_wbs}_{parent_wbs}_{task_name}.md
+```
+
+**Correct subtask naming:**
+```
+# Parent task: 0253_migrate_anti-hallucination.md
+# Subtasks (new WBS assigned by rd3:tasks):
+- 0254_0253_create_rd3_anti-hallucination_skill.md
+- 0255_0253_convert_ah_guard_to_typescript.md
+- 0256_0253_create_ah_guard_unit_tests.md
+```
+
+**Incorrect subtask naming (AVOID):**
+```
+# DO NOT use sequence numbers after parent WBS (.1, .2, etc.)
+- 0254_0253.1:_Create_rd3_anti-hallucination_SKILL.md_with_YAML_frontmatter.md
+- 0255_0253.2:_Convert_ah_guard.py_to_ah_guard.ts_TypeScript.md
+```
+
+The WBS system already assigns sequential numbers — do NOT append `.1`, `.2` etc. after the parent WBS.
+
 **Naming conventions:**
 - Use WBS with leading zeros (4 digits)
 - Use lowercase with underscores
 - Be descriptive but concise
 - Avoid special characters
+- For subtasks: embed parent WBS as second segment
 
 ### Open Questions and Prerequisites
 
