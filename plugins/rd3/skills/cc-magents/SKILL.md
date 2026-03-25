@@ -2,9 +2,9 @@
 name: cc-magents
 description: "Use PROACTIVELY for creating AGENTS.md, evaluating config quality, refining CLAUDE.md, evolving agent configs, converting between platforms, adapting AGENTS.md to CLAUDE.md, scoring main agent configs, generating agent rules, creating main agent configurations. Supports 23+ platforms using a Universal Main Agent Model (UMAM) and 5-dimension quality scoring."
 license: Apache-2.0
-version: "1.0.0"
-author: cc-agents
 metadata:
+  author: cc-agents
+  version: "3.0.0"
   platforms: "claude,codex,openclaw,opencode,antigravity"
   interactions:
     - generator
@@ -15,7 +15,7 @@ metadata:
     - warning
     - info
   pipeline_steps:
-    - add
+    - create
     - validate
     - evaluate
     - refine
@@ -407,8 +407,7 @@ Both use similar quality frameworks but different models:
 - [Agentic AI Foundation](https://aaif.io)
 - `references/evaluation-framework.md` (scoring rubric)
 - `references/evolution-protocol.md` (self-evolution safety)
-
-## Additional Resources
-
-- [Platform Compatibility Guide](references/platform-compatibility.md)
-- [Skill Patterns Reference](references/skill-patterns.md)
+- `references/platform-compatibility.md` (cross-platform feature matrix)
+- `references/red-flags.md` (red flags checklist)
+- `references/troubleshooting.md` (common issues and fixes)
+- `references/workflows.md` (detailed workflow definitions)
