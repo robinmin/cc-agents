@@ -77,7 +77,7 @@ bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/refine.ts ./commands/my-com
 bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/evolve.ts ./commands/my-command.md --propose
 
 # Adapt command for other platforms
-bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/adapt.ts ./commands/ --platform all
+bun ${CLAUDE_PLUGIN_ROOT}/skills/cc-commands/scripts/adapt.ts ./commands/ all
 ```
 
 ## Core Principles
@@ -188,6 +188,7 @@ Each script operates independently and can be invoked from CLI or slash commands
 ## Workflows
 
 Each operation has a **step-by-step workflow** combining scripts and checklists.
+LLM content improvement is embedded in the normal workflow for every operation; it is not a separate CLI mode.
 
 > **Hybrid Workflow Architecture**: Workflow-related skills use a hybrid approach — scripting for deterministic steps (file I/O, validation, parsing) and markdown checklists for non-deterministic steps (quality assessment, voice consistency). This ensures reliability while preserving flexibility. Pure scripting or pure markdown is valid when the step type demands it.
 
