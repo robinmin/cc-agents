@@ -6,11 +6,25 @@ Detailed workflow definitions for cc-commands operations. Each workflow defines:
 - **Branching logic**: What to do when steps fail or succeed
 - **Retry loops**: When to go back and redo previous steps
 
+LLM content improvement is embedded in the normal workflow for every operation.
+It is performed by the invoking agent as checklist-driven review/content improvement, not via a separate CLI mode.
+
+## Shared Workflow Framework
+
+This file follows the shared [Meta-Agent Workflow Schema](../../../references/meta-agent-workflow-schema.md).
+
+Shared Phase 1 conventions:
+
+- concept-level operations use `Create`, `Validate`, `Evaluate`, `Refine`, `Evolve`, and `Adapt`
+- documentation decision states use `BLOCK`, `WARN`, and `PASS`
+- deterministic script work and invoking-agent judgment are documented separately
+- `Evolve` follows the closed loop: Observe -> Analyze -> Propose -> Apply -> Verify -> Snapshot -> Rollback -> Learn
+
 ---
 
 ## Table of Contents
 
-1. [Scaffold Workflow](#scaffold-workflow) - Create new command
+1. [Create Workflow](#create-workflow) - Create new command
 2. [Validate Workflow](#validate-workflow) - Check structure and frontmatter
 3. [Evaluate Workflow](#evaluate-workflow) - Score quality across 10 dimensions
 4. [Refine Workflow](#refine-workflow) - Fix issues and improve quality
@@ -19,7 +33,7 @@ Detailed workflow definitions for cc-commands operations. Each workflow defines:
 
 ---
 
-## Scaffold Workflow
+## Create Workflow
 
 Create a new command from a template.
 
@@ -27,13 +41,13 @@ Create a new command from a template.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│ SCAFFOLD WORKFLOW                                                     │
+│ CREATE WORKFLOW                                                       │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
 │  │ Template │    │ Name     │    │ LLM      │    │ Generate │   │
-│  │ Select   │    │ Validate │    │ Verify   │    │ Companions│  │
+│  │ Select   │    │ Validate │    │ Content  │    │ Companions│  │
 │  │ (Script) │    │ (Script) │    │ (Checklist)│   │ (Script) │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │              │                │            │
@@ -47,7 +61,7 @@ Create a new command from a template.
 |------|------|---------|------------------|-------------|
 | 1 | Template Select | `scaffold.ts` | Creates .md file | Retry step 1 |
 | 2 | Name Validate | `scaffold.ts` | kebab-case, no spaces | Retry step 1 |
-| 3 | LLM Verify | Checklist (invoking agent) | PASS on all items | Back to step 1 |
+| 3 | LLM Content Improvement | LLM (invoking agent) | Improves content using LLM | Back to step 1 |
 | 4 | Generate Companions | `adapt.ts` | All companions generated | Retry step 4 |
 
 ### Step Details
@@ -67,23 +81,29 @@ bun scripts/scaffold.ts <command-name> --path ./commands [--template simple|work
 - Max length: 64 chars
 - Must not conflict with existing commands
 
-#### Step 3: LLM Verify (Checklist)
+#### Step 3: LLM Content Improvement
+**Handler:** LLM (invoking agent using its own LLM capability)
 
-**Invoking agent performs these checks:**
+**What the invoking agent does:**
+1. Reads the newly scaffolded command .md file
+2. Identifies weak sections: vague descriptions, inconsistent voice, weak examples
+3. Uses LLM to rewrite content addressing issues
+4. Preserves frontmatter exactly (name, description, argument-hint, allowed-tools)
+5. Ensures description is imperative, ≤60 characters, specific
+6. Adds concrete examples with proper `<example>` and `<commentary>` blocks
+7. Adds platform-specific guidance in Platform Notes section
 
-| # | Item | Check |
-|---|------|-------|
-| 1 | Description form | Imperative, starts with verb |
-| 2 | Description length | ≤60 characters |
-| 3 | argument-hint present | Matches actual arguments |
-| 4 | allowed-tools appropriate | Minimal necessary set |
-| 5 | Examples concrete | Show real usage |
+**Important:**
+- Frontmatter fields MUST NOT be modified
+- Only the body content is improved
+- Preserve all existing reference links
+- Add examples where patterns are described
 
 **If FAIL:** Go back to Step 1 (re-scaffold with corrections)
 
 #### Step 4: Generate Companions (Script)
 ```bash
-bun scripts/adapt.ts <command-path> --platform all
+bun scripts/adapt.ts <command-path> all
 ```
 
 ---
@@ -103,11 +123,11 @@ Check command structure and frontmatter validity.
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │                    │
 │  │ Parse    │    │ Check    │    │ Action   │                    │
 │  │ Frontmatter│   │ Required │    │ Decision │                    │
-│  │ (Script)  │    │ Fields  │    │ (STOP│WARN│PASS)│             │
+│  │ (Script)  │    │ Fields  │    │ (BLOCK│WARN│PASS)│            │
 │  └──────────┘    └──────────┘    └──────────┘                    │
 │       │              │              │                               │
 │       ▼              ▼              ▼                               │
-│  [Valid?]       [Valid?]    [STOP → EVALUATE]                    │
+│  [Valid?]       [Valid?]    [BLOCK → EVALUATE]                   │
 │     │              │              │                               │
 │     ▼              ▼              ▼                               │
 │  [FAIL: Abort] [FAIL: Abort] [PASS → COMPLETE]                   │
@@ -119,7 +139,7 @@ Check command structure and frontmatter validity.
 |------|------|---------|------------------|-------------|
 | 1 | Parse Frontmatter | `validate.ts` | Valid YAML | Abort |
 | 2 | Check Required Fields | `validate.ts` | All required fields present | Abort |
-| 3 | Action Decision | `validate.ts` | Returns STOP/WARN/PASS | Continue |
+| 3 | Action Decision | `validate.ts` | Returns BLOCK/WARN/PASS | Continue |
 
 ### Required Frontmatter Fields
 
@@ -129,7 +149,7 @@ Check command structure and frontmatter validity.
 | `argument-hint` | string? | If `$1` or `$ARGUMENTS` in body |
 | `allowed-tools` | string[]? | If tools used in body |
 
-### STOP Criteria (Critical — Cannot Proceed)
+### BLOCK Criteria (Critical — Cannot Proceed)
 
 - Invalid YAML frontmatter
 - Missing `description` field
@@ -142,6 +162,16 @@ Check command structure and frontmatter validity.
 - Missing `allowed-tools` when tools used
 - No Platform Notes section
 
+### Embedded LLM Content Improvement
+
+After deterministic validation, the invoking agent reviews WARN/PASS output using an LLM checklist:
+
+1. Tighten weak descriptions and examples when the structure is valid but soft quality is weak
+2. Decide whether the command should proceed directly, loop into `refine.ts`, or be rewritten
+3. Preserve frontmatter semantics while improving body clarity and usage examples
+
+This review is part of the normal validate workflow and does not require a separate command flag.
+
 ---
 
 ## Evaluate Workflow
@@ -150,10 +180,10 @@ Score command quality across 10 dimensions using **Two-Tier Architecture**.
 
 ### Two-Tier Architecture
 
-| Tier | Purpose | Handler | Continues on STOP? |
+| Tier | Purpose | Handler | Continues on BLOCK? |
 |------|---------|---------|-------------------|
 | **Tier 1** | Structural Validation | Scripts | Yes (for diagnostics) |
-| **Tier 2** | Quality Scoring | Scripts + LLM | N/A |
+| **Tier 2** | Quality Scoring | Scripts + invoking-agent checklist | N/A |
 
 ### Workflow Steps
 
@@ -169,7 +199,7 @@ Score command quality across 10 dimensions using **Two-Tier Architecture**.
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐                    │
 │  │ Step 1.1 │───▶│ Step 1.2 │───▶│ Step 1.3 │                    │
 │  │ Parse    │    │ Check    │    │ Action   │                    │
-│  │ .md      │    │ Required │    │ STOP/WARN/PASS│               │
+│  │ .md      │    │ Required │    │ BLOCK/WARN/PASS│              │
 │  │ (Script) │    │ (Script) │    │ (Script) │                    │
 │  └──────────┘    └──────────┘    └──────────┘                    │
 │                                                                      │
@@ -179,8 +209,8 @@ Score command quality across 10 dimensions using **Two-Tier Architecture**.
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐                    │
 │  │ Step 2.1 │───▶│ Step 2.2 │───▶│ Step 2.3 │                    │
-│  │ Dimension│    │ Calculate│    │ LLM      │                    │
-│  │ Scoring  │    │ Grade   │    │ Deep Eval│                    │
+│  │ Dimension│    │ Calculate│    │ Checklist│                    │
+│  │ Scoring  │    │ Grade    │    │ Review   │                    │
 │  │ (Script) │    │ (Script) │    │ (Optional)│                   │
 │  └──────────┘    └──────────┘    └──────────┘                    │
 │                                                                      │
@@ -194,14 +224,14 @@ Score command quality across 10 dimensions using **Two-Tier Architecture**.
 | Step | Name | Handler | Success Criteria | On Failure |
 |------|------|---------|------------------|-------------|
 | 1.1 | Parse .md | Script | Valid markdown + YAML | Abort |
-| 1.2 | Check Required | Script | All required fields | STOP |
+| 1.2 | Check Required | Script | All required fields | BLOCK |
 | 1.3 | Action Decision | Script | Returns decision | Continue |
 
 #### Tier 1 Action Types
 
 | Action | Icon | Meaning | Tier 2 Continues? |
 |--------|------|---------|-------------------|
-| **STOP** | ⏹ | Critical failure - command cannot function | Yes (for diagnostics) |
+| **BLOCK** | ⏹ | Critical failure - command cannot function | Yes (for diagnostics) |
 | **WARN** | ⚠ | Warning - improvement suggested | Yes |
 | **PASS** | ✓ | Valid structure | Yes |
 
@@ -213,7 +243,7 @@ Score command quality across 10 dimensions using **Two-Tier Architecture**.
 |------|------|---------|------------------|
 | 2.1 | Dimension Scoring | `evaluate.ts` | Returns scores for all dimensions |
 | 2.2 | Calculate Grade | Script | Returns A/B/C/D/F |
-| 2.3 | LLM Deep Eval | LLM (optional) | Returns detailed analysis |
+| 2.3 | Embedded LLM Checklist Review | LLM (invoking agent) | Returns detailed follow-up guidance |
 
 #### Scoring Dimensions
 
@@ -242,6 +272,16 @@ MECE framework: 4 categories, 10 dimensions, 100 points total (source: `scripts/
 | **D** | 30-49 | Major revision |
 | **F** | 0-29 | Rewrite needed |
 
+### Embedded LLM Checklist Review
+
+After `evaluate.ts` produces the deterministic report, the invoking agent applies an LLM checklist to:
+
+1. Judge whether findings are substantive or just pattern matches
+2. Prioritize which issues belong in `refine.ts` versus direct content edits
+3. Tighten examples, trigger phrasing, and platform guidance without changing the command contract
+
+This review is embedded in the normal evaluate flow.
+
 ---
 
 ## Refine Workflow
@@ -258,8 +298,8 @@ Fix issues and improve quality. Supports multiple refinement modes.
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
 │  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
 │  │ Detect   │    │ Apply    │    │ LLM      │    │ Validate │   │
-│  │ Issues   │    │ Scripted │    │ Checklist│    │ Result   │   │
-│  │ (Evaluate)│   │ Fixes    │    │ (Agent)  │    │ (Script) │   │
+│  │ Issues   │    │ Scripted │    │ Content  │    │ Result   │   │
+│  │ (Evaluate)│   │ Fixes    │    │ Improvement│  │ (Script) │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │               │                │            │
 │       ▼              ▼               ▼                ▼            │
@@ -285,7 +325,7 @@ Fix issues and improve quality. Supports multiple refinement modes.
 |------|------|---------|------------------|-------------|
 | 1 | Detect Issues | `evaluate.ts` | Identifies what needs fixing | Continue |
 | 2 | Apply Scripted Fixes | `refine.ts` | Fixes deterministic issues | Warn only |
-| 3 | LLM Checklist | Checklist (invoking agent) | Verifies fuzzy issues | Back to step 2 |
+| 3 | LLM Content Improvement | LLM (invoking agent) | Improves content using LLM | Back to step 2 |
 | 4 | Validate Result | `validate.ts` | Validation passes | Retry step 3 |
 
 ### Step Details
@@ -313,24 +353,27 @@ bun scripts/refine.ts <command-path>
 - Add Platform Notes section if missing
 - Generate platform companions
 
-#### Step 3: LLM Checklist (Invoking Agent)
-The invoking agent performs fuzzy quality checks via checklist.
+#### Step 3: LLM Content Improvement
+**Handler:** LLM (invoking agent using its own LLM capability)
 
-**Checklist items:**
+**What the invoking agent does:**
+1. Reads the refined command .md file
+2. Identifies weak sections: vague descriptions, inconsistent voice, weak examples
+3. Uses LLM to rewrite content addressing issues
+4. Preserves frontmatter exactly (name, description, argument-hint, allowed-tools, disable-model-invocation)
+5. Ensures description is imperative, ≤60 characters, specific
+6. Adds concrete examples with proper `<example>` and `<commentary>` blocks
+7. Adds platform-specific guidance in Platform Notes section
+8. Removes any circular references (self-referencing `/rd3:command-*` links)
 
-| # | Item | What the Agent Checks |
-|---|------|-----------------------|
-| 1 | Description quality | Imperative, under 60 chars, specific |
-| 2 | Trigger phrases | 3+ quoted trigger phrases in description |
-| 3 | Example blocks | 2+ `<example>` with `<commentary>` |
-| 4 | Voice consistency | Imperative throughout, no second-person |
-| 5 | Circular references | No `/rd3:command-*` self-references |
-| 6 | argument-hint accuracy | Hint matches actual argument usage |
-| 7 | Platform Notes | Section present with platform-specific guidance |
-| 8 | allowed-tools appropriateness | Minimal necessary tools |
+**Important:**
+- Frontmatter fields MUST NOT be modified
+- Only the body content is improved
+- Preserve all existing reference links
+- Check argument-hint matches actual usage
+- Verify allowed-tools is minimal and appropriate
 
-**If all items pass:** Continue to Step 4
-**If failures:** Back to Step 2 for additional fixes
+**If FAIL:** Go back to Step 2 for additional fixes
 
 #### Step 4: Validate Result
 ```bash
@@ -387,14 +430,28 @@ Analyze longitudinal improvements with snapshot/rollback support.
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+### Closed-Loop Phases
+
+This workflow follows the shared evolution loop:
+
+1. Observe current quality and history
+2. Analyze trends and recurring issues
+3. Propose bounded changes
+4. Apply approved changes
+5. Verify results
+6. Snapshot evolution history
+7. Roll back if needed
+8. Learn from the recorded outcome
+
 ### Standard Evolve Flow
 
 | Step | Name | Handler | Success Criteria |
 |------|------|---------|------------------|
 | 1 | Snapshot | `evolve.ts` | Creates backup of current state |
-| 2 | Analyze Trends | `evolve.ts` | Returns trend analysis |
-| 3 | Propose Changes | LLM (invoking agent) | Returns proposal with rationale |
-| 4 | Apply Changes | `evolve.ts` | Applies approved changes |
+| 2 | Analyze Trends | `evolve.ts --analyze` | Returns trend analysis |
+| 3 | Generate Proposals | `evolve.ts --propose` | Persists proposal set |
+| 4 | Embedded LLM Proposal Review | LLM (invoking agent) | Proposal set is reviewed, clarified, and prioritized |
+| 5 | Apply Changes | `evolve.ts --apply` | Applies approved changes |
 
 ### Snapshot Details
 
@@ -403,7 +460,18 @@ Analyze longitudinal improvements with snapshot/rollback support.
 - All companion files
 - Timestamp and version
 
-**Storage:** `.evolve/snapshots/` directory
+**Storage:** `<git-root>/.rd3-evolution/cc-commands/`
+
+### Embedded LLM Proposal Review
+
+After `evolve.ts --propose`, the invoking agent reviews the proposal set before any apply step:
+
+1. Remove weak or duplicate proposals
+2. Tighten rationale and expected impact
+3. Confirm the order of application matches risk and benefit
+4. Decide whether to apply, defer, or gather more evidence
+
+This review is part of the normal evolve workflow.
 
 ### Rollback
 
@@ -455,7 +523,7 @@ Generate platform companions for cross-platform compatibility.
 
 #### Step 1: Detect Platforms (Script)
 ```bash
-bun scripts/adapt.ts <command-path> --platform all
+bun scripts/adapt.ts <command-path> all
 ```
 
 **What script does:**
@@ -483,20 +551,30 @@ Each adapter generates platform-specific output:
 - Writes to appropriate locations
 - Reports generated files
 
+### Embedded LLM Content Improvement
+
+After deterministic companion generation and validation, the invoking agent reviews the adapted output:
+
+1. Check that examples, argument hints, and platform notes still match the generated companions
+2. Tighten any weak or misleading target-specific guidance
+3. Loop back to `adapt.ts` if the source body needs improvement before regeneration
+
+This review is part of the normal adapt workflow.
+
 ---
 
 ## Workflow Selection Matrix
 
 | Situation | Workflow | Steps |
 |-----------|----------|-------|
-| New command | Scaffold | 1 → 2 → 3 → 4 |
+| New command | Create | 1 → 2 → 3 → 4 |
 | Quality check | Evaluate | 1.1 → 1.2 → 1.3 → 2.1 → 2.2 → 2.3 |
 | Fix deterministic | Refine --scripted | 1 → 2 → 4 |
-| Fix fuzzy | Refine --llm | 1 → 2 → 3 → 4 |
+| Fix fuzzy | Refine checklist | 1 → 2 → 3 → 4 |
 | Fix all | Refine | 1 → 2 → 3 → 4 |
 | Migrate from rd2 | Refine --migrate | M1 → M2 |
 | Cross-platform | Adapt | 1 → 2 → 3 → 4 |
-| Longitudinal improve | Evolve | 1 → 2 → 3 → 4 |
+| Longitudinal improve | Evolve | 1 → 2 → 3 → 4 → 5 |
 
 ---
 
@@ -506,7 +584,7 @@ Each adapter generates platform-specific output:
 |---------------|--------------|-------------|
 | Scaffold | Re-run scaffold | 3 |
 | Validate structure | Abort | N/A |
-| LLM Verify | Back to appropriate step | 2 |
+| LLM Content Improvement | Back to appropriate step | 2 |
 | Generate companions | Re-generate | 3 |
 | Adapt files | Re-adapt | 3 |
 | Evolve apply | Back to snapshot | 2 |
@@ -519,7 +597,7 @@ Each adapter generates platform-specific output:
 |--------------|-----------|---------|
 | **Script** | `scaffold.ts`, `validate.ts`, `evaluate.ts`, `refine.ts`, `evolve.ts`, `adapt.ts` | Deterministic operations |
 | **Checklist (Agent)** | Invoking agent performs checklist | Fuzzy quality checks |
-| **LLM (Optional)** | Claude via `--llm-eval` flag | Deep evaluation |
+| **Checklist (Embedded)** | Invoking agent review | Content improvement and nuanced quality checks |
 
 ### When to Use LLM vs Script
 
