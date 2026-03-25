@@ -11,8 +11,9 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import YAML from 'yaml';
 
+import { getValidationDecisionState } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
-import type { Platform, Skill, SkillFrontmatter, SkillResources, ValidationReport } from './types.ts';
+import type { Platform, Skill, SkillFrontmatter, ValidationReport } from './types.ts';
 import { discoverResources, parseFrontmatter } from './utils';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -190,7 +191,7 @@ const VALIDATION_RULES: ValidationRule[] = [
     { name: 'OpenClaw Metadata', check: validateOpenClawMetadata },
 ];
 
-function validateSkill(skillPath: string, _options: ValidateOptions): ValidationReport {
+export function validateSkill(skillPath: string, _options: ValidateOptions): ValidationReport {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -264,61 +265,59 @@ interface ValidateOptions {
 }
 
 function printUsage(): void {
-    console.log('Usage: validate.ts <skill-path> [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <skill-path>          Path to skill directory');
-    console.log('');
-    console.log('Options:');
-    console.log('  --platform <name>    Platform: claude, codex, openclaw, opencode, antigravity, all');
-    console.log('  --verbose, -v        Show detailed validation output');
-    console.log('  --json               Output results as JSON');
-    console.log('  --help, -h           Show this help message');
+    logger.log('Usage: validate.ts <skill-path> [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <skill-path>          Path to skill directory');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  --platform <name>    Platform: claude, codex, openclaw, opencode, antigravity, all');
+    logger.log('  --verbose, -v        Show detailed validation output');
+    logger.log('  --json               Output results as JSON');
+    logger.log('  --help, -h           Show this help message');
 }
 
 function printReport(report: ValidationReport, verbose: boolean): void {
+    const decision = getValidationDecisionState(report.valid, report.warnings.length);
+
     if (report.errors.length === 0 && report.warnings.length === 0) {
-        logger.success(`Validation passed for ${report.skillName}`);
+        logger.success(`Validation decision: ${decision} for ${report.skillName}`);
         return;
     }
 
-    if (!report.valid) {
-        console.log(`\nValidation failed for ${report.skillName}`);
-    } else {
-        console.log(`\nValidation completed with warnings for ${report.skillName}`);
-    }
+    logger.log(`Validation decision: ${decision} for ${report.skillName}`);
 
     if (report.errors.length > 0) {
-        console.log('\nErrors:');
+        logger.log('\nBLOCK findings:');
         for (const error of report.errors) {
-            console.log(`  ✗ ${error}`);
+            logger.fail(`  ${error}`);
         }
     }
 
     if (report.warnings.length > 0) {
-        console.log('\nWarnings:');
+        logger.log('\nWARN findings:');
         for (const warning of report.warnings) {
-            console.log(`  ⚠ ${warning}`);
+            logger.warn(`  ${warning}`);
         }
     }
 
     if (verbose && report.frontmatter) {
-        console.log('\nSkill Information:');
-        console.log(`  Name: ${report.frontmatter.name}`);
-        console.log(`  Description: ${report.frontmatter.description?.substring(0, 80)}...`);
+        logger.log('\nSkill Information:');
+        logger.log(`  Name: ${report.frontmatter.name}`);
+        logger.log(`  Description: ${report.frontmatter.description?.substring(0, 80)}...`);
         if (report.frontmatter.metadata) {
-            console.log(`  Author: ${report.frontmatter.metadata.author || '(none)'}`);
-            console.log(`  Version: ${report.frontmatter.metadata.version || '(none)'}`);
+            logger.log(`  Author: ${report.frontmatter.metadata.author || '(none)'}`);
+            logger.log(`  Version: ${report.frontmatter.metadata.version || '(none)'}`);
         }
-        console.log('  Resources:');
-        console.log(`    scripts/: ${report.resources.scripts?.length || 0} files`);
-        console.log(`    references/: ${report.resources.references?.length || 0} files`);
-        console.log(`    assets/: ${report.resources.assets?.length || 0} files`);
+        logger.log('  Resources:');
+        logger.log(`    scripts/: ${report.resources.scripts?.length || 0} files`);
+        logger.log(`    references/: ${report.resources.references?.length || 0} files`);
+        logger.log(`    assets/: ${report.resources.assets?.length || 0} files`);
     }
 
-    console.log('\nSummary:');
-    console.log(`  Errors: ${report.errors.length}`);
-    console.log(`  Warnings: ${report.warnings.length}`);
+    logger.log('\nSummary:');
+    logger.log(`  BLOCK: ${report.errors.length}`);
+    logger.log(`  WARN: ${report.warnings.length}`);
 }
 
 /**
@@ -424,7 +423,7 @@ async function main() {
     const report = validateSkill(skillPath, options);
 
     if (options.json) {
-        console.log(JSON.stringify(report, null, 2));
+        logger.log(JSON.stringify(report, null, 2));
         process.exit(report.valid ? 0 : 1);
     }
 
