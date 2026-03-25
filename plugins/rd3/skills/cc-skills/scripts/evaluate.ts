@@ -1896,4 +1896,4 @@ async function main() {
     process.exit(report.passed ? 0 : 1);
 }
 
-main();
+import.meta.main && main();
