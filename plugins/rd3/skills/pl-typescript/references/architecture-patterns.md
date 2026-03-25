@@ -13,9 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/patterns
-  - rd3:pl-typescript/references/backend-patterns
 ---
 
 # Architecture Patterns for TypeScript
