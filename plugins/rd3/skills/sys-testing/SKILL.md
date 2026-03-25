@@ -2,9 +2,9 @@
 name: sys-testing
 description: "Test execution, coverage measurement, gap analysis, and iterative test extension workflows for running existing tests, measuring what paths are untested, identifying coverage gaps, and pragmatically extending test suites with targeted tests. Trigger when: running tests, measuring coverage, finding untested code paths, or knowing what to test but not how to structure tests for coverage."
 license: Apache-2.0
-version: 1.1.0
+version: 1.2.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 tags: [testing, coverage, test-execution, gap-analysis, engineering-core]
 metadata:
   author: cc-agents
@@ -17,6 +17,7 @@ metadata:
 see_also:
   - rd3:sys-testing/coverage-analysis
   - rd3:sys-testing/test-generation-patterns
+  - rd3:sys-testing/python-module-registration
 ---
 
 # rd3:sys-testing — Test Operations
@@ -58,6 +59,17 @@ Use this skill when:
 | **`rd3:sys-testing`** | Run tests, measure coverage, fill gaps |
 
 **Key principle:** `sys-testing` assumes tests already exist. It is about verification and extension, not creation.
+
+## Pre-Execution Checklist
+
+Before running tests:
+
+- [ ] **Environment** — Dependencies installed, working directory is project root
+- [ ] **Test configuration** — Command matches project setup (bun/npm/pytest/go/cargo)
+- [ ] **Source paths** — Coverage source path matches actual project layout
+- [ ] **Fixtures** — Test fixtures are clean (no cross-test contamination)
+- [ ] **Status** — Task status set to `testing` before execution
+- [ ] **Confidence** — Requirements clarity assessed as HIGH/MEDIUM/LOW
 
 ## Workflows
 
@@ -170,32 +182,6 @@ Focus on high-priority gaps first:
 
 **Maximum iterations: 3.** If coverage plateaus after 3 attempts, escalate rather than loop indefinitely.
 
-**Escalation Protocol**
-
-When 3 gap-filling iterations are exhausted without meeting the coverage target:
-
-1. **Document the untestable code** — Some gaps are unreachable by design (impossible states, hardware-specific paths)
-2. **Adjust the target downward** — A realistic target for the given code is better than an unattainable one
-3. **Report the status** — Note which gaps remain, which are documented-skipped, and the final coverage achieved
-
-**Escalation Report Format:**
-
-```markdown
-## Coverage Escalation: {Target}
-
-**Goal:** {threshold}% coverage on {testee}
-**Achieved:** {actual}% after 3 iterations
-**Remaining gaps:** {count}
-
-**Gap summary:**
-- {file}:{lines} — {reason: dead code / external dep / refactoring needed}
-
-**Recommendation:**
-- Adjust threshold to {realistic}%
-- OR defer gap to manual testing
-- OR refactor for testability (architectural change)
-```
-
 ### Workflow 3: Pragmatic Test Extension
 
 Extend existing test suites without over-engineering.
@@ -224,22 +210,6 @@ Extend existing test suites without over-engineering.
 | Utilities | 70-80% | Simple functions |
 | Configuration | 50-70% | Hard to test, low risk |
 | DTOs / Models | 50-70% | Data transfer, minimal logic |
-
-**CI/CD integration:**
-
-```yaml
-# GitHub Actions — coverage gate
-- name: Run tests with coverage
-  run: npx vitest run --coverage
-
-- name: Check coverage threshold
-  run: |
-    COVERAGE=$(cat coverage/coverage-summary.json | jq '.total.lines.pct')
-    if (( $(echo "$COVERAGE < 75" | bc -l) )); then
-      echo "Coverage ($COVERAGE%) below threshold (75%)"
-      exit 1
-    fi
-```
 
 **When to accept lower coverage:**
 
@@ -285,13 +255,6 @@ When a blocker prevents test execution:
 **Confidence:** HIGH (blocker is deterministic)
 ```
 
-Before running tests:
-
-- [ ] Environment set up correctly (dependencies installed, database running)
-- [ ] Test configuration matches target environment
-- [ ] Fixtures and mocks are clean (no cross-test contamination)
-- [ ] Coverage measurement configured for correct source paths
-
 ## Post-Execution Checklist
 
 After running tests:
@@ -300,6 +263,32 @@ After running tests:
 - [ ] Coverage report shows meaningful gaps (not just untested trivial code)
 - [ ] Flaky tests identified and tracked separately
 - [ ] Iteration count tracked (max 3 before escalation)
+
+## Escalation Protocol
+
+When 3 gap-filling iterations are exhausted without meeting the coverage target:
+
+1. **Document the untestable code** — Some gaps are unreachable by design (impossible states, hardware-specific paths)
+2. **Adjust the target downward** — A realistic target for the given code is better than an unattainable one
+3. **Report the status** — Note which gaps remain, which are documented-skipped, and the final coverage achieved
+
+### Escalation Report Format
+
+```markdown
+## Coverage Escalation: {Target}
+
+**Goal:** {threshold}% coverage on {testee}
+**Achieved:** {actual}% after 3 iterations
+**Remaining gaps:** {count}
+
+**Gap summary:**
+- {file}:{lines} — {reason: dead code / external dep / refactoring needed}
+
+**Recommendation:**
+- Adjust threshold to {realistic}%
+- OR defer gap to manual testing
+- OR refactor for testability (architectural change)
+```
 
 ## Integration with Other Skills
 
@@ -312,8 +301,9 @@ After running tests:
 
 ## Reference Files
 
-- `references/coverage-analysis.md` — Interpreting coverage reports, gap categorization, coverage vs. quality tradeoffs
+- `references/coverage-analysis.md` — Interpreting coverage reports, gap categorization, threshold selection, tool configuration
 - `references/test-generation-patterns.md` — Language-specific test patterns for extending test suites
+- `references/python-module-registration.md` — Python dashed-filename import pattern for pytest
 
 ## Additional Resources
 
