@@ -17,6 +17,7 @@ import {
     meetsPercentageThreshold,
 } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
+import { countTodoMarkers, hasSecondPersonLanguage } from '../../../scripts/markdown-analysis';
 import { AntigravityAdapter } from './adapters/antigravity';
 import { ClaudeAdapter } from './adapters/claude';
 import { CodexAdapter } from './adapters/codex';
@@ -423,14 +424,12 @@ function extractFeatures(
         securityIssues: [...securityResult.blacklist, ...securityResult.greylist],
 
         // Best practices features
-        hasTodo: /\bTODO\b/i.test(body),
-        todoCount: (body.match(/\bTODO\b/gi) || []).length,
+        hasTodo: countTodoMarkers(body) > 0,
+        todoCount: countTodoMarkers(body),
         hasPlaceholders: /\[(?:TODO|PLACEHOLDER|FIXME|XXX|INSERT|CHANGE|REPLACE|FILL)[^\]]*\]/gi.test(body),
         placeholderCount: (body.match(/\[(?:TODO|PLACEHOLDER|FIXME|XXX|INSERT|CHANGE|REPLACE|FILL)[^\]]*\]/gi) || [])
             .length,
-        usesSecondPerson: /(\bI can help\b|\bI will help\b|\byou can use\b|\byou should\b|\byou need to\b)/gi.test(
-            body,
-        ),
+        usesSecondPerson: hasSecondPersonLanguage(body),
         hasWindowsPaths: /[a-zA-Z]:\\[\w\\]+\.?\w*/g.test(body),
         hasNestedRefs: /\[.*?\]\(.*?\]\(.*?\)/g.test(body),
         timeSensitiveCount: (body.match(/\b(20\d{2}|202\d)\b/g) || []).length,
@@ -939,7 +938,7 @@ function _evaluateProgressiveDisclosure(body: string, weights: DimensionWeights)
     // ==========================================================================
 
     // Check for TODO
-    const todoCount = (body.match(/\bTODO\b/gi) || []).length;
+    const todoCount = countTodoMarkers(body);
     if (todoCount > 0) {
         findings.push(`Found ${todoCount} TODO marker(s)`);
         recommendations.push('Remove TODO markers before publishing');
