@@ -2,10 +2,11 @@
 name: tdd-workflow
 description: "Test-driven development with strict red-green-refactor cycle. For writing features, fixing bugs, and refactoring with tests first. Enforces: no production code without a failing test first."
 license: Apache-2.0
-version: 1.0.0
+version: 1.0.1
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 platform: rd3
+type: technique
 tags: [tdd, testing, red-green-refactor, engineering-core]
 metadata:
   author: cc-agents
@@ -103,12 +104,43 @@ See `rd3:sys-debugging` for root-cause investigation before writing any fix.
 
 **Goal:** Define API contract with test doubles.
 
-1. Write test defining request/response
-2. Mock external dependencies
-3. Implement endpoint to satisfy contract
-4. Verify integration with real services
+1. **Write consumer test** — Define expected request/response shape from consumer perspective
+2. **Generate contract** — Use Pact or OpenAPI to formalize the agreement
+3. **Mock provider** — Set up provider mock to satisfy contract
+4. **Verify integration** — Run contract tests against real provider
 
-**When:** REST/GraphQL APIs, service boundaries
+**When:** REST/GraphQL APIs, service boundaries, microservices
+
+**Contract Testing Tools:**
+
+| Tool | Language | Use |
+|------|----------|-----|
+| Pact | JS, Ruby, Java, .NET, Go | Consumer-driven contracts |
+| OpenAPI / Swagger | Any | API specification + validation |
+| WireMock | Java, .NET, JS, Go | Provider mocking |
+| Mountebank | Any | Cross-language service mocking |
+
+**Consumer/Provider Pattern:**
+
+```typescript
+// Consumer: defines expected behavior
+describe('UserConsumer', () => {
+  it('fetches user profile', async () => {
+    const interaction = {
+      state: 'user exists',
+      uponReceiving: 'a request for user profile',
+      withRequest: { method: 'GET', path: '/users/1' },
+      willRespondWith: {
+        status: 200,
+        body: { id: 1, name: 'Alice', email: 'alice@example.com' }
+      }
+    };
+    await provider.addInteraction(interaction);
+  });
+});
+```
+
+**See `rd3:advanced-testing`** for property-based testing and mutation testing that complement TDD.
 
 ## Test Design Strategies
 
@@ -117,10 +149,13 @@ See `rd3:sys-debugging` for root-cause investigation before writing any fix.
 | New feature | Classic TDD (Red-Green-Refactor) |
 | Legacy code | Characterization Tests (document behavior first) |
 | Bug fix | Regression-First TDD (test reproduces bug) |
-| API endpoints | Contract-Based Testing (mock responses) |
+| API endpoints | Contract-Based Testing (consumer-driven contracts) |
 | UI components | Visual + Interaction Tests |
 | Database | Integration + Transaction Rollback |
 | External services | Mock at service boundary |
+| Algorithms/data transformations | Property-Based Testing (invariants across inputs) |
+
+**See `rd3:advanced-testing`** for property-based testing (fast-check, Hypothesis) and mutation testing tools that validate test quality beyond coverage.
 
 ### Mock Guidelines
 
@@ -151,27 +186,73 @@ const result = doubleValue(input.value);
 expect(result).toBe(expected);
 ```
 
+### Test Naming Conventions
+
+Good test names describe behavior, not implementation. Use the format: `describe` for the thing under test, `it` for the specific behavior.
+
+**TypeScript/JavaScript (Vitest/Jest):**
+
+```typescript
+// Describe the class or module
+describe('Calculator', () => {
+  // it: expected behavior when X
+  it('returns sum of two positive numbers', () => {
+    expect(add(2, 3)).toBe(5);
+  });
+
+  it('throws error when dividing by zero', () => {
+    expect(() => divide(1, 0)).toThrow('Division by zero');
+  });
+});
+```
+
+**Naming patterns:**
+
+| Pattern | Use | Example |
+|---------|-----|---------|
+| `describe` | Class, module, or feature | `describe('UserService')` |
+| `it` / `test` | Specific behavior | `it('throws on invalid input')` |
+| `should` | Alternative BDD style | `it('should return empty array for no matches')` |
+| `when` | Condition-based | `describe('when user is admin')` |
+
+**Avoid:**
+- Names that describe implementation (`testAddFunction`)
+- Names that repeat what the test does (`testAdditionWorks`)
+- Generic names (`test1`, `test2`)
+
 ### Test Data Builders
 
-```python
-# Python-specific pattern: fluent builder for test data
-class UserBuilder:
-    def __init__(self):
-        self.data = {"name": "Test User", "email": "test@example.com"}
+```typescript
+// Fluent builder pattern for test data
+interface UserData {
+  name: string;
+  email: string;
+  role?: string;
+}
 
-    def with_name(self, name):
-        self.data["name"] = name
-        return self
+class UserBuilder {
+  private data: UserData = {
+    name: 'Test User',
+    email: 'test@example.com',
+  };
 
-    def as_admin(self):
-        self.data["role"] = "admin"
-        return self
+  withName(name: string): this {
+    this.data.name = name;
+    return this;
+  }
 
-    def build(self):
-        return User(**self.data)
+  asAdmin(): this {
+    this.data.role = 'admin';
+    return this;
+  }
 
-# Usage
-user = UserBuilder().with_name("Alice").as_admin().build()
+  build(): UserData {
+    return { ...this.data };
+  }
+}
+
+// Usage
+const user = new UserBuilder().withName('Alice').asAdmin().build();
 ```
 
 ## Anti-Patterns
