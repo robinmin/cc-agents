@@ -13,9 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/monorepo-patterns
-  - rd3:pl-typescript/references/tsconfig-guide
 ---
 
 # TypeScript Project Structures Reference
