@@ -171,6 +171,8 @@ For detailed workflow, commands, and recovery procedures, see [Git Worktree Work
 
 For detailed TDD patterns, cycle steps, and examples, see [TDD Patterns](references/tdd-patterns.md).
 
+For testing patterns (AAA structure, mocking, test factories, E2E, contract testing), see [Testing Patterns](references/testing-patterns.md).
+
 ### TDD Cycle with Fix-and-Repeat
 
 ```
