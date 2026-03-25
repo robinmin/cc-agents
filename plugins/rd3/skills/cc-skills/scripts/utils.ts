@@ -6,7 +6,7 @@
 
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import YAML from 'yaml';
+import { parseMarkdownFrontmatter } from '../../../scripts/markdown-frontmatter';
 import type { SkillFrontmatter, SkillResources } from './types';
 
 // ============================================================================
@@ -31,21 +31,12 @@ export interface ParsedFrontmatter {
  * and the raw original content string.
  */
 export function parseFrontmatter(content: string): ParsedFrontmatter {
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-
-    if (!fmMatch) {
-        return { frontmatter: null, body: content, raw: content };
-    }
-
-    const yamlContent = fmMatch[1];
-    const body = content.slice(fmMatch[0].length).trim();
-
-    try {
-        const frontmatter = YAML.parse(yamlContent) as SkillFrontmatter;
-        return { frontmatter, body, raw: content };
-    } catch {
-        return { frontmatter: null, body, raw: content };
-    }
+    const parsed = parseMarkdownFrontmatter(content);
+    return {
+        frontmatter: parsed.frontmatter as SkillFrontmatter | null,
+        body: parsed.body,
+        raw: parsed.raw,
+    };
 }
 
 // ============================================================================
