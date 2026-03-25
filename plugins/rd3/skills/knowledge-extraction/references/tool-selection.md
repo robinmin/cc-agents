@@ -12,7 +12,11 @@ metadata:
   category: engineering-core
 see_also:
   - rd3:knowledge-extraction
-  - rd3:sys-debugging
+  - rd3:knowledge-extraction/references/validation-methods
+  - rd3:knowledge-extraction/references/conflict-resolution
+  - rd3:knowledge-extraction/references/deduplication
+  - rd3:knowledge-extraction/references/synthesis-patterns
+  - rd3:anti-hallucination
 ---
 
 # Tool Selection for Knowledge Seeking
@@ -216,12 +220,54 @@ IF screenshots or visual verification needed:
 
 | Primary Tool | Secondary Tools | Notes |
 |--------------|-----------------|-------|
-| huggingface (papers) | WebSearch | Academic source first; general web as fallback |
+| `mcp__huggingface__paper_search` | WebSearch | Academic source first; general web as fallback |
+| `mcp__huggingface__hf_doc_search` | WebFetch | HF documentation and product guides |
 
 **Access strategy:**
-1. Search HuggingFace papers for ML/AI research
-2. Use WebSearch for general academic papers
-3. Verify with official sources when possible
+1. Search HuggingFace papers via `mcp__huggingface__paper_search` for ML/AI research
+2. Use `mcp__huggingface__hf_doc_search` for HuggingFace product documentation
+3. Use WebSearch for general academic papers
+4. Verify with official sources when possible
+
+**Example usage:**
+```
+mcp__huggingface__paper_search: query="chain of verification LLM hallucination 2025", results_limit=10
+```
+
+---
+
+### Weave Traces for Verification (SOTA)
+
+For verifying how tools or libraries are actually used in production, `mcp__wandb__query_weave_traces_tool` provides real execution traces from AI applications.
+
+| Primary Tool | Secondary Tools | Notes |
+|--------------|-----------------|-------|
+| `mcp__wandb__query_weave_traces_tool` | WebSearch | Production usage evidence from Weave-traced apps |
+| `mcp__wandb__count_weave_traces_tool` | — | Quick count of traces matching criteria |
+
+**Access strategy:**
+1. Use `count_weave_traces_tool` to assess whether traces exist for a tool/pattern
+2. Use `query_weave_traces_tool` with `metadata_only=True` for quick survey
+3. Use full trace queries for detailed call patterns, latency, token usage
+4. Cross-reference with official docs for authoritative verification
+
+**Example usage:**
+```
+# Check if a library has production trace evidence
+mcp__wandb__count_weave_traces_tool: entity_name="example-org", project_name="ai-app", filters={"op_name_contains": "langchain"}
+
+# Get actual usage patterns
+mcp__wandb__query_weave_traces_tool: entity_name="example-org", project_name="ai-app",
+  filters={"op_name_contains": "openai", "trace_roots_only": true},
+  columns=["op_name", "inputs", "outputs", "status"],
+  metadata_only=false
+```
+
+**Key filters for knowledge verification:**
+- `op_name_contains`: Match tool/library name (e.g., "langchain", "openai", "claude")
+- `trace_roots_only`: Only top-level calls (not nested internals)
+- `status`: "success" or "error" for reliability assessment
+- `time_range`: Recent traces for currency check
 
 ---
 
