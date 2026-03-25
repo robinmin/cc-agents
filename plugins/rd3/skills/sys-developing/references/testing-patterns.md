@@ -1,15 +1,17 @@
 ---
 name: testing-patterns
-description: "Testing patterns for unit, integration, and E2E tests: AAA structure, mocking, test data factories, page objects, and the test pyramid."
+description: "Testing patterns for unit, integration, E2E, contract, mutation, snapshot, and property-based tests: AAA structure, mocking, test factories, page objects, and the test pyramid."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
-tags: [testing, unit-tests, integration-tests, e2e, mocking, patterns, engineering-core]
+updated_at: 2026-03-24
+tags: [testing, unit-tests, integration-tests, e2e, mocking, contract-testing, mutation-testing, patterns, engineering-core]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,antigravity,opencode,openclaw,pi"
   category: engineering-core
+  interactions:
+    - knowledge-only
 see_also:
   - rd3:sys-developing
   - rd3:sys-testing
@@ -284,3 +286,243 @@ export const invalidEmails = [
 | Unit | Many (70%) | Fast | Low |
 | Integration | Some (20%) | Medium | Medium |
 | E2E | Few (10%) | Slow | High |
+
+## Contract Testing
+
+Contract testing ensures API providers and consumers agree on the interface contract, without requiring full integration.
+
+### Provider-Driven Contracts (Pact)
+
+```typescript
+// Consumer side: define expected interactions
+import { pactWith } from 'jest-pact';
+
+pactWith({ consumer: 'UserDashboard', provider: 'UserService' }, async (pact) => {
+  it('returns users from the provider', async () => {
+    await pact.addInteraction({
+      states: [{ description: 'users exist' }],
+      uponReceiving: 'a request for users',
+      withRequest: {
+        method: 'GET',
+        path: '/api/v1/users',
+      },
+      willRespondWith: {
+        status: 200,
+        body: {
+          data: [{
+            id: pact.string_like('user-123'),
+            email: pact.string_like('user@example.com'),
+          }],
+        },
+      },
+    });
+
+    const response = await fetch(`${pact.mockService.baseUrl}/api/v1/users`);
+    expect(response.status).toBe(200);
+  });
+});
+```
+
+### Consumer-Driven Contracts (CDC)
+
+```typescript
+// Provider side: verify against consumer contracts
+import { Verifier } from '@pact-foundation/pact';
+
+const verifier = new Verifier({
+  provider: 'UserService',
+  providerBaseUrl: 'http://localhost:3000',
+  pactBrokerUrl: 'https://pact-broker.example.com',
+  consumerVersionTags: ['main'],
+  providerVersionTags: ['main'],
+});
+
+await verifier.verifyProvider();
+```
+
+### When to Use Contract Testing
+
+| Scenario | Use Contract Tests |
+|----------|---------------------|
+| Microservices with separate teams | Yes — independent API evolution |
+| Consumer-driven API design | Yes — consumers define needs |
+| Single team, simple API | No — integration tests sufficient |
+| External third-party APIs | Yes — validate against spec |
+
+## Snapshot Testing
+
+Snapshot tests capture rendered output and compare against a stored reference. Best for UI components and serialized data structures.
+
+### Component Snapshot (Bun + jsdom)
+
+```typescript
+import { describe, expect, it } from 'bun:test';
+import { renderToString } from 'react-dom/server';
+import { UserCard } from './UserCard';
+
+describe('UserCard', () => {
+  it('renders consistently', () => {
+    const html = renderToString(
+      <UserCard name="Alice" email="alice@example.com" />
+    );
+    expect(html).toMatchSnapshot();
+  });
+
+  it('matches snapshot with new data', () => {
+    const html = renderToString(
+      <UserCard name="Bob" email="bob@example.com" />
+    );
+    expect(html).toMatchSnapshot({
+      name: 'Bob',
+      email: 'bob@example.com',
+    });
+  });
+});
+```
+
+### Inline Snapshots
+
+```typescript
+// Snapshot stored inline in test file
+it('formats date correctly', () => {
+  const formatted = formatDate(new Date('2024-01-15'));
+  expect(formatted).toMatchInlineSnapshot(`"January 15, 2024"`);
+});
+```
+
+### Snapshot Update Workflow
+
+```bash
+# Run tests (snapshots will fail on first run with new cases)
+bun test
+
+# Review diff and update snapshots if correct
+bun test --update-snapshots
+
+# Update snapshots for a specific file
+bun test --update-snapshot src/components/__snapshots__/UserCard.test.ts
+```
+
+## Mutation Testing
+
+Mutation testing validates test quality by introducing deliberate code changes ("mutations") and verifying tests catch them.
+
+### Using Stryker
+
+```bash
+# Install stryker
+bun add -d @stryker-mutator/bun-runner
+
+# Initialize config
+npx stryker init
+```
+
+```json
+// stryker.config.json
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker.conf.json",
+  "testRunner": "bun",
+  "reporters": ["html", "clear-text"],
+  "mutate": [
+    "src/**/*.ts",
+    "!src/**/*.d.ts",
+    "!src/**/__snapshots__/**"
+  ],
+  "coverageAnalysis": "perTest"
+}
+```
+
+```bash
+# Run mutation testing
+npx stryker run
+```
+
+### Common Mutation Operators
+
+| Operator | Original | Mutation | Catches |
+|----------|----------|----------|---------|
+| Conditionals | `a > b` | `a >= b` | Boundary bugs |
+| Negation | `if (x)` | `if (!x)` | Missing checks |
+| Math | `x + 1` | `x + 2` | Off-by-one |
+| Remove call | `user.getId()` | removed | Useless code |
+| Array push | `[...arr, x]` | `[...arr]` | Missing appends |
+
+### Interpreting Mutation Score
+
+| Score | Quality | Action |
+|-------|---------|--------|
+| >80% | Excellent | Maintain |
+| 60-80% | Good | Monitor trends |
+| <60% | Poor | Add targeted tests |
+| <50% | Critical | Major test gaps |
+
+## Property-Based Testing
+
+Property-based testing verifies that properties hold for many randomly generated inputs, not just hand-picked cases.
+
+### Using fast-check (TypeScript)
+
+```typescript
+import { describe, expect, it } from 'bun:test';
+import * as fc from 'fast-check';
+
+describe('sort', () => {
+  it('should produce a sorted array', () => {
+    fc.assert(
+      fc.property(
+        fc.array(fc.integer()),
+        (arr) => {
+          const sorted = bubbleSort([...arr]);
+          for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i - 1] > sorted[i]) return false;
+          }
+          return true;
+        }
+      ),
+      { numRuns: 1000 }
+    );
+  });
+
+  it('should have same length as input', () => {
+    fc.assert(
+      fc.property(fc.array(fc.integer()), (arr) => {
+        return bubbleSort([...arr]).length === arr.length;
+      })
+    );
+  });
+});
+```
+
+### Custom Arbitraries
+
+```typescript
+// Generate valid email addresses
+const validEmail = fc.string({ minLength: 3 }).map((name) =>
+  `${name.toLowerCase()}@example.com`
+);
+
+// Generate user objects matching your domain
+const userArb = fc.record({
+  id: fc.uuidv4(),
+  email: validEmail,
+  name: fc.string({ minLength: 1, maxLength: 100 }),
+  role: fc.constantFrom('admin', 'user', 'guest'),
+  createdAt: fc.date(),
+});
+
+// Generate arrays of unique users
+const uniqueUsers = fc.array(userArb, {
+  minLength: 1,
+  maxLength: 10,
+  uniq: (a, b) => a.id === b.id,
+});
+```
+
+### When to Use Property-Based Testing
+
+| Use For | Don't Use For |
+|---------|--------------|
+| Data transformation logic | UI interactions |
+| Serialization/deserialization | External API calls |
+| Algorithm correctness | Performance testing |
+| Cryptographic operations | Database transactions |
