@@ -34,19 +34,22 @@ Create Agent skills that work across ALL platforms from a single source of truth
 
 ## Operations
 
-This skill accepts **5 operations**:
+This skill accepts **7 operations**:
 
 | Operation | Purpose | Script |
 |-----------|---------|--------|
 | **add** | Scaffold a new skill | `scripts/scaffold.ts` |
+| **validate** | Check skill structure and frontmatter | `scripts/validate.ts` |
 | **evaluate** | Validate and score skill quality | `scripts/evaluate.ts` |
 | **refine** | Fix issues and improve quality | `scripts/refine.ts` |
 | **evolve** | Analyze and propose longitudinal improvements | `scripts/evolve.ts` |
+| **adapt** | Generate cross-platform companions | `scripts/adapt.ts` |
 | **package** | Package for distribution | `scripts/package.ts` |
 
 ## Workflow Design
 
 Each operation has a **step-by-step workflow** combining scripts and checklists.
+LLM content improvement is embedded in the normal workflow; it is not a separate `--llm-eval` command mode.
 
 ### Task-Backed Execution
 
@@ -131,9 +134,11 @@ bun scripts/package.ts ./skills/my-skill --output ./dist
 ## When to Use
 
 - Creating a new skill from scratch → use **add**
-- Validating skill structure → use **evaluate**
+- Checking skill structure and frontmatter → use **validate**
+- Scoring skill quality → use **evaluate**
 - Fixing quality issues → use **refine**
 - Planning longitudinal improvement → use **evolve**
+- Generating cross-platform companions → use **adapt**
 - Preparing for distribution → use **package**
 - Migrating rd2 skills to rd3 → use **refine --migrate**
 
@@ -284,7 +289,7 @@ When migrating from rd2:
 1. Run evaluation first: `bun scripts/evaluate.ts ./old-skill --scope full`
 2. Apply migration: `bun scripts/refine.ts ./old-skill --migrate`
 3. Verify: `bun scripts/evaluate.ts ./old-skill --scope full`
-4. Generate platform companions: `bun scripts/refine.ts ./old-skill --platform all`
+4. Generate platform companions: `bun scripts/adapt.ts ./old-skill all`
 
 ## Platform Notes
 
