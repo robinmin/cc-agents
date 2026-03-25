@@ -152,6 +152,9 @@ vite.config.ts.timestamp-*
 
 /.claude/last-session.json
 
+# rd3 evolution runtime history (proposals, snapshots, backups)
+.rd3-evolution/
+
 /GEMINI.md
 /CLAUDE.md
 /.agent/
