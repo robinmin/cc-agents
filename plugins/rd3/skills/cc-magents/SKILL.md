@@ -254,7 +254,7 @@ bun scripts/refine.ts AGENTS.md --dry-run
 bun scripts/refine.ts AGENTS.md --apply
 
 # Output to new file
-bun scripts/refine.ts AGENTS.md --output ./tmp/AGENTS.refined.md
+bun scripts/refine.ts AGENTS.md --output ./output/AGENTS.refined.md
 ```
 
 ## Evolve Operation
@@ -411,3 +411,11 @@ Both use similar quality frameworks but different models:
 - `references/red-flags.md` (red flags checklist)
 - `references/troubleshooting.md` (common issues and fixes)
 - `references/workflows.md` (detailed workflow definitions)
+
+## Additional Resources
+
+- **Workflows**: [references/workflows.md](references/workflows.md) - Detailed operation workflows
+- **Evaluation Framework**: [references/evaluation-framework.md](references/evaluation-framework.md) - Scoring rubric and quality dimensions
+- **Evolution Protocol**: [references/evolution-protocol.md](references/evolution-protocol.md) - Self-evolution safety guidelines
+- **Platform Compatibility**: [references/platform-compatibility.md](references/platform-compatibility.md) - Cross-platform feature matrix
+- **Troubleshooting**: [references/troubleshooting.md](references/troubleshooting.md) - Common issues and fixes
