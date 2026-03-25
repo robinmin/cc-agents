@@ -2,9 +2,9 @@
 name: sys-debugging
 description: "Four-phase debugging methodology: root cause first, then fix. For investigating bugs, test failures, and unexpected behavior. Applies to all languages."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 evolved: true
 platform: rd3
 tags: [debugging, root-cause, engineering-core, troubleshooting]
@@ -18,6 +18,9 @@ metadata:
     emoji: "🛠️"
 see_also:
   - rd3:tasks
+  - rd3:tdd-workflow
+  - rd3:sys-testing
+  - rd3:advanced-testing
 ---
 
 # rd3:sys-debugging — Systematic Debugging
@@ -25,6 +28,8 @@ see_also:
 Structured four-phase debugging methodology for investigating bugs, test failures, and unexpected behavior. Emphasizes **root cause before fix**.
 
 ## When to Use
+
+**Trigger phrases:** "debug this", "fix the bug", "why is it failing", "trace the issue", "root cause", "it's broken", "test is flaky", "intermittent failure", "regression", "bisect", "investigate", "troubleshoot", "can't reproduce", "works locally"
 
 Apply this skill when:
 
@@ -62,6 +67,18 @@ Use the full sequence when the cause is unknown:
 4. **Test one hypothesis** — Change one variable at a time and predict the expected result
 5. **Fix the source** — Implement the smallest fix at the root cause
 6. **Verify broadly** — Confirm the failing test passes and run the wider regression suite
+
+### AI-Assisted Debugging Workflow
+
+Use AI augmentation to accelerate investigation:
+
+1. **Describe the symptom** — Share exact error messages, stack traces, and reproduction steps
+2. **Request hypothesis** — Ask AI "What could cause this error in [language/framework]?"
+3. **Validate AI hypotheses** — Use AI suggestions as starting points, not conclusions
+4. **Trace confirmed hypotheses** — Apply root cause tracing to validate AI suggestions
+5. **Implement and verify** — Same as standard workflow
+
+**Critical caution:** AI can suggest plausible but incorrect root causes. Always verify with evidence and testing. AI accelerates investigation but does not replace systematic tracing.
 
 ### Escalation Workflow
 
@@ -144,6 +161,112 @@ Apply the scientific method:
 
 **Critical rule:** If THREE or more fixes fail consecutively, STOP. This signals architectural problems requiring discussion, not more patches.
 
+## Formal Debugging Methods
+
+### Delta Debugging
+
+Systematically isolate failure causes by binary search:
+
+```
+1. Start with full program/failure
+2. Divide input/state in half
+3. Test each half — does failure still occur?
+4. Narrow to failing half, repeat
+5. Continue until minimal reproducing case found
+```
+
+### Bisection (Version Space)
+
+Find breaking change by halving the search space:
+
+```
+1. Mark known-good state (working version, passing tests)
+2. Mark known-bad state (current broken state)
+3. Test midpoint
+4. Narrow range based on midpoint result
+5. Repeat until single breaking change isolated
+```
+
+### Failure Isolation Trees
+
+Build decision tree of failure conditions:
+
+```
+                    Failure
+                       │
+           ┌───────────┴───────────┐
+           ▼                       ▼
+      Subtest A fails        Subtest A passes
+           │                       │
+     ┌─────┴─────┐           ┌─────┴─────┐
+     ▼           ▼           ▼           ▼
+  Sub B fails  Sub B pass  Sub B fails  Sub B pass
+     ...
+```
+
+## Failure Mode Taxonomy
+
+Categorize bugs by their characteristics to select appropriate debugging strategy:
+
+| Category | Symptom | Root Cause Pattern | Debug Strategy |
+|----------|---------|-------------------|----------------|
+| **Null propagation** | TypeError/NPE at symptom location | Function returns None/undefined for edge case | Trace return chain, add explicit validation |
+| **Race condition** | Intermittent, timing-dependent | Async operations complete in unpredictable order | Add deterministic synchronization |
+| **State corruption** | Wrong data at output | Shared mutable state modified unexpectedly | Isolate state, add immutability |
+| **Type mismatch** | Cast fails, wrong behavior | Assumption about data type not validated | Add runtime type checking, use type guards |
+| **Resource leak** | Degrades over time, eventually fails | Acquisition without release | Check cleanup in all code paths |
+| **Config drift** | Works in one environment, fails in another | Environment-specific values hardcoded | Centralize config, validate at startup |
+| **N+1 query** | Slow requests, many DB calls | Loop fetching instead of batch | Restructure query, use eager loading |
+| **Closure capture** | Memory grows, old data persists | Closure retains large scope | Extract minimal required data |
+
+## Observability & Distributed Tracing
+
+For modern systems, debugging requires understanding distributed data flow:
+
+### Log Correlation
+
+Trace requests across service boundaries:
+
+```
+# Add correlation ID to all logs
+correlation_id: "abc-123-def"
+
+# Every log line for this request includes the ID
+[2024-01-15 10:23:45] INFO  [abc-123-def] Request received
+[2024-01-15 10:23:46] DEBUG [abc-123-def] Database query executed
+[2024-01-15 10:23:47] INFO  [abc-123-def] Response sent
+```
+
+### Structured Logging
+
+Emit machine-parseable log events:
+
+```typescript
+// Good: Structured with context
+logger.info("order_processed", {
+  orderId: order.id,
+  userId: user.id,
+  total: order.total,
+  durationMs: elapsed,
+  statusCode: 200,
+});
+
+// Bad: Unstructured string
+logger.info(`Order ${order.id} processed for user ${user.id}`);
+```
+
+### Trace Context Propagation
+
+For microservices:
+
+```
+1. Extract trace ID from incoming request headers
+2. Propagate to all downstream service calls
+3. Include span ID for individual operations
+4. Correlate logs with trace ID
+5. Reconstruct full request path from trace
+```
+
 ## Red Flags — Process Violations
 
 Stop immediately if you catch yourself thinking:
@@ -153,6 +276,7 @@ Stop immediately if you catch yourself thinking:
 - "This should work" (without understanding why)
 - "Let me just try..." (without hypothesis)
 - "It works on my machine" (without investigating difference)
+- "AI said this is the fix" (without verifying)
 
 ## Warning Signs of Deeper Problems
 
@@ -242,6 +366,9 @@ Signs you are doing it right:
 # Python: verbose test with full traceback
 pytest -v --tb=long -x tests/
 
+# Python: post-mortem debugging
+python -m pdb -c continue script.py
+
 # Node: detect hanging handles
 npx jest --detectOpenHandles --runInBand
 
@@ -273,6 +400,7 @@ The debugging workflow and task management are complementary:
 | `references/techniques.md` | Deep-dive on tracing, profiling, logging strategies, and hypothesis testing |
 | `references/common-patterns.md` | Recognizable bug patterns with root causes and detection methods |
 | `rd3:tasks` | Task management for tracking fix implementation |
+| `rd3:tdd-workflow` | TDD discipline for writing tests before fixes |
 
 ## Platform Notes
 
