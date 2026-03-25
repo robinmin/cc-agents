@@ -16,9 +16,11 @@ metadata:
     - info
   pipeline_steps:
     - add
+    - validate
     - evaluate
     - refine
     - adapt
+    - evolve
 ---
 
 # cc-magents: Universal Main Agent Config Manager
@@ -50,28 +52,35 @@ Invoke operations via slash commands:
 ## Quick Start
 
 ```bash
-# Create a new AGENTS.md with auto-detection
+# Create a new AGENTS.md from template
+bun scripts/synthesize.ts general-agent --output AGENTS.md
 
 # Score quality (5 dimensions, A-F grade) - validation runs automatically
+bun scripts/evaluate.ts AGENTS.md --profile standard
 
 # Fix issues (preview first)
+bun scripts/refine.ts AGENTS.md --dry-run
 
 # Apply fixes
+bun scripts/refine.ts AGENTS.md --apply
 
 # Suggest improvements from patterns
+bun scripts/evolve.ts AGENTS.md --propose
 
 # Convert CLAUDE.md to .cursorrules
+bun scripts/adapt.ts CLAUDE.md --to cursorrules --output .cursorrules
 ```
 
 ## Operations
 
-This skill provides **5 operations**:
+This skill provides **6 operations**:
 
 | Operation | Purpose | Script | Command |
 |-----------|---------|--------|---------|
 | **add** | Generate new config from requirements + auto-detection | `scripts/synthesize.ts` | `/rd3:magent-add` |
-| **evaluate** | 5-dimension quality scoring with A-F grading (validates first) | `scripts/evaluate.ts` | `/rd3:magent-evaluate` |
-| **refine** | Fix issues, apply best practices (validates first) | `scripts/refine.ts` | `/rd3:magent-refine` |
+| **validate** | Check config structure before evaluation | `scripts/validate.ts` | `/rd3:magent-validate` |
+| **evaluate** | 5-dimension quality scoring with A-F grading | `scripts/evaluate.ts` | `/rd3:magent-evaluate` |
+| **refine** | Fix issues, apply best practices | `scripts/refine.ts` | `/rd3:magent-refine` |
 | **evolve** | Self-improve from interaction feedback (L1: suggest only) | `scripts/evolve.ts` | `/rd3:magent-evolve` |
 | **adapt** | Cross-platform conversion via UMAM | `scripts/adapt.ts` | `/rd3:magent-adapt` |
 
@@ -80,33 +89,37 @@ This skill provides **5 operations**:
 ### New Config Workflow
 
 ```
-add -> evaluate -> refine -> adapt
+add -> validate -> evaluate -> refine -> adapt
 ```
 
 1. **add**: Create from template with project auto-detection
-2. **evaluate**: Score quality across 5 dimensions (validation runs first)
-3. **refine**: Auto-fix structural issues
-4. **adapt**: Convert to target platforms (if needed)
+2. **validate**: Check config structure
+3. **evaluate**: Score quality across 5 dimensions
+4. **refine**: Auto-fix structural issues
+5. **adapt**: Convert to target platforms (if needed)
 
 ### Improve Existing Workflow
 
 ```
-evaluate -> refine -> evaluate (verify improvement)
+validate -> evaluate -> refine -> evaluate (verify improvement)
 ```
 
-1. **evaluate**: Initial quality assessment
-2. **refine**: Apply auto-fixes and suggestions
-3. **evaluate**: Verify improvement
+1. **validate**: Check config structure
+2. **evaluate**: Initial quality assessment
+3. **refine**: Apply auto-fixes and suggestions
+4. **evaluate**: Verify improvement
 
 ### Cross-Platform Workflow
 
 ```
-evaluate -> adapt -> evaluate (target platform)
+validate -> evaluate -> adapt -> validate (target) -> evaluate (target)
 ```
 
-1. **evaluate**: Verify source config quality (validation runs first)
-2. **adapt**: Convert to target platform
-3. **evaluate**: Verify target config quality
+1. **validate**: Verify source config structure
+2. **evaluate**: Verify source config quality
+3. **adapt**: Convert to target platform
+4. **validate**: Check target config structure
+5. **evaluate**: Verify target config quality
 
 ### Self-Evolution Workflow
 
@@ -119,7 +132,9 @@ evolve --analyze -> evolve --propose -> evolve --apply -> evaluate
 3. **evolve --apply**: Apply approved proposals (with --confirm)
 4. **evaluate**: Verify grade improvement
 
-For detailed workflow definitions with step-by-step flows, branching logic, retry policies, and LLM checklists:
+Embedded LLM content improvement is part of the normal workflow for every operation; it is not a separate CLI mode.
+
+For detailed workflow definitions with step-by-step flows, branching logic, retry policies, and embedded LLM content-improvement checklists:
 
 **See [references/workflows.md](references/workflows.md)**
 
@@ -150,9 +165,11 @@ Add auto-detects:
 ### Examples
 
 ```bash
-# Auto-detect project and create AGENTS.md
+# Create AGENTS.md for a Node.js project
+bun scripts/synthesize.ts dev-agent --output AGENTS.md
 
-# Create for specific template
+# Create CLAUDE.md for a Go project
+bun scripts/synthesize.ts dev-agent --platform claude-md --output CLAUDE.md
 ```
 
 ## Evaluate Operation
@@ -191,12 +208,16 @@ Quality scoring across 5 MECE dimensions.
 
 ```bash
 # Standard evaluation
+bun scripts/evaluate.ts AGENTS.md
 
 # For simple configs (prioritize coverage/safety)
+bun scripts/evaluate.ts AGENTS.md --profile minimal
 
 # For self-evolving configs
+bun scripts/evaluate.ts AGENTS.md --profile advanced
 
 # JSON for CI
+bun scripts/evaluate.ts AGENTS.md --json --output evaluation-report.json
 ```
 
 ## Refine Operation
@@ -227,10 +248,13 @@ Sections containing `[CRITICAL]` markers are NEVER modified, even with `--apply`
 
 ```bash
 # Preview changes
+bun scripts/refine.ts AGENTS.md --dry-run
 
 # Apply fixes
+bun scripts/refine.ts AGENTS.md --apply
 
 # Output to new file
+bun scripts/refine.ts AGENTS.md --output ./tmp/AGENTS.refined.md
 ```
 
 ## Evolve Operation
@@ -249,24 +273,31 @@ Self-improvement based on pattern analysis.
 
 ### Safety Levels
 
+> **Note**: Safety levels (L1/L2/L3) are documented for future use. Currently all apply operations require explicit `--confirm` regardless of safety level.
+
 | Level | Behavior |
 |-------|----------|
 | **L1** (default) | Suggest-only, all changes require approval |
-| **L2** | Semi-auto, low-risk changes auto-apply |
-| **L3** | Auto, fully autonomous |
+| **L2** | Reserved for future semi-auto behavior |
+| **L3** | Reserved for fully autonomous behavior |
 
 ### Commands
 
 ```bash
 # Analyze patterns
+bun scripts/evolve.ts AGENTS.md --analyze
 
 # Generate proposals
+bun scripts/evolve.ts AGENTS.md --propose
 
 # Apply approved proposal
+bun scripts/evolve.ts AGENTS.md --apply proposal-id --confirm
 
 # View history
+bun scripts/evolve.ts AGENTS.md --history
 
 # Rollback
+bun scripts/evolve.ts AGENTS.md --rollback v1 --confirm
 ```
 
 ## Adapt Operation
@@ -320,10 +351,13 @@ Some features may be lost in conversion:
 
 ```bash
 # Convert to AGENTS.md
+bun scripts/adapt.ts CLAUDE.md --to agents-md --output AGENTS.md
 
 # Convert to .cursorrules
+bun scripts/adapt.ts AGENTS.md --to cursorrules --output .cursorrules
 
 # Convert to all platforms
+bun scripts/adapt.ts AGENTS.md --to all --output ./converted
 ```
 
 ## Architecture
