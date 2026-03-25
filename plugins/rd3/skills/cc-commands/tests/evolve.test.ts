@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getEvolutionStoragePaths } from '../../../scripts/evolution-engine';
 
 const TEST_DIR = '/tmp/cc-commands-evolve-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -16,6 +17,10 @@ describe('Integration: evolve command', () => {
     afterEach(() => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
+        }
+        const storage = getEvolutionStoragePaths('.cc-commands', join(TEST_DIR, 'review-code.md'));
+        if (existsSync(storage.rootDir)) {
+            rmSync(storage.rootDir, { recursive: true, force: true });
         }
     });
 
@@ -79,7 +84,8 @@ You should use /rd3:command-add before running this command.
         const proposeExit = await proposeProc.exited;
         expect(proposeExit).toBe(0);
 
-        const proposalsPath = join(TEST_DIR, '.cc-commands', 'evolution', 'proposals', 'review-code.proposals.json');
+        const storage = getEvolutionStoragePaths('.cc-commands', commandPath);
+        const proposalsPath = storage.proposalsPath;
         const proposalSet = JSON.parse(readFileSync(proposalsPath, 'utf-8')) as {
             proposals: Array<{ id: string }>;
         };
@@ -109,7 +115,7 @@ You should use /rd3:command-add before running this command.
         const appliedContent = readFileSync(commandPath, 'utf-8');
         expect(appliedContent).not.toBe(originalContent);
 
-        const historyPath = join(TEST_DIR, '.cc-commands', 'evolution', 'versions', 'review-code.history.json');
+        const historyPath = storage.historyPath;
         expect(existsSync(historyPath)).toBe(true);
 
         const rollbackProc = Bun.spawn(['bun', 'run', EVOLVE_SCRIPT, commandPath, '--rollback', 'v0', '--confirm'], {
@@ -127,7 +133,7 @@ You should use /rd3:command-add before running this command.
         const rolledBackContent = readFileSync(commandPath, 'utf-8');
         expect(rolledBackContent).toBe(originalContent);
 
-        const backupsDir = join(TEST_DIR, '.cc-commands', 'evolution', 'backups');
+        const backupsDir = storage.backupsDir;
         expect(existsSync(backupsDir)).toBe(true);
     });
 });

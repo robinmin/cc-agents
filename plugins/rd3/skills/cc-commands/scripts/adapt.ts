@@ -119,23 +119,23 @@ function parseCliArgs(): AdaptOptions {
 }
 
 function printUsage(): void {
-    console.log(`${COLORS.cyan}adapt.ts${COLORS.reset} - Adapt commands for cross-platform compatibility\n`);
-    console.log(`${COLORS.green}USAGE:${COLORS.reset}`);
-    console.log('    bun adapt.ts <plugin|path> <targets> [options]\n');
-    console.log(`${COLORS.green}ARGUMENTS:${COLORS.reset}`);
-    console.log('    plugin      Plugin name (e.g., rd2, rd3, wt) OR command path\n');
-    console.log(
+    logger.log(`${COLORS.cyan}adapt.ts${COLORS.reset} - Adapt commands for cross-platform compatibility\n`);
+    logger.log(`${COLORS.green}USAGE:${COLORS.reset}`);
+    logger.log('    bun adapt.ts <plugin|path> <targets> [options]\n');
+    logger.log(`${COLORS.green}ARGUMENTS:${COLORS.reset}`);
+    logger.log('    plugin      Plugin name (e.g., rd2, rd3, wt) OR command path\n');
+    logger.log(
         '    targets     Target platforms: all, codex, gemini, openclaw, claude, opencode, antigravity (default: all)\n',
     );
-    console.log(`${COLORS.green}OPTIONS:${COLORS.reset}`);
-    console.log('    --component   Component: commands, all (default: all)');
-    console.log('    --dry-run     Preview changes without applying');
-    console.log('    --verbose     Show detailed output');
-    console.log('    --help        Show this help message\n');
-    console.log(`${COLORS.green}EXAMPLES:${COLORS.reset}`);
-    console.log('    bun adapt.ts rd3 all');
-    console.log('    bun adapt.ts rd2 gemini,openclaw --dry-run');
-    console.log('    bun adapt.ts ./my-command claude');
+    logger.log(`${COLORS.green}OPTIONS:${COLORS.reset}`);
+    logger.log('    --component   Component: commands, all (default: all)');
+    logger.log('    --dry-run     Preview changes without applying');
+    logger.log('    --verbose     Show detailed output');
+    logger.log('    --help        Show this help message\n');
+    logger.log(`${COLORS.green}EXAMPLES:${COLORS.reset}`);
+    logger.log('    bun adapt.ts rd3 all');
+    logger.log('    bun adapt.ts rd2 gemini,openclaw --dry-run');
+    logger.log('    bun adapt.ts ./my-command claude');
 }
 
 // ============================================================================
@@ -147,7 +147,7 @@ function validateOptions(options: AdaptOptions): void {
     for (const target of options.targets) {
         if (!VALID_TARGETS.includes(target)) {
             logger.error(`Invalid target: ${target}`);
-            console.log(`   Valid: ${VALID_TARGETS.join(', ')}`);
+            logger.log(`   Valid: ${VALID_TARGETS.join(', ')}`);
             process.exit(1);
         }
     }
@@ -155,7 +155,7 @@ function validateOptions(options: AdaptOptions): void {
     // Validate component
     if (!VALID_COMPONENTS.includes(options.component)) {
         logger.error(`Invalid component: ${options.component}`);
-        console.log(`   Valid: ${VALID_COMPONENTS.join(', ')}`);
+        logger.log(`   Valid: ${VALID_COMPONENTS.join(', ')}`);
         process.exit(1);
     }
 
@@ -232,7 +232,7 @@ function auditCommand(cmdFile: string): AuditResult {
     return { file: cmdFile, issues, warnings, fixed: false };
 }
 
-function fixCommand(cmdFile: string, targets: string[]): AuditResult {
+function fixCommand(cmdFile: string, _targets: string[]): AuditResult {
     const result = auditCommand(cmdFile);
     if (result.issues.length === 0 && result.warnings.length === 0) {
         result.fixed = true;
@@ -240,7 +240,7 @@ function fixCommand(cmdFile: string, targets: string[]): AuditResult {
     }
 
     let content = readFileSync(cmdFile, 'utf-8');
-    const cmdName = basename(cmdFile, '.md');
+    const _cmdName = basename(cmdFile, '.md');
     const parsed = parseFrontmatter(content);
 
     // Fix 1: Remove invalid fields
@@ -261,7 +261,7 @@ function fixCommand(cmdFile: string, targets: string[]): AuditResult {
     }
 
     // Fix 3: Add argument-hint if $N detected
-    const analysis = analyzeBody(parsed.body);
+    const _analysis = analyzeBody(parsed.body);
     if (/\$(\d+|ARGUMENTS)/.test(parsed.body) && !parsed.frontmatter?.['argument-hint']) {
         const args = inferArgumentHints(parsed.body) || '<args>';
         content = content.replace(/^---/, `---\nargument-hint: ${args}`);
@@ -363,7 +363,7 @@ async function adaptCommand(cmdFile: string, targets: string[], dryRun: boolean)
 
 async function processCommands(
     pluginDir: string,
-    pluginName: string,
+    _pluginName: string,
     targets: string[],
     dryRun: boolean,
 ): Promise<void> {
@@ -399,7 +399,7 @@ async function processCommands(
 
         total++;
         const cmdName = basename(cmdFile, '.md');
-        console.log('');
+        logger.log('');
         logger.info(`Processing: ${cmdName}`);
 
         // Audit and fix
@@ -438,7 +438,7 @@ async function processCommands(
         }
     }
 
-    console.log('');
+    logger.log('');
     logger.info(`Commands: ${total} total, ${issues} issues, ${adapted} adapted`);
 }
 
@@ -451,39 +451,39 @@ async function main() {
 
     validateOptions(options);
 
-    console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
-    console.log(
+    logger.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
+    logger.log(
         `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}adapt.ts${COLORS.reset} - Cross-Platform Command Adaptation    ${COLORS.magenta}║${COLORS.reset}`,
     );
-    console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
+    logger.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
 
     const pluginDir = options.isPath ? options.plugin : resolve(PROJECT_ROOT, 'plugins', options.plugin);
     const pluginName = options.isPath ? basename(options.plugin) : options.plugin;
 
-    console.log(`Plugin: ${pluginName}`);
-    console.log(`Targets: ${options.targets.join(', ')}`);
-    console.log(`Component: ${options.component}`);
-    console.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'APPLY'}`);
-    console.log('');
+    logger.log(`Plugin: ${pluginName}`);
+    logger.log(`Targets: ${options.targets.join(', ')}`);
+    logger.log(`Component: ${options.component}`);
+    logger.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'APPLY'}`);
+    logger.log('');
 
     if (options.component.includes('commands') || options.component === 'all') {
         await processCommands(pluginDir, pluginName, options.targets, options.dryRun);
     }
 
-    console.log('');
+    logger.log('');
     logger.success('Adaptation complete!');
-    console.log('');
+    logger.log('');
     logger.info('Next steps:');
-    console.log('  1. Review changes with --dry-run first');
-    console.log('  2. Test commands with each platform');
-    console.log('');
+    logger.log('  1. Review changes with --dry-run first');
+    logger.log('  2. Test commands with each platform');
+    logger.log('');
     logger.info('Platform adaptations:');
-    console.log('  - Claude Code: Validation (name, description, argument-hint)');
-    console.log('  - Codex: agents/openai.yaml (UI metadata)');
-    console.log('  - Gemini: commands.toml (TOML format, argument conversion)');
-    console.log('  - OpenClaw: metadata.openclaw + variant');
-    console.log('  - OpenCode: permissions.yaml + variant');
-    console.log('  - Antigravity: @mention variant');
+    logger.log('  - Claude Code: Validation (name, description, argument-hint)');
+    logger.log('  - Codex: agents/openai.yaml (UI metadata)');
+    logger.log('  - Gemini: commands.toml (TOML format, argument conversion)');
+    logger.log('  - OpenClaw: metadata.openclaw + variant');
+    logger.log('  - OpenCode: permissions.yaml + variant');
+    logger.log('  - Antigravity: @mention variant');
 }
 
 main();

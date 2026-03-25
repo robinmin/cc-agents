@@ -158,32 +158,32 @@ export async function scaffold(options: CommandScaffoldOptions): Promise<Command
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: scaffold.ts <command-name> [description] [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <command-name>         Name of the command to create');
-    console.log('  [description]          Optional command description (free-text)');
-    console.log('');
-    console.log('Options:');
-    console.log('  -p, --path <dir>       Output directory (default: ./commands)');
-    console.log('  -t, --template <type>  Template: simple, workflow, plugin (default: simple)');
-    console.log('  --skill <name>         Target skill for Skill() delegation (e.g. rd3:cc-skills)');
-    console.log('  --operation <name>     Operation passed as first arg to skill (e.g. scaffold)');
-    console.log('  --platform <name>      Target platform: all, claude, codex, gemini, etc.');
-    console.log('  --plugin-name <name>   Plugin name for plugin template');
-    console.log('  --description <text>   Description for frontmatter');
-    console.log('  -v, --verbose          Verbose output');
-    console.log('  -h, --help             Show help');
+    logger.log('Usage: scaffold.ts <command-name> [description] [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <command-name>         Name of the command to create');
+    logger.log('  [description]          Optional command description (free-text)');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  -p, --path <dir>       Output directory (default: ./commands)');
+    logger.log('  -t, --template <type>  Template: simple, workflow, plugin (default: simple)');
+    logger.log('  --skill <name>         Target skill for Skill() delegation (e.g. rd3:cc-skills)');
+    logger.log('  --operation <name>     Operation passed as first arg to skill (e.g. scaffold)');
+    logger.log('  --platform <name>      Target platform: all, claude, codex, gemini, etc.');
+    logger.log('  --plugin-name <name>   Plugin name for plugin template');
+    logger.log('  --description <text>   Description for frontmatter');
+    logger.log('  -v, --verbose          Verbose output');
+    logger.log('  -h, --help             Show help');
 }
 
-function printNextSteps(commandPath: string, commandName: string): void {
+function printNextSteps(commandPath: string, _commandName: string): void {
     logger.success(`Command created successfully at ${commandPath}`);
-    console.log('\nNext steps:');
-    console.log('1. Edit the command file to complete TODO items');
-    console.log('2. Update the description (keep under 60 characters)');
-    console.log('3. Add imperative instructions for Claude');
-    console.log(`4. Validate: bun validate.ts ${commandPath}`);
-    console.log(`5. Evaluate: bun evaluate.ts ${commandPath} --scope full`);
+    logger.log('\nNext steps:');
+    logger.log('1. Edit the command file to complete TODO items');
+    logger.log('2. Update the description (keep under 60 characters)');
+    logger.log('3. Add imperative instructions for Claude');
+    logger.log(`4. Validate: bun validate.ts ${commandPath}`);
+    logger.log(`5. Evaluate: bun evaluate.ts ${commandPath} --scope full`);
 }
 
 function parseCliArgs(): CommandScaffoldOptions & { verbose: boolean } {

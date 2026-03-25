@@ -14,7 +14,6 @@ import type {
     CommandAdapterContext,
     CommandAdapterResult,
     CommandBodyAnalysis,
-    CommandFrontmatter,
     CommandPlatform,
     ICommandPlatformAdapter,
 } from '../types';

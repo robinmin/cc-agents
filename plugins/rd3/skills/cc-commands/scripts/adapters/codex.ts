@@ -8,7 +8,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import YAML from 'yaml';
-import type { Command, CommandAdapterContext, CommandAdapterResult, CommandPlatform } from '../types';
+import type { Command, CommandAdapterContext, CommandPlatform } from '../types';
 import { BaseCommandAdapter } from './base';
 
 export interface CodexAdapterOptions {
@@ -48,7 +48,7 @@ export class CodexCommandAdapter extends BaseCommandAdapter {
         const errors: string[] = [];
         const warnings: string[] = [];
 
-        const outputPath = command.path.replace(/\.md$/, '');
+        const _outputPath = command.path.replace(/\.md$/, '');
         const agentsDir = join(dirname(command.path), 'agents');
         const openaiYamlPath = join(agentsDir, 'openai.yaml');
 

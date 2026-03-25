@@ -16,32 +16,24 @@
  *   --help, -h           Show help
  */
 
-import { existsSync, readFileSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { calculateLetterGrade, getEvaluationDecisionState, getThresholdDecisionState } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
 
 import { type CommandDimensionWeights, EVALUATION_CONFIG } from './evaluation.config';
 import type {
     Command,
     CommandBodyAnalysis,
-    CommandDimensionName,
     CommandEvaluationDimension,
     CommandEvaluationReport,
     CommandFrontmatter,
     CommandPlatform,
     EvaluationScope,
-    Grade,
     WeightProfile,
 } from './types';
-import {
-    analyzeBody,
-    detectNamingPattern,
-    isValidAllowedTools,
-    normalizeCommandName,
-    parseFrontmatter,
-    validateDescription,
-} from './utils';
+import { analyzeBody, detectNamingPattern, isValidAllowedTools, validateDescription } from './utils';
 
 // ============================================================================
 // TYPES
@@ -58,21 +50,11 @@ interface SecurityScanResult {
 // UTILITIES
 // ============================================================================
 
-function calculateGrade(percentage: number): Grade {
-    if (percentage >= 90) return 'A';
-    if (percentage >= 80) return 'B';
-    if (percentage >= 70) return 'C';
-    if (percentage >= 60) return 'D';
-    return 'F';
-}
-
 function getWeights(hasPseudocode: boolean): CommandDimensionWeights {
     return hasPseudocode ? EVALUATION_CONFIG.withPseudocode : EVALUATION_CONFIG.withoutPseudocode;
 }
 
 // Category helper for dimension results
-type DimensionCategory = 'Metadata' | 'Content' | 'Architecture' | 'Security' | 'Platform';
-
 function detectPseudocode(body: string): boolean {
     for (const pattern of EVALUATION_CONFIG.detection.pseudocodePatterns) {
         if (pattern.test(body)) {
@@ -358,7 +340,7 @@ function evaluateContentQuality(
 }
 
 function evaluateStructureBrevity(
-    body: string,
+    _body: string,
     analysis: CommandBodyAnalysis,
     weights: CommandDimensionWeights,
 ): CommandEvaluationDimension {
@@ -877,7 +859,7 @@ export function evaluateCommand(command: Command, scope: EvaluationScope = 'basi
         overallScore: weightedScore,
         maxScore,
         percentage,
-        grade: calculateGrade(percentage),
+        grade: calculateLetterGrade(percentage),
         dimensions,
         timestamp: new Date().toISOString(),
         passed: percentage >= EVALUATION_CONFIG.passThreshold,
@@ -916,6 +898,25 @@ export async function evaluateCommandFile(
         };
     }
 
+    // Check if path is a file, not a directory
+    if (!statSync(resolvedPath).isFile()) {
+        return {
+            commandPath: resolvedPath,
+            commandName: 'unknown',
+            scope,
+            weightProfile: 'without-pseudocode',
+            overallScore: 0,
+            maxScore: 100,
+            percentage: 0,
+            grade: 'F',
+            dimensions: [],
+            timestamp: new Date().toISOString(),
+            passed: false,
+            rejected: true,
+            rejectReason: `Path is not a file: ${resolvedPath}`,
+        };
+    }
+
     const { parseCommand } = await import('./utils');
     const content = readFileSync(resolvedPath, 'utf-8');
     const command = parseCommand(resolvedPath, content);
@@ -928,34 +929,32 @@ export async function evaluateCommandFile(
 // ============================================================================
 
 export function printReport(report: CommandEvaluationReport, verbose: boolean): void {
+    const overallStatus = getEvaluationDecisionState(report.passed, report.rejected);
+
     // Check if rejected
     if (report.rejected) {
-        console.log('\nEvaluation REJECTED');
-        console.log(`Reason: ${report.rejectReason}`);
-        console.log(`\nCommand: ${report.commandName}`);
-        console.log(`Scope: ${report.scope}`);
+        logger.log(`\nEvaluation decision: ${overallStatus}`);
+        logger.log(`Reason: ${report.rejectReason}`);
+        logger.log(`\nCommand: ${report.commandName}`);
+        logger.log(`Scope: ${report.scope}`);
         return;
     }
 
     // Normal evaluation result
-    if (report.passed) {
-        console.log(`\nEvaluation passed (${report.percentage}%)`);
-    } else {
-        console.log(`\nEvaluation failed (${report.percentage}%)`);
-    }
+    logger.log(`\nEvaluation decision: ${overallStatus} (${report.percentage}%)`);
 
-    console.log(`\nCommand: ${report.commandName}`);
-    console.log(`Scope: ${report.scope}`);
-    console.log(`Profile: ${report.weightProfile}`);
-    console.log(`Score: ${report.overallScore}/${report.maxScore} (${report.percentage}%)`);
-    console.log(`Grade: ${report.grade}`);
-    console.log(`Pass threshold: ${EVALUATION_CONFIG.passThreshold}%`);
+    logger.log(`\nCommand: ${report.commandName}`);
+    logger.log(`Scope: ${report.scope}`);
+    logger.log(`Profile: ${report.weightProfile}`);
+    logger.log(`Score: ${report.overallScore}/${report.maxScore} (${report.percentage}%)`);
+    logger.log(`Grade: ${report.grade}`);
+    logger.log(`Pass threshold: ${EVALUATION_CONFIG.passThreshold}%`);
 
     // Always show dimension scores in table format
-    console.log('\n--- Dimensions ---');
-    console.log('');
-    console.log('| Dimension                   | Score  | Max   | %     | Status |');
-    console.log('| --------------------------- | ------ | ----- | ----- | ------ |');
+    logger.log('\n--- Dimensions ---');
+    logger.log('');
+    logger.log('| Dimension                   | Score  | Max   | %     | Status |');
+    logger.log('| --------------------------- | ------ | ----- | ----- | ------ |');
 
     // Sort by percentage ascending to show weakest first
     const sortedDims = [...report.dimensions].sort((a, b) => {
@@ -966,56 +965,56 @@ export function printReport(report: CommandEvaluationReport, verbose: boolean): 
 
     for (const dim of sortedDims) {
         const pct = dim.maxScore > 0 ? Math.round((dim.score / dim.maxScore) * 100) : 0;
-        const status = pct >= 70 ? 'PASS' : 'FAIL';
+        const status = getThresholdDecisionState(pct, EVALUATION_CONFIG.passThreshold);
         const name = dim.displayName.padEnd(26);
-        console.log(
+        logger.log(
             `| ${name} | ${String(dim.score).padStart(4)} | ${String(dim.maxScore).padStart(4)} | ${String(pct).padStart(3)}% | ${status} |`,
         );
     }
-    console.log('');
+    logger.log('');
 
     // Show findings/recommendations in verbose mode
     if (verbose) {
-        console.log('\n--- Detailed Findings ---');
+        logger.log('\n--- Detailed Findings ---');
         for (const dim of report.dimensions) {
             if (dim.findings.length > 0 || dim.recommendations.length > 0) {
-                console.log(`\n**${dim.displayName}**`);
+                logger.log(`\n**${dim.displayName}**`);
                 if (dim.findings.length > 0) {
-                    console.log('  Findings:');
+                    logger.log('  Findings:');
                     for (const f of dim.findings) {
-                        console.log(`    - ${f}`);
+                        logger.log(`    - ${f}`);
                     }
                 }
                 if (dim.recommendations.length > 0) {
-                    console.log('  Recommendations:');
+                    logger.log('  Recommendations:');
                     for (const r of dim.recommendations) {
-                        console.log(`    - ${r}`);
+                        logger.log(`    - ${r}`);
                     }
                 }
             }
         }
     }
 
-    console.log('\n--- Summary ---');
+    logger.log('\n--- Summary ---');
     const totalFindings = report.dimensions.reduce((sum, d) => sum + d.findings.length, 0);
     const totalRecs = report.dimensions.reduce((sum, d) => sum + d.recommendations.length, 0);
-    console.log(`Total findings: ${totalFindings}`);
-    console.log(`Total recommendations: ${totalRecs}`);
-    console.log(`Pass threshold: ${EVALUATION_CONFIG.passThreshold}%`);
+    logger.log(`Total findings: ${totalFindings}`);
+    logger.log(`Total recommendations: ${totalRecs}`);
+    logger.log(`Pass threshold: ${EVALUATION_CONFIG.passThreshold}%`);
 }
 
 export function printUsage(): void {
-    console.log('Usage: evaluate.ts <command-path> [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <command-path>     Path to command .md file');
-    console.log('');
-    console.log('Options:');
-    console.log('  --scope <level>    Evaluation scope: basic, full (default: full)');
-    console.log('  --platform <name>  Platform: claude, codex, gemini, openclaw, opencode, antigravity, all');
-    console.log('  --json             Output results as JSON');
-    console.log('  --verbose, -v      Show detailed evaluation output');
-    console.log('  --help, -h         Show this help message');
+    logger.log('Usage: evaluate.ts <command-path> [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <command-path>     Path to command .md file');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  --scope <level>    Evaluation scope: basic, full (default: full)');
+    logger.log('  --platform <name>  Platform: claude, codex, gemini, openclaw, opencode, antigravity, all');
+    logger.log('  --json             Output results as JSON');
+    logger.log('  --verbose, -v      Show detailed evaluation output');
+    logger.log('  --help, -h         Show this help message');
 }
 
 export function parseCliArgs(): {
@@ -1082,14 +1081,15 @@ export function parseCliArgs(): {
 export async function main() {
     const { path: commandPath, options } = parseCliArgs();
 
-    const log = options.json ? console.error : console.log;
-    log(`[INFO] Evaluating command at: ${commandPath}`);
-    log(`[INFO] Scope: ${options.scope}, Platform: ${options.platform}`);
+    if (!options.json) {
+        logger.log(`[INFO] Evaluating command at: ${commandPath}`);
+        logger.log(`[INFO] Scope: ${options.scope}, Platform: ${options.platform}`);
+    }
 
     const report = await evaluateCommandFile(commandPath, options.scope);
 
     if (options.json) {
-        console.log(JSON.stringify(report, null, 2));
+        logger.log(JSON.stringify(report, null, 2));
         process.exit(report.passed ? 0 : 1);
     }
 

@@ -22,11 +22,11 @@
  *   --help, -h            Show this help message
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, resolve } from 'node:path';
+import { existsSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { logger, COLORS } from '../../../scripts/logger';
+import { logger } from '../../../scripts/logger';
 import {
     convertToImperative,
     createAntigravityAdapter,
@@ -37,8 +37,8 @@ import {
     createOpenClawAdapter,
     createOpenCodeAdapter,
 } from './adapters';
-import type { Command, CommandBodyAnalysis, CommandFrontmatter, CommandPlatform } from './types';
-import { analyzeBody, inferArgumentHints, normalizeCommandName, parseFrontmatter, readCommand } from './utils';
+import type { CommandPlatform } from './types';
+import { analyzeBody, inferArgumentHints, parseFrontmatter, readCommand } from './utils';
 
 // ============================================================================
 // Migration Functions
@@ -332,52 +332,52 @@ async function refineCommand(commandPath: string, options: RefineOptions): Promi
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: refine.ts <command-path> [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <command-path>        Path to command .md file');
-    console.log('');
-    console.log('Options:');
-    console.log('  --migrate             Enable rd2 to rd3 migration mode');
-    console.log(
+    logger.log('Usage: refine.ts <command-path> [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <command-path>        Path to command .md file');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  --migrate             Enable rd2 to rd3 migration mode');
+    logger.log(
         '  --platform <name>     Target platform: claude, codex, gemini, openclaw, opencode, antigravity (default: all)',
     );
-    console.log('  --dry-run             Show what would be changed without making changes');
-    console.log('  --verbose, -v         Show detailed output');
-    console.log('  --help, -h            Show this help message');
+    logger.log('  --dry-run             Show what would be changed without making changes');
+    logger.log('  --verbose, -v         Show detailed output');
+    logger.log('  --help, -h            Show this help message');
 }
 
 function printReport(report: RefineReport, verbose: boolean): void {
     if (report.migrations.length > 0) {
-        console.log('\n--- Migrations / Fixes ---');
+        logger.log('\n--- Migrations / Fixes ---');
         for (const m of report.migrations) {
-            console.log(`  + ${m}`);
+            logger.log(`  + ${m}`);
         }
     }
 
     if (report.generations.length > 0) {
-        console.log('\n--- Generated Companions ---');
+        logger.log('\n--- Generated Companions ---');
         for (const g of report.generations) {
-            console.log(`  + ${g}`);
+            logger.log(`  + ${g}`);
         }
     }
 
     if (report.warnings.length > 0 && verbose) {
-        console.log('\n--- Warnings ---');
+        logger.log('\n--- Warnings ---');
         for (const w of report.warnings) {
-            console.log(`  ! ${w}`);
+            logger.log(`  ! ${w}`);
         }
     }
 
     if (report.errors.length > 0) {
-        console.log('\n--- Errors ---');
+        logger.log('\n--- Errors ---');
         for (const e of report.errors) {
-            console.log(`  X ${e}`);
+            logger.log(`  X ${e}`);
         }
     }
 
     if (report.migrations.length === 0 && report.generations.length === 0 && report.errors.length === 0) {
-        console.log('\nNo changes needed');
+        logger.log('\nNo changes needed');
     }
 }
 

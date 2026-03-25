@@ -2,10 +2,11 @@
  * Unit tests for rd3:cc-commands evaluate script
  */
 
-import { describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Command, CommandAdapterContext, CommandEvaluationDimension } from '../scripts/types';
+import { setGlobalSilent } from '../../../scripts/logger';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const SCRIPTS_DIR = join(__dirname, '..', 'scripts');
@@ -461,7 +462,7 @@ describe('Unit: BaseCommandAdapter', () => {
             readonly platform = 'claude' as const;
             readonly displayName = 'Test Adapter';
 
-            async validatePlatform(command: Command): Promise<{ errors: string[]; warnings: string[] }> {
+            async validatePlatform(_command: Command): Promise<{ errors: string[]; warnings: string[] }> {
                 return {
                     errors: ['Platform-specific error'],
                     warnings: ['Platform-specific warning'],
@@ -1411,6 +1412,9 @@ Use this.
 });
 
 describe('Unit: CLI functions', () => {
+    beforeEach(() => setGlobalSilent(true));
+    afterEach(() => setGlobalSilent(false));
+
     it('should print usage without errors', async () => {
         const { printUsage } = await import(join(SCRIPTS_DIR, 'evaluate.ts'));
 

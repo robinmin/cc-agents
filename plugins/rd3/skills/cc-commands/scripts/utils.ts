@@ -9,9 +9,9 @@
  */
 
 import { basename } from 'node:path';
-import YAML from 'yaml';
+import { extractMarkdownHeadings, hasSecondPersonLanguage } from '../../../scripts/markdown-analysis';
+import { parseMarkdownFrontmatter } from '../../../scripts/markdown-frontmatter';
 import type { Command, CommandBodyAnalysis, CommandFrontmatter, CommandModel } from './types';
-import { INVALID_COMMAND_FIELDS, VALID_COMMAND_FIELDS, VALID_MODELS } from './types';
 
 // Re-export constants for convenience
 export {
@@ -50,96 +50,78 @@ export interface ParsedCommandFrontmatter {
  * unknown/invalid fields detected.
  */
 export function parseFrontmatter(content: string): ParsedCommandFrontmatter {
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    const parsedResult = parseMarkdownFrontmatter(content, { trimBodyWithoutFrontmatter: true });
+    const parsed = parsedResult.frontmatter;
 
-    if (!fmMatch) {
+    if (!parsed) {
         return {
             frontmatter: null,
-            body: content.trim(),
-            raw: content,
+            body: parsedResult.body,
+            raw: parsedResult.raw,
             unknownFields: [],
             invalidFields: [],
+            ...(parsedResult.parseError ? { parseError: parsedResult.parseError } : {}),
         };
     }
 
-    const yamlContent = fmMatch[1];
-    const body = content.slice(fmMatch[0].length).trim();
+    const parsedRecord = parsed as Record<string, unknown>;
 
-    try {
-        const parsed = YAML.parse(yamlContent);
+    // Separate valid, invalid, and unknown fields
+    const validSet = new Set<string>([
+        'description',
+        'allowed-tools',
+        'model',
+        'argument-hint',
+        'disable-model-invocation',
+    ]);
+    const invalidSet = new Set<string>([
+        'name',
+        'skills',
+        'subagents',
+        'version',
+        'agent',
+        'context',
+        'user-invocable',
+        'triggers',
+        'license',
+        'metadata',
+        'examples',
+        'arguments',
+        'tools',
+    ]);
 
-        if (!parsed || typeof parsed !== 'object') {
-            return {
-                frontmatter: null,
-                body,
-                raw: content,
-                unknownFields: [],
-                invalidFields: [],
-            };
+    const unknownFields: string[] = [];
+    const invalidFields: string[] = [];
+
+    for (const key of Object.keys(parsedRecord)) {
+        if (invalidSet.has(key)) {
+            invalidFields.push(key);
+        } else if (!validSet.has(key)) {
+            unknownFields.push(key);
         }
-
-        // Separate valid, invalid, and unknown fields
-        const validSet = new Set<string>([
-            'description',
-            'allowed-tools',
-            'model',
-            'argument-hint',
-            'disable-model-invocation',
-        ]);
-        const invalidSet = new Set<string>([
-            'name',
-            'skills',
-            'subagents',
-            'version',
-            'agent',
-            'context',
-            'user-invocable',
-            'triggers',
-            'license',
-            'metadata',
-            'examples',
-            'arguments',
-            'tools',
-        ]);
-
-        const unknownFields: string[] = [];
-        const invalidFields: string[] = [];
-
-        for (const key of Object.keys(parsed)) {
-            if (invalidSet.has(key)) {
-                invalidFields.push(key);
-            } else if (!validSet.has(key)) {
-                unknownFields.push(key);
-            }
-        }
-
-        // Extract only valid fields for the frontmatter object
-        const frontmatter: CommandFrontmatter = {};
-        if (parsed.description !== undefined) frontmatter.description = parsed.description;
-        if (parsed['allowed-tools'] !== undefined) frontmatter['allowed-tools'] = parsed['allowed-tools'];
-        if (parsed.model !== undefined) frontmatter.model = parsed.model;
-        if (parsed['argument-hint'] !== undefined) frontmatter['argument-hint'] = parsed['argument-hint'];
-        if (parsed['disable-model-invocation'] !== undefined) {
-            frontmatter['disable-model-invocation'] = parsed['disable-model-invocation'];
-        }
-
-        return {
-            frontmatter,
-            body,
-            raw: content,
-            unknownFields,
-            invalidFields,
-        };
-    } catch (error) {
-        return {
-            frontmatter: null,
-            body,
-            raw: content,
-            unknownFields: [],
-            invalidFields: [],
-            parseError: error instanceof Error ? error.message : String(error),
-        };
     }
+
+    // Extract only valid fields for the frontmatter object
+    const frontmatter: CommandFrontmatter = {};
+    if (parsedRecord.description !== undefined) frontmatter.description = parsedRecord.description as string;
+    if (parsedRecord['allowed-tools'] !== undefined) {
+        frontmatter['allowed-tools'] = parsedRecord['allowed-tools'] as string | string[];
+    }
+    if (parsedRecord.model !== undefined) frontmatter.model = parsedRecord.model as CommandModel;
+    if (parsedRecord['argument-hint'] !== undefined) {
+        frontmatter['argument-hint'] = parsedRecord['argument-hint'] as string;
+    }
+    if (parsedRecord['disable-model-invocation'] !== undefined) {
+        frontmatter['disable-model-invocation'] = parsedRecord['disable-model-invocation'] as boolean;
+    }
+
+    return {
+        frontmatter,
+        body: parsedResult.body,
+        raw: parsedResult.raw,
+        unknownFields,
+        invalidFields,
+    };
 }
 
 // ============================================================================
@@ -191,14 +173,6 @@ const ARGUMENT_REF_PATTERN = /\$(?:ARGUMENTS|\d+|@\$\d+)/g;
 /** Pattern for CLAUDE_PLUGIN_ROOT usage */
 const PLUGIN_ROOT_PATTERN = /\$\{?CLAUDE_PLUGIN_ROOT\}?/;
 
-/** Patterns for second-person language */
-const SECOND_PERSON_PATTERNS = [
-    /\byou\s+(?:should|must|need|can|will|may)\b/i,
-    /\byour\b/i,
-    /\byou're\b/i,
-    /\byou've\b/i,
-];
-
 /**
  * Analyze the body content of a command.
  */
@@ -222,18 +196,10 @@ export function analyzeBody(body: string): CommandBodyAnalysis {
         }
     }
 
-    // Detect sections
-    const sections: string[] = [];
-    for (const line of lines) {
-        const sectionMatch = line.match(/^#{1,3}\s+(.+)/);
-        if (sectionMatch) {
-            sections.push(sectionMatch[1].trim());
-        }
-    }
+    const sections = extractMarkdownHeadings(body, 3);
 
     // Detect second-person language (ignore code blocks and comments)
-    const textLines = filterNonCodeLines(lines);
-    const hasSecondPerson = textLines.some((line) => SECOND_PERSON_PATTERNS.some((pattern) => pattern.test(line)));
+    const hasSecondPerson = hasSecondPersonLanguage(lines);
 
     return {
         lineCount: lines.length,
@@ -399,39 +365,4 @@ export function detectNamingPattern(name: string): 'noun-verb' | 'verb-noun' | '
     if (verbs.has(lastPart)) return 'noun-verb';
     if (verbs.has(firstPart)) return 'verb-noun';
     return 'unknown';
-}
-
-// ============================================================================
-// Internal Helpers
-// ============================================================================
-
-/**
- * Filter out code block lines and HTML comments from text lines.
- * Used for natural language analysis (e.g., second-person detection).
- */
-function filterNonCodeLines(lines: string[]): string[] {
-    const result: string[] = [];
-    let inCodeBlock = false;
-    let inComment = false;
-
-    for (const line of lines) {
-        if (line.trimStart().startsWith('```')) {
-            inCodeBlock = !inCodeBlock;
-            continue;
-        }
-        if (inCodeBlock) continue;
-
-        if (line.includes('<!--')) {
-            inComment = true;
-        }
-        if (line.includes('-->')) {
-            inComment = false;
-            continue;
-        }
-        if (inComment) continue;
-
-        result.push(line);
-    }
-
-    return result;
 }

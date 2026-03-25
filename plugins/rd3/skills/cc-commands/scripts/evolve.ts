@@ -17,25 +17,31 @@ import type {
     EvolutionRunResultBase,
 } from '../../../scripts/evolution-contract';
 import {
+    type GenericEvaluationReport,
+    type MultiFileVersionSnapshot,
+    type StoredProposalSet,
     analyzeEvaluationReport,
     captureTargetedSnapshot,
+    createSupplementalSignalsFromMessages,
     formatAnalysis,
     formatHistory,
     formatProposals,
-    getNextVersionId,
+    generateHistorySignals,
     generateRefineBackedProposals,
-    loadVersionHistory,
+    generateWorkspaceSignals,
+    getNextVersionId,
     loadProposalSet,
+    loadVersionHistory,
     restoreTargetedSnapshot,
     runScript,
     saveProposalSet,
     saveSnapshotBackup,
     saveVersionSnapshot,
-    type GenericEvaluationReport,
-    type MultiFileVersionSnapshot,
-    type StoredProposalSet,
+    verifyProposalOutcome,
 } from '../../../scripts/evolution-engine';
 import { logger } from '../../../scripts/logger';
+import { evaluateCommandFile } from './evaluate';
+import { validateCommandFile } from './validate';
 
 const EVOLUTION_NAMESPACE = '.cc-commands';
 
@@ -129,30 +135,7 @@ export function parseCliArgs(argv: string[] = process.argv.slice(2)): CommandEvo
 }
 
 async function buildEvaluationReport(commandPath: string): Promise<GenericEvaluationReport> {
-    const evaluateScript = join(import.meta.dir, 'evaluate.ts');
-    const result = await runScript(evaluateScript, [commandPath, '--scope', 'full', '--json']);
-
-    if (result.exitCode > 1) {
-        throw new Error((result.stderr || result.stdout || 'evaluate.ts failed').trim());
-    }
-
-    const report = JSON.parse(result.stdout) as {
-        commandPath: string;
-        commandName: string;
-        percentage: number;
-        passed: boolean;
-        grade?: string;
-        rejected?: boolean;
-        rejectReason?: string;
-        dimensions: Array<{
-            name: string;
-            displayName: string;
-            score: number;
-            maxScore: number;
-            findings: string[];
-            recommendations: string[];
-        }>;
-    };
+    const report = await evaluateCommandFile(commandPath, 'full');
 
     return {
         targetPath: report.commandPath,
@@ -173,6 +156,11 @@ async function buildEvaluationReport(commandPath: string): Promise<GenericEvalua
     };
 }
 
+async function validateCommandForVerification(commandPath: string): Promise<boolean> {
+    const report = await validateCommandFile(commandPath);
+    return report.valid;
+}
+
 async function analyzeCommand(commandPath: string): Promise<CommandPatternAnalysis> {
     const report = await buildEvaluationReport(commandPath);
     return analyzeEvaluationReport(report);
@@ -181,10 +169,20 @@ async function analyzeCommand(commandPath: string): Promise<CommandPatternAnalys
 async function proposeCommandEvolution(commandPath: string): Promise<StoredProposalSet> {
     const report = await buildEvaluationReport(commandPath);
     const analysis = analyzeEvaluationReport(report);
+    const validationReport = await validateCommandFile(commandPath);
     const proposalSet = generateRefineBackedProposals(report, analysis, {
         defaultFlags: [],
         migrateFlags: ['--migrate'],
         applySupported: true,
+        targetKind: 'command',
+        objective: 'quality',
+        verificationChecks: ['validate', 'evaluate'],
+        supplementalSignals: [
+            ...createSupplementalSignalsFromMessages(validationReport.errors, 'error'),
+            ...createSupplementalSignalsFromMessages(validationReport.warnings, 'warning'),
+            ...generateHistorySignals(EVOLUTION_NAMESPACE, commandPath, report.grade),
+            ...generateWorkspaceSignals(commandPath, report.targetName),
+        ],
     });
 
     saveProposalSet(EVOLUTION_NAMESPACE, commandPath, proposalSet);
@@ -223,6 +221,12 @@ async function applyCommandProposal(commandPath: string, proposalId?: string) {
     if (!proposal) {
         return { success: false, error: `Proposal ${proposalId} not found` };
     }
+    if (proposal.applyMode === 'manual-only') {
+        return {
+            success: false,
+            error: `Proposal ${proposalId} is recommendation-only and must be applied manually.`,
+        };
+    }
 
     const baselineReport = await buildEvaluationReport(commandPath);
     let history = loadVersionHistory<MultiFileVersionSnapshot>(EVOLUTION_NAMESPACE, commandPath);
@@ -242,17 +246,39 @@ async function applyCommandProposal(commandPath: string, proposalId?: string) {
         history = loadVersionHistory<MultiFileVersionSnapshot>(EVOLUTION_NAMESPACE, commandPath);
     }
 
+    const preApplySnapshot = captureTargetedSnapshot(
+        dirname(commandPath),
+        getCommandManagedPaths(commandPath),
+        'pre-apply',
+        baselineReport.grade || 'unknown',
+        `Pre-apply snapshot for ${proposal.id}`,
+        [],
+    );
+
     const refineScript = join(import.meta.dir, 'refine.ts');
     const refineResult = await runScript(refineScript, [commandPath, ...proposal.action.flags]);
 
     if (refineResult.exitCode !== 0) {
+        restoreTargetedSnapshot(preApplySnapshot, getCommandManagedPaths(commandPath));
         return {
             success: false,
             error: (refineResult.stderr || refineResult.stdout || 'refine.ts failed').trim(),
         };
     }
 
+    const validationPassed = proposal.verificationPlan?.checks.includes('validate')
+        ? await validateCommandForVerification(commandPath)
+        : undefined;
     const updatedReport = await buildEvaluationReport(commandPath);
+    const verification = verifyProposalOutcome(proposal, baselineReport, updatedReport, validationPassed);
+    if (!verification.success) {
+        restoreTargetedSnapshot(preApplySnapshot, getCommandManagedPaths(commandPath));
+        return {
+            success: false,
+            error: `Verification failed after apply. ${verification.issues.join(' ')} Rolled back to the pre-apply state.`,
+        };
+    }
+
     const snapshot = captureTargetedSnapshot(
         dirname(commandPath),
         getCommandManagedPaths(commandPath),

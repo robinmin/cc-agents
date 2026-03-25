@@ -9,7 +9,7 @@
  */
 
 import { dirname, join } from 'node:path';
-import type { Command, CommandAdapterContext, CommandAdapterResult, CommandPlatform } from '../types';
+import type { Command, CommandAdapterContext, CommandPlatform } from '../types';
 import { BaseCommandAdapter, convertArgumentSyntax, convertPseudocodeToNaturalLanguage } from './base';
 
 export interface GeminiAdapterOptions {

@@ -4,8 +4,8 @@
  * Validates Claude-specific syntax and generates Platform Notes
  */
 
-import type { Command, CommandAdapterContext, CommandAdapterResult, CommandPlatform } from '../types';
-import { BaseCommandAdapter, convertToImperative, inferArgumentHints } from './base';
+import type { Command, CommandAdapterContext, CommandPlatform } from '../types';
+import { BaseCommandAdapter } from './base';
 
 export interface ClaudeAdapterOptions {
     fixSecondPerson?: boolean;

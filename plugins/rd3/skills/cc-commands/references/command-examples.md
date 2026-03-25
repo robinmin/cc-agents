@@ -35,10 +35,10 @@ bun scripts/refine.ts ./commands/review-code.md --from-eval eval-results.json
 
 ```bash
 # Generate Gemini CLI TOML equivalent
-bun scripts/adapt.ts ./commands/ --platform gemini
+bun scripts/adapt.ts ./commands/ gemini
 
 # Generate all platform variants
-bun scripts/adapt.ts ./commands/ --platform all
+bun scripts/adapt.ts ./commands/ all
 ```
 
 ## Key Patterns

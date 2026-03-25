@@ -7,8 +7,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import YAML from 'yaml';
-import type { Command, CommandAdapterContext, CommandAdapterResult, CommandPlatform } from '../types';
-import { BaseCommandAdapter, convertArgumentSyntax, convertPseudocodeToNaturalLanguage } from './base';
+import type { Command, CommandAdapterContext, CommandPlatform } from '../types';
+import { BaseCommandAdapter, convertPseudocodeToNaturalLanguage } from './base';
 
 export interface OpenClawAdapterOptions {
     generateVariant?: boolean;
