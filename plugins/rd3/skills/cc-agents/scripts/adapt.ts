@@ -32,6 +32,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { getOperationDecisionState } from '../../../scripts/grading';
 import { COLORS, logger } from '../../../scripts/logger';
 
 import { agentAdapterRegistry, createAgentAdapterContext } from './adapters';
@@ -333,7 +334,11 @@ function printResults(results: AdaptResult[], dryRun: boolean): void {
 
     for (const result of results) {
         const targetName = PLATFORM_DISPLAY_NAMES[result.targetPlatform];
-        const status = result.success ? `${COLORS.green}OK${COLORS.reset}` : `${COLORS.red}FAIL${COLORS.reset}`;
+        const decision = getOperationDecisionState(result.success);
+        const status =
+            decision === 'PASS'
+                ? `${COLORS.green}${decision}${COLORS.reset}`
+                : `${COLORS.red}${decision}${COLORS.reset}`;
 
         logger.log('');
         logger.log(`  ${targetName}: ${status}`);
@@ -354,7 +359,7 @@ function printResults(results: AdaptResult[], dryRun: boolean): void {
         } else {
             failCount++;
             for (const error of result.errors) {
-                logger.log(`    ${COLORS.red}ERROR: ${error}${COLORS.reset}`);
+                logger.log(`    ${COLORS.red}BLOCK: ${error}${COLORS.reset}`);
             }
         }
 
@@ -371,8 +376,8 @@ function printResults(results: AdaptResult[], dryRun: boolean): void {
     logger.log('-'.repeat(60));
     logger.log(
         `  Total: ${results.length} | ` +
-            `${COLORS.green}Success: ${successCount}${COLORS.reset} | ` +
-            `${COLORS.red}Failed: ${failCount}${COLORS.reset}`,
+            `${COLORS.green}PASS: ${successCount}${COLORS.reset} | ` +
+            `${COLORS.red}BLOCK: ${failCount}${COLORS.reset}`,
     );
     logger.log('');
 }
