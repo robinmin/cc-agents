@@ -13,9 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/tsconfig-guide
-  - rd3:pl-typescript/references/ts5-features
 ---
 
 # TypeScript Migration Guide
