@@ -1,15 +1,17 @@
 ---
 name: docker-patterns
-description: "Docker containerization patterns: multi-stage builds, security hardening, layer optimization, Docker Compose, health checks, and production deployment."
+description: "Docker containerization patterns: multi-stage builds, security hardening, layer optimization, Docker Compose, health checks, BuildKit features, Kubernetes deployment, and container signing."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
-tags: [docker, containers, deployment, devops, patterns, engineering-core]
+updated_at: 2026-03-24
+tags: [docker, containers, deployment, devops, kubernetes, buildkit, patterns, engineering-core]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,antigravity,opencode,openclaw,pi"
   category: engineering-core
+  interactions:
+    - knowledge-only
 see_also:
   - rd3:sys-developing
 ---
@@ -352,3 +354,259 @@ ports:
 | Fat images | Multi-stage builds |
 | No health check | Add HEALTHCHECK |
 | Logs to files | Log to stdout |
+
+## BuildKit Features
+
+BuildKit (`DOCKER_BUILDKIT=1`) enables advanced build features.
+
+### Multi-Platform Builds
+
+```dockerfile
+# syntax=docker/dockerfile:1.4
+# Build for multiple platforms from a single Dockerfile
+FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -o /app/bin .
+
+FROM alpine:3.19
+RUN apk --no-cache add ca-certificates
+COPY --from=builder /app/bin /usr/local/bin/
+ENTRYPOINT ["myapp"]
+```
+
+```bash
+# Build for multiple platforms
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  --tag myapp:latest \
+  --push \
+  .
+```
+
+### Cache Mounts for Builds
+
+```dockerfile
+# syntax=docker/dockerfile:1.4
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Mount npm cache between builds (persists across builds)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
+# Mount Go module cache
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+```
+
+### Layer Caching with Secrets
+
+```dockerfile
+# syntax=docker/dockerfile:1.4
+FROM alpine
+
+# Mount secret without leaking to image layers
+RUN --mount=type=secret,id=npm_token \
+    echo "//registry.npmjs.org/:_authToken=$(cat /run/secrets/npm_token)" \
+    > .npmrc && npm install
+```
+
+### Build Args vs Secrets
+
+| Use For | Type |
+|---------|------|
+| Platform, version flags | `ARG` |
+| API keys, tokens, credentials | `ARG --mount=type=secret` |
+| Caches that should persist | `--mount=type=cache` |
+
+## Container Signing
+
+### Cosign Keyless Signing
+
+```bash
+# Install cosign
+brew install cosign
+
+# Sign image (keyless, uses OIDC)
+cosign sign myregistry.io/myapp:latest
+
+# Verify signature
+cosign verify \
+  --certificate-identity "https://github.com/myorg/myrepo/.github/workflows/release.yml@refs/tags/v1.0.0" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  myregistry.io/myapp:latest
+```
+
+### Dockerfile Integration
+
+```dockerfile
+# syntax=docker/dockerfile:1.4
+FROM alpine:3.19
+COPY myapp /usr/local/bin/
+ENTRYPOINT ["myapp"]
+
+# Add SBOM attestation
+COPY --from=goreleaser/goreleaser:latest /dist/*.spdx.sbom.json /sbom/
+```
+
+## Kubernetes Deployment
+
+### Deployment Manifest
+
+```yaml
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: myapp
+          image: myregistry.io/myapp:latest
+          ports:
+            - containerPort: 3000
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-secrets
+                  key: database-url
+```
+
+### Horizontal Pod Autoscaler
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+### Pod Disruption Budget
+
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myapp-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: myapp
+```
+
+### When to Use Which Probe
+
+| Probe | Use When |
+|-------|----------|
+| `livenessProbe` | Container must not restart on transient failures |
+| `readinessProbe` | Container should not receive traffic until ready |
+| `startupProbe` | Container needs long initialization (slow start) |
+
+## Distroless and Scratch Images
+
+### Static Binary on Scratch
+
+```dockerfile
+# Build stage
+FROM golang:1.22-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o myapp .
+
+# Scratch stage — zero dependencies
+FROM scratch
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /app/myapp /usr/local/bin/
+ENTRYPOINT ["myapp"]
+```
+
+### Distroless for Interpreted Languages
+
+```dockerfile
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN npm ci && npm run build
+
+# Use distroless (includes CA certs, no shell)
+FROM gcr.io/distroless/nodejs20-debian11
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY package*.json ./
+USER nonroot
+ENTRYPOINT ["dist/main.js"]
+```
+
+### Image Size Comparison
+
+| Base | Typical Size | Security |
+|------|-------------|----------|
+| `alpine:3.19` | ~7 MB | Minimal surface, musl |
+| `node:20-slim` | ~130 MB | Debian slim |
+| `distroless/nodejs20` | ~130 MB | Hardened, no shell |
+| `scratch` | 0 MB | No OS at all |
