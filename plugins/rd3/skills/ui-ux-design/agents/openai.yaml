@@ -1,0 +1,15 @@
+name: ui-ux-design
+description: "UI/UX design patterns with accessibility-first approach: WCAG 2.2
+  AA compliance, responsive layouts, design tokens, component patterns, and
+  AI-assisted UI generation via Google Stitch. Trigger when designing UI
+  components, reviewing accessibility, establishing design systems, or
+  generating interfaces with Stitch."
+version: 1.1.0
+icon: 🛠️
+category: debugging
+tags:
+  - ui-ux
+  - accessibility
+  - wcag
+  - wcag-2.2
+  - design-tokens
