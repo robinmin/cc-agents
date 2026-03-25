@@ -1,0 +1,13 @@
+name: code-review-common
+description: Unified, channel-agnostic code review skill with SECU framework,
+  priority taxonomy, and rd3:run-acp integration. Trigger when user mentions
+  'code review', 'review this', 'static analysis', or similar.
+version: 1.0.0
+icon: 🔍
+category: debugging
+tags:
+  - execution-core
+  - code-review
+  - static-analysis
+  - security
+  - quality
