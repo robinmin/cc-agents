@@ -13,10 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/tsconfig-guide
-  - rd3:pl-typescript/references/testing-strategy
-  - rd3:pl-typescript/references/project-structures
 ---
 
 # TypeScript Tooling Guide
