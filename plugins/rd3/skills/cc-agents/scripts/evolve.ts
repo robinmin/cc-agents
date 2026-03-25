@@ -9,7 +9,7 @@
  * - keep version history for safe rollback
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -20,24 +20,29 @@ import type {
     EvolutionVersionSnapshot,
 } from '../../../scripts/evolution-contract';
 import {
+    type GenericEvaluationReport,
+    type StoredProposalSet,
     analyzeEvaluationReport,
     createBackup,
+    createSupplementalSignalsFromMessages,
     formatAnalysis,
     formatHistory,
     formatProposals,
-    getNextVersionId,
+    generateHistorySignals,
     generateRefineBackedProposals,
+    generateWorkspaceSignals,
+    getNextVersionId,
     loadProposalSet,
     loadVersionHistory,
     rollbackSingleFile,
     runScript,
     saveProposalSet,
     saveVersionSnapshot,
-    type GenericEvaluationReport,
-    type StoredProposalSet,
+    verifyProposalOutcome,
 } from '../../../scripts/evolution-engine';
 import { logger } from '../../../scripts/logger';
 import { evaluateAgent } from './evaluate';
+import { validateAgent } from './validate';
 
 const EVOLUTION_NAMESPACE = '.cc-agents';
 const PLACEHOLDER_EXIT_CODE = 2;
@@ -158,13 +163,28 @@ async function analyzeAgent(agentPath: string): Promise<AgentPatternAnalysis> {
     return analyzeEvaluationReport(report);
 }
 
+async function validateAgentForVerification(agentPath: string): Promise<boolean> {
+    const report = await validateAgent(agentPath, 'all');
+    return report.valid;
+}
+
 async function proposeAgentEvolution(agentPath: string): Promise<StoredProposalSet> {
     const report = await buildEvaluationReport(agentPath);
     const analysis = analyzeEvaluationReport(report);
+    const validationReport = await validateAgent(agentPath, 'all');
     const proposalSet = generateRefineBackedProposals(report, analysis, {
         defaultFlags: ['--eval', '--best-practices'],
         migrateFlags: ['--migrate'],
         applySupported: true,
+        targetKind: 'agent',
+        objective: 'quality',
+        verificationChecks: ['validate', 'evaluate'],
+        supplementalSignals: [
+            ...createSupplementalSignalsFromMessages(validationReport.errors, 'error'),
+            ...createSupplementalSignalsFromMessages(validationReport.warnings, 'warning'),
+            ...generateHistorySignals(EVOLUTION_NAMESPACE, agentPath, report.grade),
+            ...generateWorkspaceSignals(agentPath, report.targetName),
+        ],
     });
 
     saveProposalSet(EVOLUTION_NAMESPACE, agentPath, proposalSet);
@@ -184,6 +204,12 @@ async function applyAgentProposal(agentPath: string, proposalId?: string) {
     const proposal = proposalSet.proposals.find((entry) => entry.id === proposalId);
     if (!proposal) {
         return { success: false, error: `Proposal ${proposalId} not found` };
+    }
+    if (proposal.applyMode === 'manual-only') {
+        return {
+            success: false,
+            error: `Proposal ${proposalId} is recommendation-only and must be applied manually.`,
+        };
     }
 
     const baselineReport = await buildEvaluationReport(agentPath);
@@ -207,6 +233,7 @@ async function applyAgentProposal(agentPath: string, proposalId?: string) {
     const refineResult = await runScript(refineScript, [agentPath, ...proposal.action.flags]);
 
     if (refineResult.exitCode !== 0) {
+        writeFileSync(agentPath, currentContent, 'utf-8');
         return {
             success: false,
             backupPath,
@@ -214,7 +241,20 @@ async function applyAgentProposal(agentPath: string, proposalId?: string) {
         };
     }
 
+    const validationPassed = proposal.verificationPlan?.checks.includes('validate')
+        ? await validateAgentForVerification(agentPath)
+        : undefined;
     const updatedReport = await buildEvaluationReport(agentPath);
+    const verification = verifyProposalOutcome(proposal, baselineReport, updatedReport, validationPassed);
+    if (!verification.success) {
+        writeFileSync(agentPath, currentContent, 'utf-8');
+        return {
+            success: false,
+            backupPath,
+            error: `Verification failed after apply. ${verification.issues.join(' ')} Rolled back to the pre-apply state.`,
+        };
+    }
+
     const updatedContent = readFileSync(agentPath, 'utf-8');
     const version = getNextVersionId(history);
 

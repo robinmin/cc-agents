@@ -157,19 +157,19 @@ async function refineAgent(agentPath: string, options: AgentRefineOptions): Prom
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: refine.ts <agent-path> [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <agent-path>        Path to agent .md file');
-    console.log('');
-    console.log('Options:');
-    console.log('  --eval, -e          Run evaluation before refinement');
-    console.log('  --migrate           Enable rd2 to rd3 migration mode');
-    console.log('  --best-practices    Apply best practice auto-fixes');
-    console.log('  --output, -o        Output path (default: in-place)');
-    console.log('  --dry-run           Show what would be changed');
-    console.log('  --verbose, -v       Show detailed output');
-    console.log('  --help, -h          Show this help message');
+    logger.log('Usage: refine.ts <agent-path> [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <agent-path>        Path to agent .md file');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  --eval, -e          Run evaluation before refinement');
+    logger.log('  --migrate           Enable rd2 to rd3 migration mode');
+    logger.log('  --best-practices    Apply best practice auto-fixes');
+    logger.log('  --output, -o        Output path (default: in-place)');
+    logger.log('  --dry-run           Show what would be changed');
+    logger.log('  --verbose, -v       Show detailed output');
+    logger.log('  --help, -h          Show this help message');
 }
 
 function parseCliArgs(): {
@@ -229,7 +229,7 @@ function parseCliArgs(): {
 }
 
 async function main() {
-    const { path: agentPath, options, dryRun, verbose } = parseCliArgs();
+    const { path: agentPath, options, dryRun, verbose: _verbose } = parseCliArgs();
 
     logger.info(`Refining agent at: ${agentPath}`);
     logger.info(`Options: migrate=${options.migrate}, fromEval=${!!options.fromEval}`);
@@ -247,28 +247,28 @@ async function main() {
     }
 
     if (result.changes.length > 0) {
-        console.log('\n--- Changes ---');
+        logger.log('\n--- Changes ---');
         for (const change of result.changes) {
-            console.log(`  + ${change}`);
+            logger.log(`  + ${change}`);
         }
     }
 
     if (result.warnings.length > 0) {
-        console.log('\n--- Warnings ---');
+        logger.log('\n--- Warnings ---');
         for (const warning of result.warnings) {
-            console.log(`  ⚠ ${warning}`);
+            logger.log(`  ⚠ ${warning}`);
         }
     }
 
     if (result.errors.length > 0) {
-        console.log('\n--- Errors ---');
+        logger.log('\n--- Errors ---');
         for (const error of result.errors) {
-            console.log(`  ✗ ${error}`);
+            logger.log(`  ✗ ${error}`);
         }
     }
 
     if (result.changes.length === 0 && result.errors.length === 0) {
-        console.log('\nNo changes needed');
+        logger.log('\nNo changes needed');
     }
 
     process.exit(result.success ? 0 : 1);

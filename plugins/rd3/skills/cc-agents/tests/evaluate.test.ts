@@ -2,11 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { evaluateAgent, renderBar, parseCliArgs, printUsage, printTextReport } from '../scripts/evaluate';
+import { setGlobalSilent } from '../../../scripts/logger';
+import { evaluateAgent, parseCliArgs, printTextReport, printUsage, renderBar } from '../scripts/evaluate';
 import { validateWeightProfile } from '../scripts/evaluation.config';
 import type { AgentDimensionWeights } from '../scripts/evaluation.config';
 import type { AgentEvaluationReport } from '../scripts/types';
-import { setGlobalSilent } from '../../../scripts/logger';
 
 const FIXTURES_DIR = resolve(import.meta.dir, 'fixtures');
 
@@ -847,7 +847,7 @@ describe('printTextReport', () => {
         }
     });
 
-    it('should print rejection message for rejected report', () => {
+    it('should print BLOCK status for rejected report', () => {
         const rejectedReport = {
             ...mockReport,
             rejected: true,
@@ -861,14 +861,14 @@ describe('printTextReport', () => {
         try {
             printTextReport(rejectedReport, false);
             const output = logs.join('\n');
-            expect(output).toContain('REJECTED');
+            expect(output).toContain('BLOCK');
             expect(output).toContain('Security violation');
         } finally {
             console.log = origLog;
         }
     });
 
-    it('should print FAIL status for non-passing report', () => {
+    it('should print WARN status for non-passing report', () => {
         const failReport = { ...mockReport, passed: false, percentage: 50, grade: 'F' as const };
         const logs: string[] = [];
         const origLog = console.log;
@@ -876,7 +876,7 @@ describe('printTextReport', () => {
         try {
             printTextReport(failReport, false);
             const output = logs.join('\n');
-            expect(output).toContain('FAIL');
+            expect(output).toContain('WARN');
         } finally {
             console.log = origLog;
         }

@@ -34,10 +34,11 @@
  *   bun install.ts agent.md --target codex --dry-run
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { basename, extname, join, resolve } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { basename, extname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { getOperationDecisionState } from '../../../scripts/grading';
 import { COLORS, logger } from '../../../scripts/logger';
 
 import { adaptAgent } from './adapt';
@@ -122,7 +123,7 @@ function parseCliArgs(argv = process.argv.slice(2)): InstallOptions {
     const targetPlatform = args.values.target as AgentPlatform;
     if (!VALID_INSTALL_TARGETS.includes(targetPlatform)) {
         logger.error(`Invalid target platform: ${targetPlatform}`);
-        console.log(`   Valid targets: ${VALID_INSTALL_TARGETS.join(', ')}`);
+        logger.log(`   Valid targets: ${VALID_INSTALL_TARGETS.join(', ')}`);
         process.exit(1);
     }
 
@@ -154,26 +155,26 @@ function parseCliArgs(argv = process.argv.slice(2)): InstallOptions {
 }
 
 function printUsage(): void {
-    console.log(`${COLORS.cyan}install.ts${COLORS.reset} - Agent Installation Tool\n`);
-    console.log(`${COLORS.green}USAGE:${COLORS.reset}`);
-    console.log('    bun install.ts <source> --target <platform> [options]\n');
-    console.log(`${COLORS.green}ARGUMENTS:${COLORS.reset}`);
-    console.log('    source            Path to agent file or directory\n');
-    console.log(`${COLORS.green}OPTIONS:${COLORS.reset}`);
-    console.log(`    --target, -t      Target: ${VALID_INSTALL_TARGETS.join(', ')} (required)`);
-    console.log('    --source-platform Override auto-detected source platform');
-    console.log('    --global, -g      Install to user-level directory');
-    console.log('    --dry-run         Preview without writing files');
-    console.log('    --verbose         Show detailed output');
-    console.log('    --help            Show this help message\n');
-    console.log(`${COLORS.green}INSTALL DIRECTORIES:${COLORS.reset}`);
+    logger.log(`${COLORS.cyan}install.ts${COLORS.reset} - Agent Installation Tool\n`);
+    logger.log(`${COLORS.green}USAGE:${COLORS.reset}`);
+    logger.log('    bun install.ts <source> --target <platform> [options]\n');
+    logger.log(`${COLORS.green}ARGUMENTS:${COLORS.reset}`);
+    logger.log('    source            Path to agent file or directory\n');
+    logger.log(`${COLORS.green}OPTIONS:${COLORS.reset}`);
+    logger.log(`    --target, -t      Target: ${VALID_INSTALL_TARGETS.join(', ')} (required)`);
+    logger.log('    --source-platform Override auto-detected source platform');
+    logger.log('    --global, -g      Install to user-level directory');
+    logger.log('    --dry-run         Preview without writing files');
+    logger.log('    --verbose         Show detailed output');
+    logger.log('    --help            Show this help message\n');
+    logger.log(`${COLORS.green}INSTALL DIRECTORIES:${COLORS.reset}`);
     for (const [platform, dirs] of Object.entries(PLATFORM_DIRS)) {
-        console.log(`    ${platform}:  ${dirs.project} (project) | ${dirs.global} (global)`);
+        logger.log(`    ${platform}:  ${dirs.project} (project) | ${dirs.global} (global)`);
     }
-    console.log(`\n${COLORS.green}EXAMPLES:${COLORS.reset}`);
-    console.log('    bun install.ts agent.md --target codex');
-    console.log('    bun install.ts ./agents/ --target codex --global');
-    console.log('    bun install.ts agent.md --target codex --dry-run');
+    logger.log(`\n${COLORS.green}EXAMPLES:${COLORS.reset}`);
+    logger.log('    bun install.ts agent.md --target codex');
+    logger.log('    bun install.ts ./agents/ --target codex --global');
+    logger.log('    bun install.ts agent.md --target codex --dry-run');
 }
 
 // ============================================================================
@@ -316,22 +317,22 @@ async function installAgent(
 async function main(argv = process.argv.slice(2)) {
     const options = parseCliArgs(argv);
 
-    console.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
-    console.log(
+    logger.log(`${COLORS.magenta}╔════════════════════════════════════════════════════════════╗${COLORS.reset}`);
+    logger.log(
         `${COLORS.magenta}║${COLORS.reset}    ${COLORS.cyan}install.ts${COLORS.reset} - Agent Installation Tool              ${COLORS.magenta}║${COLORS.reset}`,
     );
-    console.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
+    logger.log(`${COLORS.magenta}╚════════════════════════════════════════════════════════════╝${COLORS.reset}\n`);
 
     const targetName = PLATFORM_DISPLAY_NAMES[options.targetPlatform];
     const dirs = PLATFORM_DIRS[options.targetPlatform];
     const installDir = options.global ? dirs.global : dirs.project;
 
-    console.log(`Target: ${targetName}`);
-    console.log(`Install dir: ${installDir}`);
-    console.log(`Sources: ${options.sources.length} file(s)`);
-    console.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'INSTALL'}`);
-    console.log(`Scope: ${options.global ? 'GLOBAL (user-level)' : 'PROJECT (local)'}`);
-    console.log('');
+    logger.log(`Target: ${targetName}`);
+    logger.log(`Install dir: ${installDir}`);
+    logger.log(`Sources: ${options.sources.length} file(s)`);
+    logger.log(`Mode: ${options.dryRun ? 'DRY RUN' : 'INSTALL'}`);
+    logger.log(`Scope: ${options.global ? 'GLOBAL (user-level)' : 'PROJECT (local)'}`);
+    logger.log('');
 
     const results: InstallResult[] = [];
 
@@ -350,22 +351,26 @@ async function main(argv = process.argv.slice(2)) {
         );
         results.push(result);
 
-        const status = result.success ? `${COLORS.green}OK${COLORS.reset}` : `${COLORS.red}FAIL${COLORS.reset}`;
+        const decision = getOperationDecisionState(result.success);
+        const status =
+            decision === 'PASS'
+                ? `${COLORS.green}${decision}${COLORS.reset}`
+                : `${COLORS.red}${decision}${COLORS.reset}`;
         const action = options.dryRun ? 'WOULD INSTALL' : 'INSTALLED';
 
-        console.log(`  ${status} ${result.source} -> ${result.agentName}`);
+        logger.log(`  ${status} ${result.source} -> ${result.agentName}`);
 
         if (result.success && result.installedPath) {
-            console.log(`       [${action}] ${result.installedPath}`);
+            logger.log(`       [${action}] ${result.installedPath}`);
         }
 
         for (const error of result.errors) {
-            console.log(`       ${COLORS.red}ERROR: ${error}${COLORS.reset}`);
+            logger.log(`       ${COLORS.red}BLOCK: ${error}${COLORS.reset}`);
         }
 
         for (const warning of result.warnings) {
             if (options.verbose) {
-                console.log(`       ${COLORS.yellow}WARN: ${warning}${COLORS.reset}`);
+                logger.log(`       ${COLORS.yellow}WARN: ${warning}${COLORS.reset}`);
             }
         }
     }
@@ -374,14 +379,14 @@ async function main(argv = process.argv.slice(2)) {
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
 
-    console.log('');
-    console.log('-'.repeat(60));
-    console.log(
+    logger.log('');
+    logger.log('-'.repeat(60));
+    logger.log(
         `  Total: ${results.length} | ` +
-            `${COLORS.green}Success: ${successCount}${COLORS.reset} | ` +
-            `${COLORS.red}Failed: ${failCount}${COLORS.reset}`,
+            `${COLORS.green}PASS: ${successCount}${COLORS.reset} | ` +
+            `${COLORS.red}BLOCK: ${failCount}${COLORS.reset}`,
     );
-    console.log('');
+    logger.log('');
 
     if (failCount > 0) {
         process.exit(1);

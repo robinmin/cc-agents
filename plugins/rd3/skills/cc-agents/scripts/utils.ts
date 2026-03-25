@@ -12,7 +12,12 @@
  */
 
 import { basename } from 'node:path';
-import YAML from 'yaml';
+import { extractMarkdownHeadings, hasSecondPersonLanguage } from '../../../scripts/markdown-analysis';
+import {
+    detectUnknownFields,
+    parseMarkdownFrontmatter,
+    serializeMarkdownFrontmatter,
+} from '../../../scripts/markdown-frontmatter';
 import type {
     AgentBodyAnalysis,
     AgentPlatform,
@@ -58,16 +63,6 @@ export const ANATOMY_SECTIONS = [
     'OUTPUT',
 ] as const;
 
-/**
- * Patterns for detecting second-person language.
- */
-const SECOND_PERSON_PATTERNS = [
-    /\byou\s+(?:should|must|need|can|will|may)\b/i,
-    /\byour\b/i,
-    /\byou're\b/i,
-    /\byou've\b/i,
-];
-
 // ============================================================================
 // Frontmatter Parsing
 // ============================================================================
@@ -79,79 +74,23 @@ const SECOND_PERSON_PATTERNS = [
  * unknown fields detected relative to the given valid field set.
  */
 export function parseFrontmatter(content: string, validFields?: readonly string[]): ParsedAgentFrontmatter {
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    const parsed = parseMarkdownFrontmatter(content, { trimBodyWithoutFrontmatter: true });
+    const unknownFields = parsed.frontmatter && validFields ? detectUnknownFields(parsed.frontmatter, validFields) : [];
 
-    if (!fmMatch) {
-        return {
-            frontmatter: null,
-            body: content.trim(),
-            raw: content,
-            unknownFields: [],
-        };
-    }
-
-    const yamlContent = fmMatch[1];
-    const body = content.slice(fmMatch[0].length).trim();
-
-    try {
-        const parsed = YAML.parse(yamlContent);
-
-        if (!parsed || typeof parsed !== 'object') {
-            return {
-                frontmatter: null,
-                body,
-                raw: content,
-                unknownFields: [],
-            };
-        }
-
-        // Detect unknown fields if a valid set is provided
-        const unknownFields: string[] = [];
-        if (validFields) {
-            const validSet = new Set<string>(validFields);
-            for (const key of Object.keys(parsed)) {
-                if (!validSet.has(key)) {
-                    unknownFields.push(key);
-                }
-            }
-        }
-
-        return {
-            frontmatter: parsed as Record<string, unknown>,
-            body,
-            raw: content,
-            unknownFields,
-        };
-    } catch (error) {
-        return {
-            frontmatter: null,
-            body,
-            raw: content,
-            unknownFields: [],
-            parseError: error instanceof Error ? error.message : String(error),
-        };
-    }
+    return {
+        frontmatter: parsed.frontmatter,
+        body: parsed.body,
+        raw: parsed.raw,
+        unknownFields,
+        ...(parsed.parseError ? { parseError: parsed.parseError } : {}),
+    };
 }
 
 /**
  * Serialize frontmatter and body back to a markdown string.
  */
 export function serializeFrontmatter(frontmatter: Record<string, unknown>, body: string): string {
-    // Filter out undefined values
-    const cleanFrontmatter: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(frontmatter)) {
-        if (value !== undefined) {
-            cleanFrontmatter[key] = value;
-        }
-    }
-
-    const yamlStr = YAML.stringify(cleanFrontmatter, {
-        lineWidth: 0,
-        defaultKeyType: 'PLAIN',
-        defaultStringType: 'QUOTE_DOUBLE',
-    }).trim();
-
-    return `---\n${yamlStr}\n---\n\n${body}`;
+    return serializeMarkdownFrontmatter(frontmatter, body);
 }
 
 // ============================================================================
@@ -207,14 +146,7 @@ export async function readAgent(
 export function analyzeBody(body: string): AgentBodyAnalysis {
     const lines = body.split('\n');
 
-    // Detect markdown sections (## and # headings)
-    const sections: string[] = [];
-    for (const line of lines) {
-        const sectionMatch = line.match(/^#{1,3}\s+(.+)/);
-        if (sectionMatch) {
-            sections.push(sectionMatch[1].trim());
-        }
-    }
+    const sections = extractMarkdownHeadings(body, 3);
 
     // Detect 8-section anatomy
     const anatomySections: string[] = [];
@@ -227,8 +159,7 @@ export function analyzeBody(body: string): AgentBodyAnalysis {
     const has8SectionAnatomy = anatomySections.length >= 6; // at least 6 of 8 sections
 
     // Detect second-person language (ignore code blocks)
-    const textLines = filterNonCodeLines(lines);
-    const hasSecondPerson = textLines.some((line) => SECOND_PERSON_PATTERNS.some((pattern) => pattern.test(line)));
+    const hasSecondPerson = hasSecondPersonLanguage(lines);
 
     // Detect skill references
     const referencesSkills =
@@ -427,37 +358,6 @@ export function isValidAgentName(name: string): boolean {
 // ============================================================================
 // Internal Helpers
 // ============================================================================
-
-/**
- * Filter out code block lines and HTML comments from text lines.
- * Used for natural language analysis (e.g., second-person detection).
- */
-function filterNonCodeLines(lines: string[]): string[] {
-    const result: string[] = [];
-    let inCodeBlock = false;
-    let inComment = false;
-
-    for (const line of lines) {
-        if (line.trimStart().startsWith('```')) {
-            inCodeBlock = !inCodeBlock;
-            continue;
-        }
-        if (inCodeBlock) continue;
-
-        if (line.includes('<!--')) {
-            inComment = true;
-        }
-        if (line.includes('-->')) {
-            inComment = false;
-            continue;
-        }
-        if (inComment) continue;
-
-        result.push(line);
-    }
-
-    return result;
-}
 
 /**
  * Escape special regex characters in a string.

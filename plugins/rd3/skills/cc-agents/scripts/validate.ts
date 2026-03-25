@@ -20,15 +20,16 @@
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { getValidationDecisionState } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
 import { pathExists } from '../../../scripts/utils';
+import { type ValidationFindingAccumulator, addValidationFinding } from '../../../scripts/validation-findings';
 import type {
     AgentBodyAnalysis,
     AgentPlatform,
     AgentTemplate,
     AgentValidationReport,
     ValidationFinding,
-    ValidationSeverity,
 } from './types';
 import {
     VALID_CLAUDE_AGENT_FIELDS,
@@ -71,27 +72,14 @@ interface ValidationContext {
     detectedTier: AgentTemplate;
 }
 
-interface MutableReport {
+interface MutableReport extends ValidationFindingAccumulator<ValidationFinding> {
     errors: string[];
     warnings: string[];
     findings: ValidationFinding[];
     unknownFields: string[];
 }
 
-function addFinding(
-    report: MutableReport,
-    severity: ValidationSeverity,
-    message: string,
-    field?: string,
-    suggestion?: string,
-): void {
-    const finding: ValidationFinding = { severity, message };
-    if (field !== undefined) finding.field = field;
-    if (suggestion !== undefined) finding.suggestion = suggestion;
-    report.findings.push(finding);
-    if (severity === 'error') report.errors.push(message);
-    else if (severity === 'warning') report.warnings.push(message);
-}
+const addFinding = addValidationFinding<ValidationFinding>;
 
 // ---- Rule: Frontmatter presence ----
 
@@ -391,11 +379,16 @@ export async function validateAgent(
     const resolvedPath = resolve(agentPath);
 
     if (!pathExists(resolvedPath)) {
+        const missingFileReport: ValidationFindingAccumulator<ValidationFinding> = {
+            errors: [],
+            warnings: [],
+            findings: [],
+        };
         return {
             valid: false,
             errors: [`Agent file not found: ${resolvedPath}`],
             warnings: [],
-            findings: [{ severity: 'error', message: `Agent file not found: ${resolvedPath}` }],
+            findings: [addValidationFinding(missingFileReport, 'error', `Agent file not found: ${resolvedPath}`)],
             agentPath: resolvedPath,
             agentName: 'unknown',
             frontmatter: null,
@@ -489,9 +482,11 @@ export async function validateAgent(
 // CLI Output
 // ============================================================================
 
-function printReport(report: AgentValidationReport, verbose: boolean): void {
+export function printReport(report: AgentValidationReport, verbose: boolean): void {
+    const decision = getValidationDecisionState(report.valid, report.warnings.length);
+
     if (report.errors.length === 0 && report.warnings.length === 0) {
-        logger.success(`Validation passed for ${report.agentName}`);
+        logger.success(`Validation decision: ${decision} for ${report.agentName}`);
         if (report.findings.filter((f) => f.severity === 'info').length > 0) {
             logger.log('\nInfo:');
             for (const finding of report.findings.filter((f) => f.severity === 'info')) {
@@ -501,21 +496,17 @@ function printReport(report: AgentValidationReport, verbose: boolean): void {
         return;
     }
 
-    if (!report.valid) {
-        logger.log(`\nValidation FAILED for ${report.agentName}`);
-    } else {
-        logger.log(`\nValidation passed with warnings for ${report.agentName}`);
-    }
+    logger.log(`\nValidation decision: ${decision} for ${report.agentName}`);
 
     if (report.errors.length > 0) {
-        logger.log('\nErrors:');
+        logger.log('\nBLOCK findings:');
         for (const error of report.errors) {
             logger.log(`  [X] ${error}`);
         }
     }
 
     if (report.warnings.length > 0) {
-        logger.log('\nWarnings:');
+        logger.log('\nWARN findings:');
         for (const warning of report.warnings) {
             logger.log(`  [!] ${warning}`);
         }
@@ -575,7 +566,7 @@ function printReport(report: AgentValidationReport, verbose: boolean): void {
 // CLI Entry Point
 // ============================================================================
 
-function parseCliArgs(): { path: string; platform: AgentPlatform | 'all'; verbose: boolean; json: boolean } {
+export function parseCliArgs(): { path: string; platform: AgentPlatform | 'all'; verbose: boolean; json: boolean } {
     const args = parseArgs({
         args: process.argv.slice(2),
         allowPositionals: true,
@@ -622,7 +613,7 @@ function parseCliArgs(): { path: string; platform: AgentPlatform | 'all'; verbos
     };
 }
 
-async function main() {
+export async function main() {
     const { path: agentPath, platform, verbose, json } = parseCliArgs();
 
     logger.info(`Validating agent: ${agentPath}`);

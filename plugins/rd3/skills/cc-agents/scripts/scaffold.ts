@@ -179,34 +179,34 @@ export async function scaffoldAgent(options: AgentScaffoldOptions): Promise<Agen
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: scaffold.ts <agent-name> [description] [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <agent-name>           Name of the agent to create (hyphen-case)');
-    console.log('  [description]          Optional agent description (free-text)');
-    console.log('');
-    console.log('Options:');
-    console.log('  -p, --path <dir>       Output directory (default: ./agents)');
-    console.log('  -t, --template <tier>  Template: minimal, standard, specialist (default: standard)');
-    console.log('  --description <text>   Agent description');
-    console.log('  --tools <list>         Comma-separated tools (default: Read,Grep,Glob,Bash)');
-    console.log('  --model <model>        Model override (default: inherit)');
-    console.log('  --color <color>        Display color (default: teal)');
-    console.log('  --plugin-name <name>   Plugin name for skill references');
-    console.log('  --skills <list>        Comma-separated skills to delegate to');
-    console.log('  -v, --verbose          Verbose output');
-    console.log('  -h, --help             Show help');
+    logger.log('Usage: scaffold.ts <agent-name> [description] [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <agent-name>           Name of the agent to create (hyphen-case)');
+    logger.log('  [description]          Optional agent description (free-text)');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  -p, --path <dir>       Output directory (default: ./agents)');
+    logger.log('  -t, --template <tier>  Template: minimal, standard, specialist (default: standard)');
+    logger.log('  --description <text>   Agent description');
+    logger.log('  --tools <list>         Comma-separated tools (default: Read,Grep,Glob,Bash)');
+    logger.log('  --model <model>        Model override (default: inherit)');
+    logger.log('  --color <color>        Display color (default: teal)');
+    logger.log('  --plugin-name <name>   Plugin name for skill references');
+    logger.log('  --skills <list>        Comma-separated skills to delegate to');
+    logger.log('  -v, --verbose          Verbose output');
+    logger.log('  -h, --help             Show help');
 }
 
 function printNextSteps(agentPath: string, _agentName: string, tier: AgentTemplate): void {
     logger.success(`Agent created successfully at ${agentPath}`);
-    console.log(`\nTemplate tier: ${tier}`);
-    console.log('\nNext steps:');
-    console.log('1. Edit the agent file to complete TODO items');
-    console.log('2. Update the description with trigger phrases and examples');
-    console.log('3. Fill in the system prompt / persona / competencies');
-    console.log(`4. Validate: bun validate.ts ${agentPath}`);
-    console.log(`5. Evaluate: bun evaluate.ts ${agentPath} --scope full`);
+    logger.log(`\nTemplate tier: ${tier}`);
+    logger.log('\nNext steps:');
+    logger.log('1. Edit the agent file to complete TODO items');
+    logger.log('2. Update the description with trigger phrases and examples');
+    logger.log('3. Fill in the system prompt / persona / competencies');
+    logger.log(`4. Validate: bun validate.ts ${agentPath}`);
+    logger.log(`5. Evaluate: bun evaluate.ts ${agentPath} --scope full`);
 }
 
 function parseCliArgs(): AgentScaffoldOptions & { verbose: boolean } {

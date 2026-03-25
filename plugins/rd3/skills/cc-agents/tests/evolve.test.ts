@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getEvolutionStoragePaths } from '../../../scripts/evolution-engine';
 
 const TEST_DIR = '/tmp/cc-agents-evolve-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -16,6 +17,10 @@ describe('Integration: evolve command', () => {
     afterEach(() => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
+        }
+        const storage = getEvolutionStoragePaths('.cc-agents', join(TEST_DIR, 'test-agent.md'));
+        if (existsSync(storage.rootDir)) {
+            rmSync(storage.rootDir, { recursive: true, force: true });
         }
     });
 
@@ -79,21 +84,24 @@ description: helper
         const proposeExit = await proposeProc.exited;
         expect(proposeExit).toBe(0);
 
-        const proposalsPath = join(TEST_DIR, '.cc-agents', 'evolution', 'proposals', 'test-agent.proposals.json');
+        const storage = getEvolutionStoragePaths('.cc-agents', agentPath);
+        const proposalsPath = storage.proposalsPath;
         expect(existsSync(proposalsPath)).toBe(true);
 
         const proposalSet = JSON.parse(readFileSync(proposalsPath, 'utf-8')) as {
-            proposals: Array<{ id: string }>;
+            proposals: Array<{ id: string; targetSection: string }>;
         };
         expect(proposalSet.proposals.length).toBeGreaterThan(0);
-        const [firstProposal] = proposalSet.proposals;
-        expect(firstProposal).toBeDefined();
-        if (!firstProposal) {
+        const selectedProposal =
+            proposalSet.proposals.find((proposal) => proposal.targetSection === 'Description Effectiveness') ||
+            proposalSet.proposals[0];
+        expect(selectedProposal).toBeDefined();
+        if (!selectedProposal) {
             throw new Error('Expected at least one proposal');
         }
 
         const applyProc = Bun.spawn(
-            ['bun', 'run', EVOLVE_SCRIPT, agentPath, '--apply', firstProposal.id, '--confirm'],
+            ['bun', 'run', EVOLVE_SCRIPT, agentPath, '--apply', selectedProposal.id, '--confirm'],
             {
                 stdout: 'pipe',
                 stderr: 'pipe',
@@ -108,8 +116,8 @@ description: helper
         expect(applyExit).toBe(0);
         expect(`${applyStdout}\n${applyStderr}`).toContain('applied successfully');
 
-        const historyPath = join(TEST_DIR, '.cc-agents', 'evolution', 'versions', 'test-agent.proposals.history.json');
-        const fallbackHistoryPath = join(TEST_DIR, '.cc-agents', 'evolution', 'versions', 'test-agent.history.json');
+        const historyPath = storage.historyPath;
+        const fallbackHistoryPath = join(storage.rootDir, 'versions', 'test-agent.proposals.history.json');
         expect(existsSync(historyPath) || existsSync(fallbackHistoryPath)).toBe(true);
 
         const rollbackProc = Bun.spawn(['bun', 'run', EVOLVE_SCRIPT, agentPath, '--rollback', 'v0', '--confirm'], {

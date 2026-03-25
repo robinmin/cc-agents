@@ -246,6 +246,10 @@ Body`,
         const missingPath = join(TEST_DIR, 'missing-agent.json');
 
         const proc = Bun.spawn(['bun', 'run', INSTALL_SCRIPT, missingPath, '--target', 'codex'], {
+            env: {
+                ...process.env,
+                RD3_LOG_QUIET: '0',
+            },
             stdout: 'pipe',
             stderr: 'pipe',
         });

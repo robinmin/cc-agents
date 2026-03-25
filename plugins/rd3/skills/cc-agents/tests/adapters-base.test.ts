@@ -113,7 +113,7 @@ describe('AgentAdapterRegistry', () => {
     it('should register and clear cache for existing platform', () => {
         const registry = new AgentAdapterRegistry();
         // First get to populate cache
-        const adapter1 = registry.get('claude');
+        const _adapter1 = registry.get('claude');
         // Register new adapter - should clear cache
         const customAdapter = new ClaudeAgentAdapter();
         registry.register('claude', () => customAdapter);
