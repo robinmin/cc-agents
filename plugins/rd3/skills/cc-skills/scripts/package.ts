@@ -48,6 +48,27 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
     }
 
     const createdFiles: string[] = [];
+    const copyMissingEntries = (srcDir: string, destDir: string, prefix: string): void => {
+        mkdirSync(destDir, { recursive: true });
+
+        for (const entry of readdirSync(srcDir)) {
+            const srcEntry = join(srcDir, entry);
+            const destEntry = join(destDir, entry);
+            const relativePath = `${prefix}/${entry}`;
+            const stat = statSync(srcEntry);
+
+            if (stat.isDirectory()) {
+                copyMissingEntries(srcEntry, destEntry, relativePath);
+                continue;
+            }
+
+            if (!existsSync(destEntry)) {
+                cpSync(srcEntry, destEntry);
+                createdFiles.push(relativePath);
+            }
+        }
+    };
+
     const sourceContent = readFileSync(skillMdPath, 'utf-8');
     const fmMatch = sourceContent.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     if (!fmMatch) {
@@ -131,6 +152,7 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
 
     // Copy existing companions from source into the package when they were not regenerated.
     const companionDirs = ['agents'];
+    const resourceDirs = ['scripts', 'references', 'assets'];
     const companionFiles = ['metadata.openclaw', 'metadata.codex', 'metadata.opencode'];
 
     // Copy directories
@@ -138,16 +160,15 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
         const srcDir = join(resolvedSkillPath, dir);
         if (existsSync(srcDir)) {
             const destDir = join(resolvedOutputPath, dir);
-            mkdirSync(destDir, { recursive: true });
-            const files = readdirSync(srcDir);
-            for (const file of files) {
-                const srcFile = join(srcDir, file);
-                const destFile = join(destDir, file);
-                if (statSync(srcFile).isFile() && !existsSync(destFile)) {
-                    cpSync(srcFile, destFile);
-                    createdFiles.push(`${dir}/${file}`);
-                }
-            }
+            copyMissingEntries(srcDir, destDir, dir);
+        }
+    }
+
+    for (const dir of resourceDirs) {
+        const srcDir = join(resolvedSkillPath, dir);
+        if (existsSync(srcDir)) {
+            const destDir = join(resolvedOutputPath, dir);
+            copyMissingEntries(srcDir, destDir, dir);
         }
     }
 
@@ -193,19 +214,19 @@ async function packageSkill(options: PackageOptions): Promise<PackageResult> {
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: package.ts <skill-path> [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <skill-path>          Path to skill directory');
-    console.log('');
-    console.log('Options:');
-    console.log('  --output, -o          Output directory (default: ./dist)');
-    console.log(
+    logger.log('Usage: package.ts <skill-path> [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <skill-path>          Path to skill directory');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  --output, -o          Output directory (default: ./dist)');
+    logger.log(
         '  --platform <name>     Target platform: claude, codex, openclaw, opencode, antigravity (default: all)',
     );
-    console.log('  --no-source          Exclude SKILL.md from package');
-    console.log('  --json               Output results as JSON');
-    console.log('  --help, -h           Show this help message');
+    logger.log('  --no-source          Exclude SKILL.md from package');
+    logger.log('  --json               Output results as JSON');
+    logger.log('  --help, -h           Show this help message');
 }
 
 /**
@@ -319,9 +340,9 @@ function parseCliArgs(): {
 async function main() {
     const { skillPath, options } = parseCliArgs();
 
-    console.log(`[INFO] Packaging skill at: ${skillPath}`);
-    console.log(`[INFO] Output: ${options.output}`);
-    console.log(`[INFO] Platforms: ${options.platforms.join(', ')}`);
+    logger.info(`Packaging skill at: ${skillPath}`);
+    logger.info(`Output: ${options.output}`);
+    logger.info(`Platforms: ${options.platforms.join(', ')}`);
 
     const result = await packageSkill({
         skillPath,
@@ -331,20 +352,20 @@ async function main() {
     });
 
     if (options.json) {
-        console.log(JSON.stringify(result, null, 2));
+        logger.log(JSON.stringify(result, null, 2));
     } else {
         if (result.success) {
-            console.log('\n✓ Packaging completed');
+            logger.success('\nPackaging decision: PASS');
         } else {
-            console.log('\n✗ Packaging failed');
+            logger.fail('\nPackaging decision: BLOCK');
         }
-        console.log(`Output: ${result.outputPath}`);
-        console.log(`Size: ${(result.size / 1024).toFixed(2)} KB`);
+        logger.log(`Output: ${result.outputPath}`);
+        logger.log(`Size: ${(result.size / 1024).toFixed(2)} KB`);
 
         if (result.errors.length > 0) {
-            console.log('\n--- Errors ---');
+            logger.log('\n--- BLOCK Findings ---');
             for (const e of result.errors) {
-                console.log(`  ✗ ${e}`);
+                logger.fail(`  ${e}`);
             }
         }
     }
