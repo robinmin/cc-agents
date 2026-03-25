@@ -13,9 +13,13 @@ see_also:
 
 This document provides detailed, real-world examples of task decomposition across different complexity levels.
 
-Each example assumes the relevant business-analysis and system-analysis inputs already exist.
-Where a constraint or architecture choice still needs confirmation, capture it as a prerequisite
-or validation task instead of treating task decomposition as the place to invent it.
+**Prerequisite Assumption:**
+
+Each example assumes the relevant **business-analysis and system-analysis inputs already exist**:
+- Business analysis outputs: Requirements, success criteria, constraints, prioritization
+- System analysis outputs: Architecture decisions, component boundaries, integration points
+
+Where a constraint or architecture choice still needs confirmation, capture it as a **prerequisite** or **open question** in the task file (see `task-template.md` for how to record these). Do not attempt to resolve business or architectural decisions inside task decomposition.
 
 ## Table of Contents
 
