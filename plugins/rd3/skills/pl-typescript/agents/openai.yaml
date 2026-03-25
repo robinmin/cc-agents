@@ -6,10 +6,10 @@ description: "TypeScript project planning skill: architectural guidance, type
   strategies."
 version: 1.0.0
 icon: 🛠️
-category: architecture-design
+category: debugging
 tags:
   - typescript
   - planning
   - architecture
   - type-system
-  - tsconfig
+  - engineering-core
