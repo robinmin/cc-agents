@@ -101,7 +101,7 @@ bun scripts/validate.ts <skill-path>
 4. Preserves frontmatter exactly
 5. Maintains third-person imperative voice ("This skill..." not "I can...")
 6. Adds concrete examples if missing
-7. Keeps SKILL.md under 500 lines (extract to references/ if needed)
+7. Keeps SKILL.md under 400 lines (extract to references/ if needed)
 
 **Important:**
 - Frontmatter MUST NOT be modified (name, description, type, etc.)
@@ -307,7 +307,7 @@ Organized by category for comprehensive validation:
 | # | Item | Check | Script/LLM |
 |---|------|-------|------------|
 | 1 | SKILL.md body uses imperative form | "Use X" not "You should" | LLM |
-| 2 | Body under 500 lines | Line count | Script |
+| 2 | Body under 400 lines | Line count | Script |
 | 3 | Detailed content in references/ | Structure check | Script |
 | 4 | Examples are concrete | Content check | LLM |
 
@@ -495,17 +495,21 @@ Fix issues and improve quality. Supports multiple refinement modes.
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
-│  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
-│  │ Parse +  │    │ Apply     │    │ Apply    │    │ Validate │   │
-│  │ Detect   │    │ BestPrac  │    │ Content  │    │ Result   │   │
-│  │ Issues   │    │ (Script)  │    │ Improve  │    │ (Script) │   │
+│  │ Step 1   │───▶│ Step 2   │───▶│ Step 3a  │───▶│ Step 3b  │   │
+│  │ Parse +  │    │ Apply     │    │ Prog     │    │ Content  │   │
+│  │ Detect   │    │ BestPrac  │    │ Disc    │    │ Improve  │   │
+│  │ Issues   │    │ (Script)  │    │ (LLM)   │    │ (LLM)   │   │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
 │       │              │               │                │            │
 │       ▼              ▼               ▼                ▼            │
-│  [No issues]    [Apply]         [Improve]       [COMPLETE]      │
-│     │              │               │                              │
-│     ▼              ▼               ▼                              │
-│  [COMPLETE]    [Nothing to fix] [Content improved]              │
+│  [No issues]    [Apply]         [SKILL.md      [Improve]      │
+│     │              │          <=377?]              │            │
+│     ▼              ▼               │                  ▼            │
+│  [COMPLETE]    [Nothing to fix]  Yes                  ▼            │
+│                            [Extract refs]      [COMPLETE]      │
+│                                 │                             │
+│                            No ▼                               │
+│                         [Skip, go to 3b]                      │
 │                                                                      │
 │  ─────────────────────────────────────────────────────────────     │
 │  Branch: Migration Mode (--migrate)                                │
@@ -514,6 +518,14 @@ Fix issues and improve quality. Supports multiple refinement modes.
 │  │ Migrate  │    │ Validate  │                                     │
 │  │ (Script) │    │ (Script)  │                                     │
 │  └──────────┘    └──────────┘                                     │
+│                                                                      │
+│  ─────────────────────────────────────────────────────────────     │
+│  Post: Step 4 Validation                                            │
+│  ┌──────────┐                                                       │
+│  │ Step 4   │───────────────────────────────────▶ [COMPLETE]      │
+│  │ Validate │   If FAIL: warn but complete (may need manual)     │
+│  │ (Script) │                                                       │
+│  └──────────┘                                                       │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -524,7 +536,8 @@ Fix issues and improve quality. Supports multiple refinement modes.
 |------|------|---------|------------------|-------------|
 | 1 | Detect Issues | `refine.ts` | Detects what needs fixing | Continue |
 | 2 | Apply BestPrac | `refine.ts --best-practices` | Fixes deterministic issues | Warn only |
-| 3 | LLM Content Improvement | LLM (invoking agent) | Improves content using LLM | Back to 2 |
+| 3a | Progressive Disclosure | LLM (invoking agent) | Extracts refs, SKILL.md <= 377 lines | Warn only |
+| 3b | Content Improvement | LLM (invoking agent) | Improves content using LLM | Back to 3a |
 | 4 | Validate Result | `validate.ts` | Validation passes | Retry step 3 |
 
 ### Step Details
@@ -549,12 +562,85 @@ bun scripts/refine.ts <skill-path> --best-practices
 - Convert Windows paths to forward slashes
 - Remove Commands Reference sections
 - Remove slash command references
-- **Extract long content to references** (SKILL.md >= 500 lines): Moves `## Quick Reference`, `## Additional Resources`, `## Technology Selection`, `## Extended Examples`, `## Detailed Patterns`, `## Architecture Decision Records`, `## Monitoring Stack`, and `## Breakdown Checklist` sections to `references/` with proper frontmatter
+- **Extract long content to references** (SKILL.md >= 400 lines): Moves `## Quick Reference`, `## Additional Resources`, `## Technology Selection`, `## Extended Examples`, `## Detailed Patterns`, `## Architecture Decision Records`, `## Monitoring Stack`, and `## Breakdown Checklist` sections to `references/` with proper frontmatter
 
 **Output:** Modified SKILL.md, report of changes
 
 #### Step 3: LLM Content Improvement (Invoking Agent)
 The invoking agent uses the LLM to improve skill content based on evaluation findings from Step 1.
+
+##### 3a. Progressive Disclosure Extraction (if SKILL.md >= 300 lines)
+
+Before rewriting content, address Progressive Disclosure first:
+
+**Step 3a-1: Evaluate Length**
+- Count total lines in SKILL.md (excluding frontmatter)
+- If **< 400 lines** → Skip extraction, proceed to 3b
+- If **>= 400 lines** → Proceed to 3a-2
+
+**Step 3a-2: Identify Extractable Sections**
+Review H2 sections and evaluate each for extraction:
+
+| Section Type | Extract if | Why |
+|--------------|-----------|-----|
+| Tables (10+ rows) | Always | Reference data, not core instruction |
+| Checklists | >= 10 items | Detailed guidance belongs in reference |
+| Code Examples | >= 5 blocks or >= 100 lines | Patterns belong in reference |
+| Diagrams/ASCII art | >= 3 | Visual references belong in reference |
+| Step-by-step sequences | >= 8 steps | Detailed procedure belongs in reference |
+| Comparison tables | >= 4 rows | Reference material |
+| Error handling lists | >= 5 items | Reference belongs in reference |
+| Quick Reference tables | Always | By definition reference |
+| Additional Resources | Always | External links belong in reference |
+
+**Step 3a-3: Evaluate Extraction Decision**
+
+For each candidate section, answer:
+1. **Can we extract?** - Does the section make sense standalone?
+2. **Should we extract?** - Is it detail vs. core instruction?
+3. **How to extract?** - Create summary + link to reference file
+
+**Decision rules:**
+- If section is **core instruction** (must-read for skill to work) → **Keep in SKILL.md**
+- If section is **reference detail** (lookup, examples, tables) → **Extract**
+- If ambiguous → Ask: "Would Claude need this to decide WHEN to use the skill?"
+
+**Step 3a-4: Execute Extraction**
+
+For each section to extract:
+1. **Create reference file** at `references/<slug>.md`:
+   ```markdown
+   ---
+   name: <slug>
+   description: "<one-line description ~80 chars>"
+   see_also:
+     - rd3:<skill-name>
+   ---
+
+   # <Section Title>
+
+   <extracted content>
+   ```
+
+2. **Replace in SKILL.md** with summary block:
+   ```markdown
+   ## <Section Title>
+
+   <2-3 line summary of what this covers>
+
+   See [references/<slug>.md](references/<slug>.md) for detailed content.
+   ```
+
+3. **Update or create references/external-resources.md** if linking to external docs
+
+**Step 3a-5: Verify**
+- Recount SKILL.md lines (should be < 400 lines)
+- If still >= 400 lines, identify additional sections and repeat 3a-2 to 3a-4
+- Target: SKILL.md <= 377 lines (leaves ~23 line margin for future additions)
+
+##### 3b. Content Quality Improvement
+
+After Progressive Disclosure, improve remaining content:
 
 **What the agent does:**
 
@@ -563,7 +649,6 @@ The invoking agent uses the LLM to improve skill content based on evaluation fin
 3. **Use LLM to rewrite**: Use the agent's LLM capability to rewrite weak sections:
    - Preserve frontmatter exactly (YAML at top of SKILL.md)
    - Maintain third-person imperative voice ("This skill helps..." not "I can help you")
-   - Keep SKILL.md under 500 lines (extract long sections to references/)
    - Address all findings from the evaluation report
 4. **Apply improvements**: Write improved content back to SKILL.md
 
@@ -861,9 +946,10 @@ bun scripts/package.ts <skill-path> --output ./dist --platform all
 | New skill | Create | 1 → 2 → 3 → 4 |
 | Structure check | Validate | 1 → 2 → 3 |
 | Quality check | Evaluate | 1 → 2 → 3 → 4 |
-| Fix deterministic | Refine --best-practices | 1 → 2 → 4 |
-| Fix fuzzy | Refine checklist | 1 → 2 → 3 → 4 |
-| Fix all | Refine --both | 1 → 2 → 3 → 4 |
+| Fix deterministic only | Refine --best-practices | 1 → 2 → 4 |
+| Fix Progressive Disclosure | Refine + PD extraction | 1 → 2 → 3a → 4 |
+| Fix fuzzy content | Refine checklist | 1 → 2 → 3a → 3b → 4 |
+| Fix all | Refine --best-practices | 1 → 2 → 3a → 3b → 4 |
 | Migrate from rd2 | Refine --migrate | M1 → M2 |
 | Longitudinal improve | Evolve | 1 → 2 → 3 → 4 |
 | Cross-platform companions | Adapt | 1 → 2 → 3 → 4 |
