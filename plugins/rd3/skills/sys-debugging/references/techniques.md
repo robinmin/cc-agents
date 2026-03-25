@@ -2,9 +2,9 @@
 name: sys-debugging-techniques
 description: "Systematic debugging techniques: tracing, profiling, logging strategies, hypothesis testing, and verification methods."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 tags: [debugging, techniques, tracing, profiling, logging]
 metadata:
   author: cc-agents
@@ -78,6 +78,10 @@ console.debug("Order state:", {
 # Python: cProfile for CPU bottlenecks
 python -m cProfile -s cumtime script.py
 
+# Python: Line-by-line profiling
+pip install line_profiler
+python -m line_profiler script.py
+
 # Node: Built-in profiler
 node --prof script.js
 node --prof-process isolate-*.log > profile.txt
@@ -93,12 +97,34 @@ go tool pprof http://localhost:6060/debug/pprof/profile
 pip install memory_profiler
 python -m memory_profiler script.py
 
+# Python: Track memory allocations
+from memory_profiler import profile
+@profile
+def my_function():
+    ...
+
 # Node: Heap snapshots
 node --inspect script.js
 # Then use Chrome DevTools to capture heap snapshot
 
 # Go: Memory profiling
 go tool pprof http://localhost:6060/debug/pprof/heap
+```
+
+### Flame Graph Visualization
+
+Generate flame graphs to identify hot code paths:
+
+```bash
+# Python: py-spy (flame graphs)
+pip install py-spy
+py-spy record -o profile.svg -- python script.py
+
+# Go: pprof with flame graph
+go tool pprof -http=:8080 http://localhost:6060/debug/pprof/profile
+
+# Node: 0x (flame graphs)
+npx 0x script.js
 ```
 
 ### Timing Analysis
@@ -194,6 +220,19 @@ def test_specific_bug():
     assert result.expected == "actual"  # This fails
 ```
 
+### Delta Debugging
+
+Systematically narrow down failure causes:
+
+```
+1. Start with full failure (input or configuration)
+2. Remove half of the components/conditions
+3. Test: does failure still occur?
+4. If YES: problem is in the kept half
+5. If NO: problem is in the removed half
+6. Repeat until minimal case found
+```
+
 ### Binary Search Debugging
 
 When finding which change caused a problem:
@@ -219,6 +258,49 @@ Compare working vs broken:
 | Code version | v1.2.0 | v1.3.0 | Updated dependencies |
 | Environment | prod | staging | Different config |
 | Data | Real | Test | Missing records |
+
+## Formal Debugging Methods
+
+### Failure Isolation Trees
+
+Build a decision tree to systematically isolate failures:
+
+```
+                    Failure
+                       │
+           ┌───────────┴───────────┐
+           ▼                       ▼
+      Subtest A fails        Subtest A passes
+           │                       │
+     ┌─────┴─────┐           ┌─────┴─────┐
+     ▼           ▼           ▼           ▼
+  Sub B fails  Sub B pass  Sub B fails  Sub B pass
+     │           │           │           │
+   ...         ...         ...         ...
+```
+
+### State Space Exploration
+
+For complex state machines:
+
+```
+1. Enumerate all possible states
+2. Identify transitions that lead to failure
+3. Find shortest path to reproducing bug
+4. Simplify test case to that path
+```
+
+### Regression Chain
+
+For "worked before" scenarios:
+
+```
+1. Document exact working version (git tag, commit)
+2. Document exact broken version (current)
+3. Run git bisect between them
+4. Examine only commits that changed relevant code
+5. Find first commit that breaks, analyze why
+```
 
 ## Verification Methods
 
@@ -267,6 +349,38 @@ pytest tests/ -v --tb=short
 pytest tests/unit/ tests/integration/ -v
 ```
 
+## Observability Patterns
+
+### Metrics, Logs, and Traces (MLT)
+
+The three pillars of observability:
+
+| Pillar | Purpose | Use Case |
+|--------|---------|----------|
+| **Metrics** | Aggregated numerical data | Dashboards, alerting, capacity planning |
+| **Logs** | Discrete event records | Audit, debugging specific requests |
+| **Traces** | Request path through system | Understanding latency, dependency flow |
+
+### RED Method (Rate, Errors, Duration)
+
+Standard metrics for services:
+
+```
+Rate:     Requests per second
+Errors:   Error rate (4xx, 5xx, exceptions)
+Duration: Latency distribution (p50, p95, p99)
+```
+
+### USE Method (Utilization, Saturation, Errors)
+
+Standard metrics for resources:
+
+```
+Utilization:  How busy is the resource?
+Saturation:   How much backlog exists?
+Errors:       What errors are occurring?
+```
+
 ## Debugging Commands Quick Reference
 
 ### Python
@@ -283,6 +397,9 @@ python script.py 2>&1 | cat
 
 # Profile CPU
 python -m cProfile -s cumtime script.py
+
+# Memory profiling
+python -m memory_profiler script.py
 ```
 
 ### TypeScript/Node
@@ -309,6 +426,10 @@ go test -race ./...
 
 # Verbose test output
 go test -v -count=1 ./...
+
+# CPU profiling
+go test -cpuprofile=cpu.out ./...
+go tool pprof cpu.out
 ```
 
 ### Browser DevTools
@@ -319,4 +440,20 @@ go test -v -count=1 ./...
 3. Network: Inspect HTTP requests/responses
 4. Application: Inspect cookies, localStorage, state
 5. Performance: Profile rendering, find jank
+```
+
+### Distributed Tracing
+
+```bash
+# Jaeger UI
+open http://localhost:16686
+
+# Zipkin UI
+open http://localhost:9411
+
+# View trace by ID
+curl http://localhost:9411/api/v2/trace/{trace-id}
+
+# OpenTelemetry collector
+otelcol --config=config.yaml
 ```
