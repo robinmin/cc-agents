@@ -10,14 +10,19 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { logger } from '../../../scripts/logger';
 import YAML from 'yaml';
+import {
+    getEvaluationDecisionState,
+    getThresholdDecisionState,
+    meetsPercentageThreshold,
+} from '../../../scripts/grading';
+import { logger } from '../../../scripts/logger';
 import { AntigravityAdapter } from './adapters/antigravity';
 import { ClaudeAdapter } from './adapters/claude';
 import { CodexAdapter } from './adapters/codex';
 import { OpenClawAdapter } from './adapters/openclaw';
 import { OpenCodeAdapter } from './adapters/opencode';
-import { type DimensionWeights, EVALUATION_CONFIG, DIMENSION_CATEGORIES } from './evaluation.config';
+import { DIMENSION_CATEGORIES, type DimensionWeights, EVALUATION_CONFIG } from './evaluation.config';
 import type {
     EvaluationDimension,
     EvaluationFeatures,
@@ -451,7 +456,7 @@ function extractFeatures(
  * Extract trigger phrases from description
  */
 function extractTriggerPhrases(description: string): string[] {
-    const phrases: string[] = [];
+    const _phrases: string[] = [];
     // Match patterns like "create X", "implement Y", "add Z"
     const matches = description.match(/"[^"]+"|\b\w+\s+\w+/g) || [];
     return matches.slice(0, 5); // Limit to 5 phrases
@@ -800,7 +805,7 @@ function computeDimensionScores(
     // ==========================================================================
     for (const dim of dimensions) {
         dim.percentage = dim.maxScore > 0 ? Math.round((dim.score / dim.maxScore) * 100) : 0;
-        dim.passed = dim.percentage >= 70;
+        dim.passed = meetsPercentageThreshold(dim.percentage);
         // Apply weight: weightedScore = percentage * weight
         dim.score = Math.round((dim.score / dim.maxScore) * dim.weight);
     }
@@ -812,7 +817,7 @@ function computeDimensionScores(
 // EVALUATION DIMENSIONS (with configurable weights)
 // ============================================================================
 
-function evaluateFrontmatter(frontmatter: SkillFrontmatter | null, weights: DimensionWeights): EvaluationDimension {
+function _evaluateFrontmatter(frontmatter: SkillFrontmatter | null, weights: DimensionWeights): EvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const maxScore = weights.frontmatter;
@@ -875,7 +880,7 @@ function evaluateFrontmatter(frontmatter: SkillFrontmatter | null, weights: Dime
     };
 }
 
-function evaluateStructure(body: string, resources: SkillResources, weights: DimensionWeights): EvaluationDimension {
+function _evaluateStructure(body: string, resources: SkillResources, weights: DimensionWeights): EvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const maxScore = weights.structure;
@@ -923,7 +928,7 @@ function evaluateStructure(body: string, resources: SkillResources, weights: Dim
     };
 }
 
-function evaluateProgressiveDisclosure(body: string, weights: DimensionWeights): EvaluationDimension {
+function _evaluateProgressiveDisclosure(body: string, weights: DimensionWeights): EvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const maxScore = weights.progressiveDisclosure;
@@ -1034,7 +1039,7 @@ function evaluateProgressiveDisclosure(body: string, weights: DimensionWeights):
     };
 }
 
-function evaluatePlatformCompatibility(
+function _evaluatePlatformCompatibility(
     body: string,
     frontmatter: SkillFrontmatter | null,
     weights: DimensionWeights,
@@ -1102,7 +1107,11 @@ function evaluatePlatformCompatibility(
     };
 }
 
-function evaluateCompleteness(body: string, resources: SkillResources, weights: DimensionWeights): EvaluationDimension {
+function _evaluateCompleteness(
+    body: string,
+    resources: SkillResources,
+    weights: DimensionWeights,
+): EvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const maxScore = weights.completeness;
@@ -1149,7 +1158,7 @@ function evaluateCompleteness(body: string, resources: SkillResources, weights: 
     };
 }
 
-function evaluateSecurity(securityResult: SecurityScanResult, weights: DimensionWeights): EvaluationDimension {
+function _evaluateSecurity(securityResult: SecurityScanResult, weights: DimensionWeights): EvaluationDimension {
     const findings: string[] = [];
     const recommendations: string[] = [];
     const maxScore = weights.security;
@@ -1200,7 +1209,7 @@ function evaluateSecurity(securityResult: SecurityScanResult, weights: Dimension
 // NEW DIMENSIONS (from rd2 reference)
 // ============================================================================
 
-function evaluateContent(
+function _evaluateContent(
     body: string,
     frontmatter: SkillFrontmatter | null,
     weights: DimensionWeights,
@@ -1273,7 +1282,7 @@ function evaluateContent(
     };
 }
 
-function evaluateTriggerDesign(
+function _evaluateTriggerDesign(
     frontmatter: SkillFrontmatter | null,
     body: string,
     weights: DimensionWeights,
@@ -1330,7 +1339,7 @@ function evaluateTriggerDesign(
     };
 }
 
-function evaluateCodeQuality(
+function _evaluateCodeQuality(
     skillPath: string,
     resources: SkillResources,
     weights: DimensionWeights,
@@ -1401,7 +1410,7 @@ function evaluateCodeQuality(
  * Detects circular references in skills.
  * Skills should NOT reference their associated commands/agents by name.
  */
-function evaluateCircularReference(
+function _evaluateCircularReference(
     body: string,
     frontmatter: SkillFrontmatter | null,
     weights: DimensionWeights,
@@ -1412,7 +1421,7 @@ function evaluateCircularReference(
     const maxScore = score;
 
     // Get skill name from frontmatter for comparison
-    const skillName = frontmatter?.name || '';
+    const _skillName = frontmatter?.name || '';
 
     // Patterns that indicate circular references
     const circularPatterns = [
@@ -1521,7 +1530,7 @@ async function evaluatePlatform(
 // MAIN EVALUATION
 // ============================================================================
 
-async function evaluateSkill(
+export async function evaluateSkill(
     skillPath: string,
     scope: EvaluationScope,
     platforms: Platform[],
@@ -1637,7 +1646,7 @@ async function evaluateSkill(
         percentage,
         dimensions,
         timestamp: new Date().toISOString(),
-        passed: percentage >= 70 && platformErrors.length === 0,
+        passed: meetsPercentageThreshold(percentage) && platformErrors.length === 0,
         ...(testsPassed != null ? { testsPassed } : {}),
         ...(platformErrors.length > 0 ? { platformErrors } : {}),
         ...(platformWarnings.length > 0 ? { platformWarnings } : {}),
@@ -1649,45 +1658,43 @@ async function evaluateSkill(
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: evaluate.ts <skill-path> [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <skill-path>          Path to skill directory');
-    console.log('');
-    console.log('Options:');
-    console.log('  --scope <level>      Evaluation scope: basic, full (default: full)');
-    console.log('  --platform <name>    Platform: claude, codex, openclaw, opencode, antigravity, all');
-    console.log('  --json                Output results as JSON');
-    console.log('  --verbose, -v         Show detailed evaluation output');
-    console.log('  --help, -h            Show this help message');
+    logger.log('Usage: evaluate.ts <skill-path> [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <skill-path>          Path to skill directory');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  --scope <level>      Evaluation scope: basic, full (default: full)');
+    logger.log('  --platform <name>    Platform: claude, codex, openclaw, opencode, antigravity, all');
+    logger.log('  --json                Output results as JSON');
+    logger.log('  --verbose, -v         Show detailed evaluation output');
+    logger.log('  --help, -h            Show this help message');
 }
 
 function printReport(report: EvaluationReport, verbose: boolean): void {
+    const overallStatus = getEvaluationDecisionState(report.passed, report.rejected);
+
     // Check if rejected
     if (report.rejected) {
-        console.log('\n✗ Evaluation REJECTED');
-        console.log(`Reason: ${report.rejectReason}`);
-        console.log(`\nSkill: ${report.skillName}`);
-        console.log(`Scope: ${report.scope}`);
+        logger.log(`\nEvaluation decision: ${overallStatus}`);
+        logger.log(`Reason: ${report.rejectReason}`);
+        logger.log(`\nSkill: ${report.skillName}`);
+        logger.log(`Scope: ${report.scope}`);
         return;
     }
 
     // Normal evaluation result
-    if (report.passed) {
-        console.log(`\n✓ Evaluation passed (${report.percentage}%)`);
-    } else {
-        console.log(`\n✗ Evaluation failed (${report.percentage}%)`);
-    }
+    logger.log(`\nEvaluation decision: ${overallStatus} (${report.percentage}%)`);
 
-    console.log(`\nSkill: ${report.skillName}`);
-    console.log(`Scope: ${report.scope}`);
-    console.log(`Score: ${report.overallScore}/${report.maxScore} (${report.percentage}%)`);
+    logger.log(`\nSkill: ${report.skillName}`);
+    logger.log(`Scope: ${report.scope}`);
+    logger.log(`Score: ${report.overallScore}/${report.maxScore} (${report.percentage}%)`);
 
     // Always show dimension scores in table format
-    console.log('\n--- Dimensions ---');
-    console.log('');
-    console.log('| Dimension               | Score  | Max   | %     | Status |');
-    console.log('| ----------------------- | ------ | ----- | ----- | ------ |');
+    logger.log('\n--- Dimensions ---');
+    logger.log('');
+    logger.log('| Dimension               | Score  | Max   | %     | Status |');
+    logger.log('| ----------------------- | ------ | ----- | ----- | ------ |');
 
     // Sort by percentage ascending to show weakest first
     const sortedDims = [...report.dimensions].sort((a, b) => {
@@ -1698,41 +1705,41 @@ function printReport(report: EvaluationReport, verbose: boolean): void {
 
     for (const dim of sortedDims) {
         const pct = dim.maxScore > 0 ? Math.round((dim.score / dim.maxScore) * 100) : 0;
-        const status = pct >= 70 ? '✓ PASS' : '✗ FAIL';
+        const status = getThresholdDecisionState(pct);
         const name = dim.name.padEnd(24);
-        console.log(
+        logger.log(
             `| ${name} | ${String(dim.score).padStart(4)} | ${String(dim.maxScore).padStart(4)} | ${String(pct).padStart(3)}% | ${status} |`,
         );
     }
-    console.log('');
+    logger.log('');
 
     // Show findings/recommendations in verbose mode
     if (verbose) {
-        console.log('\n--- Detailed Findings ---');
+        logger.log('\n--- Detailed Findings ---');
         for (const dim of report.dimensions) {
             if (dim.findings.length > 0 || dim.recommendations.length > 0) {
-                console.log(`\n**${dim.name}**`);
+                logger.log(`\n**${dim.name}**`);
                 if (dim.findings.length > 0) {
-                    console.log('  Findings:');
+                    logger.log('  Findings:');
                     for (const f of dim.findings) {
-                        console.log(`    - ${f}`);
+                        logger.log(`    - ${f}`);
                     }
                 }
                 if (dim.recommendations.length > 0) {
-                    console.log('  Recommendations:');
+                    logger.log('  Recommendations:');
                     for (const r of dim.recommendations) {
-                        console.log(`    - ${r}`);
+                        logger.log(`    - ${r}`);
                     }
                 }
             }
         }
     }
 
-    console.log('\n--- Summary ---');
+    logger.log('\n--- Summary ---');
     const totalFindings = report.dimensions.reduce((sum, d) => sum + d.findings.length, 0);
     const totalRecs = report.dimensions.reduce((sum, d) => sum + d.recommendations.length, 0);
-    console.log(`Total findings: ${totalFindings}`);
-    console.log(`Total recommendations: ${totalRecs}`);
+    logger.log(`Total findings: ${totalFindings}`);
+    logger.log(`Total recommendations: ${totalRecs}`);
 }
 
 /**
@@ -1772,7 +1779,7 @@ function findProjectRoot(): string {
  * that has both package.json AND a 'plugins/rd3' subdirectory structure.
  * This handles cases where the script is run from a cache installation.
  */
-function findRealProjectRoot(): string {
+function _findRealProjectRoot(): string {
     let dir = process.cwd();
     const projectMarker = join('plugins', 'rd3');
     while (dir !== resolve(dir, '..')) {
@@ -1881,7 +1888,7 @@ async function main() {
     const report = await evaluateSkill(skillPath, options.scope, platformsArg);
 
     if (options.json) {
-        console.log(JSON.stringify(report, null, 2));
+        logger.log(JSON.stringify(report, null, 2));
         process.exit(report.passed ? 0 : 1);
     }
 
