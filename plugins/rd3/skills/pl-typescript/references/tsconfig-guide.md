@@ -13,8 +13,6 @@ metadata:
   interactions:
     - knowledge-only
 see_also:
-  - rd3:pl-typescript
-  - rd3:pl-typescript/references/tooling
 ---
 
 # TypeScript Configuration Guide (tsconfig.json)
