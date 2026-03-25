@@ -2,9 +2,9 @@
 name: sys-debugging-examples
 description: "Real-world debugging walkthroughs: TypeError in Python API (JWT), flaky TypeScript test, and Go config parsing regression."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-03-24
 tags: [debugging, examples, engineering-core]
 metadata:
   author: cc-agents
@@ -297,6 +297,101 @@ func LoadConfig(path string) (*Config, error) {
 
 ---
 
+## Example 4: AI-Assisted Debugging
+
+### The Scenario
+
+A distributed system with unclear failure mode:
+
+```
+Error: Request timeout after 30s
+  Service: payment-gateway
+  Trace: abc-123-def
+```
+
+### Phase 1: AI-Assisted Investigation
+
+**Describe to AI:**
+```
+Error: "Request timeout after 30s" in payment-gateway service
+Trace ID: abc-123-def
+Last deployment: 2 hours ago
+Symptoms: All payment requests timing out
+```
+
+**AI Response (hypothesis candidates):**
+```
+Possible causes:
+1. Database connection pool exhausted
+2. External payment provider rate limiting
+3. Network latency to downstream service
+4. Connection leak in payment handler
+```
+
+### Phase 2: Validate Each Hypothesis
+
+**Hypothesis 1: Connection pool exhausted**
+```bash
+# Check connection pool metrics
+curl localhost:9090/metrics | grep db_pool
+
+# Result: pool_size=10, available=0, waiting=47
+# CONFIRMED: No connections available
+```
+
+**Hypothesis 2: Rate limiting from provider**
+```bash
+# Check provider API status
+curl -I https://provider.com/status
+
+# Result: 200 OK, no rate limit headers
+# RULED OUT
+```
+
+### Phase 3: Trace to Root Cause
+
+```go
+// Found: connection leak in error path
+func (h *Handler) ProcessPayment(ctx context.Context, req *PaymentRequest) error {
+    conn, err := h.pool.Acquire(ctx)
+    if err != nil {
+        return err  // Connection NOT released!
+    }
+    defer conn.Release()  // Missing in original
+
+    // ... process payment ...
+    if req.Amount > 10000 {
+        return errors.New("amount too large")  // Early return!
+    }
+    // ... continue ...
+}
+```
+
+### Phase 4: Implementation
+
+```go
+func (h *Handler) ProcessPayment(ctx context.Context, req *PaymentRequest) error {
+    conn, err := h.pool.Acquire(ctx)
+    if err != nil {
+        return fmt.Errorf("acquire connection: %w", err)
+    }
+    defer conn.Release()  // Always release
+
+    // ... process payment ...
+    if req.Amount > 10000 {
+        return errors.New("amount too large")  // Connection released via defer
+    }
+    // ... continue ...
+}
+```
+
+**Verification:**
+- Connection pool available: 10/10
+- Payment requests: succeeding
+- No timeouts observed
+
+---
+
 ## Anti-Pattern Examples
 
 ### Symptom-Focused Fix
@@ -343,6 +438,16 @@ fetch(url, { timeout: 30000 })  // Why 30 seconds?
 // Fix: Add retry with backoff OR implement connection pooling
 ```
 
+### AI Unverified Fix
+
+```
+AI: "The bug is in the authentication module. Add this fix..."
+User: [applies without verification]
+Result: Different error appears
+
+// STOP! Always verify AI suggestions with evidence and testing
+```
+
 ---
 
 ## Quick Reference: Debugging Commands
@@ -358,6 +463,9 @@ python -m pdb -c continue script.py
 
 # Verbose test output
 pytest -v --tb=long tests/
+
+# Memory leak detection
+python -m memory_profiler script.py
 ```
 
 ### TypeScript/Node
@@ -384,6 +492,9 @@ go test -v ./...
 
 # Run specific test with debugging
 dlv test ./pkg/config -- -test.run TestConfigLoad
+
+# Race condition detection
+go test -race ./...
 ```
 
 ### Git Bisect
@@ -397,4 +508,17 @@ git bisect good <known-good-commit>
 git bisect good  # or git bisect bad
 # When done
 git bisect reset
+```
+
+### Distributed Tracing
+
+```bash
+# Jaeger: View trace
+jaeger-ui http://localhost:16686
+
+# Zipkin: View trace
+zipkin http://localhost:9411
+
+# OpenTelemetry: Export to collector
+otel export --endpoint localhost:4317
 ```
