@@ -114,6 +114,31 @@ interface RefineReport {
     errors: string[];
 }
 
+function previewGeneratedCompanions(
+    skillPath: string,
+    platforms: Platform[],
+    content: string,
+    frontmatter: SkillFrontmatter,
+): string[] {
+    const previews: string[] = [];
+
+    if (platforms.includes('claude') && !content.includes('### Claude Code')) {
+        previews.push('Would add Claude Code platform notes to SKILL.md');
+    }
+
+    if (platforms.includes('codex') && !existsSync(join(skillPath, 'agents', 'openai.yaml'))) {
+        previews.push('Would generate agents/openai.yaml');
+    }
+
+    const hasOpenClawMetadata =
+        existsSync(join(skillPath, 'metadata.openclaw')) || Boolean(frontmatter.metadata?.openclaw);
+    if (platforms.includes('openclaw') && !hasOpenClawMetadata) {
+        previews.push('Would generate metadata.openclaw');
+    }
+
+    return previews;
+}
+
 async function refineSkill(
     skillPath: string,
     options: RefineOptions,
@@ -162,7 +187,9 @@ async function refineSkill(
     // Run best practices auto-fix if requested (deterministic issues)
     if (options.bestPractices) {
         // Extract long content to references first (SKILL.md >= 500 lines)
-        const extractResult = extractToReferences(resolvedPath, content);
+        const extractResult = extractToReferences(resolvedPath, content, {
+            writeFiles: !options.dryRun,
+        });
         if (extractResult.actions.length > 0) {
             bestPractices.push(...extractResult.actions);
             if (extractResult.content !== content) {
@@ -200,44 +227,48 @@ async function refineSkill(
     const parsed = parseFrontmatter(content);
     const parsedFrontmatter = parsed.frontmatter || ({} as SkillFrontmatter);
 
-    for (const platform of platforms) {
-        try {
-            const adapter = platformAdapters[platform];
-            if (!adapter) {
-                errors.push(`Unknown platform: ${platform}`);
-                continue;
-            }
+    if (options.dryRun) {
+        generations.push(...previewGeneratedCompanions(resolvedPath, platforms, content, parsedFrontmatter));
+    } else {
+        for (const platform of platforms) {
+            try {
+                const adapter = platformAdapters[platform];
+                if (!adapter) {
+                    errors.push(`Unknown platform: ${platform}`);
+                    continue;
+                }
 
-            const scaffoldOptions: ScaffoldOptions = {
-                name: parsedFrontmatter.name || resolvedPath.split('/').pop() || 'unknown',
-                path: resolvedPath,
-            };
+                const scaffoldOptions: ScaffoldOptions = {
+                    name: parsedFrontmatter.name || resolvedPath.split('/').pop() || 'unknown',
+                    path: resolvedPath,
+                };
 
-            const context = {
-                skillPath: resolvedPath,
-                skillName: parsedFrontmatter.name || resolvedPath.split('/').pop() || 'unknown',
-                frontmatter: parsedFrontmatter,
-                body: parsed.body,
-                resources: {} as SkillResources,
-                options: scaffoldOptions,
-                outputPath: resolvedPath,
-                skill: {
+                const context = {
+                    skillPath: resolvedPath,
+                    skillName: parsedFrontmatter.name || resolvedPath.split('/').pop() || 'unknown',
                     frontmatter: parsedFrontmatter,
                     body: parsed.body,
-                    raw: parsed.raw,
-                    path: skillMdPath,
-                    directory: resolvedPath,
                     resources: {} as SkillResources,
-                },
-            };
+                    options: scaffoldOptions,
+                    outputPath: resolvedPath,
+                    skill: {
+                        frontmatter: parsedFrontmatter,
+                        body: parsed.body,
+                        raw: parsed.raw,
+                        path: skillMdPath,
+                        directory: resolvedPath,
+                        resources: {} as SkillResources,
+                    },
+                };
 
-            const result = await adapter.generateCompanions(context);
-            if (result.messages?.length) {
-                generations.push(...result.messages);
-                updated = true;
+                const result = await adapter.generateCompanions(context);
+                if (result.messages?.length) {
+                    generations.push(...result.messages);
+                    updated = true;
+                }
+            } catch (e) {
+                errors.push(`Failed to generate ${platform} companions: ${e}`);
             }
-        } catch (e) {
-            errors.push(`Failed to generate ${platform} companions: ${e}`);
         }
     }
 
@@ -262,53 +293,53 @@ async function refineSkill(
 // ============================================================================
 
 function printUsage(): void {
-    console.log('Usage: refine.ts <skill-path> [options]');
-    console.log('');
-    console.log('Arguments:');
-    console.log('  <skill-path>          Path to skill directory');
-    console.log('');
-    console.log('Options:');
-    console.log('  --migrate             Enable rd2 to rd3 migration mode');
-    console.log('  --best-practices      Apply best practice auto-fixes (deterministic, default: true)');
-    console.log(
+    logger.log('Usage: refine.ts <skill-path> [options]');
+    logger.log('');
+    logger.log('Arguments:');
+    logger.log('  <skill-path>          Path to skill directory');
+    logger.log('');
+    logger.log('Options:');
+    logger.log('  --migrate             Enable rd2 to rd3 migration mode');
+    logger.log('  --best-practices      Apply best practice auto-fixes (deterministic, default: true)');
+    logger.log(
         '  --platform <name>     Target platform: claude, codex, openclaw, opencode, antigravity (default: all)',
     );
-    console.log('  --dry-run             Show what would be changed without making changes');
-    console.log('  --verbose, -v         Show detailed output');
-    console.log('  --help, -h            Show this help message');
+    logger.log('  --dry-run             Show what would be changed without making changes');
+    logger.log('  --verbose, -v         Show detailed output');
+    logger.log('  --help, -h            Show this help message');
 }
 
 function printReport(report: RefineReport, _verbose: boolean): void {
     if (report.migrations.length > 0) {
-        console.log('\n--- Migrations ---');
+        logger.log('\n--- Migrations ---');
         for (const m of report.migrations) {
-            console.log(`  + ${m}`);
+            logger.log(`  + ${m}`);
         }
     }
 
     if (report.bestPractices.length > 0) {
-        console.log('\n--- Best Practice Fixes ---');
+        logger.log('\n--- Best Practice Fixes ---');
         for (const bp of report.bestPractices) {
-            console.log(`  * ${bp}`);
+            logger.log(`  * ${bp}`);
         }
     }
 
     if (report.generations.length > 0) {
-        console.log('\n--- Generated Companions ---');
+        logger.log('\n--- Generated Companions ---');
         for (const g of report.generations) {
-            console.log(`  ✓ ${g}`);
+            logger.success(`  ${g}`);
         }
     }
 
     if (report.errors.length > 0) {
-        console.log('\n--- Errors ---');
+        logger.log('\n--- Errors ---');
         for (const e of report.errors) {
-            console.log(`  ✗ ${e}`);
+            logger.fail(`  ${e}`);
         }
     }
 
     if (report.migrations.length === 0 && report.generations.length === 0 && report.errors.length === 0) {
-        console.log('\nNo changes needed');
+        logger.log('\nNo changes needed');
     }
 }
 
@@ -436,9 +467,9 @@ async function main() {
     const result = await refineSkill(skillPath, options);
 
     if (result.success) {
-        console.log('\n✓ Refinement completed');
+        logger.success('\nRefinement completed');
     } else {
-        console.log('\n✗ Refinement failed');
+        logger.fail('\nRefinement failed');
     }
 
     printReport(result.report, options.verbose);
