@@ -26,56 +26,6 @@ Structured methodology for breaking complex requirements into actionable, implem
 **Key distinction:**
 - **`rd3:task-decomposition`** = WHAT to decompose, HOW to decompose, structured output (knowledge/patterns/machine-readable)
 - **`rd3:tasks`** = File management operations (create, update, delete, WBS assignment, validation, kanban)
-
-## Boundary Definition
-
-This skill has a precise scope. Understanding what belongs here versus adjacent disciplines prevents scope creep and keeps the skill focused.
-
-### Task Decomposition (IN-SCOPE)
-
-Transform understood, scoped work into actionable tasks:
-
-- Break requirements into implementable pieces (2-8 hour granularity)
-- Identify dependencies, sequencing, and parallel opportunities
-- Apply decomposition patterns (layer-based, feature-based, phase-based, risk-based)
-- Estimate effort using structured techniques (PERT, T-shirt, time-boxing, historical)
-- Generate structured JSON output compatible with batch task creation
-- Define success criteria and verification methods for each task
-- Record assumptions and open questions surfaced during decomposition
-
-### Business Analysis (OUT-OF-SCOPE)
-
-Business analysis determines WHAT the problem is and WHY it matters. It feeds INTO task decomposition as input:
-
-- Problem framing and stakeholder goal identification
-- Success criteria definition at the project level
-- Requirement clarification and prioritization
-- ROI analysis and business case construction
-
-**Handoff model:** Business analysis outputs (requirements, constraints, success criteria) are inputs to task decomposition. When decomposition surfaces business analysis questions, record them as open questions — do not attempt to answer them.
-
-### System Analysis (OUT-OF-SCOPE)
-
-System analysis designs the technical architecture and component interactions. It also feeds INTO task decomposition as input:
-
-- Technical architecture design and component boundary definition
-- System integration reasoning and API contract design
-- Technology selection and infrastructure planning
-- Performance modeling and capacity planning
-
-**Handoff model:** System analysis outputs (architecture decisions, component boundaries, technical constraints) are inputs to task decomposition. When decomposition surfaces architecture questions, record them as assumptions requiring validation — do not attempt to resolve them.
-
-### Task Lifecycle (OUT-OF-SCOPE)
-
-Task file operations belong in `rd3:tasks`:
-
-- File creation, WBS assignment, status management
-- Kanban board operations and refresh
-- Task validation and content checking
-- Artifact storage and retrieval
-
-**Handoff model:** Task decomposition generates structured output (JSON). That output is consumed by `rd3:tasks batch-create` or `rd3:tasks create` for file operations.
-
 ## Persona
 
 You are a **Senior Workflow Architect** with deep expertise in project management, task decomposition, work breakdown structure design, and structured planning.
@@ -196,63 +146,6 @@ Avoid placeholder text like "TBD", "[placeholder]", or "See above". Empty or ske
 - [ ] References gathered from codebase
 - [ ] No circular dependencies
 - [ ] High-risk tasks flagged
-
-## Structured Output Protocol
-
-### Batch-Creation-Compatible JSON
-
-When generating task decompositions, output tasks in structured JSON for consumption by task management systems:
-
-#### Option 1: JSON Array (for file-based batch creation)
-
-```json
-[
-  {
-    "name": "descriptive-task-name",
-    "background": "Why this task exists - provide substantive context (min 50 chars)",
-    "requirements": "What needs to be done - measurable criteria (min 50 chars)",
-    "solution": "Technical approach and implementation strategy",
-    "priority": "high|medium|low",
-    "estimated_hours": 4,
-    "dependencies": ["0001", "0002"],
-    "tags": ["authentication", "security"]
-  }
-]
-```
-
-#### Option 2: Markdown Footer (for inline output)
-
-Append to analysis output:
-
-```markdown
-<!-- TASKS:
-[
-  {
-    "name": "implement-oauth2-google-provider",
-    "background": "Users need to authenticate via Google OAuth2 for enterprise SSO integration. Current system only supports email/password authentication.",
-    "requirements": "Must support Google OAuth2 flow, handle token refresh, store provider-specific user data. Success criteria: User can login with Google, tokens auto-refresh, profile syncs.",
-    "solution": "Use OAuth2 library, implement callback endpoint, store tokens in database with encryption, add middleware for token validation.",
-    "priority": "high",
-    "estimated_hours": 6
-  }
-]
--->
-```
-
-### Structured Output Requirements
-
-**Every task MUST include:**
-- `name`: kebab-case, descriptive, action-oriented
-- `background`: Substantive context (min 50 chars, ideally 100+)
-- `requirements`: Measurable criteria (min 50 chars, ideally 100+)
-
-**Optional but recommended:**
-- `solution`: Technical approach (preserves Solution section content)
-- `priority`: high | medium | low
-- `estimated_hours`: Numeric estimate
-- `dependencies`: Array of WBS IDs or task names
-- `tags`: Array of category tags
-
 ## Integration with rd3:tasks
 
 This skill provides the **knowledge** for decomposition with **structured outputs**, while `rd3:tasks` handles the **file operations**.
@@ -525,10 +418,25 @@ tasks create "implement-oauth2-flow" \
 > "OAuth2 flow"
 ## Platform Notes
 
-### Claude Code
-- Use !`cmd` for live command execution
+### Claude Code (Claude-Specific Features)
+- Use `` `!cmd` `` for live command execution
 - Use `$ARGUMENTS` or `$1`, `$2` etc. for parameter references
 - Use `context: fork` for parallel task execution
 - Hooks can be registered in `.claude/hooks.json`
 
+### Other Platforms (Codex, OpenCode, OpenClaw, Antigravity)
+- Execute commands via standard shell (Bash tool on OpenCode, Claude CLI on Antigravity)
+- Argument substitution varies: use platform-native variable expansion
+- No `context: fork` equivalent on other platforms
+- Hooks are not supported on non-Claude platforms
+
+**Universal Features (work on all platforms):**
+- All structured output (JSON, markdown footer) is platform-agnostic
+- Task decomposition patterns apply universally
+- Reference file loading is platform-independent
+
 See [Additional Resources](references/external-resources.md) for detailed content.
+
+See [Boundary Definition](references/boundary-definition.md) for detailed content.
+
+See [Structured Output Protocol](references/structured-output-protocol.md) for detailed content.
