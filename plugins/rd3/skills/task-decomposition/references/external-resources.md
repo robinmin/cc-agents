@@ -1,20 +1,38 @@
 ---
 name: external-resources
-description: "External links and further reading"
+description: "External links, additional resources, and decomposition checklist for task-decomposition skill."
 see_also:
   - rd3:task-decomposition
+  - rd3:tasks
+  - patterns
+  - estimation
+  - domain-breakdowns
+  - examples
+  - task-template
 ---
 
 # Additional Resources
 
-## Additional Resources
+## Skill References
 
 - `references/patterns.md` for layer, feature, phase, and risk decomposition patterns
 - `references/estimation.md` for estimation techniques and buffer guidance
 - `references/domain-breakdowns.md` for domain-specific breakdown examples
 - `references/examples.md` for end-to-end sample decompositions
+- `references/task-template.md` for task file structure and section content guidance
 
-### Breakdown Checklist
+## Key Boundary Reminders
+
+| Discipline | In-Scope for Task Decomposition? | Notes |
+|------------|-----------------------------------|-------|
+| **Task Decomposition** | YES | Transform understood work into actionable tasks |
+| **Business Analysis** | NO - OUT | Requirements, ROI, stakeholder goals → record as prerequisites |
+| **System Analysis** | NO - OUT | Architecture, integration, tech choices → record as prerequisites |
+| **Task File Operations** | NO - OUT | File creation, WBS assignment → use `rd3:tasks` |
+
+## Decomposition Checklist
+
+Before finalizing task decomposition:
 
 Before finalizing task decomposition:
 - [ ] Each task is 2-8 hours
