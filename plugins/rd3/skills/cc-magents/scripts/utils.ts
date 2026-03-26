@@ -59,6 +59,14 @@ const CATEGORY_PATTERNS: Array<{ pattern: RegExp; category: SectionCategory }> =
     { pattern: /\b(planning|plan|decompos|breakdown|strategy)\b/i, category: 'planning' },
     // Parallel patterns
     { pattern: /\b(parallel|concurrent|async|simultaneous|batch)\b/i, category: 'parallel' },
+    // Personality patterns
+    { pattern: /\b(personality|tone|voice|communication style|values|limits)\b/i, category: 'personality' },
+    // User context patterns
+    { pattern: /\b(user context|user profile|timezone|user pref|operator)\b/i, category: 'user-context' },
+    // Heartbeat patterns
+    { pattern: /\b(heartbeat|scheduled tasks?|cron|periodic|polling)\b/i, category: 'heartbeat' },
+    // Bootstrap patterns
+    { pattern: /\b(bootstrap|onboarding|first.?run|setup wizard|progressive adoption)\b/i, category: 'bootstrap' },
 ];
 
 /**
@@ -278,6 +286,17 @@ export function detectPlatform(filePath: string, _content?: string): MagentPlatf
     }
     if (lowerPath.includes('.amp/')) {
         return 'amp';
+    }
+
+    // OpenClaw workspace files
+    if (
+        fileName === 'SOUL.md' ||
+        fileName === 'IDENTITY.md' ||
+        fileName === 'USER.md' ||
+        fileName === 'TOOLS.md' ||
+        fileName === 'HEARTBEAT.md'
+    ) {
+        return 'openclaw';
     }
 
     return null;
