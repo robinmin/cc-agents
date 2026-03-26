@@ -124,7 +124,7 @@ DO NOT implement research directly. Delegate to specialized skills:
 
 | Level | Range | Criteria |
 |-------|-------|----------|
-| **HIGH** | >90% | Direct quote from official docs (2024+) |
+| **HIGH** | >90% | Direct quote from official docs (2025+) |
 | **MEDIUM** | 70-90% | Synthesized from multiple sources |
 | **LOW** | <70% | Uncertain, flag for review |
 
@@ -210,14 +210,12 @@ DO NOT implement research directly. Delegate to specialized skills:
 
 When user confirms approach, delegate to rd3:task-decomposition:
 
-```typescript
-// 1. Delegate breakdown to rd3:task-decomposition
-Skill(skill="rd3:task-decomposition",
-      args="convert " + recommended_approach + " to tasks")
+```
+// Pseudocode: Delegate breakdown to rd3:task-decomposition
+Skill("rd3:task-decomposition", args: "convert <recommended_approach> to tasks")
 
-// 2. Receive structured JSON output
-// 3. Create tasks via rd3:tasks
-Bash("tasks batch-create --from-json decomposition.json")
+// Receive structured JSON output, then create tasks via rd3:tasks
+Bash: tasks batch-create --from-json decomposition.json
 ```
 
 ### Task Extraction Criteria
