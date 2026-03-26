@@ -136,9 +136,18 @@ export const EXPECTED_CATEGORIES = {
     /** Categories that should always be present */
     required: ['identity', 'rules', 'tools'] as const,
     /** Categories that are recommended for quality configs */
-    recommended: ['workflow', 'standards', 'verification', 'output'] as const,
+    recommended: ['workflow', 'standards', 'verification', 'output', 'personality'] as const,
     /** Categories that expand operational breadth without overlapping maintainability */
-    optional: ['environment', 'error-handling', 'testing', 'planning', 'parallel'] as const,
+    optional: [
+        'environment',
+        'error-handling',
+        'testing',
+        'planning',
+        'parallel',
+        'user-context',
+        'heartbeat',
+        'bootstrap',
+    ] as const,
 };
 
 // ============================================================================
@@ -176,6 +185,43 @@ export const OPERABILITY_INDICATORS = {
 // Safety Indicators (for Safety scoring)
 // ============================================================================
 
+// ============================================================================
+// Maintainability Indicators (for Maintainability scoring)
+// ============================================================================
+
+/**
+ * Patterns that indicate good maintainability practices.
+ */
+export const MAINTAINABILITY_INDICATORS = {
+    /** Memory architecture patterns (broad + specific) */
+    memoryArchitecture: [
+        /\b(memory|context|history|remember|persistence)\b/i,
+        /#\s*Memory/i,
+        /#\s*Context/i,
+        /memory\/YYYY-MM-DD|daily.?memory/i,
+        /curat|promot|long.?term.?memory/i,
+        /memory.?seed/i,
+        /MEMORY\.md/i,
+    ],
+    /** Bootstrap and progressive adoption patterns */
+    bootstrapPattern: [/bootstrap|first.?run|onboarding/i, /progressive.?adoption/i, /setup.?wizard/i, /week\s+[123]/i],
+    /** Evolution and feedback loops (broad + specific) */
+    evolutionLoops: [
+        /\b(feedback|learn|adapt|self.?improv|evolution)\b/i,
+        /\b(user\s+feedback|behavior\s+adjustment|retrospective|postmortem)\b/i,
+        /feedback.*loop/i,
+        /learn.*from.*mistake/i,
+        /iterate/i,
+    ],
+    /** Version and change tracking (broad + specific) */
+    versionTracking: [
+        /\b(changelog|version\s+history|revision|release\s+notes|effective\s+date)\b/i,
+        /\bv\d+\.\d+\.\d+/,
+        /\b(last\s+updated|updated_at|effective)\b/i,
+        /migration|upgrade.*guide/i,
+    ],
+};
+
 /**
  * Patterns that indicate good safety practices.
  */
@@ -192,6 +238,21 @@ export const SAFETY_INDICATORS = {
     permissions: [/\bpermission\b/i, /\bapproval\b/i, /\bask\s+(before|user|first)\b/i],
     /** Secret protection */
     secretProtection: [/\b(secrets?|credentials?|api.?keys?)\b/i, /\b(\.env|environment\s+variables?)\b/i],
+    /** Prompt injection defense */
+    promptInjectionDefense: [
+        /prompt.?injection/i,
+        /untrusted.?(content|input)/i,
+        /external.?content.*(hostile|untrusted)/i,
+        /ignore.*(instructions|content)/i,
+    ],
+    /** Tool permission scoping */
+    toolPermissionScoping: [/tool.?permission/i, /tool.?scoping/i, /allowed.?tools/i, /least.?privilege/i],
+    /** External content treatment */
+    externalContentTreatment: [
+        /external.?(content|data|input)/i,
+        /never.?trust/i,
+        /treat.*(link|content|data).*(hostile|untrusted)/i,
+    ],
 };
 
 // ============================================================================
