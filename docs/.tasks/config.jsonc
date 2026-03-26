@@ -2,7 +2,7 @@
 // See: plugins/rd3/skills/tasks/SKILL.md
 {
     "$schema_version": 1,
-    "active_folder": "docs/tasks",
+    "active_folder": "docs/tasks2",
     "folders": {
         "docs/prompts": {
             "base_counter": 0,
@@ -11,6 +11,10 @@
         "docs/tasks": {
             "base_counter": 184,
             "label": "Phase 2"
+        },
+        "docs/tasks2": {
+            "base_counter": 263,
+            "label": "Phase 3"
         }
     }
 }
