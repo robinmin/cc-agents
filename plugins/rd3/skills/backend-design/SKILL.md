@@ -345,54 +345,6 @@ Follow this workflow when planning backend testing:
    - [ ] No mocked database in integration tests
 ```
 
-## Quick Reference
-
-### Common API Patterns
-
-| Pattern | Use Case | HTTP Method |
-|---------|----------|-------------|
-| CRUD | Standard resource operations | GET, POST, PUT, DELETE |
-| RPC | Action-oriented | POST |
-| Collection | Bulk operations | POST |
-| Sub-resource | Nested resources | /parent/{id}/child |
-| Webhook | Event-driven notifications | POST (to subscriber) |
-| MCP | AI/LLM integration | JSON-RPC 2.0 |
-
-### Database Index Selection
-
-| Index Type | Use Case | PostgreSQL Syntax |
-|-----------|----------|-------------------|
-| B-tree | Equality, range, sorting | `CREATE INDEX idx ON t(col)` |
-| GIN | Full-text, JSONB, arrays | `CREATE INDEX idx ON t USING gin(col)` |
-| Composite | Multi-column queries | `CREATE INDEX idx ON t(col1, col2)` |
-| Partial | Filtered subsets | `CREATE INDEX idx ON t(col) WHERE active` |
-| Covering | Index-only scans | `CREATE INDEX idx ON t(col1) INCLUDE(col2)` |
-
-### Caching Pattern Selection
-
-| Pattern | Consistency | Latency | Use Case |
-|---------|------------|---------|----------|
-| Cache-Aside | Eventual | Low reads | General purpose, read-heavy |
-| Write-Through | Strong | Higher writes | Data that must be consistent |
-| Write-Behind | Eventual | Low writes | High write throughput |
-| Refresh-Ahead | Eventual | Lowest reads | Predictable access patterns |
-
-### Auth Mechanism Selection
-
-| Mechanism | Use Case | Token Lifetime |
-|-----------|----------|---------------|
-| JWT (RS256) | API auth, microservices | 15 min access, 7 day refresh |
-| PASETO | Safer JWT alternative | Same as JWT |
-| OAuth2 + OIDC | Third-party login | Provider-dependent |
-| API Keys | Machine-to-machine | Long-lived, rotatable |
-| mTLS | Service mesh, zero-trust | Certificate lifetime |
-
-For detailed reference tables and patterns, see:
-
-- **API Design**: [`references/api-design.md`](references/api-design.md) — REST naming, GraphQL schema, gRPC services, versioning, error handling
-- **Database Patterns**: [`references/database-patterns.md`](references/database-patterns.md) — PostgreSQL indexing, MongoDB schema, Redis data structures, connection pooling
-- **Caching Patterns**: [`references/caching-patterns.md`](references/caching-patterns.md) — Cache-Aside, Write-Through, Write-Behind, TTL, invalidation
-
 ## Additional Resources
 
 - **PostgreSQL Documentation**: https://www.postgresql.org/docs/ — Official PostgreSQL docs
@@ -401,3 +353,10 @@ For detailed reference tables and patterns, see:
 - **OAuth2 RFC 6749**: https://datatracker.ietf.org/doc/html/rfc6749 — Authorization framework
 - **Pact**: https://docs.pact.io/ — Consumer-driven contract testing
 - **Testcontainers**: https://testcontainers.com/ — Real dependencies in tests
+
+See [Quick Reference](references/quick-reference.md) for detailed reference tables and patterns.
+
+## Platform Notes
+
+- **Claude Code**: This skill provides pipeline workflows that can be entered at any stage. Use `rd3:skill-refine` to improve this skill after significant content changes.
+- **All platforms**: Skill is `pipeline`-type — 6 ordered stages with validation gates. Users can enter at any stage matching their current task. Delegates to `rd3:sys-developing` for actual implementation code.
