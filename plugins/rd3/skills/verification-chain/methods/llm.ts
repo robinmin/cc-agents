@@ -84,7 +84,9 @@ export async function runLlmCheck(config: LlmCheckerConfig): Promise<MethodResul
             evidence.error = errorMsg;
             try {
                 rmSync(tempDir, { recursive: true, force: true });
-            } catch { /* ignore cleanup error */ }
+            } catch {
+                /* ignore cleanup error */
+            }
             resolve({
                 result: 'fail',
                 evidence,
@@ -96,7 +98,9 @@ export async function runLlmCheck(config: LlmCheckerConfig): Promise<MethodResul
             // Clean up temp file
             try {
                 rmSync(tempDir, { recursive: true, force: true });
-            } catch { /* ignore cleanup error */ }
+            } catch {
+                /* ignore cleanup error */
+            }
 
             logger.debug(`LLM CLI exited with code ${code}`);
             logger.debug(`LLM stdout:\n${stdout}`);

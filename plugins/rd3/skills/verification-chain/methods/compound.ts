@@ -51,17 +51,11 @@ export async function runCompoundCheck(config: CompoundCheckerConfig, cwd: strin
                     return { sub_check: subCheckName, result: result.result };
                 }
                 case 'file-exists': {
-                    const result = await runFileExistsCheck(
-                        check.config as FileExistsCheckerConfig,
-                        cwd,
-                    );
+                    const result = await runFileExistsCheck(check.config as FileExistsCheckerConfig, cwd);
                     return { sub_check: subCheckName, result: result.result };
                 }
                 case 'content-match': {
-                    const result = await runContentMatchCheck(
-                        check.config as ContentMatchCheckerConfig,
-                        cwd,
-                    );
+                    const result = await runContentMatchCheck(check.config as ContentMatchCheckerConfig, cwd);
                     return { sub_check: subCheckName, result: result.result };
                 }
                 case 'llm': {
