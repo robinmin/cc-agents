@@ -43,6 +43,7 @@ export type MagentPlatform =
     | 'claude-md'
     | 'gemini-md'
     | 'codex'
+    | 'openclaw'
     // Tier 2: Standard support
     | 'cursorrules'
     | 'windsurfrules'
@@ -56,6 +57,7 @@ export type MagentPlatform =
     | 'warp'
     | 'roocode'
     | 'amp'
+    | 'pi'
     | 'vscode-instructions'
     // Tier 4: Generic (AGENTS.md pass-through)
     | 'generic';
@@ -69,6 +71,7 @@ export const PLATFORM_TIERS: Record<MagentPlatform, PlatformTier> = {
     'claude-md': 1,
     'gemini-md': 1,
     codex: 1,
+    openclaw: 1,
     cursorrules: 2,
     windsurfrules: 2,
     'zed-rules': 2,
@@ -80,6 +83,7 @@ export const PLATFORM_TIERS: Record<MagentPlatform, PlatformTier> = {
     warp: 3,
     roocode: 3,
     amp: 3,
+    pi: 3,
     'vscode-instructions': 3,
     generic: 4,
 };
@@ -90,6 +94,7 @@ export const ALL_MAGENT_PLATFORMS: MagentPlatform[] = [
     'claude-md',
     'gemini-md',
     'codex',
+    'openclaw',
     'cursorrules',
     'windsurfrules',
     'zed-rules',
@@ -101,6 +106,7 @@ export const ALL_MAGENT_PLATFORMS: MagentPlatform[] = [
     'warp',
     'roocode',
     'amp',
+    'pi',
     'vscode-instructions',
     'generic',
 ];
@@ -111,6 +117,7 @@ export const PLATFORM_DISPLAY_NAMES: Record<MagentPlatform, string> = {
     'claude-md': 'CLAUDE.md (Claude Code)',
     'gemini-md': 'GEMINI.md (Gemini CLI)',
     codex: 'Codex (OpenAI)',
+    openclaw: 'OpenClaw (Workspace Files)',
     cursorrules: '.cursorrules (Cursor)',
     windsurfrules: '.windsurfrules (Windsurf)',
     'zed-rules': '.zed/rules (Zed)',
@@ -122,6 +129,7 @@ export const PLATFORM_DISPLAY_NAMES: Record<MagentPlatform, string> = {
     warp: 'Warp Rules',
     roocode: 'RooCode Rules',
     amp: 'Amp Rules',
+    pi: 'PI CLI',
     'vscode-instructions': '.github/copilot-instructions.md (VS Code)',
     generic: 'Generic (AGENTS.md fallback)',
 };
@@ -132,6 +140,7 @@ export const PLATFORM_FILENAMES: Record<MagentPlatform, string[]> = {
     'claude-md': ['CLAUDE.md', '.claude/CLAUDE.md'],
     'gemini-md': ['GEMINI.md', '.gemini/GEMINI.md'],
     codex: ['codex.md', '.codex/AGENTS.md'],
+    openclaw: ['SOUL.md', 'IDENTITY.md', 'AGENTS.md', 'USER.md', 'TOOLS.md', 'HEARTBEAT.md', 'MEMORY.md'],
     cursorrules: ['.cursorrules'],
     windsurfrules: ['.windsurfrules'],
     'zed-rules': ['.zed/rules'],
@@ -143,9 +152,40 @@ export const PLATFORM_FILENAMES: Record<MagentPlatform, string[]> = {
     warp: ['.warp/rules.md'],
     roocode: ['.roo/rules.md', '.roocode/rules.md'],
     amp: ['.amp/rules.md'],
+    pi: ['.pi/rules.md', 'pi.md'],
     'vscode-instructions': ['.github/copilot-instructions.md'],
     generic: ['AGENTS.md'],
 };
+
+// ============================================================================
+// Multi-File Platform Support
+// ============================================================================
+
+/**
+ * Maps a section category to a specific file in multi-file platforms.
+ * Used by adapters like OpenClaw where sections are distributed across
+ * multiple workspace files (SOUL.md, IDENTITY.md, AGENTS.md, etc.).
+ */
+export interface PlatformFileMapping {
+    /** Which section category maps to this file */
+    category: SectionCategory;
+    /** Target filename (e.g., 'SOUL.md', 'AGENTS.md') */
+    filename: string;
+}
+
+/**
+ * Output structure for multi-file platform adapters.
+ * Instead of a single string, these adapters produce multiple files
+ * with content distributed by section category.
+ */
+export interface MultiFileOutput {
+    /** Target platform */
+    platform: MagentPlatform;
+    /** Map of filename -> generated content */
+    files: Map<string, string>;
+    /** Category-to-file mappings used during generation */
+    fileMappings: PlatformFileMapping[];
+}
 
 // ============================================================================
 // Universal Main Agent Model (UMAM)
@@ -229,12 +269,14 @@ export interface MagentSection {
 
 /**
  * Section categories for classification and analysis.
- * 14 categories based on analysis of 16+ platform system prompts.
- * Extended from original 12 with error-handling and planning based on
- * >40% coverage across vendor prompts.
+ * 18 categories based on analysis of 17+ platform system prompts.
+ * Extended from original 12 with error-handling, planning, personality,
+ * user-context, heartbeat, and bootstrap based on OpenClaw 7-file model
+ * and >40% coverage across vendor prompts.
  */
 export type SectionCategory =
     | 'identity' // Who the agent is, its role, persona
+    | 'personality' // Tone, values, communication style, limits
     | 'rules' // Do/don't rules, constraints, boundaries
     | 'workflow' // Step-by-step processes, procedures
     | 'tools' // Tool usage, MCP servers, integrations
@@ -248,11 +290,15 @@ export type SectionCategory =
     | 'error-handling' // Error recovery, fallback strategies
     | 'planning' // Planning mode, task decomposition
     | 'parallel' // Parallel execution, concurrency
+    | 'user-context' // User profile, preferences, timezone
+    | 'heartbeat' // Scheduled tasks, cron jobs, periodic checks
+    | 'bootstrap' // First-run setup, onboarding, progressive adoption
     | 'custom'; // Uncategorized sections
 
 /** All section categories */
 export const ALL_SECTION_CATEGORIES: SectionCategory[] = [
     'identity',
+    'personality',
     'rules',
     'workflow',
     'tools',
@@ -266,6 +312,9 @@ export const ALL_SECTION_CATEGORIES: SectionCategory[] = [
     'error-handling',
     'planning',
     'parallel',
+    'user-context',
+    'heartbeat',
+    'bootstrap',
     'custom',
 ];
 
@@ -616,6 +665,12 @@ export interface IMagentPlatformAdapter {
      * Detect platform-specific features present in a UMAM model.
      */
     detectFeatures(model: UniversalMainAgent): string[];
+
+    /**
+     * Get platform-specific conversion warnings when converting FROM this platform.
+     * Optional - only needed for platforms with non-portable features.
+     */
+    getConversionWarningsFrom?(targetPlatform: MagentPlatform, model: UniversalMainAgent): ConversionWarning[];
 
     /**
      * Get file paths where this platform's config files are typically found.
