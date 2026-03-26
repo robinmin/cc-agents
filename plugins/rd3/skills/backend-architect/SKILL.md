@@ -5,7 +5,7 @@ license: Apache-2.0
 version: 2.0.0
 created_at: 2026-03-23
 updated_at: 2026-03-26
-type: technique
+type: pattern
 tags: [backend, architecture, microservices, event-driven, distributed-systems, scalability, cloud-native, serverless, kubernetes, finops, iac, disaster-recovery, ebpf, temporal, mcp]
 metadata:
   author: cc-agents
@@ -73,9 +73,11 @@ This skill is not the right fit when:
 4. Verify any framework-, vendor-, or version-specific claim before recommending it.
 5. End with an explicit recommendation, key risks, and an ADR-style rationale when the decision is material.
 
-## Example
+## Examples
 
 Use a small decision note before going deep into a reference:
+
+### Example 1: Cloud Infrastructure Decision
 
 ```markdown
 Decision: Choose the runtime model for webhook ingestion.
@@ -92,6 +94,27 @@ Key checks before finalizing:
 - Current provider timeout, concurrency, and pricing limits
 - Team operational maturity for Kubernetes
 - DR and observability requirements
+```
+
+### Example 2: Service Decomposition Decision
+
+```markdown
+Decision: Choose service boundaries for an order management system.
+
+Options considered:
+- Monolith with module boundaries (team of 6, single deployment)
+- Microservices: Order, Inventory, Payment, Notification (independent deployment)
+- Modular monolith with event bus (module isolation, single deployment)
+
+Recommendation:
+- Start with modular monolith. The team is too small for microservices overhead.
+- Use an internal event bus so modules communicate via events, not direct calls.
+- Extract to microservices later if a module needs independent scaling or a different tech stack.
+
+Key checks before finalizing:
+- Are bounded contexts well-defined? (DDD context mapping)
+- Does any module have fundamentally different scaling needs?
+- Team experience with distributed systems debugging
 ```
 
 ## Core Principles
