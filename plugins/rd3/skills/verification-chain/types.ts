@@ -154,7 +154,7 @@ export interface ChainState {
     chain_name: string;
     status: ChainStatus;
     current_node: string;
-    global_retry: { remaining: number; total: number };
+    global_retry?: { remaining: number; total: number };
     nodes: NodeExecutionState[];
     created_at: string;
     updated_at: string;
