@@ -1,362 +1,359 @@
 ---
 name: backend-design
-description: "Backend implementation patterns: API endpoint design (REST/GraphQL/gRPC), database schema design (PostgreSQL/MongoDB/Redis), caching implementation (Cache-Aside/Write-Through), authentication flows (OAuth2/JWT/mTLS), observability instrumentation (OpenTelemetry), and backend testing strategies. Trigger when designing API endpoints, database schemas, caching layers, auth flows, or planning backend testing."
+description: "Backend implementation patterns for Node.js. Use when building Express APIs, designing repository patterns, implementing service layer, adding Zod validation, configuring Sentry monitoring, enforcing layered architecture. Applies to routes, controllers, services, repositories, Prisma, middleware, validation, and backend conventions."
 license: Apache-2.0
 version: 1.0.0
 created_at: 2026-03-26
 updated_at: 2026-03-26
-type: technique
-tags: [backend, api-design, database, caching, authentication, observability, testing, rest, graphql, grpc, postgresql, redis, opentelemetry]
+type: pattern
+tags: [backend, api, express, prisma, typescript, nodejs, layered-architecture, zod, sentry, rest, graphql]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,antigravity,opencode,openclaw"
-  category: architecture-design
+  category: implementation-pattern
   interactions:
-    - pipeline
-  pipeline_steps:
-    - design-api-endpoints
-    - design-database-schema
-    - design-caching-layer
-    - design-auth-flow
-    - instrument-observability
-    - plan-backend-testing
-  trigger_keywords:
-    - api-endpoint-design
-    - database-schema
-    - caching-strategy
-    - authentication-flow
-    - observability-setup
-    - backend-testing
-    - rest-api
-    - graphql-schema
-    - grpc-service
+    - knowledge-only
 see_also:
   - rd3:backend-architect
   - rd3:sys-developing
-  - rd3:sys-testing
   - rd3:pl-typescript
+  - rd3:tdd-workflow
 ---
-
-# rd3:backend-design — Backend Implementation Patterns
-
-Backend implementation patterns and design guidance for building production-ready services using 2026 best practices.
-
-## Overview
-
-This skill provides implementation-level guidance for backend development, covering API endpoint design, database schema design, caching layer implementation, authentication flows, observability instrumentation, and testing strategies.
-
-For high-level system architecture decisions (service decomposition, distributed systems topology, cloud infrastructure, scalability strategy), use `rd3:backend-architect` instead.
 
 ## When to Use
 
-- Designing REST, GraphQL, or gRPC endpoint contracts
-- Planning database schemas, indexes, and query patterns
-- Implementing caching layers (Cache-Aside, Write-Through, Write-Behind)
-- Designing authentication/authorization flows (OAuth2, JWT, mTLS)
-- Setting up observability instrumentation (metrics, logs, traces)
-- Planning backend testing strategies (unit, integration, contract)
-- Choosing connection pooling and query optimization strategies
-- Implementing API versioning, pagination, and error handling
+Automatically applies when working on:
 
-**Not the right fit when:**
-- Making high-level architecture decisions (service boundaries, distributed systems topology) — use `rd3:backend-architect`
-- Writing actual implementation code — use `rd3:sys-developing`
-- Debugging existing backend code — use `rd3:sys-debugging`
-- Frontend design — use `rd3:frontend-design`
+* Routes, controllers, services, repositories
+* Express middleware
+* Prisma database access
+* Zod validation
+* Sentry error tracking
+* Configuration management
+* Backend refactors or migrations
 
-## Quick Start
+**Activate when any of these are true:**
 
-Use the workflow that matches your current task:
+| Situation | Examples |
+|----------|---------|
+| Building or modifying API endpoints | `POST /users`, `GET /orders/:id`, `router.post(...)` |
+| Implementing service layer logic | `UserService`, `OrderService`, business rules |
+| Adding repository/data access code | `PrismaService`, `findById`, `create`, transactions |
+| Writing Express middleware | Auth middleware, rate limiting, error handling |
+| Adding input validation | Zod schemas, `z.object(...)`, `schema.parse(...)` |
+| Setting up error tracking | Sentry.captureException, instrument.ts |
+| Configuring application settings | unifiedConfig, environment variables |
+| Backend refactors or migrations | Layer reorganization, dependency changes |
 
-**1. API Endpoint Design** → Follow `Design API Endpoints` workflow to plan resource naming, HTTP methods, status codes, versioning, and error responses.
+**Do NOT activate for:** frontend code, pure data analysis, infrastructure provisioning (use respective skills instead).
 
-**2. Database Schema Design** → Follow `Design Database Schema` workflow to plan tables/collections, indexes, partitioning, and connection pooling.
+For detailed patterns and examples, see:
+- [references/api-and-patterns.md](references/api-and-patterns.md) — API design, caching, auth, queues, logging
+- [references/security-implementation.md](references/security-implementation.md) — Security coding practices
+- [references/backend-development-workflow.md](references/backend-development-workflow.md) — Feature development orchestration
 
-**3. Caching Layer** → Follow `Design Caching Layer` workflow to select caching patterns, TTL strategies, and invalidation approaches.
+## Overview
 
-**4. Authentication Flow** → Follow `Design Auth Flow` workflow to plan OAuth2 flows, token management, and service-to-service auth.
+**(Node.js · Express · TypeScript · Microservices)**
 
-**5. Observability** → Follow `Instrument Observability` workflow to set up metrics (RED/USE), structured logging, and distributed tracing.
+You are a **senior backend engineer** operating production-grade services under strict architectural and reliability constraints.
 
-**6. Testing** → Follow `Plan Backend Testing` workflow (60% unit, 25% integration, 15% contract/E2E).
+Your goal is to build **predictable, observable, and maintainable backend systems** using:
 
-## Workflows
+* Layered architecture
+* Explicit error boundaries
+* Strong typing and validation
+* Centralized configuration
+* First-class observability
 
-### Design API Endpoints
+This skill defines **how backend code must be written**, not merely suggestions.
 
-Follow this workflow when designing API endpoints:
+---
 
-```
-1. IDENTIFY resources
-   - List domain entities and their relationships
-   - Map to URL paths using noun-based naming
-   - Identify sub-resources (e.g., /orders/{id}/items)
+This skill enforces a layered architecture for Node.js/Express backends:
 
-2. DEFINE operations
-   - Map CRUD operations to HTTP methods
-   - GET: Read (idempotent, cacheable)
-   - POST: Create (non-idempotent)
-   - PUT: Full update (idempotent)
-   - PATCH: Partial update
-   - DELETE: Remove (idempotent)
+| Layer | Responsibility | Key Rule |
+|-------|---------------|---------|
+| **Routes** | HTTP routing only | Zero business logic |
+| **Controllers** | Request/response coordination | Extend `BaseController` |
+| **Services** | Business logic | Framework-agnostic, unit-testable |
+| **Repositories** | Data access | Prisma via repositories only |
+| **Config** | All settings | `unifiedConfig` only — no `process.env` |
 
-3. DESIGN response format
-   - Consistent envelope: { data, error, meta }
-   - Pagination: cursor-based for large datasets
-   - Filtering: query params (?status=active&sort=-created)
-   - Include HATEOAS links for discoverability
+**Core constraints:** All errors → Sentry · All input → Zod · All config → unifiedConfig
 
-4. PLAN error handling
-   - Standard HTTP status codes (400, 401, 403, 404, 409, 422, 500)
-   - Error body: { code, message, details[] }
-   - Include request_id for traceability
-   - Never leak internal details in error responses
+---
 
-5. DESIGN versioning strategy
-   - URL path versioning (/v1/users) for public APIs
-   - Header versioning for internal APIs
-   - Plan deprecation timeline and sunset headers
+## 1. Backend Feasibility & Risk Index (BFRI)
 
-6. VALIDATE design
-   - [ ] Resource names are plural nouns
-   - [ ] Consistent response envelope
-   - [ ] Pagination on all list endpoints
-   - [ ] Rate limiting headers included
-   - [ ] Idempotency keys for non-idempotent operations
-```
+Before implementing or modifying a backend feature, assess feasibility.
 
-### Design Database Schema
+### BFRI Dimensions (1–5)
 
-Follow this workflow when designing database schemas:
+| Dimension                     | Question                                                         |
+| ----------------------------- | ---------------------------------------------------------------- |
+| **Architectural Fit**         | Does this follow routes → controllers → services → repositories? |
+| **Business Logic Complexity** | How complex is the domain logic?                                 |
+| **Data Risk**                 | Does this affect critical data paths or transactions?            |
+| **Operational Risk**          | Does this impact auth, billing, messaging, or infra?           |
+| **Testability**               | Can this be reliably unit + integration tested?                  |
+
+### Score Formula
 
 ```
-1. MODEL entities
-   - Identify domain entities and relationships
-   - Choose normalization level (3NF for OLTP, denormalized for reads)
-   - Define primary keys (UUID v7 for distributed, BIGSERIAL for single-node)
-   - Add audit columns (created_at, updated_at, deleted_at for soft deletes)
-
-2. DESIGN indexes
-   - B-tree for equality and range queries (default)
-   - GIN for full-text search and JSONB
-   - Composite indexes for multi-column queries (most selective first)
-   - Partial indexes for filtered queries (WHERE active = true)
-   - Covering indexes (INCLUDE) to avoid table lookups
-
-3. PLAN partitioning
-   - Range partitioning for time-series data
-   - Hash partitioning for even distribution
-   - List partitioning for categorical data
-   - Partition size target: 10M-100M rows per partition
-
-4. CONFIGURE connection pooling
-   - PgBouncer for PostgreSQL (transaction mode)
-   - Pool size: 2-3x CPU cores
-   - Statement timeout to prevent long-running queries
-   - Idle timeout to reclaim connections
-
-5. OPTIMIZE queries
-   - Use EXPLAIN ANALYZE for query plans
-   - Avoid SELECT * — list needed columns
-   - Use CTEs for readability, subqueries for performance
-   - Batch inserts with VALUES lists or COPY
-
-6. VALIDATE schema
-   - [ ] All foreign keys have indexes
-   - [ ] No N+1 query patterns in common access paths
-   - [ ] Soft delete via deleted_at (not hard delete)
-   - [ ] Timestamps use TIMESTAMPTZ (not TIMESTAMP)
-   - [ ] JSON columns have GIN indexes if queried
+BFRI = (Architectural Fit + Testability) − (Complexity + Data Risk + Operational Risk)
 ```
 
-### Design Caching Layer
+**Range:** `-10 → +10`
 
-Follow this workflow when designing caching:
+### Interpretation
 
-```
-1. IDENTIFY cacheable data
-   - Read-heavy data with low write frequency
-   - Expensive computations or aggregations
-   - External API responses
-   - Session and user preference data
+| BFRI     | Meaning   | Action                 |
+| -------- | --------- | ---------------------- |
+| **6–10** | Safe      | Proceed                |
+| **3–5**  | Moderate  | Add tests + monitoring |
+| **0–2**  | Risky     | Refactor or isolate    |
+| **< 0**  | Dangerous | Redesign before coding |
 
-2. SELECT caching pattern
-   - Cache-Aside (Lazy Loading): Read from cache, miss → read DB → populate cache
-   - Write-Through: Write to cache + DB together (strong consistency)
-   - Write-Behind: Write to cache, async flush to DB (higher throughput)
-   - Refresh-Ahead: Proactively refresh before expiry (low latency)
+---
 
-3. DESIGN key structure
-   - Namespace: {service}:{entity}:{id} (e.g., orders:order:123)
-   - Include version for cache busting: v2:orders:order:123
-   - Use hash tags for Redis Cluster co-location: {order:123}:items
+## 3. Core Architecture Doctrine (Non-Negotiable)
 
-4. SET TTL strategy
-   - Hot data: 5-15 minutes
-   - Warm data: 1-4 hours
-   - Cold/static data: 24+ hours
-   - Add jitter to prevent thundering herd: TTL + random(0, TTL * 0.1)
-
-5. PLAN invalidation
-   - Event-driven: Invalidate on write events
-   - Tag-based: Group related keys for bulk invalidation
-   - Versioned keys: Increment version on schema change
-   - Never rely on TTL alone for data that must be fresh
-
-6. VALIDATE strategy
-   - [ ] Cache hit ratio target defined (>90% for hot paths)
-   - [ ] Thundering herd protection (jitter, locks, or coalescing)
-   - [ ] Graceful degradation when cache is unavailable
-   - [ ] Monitoring for cache hit/miss ratio and eviction rate
-   - [ ] No sensitive data cached without encryption
-```
-
-### Design Auth Flow
-
-Follow this workflow when designing authentication:
+### 1. Layered Architecture Is Mandatory
 
 ```
-1. CHOOSE auth mechanism
-   - OAuth2 + OIDC: Third-party identity providers (Google, GitHub)
-   - JWT (RS256): Stateless API auth with short-lived tokens
-   - PASETO: Safer JWT alternative (no algorithm confusion)
-   - API Keys: Machine-to-machine, rate-limited
-   - mTLS: Service-to-service in zero-trust networks
-
-2. DESIGN token lifecycle
-   - Access token: Short-lived (15 min), contains claims
-   - Refresh token: Long-lived (7 days), stored securely
-   - Token rotation: Issue new refresh token on each use
-   - Revocation: Maintain blocklist for compromised tokens
-
-3. IMPLEMENT authorization
-   - RBAC: Role-based access control for simple hierarchies
-   - ABAC: Attribute-based for fine-grained policies
-   - Middleware: Validate token → extract claims → check permissions
-   - Resource-level: Check ownership before data access
-
-4. SECURE token storage
-   - Server: httpOnly, Secure, SameSite=Strict cookies
-   - Mobile: OS keychain (iOS Keychain, Android Keystore)
-   - Service-to-service: Vault or cloud secrets manager
-   - Never store tokens in localStorage
-
-5. PLAN error responses
-   - 401 Unauthorized: Missing or invalid credentials
-   - 403 Forbidden: Valid credentials, insufficient permissions
-   - Include WWW-Authenticate header with 401
-   - Never reveal whether user exists on auth failure
-
-6. VALIDATE flow
-   - [ ] Tokens are short-lived with refresh rotation
-   - [ ] Secrets use Vault or KMS (not env vars in code)
-   - [ ] Rate limiting on auth endpoints
-   - [ ] Brute-force protection (account lockout, CAPTCHA)
-   - [ ] Audit logging for all auth events
+Routes → Controllers → Services → Repositories → Database
 ```
 
-### Instrument Observability
+* No layer skipping
+* No cross-layer leakage
+* Each layer has **one responsibility**
 
-Follow this workflow when setting up observability:
+---
 
-```
-1. DEFINE metrics (RED method for services)
-   - Rate: Requests per second
-   - Errors: Error rate and error types
-   - Duration: Latency percentiles (p50, p95, p99)
-   - Also USE method for resources: Utilization, Saturation, Errors
+### 2. Routes Only Route
 
-2. IMPLEMENT structured logging
-   - JSON format with consistent fields
-   - Required: timestamp, level, message, service, trace_id
-   - Context: request_id, user_id, correlation_id
-   - Avoid logging PII or secrets
-   - Use log levels correctly: DEBUG < INFO < WARN < ERROR
+```ts
+// ❌ NEVER
+router.post('/create', async (req, res) => {
+  await prisma.user.create(...);
+});
 
-3. SET UP distributed tracing
-   - OpenTelemetry SDK for auto-instrumentation
-   - Propagate W3C Trace Context headers
-   - Create spans for: HTTP handlers, DB queries, external calls
-   - Add attributes: db.statement, http.method, rpc.service
-   - Sampling: 100% for errors, 10-20% for normal traffic
-
-4. DESIGN SLOs
-   - Availability SLO: 99.9% = 8.76h downtime/year
-   - Latency SLO: p99 < 500ms for API endpoints
-   - Error budget: 0.1% of requests can fail
-   - Alert on burn rate, not raw error count
-
-5. BUILD dashboards
-   - Service overview: RED metrics + error budget
-   - Dependency map: Upstream/downstream health
-   - Database: Query latency, connection pool, cache hit ratio
-   - Infrastructure: CPU, memory, disk, network
-
-6. VALIDATE instrumentation
-   - [ ] All HTTP handlers emit RED metrics
-   - [ ] Trace IDs propagated across service boundaries
-   - [ ] Structured logs include trace context
-   - [ ] SLOs defined for critical user journeys
-   - [ ] Alerts on error budget burn rate
+// ✅ ALWAYS
+router.post('/create', (req, res) =>
+  userController.create(req, res)
+);
 ```
 
-### Plan Backend Testing
+Routes must contain **zero business logic**.
 
-Follow this workflow when planning backend testing:
+---
 
-```
-1. DEFINE testing scope
-   - Unit tests: 60% — Business logic, utilities, validators
-   - Integration tests: 25% — API endpoints, DB operations
-   - Contract tests: 10% — API contracts between services
-   - E2E tests: 5% — Critical end-to-end flows
+### 3. Controllers Coordinate, Services Decide
 
-2. SELECT testing tools
-   - Unit: Vitest/Jest (TypeScript), pytest (Python), go test (Go)
-   - Integration: Supertest + Testcontainers (real DB in Docker)
-   - Contract: Pact for consumer-driven contracts
-   - E2E: API client + test environment
-   - Mocking: MSW for HTTP, pg-mem or Testcontainers for DB
+* **Controllers**: Parse request, call services, handle response formatting, handle errors via BaseController
+* **Services**: Contain business rules, are framework-agnostic, use DI, are unit-testable
 
-3. PLAN test data
-   - Factories for consistent test data (Factory pattern)
-   - Database seeding for integration tests
-   - Fixtures for deterministic scenarios
-   - Cleanup: Truncate tables between tests, not after
+---
 
-4. DESIGN integration tests
-   - Test against real database (Testcontainers)
-   - Test full request/response cycle
-   - Verify side effects (DB writes, events published)
-   - Test error paths and edge cases
+### 4. All Controllers Extend `BaseController`
 
-5. PLAN contract tests
-   - Consumer defines expected interactions
-   - Provider verifies against consumer expectations
-   - Run in CI on both sides
-   - Version contracts alongside API versions
-
-6. VALIDATE strategy
-   - [ ] Unit tests for all business logic
-   - [ ] Integration tests for all API endpoints
-   - [ ] Contract tests for service boundaries
-   - [ ] Tests run in CI/CD pipeline
-   - [ ] Coverage threshold enforced (80%+)
-   - [ ] No mocked database in integration tests
+```ts
+export class UserController extends BaseController {
+  async getUser(req: Request, res: Response): Promise<void> {
+    try {
+      const user = await this.userService.getById(req.params.id);
+      this.handleSuccess(res, user);
+    } catch (error) {
+      this.handleError(error, res, 'getUser');
+    }
+  }
+}
 ```
 
-## Additional Resources
+No raw `res.json` calls outside BaseController helpers.
 
-- **PostgreSQL Documentation**: https://www.postgresql.org/docs/ — Official PostgreSQL docs
-- **Redis Documentation**: https://redis.io/docs/ — Redis data structures and patterns
-- **OpenTelemetry**: https://opentelemetry.io/docs/ — Observability instrumentation
-- **OAuth2 RFC 6749**: https://datatracker.ietf.org/doc/html/rfc6749 — Authorization framework
-- **Pact**: https://docs.pact.io/ — Consumer-driven contract testing
-- **Testcontainers**: https://testcontainers.com/ — Real dependencies in tests
+---
 
-See [Quick Reference](references/quick-reference.md) for detailed reference tables and patterns.
+### 5. All Errors Go to Sentry
 
-## Platform Notes
+```ts
+catch (error) {
+  Sentry.captureException(error);
+  throw error;
+}
+```
 
-- **Claude Code**: This skill provides pipeline workflows that can be entered at any stage. Use `rd3:skill-refine` to improve this skill after significant content changes.
-- **All platforms**: Skill is `pipeline`-type — 6 ordered stages with validation gates. Users can enter at any stage matching their current task. Delegates to `rd3:sys-developing` for actual implementation code.
+❌ `console.log` · ❌ silent failures · ❌ swallowed errors
+
+---
+
+### 6. unifiedConfig Is the Only Config Source
+
+```ts
+// ❌ NEVER
+process.env.JWT_SECRET;
+
+// ✅ ALWAYS
+import { config } from '@/config/unifiedConfig';
+config.auth.jwtSecret;
+```
+
+---
+
+### 7. Validate All External Input with Zod
+
+* Request bodies · Query params · Route params · Webhook payloads
+
+```ts
+const schema = z.object({
+  email: z.string().email(),
+});
+const input = schema.parse(req.body);
+```
+
+No validation = bug.
+
+---
+
+## 4. Directory Structure (Canonical)
+
+```
+src/
+├── config/              # unifiedConfig
+├── controllers/          # BaseController + controllers
+├── services/            # Business logic
+├── repositories/        # Prisma access
+├── routes/              # Express routes
+├── middleware/          # Auth, validation, errors
+├── validators/          # Zod schemas
+├── types/               # Shared types
+├── utils/               # Helpers
+├── tests/               # Unit + integration tests
+├── instrument.ts        # Sentry (FIRST IMPORT)
+├── app.ts              # Express app
+└── server.ts           # HTTP server
+```
+
+---
+
+## 5. Naming Conventions (Strict)
+
+| Layer      | Convention                |
+| ---------- | ------------------------- |
+| Controller | `PascalCaseController.ts` |
+| Service    | `camelCaseService.ts`     |
+| Repository | `PascalCaseRepository.ts` |
+| Routes     | `camelCaseRoutes.ts`      |
+| Validators | `camelCase.schema.ts`     |
+
+---
+
+## 6. Dependency Injection Rules
+
+* Services receive dependencies via constructor
+* No importing repositories directly inside controllers
+* Enables mocking and testing
+
+```ts
+export class UserService {
+  constructor(
+    private readonly userRepository: UserRepository
+  ) {}
+}
+```
+
+---
+
+## 7. Async & Error Handling
+
+All async route handlers must be wrapped with `asyncErrorWrapper`.
+
+```ts
+router.get(
+  '/users',
+  asyncErrorWrapper((req, res) =>
+    controller.list(req, res)
+  )
+);
+```
+
+No unhandled promise rejections.
+
+---
+
+## 8. Observability & Monitoring
+
+**Required:**
+* Sentry error tracking
+* Sentry performance tracing
+* Structured logs (where applicable)
+
+Every critical path must be observable.
+
+---
+
+## 9. Testing Discipline
+
+**Required Tests:**
+* **Unit tests** for services
+* **Integration tests** for routes
+* **Repository tests** for complex queries
+
+No tests → no merge.
+
+---
+
+## 10. Anti-Patterns (Immediate Rejection)
+
+❌ Business logic in routes
+❌ Skipping service layer
+❌ Direct Prisma in controllers
+❌ Missing validation
+❌ process.env usage
+❌ console.log instead of Sentry
+❌ Untested business logic
+
+---
+
+## 11. Integration With Other Skills
+
+* **frontend-dev-guidelines** → API contract alignment
+* **error-tracking** → Sentry standards
+* **database-verification** → Schema correctness
+* **analytics-tracking** → Event pipelines
+
+---
+
+## 12. Operator Validation Checklist
+
+Before finalizing backend work:
+
+* [ ] BFRI ≥ 3
+* [ ] Layered architecture respected
+* [ ] Input validated
+* [ ] Errors captured in Sentry
+* [ ] unifiedConfig used
+* [ ] Tests written
+* [ ] No anti-patterns present
+
+---
+
+## 13. Skill Status
+
+**Status:** Stable · Enforceable · Production-grade
+**Intended Use:** Long-lived Node.js microservices with real traffic and real risk
+
+---
+
+## Trigger
+
+Invoke this skill when:
+
+- Building or modifying Express/REST/GraphQL API endpoints
+- Implementing service layer or repository patterns
+- Adding Prisma database access or transactions
+- Writing Express middleware (auth, rate limiting, validation)
+- Adding Zod input validation
+- Configuring Sentry error tracking
+- Enforcing layered architecture conventions
