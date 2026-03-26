@@ -1,20 +1,8 @@
-/**
- * Unit tests for rd3 logger utilities
- */
+#!/usr/bin/env bun
 
-import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
-import {
-    COLORS,
-    type LogLevel,
-    Logger,
-    type LoggerOptions,
-    createLogger,
-    isGlobalSilent,
-    logger,
-    setGlobalSilent,
-} from '../scripts/logger';
+import { afterEach, describe, expect, test } from 'bun:test';
+import { Logger, createLogger, isGlobalSilent, setGlobalSilent } from '../scripts/logger';
 
-// Suppress console output during tests
 const originalConsole = {
     debug: console.debug,
     info: console.info,
@@ -22,232 +10,152 @@ const originalConsole = {
     error: console.error,
     log: console.log,
 };
-
-const originalQuietMode = process.env.RD3_LOG_QUIET;
-
-beforeEach(() => {
-    // Also enable global silent mode to suppress all logger output
-    setGlobalSilent(true);
-    process.env.RD3_LOG_QUIET = undefined;
-    console.debug = () => {};
-    console.info = () => {};
-    console.warn = () => {};
-    console.error = () => {};
-    console.log = () => {};
-});
+const originalQuiet = process.env.RD3_LOG_QUIET;
 
 afterEach(() => {
-    setGlobalSilent(false);
     console.debug = originalConsole.debug;
     console.info = originalConsole.info;
     console.warn = originalConsole.warn;
     console.error = originalConsole.error;
     console.log = originalConsole.log;
-    if (originalQuietMode === undefined) {
-        process.env.RD3_LOG_QUIET = undefined;
+
+    if (originalQuiet === undefined) {
+        delete process.env.RD3_LOG_QUIET;
     } else {
-        process.env.RD3_LOG_QUIET = originalQuietMode;
+        process.env.RD3_LOG_QUIET = originalQuiet;
     }
+
+    setGlobalSilent(false);
 });
 
-describe('Logger', () => {
-    it('should create logger with default options', () => {
-        const log = new Logger();
-        expect(log).toBeDefined();
-    });
-
-    it('should create logger with custom level', () => {
-        const log = new Logger({ level: 'error' });
-        expect(log).toBeDefined();
-    });
-
-    it('should create logger with custom prefix', () => {
-        const log = new Logger({ prefix: 'test' });
-        expect(log).toBeDefined();
-    });
-
-    it('should create logger with color disabled', () => {
-        const log = new Logger({ color: false });
-        expect(log).toBeDefined();
-    });
-
-    it('should have default logger export', () => {
-        expect(logger).toBeDefined();
-    });
-
-    it('should create logger with createLogger function', () => {
-        const log = createLogger({ level: 'debug' });
-        expect(log).toBeDefined();
-    });
-
-    it('should create logger with all options', () => {
-        const log = createLogger({
-            level: 'warn',
-            prefix: 'myapp',
-            color: false,
-        });
-        expect(log).toBeDefined();
-    });
-
-    it('should call debug method', () => {
-        const log = new Logger({ level: 'debug' });
-        expect(() => log.debug('test message')).not.toThrow();
-    });
-
-    it('should call info method', () => {
-        const log = new Logger({ level: 'info' });
-        expect(() => log.info('test message')).not.toThrow();
-    });
-
-    it('should call warn method', () => {
-        const log = new Logger({ level: 'warn' });
-        expect(() => log.warn('test message')).not.toThrow();
-    });
-
-    it('should call error method', () => {
-        const log = new Logger({ level: 'error' });
-        expect(() => log.error('test message')).not.toThrow();
-    });
-
-    it('should call success method', () => {
-        const log = new Logger({ level: 'info' });
-        expect(() => log.success('test message')).not.toThrow();
-    });
-
-    it('should call fail method', () => {
-        const log = new Logger({ level: 'error' });
-        expect(() => log.fail('test message')).not.toThrow();
-    });
-
-    it('should not log when level is silent', () => {
-        const log = new Logger({ level: 'silent' });
-        expect(() => log.debug('test')).not.toThrow();
-        expect(() => log.info('test')).not.toThrow();
-        expect(() => log.warn('test')).not.toThrow();
-        expect(() => log.error('test')).not.toThrow();
-    });
-
-    it('should log with prefix', () => {
-        const log = new Logger({ level: 'info', prefix: 'TEST' });
-        expect(() => log.info('message')).not.toThrow();
-    });
-
-    it('should log without color', () => {
-        const log = new Logger({ level: 'info', color: false });
-        expect(() => log.info('message')).not.toThrow();
-    });
-
-    it('should log with additional arguments', () => {
-        const log = new Logger({ level: 'debug' });
-        expect(() => log.debug('message', { key: 'value' }, 123)).not.toThrow();
-    });
-
-    it('should report global silent state changes', () => {
-        expect(isGlobalSilent()).toBe(true);
-        setGlobalSilent(false);
+describe('logger', () => {
+    test('tracks global silent mode', () => {
         expect(isGlobalSilent()).toBe(false);
         setGlobalSilent(true);
         expect(isGlobalSilent()).toBe(true);
     });
 
-    it('should format colored output when logging is enabled', () => {
-        setGlobalSilent(false);
-        const calls: unknown[][] = [];
+    test('emits formatted debug, info, warn, and error messages', () => {
+        const calls = {
+            debug: [] as unknown[][],
+            info: [] as unknown[][],
+            warn: [] as unknown[][],
+            error: [] as unknown[][],
+        };
+
+        console.debug = (...args: unknown[]) => {
+            calls.debug.push(args);
+        };
         console.info = (...args: unknown[]) => {
-            calls.push(args);
+            calls.info.push(args);
+        };
+        console.warn = (...args: unknown[]) => {
+            calls.warn.push(args);
+        };
+        console.error = (...args: unknown[]) => {
+            calls.error.push(args);
         };
 
-        const log = new Logger({ level: 'info', prefix: 'TEST' });
-        log.info('formatted message');
+        const colorLogger = new Logger({ level: 'debug', prefix: 'unit' });
+        const plainLogger = createLogger({ level: 'debug', prefix: 'plain', color: false });
 
-        expect(calls.length).toBe(1);
-        const [formatted] = calls[0];
-        expect(typeof formatted).toBe('string');
-        expect(formatted as string).toContain(COLORS.dim);
-        expect(formatted as string).toContain(COLORS.green);
-        expect(formatted as string).toContain('[TEST] formatted message');
+        colorLogger.debug('debug message', { debug: true });
+        plainLogger.info('info message');
+        plainLogger.warn('warn message');
+        plainLogger.error('error message');
+
+        expect(calls.debug).toHaveLength(1);
+        expect(String(calls.debug[0]?.[0])).toContain('DEBUG');
+        expect(String(calls.debug[0]?.[0])).toContain('[unit]');
+        expect(calls.info).toHaveLength(1);
+        expect(String(calls.info[0]?.[0])).toContain('INFO');
+        expect(String(calls.info[0]?.[0])).toContain('[plain]');
+        expect(calls.warn).toHaveLength(1);
+        expect(String(calls.warn[0]?.[0])).toContain('WARN');
+        expect(calls.error).toHaveLength(1);
+        expect(String(calls.error[0]?.[0])).toContain('ERROR');
     });
 
-    it('should format non-colored output when color is disabled', () => {
-        setGlobalSilent(false);
-        const calls: unknown[][] = [];
-        console.info = (...args: unknown[]) => {
-            calls.push(args);
+    test('emits success, fail, and raw log output', () => {
+        const calls = {
+            log: [] as unknown[][],
+            error: [] as unknown[][],
         };
 
-        const log = new Logger({ level: 'info', color: false, prefix: 'PLAIN' });
-        log.info('plain message');
-
-        expect(calls.length).toBe(1);
-        const [formatted] = calls[0];
-        expect(typeof formatted).toBe('string');
-        expect(formatted as string).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-        expect(formatted as string).toContain('INFO ');
-        expect(formatted as string).toContain('[PLAIN] plain message');
-        expect(formatted as string).not.toContain(COLORS.dim);
-        expect(formatted as string).not.toContain(COLORS.green);
-    });
-
-    it('should suppress level-based logs when quiet mode env is enabled', () => {
-        setGlobalSilent(false);
-        process.env.RD3_LOG_QUIET = '1';
-        let called = false;
-        console.warn = () => {
-            called = true;
-        };
-
-        const log = new Logger({ level: 'warn' });
-        log.warn('suppressed');
-
-        expect(called).toBe(false);
-    });
-
-    it('should still allow logger.log in quiet mode when not globally silent', () => {
-        setGlobalSilent(false);
-        process.env.RD3_LOG_QUIET = 'true';
-        const calls: unknown[][] = [];
         console.log = (...args: unknown[]) => {
-            calls.push(args);
+            calls.log.push(args);
+        };
+        console.error = (...args: unknown[]) => {
+            calls.error.push(args);
         };
 
-        const log = new Logger();
-        log.log('plain cli output', 123);
+        const logger = new Logger({ level: 'debug', color: false });
+        logger.success('completed');
+        logger.fail('failed');
+        logger.log('plain output', 42);
 
-        expect(calls).toEqual([['plain cli output', 123]]);
-    });
-});
-
-describe('LogLevel type', () => {
-    it('should accept valid log levels', () => {
-        const levels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'silent'];
-        expect(levels.length).toBe(5);
-    });
-});
-
-describe('LoggerOptions type', () => {
-    it('should accept optional level', () => {
-        const options: LoggerOptions = { level: 'info' };
-        expect(options.level).toBe('info');
+        expect(calls.log).toHaveLength(2);
+        expect(String(calls.log[0]?.[0])).toBe('[OK] completed');
+        expect(calls.log[1]).toEqual(['plain output', 42]);
+        expect(calls.error).toHaveLength(1);
+        expect(String(calls.error[0]?.[0])).toBe('[X] failed');
     });
 
-    it('should accept optional prefix', () => {
-        const options: LoggerOptions = { prefix: 'test' };
-        expect(options.prefix).toBe('test');
-    });
-
-    it('should accept optional color', () => {
-        const options: LoggerOptions = { color: false };
-        expect(options.color).toBe(false);
-    });
-
-    it('should accept all options', () => {
-        const options: LoggerOptions = {
-            level: 'debug',
-            prefix: 'app',
-            color: true,
+    test('suppresses structured output in quiet mode but still allows raw log', () => {
+        const calls = {
+            info: [] as unknown[][],
+            warn: [] as unknown[][],
+            error: [] as unknown[][],
+            log: [] as unknown[][],
         };
-        expect(options.level).toBe('debug');
-        expect(options.prefix).toBe('app');
-        expect(options.color).toBe(true);
+
+        process.env.RD3_LOG_QUIET = 'true';
+        console.info = (...args: unknown[]) => {
+            calls.info.push(args);
+        };
+        console.warn = (...args: unknown[]) => {
+            calls.warn.push(args);
+        };
+        console.error = (...args: unknown[]) => {
+            calls.error.push(args);
+        };
+        console.log = (...args: unknown[]) => {
+            calls.log.push(args);
+        };
+
+        const logger = new Logger({ level: 'debug' });
+        logger.info('hidden info');
+        logger.warn('hidden warn');
+        logger.error('hidden error');
+        logger.success('hidden success');
+        logger.fail('hidden fail');
+        logger.log('visible log');
+
+        expect(calls.info).toHaveLength(0);
+        expect(calls.warn).toHaveLength(0);
+        expect(calls.error).toHaveLength(0);
+        expect(calls.log).toEqual([['visible log']]);
+    });
+
+    test('suppresses all output when global silent is enabled', () => {
+        const calls = {
+            debug: 0,
+            log: 0,
+        };
+
+        console.debug = () => {
+            calls.debug += 1;
+        };
+        console.log = () => {
+            calls.log += 1;
+        };
+
+        const logger = new Logger({ level: 'debug' });
+        setGlobalSilent(true);
+        logger.debug('hidden debug');
+        logger.log('hidden log');
+
+        expect(calls.debug).toBe(0);
+        expect(calls.log).toBe(0);
     });
 });
