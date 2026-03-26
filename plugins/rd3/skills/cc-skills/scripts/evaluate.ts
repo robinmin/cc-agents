@@ -444,7 +444,9 @@ function extractFeatures(
         hasPlatforms: !!frontmatter?.metadata?.platforms,
 
         // Platform features
-        platformsSupported: frontmatter?.metadata?.platforms?.split(',').map((p) => p.trim()) || [],
+        platformsSupported: Array.isArray(frontmatter?.metadata?.platforms)
+            ? frontmatter.metadata.platforms
+            : frontmatter?.metadata?.platforms?.split(',').map((p) => p.trim()) || [],
         hasEvalIgnore: /<!--\s*eval-ignore/.test(body),
     };
 
