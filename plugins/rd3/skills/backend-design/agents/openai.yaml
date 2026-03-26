@@ -1,0 +1,18 @@
+name: backend-design
+description: "Backend implementation patterns: API endpoint design (REST/GraphQL/gRPC),
+  database schema design (PostgreSQL/MongoDB/Redis), caching implementation
+  (Cache-Aside/Write-Through), authentication flows (OAuth2/JWT/mTLS),
+  observability instrumentation (OpenTelemetry), and backend testing strategies.
+  Trigger when designing API endpoints, database schemas, caching layers,
+  auth flows, or planning backend testing."
+version: 1.0.0
+icon: "\U0001F6E0\uFE0F"
+category: debugging
+tags:
+  - backend
+  - api-design
+  - database
+  - caching
+  - authentication
+  - observability
+  - testing
