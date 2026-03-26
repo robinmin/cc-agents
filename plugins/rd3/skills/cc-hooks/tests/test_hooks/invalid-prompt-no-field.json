@@ -1,12 +1,12 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt"
+            "matcher": "Write",
+            "hooks": [
+                {
+                    "type": "prompt"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
