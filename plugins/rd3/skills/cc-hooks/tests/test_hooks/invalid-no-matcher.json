@@ -1,12 +1,12 @@
 {
-  "PreToolUse": [
-    {
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "Validate file write safety"
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Validate file write safety"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
