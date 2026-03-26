@@ -1,14 +1,14 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "prompt",
-          "prompt": "Validate",
-          "timeout": "fast"
+            "matcher": "Write",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Validate",
+                    "timeout": "fast"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
