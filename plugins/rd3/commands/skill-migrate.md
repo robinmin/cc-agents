@@ -1,5 +1,5 @@
 ---
-description: "Migrate and merge skills from one or more sources into a destination skill with LLM-powered conflict resolution"
+description: "Migrate and merge skills from one or more sources into a destination skill via rd3:cc-skills migrate operation with LLM-powered content refinement"
 argument-hint: "--from <path> [--from <path>...] --to <path> [--dry-run] [--apply] [--strict]"
 allowed-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Skill"]
 ---
@@ -49,17 +49,32 @@ Multi-source skill migration tool that extracts content from one or more source 
 
 ## Implementation
 
-Run the migration script directly:
+Route through the cc-skills skill:
 
-```bash
-bun plugins/rd3/skills/cc-skills/scripts/skill-migrate.ts $ARGUMENTS
 ```
+Skill(skill="rd3:cc-skills", args="migrate $ARGUMENTS")
+```
+
+This delegates to the migrate workflow defined in [references/workflows.md](../skills/cc-skills/references/workflows.md#migrate-workflow), which orchestrates the migration script and LLM content refinement.
 
 ## Phases
 
+| Phase | Handler | Description |
+|-------|---------|-------------|
+| 1-4 | `skill-migrate.ts` (script) | Inventory, merge planning, reconciliation, conversion |
+| 5 | LLM (invoking agent) | Content refinement — resolves TODO markers, improves coherence |
+| 6 | `evaluate.ts` (script) | Validate migrated skill quality |
+
+**Phases 1-4 (deterministic script):**
 1. **Inventory** — Scan each `--from` source for SKILL.md, scripts/, tests/, references/
 2. **Merge Planning** — Compare inventories, identify overlapping files and conflicts
 3. **Reconciliation** — Resolve conflicts via `rd3:knowledge-extraction` reconciliation engine
 4. **Conversion** — Convert Python scripts to TypeScript/Bun
 5. **Apply** — Write reconciled files to `--to` destination (if `--apply`)
 6. **Report** — Generate `migration-report-<timestamp>.md`
+
+**Phase 5 (LLM content refinement — agent):**
+After phases 1-4, the invoking agent uses LLM to improve merged content: resolves `// TODO: Convert import` markers, fixes tone shifts, resolves semantic contradictions, ensures voice consistency.
+
+**Phase 6 (validation — script):**
+Runs `evaluate.ts --scope full` to score migrated skill. Score < 70 triggers retry of Phase 5 (max 2 retries).
