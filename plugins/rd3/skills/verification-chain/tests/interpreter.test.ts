@@ -156,19 +156,21 @@ describe('on_node_fail policies', () => {
 // ============================================================
 describe('parallel group', () => {
     test('all children pass + checker passes → completes', async () => {
-        const manifest: ChainManifest = makeManifest([{
-            name: 'parallel',
-            type: 'parallel-group',
-            convergence: 'all',
-            children: [
-                { name: 'child1', maker: { command: 'echo one' } },
-                { name: 'child2', maker: { command: 'echo two' } },
-            ],
-            checker: {
-                method: 'cli',
-                config: { command: 'echo ok', exit_codes: [0] },
+        const manifest: ChainManifest = makeManifest([
+            {
+                name: 'parallel',
+                type: 'parallel-group',
+                convergence: 'all',
+                children: [
+                    { name: 'child1', maker: { command: 'echo one' } },
+                    { name: 'child2', maker: { command: 'echo two' } },
+                ],
+                checker: {
+                    method: 'cli',
+                    config: { command: 'echo ok', exit_codes: [0] },
+                },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('completed');
         const pgNode = state.nodes[0];
@@ -178,19 +180,21 @@ describe('parallel group', () => {
     });
 
     test('one child fails → convergence fails', async () => {
-        const manifest: ChainManifest = makeManifest([{
-            name: 'parallel',
-            type: 'parallel-group',
-            convergence: 'all',
-            children: [
-                { name: 'child1', maker: { command: 'echo one' } },
-                { name: 'child2', maker: { command: 'exit 1' } },
-            ],
-            checker: {
-                method: 'cli',
-                config: { command: 'echo ok', exit_codes: [0] },
+        const manifest: ChainManifest = makeManifest([
+            {
+                name: 'parallel',
+                type: 'parallel-group',
+                convergence: 'all',
+                children: [
+                    { name: 'child1', maker: { command: 'echo one' } },
+                    { name: 'child2', maker: { command: 'exit 1' } },
+                ],
+                checker: {
+                    method: 'cli',
+                    config: { command: 'echo ok', exit_codes: [0] },
+                },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('failed');
         const pgNode = state.nodes[0];
@@ -199,59 +203,65 @@ describe('parallel group', () => {
     });
 
     test('quorum convergence: enough pass → passes', async () => {
-        const manifest: ChainManifest = makeManifest([{
-            name: 'parallel',
-            type: 'parallel-group',
-            convergence: 'quorum',
-            quorum_count: 2,
-            children: [
-                { name: 'child1', maker: { command: 'echo one' } },
-                { name: 'child2', maker: { command: 'exit 1' } },
-                { name: 'child3', maker: { command: 'echo three' } },
-            ],
-            checker: {
-                method: 'cli',
-                config: { command: 'echo ok', exit_codes: [0] },
+        const manifest: ChainManifest = makeManifest([
+            {
+                name: 'parallel',
+                type: 'parallel-group',
+                convergence: 'quorum',
+                quorum_count: 2,
+                children: [
+                    { name: 'child1', maker: { command: 'echo one' } },
+                    { name: 'child2', maker: { command: 'exit 1' } },
+                    { name: 'child3', maker: { command: 'echo three' } },
+                ],
+                checker: {
+                    method: 'cli',
+                    config: { command: 'echo ok', exit_codes: [0] },
+                },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         // 2 of 3 pass → quorum met
         expect(state.status).toBe('completed');
     });
 
     test('any convergence: one passes → passes', async () => {
-        const manifest: ChainManifest = makeManifest([{
-            name: 'parallel',
-            type: 'parallel-group',
-            convergence: 'any',
-            children: [
-                { name: 'child1', maker: { command: 'exit 1' } },
-                { name: 'child2', maker: { command: 'echo two' } },
-                { name: 'child3', maker: { command: 'exit 1' } },
-            ],
-            checker: {
-                method: 'cli',
-                config: { command: 'echo ok', exit_codes: [0] },
+        const manifest: ChainManifest = makeManifest([
+            {
+                name: 'parallel',
+                type: 'parallel-group',
+                convergence: 'any',
+                children: [
+                    { name: 'child1', maker: { command: 'exit 1' } },
+                    { name: 'child2', maker: { command: 'echo two' } },
+                    { name: 'child3', maker: { command: 'exit 1' } },
+                ],
+                checker: {
+                    method: 'cli',
+                    config: { command: 'echo ok', exit_codes: [0] },
+                },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('completed');
     });
 
     test('best-effort convergence: >0 pass → passes', async () => {
-        const manifest: ChainManifest = makeManifest([{
-            name: 'parallel',
-            type: 'parallel-group',
-            convergence: 'best-effort',
-            children: [
-                { name: 'child1', maker: { command: 'exit 1' } },
-                { name: 'child2', maker: { command: 'echo two' } },
-            ],
-            checker: {
-                method: 'cli',
-                config: { command: 'echo ok', exit_codes: [0] },
+        const manifest: ChainManifest = makeManifest([
+            {
+                name: 'parallel',
+                type: 'parallel-group',
+                convergence: 'best-effort',
+                children: [
+                    { name: 'child1', maker: { command: 'exit 1' } },
+                    { name: 'child2', maker: { command: 'echo two' } },
+                ],
+                checker: {
+                    method: 'cli',
+                    config: { command: 'echo ok', exit_codes: [0] },
+                },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('completed');
     });
@@ -262,15 +272,17 @@ describe('parallel group', () => {
 // ============================================================
 describe('human pause and resume', () => {
     test('human checker pauses chain', async () => {
-        const manifest = makeManifest([{
-            name: 'human-node',
-            type: 'single',
-            maker: { command: 'echo hello' },
-            checker: {
-                method: 'human',
-                config: { prompt: 'Approve this?', choices: ['approve', 'reject'] },
+        const manifest = makeManifest([
+            {
+                name: 'human-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: {
+                    method: 'human',
+                    config: { prompt: 'Approve this?', choices: ['approve', 'reject'] },
+                },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('paused');
         expect(state.paused_node).toBe('human-node');
@@ -380,65 +392,71 @@ describe('state persistence', () => {
 describe('compound checker in chain', () => {
     test('compound AND - all pass → node passes', async () => {
         writeFileSync(join(TEST_DIR, 'artifact.txt'), 'content');
-        const manifest = makeManifest([{
-            name: 'compound-node',
-            type: 'single',
-            maker: { command: 'echo made' },
-            checker: {
-                method: 'compound',
-                config: {
-                    operator: 'and',
-                    checks: [
-                        { method: 'file-exists', config: { paths: ['artifact.txt'] } },
-                        { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
-                    ],
+        const manifest = makeManifest([
+            {
+                name: 'compound-node',
+                type: 'single',
+                maker: { command: 'echo made' },
+                checker: {
+                    method: 'compound',
+                    config: {
+                        operator: 'and',
+                        checks: [
+                            { method: 'file-exists', config: { paths: ['artifact.txt'] } },
+                            { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                        ],
+                    },
                 },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('completed');
         expect(state.nodes[0].checker_result).toBe('pass');
     });
 
     test('compound OR - one passes → node passes', async () => {
-        const manifest = makeManifest([{
-            name: 'compound-node',
-            type: 'single',
-            maker: { command: 'echo made' },
-            checker: {
-                method: 'compound',
-                config: {
-                    operator: 'or',
-                    checks: [
-                        { method: 'file-exists', config: { paths: ['nonexistent.txt'] } },
-                        { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
-                    ],
+        const manifest = makeManifest([
+            {
+                name: 'compound-node',
+                type: 'single',
+                maker: { command: 'echo made' },
+                checker: {
+                    method: 'compound',
+                    config: {
+                        operator: 'or',
+                        checks: [
+                            { method: 'file-exists', config: { paths: ['nonexistent.txt'] } },
+                            { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                        ],
+                    },
                 },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('completed');
         expect(state.nodes[0].checker_result).toBe('pass');
     });
 
     test('compound quorum - enough pass → node passes', async () => {
-        const manifest = makeManifest([{
-            name: 'compound-node',
-            type: 'single',
-            maker: { command: 'echo made' },
-            checker: {
-                method: 'compound',
-                config: {
-                    operator: 'quorum',
-                    quorum_count: 2,
-                    checks: [
-                        { method: 'file-exists', config: { paths: ['missing1.txt'] } },
-                        { method: 'file-exists', config: { paths: ['missing2.txt'] } },
-                        { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
-                    ],
+        const manifest = makeManifest([
+            {
+                name: 'compound-node',
+                type: 'single',
+                maker: { command: 'echo made' },
+                checker: {
+                    method: 'compound',
+                    config: {
+                        operator: 'quorum',
+                        quorum_count: 2,
+                        checks: [
+                            { method: 'file-exists', config: { paths: ['missing1.txt'] } },
+                            { method: 'file-exists', config: { paths: ['missing2.txt'] } },
+                            { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                        ],
+                    },
                 },
             },
-        }]);
+        ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         // 1 pass / 3 total, quorum is 2 → fails
         expect(state.status).toBe('failed');
@@ -452,16 +470,18 @@ describe('compound checker in chain', () => {
 describe('checker retry', () => {
     test('checker retries on failure up to retry count', async () => {
         let attempts = 0;
-        const manifest: ChainManifest = makeManifest([{
-            name: 'retry-node',
-            type: 'single',
-            maker: { command: 'echo hello' },
-            checker: {
-                method: 'cli',
-                config: { command: 'echo ok' },
-                retry: 2,
+        const manifest: ChainManifest = makeManifest([
+            {
+                name: 'retry-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: {
+                    method: 'cli',
+                    config: { command: 'echo ok' },
+                    retry: 2,
+                },
             },
-        }]);
+        ]);
         // We can't easily count retries without modifying the checker,
         // so we test that retry: 0 doesn't retry (fails immediately)
         // and retry: 1 still fails on subsequent check
@@ -526,15 +546,17 @@ describe('callbacks', () => {
 
     test('onChainPause is called when human checker pauses', async () => {
         let callCount = 0;
-        const manifest = makeManifest([{
-            name: 'human-node',
-            type: 'single',
-            maker: { command: 'echo hello' },
-            checker: {
-                method: 'human',
-                config: { prompt: 'Approve?', choices: ['approve'] },
+        const manifest = makeManifest([
+            {
+                name: 'human-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: {
+                    method: 'human',
+                    config: { prompt: 'Approve?', choices: ['approve'] },
+                },
             },
-        }]);
+        ]);
         await runChain({
             manifest,
             stateDir: TEST_DIR,

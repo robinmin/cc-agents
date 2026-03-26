@@ -58,7 +58,12 @@ function saveState(state: ChainState, statePath: string): void {
 // Checker dispatch
 // ----------------------------------------------------------------
 
-async function runChecker(method: CheckerMethod, config: unknown, cwd: string, humanResponse?: string): Promise<MethodResult> {
+async function runChecker(
+    method: CheckerMethod,
+    config: unknown,
+    cwd: string,
+    humanResponse?: string,
+): Promise<MethodResult> {
     switch (method) {
         case 'cli':
             return runCliCheck(config as Parameters<typeof runCliCheck>[0], cwd);
