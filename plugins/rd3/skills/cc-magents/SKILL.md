@@ -4,7 +4,7 @@ description: "Use PROACTIVELY for creating AGENTS.md, evaluating config quality,
 license: Apache-2.0
 metadata:
   author: cc-agents
-  version: "3.0.0"
+  version: "4.0.0"
   platforms: "claude,codex,openclaw,opencode,antigravity"
   interactions:
     - generator
@@ -183,8 +183,8 @@ Quality scoring across 5 MECE dimensions.
 | **Coverage** | 25% | Core sections and concerns are present and substantive |
 | **Operability** | 25% | Decision trees, executable examples, output contracts |
 | **Grounding** | 20% | Evidence, verification steps, uncertainty handling |
-| **Safety** | 20% | CRITICAL rules, approvals, destructive warnings |
-| **Maintainability** | 10% | Memory, feedback, steering, version tracking |
+| **Safety** | 20% | CRITICAL rules, approvals, destructive warnings, prompt injection defense, tool scoping |
+| **Maintainability** | 10% | Memory architecture, bootstrap, evolution loops, version tracking |
 
 ### Weight Profiles
 
@@ -314,6 +314,7 @@ Convert between platform formats.
 | claude-md | CLAUDE.md, .claude/CLAUDE.md |
 | gemini-md | GEMINI.md, .gemini/GEMINI.md |
 | codex | codex.md, .codex/AGENTS.md |
+| openclaw | SOUL.md, IDENTITY.md, AGENTS.md, USER.md, TOOLS.md, HEARTBEAT.md, MEMORY.md |
 
 #### Tier 2: Standard Support (Parse + Generate)
 
@@ -384,7 +385,7 @@ interface UniversalMainAgent {
 
 | Tier | Platforms | Support |
 |------|-----------|---------|
-| 1 (Full) | AGENTS.md, CLAUDE.md, GEMINI.md, Codex | Parse + Generate + Validate |
+| 1 (Full) | AGENTS.md, CLAUDE.md, GEMINI.md, Codex, OpenClaw | Parse + Generate + Validate |
 | 2 (Standard) | .cursorrules, .windsurfrules, Zed, OpenCode | Parse + Generate |
 | 3 (Basic) | Aider, Warp, RooCode, Amp, VS Code | Generate only |
 | 4 (Generic) | All others | AGENTS.md pass-through |
@@ -409,6 +410,10 @@ Both use similar quality frameworks but different models:
 - `references/evolution-protocol.md` (self-evolution safety)
 - `references/platform-compatibility.md` (cross-platform feature matrix)
 - `references/red-flags.md` (red flags checklist)
+- `references/workspace-file-taxonomy.md` (OpenClaw 7-file model)
+- `references/security-hardening.md` (tiered security patterns)
+- `references/memory-architecture.md` (daily memory and curation)
+- `references/bootstrap-patterns.md` (first-run and progressive adoption)
 - `references/troubleshooting.md` (common issues and fixes)
 - `references/workflows.md` (detailed workflow definitions)
 
@@ -419,3 +424,7 @@ Both use similar quality frameworks but different models:
 - **Evolution Protocol**: [references/evolution-protocol.md](references/evolution-protocol.md) - Self-evolution safety guidelines
 - **Platform Compatibility**: [references/platform-compatibility.md](references/platform-compatibility.md) - Cross-platform feature matrix
 - **Troubleshooting**: [references/troubleshooting.md](references/troubleshooting.md) - Common issues and fixes
+- **Workspace File Taxonomy**: [references/workspace-file-taxonomy.md](references/workspace-file-taxonomy.md) - OpenClaw 7-file model and cross-platform mapping
+- **Security Hardening**: [references/security-hardening.md](references/security-hardening.md) - Critical/important/recommended security patterns
+- **Memory Architecture**: [references/memory-architecture.md](references/memory-architecture.md) - Daily memory, curation, and seeding patterns
+- **Bootstrap Patterns**: [references/bootstrap-patterns.md](references/bootstrap-patterns.md) - First-run setup and progressive adoption
