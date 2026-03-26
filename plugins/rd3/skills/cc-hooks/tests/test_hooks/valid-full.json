@@ -1,41 +1,41 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check.sh",
-          "timeout": 10
-        },
-        {
-          "type": "prompt",
-          "prompt": "Deep analysis of file write",
-          "timeout": 15
+            "matcher": "Write|Edit",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check.sh",
+                    "timeout": 10
+                },
+                {
+                    "type": "prompt",
+                    "prompt": "Deep analysis of file write",
+                    "timeout": 15
+                }
+            ]
         }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "*",
-      "hooks": [
+    ],
+    "Stop": [
         {
-          "type": "prompt",
-          "prompt": "Verify tests were run after code changes"
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Verify tests were run after code changes"
+                }
+            ]
         }
-      ]
-    }
-  ],
-  "SessionStart": [
-    {
-      "matcher": "*",
-      "hooks": [
+    ],
+    "SessionStart": [
         {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/load-context.sh"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
