@@ -190,6 +190,12 @@ function nextConflictId(): string {
     return `conflict-${++conflictCounter}`;
 }
 
+export interface CliExecutionResult {
+    exitCode: number;
+    stdout: string[];
+    stderr: string[];
+}
+
 /**
  * Detect all conflicts across multiple source contents.
  */
@@ -280,9 +286,7 @@ export function detectConflicts(sources: SourceContent[]): ConflictManifest {
             };
             conflicts.push(conflict);
 
-            if (!conflictsByFile[conflict.filePath]) {
-                conflictsByFile[conflict.filePath] = [];
-            }
+            conflictsByFile[conflict.filePath] ??= [];
             conflictsByFile[conflict.filePath].push(conflict.id);
         }
     }
@@ -329,9 +333,7 @@ export function detectConflicts(sources: SourceContent[]): ConflictManifest {
             };
             conflicts.push(conflict);
 
-            if (!conflictsByFile[conflict.filePath]) {
-                conflictsByFile[conflict.filePath] = [];
-            }
+            conflictsByFile[conflict.filePath] ??= [];
             conflictsByFile[conflict.filePath].push(conflict.id);
         }
     }
@@ -385,31 +387,50 @@ export function detectConflicts(sources: SourceContent[]): ConflictManifest {
 
 // ===== CLI =====
 
-function showHelp(): void {
-    logger.log('Usage: detect-conflicts.ts [options]');
-    logger.log('');
-    logger.log('Options:');
-    logger.log('  --help, -h     Show this help message');
-    logger.log('  --json         Output as JSON');
-    logger.log('  --sources      JSON array of {name,path,content} objects');
+export function getDetectConflictsHelpLines(): string[] {
+    return [
+        'Usage: detect-conflicts.ts [options]',
+        '',
+        'Options:',
+        '  --help, -h     Show this help message',
+        '  --json         Output as JSON',
+        '  --sources      JSON array of {name,path,content} objects',
+    ];
 }
 
-async function readStdin(): Promise<string> {
+export async function readTextFromStream(stream: AsyncIterable<Uint8Array>): Promise<string> {
     const chunks: Uint8Array[] = [];
-    for await (const chunk of Bun.stdin.stream()) {
+    for await (const chunk of stream) {
         chunks.push(chunk);
     }
     return Buffer.concat(chunks).toString();
 }
 
-async function main(): Promise<void> {
-    const args = Bun.argv.slice(2);
+function formatManifestSummary(manifest: ConflictManifest): string[] {
+    return [
+        `Detected ${manifest.summary.totalConflicts} conflict(s):`,
+        `  File-level: ${manifest.summary.fileLevelConflicts}`,
+        `  Section-level: ${manifest.summary.sectionLevelConflicts}`,
+        `  Paragraph-level: ${manifest.summary.paragraphLevelConflicts}`,
+        `  Line-level: ${manifest.summary.lineLevelConflicts}`,
+        '',
+        ...manifest.conflicts.map((conflict) => `  [${conflict.type}] ${conflict.location}`),
+    ];
+}
+
+export async function executeDetectConflictsCli(
+    args: string[],
+    stdinProvider: () => Promise<string> = () => readTextFromStream(Bun.stdin.stream()),
+): Promise<CliExecutionResult> {
     const showJson = args.includes('--json');
     const showHelpFlag = args.includes('--help') || args.includes('-h');
 
     if (showHelpFlag) {
-        showHelp();
-        return;
+        return {
+            exitCode: 0,
+            stdout: getDetectConflictsHelpLines(),
+            stderr: [],
+        };
     }
 
     let sources: SourceContent[] = [];
@@ -419,44 +440,69 @@ async function main(): Promise<void> {
         try {
             sources = JSON.parse(sourcesArg.replace('--sources=', ''));
         } catch {
-            logger.error('Failed to parse --sources JSON');
-            process.exit(1);
+            return {
+                exitCode: 1,
+                stdout: [],
+                stderr: ['Failed to parse --sources JSON'],
+            };
         }
     } else {
         try {
-            const stdin = await readStdin();
+            const stdin = await stdinProvider();
             if (stdin.trim()) {
                 sources = JSON.parse(stdin);
             }
         } catch {
-            logger.error('Failed to parse stdin as JSON');
-            process.exit(1);
+            return {
+                exitCode: 1,
+                stdout: [],
+                stderr: ['Failed to parse stdin as JSON'],
+            };
         }
     }
 
     if (sources.length === 0) {
-        logger.error('No sources provided. Use --sources= or pipe JSON to stdin.');
-        showHelp();
-        process.exit(1);
+        return {
+            exitCode: 1,
+            stdout: getDetectConflictsHelpLines(),
+            stderr: ['No sources provided. Use --sources= or pipe JSON to stdin.'],
+        };
     }
 
     const manifest = detectConflicts(sources);
 
     if (showJson) {
-        logger.log(JSON.stringify(manifest, null, 2));
-    } else {
-        logger.log(`Detected ${manifest.summary.totalConflicts} conflict(s):`);
-        logger.log(`  File-level: ${manifest.summary.fileLevelConflicts}`);
-        logger.log(`  Section-level: ${manifest.summary.sectionLevelConflicts}`);
-        logger.log(`  Paragraph-level: ${manifest.summary.paragraphLevelConflicts}`);
-        logger.log(`  Line-level: ${manifest.summary.lineLevelConflicts}`);
-        logger.log('');
-        for (const conflict of manifest.conflicts) {
-            logger.log(`  [${conflict.type}] ${conflict.location}`);
-        }
+        return {
+            exitCode: 0,
+            stdout: [JSON.stringify(manifest, null, 2)],
+            stderr: [],
+        };
     }
+
+    return {
+        exitCode: 0,
+        stdout: formatManifestSummary(manifest),
+        stderr: [],
+    };
+}
+
+export async function runDetectConflictsCli(
+    args: string[] = Bun.argv.slice(2),
+    stdinProvider: () => Promise<string> = () => readTextFromStream(Bun.stdin.stream()),
+): Promise<number> {
+    const result = await executeDetectConflictsCli(args, stdinProvider);
+    for (const line of result.stdout) {
+        logger.log(line);
+    }
+    for (const line of result.stderr) {
+        logger.error(line);
+    }
+    return result.exitCode;
 }
 
 if (import.meta.main) {
-    await main();
+    const exitCode = await runDetectConflictsCli();
+    if (exitCode !== 0) {
+        process.exit(exitCode);
+    }
 }
