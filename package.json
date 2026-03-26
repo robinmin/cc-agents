@@ -26,7 +26,8 @@
         "update-cc": "rm -rf ~/.claude/plugins/cache/cc-agents/ && claude plugin marketplace update cc-agents && claude plugin update rd3@cc-agents",
         "tasks": "bun run --cwd plugins/rd3 tasks",
         "tasks:check": "bun run --cwd plugins/rd3 check",
-        "tasks:test": "bun run --cwd plugins/rd3 test"
+        "tasks:test": "bun run --cwd plugins/rd3 test",
+        "test:hooks": "bats plugins/rd3/skills/cc-hooks/tests/*.bats"
     },
     "devDependencies": {
         "@biomejs/biome": "2.3.13",
