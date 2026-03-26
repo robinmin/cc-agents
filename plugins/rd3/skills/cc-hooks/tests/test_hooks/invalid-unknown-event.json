@@ -1,13 +1,13 @@
 {
-  "InvalidEvent": [
-    {
-      "matcher": "Write",
-      "hooks": [
+    "InvalidEvent": [
         {
-          "type": "prompt",
-          "prompt": "Test"
+            "matcher": "Write",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Test"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
