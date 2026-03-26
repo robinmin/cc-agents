@@ -41,6 +41,10 @@ export type { AugmentAdapterOptions } from './augment';
 export { ClineAdapter, createClineAdapter } from './cline';
 export type { ClineAdapterOptions } from './cline';
 
+// Tier 1: Multi-file platform
+export { OpenClawAdapter, createOpenClawAdapter } from './openclaw';
+export type { OpenClawAdapterOptions } from './openclaw';
+
 // Re-export adapter interface type
 export type { IMagentPlatformAdapter } from '../types';
 
@@ -49,12 +53,15 @@ export type { IMagentPlatformAdapter } from '../types';
 // ============================================================================
 
 import type { IMagentPlatformAdapter, MagentPlatform } from '../types';
+import { detectPlatform as detectPlatformFn } from '../utils';
 import { createAgentsMdAdapter } from './agents-md';
 import { createAugmentAdapter } from './augment';
 import { createClaudeMdAdapter } from './claude-md';
 import { createClineAdapter } from './cline';
 import { createCursorAdapter } from './cursor';
+import { createCodexAdapter, createGeminiMdAdapter, createPiAdapter } from './generic-passthrough';
 import { createJunieAdapter } from './junie';
+import { createOpenClawAdapter } from './openclaw';
 import { createOpenCodeAdapter } from './opencode';
 import { createVSCodeAdapter } from './vscode';
 import { createWindsurfAdapter } from './windsurf';
@@ -73,6 +80,9 @@ export class MagentAdapterRegistry {
         // Tier 1: Full support (parse + generate + validate)
         'agents-md': createAgentsMdAdapter,
         'claude-md': createClaudeMdAdapter,
+        'gemini-md': createGeminiMdAdapter,
+        codex: createCodexAdapter,
+        openclaw: createOpenClawAdapter,
         // Tier 2: Standard support (parse + generate)
         cursorrules: createCursorAdapter,
         windsurfrules: createWindsurfAdapter,
@@ -83,7 +93,7 @@ export class MagentAdapterRegistry {
         'vscode-instructions': createVSCodeAdapter,
         augment: createAugmentAdapter,
         cline: createClineAdapter,
-        // Note: 'gemini-md' and 'codex' will be added in future phases
+        pi: createPiAdapter,
     };
 
     /** Get adapter for a specific platform (lazy-instantiated and cached) */
@@ -151,9 +161,7 @@ export function hasMagentAdapter(platform: MagentPlatform): boolean {
  * Returns the platform and adapter, or null if no match.
  */
 export function detectAdapter(filePath: string): { platform: MagentPlatform; adapter: IMagentPlatformAdapter } | null {
-    // Import here to avoid circular dependency
-    const { detectPlatform } = require('../utils');
-    const platform = detectPlatform(filePath) as MagentPlatform | null;
+    const platform = detectPlatformFn(filePath) as MagentPlatform | null;
 
     if (!platform) return null;
     if (!magentAdapterRegistry.has(platform)) return null;
