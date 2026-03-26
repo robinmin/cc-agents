@@ -1,6 +1,6 @@
 ---
 description: "Migrate and merge skills from one or more sources into a destination skill via rd3:cc-skills migrate operation with LLM-powered content refinement"
-argument-hint: "--from <path> [--from <path>...] --to <path> [--dry-run] [--apply] [--strict] [--force]"
+argument-hint: "--from <path> [--from <path>...] --to <path> [description] [--dry-run] [--apply] [--strict] [--force]"
 allowed-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Skill"]
 ---
 
@@ -19,6 +19,7 @@ Multi-source skill migration tool that extracts content from one or more source 
 
 | Argument | Description | Default |
 |----------|-------------|---------|
+| `description` | Optional free-text goal to guide LLM content refinement in Phase 5 (e.g. "absorb the emerging patterns section", "focus on deduplication and conciseness") | (none) |
 | `--from <path>` | Source skill path (may be specified multiple times) | (required) |
 | `--to <path>` | Destination skill path (filesystem path, not a skill name) | (required unless --dry-run) |
 | `--dry-run` | Inventory and plan without writing files | true |
@@ -57,6 +58,9 @@ Multi-source skill migration tool that extracts content from one or more source 
 # Multi-source merge with apply
 /rd3:skill-migrate --from rd3:cc-skills --from rd3:cc-commands --to /tmp/merged --apply
 
+# Migrate with description to guide LLM content refinement
+/rd3:skill-migrate "absorb emerging patterns, deduplicate capabilities" --from vendors/new-skill --to plugins/rd3/skills/my-skill --apply
+
 # Migrate from vendor skill into existing rd3 skill (detects conflicts)
 /rd3:skill-migrate --from vendors/my-skill --to plugins/rd3/skills/my-skill --apply --force
 
@@ -80,8 +84,10 @@ Always run `--dry-run` first to review what conflicts exist before applying.
 Route through the cc-skills skill:
 
 ```
-Skill(skill="rd3:cc-skills", args="migrate $ARGUMENTS")
+Skill(skill="rd3:cc-skills", args="migrate [description] --from <path>... --to <path> [--dry-run] [--apply] [--strict] [--force]")
 ```
+
+The `description` argument is forwarded to the invoking agent as guidance for Phase 5 LLM content refinement.
 
 This delegates to the migrate workflow defined in [references/workflows.md](../skills/cc-skills/references/workflows.md#migrate-workflow), which orchestrates the migration script and LLM content refinement.
 
@@ -90,7 +96,7 @@ This delegates to the migrate workflow defined in [references/workflows.md](../s
 | Phase | Handler | Description |
 |-------|---------|-------------|
 | 1-4 | `skill-migrate.ts` (script) | Inventory, merge planning, reconciliation, conversion |
-| 5 | LLM (invoking agent) | Content refinement — resolves TODO markers, improves coherence |
+| 5 | LLM (invoking agent) | Content refinement guided by `description` — resolves TODO markers, deduplicates, improves coherence |
 | 6 | `evaluate.ts` (script) | Validate migrated skill quality |
 
 **Phases 1-4 (deterministic script):**
