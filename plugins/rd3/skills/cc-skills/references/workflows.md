@@ -31,6 +31,7 @@ Shared Phase 1 conventions:
 5. [Evolve Workflow](#evolve-workflow) - Analyze and apply longitudinal improvements
 6. [Adapt Workflow](#adapt-workflow) - Generate cross-platform companions
 7. [Package Workflow](#package-workflow) - Prepare for distribution
+8. [Migrate Workflow](#migrate-workflow) - Multi-source skill migration with LLM refinement
 
 ---
 
@@ -939,6 +940,146 @@ bun scripts/package.ts <skill-path> --output ./dist --platform all
 
 ---
 
+## Migrate Workflow
+
+Multi-source skill migration combining deterministic script phases with LLM content refinement and validation.
+
+### Workflow Steps
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ MIGRATE WORKFLOW                                                     │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
+│  │ Step 1   │───▶│ Step 2   │───▶│ Step 3   │───▶│ Step 4   │   │
+│  │ Inventory│    │ Merge    │    │ Reconcile│    │ Apply +  │   │
+│  │ (Script) │    │ Plan     │    │ + Convert│    │ Report   │   │
+│  │          │    │ (Script) │    │ (Script) │    │ (Script) │   │
+│  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
+│       │              │               │                │            │
+│       ▼              ▼               ▼                ▼            │
+│  [No sources]  [No conflicts]  [Low quality]    [Apply or       │
+│  [Abort]       [Skip to 4]    [Continue]       dry-run]        │
+│                                                     │            │
+│                                                     ▼            │
+│  ┌──────────┐    ┌──────────┐                                   │
+│  │ Step 5   │───▶│ Step 6   │──────────────────▶ [COMPLETE]     │
+│  │ LLM      │    │ Validate │                                   │
+│  │ Content  │    │ Result   │                                   │
+│  │ Refine   │    │ (Script) │                                   │
+│  │ (LLM)    │    │          │                                   │
+│  └──────────┘    └──────────┘                                   │
+│       │              │                                            │
+│       ▼              ▼                                            │
+│  [Skip if       [FAIL: Back                                     │
+│   dry-run]      to Step 5]                                      │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+| Step | Name | Handler | Success Criteria | On Failure |
+|------|------|---------|------------------|-------------|
+| 1 | Inventory Sources | `skill-migrate.ts --dry-run` | All sources resolved and scanned | Abort |
+| 2 | Merge Planning | `skill-migrate.ts` (cont.) | Merge plan created, conflicts identified | Abort |
+| 3 | Reconcile + Convert | `skill-migrate.ts` (cont.) | Conflicts reconciled, Python converted to TS | Continue (warnings logged) |
+| 4 | Apply + Report | `skill-migrate.ts --apply` | Files written, report generated | Abort |
+| 5 | LLM Content Refinement | LLM (invoking agent) | Coherent content, TODO markers resolved | Retry step 5 (max 2) |
+| 6 | Validate Result | `evaluate.ts --scope full` | Score >= 70 (pass threshold) | Back to step 5 |
+
+### Step Details
+
+#### Step 1: Inventory Sources (Script)
+```bash
+bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --dry-run
+```
+
+**What script does:**
+- Resolves all `--from` paths (supports `rd2:`, `rd3:`, bare name, `path:`, relative, absolute)
+- Recursively scans each source for SKILL.md, scripts/, tests/, references/
+- Reports file counts and capabilities per source
+
+**Output:** Source inventories with file metadata
+
+**If sources cannot be resolved:** Abort with error
+
+#### Step 2: Merge Planning (Script)
+
+**What script does:**
+- Compares inventories across sources
+- Categorizes each file: **add** (unique to one source), **merge** (present in multiple sources), **convert** (Python files needing TypeScript conversion)
+- Builds a merge plan with conflict descriptions
+
+**Output:** Merge plan with per-file action and conflict details
+
+**If no conflicts:** Skip reconciliation in Step 3, proceed to Step 4
+
+#### Step 3: Reconcile + Convert (Script)
+
+**What script does:**
+- Runs `reconcileMultiSource()` from `rd3:knowledge-extraction` for overlapping files
+- Runs `convertPythonToTypeScript()` for `.py` files
+- Produces quality scores per merged file
+- Logs TODO markers for unconvertible Python patterns (e.g., `// TODO: Convert import`)
+
+**Output:** Reconciled content with quality scores and conversion warnings
+
+**If quality is low:** Continue — LLM refinement in Step 5 addresses quality gaps
+
+#### Step 4: Apply + Report (Script)
+```bash
+bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --apply [--strict]
+```
+
+**What script does:**
+- Writes all files to `--to` destination
+- Generates `migration-report-<timestamp>.md` with statistics and conflict log
+- With `--strict`: blocks apply if average quality score < 70
+
+**Output:** Migrated skill directory + migration report
+
+**If `--dry-run`:** Report only, no files written. Skip Steps 5-6.
+
+#### Step 5: LLM Content Refinement (Invoking Agent)
+**Handler:** LLM (invoking agent using its own LLM capability)
+
+This step runs only when `--apply` was used (files exist to refine).
+
+**What the invoking agent does:**
+1. **Read the migration report** from Step 4 to understand what was merged, converted, and flagged
+2. **Review merged SKILL.md** for coherence issues:
+   - Tone shifts between sections from different sources
+   - Semantic contradictions (source A says X, source B says not-X)
+   - Duplicate or near-duplicate content that survived deterministic dedup
+   - Broken internal references or cross-links
+3. **Resolve TODO markers** in converted TypeScript files:
+   - `// TODO: Convert import` markers from Python→TS conversion
+   - `// CONVERSION WARNINGS` blocks at end of converted files
+   - Manual review flags left by the converter
+4. **Ensure voice consistency**: Merged SKILL.md reads as one cohesive document in third-person imperative voice
+5. **Preserve frontmatter exactly**: Only body content is modified
+6. **Write improved content** back to the destination files
+
+**Skip conditions:**
+- `--dry-run` mode: Skip entirely (no files to refine)
+- avgQualityScore >= 90 AND no TODO markers exist: Skip, proceed to Step 6
+
+**If LLM fails or is unavailable:** Warn and continue to Step 6 (deterministic merge already applied in Steps 1-4)
+
+#### Step 6: Validate Result (Script)
+```bash
+bun scripts/evaluate.ts <destination-path> --scope full
+```
+
+**What script does:**
+- Runs full evaluation on the migrated skill
+- Scores across all 10 quality dimensions
+
+**If score >= 70:** Migration complete
+**If score < 70:** Back to Step 5 for another refinement pass (max 2 retries)
+
+---
+
 ## Workflow Selection Matrix
 
 | Situation | Workflow | Steps |
@@ -950,7 +1091,8 @@ bun scripts/package.ts <skill-path> --output ./dist --platform all
 | Fix Progressive Disclosure | Refine + PD extraction | 1 → 2 → 3a → 4 |
 | Fix fuzzy content | Refine checklist | 1 → 2 → 3a → 3b → 4 |
 | Fix all | Refine --best-practices | 1 → 2 → 3a → 3b → 4 |
-| Migrate from rd2 | Refine --migrate | M1 → M2 |
+| Migrate rd2 frontmatter only | Refine --migrate | M1 → M2 |
+| Full multi-source migration | Migrate | 1 → 2 → 3 → 4 → 5 → 6 |
 | Longitudinal improve | Evolve | 1 → 2 → 3 → 4 |
 | Cross-platform companions | Adapt | 1 → 2 → 3 → 4 |
 | Pre-publish | Package | 1 → 2 → 3 → 4 → 5 |
@@ -966,3 +1108,5 @@ bun scripts/package.ts <skill-path> --output ./dist --platform all
 | LLM Content Improvement | Back to appropriate step | 2 |
 | Generate companions | Re-generate | 3 |
 | Package files | Re-package | 3 |
+| Migrate script (inventory/plan) | Abort | N/A |
+| Migrate LLM refinement | Back to step 5 | 2 |
