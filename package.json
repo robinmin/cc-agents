@@ -3,7 +3,10 @@
     "version": "1.0.0",
     "private": true,
     "description": "CC-Agents monorepo - Bun/TypeScript/Biome unified config",
-    "workspaces": ["plugins/rd3", "plugins/wt"],
+    "workspaces": [
+        "plugins/rd3",
+        "plugins/wt"
+    ],
     "scripts": {
         "dev": "bun run --watch",
         "build": "bun run -r build",
