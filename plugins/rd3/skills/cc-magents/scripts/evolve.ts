@@ -50,7 +50,7 @@ import type {
     MagentSection,
     VersionSnapshot,
 } from './types';
-import { classifySections, detectInjectionPatterns, detectSecrets, parseSections } from './utils';
+import { classifySections, detectInjectionPatterns, detectSecrets, parseSections, serializeSections } from './utils';
 
 // ============================================================================
 // Types (local to this module)
@@ -819,7 +819,8 @@ function touchesCriticalSection(sectionName: string, content: string): boolean {
     }
 
     // Check if section contains CRITICAL markers
-    const sectionPattern = new RegExp(`#\\s+.*${sectionName}.*[\\s\\S]*?#\\s+`, 'i');
+    const escapedName = sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const sectionPattern = new RegExp(`#\\s+.*${escapedName}.*[\\s\\S]*?#\\s+`, 'i');
     const sectionMatch = lowerContent.match(sectionPattern);
     if (sectionMatch) {
         const sectionContent = sectionMatch[0];
@@ -905,8 +906,7 @@ export async function applyChange(content: string, proposal: EvolutionProposal):
     }
 
     // Reconstruct content
-    const { serializeSections: serialize } = await import('./utils');
-    return serialize(sections, preamble);
+    return serializeSections(sections, preamble);
 }
 
 async function createBackup(configPath: string, proposalId: string): Promise<string> {
