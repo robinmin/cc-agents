@@ -153,8 +153,10 @@ if [ ! -f "$TEST_INPUT" ]; then
 fi
 
 # Validate test input JSON
+set +e
 jq empty "$TEST_INPUT" 2>/dev/null
 _jq_result=$?
+set -e
 if [ $_jq_result -ne 0 ]; then
   echo "❌ Error: Test input is not valid JSON"
   exit 1
