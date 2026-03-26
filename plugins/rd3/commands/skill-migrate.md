@@ -1,6 +1,6 @@
 ---
 description: "Migrate and merge skills from one or more sources into a destination skill via rd3:cc-skills migrate operation with LLM-powered content refinement"
-argument-hint: "--from <path> [--from <path>...] --to <path> [--dry-run] [--apply] [--strict]"
+argument-hint: "--from <path> [--from <path>...] --to <path> [--dry-run] [--apply] [--strict] [--force]"
 allowed-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "Skill"]
 ---
 
@@ -10,21 +10,25 @@ Multi-source skill migration tool that extracts content from one or more source 
 
 ## When to Use
 
-- Migrate a skill from one plugin to another (e.g., rd2 to rd3)
+- Migrate a skill from one plugin to another (e.g. rd2 to rd3)
 - Merge multiple related skills into a unified skill
 - Consolidate overlapping skill content with conflict resolution
+- Absorb useful content from a source skill into an existing destination skill
 
 ## Arguments
 
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `--from <path>` | Source skill path (may be specified multiple times) | (required) |
-| `--to <path>` | Destination skill path | (required unless --dry-run) |
+| `--to <path>` | Destination skill path (filesystem path, not a skill name) | (required unless --dry-run) |
 | `--dry-run` | Inventory and plan without writing files | true |
 | `--apply` | Execute the migration plan and write files | false |
-| `--strict` | Block apply if quality gate reports CRITICAL issues | false |
+| `--strict` | Block apply if evaluate.ts score < 70 (runs evaluate.ts --scope full --json) | false |
+| `--force` | Allow overwriting existing destination files | false |
 
 ## Path Resolution
+
+**`--from` supports skill-name shortcuts and filesystem paths:**
 
 | Input Form | Resolution |
 |------------|------------|
@@ -32,7 +36,17 @@ Multi-source skill migration tool that extracts content from one or more source 
 | `rd3:<skill>` | `plugins/rd3/skills/<skill>/` |
 | `<bare-name>` | Searches rd3 then rd2; errors if ambiguous |
 | `path:<path>` | Exact filesystem path |
-| `./relative` or `/absolute` | Standard filesystem path |
+| `~/...`, `~` | Tilde expansion to user home directory |
+| `vendors/...`, `./`, `../` | Relative to current working directory |
+
+**`--to` is always a filesystem path — never a skill name lookup:**
+
+| Input Form | Resolution |
+|------------|------------|
+| `/absolute/path` | Exact absolute path |
+| `~/...`, `~` | Tilde expansion to user home directory |
+| `vendors/...`, `./`, `../` | Relative to current working directory |
+| `path:<path>` | Exact filesystem path |
 
 ## Examples
 
@@ -43,9 +57,23 @@ Multi-source skill migration tool that extracts content from one or more source 
 # Multi-source merge with apply
 /rd3:skill-migrate --from rd3:cc-skills --from rd3:cc-commands --to /tmp/merged --apply
 
+# Migrate from vendor skill into existing rd3 skill (detects conflicts)
+/rd3:skill-migrate --from vendors/my-skill --to plugins/rd3/skills/my-skill --apply --force
+
 # Strict mode blocks apply on quality issues
 /rd3:skill-migrate --from rd2:tasks --to rd3:tasks-copy --apply --strict
 ```
+
+## When Destination Has Conflicts
+
+If a source file has the same relative path as a file already at the destination (e.g. both have `SKILL.md`), the script:
+
+1. **Detects** the conflict during merge planning
+2. **Reconcilies** both versions via `rd3:knowledge-extraction` — section-level merge that preserves unique content from each source
+3. **Reports** the conflict and resolution in the migration report
+4. **Blocks** apply unless `--force` is set (prevents silent overwrites)
+
+Always run `--dry-run` first to review what conflicts exist before applying.
 
 ## Implementation
 
@@ -67,8 +95,8 @@ This delegates to the migrate workflow defined in [references/workflows.md](../s
 
 **Phases 1-4 (deterministic script):**
 1. **Inventory** — Scan each `--from` source for SKILL.md, scripts/, tests/, references/
-2. **Merge Planning** — Compare inventories, identify overlapping files and conflicts
-3. **Reconciliation** — Resolve conflicts via `rd3:knowledge-extraction` reconciliation engine
+2. **Merge Planning** — Compare inventories across sources AND against existing destination files; identify overlapping files and destination conflicts
+3. **Reconciliation** — Resolve conflicts via `rd3:knowledge-extraction` reconciliation engine (handles both multi-source conflicts and source-vs-destination conflicts)
 4. **Conversion** — Convert Python scripts to TypeScript/Bun
 5. **Apply** — Write reconciled files to `--to` destination (if `--apply`)
 6. **Report** — Generate `migration-report-<timestamp>.md`
