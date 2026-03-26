@@ -49,8 +49,8 @@ export function resolveSkillPath(input: string): string {
         return input;
     }
 
-    // Relative path (./ or ../)
-    if (input.startsWith('./') || input.startsWith('../')) {
+    // Relative path (./, ../, or any path containing / that isn't absolute)
+    if (input.startsWith('./') || input.startsWith('../') || (input.includes('/') && !input.startsWith('/'))) {
         return resolve(input);
     }
 
