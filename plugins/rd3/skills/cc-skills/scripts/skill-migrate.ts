@@ -133,9 +133,32 @@ function listFilesRecursive(dir: string, basePath: string): InventoryItem[] {
 }
 
 /**
- * Build an inventory of a source skill directory.
+ * Build an inventory of a source skill (file or directory).
  */
 function inventorySource(sourcePath: string): SkillInventory {
+    const stat = statSync(sourcePath);
+
+    // Handle single-file sources (e.g. mobile-backend.md)
+    if (stat.isFile()) {
+        const fileName = basename(sourcePath);
+        return {
+            sourcePath,
+            sourceName: fileName,
+            items: [
+                {
+                    relativePath: fileName,
+                    absolutePath: sourcePath,
+                    size: stat.size,
+                    isDirectory: false,
+                },
+            ],
+            hasSkillMd: fileName === 'SKILL.md',
+            hasScripts: false,
+            hasTests: false,
+            hasReferences: false,
+        };
+    }
+
     const items = listFilesRecursive(sourcePath, sourcePath);
     const files = items.filter((i) => !i.isDirectory);
 
