@@ -995,7 +995,8 @@ bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --dry-
 ```
 
 **What script does:**
-- Resolves all `--from` paths (supports `rd2:`, `rd3:`, bare name, `path:`, relative, absolute)
+- Resolves all `--from` paths (supports `rd2:`, `rd3:`, bare name, `path:`, relative including `vendors/` paths)
+- Resolves `--to` path as a filesystem destination (always absolute/relative, never a skill name lookup)
 - Recursively scans each source for SKILL.md, scripts/, tests/, references/
 - Reports file counts and capabilities per source
 
@@ -1007,7 +1008,8 @@ bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --dry-
 
 **What script does:**
 - Compares inventories across sources
-- Categorizes each file: **add** (unique to one source), **merge** (present in multiple sources), **convert** (Python files needing TypeScript conversion)
+- Detects files that already exist at the destination (destination conflicts)
+- Categorizes each file: **add** (unique to one source), **merge** (present in multiple sources), **merge-with-dest** (source conflicts with existing destination file), **convert** (Python files needing TypeScript conversion)
 - Builds a merge plan with conflict descriptions
 
 **Output:** Merge plan with per-file action and conflict details
@@ -1017,7 +1019,8 @@ bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --dry-
 #### Step 3: Reconcile + Convert (Script)
 
 **What script does:**
-- Runs `reconcileMultiSource()` from `rd3:knowledge-extraction` for overlapping files
+- Runs `reconcileMultiSource()` from `rd3:knowledge-extraction` for overlapping files (multi-source)
+- Runs `reconcileMultiSource()` for source-vs-destination conflicts (2-source: source + existing destination)
 - Runs `convertPythonToTypeScript()` for `.py` files
 - Produces quality scores per merged file
 - Logs TODO markers for unconvertible Python patterns (e.g., `// TODO: Convert import`)
@@ -1028,11 +1031,13 @@ bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --dry-
 
 #### Step 4: Apply + Report (Script)
 ```bash
-bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --apply [--strict]
+bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --apply [--strict] [--force]
 ```
 
 **What script does:**
-- Writes all files to `--to` destination
+- Detects destination conflicts (files already at destination with same path)
+- With destination conflicts: **blocks apply** unless `--force` is set (prevents silent overwrites)
+- Writes all files to `--to` destination (adds, merges, converted files)
 - Generates `migration-report-<timestamp>.md` with statistics and conflict log
 - With `--strict`: blocks apply if average quality score < 70
 
@@ -1047,22 +1052,26 @@ This step runs only when `--apply` was used (files exist to refine).
 
 **What the invoking agent does:**
 1. **Read the migration report** from Step 4 to understand what was merged, converted, and flagged
-2. **Review merged SKILL.md** for coherence issues:
+2. **Deduplicate content**: Identify and collapse duplicate or near-duplicate content that survived deterministic reconciliation:
+   - Repeated concepts covered in multiple source sections → merge into one concise treatment
+   - Duplicate tables, checklists, or reference lists → consolidate, remove copies
+   - Overlapping "When to Use" / "When Not to Use" language → unify into non-redundant triggers
+   - Token bloat from long merged content → trim to quality bar (concise is key)
+3. **Resolve semantic conflicts**:
    - Tone shifts between sections from different sources
-   - Semantic contradictions (source A says X, source B says not-X)
-   - Duplicate or near-duplicate content that survived deterministic dedup
+   - Contradictory claims (source A says X, source B says not-X)
    - Broken internal references or cross-links
-3. **Resolve TODO markers** in converted TypeScript files:
+4. **Resolve TODO markers** in converted TypeScript files:
    - `// TODO: Convert import` markers from Python→TS conversion
    - `// CONVERSION WARNINGS` blocks at end of converted files
    - Manual review flags left by the converter
-4. **Ensure voice consistency**: Merged SKILL.md reads as one cohesive document in third-person imperative voice
-5. **Preserve frontmatter exactly**: Only body content is modified
-6. **Write improved content** back to the destination files
+5. **Ensure voice consistency**: Merged SKILL.md reads as one cohesive document in third-person imperative voice
+6. **Preserve frontmatter exactly**: Only body content is modified
+7. **Write improved content** back to the destination files
 
 **Skip conditions:**
 - `--dry-run` mode: Skip entirely (no files to refine)
-- avgQualityScore >= 90 AND no TODO markers exist: Skip, proceed to Step 6
+- avgQualityScore >= 90 AND no TODO markers exist AND no obvious duplicates: Skip, proceed to Step 6
 
 **If LLM fails or is unavailable:** Warn and continue to Step 6 (deterministic merge already applied in Steps 1-4)
 
