@@ -6,7 +6,7 @@ kanban-plugin: board
 
 ## Backlog
 
-- [ ] 0251_upgarde_and_simplify_tasks
+- [ ] kanban
 
 ## Todo
 
@@ -14,7 +14,10 @@ kanban-plugin: board
 
 ## WIP
 
-
+- [.] 0253_migrate_anti-hallucination
+  [ ] planning [ ] design [ ] implementation [ ] review [ ] testing
+- [.] 0261_enhance_cc-magents_in_plugin_rd3
+  [ ] planning [ ] design [ ] implementation [ ] review [ ] testing
 
 ## Testing
 
@@ -92,4 +95,13 @@ kanban-plugin: board
 - [x] 0248_0242:_cc-magents_Foundation_SKILL.md_skeleton
 - [x] 0249_enhance_agent_skill_design_patterns
 - [x] 0250_add_new_agent_skill_quick-grep
+- [x] 0251_upgarde_and_simplify_tasks
+- [x] 0252_add_new_agent_skill_run-acp
+- [x] 0254_0253.1:_Create_rd3_anti-hallucination_SKILL.md_with_YAML_frontmatter
+- [x] 0255_0253.2:_Convert_ah_guard.py_to_ah_guard.ts_TypeScript
+- [x] 0256_0253.3:_Create_ah_guard.test.ts_unit_tests
+- [x] 0257_0253.4:_Update_anti-hallucination-research.md_with_SOTA_techniques
+- [x] 0258_0253.5:_Create_guard-implementation.md_reference_doc
+- [x] 0259_0253.6:_Create_openai.yaml_platform_companion
+- [x] 0260_0253.7:_Run_full_verification_-_tsc,_biome,_bun_test
 
