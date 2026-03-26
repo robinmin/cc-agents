@@ -1,0 +1,8 @@
+name: pl-golang
+description: "Go project planning skill: architectural guidance, concurrency
+  patterns, interface design, module structure, and best practices for Go
+  1.21-1.23+. Trigger when: planning a Go project, designing Go architecture,
+  structuring concurrent services, Go best practices, goroutines and channels,
+  Go generics, or Go testing strategy."
+version: 1.0.0
+emoji: 🛠️
