@@ -1,12 +1,12 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write",
-      "hooks": [
+    "PreToolUse": [
         {
-          "prompt": "Validate file write safety"
+            "matcher": "Write",
+            "hooks": [
+                {
+                    "prompt": "Validate file write safety"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
