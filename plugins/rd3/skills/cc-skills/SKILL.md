@@ -27,6 +27,7 @@ metadata:
     - adapt
     - evolve
     - package
+    - migrate
 ---
 
 # cc-skills: Universal Skill Creator
@@ -36,7 +37,7 @@ Create Agent skills that work across ALL platforms from a single source of truth
 
 ## Operations
 
-This skill accepts **7 operations**:
+This skill accepts **8 operations**:
 
 | Operation | Purpose | Script |
 |-----------|---------|--------|
@@ -47,6 +48,7 @@ This skill accepts **7 operations**:
 | **evolve** | Analyze and propose longitudinal improvements | `scripts/evolve.ts` |
 | **adapt** | Generate cross-platform companions | `scripts/adapt.ts` |
 | **package** | Package for distribution | `scripts/package.ts` |
+| **migrate** | Multi-source skill migration with LLM refinement | `scripts/skill-migrate.ts` |
 
 ## Workflow Design
 
@@ -142,7 +144,8 @@ bun scripts/package.ts ./skills/my-skill --output ./dist
 - Planning longitudinal improvement → use **evolve**
 - Generating cross-platform companions → use **adapt**
 - Preparing for distribution → use **package**
-- Migrating rd2 skills to rd3 → use **refine --migrate**
+- Migrating skills from multiple sources → use **migrate**
+- Migrating rd2 frontmatter to rd3 format only → use **refine --migrate**
 
 `evolve` is intentionally separate from the main build/package pipeline. Use it for proposal-driven maintenance with snapshot-backed apply, history, and rollback.
 
@@ -246,12 +249,24 @@ skill-name/
 
 ## Migration from rd2
 
+Two migration paths depending on scope:
+
+| Path | Operation | What It Does |
+|------|-----------|--------------|
+| **Frontmatter only** | `refine --migrate` | Adds `name:`, `metadata.platforms`, `metadata.openclaw`, Platform Notes section |
+| **Full migration** | `migrate` | Multi-source inventory, merge, Python→TS conversion, LLM content refinement, validation |
+
+Use `refine --migrate` when skill content is already correct and only frontmatter needs rd3 alignment.
+Use `migrate` when merging multiple source skills, converting scripts, or when content needs reconciliation.
+
+**rd2 feature mapping:**
+
 | rd2 Feature | Migration Action |
 |-------------|-----------------|
 | Claude inline command syntax | Keep for Claude, add Platform Notes |
 | Claude argument placeholders | Keep for Claude, document limitation |
 | Missing `name:` field | Add explicit `name:` from directory |
-| Python scripts | Keep (scripts are platform-agnostic) |
+| Python scripts | Convert to TypeScript via `migrate`, or keep as-is via `refine --migrate` |
 
 ## Detailed Workflows
 
@@ -286,12 +301,16 @@ Each platform adapter validates different aspects:
 
 ### Migration Workflow
 
-When migrating from rd2:
+**Full multi-source migration:**
+1. Run migration: `bun scripts/skill-migrate.ts --from rd2:old-skill --to rd3:new-skill --apply`
+2. LLM refinement: The invoking agent improves merged content coherence
+3. Validate: `bun scripts/evaluate.ts ./new-skill --scope full`
 
-1. Run evaluation first: `bun scripts/evaluate.ts ./old-skill --scope full`
+**Frontmatter-only migration (rd2→rd3 format):**
+1. Evaluate first: `bun scripts/evaluate.ts ./old-skill --scope full`
 2. Apply migration: `bun scripts/refine.ts ./old-skill --migrate`
 3. Verify: `bun scripts/evaluate.ts ./old-skill --scope full`
-4. Generate platform companions: `bun scripts/adapt.ts ./old-skill all`
+4. Generate companions: `bun scripts/adapt.ts ./old-skill all`
 
 ## Platform Notes
 
