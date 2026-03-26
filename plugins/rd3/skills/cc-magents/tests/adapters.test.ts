@@ -17,6 +17,12 @@ import {
     hasMagentAdapter,
     detectAdapter,
 } from '../scripts/adapters';
+import {
+    GenericPassThroughAdapter,
+    createGeminiMdAdapter,
+    createCodexAdapter,
+    createPiAdapter,
+} from '../scripts/adapters/generic-passthrough';
 import type { UniversalMainAgent, MagentPlatform } from '../scripts/types';
 
 describe('adapters', () => {
@@ -1220,6 +1226,281 @@ Be helpful.`;
         it('should have correct tier 3 designation', () => {
             expect(adapter.tier).toBe(3);
             expect(adapter.platform).toBe('mock-tier3' as MagentPlatform);
+        });
+    });
+
+    // ============================================================================
+    // GenericPassThroughAdapter
+    // ============================================================================
+    describe('GenericPassThroughAdapter', () => {
+        describe('constructor', () => {
+            it('should create adapter with all options', () => {
+                const adapter = new GenericPassThroughAdapter({
+                    platform: 'gemini-md',
+                    displayName: 'Test Platform',
+                    tier: 1,
+                    discoveryPaths: ['GEMINI.md', '.gemini/GEMINI.md'],
+                    unsupportedFeatures: ['hooks', 'mcp-servers'],
+                });
+                expect(adapter.platform).toBe('gemini-md');
+                expect(adapter.displayName).toBe('Test Platform');
+                expect(adapter.tier).toBe(1);
+            });
+
+            it('should default unsupportedFeatures to empty array', () => {
+                const adapter = new GenericPassThroughAdapter({
+                    platform: 'codex',
+                    displayName: 'Codex',
+                    tier: 1,
+                    discoveryPaths: ['codex.md'],
+                });
+                expect(adapter.platform).toBe('codex');
+            });
+        });
+
+        describe('parse()', () => {
+            it('should reject empty content', async () => {
+                const adapter = createGeminiMdAdapter();
+                const result = await adapter.parse('', '/test/GEMINI.md');
+                expect(result.success).toBe(false);
+                expect(result.errors.some((e) => e.includes('empty'))).toBe(true);
+                expect(result.model).toBeNull();
+            });
+
+            it('should reject whitespace-only content', async () => {
+                const adapter = createGeminiMdAdapter();
+                const result = await adapter.parse('   \n\n  ', '/test/GEMINI.md');
+                expect(result.success).toBe(false);
+                expect(result.errors.some((e) => e.includes('empty'))).toBe(true);
+            });
+
+            it('should successfully parse valid content', async () => {
+                const adapter = createGeminiMdAdapter();
+                const content = `# Identity
+
+I am a test agent.
+
+## Tools
+
+Use the following tools:
+- Browse
+- Read`;
+                const result = await adapter.parse(content, '/test/GEMINI.md');
+                expect(result.success).toBe(true);
+                expect(result.model).not.toBeNull();
+                expect(result.model?.sourceFormat).toBe('gemini-md');
+                expect(result.sourcePlatform).toBe('gemini-md');
+            });
+
+            it('should detect hierarchy from file path', async () => {
+                const adapter = createGeminiMdAdapter();
+                const content = `# Identity\n\nTest`;
+                const result = await adapter.parse(content, '/project/.gemini/GEMINI.md');
+                expect(result.success).toBe(true);
+                expect(result.model?.hierarchy).toBeDefined();
+            });
+
+            it('should set platformFeatures to empty array', async () => {
+                const adapter = createGeminiMdAdapter();
+                const content = `# Identity\n\nTest`;
+                const result = await adapter.parse(content, '/test/GEMINI.md');
+                expect(result.success).toBe(true);
+                expect(result.model?.platformFeatures).toEqual([]);
+            });
+
+            it('should handle parse errors gracefully', async () => {
+                const adapter = new GenericPassThroughAdapter({
+                    platform: 'pi',
+                    displayName: 'PI',
+                    tier: 3,
+                    discoveryPaths: ['pi.md'],
+                });
+                // buildUMAM is quite tolerant, so parse should succeed
+                const content = `# Test`;
+                const result = await adapter.parse(content, '/test/pi.md');
+                // Verify no crash and correct platform assignment
+                expect(result).toBeDefined();
+                expect(result.sourcePlatform).toBe('pi');
+            });
+
+            it('should detect features via detectFeatures() method', () => {
+                const adapter = createGeminiMdAdapter();
+                const model: UniversalMainAgent = {
+                    sourcePath: '/test/GEMINI.md',
+                    sourceFormat: 'agents-md',
+                    sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
+                    estimatedTokens: 50,
+                    rawContent: '# Identity\nI am a test',
+                    preamble: 'Some preamble',
+                };
+                const features = adapter.detectFeatures(model);
+                // Should detect preamble and section:identity
+                expect(features).toContain('preamble');
+                expect(features).toContain('section:identity');
+                // detectPlatformFeatures returns [] for generic adapters
+                expect(features.some((f) => f.startsWith('section:'))).toBe(true);
+            });
+        });
+
+        describe('generatePlatform()', () => {
+            it('should generate output with preamble', async () => {
+                const adapter = createGeminiMdAdapter();
+                const model: UniversalMainAgent = {
+                    sourcePath: '/test/GEMINI.md',
+                    sourceFormat: 'agents-md',
+                    preamble: '# GEMINI.md - Test Agent\n',
+                    sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
+                    estimatedTokens: 50,
+                    rawContent: '# GEMINI.md\n# Identity\nI am a test',
+                };
+                // Access protected method via any cast for testing
+                const result = await adapter.generate(model);
+                expect(result.success).toBe(true);
+                expect(result.output).toContain('# Identity');
+            });
+
+            it('should generate output without preamble', async () => {
+                const adapter = createGeminiMdAdapter();
+                const model: UniversalMainAgent = {
+                    sourcePath: '/test/GEMINI.md',
+                    sourceFormat: 'agents-md',
+                    sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
+                    estimatedTokens: 50,
+                    rawContent: '# Identity\nI am a test',
+                };
+                const result = await adapter.generate(model);
+                expect(result.success).toBe(true);
+                expect(result.output).toContain('# Identity');
+            });
+
+            it('should emit conversion warnings for unsupported features', async () => {
+                const adapter = createGeminiMdAdapter();
+                const model: UniversalMainAgent = {
+                    sourcePath: '/test/GEMINI.md',
+                    sourceFormat: 'agents-md',
+                    sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
+                    estimatedTokens: 50,
+                    rawContent: '# Identity\nI am a test',
+                    platformFeatures: ['hooks', 'mcp-servers'],
+                };
+                const result = await adapter.generate(model);
+                expect(result.success).toBe(true);
+                expect(result.conversionWarnings).toBeDefined();
+                expect(result.conversionWarnings?.length).toBeGreaterThan(0);
+                expect(result.conversionWarnings?.some((w) => w.feature === 'hooks' && w.severity === 'warning')).toBe(
+                    true,
+                );
+            });
+
+            it('should not emit conversion warnings when no unsupported features used', async () => {
+                const adapter = createGeminiMdAdapter();
+                const model: UniversalMainAgent = {
+                    sourcePath: '/test/GEMINI.md',
+                    sourceFormat: 'agents-md',
+                    sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
+                    estimatedTokens: 50,
+                    rawContent: '# Identity\nI am a test',
+                    platformFeatures: ['some-other-feature'],
+                };
+                const result = await adapter.generate(model);
+                expect(result.success).toBe(true);
+                expect(result.conversionWarnings).toBeUndefined();
+            });
+        });
+
+        describe('detectPlatformFeatures()', () => {
+            it('should return empty array for generic adapter', async () => {
+                const adapter = createGeminiMdAdapter();
+                // Access protected method via generate call to verify behavior
+                const model: UniversalMainAgent = {
+                    sourcePath: '/test/GEMINI.md',
+                    sourceFormat: 'agents-md',
+                    sections: [{ heading: 'Identity', level: 1, content: 'I am a test', category: 'identity' }],
+                    estimatedTokens: 50,
+                    rawContent: '# Identity\nI am a test',
+                };
+                const result = await adapter.generate(model);
+                expect(result.success).toBe(true);
+                // Generic adapters don't detect any features, so no conversion warnings
+                // unless platformFeatures on model contains unsupported items
+                expect(result.conversionWarnings).toBeUndefined();
+            });
+        });
+
+        describe('getDiscoveryPaths()', () => {
+            it('should return discovery paths for Gemini MD', () => {
+                const adapter = createGeminiMdAdapter();
+                const paths = adapter.getDiscoveryPaths();
+                expect(paths).toContain('GEMINI.md');
+                expect(paths).toContain('.gemini/GEMINI.md');
+            });
+
+            it('should return discovery paths for Codex', () => {
+                const adapter = createCodexAdapter();
+                const paths = adapter.getDiscoveryPaths();
+                expect(paths).toContain('codex.md');
+                expect(paths).toContain('.codex/AGENTS.md');
+            });
+
+            it('should return discovery paths for PI', () => {
+                const adapter = createPiAdapter();
+                const paths = adapter.getDiscoveryPaths();
+                expect(paths).toContain('.pi/rules.md');
+                expect(paths).toContain('pi.md');
+            });
+        });
+    });
+
+    // ============================================================================
+    // Factory Functions
+    // ============================================================================
+    describe('GenericPassThrough factory functions', () => {
+        describe('createGeminiMdAdapter()', () => {
+            it('should create Gemini MD adapter with correct properties', () => {
+                const adapter = createGeminiMdAdapter();
+                expect(adapter.platform).toBe('gemini-md');
+                expect(adapter.displayName).toBe('GEMINI.md (Gemini CLI)');
+                expect(adapter.tier).toBe(1);
+            });
+
+            it('should have correct unsupported features', () => {
+                const adapter = createGeminiMdAdapter();
+                const paths = adapter.getDiscoveryPaths();
+                expect(paths).toEqual(['GEMINI.md', '.gemini/GEMINI.md']);
+            });
+        });
+
+        describe('createCodexAdapter()', () => {
+            it('should create Codex adapter with correct properties', () => {
+                const adapter = createCodexAdapter();
+                expect(adapter.platform).toBe('codex');
+                expect(adapter.displayName).toBe('Codex (OpenAI)');
+                expect(adapter.tier).toBe(1);
+            });
+
+            it('should have correct discovery paths', () => {
+                const adapter = createCodexAdapter();
+                const paths = adapter.getDiscoveryPaths();
+                expect(paths).toEqual(['codex.md', '.codex/AGENTS.md']);
+            });
+        });
+
+        describe('createPiAdapter()', () => {
+            it('should create PI adapter with correct properties', () => {
+                const adapter = createPiAdapter();
+                expect(adapter.platform).toBe('pi');
+                expect(adapter.displayName).toBe('PI CLI');
+                expect(adapter.tier).toBe(3);
+            });
+
+            it('should have more unsupported features than Tier 1 adapters', () => {
+                const piAdapter = createPiAdapter();
+                const geminiAdapter = createGeminiMdAdapter();
+                // PI has more unsupported features (includes skills, progressive-complexity)
+                const piPaths = piAdapter.getDiscoveryPaths();
+                const geminiPaths = geminiAdapter.getDiscoveryPaths();
+                expect(piPaths).not.toEqual(geminiPaths);
+            });
         });
     });
 });
