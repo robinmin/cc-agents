@@ -1,13 +1,13 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "command",
-          "command": "/usr/local/bin/check.sh"
+            "matcher": "Write",
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": "/usr/local/bin/check.sh"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
