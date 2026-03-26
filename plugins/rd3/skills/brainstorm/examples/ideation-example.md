@@ -48,7 +48,7 @@ The current API lacks authentication, exposing all endpoints to unauthorized acc
 // JWT expiration: 15 minutes for access, 7 days for refresh
 
 import { SignJWT, jwtVerify } from 'jose';
-import { hash, verify } from 'bcryptjs';
+import { hash, compare } from 'bcryptjs';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!);
 
@@ -108,26 +108,29 @@ async function authMiddleware(c: Context, next: Next) {
 // Recommended: Auth0 (generous free tier, good Bun/Edge examples)
 // Alternative: Firebase Authentication (Google ecosystem)
 
-// Auth0 example with Bun
-import { AuthorizationCode } from 'auth0';
+// Auth0 example with Node.js/Bun
+import { AuthenticationClient } from 'auth0';
 
-const auth0 = new AuthorizationCode({
+const auth0 = new AuthenticationClient({
   domain: process.env.AUTH0_DOMAIN!,
   clientId: process.env.AUTH0_CLIENT_ID!,
   clientSecret: process.env.AUTH0_CLIENT_SECRET!,
-  callbackURL: process.env.AUTH0_CALLBACK_URL,
 });
 
-async function handleAuthCallback(code: string) {
-  const tokenSet = await auth0.getToken(code);
-  return tokenSet.access_token;
+async function handleLogin(username: string, password: string) {
+  const response = await auth0.oauth.passwordGrant({
+    username,
+    password,
+    realm: 'Username-Password-Authentication',
+  });
+  return response.data.access_token;
 }
 ```
 
 **Confidence:** MEDIUM
 **Sources:**
-- [Auth0 Bun Quickstart](https://auth0.com/docs/quickstart/backend/bun) | Verified: 2026-03-20
-- [Firebase Admin Bun SDK](https://firebase.google.com/docs/admin/setup) | Verified: 2026-03-15
+- [Auth0 Node.js SDK v5](https://auth0.github.io/node-auth0/) | Verified: 2026-03-25
+- [Firebase Admin Setup](https://firebase.google.com/docs/admin/setup) | Verified: 2026-03-15
 
 ---
 
@@ -150,10 +153,10 @@ async function handleAuthCallback(code: string) {
 **Implementation Notes:**
 ```typescript
 // Store hashed API keys in database
-import { hash, verify } from 'bcryptjs';
+import { hash, compare } from 'bcryptjs';
 
 async function validateApiKey(apiKey: string, hashedKey: string) {
-  return verify(apiKey, hashedKey);
+  return compare(apiKey, hashedKey);
 }
 
 // Middleware
@@ -171,7 +174,7 @@ async function apiKeyMiddleware(c: Context, next: Next) {
 
 **Confidence:** MEDIUM
 **Sources:**
-- [Hono API Key Auth](https://hono.dev/docs/middleware/builtin/api-key-auth) | Verified: 2026-03-25
+- [Hono Bearer Auth Middleware](https://hono.dev/docs/middleware/builtin/bearer-auth) | Verified: 2026-03-25
 
 ---
 
