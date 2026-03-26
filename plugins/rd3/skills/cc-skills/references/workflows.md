@@ -1050,24 +1050,29 @@ bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --appl
 
 This step runs only when `--apply` was used (files exist to refine).
 
+**Inputs:**
+- Migration report from Step 4
+- `description` argument from the command (free-text guidance for refinement focus)
+
 **What the invoking agent does:**
 1. **Read the migration report** from Step 4 to understand what was merged, converted, and flagged
-2. **Deduplicate content**: Identify and collapse duplicate or near-duplicate content that survived deterministic reconciliation:
+2. **Honor the `description` guidance** if provided (e.g., "absorb emerging patterns", "focus on deduplication and conciseness")
+3. **Deduplicate content**: Identify and collapse duplicate or near-duplicate content that survived deterministic reconciliation:
    - Repeated concepts covered in multiple source sections → merge into one concise treatment
    - Duplicate tables, checklists, or reference lists → consolidate, remove copies
    - Overlapping "When to Use" / "When Not to Use" language → unify into non-redundant triggers
    - Token bloat from long merged content → trim to quality bar (concise is key)
-3. **Resolve semantic conflicts**:
+4. **Resolve semantic conflicts**:
    - Tone shifts between sections from different sources
    - Contradictory claims (source A says X, source B says not-X)
    - Broken internal references or cross-links
-4. **Resolve TODO markers** in converted TypeScript files:
+5. **Resolve TODO markers** in converted TypeScript files:
    - `// TODO: Convert import` markers from Python→TS conversion
    - `// CONVERSION WARNINGS` blocks at end of converted files
    - Manual review flags left by the converter
-5. **Ensure voice consistency**: Merged SKILL.md reads as one cohesive document in third-person imperative voice
-6. **Preserve frontmatter exactly**: Only body content is modified
-7. **Write improved content** back to the destination files
+6. **Ensure voice consistency**: Merged SKILL.md reads as one cohesive document in third-person imperative voice
+7. **Preserve frontmatter exactly**: Only body content is modified
+8. **Write improved content** back to the destination files
 
 **Skip conditions:**
 - `--dry-run` mode: Skip entirely (no files to refine)
