@@ -1,12 +1,12 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": "Write",
-      "hooks": [
+    "PreToolUse": [
         {
-          "type": "command"
+            "matcher": "Write",
+            "hooks": [
+                {
+                    "type": "command"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
