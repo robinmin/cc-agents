@@ -1,9 +1,9 @@
 ---
 name: migrate anti-hallucination
 description:
-status: WIP
+status: Done
 created_at: 2026-03-23T00:12:09.317Z
-updated_at: 2026-03-23T02:19:14.455Z
+updated_at: 2026-03-26T04:46:01.776Z
 folder: docs/tasks
 type: task
 impl_progress:
