@@ -6,6 +6,7 @@ set -euo pipefail
 
 # Usage
 show_usage() {
+  local exit_code="${1:-0}"
   echo "Usage: $0 [options] <hook-script> <test-input.json>"
   echo ""
   echo "Options:"
@@ -19,7 +20,7 @@ show_usage() {
   echo ""
   echo "Creates sample test input with:"
   echo "  $0 --create-sample <event-type>"
-  exit 0
+  exit "$exit_code"
 }
 
 # Create sample input
@@ -129,7 +130,7 @@ done
 if [ $# -ne 2 ]; then
   echo "Error: Missing required arguments"
   echo ""
-  show_usage
+  show_usage 1
 fi
 
 HOOK_SCRIPT="$1"
@@ -152,7 +153,9 @@ if [ ! -f "$TEST_INPUT" ]; then
 fi
 
 # Validate test input JSON
-if ! jq empty "$TEST_INPUT" 2>/dev/null; then
+jq empty "$TEST_INPUT" 2>/dev/null
+_jq_result=$?
+if [ $_jq_result -ne 0 ]; then
   echo "❌ Error: Test input is not valid JSON"
   exit 1
 fi
