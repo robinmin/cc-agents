@@ -1,0 +1,15 @@
+name: pl-javascript
+description: "JavaScript project planning skill: architectural guidance, ES2024+
+  features, async patterns, DOM manipulation, module systems, and best practices
+  for modern JavaScript. Trigger when: planning a JavaScript project, designing
+  JavaScript architecture, selecting async patterns, or structuring JavaScript
+  applications."
+version: 1.0.0
+icon: 🛠️
+category: debugging
+tags:
+  - javascript
+  - planning
+  - architecture
+  - es2024
+  - async-patterns
