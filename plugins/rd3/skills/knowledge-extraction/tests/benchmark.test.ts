@@ -215,12 +215,14 @@ const BENCHMARK_CASES: BenchmarkCase[] = [
         name: "version-1",
         path: "example.ts",
         content:
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: test fixture contains code example
           "```typescript\nfunction greet(name: string): string {\n  return `Hello, ${name}!`;\n}\n```",
       },
       {
         name: "version-2",
         path: "example.ts",
         content:
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: test fixture contains code example
           "```typescript\nfunction greet(name: string): string {\n  return `Hi, ${name}!`;\n}\n```",
       },
     ],
