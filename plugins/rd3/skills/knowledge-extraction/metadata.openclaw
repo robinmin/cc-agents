@@ -6,5 +6,5 @@ description: "Extract, synthesize, and validate information from multiple
   cross-referencing docs, fact-checking claims, investigating version-specific
   behavior, gathering architectural decision info, or performing multi-hop
   reasoning across interconnected sources."
-version: 1.1.0
+version: 2.0.0
 emoji: 🛠️
