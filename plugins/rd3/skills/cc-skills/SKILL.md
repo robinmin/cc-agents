@@ -261,12 +261,14 @@ Use `migrate` when merging multiple source skills, converting scripts, or when c
 
 **rd2 feature mapping:**
 
-| rd2 Feature | Migration Action |
-|-------------|-----------------|
-| Claude inline command syntax | Keep for Claude, add Platform Notes |
-| Claude argument placeholders | Keep for Claude, document limitation |
-| Missing `name:` field | Add explicit `name:` from directory |
-| Python scripts | Convert to TypeScript via `migrate`, or keep as-is via `refine --migrate` |
+| Migration Action | rd2 Feature |
+|-----------------|-------------|
+| Add `name:` field | Missing `name:` field |
+| Add `metadata.platforms` | Missing platforms declaration |
+| Add `metadata.openclaw` | Missing OpenClaw metadata |
+| Add Platform Notes section | Claude inline command syntax |
+| Document limitation | Claude argument placeholders |
+| Keep as Python (refine --migrate) or convert to TypeScript (migrate) | Python scripts |
 
 ## Detailed Workflows
 
