@@ -1,13 +1,13 @@
 {
-  "SessionEnd": [
-    {
-      "matcher": "*",
-      "hooks": [
+    "SessionEnd": [
         {
-          "type": "prompt",
-          "prompt": "Cleanup on session end"
+            "matcher": "*",
+            "hooks": [
+                {
+                    "type": "prompt",
+                    "prompt": "Cleanup on session end"
+                }
+            ]
         }
-      ]
-    }
-  ]
+    ]
 }
