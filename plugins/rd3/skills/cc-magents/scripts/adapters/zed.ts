@@ -27,9 +27,6 @@ import { BaseMagentAdapter } from './base';
 // Zed-Specific Constants
 // ============================================================================
 
-/** Zed rules files use markdown with special markers */
-const _ZED_RULES_SECTION_PATTERN = /^(?:---|\+\+\+)\s*$/; // Zed uses --- as section markers
-
 /** Zed-specific section heading patterns */
 const ZED_SECTION_PATTERNS = {
     lspConfig: /\b(lsp|language\s+server|diagnostics?)\b/i,
@@ -40,9 +37,6 @@ const ZED_SECTION_PATTERNS = {
 
 /** Features that are Zed-specific and not portable */
 const ZED_ONLY_FEATURES = ['lsp-configuration', 'collaboration-settings', 'zed-specific-sections'];
-
-/** Standard markdown heading pattern for sections */
-const _MARKDOWN_HEADING_PATTERN = /^(#{1,6})\s+(.+)$/;
 
 // ============================================================================
 // Options
