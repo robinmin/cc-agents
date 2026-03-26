@@ -24,6 +24,7 @@ import type {
 } from '../types';
 import { buildUMAM, detectHierarchy, serializeSections } from '../utils';
 import { BaseMagentAdapter } from './base';
+import { parseSimpleYaml } from './helpers';
 
 // ============================================================================
 // Windsurf-Specific Constants
@@ -321,38 +322,4 @@ export class WindsurfAdapter extends BaseMagentAdapter {
 /** Factory function */
 export function createWindsurfAdapter(options?: WindsurfAdapterOptions): WindsurfAdapter {
     return new WindsurfAdapter(options);
-}
-
-// ============================================================================
-// Internal Helpers
-// ============================================================================
-
-/**
- * Simple YAML-like key: value parser for frontmatter.
- */
-function parseSimpleYaml(text: string): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    const lines = text.split('\n');
-
-    for (const line of lines) {
-        const match = line.match(/^\s*([a-zA-Z_-]+)\s*:\s*(.*?)\s*$/);
-        if (match) {
-            const key = match[1];
-            let value: unknown = match[2];
-
-            // Parse booleans
-            if (value === 'true') value = true;
-            else if (value === 'false') value = false;
-            // Parse numbers
-            else if (/^\d+$/.test(value as string)) value = Number.parseInt(value as string, 10);
-            // Strip quotes
-            else if (typeof value === 'string' && /^['"](.*)['"]$/.test(value)) {
-                value = value.slice(1, -1);
-            }
-
-            result[key] = value;
-        }
-    }
-
-    return result;
 }
