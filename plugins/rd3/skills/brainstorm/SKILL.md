@@ -1,13 +1,16 @@
 ---
 name: brainstorm
 description: "Structured ideation workflow for generating solution options with trade-offs, confidence scoring, and delegation to research and task creation skills. Triggers: brainstorm ideas, explore solutions, consider options, research approaches, multiple solution options with trade-offs."
+license: Apache-2.0
 version: 1.0.0
 created_at: 2026-03-25
 updated_at: 2026-03-25
+type: technique
+platform: rd3
 tags: [brainstorm, ideation, solution-generation, trade-offs, workflow-core]
 metadata:
   author: cc-agents
-  platforms: ["claude-code", "codex", "antigravity", "opencode", "openclaw"]
+  platforms: "claude-code,codex,antigravity,opencode,openclaw"
   category: workflow-core
   interactions:
     - reviewer
@@ -129,7 +132,7 @@ Approach 3: [Name]
 
 | Level | Score | Criteria |
 |-------|-------|----------|
-| **HIGH** | >90% | Direct quote from official docs (2024+), verified today |
+| **HIGH** | >90% | Direct quote from official docs (2025+), verified today |
 | **MEDIUM** | 70-90% | Synthesized from multiple sources |
 | **LOW** | <70% | Uncertain, needs verification, flag for review |
 
@@ -144,12 +147,12 @@ Approach 3: [Name]
 
 When user confirms approach, delegate task creation:
 
-```typescript
-// Delegate to rd3:task-decomposition for structured task breakdown
-Skill(skill="rd3:task-decomposition", args="convert " + approach + " to tasks")
+```
+// Pseudocode: Delegate to rd3:task-decomposition for structured task breakdown
+Skill("rd3:task-decomposition", args: "convert <approach> to tasks")
 
 // Then use rd3:tasks for file creation
-Bash("tasks batch-create --from-json decomposition.json")
+Bash: tasks batch-create --from-json decomposition.json
 ```
 
 ## Workflow
@@ -254,7 +257,7 @@ rd3:brainstorm delegates verification to rd3:anti-hallucination:
 5. **SCORE** — Assign confidence level
 
 **Confidence levels:**
-- **HIGH**: Direct quote from official docs (2024+)
+- **HIGH**: Direct quote from official docs (2025+)
 - **MEDIUM**: Synthesized from multiple sources
 - **LOW**: Uncertain, flag for review
 
@@ -277,11 +280,6 @@ rd3:brainstorm delegates verification to rd3:anti-hallucination:
 - **Trade-off clarity** — Make pros/cons explicit for each approach
 - **Interactive delivery** — Show sections incrementally, confirm understanding
 - **Concrete next steps** — Convert recommendations to actionable tasks
-
-## Additional Resources
-
-- **`references/workflows.md`** — Detailed 3-phase workflow with examples and templates
-- **`examples/ideation-example.md`** — Complete example with TypeScript/Bun implementation
 
 ## Reference Files
 
