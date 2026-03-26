@@ -449,6 +449,52 @@ Always cite sources for factual claims.`,
 - Coordinate shared resources
 - Handle race conditions`,
         },
+        personality: {
+            heading: 'Personality',
+            content: `## Personality & Communication Style
+
+- Tone: [professional/casual/technical]
+- Values: [accuracy, helpfulness, directness]
+- Limits: [what the agent should never do]
+- Communication preferences: [concise/detailed, formal/informal]`,
+        },
+        'user-context': {
+            heading: 'User Context',
+            content: `## User Context
+
+- Name: [user name]
+- Timezone: [timezone]
+- Role: [user's role and expertise level]
+- Preferences: [communication and workflow preferences]`,
+        },
+        heartbeat: {
+            heading: 'Heartbeat',
+            content: `## Scheduled Tasks
+
+### Periodic Checks
+- [Check 1]: [frequency]
+- [Check 2]: [frequency]
+
+### Automated Actions
+- [Action 1]: [trigger condition]`,
+        },
+        bootstrap: {
+            heading: 'Bootstrap',
+            content: `## First-Run Setup
+
+### Identity Creation
+- Verify identity section is populated with specific role
+- Confirm communication style preferences
+
+### User Context
+- Gather user name, timezone, and preferences
+- Understand expertise level and work context
+
+### Progressive Adoption
+- Week 1: Focus on core workflows
+- Week 2: Add integrations based on needs
+- Week 3: Review and refine based on patterns`,
+        },
         custom: {
             heading: 'Custom Section',
             content: '[Add custom content here]',
