@@ -150,7 +150,7 @@ Multi-hop reasoning connects facts across multiple sources that individually don
 ### When to Use Multi-Hop
 
 - The user's question has no direct answer in any single source
-- You need to infer a conclusion from chained facts
+- Inferring a conclusion requires chaining facts across sources
 - Cross-referencing multiple tools/versions/ecosystems
 
 ### Multi-Hop Protocol
