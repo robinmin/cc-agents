@@ -1,7 +1,7 @@
 ---
 name: expert-skill
 description: |
-  Use PROACTIVELY when asked to create, evaluate, refine, or package skills. Trigger phrases: "create a skill", "scaffold a skill", "skill quality", "evaluate skill", "fix skill", "refine skill", "package skill", "skill for distribution", "tool wrapper skill", "generator skill", "reviewer skill", "inversion skill", "pipeline skill".
+  Use PROACTIVELY when asked to create, evaluate, refine, migrate, or package skills. Trigger phrases: "create a skill", "scaffold a skill", "skill quality", "evaluate skill", "fix skill", "refine skill", "package skill", "skill for distribution", "tool wrapper skill", "generator skill", "reviewer skill", "inversion skill", "pipeline skill", "migrate skill", "merge skills", "consolidate skills", "skill migration".
 
   <example>
   Context: Create a new technique skill
@@ -15,6 +15,13 @@ description: |
   user: "Evaluate my-skill and fix all issues"
   assistant: "Delegating to rd3:cc-skills for evaluate + refine..."
   <commentary>Delegates to cc-skills evaluate + refine operations</commentary>
+  </example>
+
+  <example>
+  Context: Migrate skills from rd2 to rd3
+  user: "Migrate the tasks skill from rd2 to rd3"
+  assistant: "Delegating to rd3:cc-skills with migrate operation..."
+  <commentary>Delegates to cc-skills for multi-source migration with LLM refinement</commentary>
   </example>
 tools: [Read, Glob]
 model: inherit
@@ -64,6 +71,7 @@ rd3:cc-skills package ./skills/my-skill --output ./dist
 | "evaluate skill", "check skill quality" | **evaluate** | Validate & score quality |
 | "fix skill", "refine skill", "improve skill" | **refine** | Fix issues and improve |
 | "package skill", "skill for distribution" | **package** | Bundle for distribution |
+| "migrate skill", "merge skills", "consolidate skills" | **migrate** | Multi-source migration with LLM refinement |
 
 ## Operation Arguments
 
@@ -108,6 +116,16 @@ rd3:cc-skills package ./skills/my-skill --output ./dist
 | `--platform` | Target: all, claude, codex, openclaw, opencode, antigravity | all |
 | `--no-source` | Exclude SKILL.md from package | false |
 
+### migrate — Multi-source skill migration
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--from <path>` | Source skill path (may be specified multiple times) | (required) |
+| `--to <path>` | Destination skill path | (required unless --dry-run) |
+| `--dry-run` | Plan migration without writing files | true |
+| `--apply` | Execute the migration plan and write files | false |
+| `--strict` | Block apply if quality gate reports CRITICAL issues | false |
+
 ## Process
 
 1. **Parse request** — Identify operation from trigger phrases
@@ -130,7 +148,7 @@ rd3:cc-skills package ./skills/my-skill --output ./dist
 ```markdown
 ## Skill Operation Complete
 
-**Operation**: [add|evaluate|refine|package]
+**Operation**: [add|evaluate|refine|package|migrate]
 **Status**: SUCCESS
 
 ### Output
