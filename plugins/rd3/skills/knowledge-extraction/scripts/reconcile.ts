@@ -21,6 +21,13 @@ import { detectConflicts } from './detect-conflicts';
 import { scoreMergeQuality } from './score-quality';
 import type { Conflict, ConflictManifest, ReconciliationResult, SourceContent } from './types';
 
+export interface CliExecutionResult {
+    exitCode: number;
+    stdout: string[];
+    stderr: string[];
+    warnings?: string[];
+}
+
 // ===== Utility Functions =====
 
 /**
@@ -178,7 +185,7 @@ function mergeSections(allSections: Section[][]): string {
 /**
  * Resolve a single conflict by merging content from all sources.
  */
-function resolveConflict(conflict: Conflict): {
+export function resolveConflict(conflict: Conflict): {
     resolved: string;
     attribution: Record<string, string>;
     resolution: string;
@@ -371,7 +378,7 @@ export function reconcileMultiSource(sources: SourceContent[]): ReconciliationRe
 /**
  * Get conflict priority (higher = more severe, should be resolved at that level).
  */
-function getConflictPriority(type: string): number {
+export function getConflictPriority(type: string): number {
     switch (type) {
         case 'file':
             return 4;
@@ -388,35 +395,78 @@ function getConflictPriority(type: string): number {
 
 // ===== CLI =====
 
-function showHelp(): void {
-    logger.log('Usage: reconcile.ts [options]');
-    logger.log('');
-    logger.log('Options:');
-    logger.log('  --help, -h     Show this help message');
-    logger.log('  --json         Output as JSON');
-    logger.log('  --sources      JSON array of {name,path,content} objects');
-    logger.log('  --summary      Show summary only (no merged content)');
-    logger.log('');
-    logger.log('Pipe JSON to stdin or use --sources= flag.');
+export function getReconcileHelpLines(): string[] {
+    return [
+        'Usage: reconcile.ts [options]',
+        '',
+        'Options:',
+        '  --help, -h     Show this help message',
+        '  --json         Output as JSON',
+        '  --sources      JSON array of {name,path,content} objects',
+        '  --summary      Show summary only (no merged content)',
+        '',
+        'Pipe JSON to stdin or use --sources= flag.',
+    ];
 }
 
-async function readStdin(): Promise<string> {
+export async function readTextFromStream(stream: AsyncIterable<Uint8Array>): Promise<string> {
     const chunks: Uint8Array[] = [];
-    for await (const chunk of Bun.stdin.stream()) {
+    for await (const chunk of stream) {
         chunks.push(chunk);
     }
     return Buffer.concat(chunks).toString();
 }
 
-async function main(): Promise<void> {
-    const args = Bun.argv.slice(2);
+function buildJsonSummary(result: ReconciliationResult): string {
+    return JSON.stringify(
+        {
+            qualityScore: result.qualityScore,
+            qualityJustification: result.qualityJustification,
+            conflictsSummary: result.conflictManifest.summary,
+            sourceAttributions: result.sourceAttributions,
+            warnings: result.warnings,
+            deterministic: result.deterministic,
+            timestamp: result.timestamp,
+        },
+        null,
+        2,
+    );
+}
+
+function buildTextSummary(result: ReconciliationResult, summaryOnly: boolean): string[] {
+    const lines = [
+        '=== Reconciliation Result ===',
+        `Quality Score: ${result.qualityScore}/100`,
+        `Justification: ${result.qualityJustification}`,
+        `Deterministic: ${result.deterministic}`,
+        `Conflicts detected: ${result.conflictManifest.summary.totalConflicts}`,
+        `  File-level: ${result.conflictManifest.summary.fileLevelConflicts}`,
+        `  Section-level: ${result.conflictManifest.summary.sectionLevelConflicts}`,
+        `  Paragraph-level: ${result.conflictManifest.summary.paragraphLevelConflicts}`,
+        `  Line-level: ${result.conflictManifest.summary.lineLevelConflicts}`,
+    ];
+
+    if (!summaryOnly) {
+        lines.push('', '=== Merged Content ===', result.mergedContent);
+    }
+
+    return lines;
+}
+
+export async function executeReconcileCli(
+    args: string[],
+    stdinProvider: () => Promise<string> = () => readTextFromStream(Bun.stdin.stream()),
+): Promise<CliExecutionResult> {
     const showJson = args.includes('--json');
     const showHelpFlag = args.includes('--help') || args.includes('-h');
     const summaryOnly = args.includes('--summary');
 
     if (showHelpFlag) {
-        showHelp();
-        return;
+        return {
+            exitCode: 0,
+            stdout: getReconcileHelpLines(),
+            stderr: [],
+        };
     }
 
     let sources: SourceContent[] = [];
@@ -426,71 +476,77 @@ async function main(): Promise<void> {
         try {
             sources = JSON.parse(sourcesArg.replace('--sources=', ''));
         } catch {
-            logger.error('Failed to parse --sources JSON');
-            process.exit(1);
+            return {
+                exitCode: 1,
+                stdout: [],
+                stderr: ['Failed to parse --sources JSON'],
+            };
         }
     } else {
         try {
-            const stdin = await readStdin();
+            const stdin = await stdinProvider();
             if (stdin.trim()) {
                 sources = JSON.parse(stdin);
             }
         } catch {
-            logger.error('Failed to parse stdin as JSON');
-            process.exit(1);
+            return {
+                exitCode: 1,
+                stdout: [],
+                stderr: ['Failed to parse stdin as JSON'],
+            };
         }
     }
 
     if (sources.length === 0) {
-        logger.error('No sources provided. Use --sources= or pipe JSON to stdin.');
-        showHelp();
-        process.exit(1);
+        return {
+            exitCode: 1,
+            stdout: getReconcileHelpLines(),
+            stderr: ['No sources provided. Use --sources= or pipe JSON to stdin.'],
+        };
     }
 
     const result = reconcileMultiSource(sources);
 
     if (showJson) {
-        if (summaryOnly) {
-            const summary = {
-                qualityScore: result.qualityScore,
-                qualityJustification: result.qualityJustification,
-                conflictsSummary: result.conflictManifest.summary,
-                sourceAttributions: result.sourceAttributions,
-                warnings: result.warnings,
-                deterministic: result.deterministic,
-                timestamp: result.timestamp,
-            };
-            logger.log(JSON.stringify(summary, null, 2));
-        } else {
-            logger.log(JSON.stringify(result, null, 2));
-        }
-    } else {
-        logger.log('=== Reconciliation Result ===');
-        logger.log(`Quality Score: ${result.qualityScore}/100`);
-        logger.log(`Justification: ${result.qualityJustification}`);
-        logger.log(`Deterministic: ${result.deterministic}`);
-        logger.log(`Conflicts detected: ${result.conflictManifest.summary.totalConflicts}`);
-        logger.log(`  File-level: ${result.conflictManifest.summary.fileLevelConflicts}`);
-        logger.log(`  Section-level: ${result.conflictManifest.summary.sectionLevelConflicts}`);
-        logger.log(`  Paragraph-level: ${result.conflictManifest.summary.paragraphLevelConflicts}`);
-        logger.log(`  Line-level: ${result.conflictManifest.summary.lineLevelConflicts}`);
+        return {
+            exitCode: 0,
+            stdout: [summaryOnly ? buildJsonSummary(result) : JSON.stringify(result, null, 2)],
+            stderr: [],
+        };
+    }
 
-        if (result.warnings.length > 0) {
-            logger.log('');
-            logger.log('Warnings:');
-            for (const w of result.warnings) {
-                logger.warn(`  ${w}`);
-            }
-        }
+    return {
+        exitCode: 0,
+        stdout: buildTextSummary(result, summaryOnly),
+        stderr: [],
+        warnings: result.warnings,
+    };
+}
 
-        if (!summaryOnly) {
-            logger.log('');
-            logger.log('=== Merged Content ===');
-            logger.log(result.mergedContent);
+export async function runReconcileCli(
+    args: string[] = Bun.argv.slice(2),
+    stdinProvider: () => Promise<string> = () => readTextFromStream(Bun.stdin.stream()),
+): Promise<number> {
+    const result = await executeReconcileCli(args, stdinProvider);
+    for (const line of result.stdout) {
+        logger.log(line);
+    }
+    for (const line of result.stderr) {
+        logger.error(line);
+    }
+    if (result.warnings && result.warnings.length > 0) {
+        logger.log('');
+        logger.log('Warnings:');
+        for (const warning of result.warnings) {
+            logger.warn(`  ${warning}`);
         }
     }
+    return result.exitCode;
 }
 
 if (import.meta.main) {
-    await main();
+    const exitCode = await runReconcileCli();
+    if (exitCode !== 0) {
+        process.exit(exitCode);
+    }
 }
