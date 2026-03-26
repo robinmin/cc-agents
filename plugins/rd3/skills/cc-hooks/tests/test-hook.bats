@@ -8,7 +8,7 @@ setup() {
   SCRIPT_DIR="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
   SCRIPT="$SCRIPT_DIR/scripts/test-hook.sh"
   FIXTURES="$SCRIPT_DIR/tests/test_hooks"
-  EXAMPLE_SCRIPT="$FIXTURES/../examples/validate-bash.sh"
+  EXAMPLE_SCRIPT="$SCRIPT_DIR/examples/validate-bash.sh"
 }
 
 # ==============================================================================
