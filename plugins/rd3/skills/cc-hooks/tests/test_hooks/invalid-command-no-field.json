@@ -1,0 +1,12 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Write",
+      "hooks": [
+        {
+          "type": "command"
+        }
+      ]
+    }
+  ]
+}
