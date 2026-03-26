@@ -15,6 +15,13 @@ import type { QualityScore, QualityDimensions, SourceContent } from './types';
 const MAX_DIMENSION_SCORE = 25;
 const WARNING_THRESHOLD = 70;
 
+export interface CliExecutionResult {
+    exitCode: number;
+    stdout: string[];
+    stderr: string[];
+    warnings?: string[];
+}
+
 /**
  * Score coherence: does merged text read as one document?
  */
@@ -229,33 +236,39 @@ export function scoreMergeQuality(
 
 // ===== CLI =====
 
-function showHelp(): void {
-    logger.log('Usage: score-quality.ts [options]');
-    logger.log('');
-    logger.log('Options:');
-    logger.log('  --help, -h       Show this help message');
-    logger.log('  --json           Output as JSON');
-    logger.log('  --merged <text>  Merged content to score');
-    logger.log('  --sources <json> JSON array of source names');
+export function getScoreQualityHelpLines(): string[] {
+    return [
+        'Usage: score-quality.ts [options]',
+        '',
+        'Options:',
+        '  --help, -h       Show this help message',
+        '  --json           Output as JSON',
+        '  --merged <text>  Merged content to score',
+        '  --sources <json> JSON array of source names',
+    ];
 }
 
-async function main(): Promise<void> {
-    const args = Bun.argv.slice(2);
+export async function executeScoreQualityCli(args: string[]): Promise<CliExecutionResult> {
     const showJson = args.includes('--json');
     const showHelpFlag = args.includes('--help') || args.includes('-h');
 
     if (showHelpFlag) {
-        showHelp();
-        return;
+        return {
+            exitCode: 0,
+            stdout: getScoreQualityHelpLines(),
+            stderr: [],
+        };
     }
 
     const mergedArg = args.find((a: string) => a.startsWith('--merged='));
     const sourcesArg = args.find((a: string) => a.startsWith('--sources='));
 
     if (!mergedArg) {
-        logger.error('--merged is required');
-        showHelp();
-        process.exit(1);
+        return {
+            exitCode: 1,
+            stdout: getScoreQualityHelpLines(),
+            stderr: ['--merged is required'],
+        };
     }
 
     const merged = mergedArg.replace('--merged=', '');
@@ -268,32 +281,62 @@ async function main(): Promise<void> {
                 typeof s === 'string' ? { name: s, path: '', content: '' } : (s as SourceContent),
             );
         } catch {
-            logger.error('Failed to parse --sources JSON');
-            process.exit(1);
+            return {
+                exitCode: 1,
+                stdout: [],
+                stderr: ['Failed to parse --sources JSON'],
+            };
         }
     }
 
     const result = scoreMergeQuality(merged, sources);
 
     if (showJson) {
-        logger.log(JSON.stringify(result, null, 2));
-    } else {
-        logger.log(`Quality Score: ${result.score}/100`);
-        logger.log(`  Coherence: ${result.dimensions.coherence}/25`);
-        logger.log(`  Completeness: ${result.dimensions.completeness}/25`);
-        logger.log(`  Non-redundancy: ${result.dimensions.nonRedundancy}/25`);
-        logger.log(`  Traceability: ${result.dimensions.traceability}/25`);
+        return {
+            exitCode: 0,
+            stdout: [JSON.stringify(result, null, 2)],
+            stderr: [],
+        };
+    }
+
+    const stdout = [
+        `Quality Score: ${result.score}/100`,
+        `  Coherence: ${result.dimensions.coherence}/25`,
+        `  Completeness: ${result.dimensions.completeness}/25`,
+        `  Non-redundancy: ${result.dimensions.nonRedundancy}/25`,
+        `  Traceability: ${result.dimensions.traceability}/25`,
+        '',
+        result.justification,
+    ];
+
+    return {
+        exitCode: 0,
+        stdout,
+        stderr: [],
+        warnings: result.warnings,
+    };
+}
+
+export async function runScoreQualityCli(args: string[] = Bun.argv.slice(2)): Promise<number> {
+    const result = await executeScoreQualityCli(args);
+    for (const line of result.stdout) {
+        logger.log(line);
+    }
+    for (const line of result.stderr) {
+        logger.error(line);
+    }
+    if (result.warnings && result.warnings.length > 0) {
         logger.log('');
-        logger.log(result.justification);
-        if (result.warnings.length > 0) {
-            logger.log('');
-            for (const warning of result.warnings) {
-                logger.warn(warning);
-            }
+        for (const warning of result.warnings) {
+            logger.warn(warning);
         }
     }
+    return result.exitCode;
 }
 
 if (import.meta.main) {
-    await main();
+    const exitCode = await runScoreQualityCli();
+    if (exitCode !== 0) {
+        process.exit(exitCode);
+    }
 }
