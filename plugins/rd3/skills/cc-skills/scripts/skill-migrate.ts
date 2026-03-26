@@ -9,16 +9,21 @@
  * Usage:
  *   bun skill-migrate.ts --from <path> [--from <path>...] --to <path> [--dry-run] [--apply] [--strict]
  *
- * Path resolution:
- *   rd2:<skill>        → plugins/rd2/skills/<skill>/
- *   rd3:<skill>        → plugins/rd3/skills/<skill>/
- *   <bare-name>        → searches rd3 then rd2; errors if ambiguous
- *   path:<path>        → exact filesystem path
- *   ./relative, /abs   → standard filesystem path
+ * Path resolution (--from):
+ *   rd2:<skill>          → plugins/rd2/skills/<skill>/
+ *   rd3:<skill>          → plugins/rd3/skills/<skill>/
+ *   <bare-name>          → searches rd3 then rd2; errors if ambiguous
+ *   path:<path>          → exact filesystem path
+ *   ~/..., ~              → tilde expansion to user home directory
+ *   vendors/..., ./, ../  → relative to cwd (any path with / is a filesystem path)
+ *
+ * Path resolution (--to): Always a filesystem path — never a skill lookup.
  */
 
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { logger } from '../../../scripts/logger';
 import { reconcileMultiSource } from '../../knowledge-extraction/scripts/reconcile';
@@ -29,7 +34,8 @@ import type { ReconciliationResult, SourceContent } from '../../knowledge-extrac
 // ============================================================================
 
 /**
- * Resolve a skill path from various input formats.
+ * Resolve a source skill path from various input formats.
+ * Supports rd2:/rd3: prefixes, bare names, path:/absolute/relative paths.
  */
 export function resolveSkillPath(input: string): string {
     // rd2:<skill> or rd3:<skill> prefix
@@ -44,12 +50,18 @@ export function resolveSkillPath(input: string): string {
         return resolve(input.slice(5));
     }
 
+    // Tilde expansion (~/path or ~)
+    if (input.startsWith('~/') || input === '~') {
+        const home = homedir();
+        return resolve(join(home, input.slice(1)));
+    }
+
     // Absolute path
     if (input.startsWith('/')) {
         return input;
     }
 
-    // Relative path (./, ../, or any path containing / that isn't absolute)
+    // Relative path (./, ../, vendors/, plugins/, or any path containing / that isn't absolute)
     if (input.startsWith('./') || input.startsWith('../') || (input.includes('/') && !input.startsWith('/'))) {
         return resolve(input);
     }
@@ -72,6 +84,25 @@ export function resolveSkillPath(input: string): string {
 
     logger.error(`Skill "${input}" not found in plugins/rd3/skills/ or plugins/rd2/skills/.`);
     process.exit(1);
+}
+
+/**
+ * Resolve a destination path — always as a filesystem path.
+ * Never attempts skill-name lookup. Supports absolute, relative, and path: prefix.
+ */
+function resolveDestinationPath(input: string): string {
+    if (input.startsWith('path:')) {
+        return resolve(input.slice(5));
+    }
+    // Tilde expansion (~/path or ~)
+    if (input.startsWith('~/') || input === '~') {
+        return resolve(join(homedir(), input.slice(1)));
+    }
+    if (input.startsWith('/')) {
+        return input;
+    }
+    // All other forms (relative paths like ./, vendors/, plugins/rd3/, etc.) are filesystem paths
+    return resolve(input);
 }
 
 // ============================================================================
@@ -266,14 +297,21 @@ interface MergePlan {
         relativePath: string;
         sources: { name: string; path: string; content: string }[];
     }[];
+    filesToMergeWithDest: {
+        relativePath: string;
+        sourceContent: string;
+        destContent: string;
+    }[];
     filesToConvert: { relativePath: string; sourcePath: string; sourceName: string }[];
     reconciliationResults: Map<string, ReconciliationResult>;
+    filesWithDestConflicts: string[];
 }
 
 /**
  * Create a merge plan from multiple source inventories.
+ * destinationPath is the existing destination skill directory (may be empty or non-existent).
  */
-function createMergePlan(inventories: SkillInventory[]): MergePlan {
+function createMergePlan(inventories: SkillInventory[], destinationPath: string): MergePlan {
     const fileMap: Record<string, { sourceName: string; absolutePath: string }[]> = {};
 
     for (const inv of inventories) {
@@ -291,8 +329,10 @@ function createMergePlan(inventories: SkillInventory[]): MergePlan {
     const plan: MergePlan = {
         filesToAdd: [],
         filesToMerge: [],
+        filesToMergeWithDest: [],
         filesToConvert: [],
         reconciliationResults: new Map(),
+        filesWithDestConflicts: [],
     };
 
     for (const [relPath, sources] of Object.entries(fileMap)) {
@@ -308,13 +348,36 @@ function createMergePlan(inventories: SkillInventory[]): MergePlan {
             continue;
         }
 
-        if (sources.length === 1) {
+        // Check if this file already exists at the destination
+        const destFilePath = join(destinationPath, relPath);
+        const destExists = destinationPath && existsSync(destFilePath);
+
+        if (sources.length === 1 && !destExists) {
             // No conflict — add directly
             plan.filesToAdd.push({
                 relativePath: relPath,
                 sourcePath: sources[0].absolutePath,
                 sourceName: sources[0].sourceName,
             });
+        } else if (sources.length === 1 && destExists) {
+            // Source file conflicts with existing destination file — needs merge
+            try {
+                const sourceContent = readFileSync(sources[0].absolutePath, 'utf-8');
+                const destContent = readFileSync(destFilePath, 'utf-8');
+                plan.filesToMergeWithDest.push({
+                    relativePath: relPath,
+                    sourceContent,
+                    destContent,
+                });
+                plan.filesWithDestConflicts.push(relPath);
+            } catch {
+                logger.warn(`Could not read ${destFilePath}, treating as add.`);
+                plan.filesToAdd.push({
+                    relativePath: relPath,
+                    sourcePath: sources[0].absolutePath,
+                    sourceName: sources[0].sourceName,
+                });
+            }
         } else {
             // Multiple sources have this file — needs merge
             const sourceContents: { name: string; path: string; content: string }[] = [];
@@ -356,6 +419,16 @@ function createMergePlan(inventories: SkillInventory[]): MergePlan {
 
         const result = reconcileMultiSource(sourceContents);
         plan.reconciliationResults.set(mergeItem.relativePath, result);
+    }
+
+    // Run reconciliation for source-vs-destination conflicts
+    for (const item of plan.filesToMergeWithDest) {
+        const sourceContents: SourceContent[] = [
+            { name: 'source', path: item.relativePath, content: item.sourceContent },
+            { name: 'destination', path: item.relativePath, content: item.destContent },
+        ];
+        const result = reconcileMultiSource(sourceContents);
+        plan.reconciliationResults.set(item.relativePath, result);
     }
 
     return plan;
@@ -409,6 +482,7 @@ function generateReport(
     lines.push(`| Sources scanned | ${inventories.length} |`);
     lines.push(`| Files added | ${plan.filesToAdd.length} |`);
     lines.push(`| Files merged | ${plan.filesToMerge.length} |`);
+    lines.push(`| Files merged (source vs dest) | ${plan.filesToMergeWithDest.length} |`);
     lines.push(`| Files converted (PY→TS) | ${plan.filesToConvert.length} |`);
     lines.push(
         `| Conflicts resolved | ${[...plan.reconciliationResults.values()].reduce((sum, r) => sum + r.conflictManifest.summary.totalConflicts, 0)} |`,
@@ -427,6 +501,12 @@ function generateReport(
         const result = plan.reconciliationResults.get(item.relativePath);
         const score = result ? `quality: ${result.qualityScore}/100` : '';
         lines.push(`| ${item.relativePath} | merged | ${item.sources.length} sources reconciled, ${score} |`);
+    }
+
+    for (const item of plan.filesToMergeWithDest) {
+        const result = plan.reconciliationResults.get(item.relativePath);
+        const score = result ? `quality: ${result.qualityScore}/100` : '';
+        lines.push(`| ${item.relativePath} | merged (source vs dest) | reconciled with existing destination file, ${score} |`);
     }
 
     for (const item of plan.filesToConvert) {
@@ -523,6 +603,23 @@ function applyMigration(plan: MergePlan, destination: string): { success: boolea
         }
     }
 
+    // Write merged files (source vs destination conflicts)
+    for (const item of plan.filesToMergeWithDest) {
+        const result = plan.reconciliationResults.get(item.relativePath);
+        if (result) {
+            const destPath = join(destination, item.relativePath);
+            const destDir = dirname(destPath);
+            try {
+                mkdirSync(destDir, { recursive: true });
+                writeFileSync(destPath, result.mergedContent, 'utf-8');
+            } catch (err) {
+                errors.push(
+                    `Failed to write merged ${item.relativePath}: ${err instanceof Error ? err.message : String(err)}`,
+                );
+            }
+        }
+    }
+
     // Write converted files
     for (const item of plan.filesToConvert) {
         const pyContent = readFileSync(item.sourcePath, 'utf-8');
@@ -542,6 +639,45 @@ function applyMigration(plan: MergePlan, destination: string): { success: boolea
 }
 
 // ============================================================================
+// Evaluation (Phase 6)
+// ============================================================================
+
+interface EvaluateResult {
+    score: number;
+    error?: string;
+}
+
+/**
+ * Run evaluate.ts --scope full --json on the migrated skill.
+ * Reuses the same evaluate.ts engine as the evaluate and refine operations.
+ */
+async function runEvaluateForMigration(skillPath: string): Promise<EvaluateResult> {
+    const scriptDir = dirname(fileURLToPath(import.meta.url));
+    const evaluateScript = join(scriptDir, 'evaluate.ts');
+
+    try {
+        const proc = Bun.spawn(['bun', evaluateScript, skillPath, '--scope', 'full', '--json'], {
+            stdout: 'pipe',
+            stderr: 'pipe',
+        });
+
+        const output = await new Response(proc.stdout).text();
+        const stderr = await new Response(proc.stderr).text();
+        const exitCode = proc.exitCode;
+
+        if (exitCode !== 0) {
+            return { score: -1, error: stderr || `exit code ${exitCode}` };
+        }
+
+        const report = JSON.parse(output) as { percentage?: number; overallScore?: number };
+        const score = report.percentage ?? report.overallScore ?? -1;
+        return { score };
+    } catch (err) {
+        return { score: -1, error: err instanceof Error ? err.message : String(err) };
+    }
+}
+
+// ============================================================================
 // CLI
 // ============================================================================
 
@@ -550,22 +686,29 @@ function showHelp(): void {
     logger.log('');
     logger.log('Options:');
     logger.log('  --from <path>    Source skill path (may be repeated)');
-    logger.log('  --to <path>      Destination skill path');
+    logger.log('  --to <path>      Destination skill path (always a filesystem path)');
     logger.log('  --dry-run        Plan migration without writing files (default)');
     logger.log('  --apply          Execute the migration plan');
-    logger.log('  --strict         Block apply if quality score < 70');
+    logger.log('  --strict         Block apply if evaluate.ts score < 70 (runs evaluate.ts --scope full --json)');
+    logger.log('  --force          Allow overwriting existing destination files');
     logger.log('  --help, -h       Show this help message');
     logger.log('');
-    logger.log('Path resolution:');
+    logger.log('Path resolution (--from only):');
     logger.log('  rd2:<skill>      → plugins/rd2/skills/<skill>/');
     logger.log('  rd3:<skill>      → plugins/rd3/skills/<skill>/');
     logger.log('  <bare-name>      → searches rd3 then rd2');
     logger.log('  path:<path>      → exact filesystem path');
-    logger.log('  ./relative       → relative to cwd');
+    logger.log('  ~/..., ~          → tilde expansion to user home directory');
+    logger.log('  vendors/..., ./   → relative to cwd (any path with / is a filesystem path)');
+    logger.log('');
+    logger.log('Path resolution (--to):');
+    logger.log('  Always a filesystem path (absolute, relative, or path: prefix)');
+    logger.log('  Never a skill name lookup');
     logger.log('');
     logger.log('Examples:');
     logger.log('  bun skill-migrate.ts --from rd2:tasks --to rd3:tasks-new --dry-run');
-    logger.log('  bun skill-migrate.ts --from rd3:cc-skills --from rd3:cc-commands --to /tmp/merged --apply');
+    logger.log('  bun skill-migrate.ts --from vendors/my-skill --to plugins/rd3/skills/my-skill --apply');
+    logger.log('  bun skill-migrate.ts --from rd3:cc-skills --from rd3:cc-commands --to /tmp/merged --apply --force');
 }
 
 function parseCliArgs(argv: string[]): {
@@ -574,6 +717,7 @@ function parseCliArgs(argv: string[]): {
     dryRun: boolean;
     apply: boolean;
     strict: boolean;
+    force: boolean;
     help: boolean;
 } {
     const fromPaths: string[] = [];
@@ -581,6 +725,7 @@ function parseCliArgs(argv: string[]): {
     let dryRun = false;
     let apply = false;
     let strict = false;
+    let force = false;
     let help = false;
 
     for (let i = 0; i < argv.length; i++) {
@@ -605,6 +750,9 @@ function parseCliArgs(argv: string[]): {
             case '--strict':
                 strict = true;
                 break;
+            case '--force':
+                force = true;
+                break;
             case '--help':
             case '-h':
                 help = true;
@@ -625,7 +773,7 @@ function parseCliArgs(argv: string[]): {
         dryRun = true;
     }
 
-    return { fromPaths, toPath, dryRun, apply, strict, help };
+    return { fromPaths, toPath, dryRun, apply, strict, force, help };
 }
 
 async function main(): Promise<void> {
@@ -651,7 +799,7 @@ async function main(): Promise<void> {
     // Phase 1: Resolve paths
     logger.info('Phase 1: Resolving paths...');
     const resolvedSources = args.fromPaths.map((p) => resolveSkillPath(p));
-    const resolvedDest = args.toPath ? resolveSkillPath(args.toPath) : '';
+    const resolvedDest = args.toPath ? resolveDestinationPath(args.toPath) : '';
 
     // Validate sources exist
     for (const src of resolvedSources) {
@@ -673,30 +821,34 @@ async function main(): Promise<void> {
 
     // Phase 3: Merge Planning
     logger.info('Phase 3: Creating merge plan...');
-    const plan = createMergePlan(inventories);
+    const plan = createMergePlan(inventories, resolvedDest);
 
     logger.info(
-        `  Files to add: ${plan.filesToAdd.length}, merge: ${plan.filesToMerge.length}, convert: ${plan.filesToConvert.length}`,
+        `  Files to add: ${plan.filesToAdd.length}, merge: ${plan.filesToMerge.length}, merge-with-dest: ${plan.filesToMergeWithDest.length}, convert: ${plan.filesToConvert.length}`,
     );
+
+    // Warn about destination conflicts (non-blocking)
+    if (plan.filesWithDestConflicts.length > 0) {
+        logger.warn(`WARNING: ${plan.filesWithDestConflicts.length} file(s) exist at destination with same path — will be merged via reconciliation:`);
+        for (const f of plan.filesWithDestConflicts) {
+            logger.warn(`  - ${f}`);
+        }
+        if (!args.force) {
+            logger.error('Use --force to overwrite destination files without confirmation, or merge manually before migrating.');
+            logger.error('Alternatively, use --dry-run first to review the plan.');
+            process.exit(1);
+        } else {
+            logger.warn('--force set: proceeding with reconciliation merge for conflicting files.');
+        }
+    }
 
     // Phase 4: Generate Report
     const mode = args.apply ? 'apply' : 'dry-run';
     const report = generateReport(inventories, plan, resolvedDest || '(dry-run)', mode);
 
-    // Phase 5: Quality Gate (strict mode)
-    if (args.strict && args.apply) {
-        if (report.avgQualityScore < 70) {
-            logger.error(
-                `Quality gate failed: average score ${report.avgQualityScore.toFixed(1)}/100 is below 70. Use without --strict to override.`,
-            );
-            logger.log(`\n${report.details}`);
-            process.exit(1);
-        }
-    }
-
-    // Phase 6: Apply or Dry-Run
+    // Phase 5: Apply
     if (args.apply && resolvedDest) {
-        logger.info('Phase 4: Applying migration...');
+        logger.info('Phase 5: Applying migration...');
         const { success, errors } = applyMigration(plan, resolvedDest);
 
         if (!success) {
@@ -717,7 +869,30 @@ async function main(): Promise<void> {
         logger.info('Dry-run mode — no files written.');
     }
 
-    // Always output the report
+    // Phase 6: Validate via evaluate.ts --scope full (strict mode)
+    // Reuses the same evaluate.ts engine as the evaluate and refine operations
+    if (args.strict && args.apply && resolvedDest) {
+        logger.info('Phase 6: Running quality evaluation...');
+        const { score, error } = await runEvaluateForMigration(resolvedDest);
+
+        if (error) {
+            logger.error(`Evaluation failed: ${error}`);
+            logger.log(`\n${report.details}`);
+            process.exit(1);
+        }
+
+        if (score < 70) {
+            logger.error(
+                `Quality gate failed: evaluation score ${score.toFixed(1)}/100 is below 70. Use without --strict to override.`,
+            );
+            logger.log(`\n${report.details}`);
+            process.exit(1);
+        }
+
+        logger.success(`Quality check passed: ${score.toFixed(1)}/100`);
+    }
+
+    // Always output the migration report
     logger.log(`\n${report.details}`);
 }
 
