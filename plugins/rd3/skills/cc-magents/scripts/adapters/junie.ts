@@ -28,9 +28,6 @@ import { BaseMagentAdapter } from './base';
 // Junie-Specific Constants
 // ============================================================================
 
-/** Features that Junie focuses on (read-only exploration) */
-const _JUNIE_FOCUS_FEATURES = ['query-based-exploration', 'clear-headings', 'discovery-friendly'];
-
 /** Features that are NOT applicable to Junie (Tier 3 limitations) */
 const JUNIE_UNSUPPORTED_FEATURES = ['hooks', 'mcp-servers', 'skills', 'memory-md', 'progressive-complexity'];
 
