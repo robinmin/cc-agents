@@ -147,7 +147,8 @@ setup() {
   echo '#!/bin/bash' > /tmp/unquoted.sh
   echo 'set -euo pipefail' >> /tmp/unquoted.sh
   echo 'input=$(cat)' >> /tmp/unquoted.sh
-  echo 'echo $input' >> /tmp/unquoted.sh'  # unquoted
+  echo 'echo $input' >> /tmp/unquoted.sh
+  printf '  # unquoted\n' >> /tmp/unquoted.sh
   run "$SCRIPT" /tmp/unquoted.sh
   rm -f /tmp/unquoted.sh
   [[ "$output" == *"Potentially unquoted variables"* ]]
@@ -228,5 +229,5 @@ EOFSCRIPT
   printf '%s\n' 'cd "$CLAUDE_PLUGIN_ROOT"' >> /tmp/uses-root.sh
   run "$SCRIPT" /tmp/uses-root.sh
   rm -f /tmp/uses-root.sh
-  [[ ! "$output" == *"Tip: Use"*CLAUDE_PLUGIN_ROOT"* ]]  # Should NOT have the tip
+  [[ ! "$output" == *"Tip: Use"*CLAUDE_PLUGIN_ROOT* ]]  # Should NOT have the tip
 }
