@@ -1083,13 +1083,14 @@ Be helpful.`;
         });
 
         it('should throw for unregistered platform', () => {
-            expect(() => registry.get('gemini-md' as MagentPlatform)).toThrow();
+            expect(() => registry.get('nonexistent-platform' as MagentPlatform)).toThrow();
         });
 
         it('should check if platform has adapter', () => {
             expect(registry.has('agents-md')).toBe(true);
             expect(registry.has('claude-md')).toBe(true);
-            expect(registry.has('gemini-md' as MagentPlatform)).toBe(false);
+            expect(registry.has('gemini-md')).toBe(true);
+            expect(registry.has('nonexistent-platform' as MagentPlatform)).toBe(false);
         });
 
         it('should get all platforms', () => {
@@ -1152,7 +1153,8 @@ Be helpful.`;
 
         it('should check adapter existence via hasMagentAdapter', () => {
             expect(hasMagentAdapter('agents-md')).toBe(true);
-            expect(hasMagentAdapter('gemini-md' as MagentPlatform)).toBe(false);
+            expect(hasMagentAdapter('gemini-md')).toBe(true);
+            expect(hasMagentAdapter('nonexistent-platform' as MagentPlatform)).toBe(false);
         });
 
         it('should detect adapter from file path', () => {
