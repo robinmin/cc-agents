@@ -54,7 +54,7 @@ export interface ContentMatchCheckerConfig {
 export interface CompoundCheckerConfig {
     operator: 'and' | 'or' | 'quorum';
     quorum_count?: number; // required for quorum operator
-    checks: CheckerConfig[];
+    checks: Checker[];
 }
 
 export type CheckerConfig =
@@ -122,7 +122,7 @@ export interface CheckerEvidence {
     human_response?: string;
     file_paths_found?: string[];
     content_match_found?: boolean;
-    compound_results?: Array<{ sub_check: string; result: 'pass' | 'fail' }>;
+    compound_results?: Array<{ sub_check: string; result: 'pass' | 'fail' | 'paused' }>;
     error?: string;
 }
 

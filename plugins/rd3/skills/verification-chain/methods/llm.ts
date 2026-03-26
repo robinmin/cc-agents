@@ -27,14 +27,15 @@ export async function runLlmCheck(config: LlmCheckerConfig): Promise<MethodResul
         timestamp: new Date().toISOString(),
     };
 
-    const llmCliCommand = process.env.LLM_CLI_COMMAND;
+    const llmCliCommand = (import.meta as { env: Record<string, string | undefined> }).env.LLM_CLI_COMMAND;
     if (!llmCliCommand) {
-        evidence.error = 'LLM_CLI_COMMAND environment variable is not set';
-        logger.error(evidence.error);
+        const errorMsg = 'LLM_CLI_COMMAND environment variable is not set';
+        evidence.error = errorMsg;
+        logger.error(errorMsg);
         return {
             result: 'fail',
             evidence,
-            error: evidence.error,
+            error: errorMsg,
         };
     }
 
@@ -51,12 +52,13 @@ export async function runLlmCheck(config: LlmCheckerConfig): Promise<MethodResul
         writeFileSync(tempFile, prompt, 'utf-8');
         logger.debug(`Written prompt to temp file: ${tempFile}`);
     } catch (err) {
-        evidence.error = `Failed to write prompt to temp file: ${err}`;
-        logger.error(evidence.error);
+        const errorMsg = `Failed to write prompt to temp file: ${err}`;
+        evidence.error = errorMsg;
+        logger.error(errorMsg);
         return {
             result: 'fail',
             evidence,
-            error: evidence.error,
+            error: errorMsg,
         };
     }
 
@@ -68,32 +70,33 @@ export async function runLlmCheck(config: LlmCheckerConfig): Promise<MethodResul
             shell: true,
         });
 
-        child.stdout?.on('data', (data) => {
-            stdout += data.toString();
+        child.stdout?.on('data', (data: unknown) => {
+            stdout += String(data);
         });
 
-        child.stderr?.on('data', (data) => {
-            stderr += data.toString();
+        child.stderr?.on('data', (data: unknown) => {
+            stderr += String(data);
         });
 
-        child.on('error', (err) => {
+        child.on('error', (err: Error) => {
             logger.error('LLM CLI spawn error:', err.message);
-            evidence.error = `Spawn error: ${err.message}`;
+            const errorMsg = `Spawn error: ${err.message}`;
+            evidence.error = errorMsg;
             try {
                 rmSync(tempDir, { recursive: true, force: true });
-            } catch {}
+            } catch { /* ignore cleanup error */ }
             resolve({
                 result: 'fail',
                 evidence,
-                error: evidence.error,
+                error: errorMsg,
             });
         });
 
-        child.on('close', (code) => {
+        child.on('close', (code: number | null) => {
             // Clean up temp file
             try {
                 rmSync(tempDir, { recursive: true, force: true });
-            } catch {}
+            } catch { /* ignore cleanup error */ }
 
             logger.debug(`LLM CLI exited with code ${code}`);
             logger.debug(`LLM stdout:\n${stdout}`);
@@ -127,11 +130,11 @@ export async function runLlmCheck(config: LlmCheckerConfig): Promise<MethodResul
                 evidence.error = `Failed checklist items: ${failedItems.join(', ')}`;
             }
 
-            resolve({
-                result: evidence.result,
-                evidence,
-                error: allPassed ? undefined : evidence.error,
-            });
+            if (allPassed) {
+                resolve({ result: evidence.result, evidence });
+            } else {
+                resolve({ result: evidence.result, evidence, error: evidence.error as string });
+            }
         });
     });
 }

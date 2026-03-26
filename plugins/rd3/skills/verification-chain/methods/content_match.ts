@@ -20,26 +20,24 @@ export async function runContentMatchCheck(config: ContentMatchCheckerConfig, cw
     try {
         content = readFileSync(fullPath, 'utf-8');
         logger.debug(`Read file: ${config.file}`);
-    } catch (err) {
-        evidence.error = `Could not read file: ${config.file}`;
-        logger.error(evidence.error, err);
+    } catch {
+        const errorMsg = `Could not read file: ${config.file}`;
+        logger.error(errorMsg);
         return {
             result: 'fail',
-            evidence,
-            error: evidence.error,
+            evidence: { ...evidence, error: errorMsg },
         };
     }
 
     let regex: RegExp;
     try {
         regex = new RegExp(config.pattern);
-    } catch (err) {
-        evidence.error = `Invalid regex pattern: ${config.pattern}`;
-        logger.error(evidence.error, err);
+    } catch {
+        const errorMsg = `Invalid regex pattern: ${config.pattern}`;
+        logger.error(errorMsg);
         return {
             result: 'fail',
-            evidence,
-            error: evidence.error,
+            evidence: { ...evidence, error: errorMsg },
         };
     }
 
@@ -61,9 +59,14 @@ export async function runContentMatchCheck(config: ContentMatchCheckerConfig, cw
         `Content match check: pattern="${config.pattern}", found=${found}, must_exist=${config.must_exist}, result=${evidence.result}`,
     );
 
-    return {
-        result: evidence.result,
-        evidence,
-        error: passed ? undefined : evidence.error,
-    };
+    if (!passed) {
+        evidence.error = config.must_exist
+            ? `Pattern "${config.pattern}" not found in ${config.file}`
+            : `Pattern "${config.pattern}" found in ${config.file} but should not exist`;
+    }
+
+    if (passed) {
+        return { result: evidence.result, evidence };
+    }
+    return { result: evidence.result, evidence: { ...evidence, error: evidence.error as string } };
 }

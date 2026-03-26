@@ -8,7 +8,9 @@ import { runContentMatchCheck } from '../methods/content_match';
 import { runLlmCheck } from '../methods/llm';
 import { runHumanCheck } from '../methods/human';
 import { runCompoundCheck } from '../methods/compound';
+import type { Checker } from '../types';
 
+// @ts-ignore - Bun provides __dirname in CommonJS-like contexts
 const TEST_DIR = join(__dirname, 'test-fixtures');
 const CWD = TEST_DIR;
 
@@ -156,20 +158,22 @@ describe('runContentMatchCheck', () => {
 // ============================================================
 describe('runLlmCheck', () => {
     test('returns fail when LLM_CLI_COMMAND not set', async () => {
-        const originalEnv = process.env.LLM_CLI_COMMAND;
-        delete process.env.LLM_CLI_COMMAND;
+        const env = import.meta as { env: Record<string, string | undefined> };
+        const originalEnv = env.env.LLM_CLI_COMMAND;
+        delete env.env.LLM_CLI_COMMAND;
 
         const result = await runLlmCheck({ checklist: ['test item'] });
         expect(result.result).toBe('fail');
         expect(result.evidence.error).toContain('LLM_CLI_COMMAND');
 
         if (originalEnv !== undefined) {
-            process.env.LLM_CLI_COMMAND = originalEnv;
+            env.env.LLM_CLI_COMMAND = originalEnv;
         }
     });
 
     test('returns fail when LLM CLI command fails', async () => {
-        process.env.LLM_CLI_COMMAND = 'exit 1'; // Command that fails
+        const env = import.meta as { env: Record<string, string | undefined> };
+        env.env.LLM_CLI_COMMAND = 'exit 1'; // Command that fails
         const result = await runLlmCheck({ checklist: ['test item'] });
         expect(result.result).toBe('fail');
         // The LLM will fail to produce valid output, causing checklist items to fail
@@ -220,7 +224,7 @@ describe('runCompoundCheck', () => {
                 checks: [
                     { method: 'file-exists', config: { paths: ['and-test-1.txt'] } },
                     { method: 'file-exists', config: { paths: ['and-test-2.txt'] } },
-                ],
+                ] as Checker[],
             },
             CWD,
         );
@@ -238,7 +242,7 @@ describe('runCompoundCheck', () => {
                 checks: [
                     { method: 'file-exists', config: { paths: ['and-test-1.txt'] } },
                     { method: 'file-exists', config: { paths: ['missing-file.txt'] } },
-                ],
+                ] as Checker[],
             },
             CWD,
         );
@@ -255,7 +259,7 @@ describe('runCompoundCheck', () => {
                     { method: 'file-exists', config: { paths: ['missing-1.txt'] } },
                     { method: 'file-exists', config: { paths: ['missing-2.txt'] } },
                     { method: 'file-exists', config: { paths: ['missing-3.txt'] } },
-                ],
+                ] as Checker[],
             },
             CWD,
         );
@@ -272,7 +276,7 @@ describe('runCompoundCheck', () => {
                 checks: [
                     { method: 'file-exists', config: { paths: ['missing-1.txt'] } },
                     { method: 'file-exists', config: { paths: ['or-pass-file.txt'] } },
-                ],
+                ] as Checker[],
             },
             CWD,
         );
@@ -292,7 +296,7 @@ describe('runCompoundCheck', () => {
                     { method: 'file-exists', config: { paths: ['quorum-1.txt'] } },
                     { method: 'file-exists', config: { paths: ['quorum-2.txt'] } },
                     { method: 'file-exists', config: { paths: ['missing-file.txt'] } },
-                ],
+                ] as Checker[],
             },
             CWD,
         );
@@ -312,7 +316,7 @@ describe('runCompoundCheck', () => {
                     { method: 'file-exists', config: { paths: ['quorum-fail.txt'] } },
                     { method: 'file-exists', config: { paths: ['missing-1.txt'] } },
                     { method: 'file-exists', config: { paths: ['missing-2.txt'] } },
-                ],
+                ] as Checker[],
             },
             CWD,
         );
@@ -327,7 +331,7 @@ describe('runCompoundCheck', () => {
                 checks: [
                     { method: 'file-exists', config: { paths: ['missing.txt'] } },
                     { method: 'file-exists', config: { paths: ['missing.txt'] } },
-                ],
+                ] as Checker[],
             },
             CWD,
         );

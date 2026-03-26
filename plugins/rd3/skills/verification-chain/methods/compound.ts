@@ -1,5 +1,15 @@
-import type { CompoundCheckerConfig, CheckerEvidence, MethodResult, CheckerConfig } from '../types';
-import type { CheckerMethod } from '../types';
+import type {
+    CompoundCheckerConfig,
+    CheckerEvidence,
+    MethodResult,
+    Checker,
+    CheckerMethod,
+    CliCheckerConfig,
+    FileExistsCheckerConfig,
+    ContentMatchCheckerConfig,
+    LlmCheckerConfig,
+    HumanCheckerConfig,
+} from '../types';
 import { runCliCheck } from './cli';
 import { runFileExistsCheck } from './file_exists';
 import { runContentMatchCheck } from './content_match';
@@ -22,10 +32,10 @@ export async function runCompoundCheck(config: CompoundCheckerConfig, cwd: strin
     const subCheckMethods: CheckerMethod[] = ['cli', 'file-exists', 'content-match', 'llm', 'human'];
 
     // Run all sub-checks concurrently
-    const subCheckPromises = config.checks.map(async (check: CheckerConfig, index: number) => {
+    const subCheckPromises = config.checks.map(async (check: Checker, index: number) => {
         const subCheckName = `subcheck-${index}`;
 
-        if (!subCheckMethods.includes(check.method as CheckerMethod)) {
+        if (!subCheckMethods.includes(check.method)) {
             logger.warn(`Unsupported sub-check method in compound: ${check.method}`);
             return {
                 sub_check: subCheckName,
@@ -37,30 +47,29 @@ export async function runCompoundCheck(config: CompoundCheckerConfig, cwd: strin
         try {
             switch (check.method) {
                 case 'cli': {
-                    const result = await runCliCheck(check.config as Parameters<typeof runCliCheck>[0], cwd);
+                    const result = await runCliCheck(check.config as CliCheckerConfig, cwd);
                     return { sub_check: subCheckName, result: result.result };
                 }
                 case 'file-exists': {
                     const result = await runFileExistsCheck(
-                        check.config as Parameters<typeof runFileExistsCheck>[0],
+                        check.config as FileExistsCheckerConfig,
                         cwd,
                     );
                     return { sub_check: subCheckName, result: result.result };
                 }
                 case 'content-match': {
                     const result = await runContentMatchCheck(
-                        check.config as Parameters<typeof runContentMatchCheck>[0],
+                        check.config as ContentMatchCheckerConfig,
                         cwd,
                     );
                     return { sub_check: subCheckName, result: result.result };
                 }
                 case 'llm': {
-                    const result = await runLlmCheck(check.config as Parameters<typeof runLlmCheck>[0]);
+                    const result = await runLlmCheck(check.config as LlmCheckerConfig);
                     return { sub_check: subCheckName, result: result.result };
                 }
                 case 'human': {
-                    // Human checks always pause, but in compound context they still return paused
-                    const result = runHumanCheck(check.config as Parameters<typeof runHumanCheck>[0]);
+                    const result = runHumanCheck(check.config as HumanCheckerConfig);
                     return { sub_check: subCheckName, result: result.result };
                 }
                 default:
@@ -78,6 +87,14 @@ export async function runCompoundCheck(config: CompoundCheckerConfig, cwd: strin
     // Determine overall result based on operator
     const passCount = subCheckResults.filter((r) => r.result === 'pass').length;
     const totalCount = subCheckResults.length;
+    const pausedCount = subCheckResults.filter((r) => r.result === 'paused').length;
+
+    // If any sub-check is paused, the whole compound is paused
+    if (pausedCount > 0) {
+        evidence.result = 'paused';
+        evidence.error = `Compound paused: ${pausedCount} sub-check(s) waiting for human input`;
+        return { result: 'paused', evidence, error: evidence.error };
+    }
 
     let passed = false;
     switch (config.operator) {
@@ -107,9 +124,8 @@ export async function runCompoundCheck(config: CompoundCheckerConfig, cwd: strin
         `Compound check: operator=${config.operator}, passCount=${passCount}/${totalCount}, result=${evidence.result}`,
     );
 
-    return {
-        result: evidence.result,
-        evidence,
-        error: passed ? undefined : evidence.error,
-    };
+    if (passed) {
+        return { result: evidence.result, evidence };
+    }
+    return { result: evidence.result, evidence: { ...evidence, error: evidence.error as string } };
 }

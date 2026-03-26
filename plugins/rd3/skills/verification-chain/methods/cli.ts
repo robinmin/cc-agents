@@ -26,36 +26,34 @@ export async function runCliCheck(config: CliCheckerConfig, cwd: string): Promis
             timeout,
         });
 
-        child.stdout?.on('data', (data) => {
-            stdout += data.toString();
+        child.stdout?.on('data', (data: unknown) => {
+            stdout += String(data);
         });
 
-        child.stderr?.on('data', (data) => {
-            stderr += data.toString();
+        child.stderr?.on('data', (data: unknown) => {
+            stderr += String(data);
         });
 
-        child.on('error', (err) => {
+        child.on('error', (err: Error) => {
             logger.error('CLI spawn error:', err.message);
-            evidence.error = `Spawn error: ${err.message}`;
             evidence.cli_exit_code = -1;
+            const errorMsg = `Spawn error: ${err.message}`;
             resolve({
                 result: 'fail',
-                evidence,
-                error: evidence.error,
+                evidence: { ...evidence, error: errorMsg },
             });
         });
 
-        child.on('close', (code) => {
+        child.on('close', (code: number | null) => {
             const exitCode = code ?? -1;
             evidence.cli_exit_code = exitCode;
             evidence.cli_output = stdout + (stderr ? `\nSTDERR:\n${stderr}` : '');
 
             if (timedOut) {
-                evidence.error = `Command timed out after ${timeout}ms`;
+                const errorMsg = `Command timed out after ${timeout}ms`;
                 resolve({
                     result: 'fail',
-                    evidence,
-                    error: evidence.error,
+                    evidence: { ...evidence, error: errorMsg },
                 });
                 return;
             }
@@ -63,15 +61,12 @@ export async function runCliCheck(config: CliCheckerConfig, cwd: string): Promis
             const passed = exitCodes.includes(exitCode);
             evidence.result = passed ? 'pass' : 'fail';
 
-            if (!passed) {
-                evidence.error = `Exit code ${exitCode} not in expected codes [${exitCodes.join(', ')}]`;
+            if (passed) {
+                resolve({ result: evidence.result, evidence });
+            } else {
+                const errorMsg = `Exit code ${exitCode} not in expected codes [${exitCodes.join(', ')}]`;
+                resolve({ result: evidence.result, evidence: { ...evidence, error: errorMsg } });
             }
-
-            resolve({
-                result: evidence.result,
-                evidence,
-                error: passed ? undefined : evidence.error,
-            });
         });
 
         // Handle timeout
