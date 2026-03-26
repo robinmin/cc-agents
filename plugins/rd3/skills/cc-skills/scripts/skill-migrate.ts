@@ -506,7 +506,9 @@ function generateReport(
     for (const item of plan.filesToMergeWithDest) {
         const result = plan.reconciliationResults.get(item.relativePath);
         const score = result ? `quality: ${result.qualityScore}/100` : '';
-        lines.push(`| ${item.relativePath} | merged (source vs dest) | reconciled with existing destination file, ${score} |`);
+        lines.push(
+            `| ${item.relativePath} | merged (source vs dest) | reconciled with existing destination file, ${score} |`,
+        );
     }
 
     for (const item of plan.filesToConvert) {
@@ -829,12 +831,16 @@ async function main(): Promise<void> {
 
     // Warn about destination conflicts (non-blocking)
     if (plan.filesWithDestConflicts.length > 0) {
-        logger.warn(`WARNING: ${plan.filesWithDestConflicts.length} file(s) exist at destination with same path — will be merged via reconciliation:`);
+        logger.warn(
+            `WARNING: ${plan.filesWithDestConflicts.length} file(s) exist at destination with same path — will be merged via reconciliation:`,
+        );
         for (const f of plan.filesWithDestConflicts) {
             logger.warn(`  - ${f}`);
         }
         if (!args.force) {
-            logger.error('Use --force to overwrite destination files without confirmation, or merge manually before migrating.');
+            logger.error(
+                'Use --force to overwrite destination files without confirmation, or merge manually before migrating.',
+            );
             logger.error('Alternatively, use --dry-run first to review the plan.');
             process.exit(1);
         } else {
