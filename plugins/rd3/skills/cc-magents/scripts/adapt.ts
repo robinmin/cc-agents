@@ -18,7 +18,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { logger } from '../../../scripts/logger';
 import { getMagentAdapter, magentAdapterRegistry } from './adapters';
 import {
@@ -132,8 +132,8 @@ const LOSSY_CONVERSION_WARNINGS: Array<{
     },
 ];
 
-/** Tier 1 and 2 platforms that support parsing */
-const PARSEABLE_PLATFORMS: MagentPlatform[] = ALL_MAGENT_PLATFORMS.filter(
+/** Tier 1 and 2 platforms that support full parsing and can be used as batch conversion targets */
+const BATCH_TARGET_PLATFORMS: MagentPlatform[] = ALL_MAGENT_PLATFORMS.filter(
     (p) => (PLATFORM_TIERS[p] === 1 || PLATFORM_TIERS[p] === 2) && p !== 'generic',
 );
 
@@ -180,7 +180,7 @@ export async function adapt(options: AdaptOptions): Promise<AdaptResult> {
 
     // Determine target platforms
     const targets =
-        targetPlatform === 'all' ? PARSEABLE_PLATFORMS.filter((p) => p !== sourcePlatform) : [targetPlatform];
+        targetPlatform === 'all' ? BATCH_TARGET_PLATFORMS.filter((p) => p !== sourcePlatform) : [targetPlatform];
 
     // Parse source using appropriate adapter
     let model: UniversalMainAgent | null = null;
@@ -370,7 +370,6 @@ function getLossyConversionWarnings(
  * Determine output file path for converted content.
  */
 function getOutputPath(sourcePath: string, targetPlatform: MagentPlatform, outputDir?: string): string {
-    const _sourceBasename = basename(sourcePath, '.md');
     const targetDir = outputDir ?? dirname(sourcePath);
 
     const extensionMap: Record<MagentPlatform, string> = {
@@ -380,17 +379,19 @@ function getOutputPath(sourcePath: string, targetPlatform: MagentPlatform, outpu
         codex: 'codex.md',
         cursorrules: '.cursorrules',
         windsurfrules: '.windsurfrules',
-        'zed-rules': 'rules.md',
+        'zed-rules': 'zed-rules.md',
         'opencode-rules': 'opencode.md',
         aider: '.aider.conf.yml',
-        warp: 'rules.md',
-        roocode: 'rules.md',
-        amp: 'rules.md',
+        warp: 'warp-rules.md',
+        roocode: 'roocode-rules.md',
+        amp: 'amp-rules.md',
+        pi: 'pi.md',
         'vscode-instructions': 'copilot-instructions.md',
         generic: 'AGENTS.md',
         junie: 'junie.md',
         augment: 'augment.md',
         cline: 'cline.md',
+        openclaw: 'workspace/',
     };
 
     const filename = extensionMap[targetPlatform] ?? `${targetPlatform}.md`;
@@ -505,49 +506,75 @@ Examples:
 `);
 }
 
-// Parse CLI arguments
-const args = process.argv.slice(2);
-
-if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
-    showUsage();
-    process.exit(0);
+export interface AdaptCLIOptions {
+    args?: string[];
 }
 
-const sourcePath = args[0];
-const toIndex = args.indexOf('--to');
-const outputIndex = args.indexOf('--output');
-
-if (toIndex === -1) {
-    logger.error('Error: --to <target-platform> is required');
-    showUsage();
-    process.exit(1);
+export interface AdaptCLIResult {
+    exitCode: number;
+    output?: string;
+    error?: string;
 }
 
-const targetPlatformStr = args[toIndex + 1];
-const outputPath = outputIndex !== -1 ? args[outputIndex + 1] : undefined;
+/**
+ * Handle adapt CLI invocation - separated for testing.
+ */
+export async function handleAdaptCLI(options: AdaptCLIOptions = {}): Promise<AdaptCLIResult> {
+    const args = options.args ?? process.argv.slice(2);
 
-// Validate target platform
-const targetPlatform = targetPlatformStr === 'all' ? ('all' as const) : (targetPlatformStr as MagentPlatform);
+    if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+        return { exitCode: 0 };
+    }
 
-if (targetPlatform !== 'all' && !ALL_MAGENT_PLATFORMS.includes(targetPlatform)) {
-    logger.error(`Error: Unknown platform '${targetPlatform}'`);
-    logger.error(`Supported platforms: ${ALL_MAGENT_PLATFORMS.join(', ')}`);
-    process.exit(1);
+    const sourcePath = args[0];
+    const toIndex = args.indexOf('--to');
+    const outputIndex = args.indexOf('--output');
+
+    if (toIndex === -1) {
+        return { exitCode: 1, error: 'Error: --to <target-platform> is required' };
+    }
+
+    const targetPlatformStr = args[toIndex + 1];
+    const outputPath = outputIndex !== -1 ? args[outputIndex + 1] : undefined;
+
+    // Validate target platform
+    const targetPlatform = targetPlatformStr === 'all' ? ('all' as const) : (targetPlatformStr as MagentPlatform);
+
+    if (targetPlatform !== 'all' && !ALL_MAGENT_PLATFORMS.includes(targetPlatform)) {
+        return {
+            exitCode: 1,
+            error: `Error: Unknown platform '${targetPlatform}'\nSupported platforms: ${ALL_MAGENT_PLATFORMS.join(', ')}`,
+        };
+    }
+
+    // Run adaptation
+    const adaptOptions: AdaptOptions = {
+        sourcePath: resolve(sourcePath),
+        targetPlatform,
+    };
+    if (outputPath !== undefined) {
+        adaptOptions.outputDir = resolve(outputPath);
+    }
+    const result = await adapt(adaptOptions);
+
+    const hasErrors = result.errors.length > 0 || result.conversions.some((c) => !c.success);
+
+    return {
+        exitCode: hasErrors ? 1 : 0,
+        output: formatResult(result),
+    };
 }
 
-// Run adaptation
-const adaptOptions: AdaptOptions = {
-    sourcePath: resolve(sourcePath),
-    targetPlatform,
-};
-if (outputPath !== undefined) {
-    adaptOptions.outputDir = resolve(outputPath);
+// Run if executed directly
+if (import.meta.main) {
+    const result = await handleAdaptCLI();
+
+    if (result.error) {
+        logger.error(result.error);
+        showUsage();
+    }
+    if (result.output) {
+        logger.log(result.output);
+    }
+    process.exit(result.exitCode);
 }
-const result = await adapt(adaptOptions);
-
-// Output result
-logger.log(formatResult(result));
-
-// Exit with error code if any conversion failed
-const hasErrors = result.errors.length > 0 || result.conversions.some((c) => !c.success);
-process.exit(hasErrors ? 1 : 0);
