@@ -58,7 +58,7 @@ function saveState(state: ChainState, statePath: string): void {
 // Checker dispatch
 // ----------------------------------------------------------------
 
-async function runChecker(method: CheckerMethod, config: unknown, cwd: string): Promise<MethodResult> {
+async function runChecker(method: CheckerMethod, config: unknown, cwd: string, humanResponse?: string): Promise<MethodResult> {
     switch (method) {
         case 'cli':
             return runCliCheck(config as Parameters<typeof runCliCheck>[0], cwd);
@@ -69,7 +69,7 @@ async function runChecker(method: CheckerMethod, config: unknown, cwd: string): 
         case 'llm':
             return runLlmCheck(config as Parameters<typeof runLlmCheck>[0]);
         case 'human':
-            return runHumanCheck(config as Parameters<typeof runHumanCheck>[0]);
+            return runHumanCheck(config as Parameters<typeof runHumanCheck>[0], humanResponse);
         case 'compound':
             return runCompoundCheck(config as Parameters<typeof runCompoundCheck>[0], cwd);
         default: {
@@ -213,7 +213,7 @@ async function executeSingleNode(
         attempts++;
         logger.debug(`Running checker for node ${node.name} (attempt ${attempts}/${maxAttempts})`);
 
-        checkerResult = await runChecker(node.checker.method, node.checker.config, cwd);
+        checkerResult = await runChecker(node.checker.method, node.checker.config, cwd, chainState.paused_response);
 
         if (checkerResult.result !== 'fail') {
             break;
@@ -339,7 +339,7 @@ async function executeParallelGroupNode(
     state.maker_status = 'completed';
     state.checker_status = 'running';
 
-    const checkerResult = await runChecker(node.checker.method, node.checker.config, cwd);
+    const checkerResult = await runChecker(node.checker.method, node.checker.config, cwd, chainState.paused_response);
 
     state.checker_status = checkerResult.result === 'paused' ? 'paused' : 'completed';
     state.checker_result = checkerResult.result;
@@ -396,8 +396,8 @@ function getDefaultState(manifest: ChainManifest): ChainState {
     return state;
 }
 
-function nodeState(state: ChainState, name: string): NodeExecutionState {
-    return state.nodes.find((n) => n.name === name)!;
+function nodeState(state: ChainState, name: string): NodeExecutionState | undefined {
+    return state.nodes.find((n) => n.name === name);
 }
 
 // ----------------------------------------------------------------
@@ -435,8 +435,16 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
     let state = loadState(statePath);
     if (!state) {
         state = getDefaultState(manifest);
-        saveState(state, statePath);
+    } else {
+        // Ensure every manifest node has a state entry (handles new nodes added to manifest)
+        for (const manifestNode of manifest.nodes) {
+            const existing = state.nodes.find((n) => n.name === manifestNode.name);
+            if (!existing) {
+                state.nodes.push(createNodeExecutionState(manifestNode));
+            }
+        }
     }
+    saveState(state, statePath);
 
     logger.log(`Starting chain ${manifest.chain_name} (${manifest.chain_id})`);
 
@@ -445,10 +453,11 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
     let globalRetryTotal = state.global_retry?.total ?? 0;
 
     mainLoop: while (true) {
-        // Find next pending node
+        // Find next pending or running node
+        // When chain is paused, current_node is 'running' - we need to resume it
         const nextNode = manifest.nodes.find((n) => {
             const ns = nodeState(state!, n.name);
-            return ns.status === 'pending';
+            return ns === undefined || ns.status === 'pending' || ns.status === 'running';
         });
 
         if (!nextNode) {
@@ -508,7 +517,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         let haltReason: string | undefined;
 
         if (nextNode.type === 'single') {
-            const ns = nodeState(state!, nextNode.name);
+            const ns = nodeState(state!, nextNode.name)!;
             ({ halted, reason: haltReason } = await executeSingleNode(
                 nextNode as SingleNode,
                 ns,
@@ -517,7 +526,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                 stateDir,
             ));
         } else if (nextNode.type === 'parallel-group') {
-            const ns = nodeState(state!, nextNode.name);
+            const ns = nodeState(state!, nextNode.name)!;
             ({ halted, reason: haltReason } = await executeParallelGroupNode(
                 nextNode as ParallelGroupNode,
                 ns,
@@ -530,7 +539,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         state!.updated_at = new Date().toISOString();
         saveState(state!, statePath);
 
-        const ns = nodeState(state!, nextNode.name);
+        const ns = nodeState(state!, nextNode.name)!;
         onNodeComplete?.(nextNode, ns);
 
         if (halted) {
@@ -539,7 +548,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                 onChainPause?.(state!);
             } else {
                 logger.error(`Chain halted at node ${nextNode.name}: ${haltReason}`);
-                state!.status = 'halted';
+                state!.status = 'failed';
                 state!.updated_at = new Date().toISOString();
                 saveState(state!, statePath);
                 onChainFail?.(state!, haltReason ?? 'unknown');
@@ -589,17 +598,10 @@ export async function resumeChain(options: ResumeChainOptions): Promise<ChainSta
         throw new Error(`Chain is not paused (status: ${state.status})`);
     }
 
-    // Store human response if provided
-    if (humanResponse !== undefined && state.paused_node) {
-        const pausedNodeState = nodeState(state, state.paused_node);
-        if (pausedNodeState) {
-            // Find the human evidence and store response
-            const humanEvidence = pausedNodeState.evidence.find((e) => e.method === 'human');
-            if (humanEvidence) {
-                humanEvidence.human_response = humanResponse;
-                logger.debug(`Stored human response for node ${state.paused_node}: ${humanResponse}`);
-            }
-        }
+    // Store human response so the checker can use it when re-run
+    if (humanResponse !== undefined) {
+        state.paused_response = humanResponse;
+        logger.debug(`Stored human response: ${humanResponse}`);
     }
 
     // Clear pause state and continue

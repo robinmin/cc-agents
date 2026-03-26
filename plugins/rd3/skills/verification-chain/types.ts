@@ -160,6 +160,7 @@ export interface ChainState {
     updated_at: string;
     paused_at?: string;
     paused_node?: string;
+    paused_response?: string; // human response collected during resume
 }
 
 // Verification result returned by method handlers
