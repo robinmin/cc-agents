@@ -1,16 +1,18 @@
 name: backend-design
-description: "Backend implementation patterns: API endpoint design
-  (REST/GraphQL/gRPC), database schema design (PostgreSQL/MongoDB/Redis),
-  caching implementation (Cache-Aside/Write-Through), authentication flows
-  (OAuth2/JWT/mTLS), observability instrumentation (OpenTelemetry), and backend
-  testing strategies. Trigger when designing API endpoints, database schemas,
-  caching layers, auth flows, or planning backend testing."
+description: "Backend implementation patterns for Node.js. Use when building Express APIs, designing repository patterns, implementing service layer, adding Zod validation, configuring Sentry monitoring, enforcing layered architecture. Applies to routes, controllers, services, repositories, Prisma, middleware, validation, and backend conventions."
 version: 1.0.0
-icon: 🛠️
-category: debugging
+icon: "🛠️"
+category: implementation-pattern
 tags:
   - backend
-  - api-design
-  - database
-  - caching
-  - authentication
+  - api
+  - express
+  - prisma
+  - typescript
+  - nodejs
+  - layered-architecture
+  - zod
+  - sentry
+  - rest
+  - graphql
+instructions: "Apply backend patterns following layered architecture: Routes → Controllers → Services → Repositories. Use unifiedConfig for all settings, Zod for validation, Sentry for error tracking."
