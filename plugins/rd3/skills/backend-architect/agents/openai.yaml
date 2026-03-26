@@ -1,18 +1,17 @@
 name: backend-architect
-description: "Backend system architecture and distributed systems design for 2026:
-  service decomposition, microservices topology, event-driven architecture
-  (CQRS/Event Sourcing/Saga), distributed systems resilience, scalability
-  patterns, cloud-native architecture (serverless, Kubernetes, FinOps, DR/HA,
-  IaC), emerging patterns (MCP, Temporal, eBPF). Trigger when: planning service
-  boundaries, designing distributed systems, making cloud infrastructure
-  decisions, or evaluating scalability strategies."
+description: "Backend system architecture and distributed systems design for
+  2026: service decomposition, microservices topology, event-driven architecture
+  (CQRS/Event Sourcing/Saga), distributed systems resilience (circuit breakers,
+  bulkheads), scalability patterns, cloud-native architecture (serverless,
+  Kubernetes, FinOps, DR/HA, IaC), emerging patterns (MCP, Temporal, eBPF).
+  Trigger when: planning service boundaries, designing distributed systems,
+  making cloud infrastructure decisions, or evaluating scalability strategies."
 version: 2.0.0
-icon: "\U0001F6E0\uFE0F"
+icon: 🛠️
 category: debugging
 tags:
   - backend
   - architecture
   - microservices
+  - event-driven
   - distributed-systems
-  - cloud-native
-  - scalability
