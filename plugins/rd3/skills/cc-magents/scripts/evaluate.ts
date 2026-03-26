@@ -38,6 +38,7 @@ import { logger } from '../../../scripts/logger';
 import {
     EXPECTED_CATEGORIES,
     MAGENT_EVALUATION_CONFIG,
+    MAINTAINABILITY_INDICATORS,
     OPERABILITY_INDICATORS,
     SAFETY_INDICATORS,
     getGradeForPercentage,
@@ -961,7 +962,7 @@ function scoreMaintainability(ctx: EvaluationContext): DimensionResult {
     let score = 0;
     const maxScore = 100;
 
-    const memoryPatterns = [/\b(memory|context|history|remember|persistence)\b/i, /#\s*Memory/i, /#\s*Context/i];
+    const memoryPatterns = MAINTAINABILITY_INDICATORS.memoryArchitecture;
 
     let memoryCount = 0;
     for (const pattern of memoryPatterns) {
@@ -988,10 +989,7 @@ function scoreMaintainability(ctx: EvaluationContext): DimensionResult {
         recommendations.push('Add a Memory or Context section for durable context-management patterns');
     }
 
-    const feedbackPatterns = [
-        /\b(feedback|learn|adapt|self.?improv|evolution)\b/i,
-        /\b(user\s+feedback|behavior\s+adjustment|retrospective|postmortem)\b/i,
-    ];
+    const feedbackPatterns = MAINTAINABILITY_INDICATORS.evolutionLoops;
 
     let feedbackCount = 0;
     for (const pattern of feedbackPatterns) {
@@ -1049,11 +1047,7 @@ function scoreMaintainability(ctx: EvaluationContext): DimensionResult {
         recommendations.push('Document steering files, defaults, or persistent preference mechanisms');
     }
 
-    const versionHistoryPatterns = [
-        /\b(changelog|version\s+history|revision|release\s+notes|effective\s+date)\b/i,
-        /\bv\d+\.\d+\.\d+/,
-        /\b(last\s+updated|updated_at|effective)\b/i,
-    ];
+    const versionHistoryPatterns = MAINTAINABILITY_INDICATORS.versionTracking;
 
     let versionHistoryCount = 0;
     for (const pattern of versionHistoryPatterns) {
