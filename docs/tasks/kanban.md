@@ -31,12 +31,16 @@ kanban-plugin: board
 - [x] 0195_Refactor_scoring_from_point-deductions_to_rubric-based
 - [x] 0247_0241:_cc-magents_Foundation_-_validate.ts
 - [x] 0224_rd3-cc-agents-phase4-platform-adapters
+- [x] 0260_0253.7:_Run_full_verification_-_tsc,_biome,_bun_test
 - [x] 0227_Align_reference_docs_with_spec:_evaluation-framework_rename_and_weight/grade_corrections_(H1,_H4,_L1)
+- [x] 0263_enhance_knowledge-extraction_for_ultra_reconciliation
 - [x] 0244_0238:_cc-magents_Foundation_-_agents-md_adapter_(Tier_1)
 - [x] 0205_Update_test_all_dimensions_evaluated_for_12_dimensions
+- [x] 0262_add_new_slash_command_skill-migrate
 - [x] 0213_Replace_require()_with_ESM_imports_H3-H4
 - [x] 0214_Extract_shared_utilities_parseFrontmatter_and_discoverResources_M1-M2
 - [x] 0201_Add_troubleshooting_reference
+- [x] 0256_0253.3:_Create_ah_guard.test.ts_unit_tests
 - [x] 0187_Rewrite_super-planner_as_thin_orchestrator_wrapper
 - [x] 0220_upgrade_cc-agents_for_plugin_rd3
 - [x] 0212_Unify_adapter_interface_H1-H2_and_remove_dead_code_L8
@@ -45,7 +49,9 @@ kanban-plugin: board
 - [x] 0199_simplify_the_output_of_command_tasks_list
 - [x] 0239_Phase_5:_cc-magents_Evolution_-_evolve.ts,_safety_protocols,_version_history
 - [x] 0216_Fix_logic_issues_M3_M4_M5_M8:_placeholders,_weights,_ValidationReport,_unused_var
+- [x] 0255_0253.2:_Convert_ah_guard.py_to_ah_guard.ts_TypeScript
 - [x] 0211_Fix_critical_bugs_C1-C4:_platform_validation,_empty_frontmatter,_exit_code,_adapter_validate
+- [x] 0257_0253.4:_Update_anti-hallucination-research.md_with_SOTA_techniques
 - [x] 0252_add_new_agent_skill_run-acp
 - [x] 0246_0240:_cc-magents_Foundation_-_adapter_registry
 - [x] 0235_Phase_1:_cc-magents_Foundation_-_types,_utils,_Tier_1_adapters,_validate,_SKILL.md_skeleton
@@ -56,6 +62,7 @@ kanban-plugin: board
 - [x] 0207_Add_CSO_categories_to_SKILL.md_description
 - [x] 0233_Fix_low_issues:_placeholder_text,_minimal_template_examples,_dry-run_flag,_frontmatter_validation_(L2-L5)
 - [x] 0204_Fix_false_positive_workflow_detection_in_trigger_design.py
+- [x] 0259_0253.6:_Create_openai.yaml_platform_companion
 - [x] 0202_Add_MCP_enhancement_guidance
 - [x] 0209_Add_dimension_weight_comments_in_frontmatter.py/structure.py
 - [x] 0190_enhance_Agent_Skills_cc-skills
@@ -66,11 +73,13 @@ kanban-plugin: board
 - [x] 0228_Extend_validate.ts_with_OpenCode,_Codex,_OpenClaw_platform-specific_field_validation_(H5)
 - [x] 0188_Update_tasks-plan_command_for_workflow-aware_orchestration
 - [x] 0210_upgrade_cc-skills
+- [x] 0253_migrate_anti-hallucination
 - [x] 0186_Create_rd2:workflow-orchestration_skill
 - [x] 0221_rd3-cc-agents-phase1-foundation-types-utils-adapters
 - [x] 0200_Add_skill_patterns_reference
 - [x] 0249_enhance_agent_skill_design_patterns
 - [x] 0223_rd3-cc-agents-phase3-evaluate-refine
+- [x] 0258_0253.5:_Create_guard-implementation.md_reference_doc
 - [x] 0243_0237:_cc-magents_Foundation_-_base_adapter_interface
 - [x] 0225_rd3-cc-agents-phase5-skill-md-references-integration
 - [x] 0242_0236:_cc-magents_Foundation_-_utils.ts_(parsing/utilities)
@@ -80,6 +89,7 @@ kanban-plugin: board
 - [x] 0251_upgrade_and_simplify_tasks
 - [x] 0203_Add_distribution_guidance
 - [x] 0245_0239:_cc-magents_Foundation_-_claude-md_adapter_(Tier_1)
+- [x] 0254_0253.1:_Create_rd3_anti-hallucination_SKILL.md_with_YAML_frontmatter
 - [x] 0234_create_meta_skill_cc-magents
 - [x] 0250_add_new_agent_skill_quick-grep
 - [x] 0208_Add_trigger_testing_to_tests/scenarios.yaml
