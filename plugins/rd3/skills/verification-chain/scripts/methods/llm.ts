@@ -20,7 +20,7 @@ Be strict in your evaluation.`;
  * Parses stdout for [PASS]/[FAIL] markers for each checklist item.
  * Result is 'pass' only if ALL checklist items have PASS.
  */
-export async function runLlmCheck(config: LlmCheckerConfig): Promise<MethodResult> {
+export async function runLlmCheck(config: LlmCheckerConfig, _spawnFn: typeof spawn = spawn): Promise<MethodResult> {
     const evidence: CheckerEvidence = {
         method: 'llm',
         result: 'fail',
@@ -66,7 +66,7 @@ export async function runLlmCheck(config: LlmCheckerConfig): Promise<MethodResul
         let stdout = '';
         let stderr = '';
 
-        const child = spawn(`${llmCliCommand} < "${tempFile}"`, [], {
+        const child = _spawnFn(`${llmCliCommand} < "${tempFile}"`, [], {
             shell: true,
         });
 
