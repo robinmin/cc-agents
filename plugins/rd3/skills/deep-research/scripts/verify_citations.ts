@@ -408,10 +408,7 @@ async function main(): Promise<void> {
             report: { type: 'string', short: 'r', required: true },
             strict: { type: 'boolean', default: false },
         },
-        examples: [
-            'bun verify_citations.ts --report report.md',
-            'bun verify_citations.ts -r report.md --strict',
-        ],
+        examples: ['bun verify_citations.ts --report report.md', 'bun verify_citations.ts -r report.md --strict'],
     });
 
     const verifier = new CitationVerifier(values.report as string, values.strict as boolean);
