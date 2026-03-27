@@ -70,6 +70,13 @@ Pre-commit: `bun run check` (runs lint, typecheck, test in sequence)
 
 Code style conventions: 2-space indent, semicolons, double quotes, trailing commas.
 
+**V8 function coverage quirk**: Bun uses V8's function coverage which does NOT count implicit class constructors as function entry points. This causes `% Funcs` to drop below the 90% `coverageThreshold` even with 100% line coverage. Fix: add an explicit empty constructor with a biome suppression:
+
+```typescript
+// biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
+constructor() {}
+```
+
 ---
 
 ## Tools & Logging
