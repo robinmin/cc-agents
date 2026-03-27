@@ -118,8 +118,11 @@ export async function runCompoundCheck(config: CompoundCheckerConfig, cwd: strin
         `Compound check: operator=${config.operator}, passCount=${passCount}/${totalCount}, result=${evidence.result}`,
     );
 
-    if (passed) {
-        return { result: evidence.result, evidence };
-    }
-    return { result: evidence.result, evidence: { ...evidence, error: evidence.error as string } };
+    return passed
+        ? { result: evidence.result, evidence }
+        : {
+              result: evidence.result,
+              evidence,
+              error: evidence.error ?? 'Compound check failed',
+          };
 }
