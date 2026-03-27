@@ -207,6 +207,26 @@ export function appendArtifactRow(path: string, entry: ArtifactEntry): Result<bo
     }
 }
 
+/**
+ * Phase-aware section requirements per status transition.
+ * - `required`: missing sections produce hard errors (block without --force)
+ * - `warning`: missing sections produce warnings (block with --force)
+ */
+const STATUS_GUARD: Record<string, { required: string[]; warning: string[] }> = {
+    WIP: {
+        required: ['Background', 'Requirements'],
+        warning: ['Solution', 'Design', 'Plan'],
+    },
+    Testing: {
+        required: ['Background', 'Requirements', 'Solution', 'Plan'],
+        warning: ['Design'],
+    },
+    Done: {
+        required: ['Background', 'Requirements', 'Solution', 'Design', 'Plan'],
+        warning: [],
+    },
+};
+
 export function validateTaskForTransition(task: TaskFile, newStatus: TaskStatus): ValidationResult {
     const issues: ValidationIssue[] = [];
 
@@ -215,30 +235,20 @@ export function validateTaskForTransition(task: TaskFile, newStatus: TaskStatus)
         issues.push({ type: 'error', message: 'Missing or invalid frontmatter status' });
     }
 
-    // Tier 2: content warnings (block transitions to WIP/Testing/Done)
-    if (newStatus === 'WIP' || newStatus === 'Testing' || newStatus === 'Done') {
-        const bg = parseSection(task.content, 'Background');
-        if (!bg || bg.startsWith('[')) {
-            issues.push({ type: 'warning', message: 'Background section is empty or placeholder-only' });
+    // Phase-aware section validation
+    const guard = STATUS_GUARD[newStatus];
+    if (guard) {
+        for (const section of guard.required) {
+            const content = parseSection(task.content, section);
+            if (!content || content.startsWith('[')) {
+                issues.push({ type: 'error', message: `${section} section is empty or placeholder-only` });
+            }
         }
-        const req = parseSection(task.content, 'Requirements');
-        if (!req || req.startsWith('[')) {
-            issues.push({
-                type: 'warning',
-                message: 'Requirements section is empty or placeholder-only',
-            });
-        }
-        const sol = parseSection(task.content, 'Solution');
-        if (!sol || sol.startsWith('[')) {
-            issues.push({ type: 'warning', message: 'Solution section is empty or placeholder-only' });
-        }
-        const design = parseSection(task.content, 'Design');
-        if (!design || design.startsWith('[')) {
-            issues.push({ type: 'warning', message: 'Design section is empty or placeholder-only' });
-        }
-        const plan = parseSection(task.content, 'Plan');
-        if (!plan || plan.startsWith('[')) {
-            issues.push({ type: 'warning', message: 'Plan section is empty or placeholder-only' });
+        for (const section of guard.warning) {
+            const content = parseSection(task.content, section);
+            if (!content || content.startsWith('[')) {
+                issues.push({ type: 'warning', message: `${section} section is empty or placeholder-only` });
+            }
         }
     }
 
