@@ -46,7 +46,7 @@ import { getArtifacts } from './commands/get';
 import { showTree } from './commands/tree';
 import { runWriteGuardStdin } from './commands/writeGuard';
 import { isErr } from './lib/result';
-import { VALID_STATUSES, VALID_PHASES } from './types';
+import { VALID_STATUSES, VALID_PHASES, normalizeStatus, type TaskStatus } from './types';
 import { logger } from '../../../scripts/logger';
 
 const CLI_USAGE = `
@@ -120,11 +120,13 @@ function emitJsonError(error: string) {
     logger.log(JSON.stringify({ ok: false, error }, null, 2));
 }
 
-function normalizeStatusInput(input?: string) {
+function normalizeStatusInput(input?: string): TaskStatus | undefined {
     if (!input) return undefined;
-
-    const normalized = input.toLowerCase();
-    return VALID_STATUSES.find((status) => status.toLowerCase() === normalized);
+    const result = normalizeStatus(input);
+    // For CLI parsing: return undefined for unknown values so the parser
+    // can fall through to section/phase update handling
+    if (result.wasNormalized && !result.recognized) return undefined;
+    return result.status;
 }
 
 function parseListOption(value?: string): string[] | undefined {
