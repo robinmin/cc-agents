@@ -169,4 +169,3 @@ export interface MethodResult {
     evidence: CheckerEvidence;
     error?: string;
 }
-
