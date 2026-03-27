@@ -11,7 +11,7 @@ import type {
     ValidationResult,
     ValidationIssue,
 } from '../types';
-import { VALID_STATUSES, VALID_PHASES } from '../types';
+import { VALID_STATUSES, VALID_PHASES, normalizeStatus } from '../types';
 import { err, ok, type Result } from './result';
 
 const FRONTMATTER_REGEX = /^---\n([\s\S]*?)\n---\n/;
@@ -52,7 +52,7 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
     const frontmatter: TaskFrontmatter = {
         name: fm.name || '',
         description: fm.description || '',
-        status: (fm.status as TaskStatus) || 'Backlog',
+        status: fm.status ? normalizeStatus(fm.status).status : 'Backlog',
         created_at: fm.created_at || '',
         updated_at: fm.updated_at || '',
         folder: fm.folder,
