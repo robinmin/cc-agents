@@ -26,6 +26,7 @@ export async function runContentMatchCheck(config: ContentMatchCheckerConfig, cw
         return {
             result: 'fail',
             evidence: { ...evidence, error: errorMsg },
+            error: errorMsg,
         };
     }
 
@@ -38,6 +39,7 @@ export async function runContentMatchCheck(config: ContentMatchCheckerConfig, cw
         return {
             result: 'fail',
             evidence: { ...evidence, error: errorMsg },
+            error: errorMsg,
         };
     }
 
@@ -59,14 +61,11 @@ export async function runContentMatchCheck(config: ContentMatchCheckerConfig, cw
         `Content match check: pattern="${config.pattern}", found=${found}, must_exist=${config.must_exist}, result=${evidence.result}`,
     );
 
-    if (!passed) {
-        evidence.error = config.must_exist
-            ? `Pattern "${config.pattern}" not found in ${config.file}`
-            : `Pattern "${config.pattern}" found in ${config.file} but should not exist`;
-    }
-
-    if (passed) {
-        return { result: evidence.result, evidence };
-    }
-    return { result: evidence.result, evidence: { ...evidence, error: evidence.error as string } };
+    return passed
+        ? { result: evidence.result, evidence }
+        : {
+              result: evidence.result,
+              evidence,
+              error: evidence.error ?? `Content match check failed for ${config.file}`,
+          };
 }
