@@ -2,10 +2,10 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:tes
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
-import { runChain, resumeChain } from '../interpreter';
-import type { ChainManifest } from '../types';
+import { runChain, resumeChain } from '../scripts/interpreter';
+import type { ChainManifest } from '../scripts/types';
 
-// @ts-ignore - Bun provides __dirname in CommonJS-like contexts
+// @ts-expect-error - Bun provides __dirname in CommonJS-like contexts
 const TEST_DIR = join(__dirname, 'integration-fixtures');
 
 let chainIdCounter = 0;
