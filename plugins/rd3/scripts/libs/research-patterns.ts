@@ -26,36 +26,36 @@ export const URL_PATTERN = /https?:\/\/[^\s)]+/g;
 
 /** Placeholder strings that indicate incomplete content */
 export const PLACEHOLDER_STRINGS = [
-  "TBD",
-  "TODO",
-  "FIXME",
-  "XXX",
-  "[citation needed]",
-  "[needs citation]",
-  "[placeholder]",
-  "[TODO]",
-  "[TBD]",
+    'TBD',
+    'TODO',
+    'FIXME',
+    'XXX',
+    '[citation needed]',
+    '[needs citation]',
+    '[placeholder]',
+    '[TODO]',
+    '[TBD]',
 ] as const;
 
 /** Content truncation patterns with descriptions */
 export const TRUNCATION_PATTERNS: ReadonlyArray<[RegExp, string]> = [
-  [/Content continues/i, 'Phrase "Content continues"'],
-  [/Due to length/i, 'Phrase "Due to length"'],
-  [/would continue/i, 'Phrase "would continue"'],
-  [/\[Sections \d+-\d+/i, 'Pattern "[Sections X-Y"'],
-  [/Additional sections/i, 'Phrase "Additional sections"'],
-  [/comprehensive.*word document that continues/i, 'Pattern "comprehensive...document that continues"'],
+    [/Content continues/i, 'Phrase "Content continues"'],
+    [/Due to length/i, 'Phrase "Due to length"'],
+    [/would continue/i, 'Phrase "would continue"'],
+    [/\[Sections \d+-\d+/i, 'Pattern "[Sections X-Y"'],
+    [/Additional sections/i, 'Phrase "Additional sections"'],
+    [/comprehensive.*word document that continues/i, 'Pattern "comprehensive...document that continues"'],
 ];
 
 /** Bibliography-specific truncation patterns */
 export const BIBLIOGRAPHY_TRUNCATION_PATTERNS: ReadonlyArray<[RegExp, string]> = [
-  [/\[\d+-\d+\]/, "Citation range (e.g., [8-75])"],
-  [/Additional.*citations/i, 'Phrase "Additional citations"'],
-  [/would be included/i, 'Phrase "would be included"'],
-  [/\[\.\.\.continue/i, 'Pattern "[...continue"'],
-  [/\[Continue with/i, 'Pattern "[Continue with"'],
-  [/(?<![\w&)])etc\.(?!\w)/, 'Standalone "etc."'],
-  [/and so on/i, 'Phrase "and so on"'],
+    [/\[\d+-\d+\]/, 'Citation range (e.g., [8-75])'],
+    [/Additional.*citations/i, 'Phrase "Additional citations"'],
+    [/would be included/i, 'Phrase "would be included"'],
+    [/\[\.\.\.continue/i, 'Pattern "[...continue"'],
+    [/\[Continue with/i, 'Pattern "[Continue with"'],
+    [/(?<![\w&)])etc\.(?!\w)/, 'Standalone "etc."'],
+    [/and so on/i, 'Phrase "and so on"'],
 ];
 
 // ============================================================================
@@ -67,11 +67,11 @@ export const BIBLIOGRAPHY_TRUNCATION_PATTERNS: ReadonlyArray<[RegExp, string]> =
  * Matches [1], [2], [10] etc.
  */
 export function extractCitationNumbers(text: string): number[] {
-  const matches = text.match(CITATION_REF_PATTERN);
-  if (!matches) return [];
+    const matches = text.match(CITATION_REF_PATTERN);
+    if (!matches) return [];
 
-  const nums = new Set(matches.map((m) => parseInt(m.replace(/\[|\]/g, ""), 10)));
-  return [...nums].sort((a, b) => a - b);
+    const nums = new Set(matches.map((m) => parseInt(m.replace(/\[|\]/g, ''), 10)));
+    return [...nums].sort((a, b) => a - b);
 }
 
 /**
@@ -79,34 +79,32 @@ export function extractCitationNumbers(text: string): number[] {
  * Returns empty string if no bibliography found.
  */
 export function extractBibliographySection(text: string): string {
-  const match = text.match(BIBLIOGRAPHY_SECTION_PATTERN);
-  return match ? match[1].trim() : "";
+    const match = text.match(BIBLIOGRAPHY_SECTION_PATTERN);
+    return match ? match[1].trim() : '';
 }
 
 /**
  * Parse bibliography entries from a bibliography section string.
  * Each entry starts with [N] and contains the raw text.
  */
-export function extractBibliographyEntries(
-  bibSection: string,
-): Array<{ num: number; raw: string }> {
-  const entries: Array<{ num: number; raw: string }> = [];
-  const lines = bibSection.split("\n").filter((l) => l.trim());
+export function extractBibliographyEntries(bibSection: string): Array<{ num: number; raw: string }> {
+    const entries: Array<{ num: number; raw: string }> = [];
+    const lines = bibSection.split('\n').filter((l) => l.trim());
 
-  let current: { num: number; raw: string } | null = null;
+    let current: { num: number; raw: string } | null = null;
 
-  for (const line of lines) {
-    const match = line.trim().match(/^\[(\d+)\]\s+(.+)$/);
-    if (match) {
-      if (current) entries.push(current);
-      current = { num: parseInt(match[1], 10), raw: match[2] };
-    } else if (current) {
-      current.raw += ` ${line.trim()}`;
+    for (const line of lines) {
+        const match = line.trim().match(/^\[(\d+)\]\s+(.+)$/);
+        if (match) {
+            if (current) entries.push(current);
+            current = { num: parseInt(match[1], 10), raw: match[2] };
+        } else if (current) {
+            current.raw += ` ${line.trim()}`;
+        }
     }
-  }
 
-  if (current) entries.push(current);
-  return entries;
+    if (current) entries.push(current);
+    return entries;
 }
 
 /**
@@ -114,7 +112,7 @@ export function extractBibliographyEntries(
  * Returns array of found placeholder strings.
  */
 export function findPlaceholders(text: string): string[] {
-  return PLACEHOLDER_STRINGS.filter((p) => text.includes(p));
+    return PLACEHOLDER_STRINGS.filter((p) => text.includes(p));
 }
 
 /**
@@ -122,7 +120,7 @@ export function findPlaceholders(text: string): string[] {
  * Returns array of descriptions for matched patterns.
  */
 export function findTruncationPatterns(text: string): string[] {
-  return TRUNCATION_PATTERNS.filter(([regex]) => regex.test(text)).map(([, desc]) => desc);
+    return TRUNCATION_PATTERNS.filter(([regex]) => regex.test(text)).map(([, desc]) => desc);
 }
 
 /**
@@ -130,7 +128,5 @@ export function findTruncationPatterns(text: string): string[] {
  * Returns array of descriptions for matched patterns.
  */
 export function findBibliographyTruncationPatterns(text: string): string[] {
-  return BIBLIOGRAPHY_TRUNCATION_PATTERNS.filter(([regex]) => regex.test(text)).map(
-    ([, desc]) => desc,
-  );
+    return BIBLIOGRAPHY_TRUNCATION_PATTERNS.filter(([regex]) => regex.test(text)).map(([, desc]) => desc);
 }
