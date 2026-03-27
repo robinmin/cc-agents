@@ -4,8 +4,9 @@
  * Properly converts markdown sections to HTML while preserving structure and formatting
  */
 
-import { readFileSync } from 'node:fs';
 import { logger } from '../../../scripts/logger';
+import { parseCli } from '../../../scripts/libs/cli-args';
+import { readFile } from '../../../scripts/utils';
 
 interface ConvertResult {
     contentHtml: string;
@@ -85,12 +86,12 @@ function convertContentSection(markdown: string): string {
     const execIdx = html.indexOf(execSummaryTag);
     if (execIdx !== -1) {
         // Insert opening div before the exec summary heading
-        html = html.slice(0, execIdx) + '<div class="executive-summary">' + html.slice(execIdx);
+        html = `${html.slice(0, execIdx)}<div class="executive-summary">${html.slice(execIdx)}`;
         // Find the next <div class="section"> after the exec summary and close before it
         const afterExec = execIdx + '<div class="executive-summary">'.length + execSummaryTag.length;
         const nextSectionIdx = html.indexOf('<div class="section">', afterExec);
         if (nextSectionIdx !== -1) {
-            html = html.slice(0, nextSectionIdx) + '</div>' + html.slice(nextSectionIdx);
+            html = `${html.slice(0, nextSectionIdx)}</div>${html.slice(nextSectionIdx)}`;
         } else {
             // No next section — close at the end
             html += '</div>';
@@ -317,19 +318,24 @@ function closeSections(html: string): string {
 }
 
 function main(): void {
-    const args = process.argv.slice(2);
+    const { positionals } = parseCli(
+        {
+            name: 'md_to_html.ts',
+            description: 'Convert markdown research reports to structured HTML',
+            options: {},
+            allowPositionals: true,
+            examples: ['bun md_to_html.ts report.md'],
+        },
+    );
 
-    if (args.length < 1 || args[0] === '--help' || args[0] === '-h') {
-        logger.log('Usage: md_to_html.ts <markdown_file>');
-        logger.log('\nExample:');
-        logger.log('  bun md_to_html.ts report.md');
-        process.exit(0);
+    const mdFile = positionals[0];
+    if (!mdFile) {
+        logger.error('Error: markdown file path is required');
+        process.exit(1);
     }
 
-    const mdFile = args[0];
-
     try {
-        const markdownText = readFileSync(mdFile, 'utf-8');
+        const markdownText = readFile(mdFile);
         const { contentHtml, bibliographyHtml } = convertMarkdownToHtml(markdownText);
 
         logger.log('=== CONTENT HTML ===');
