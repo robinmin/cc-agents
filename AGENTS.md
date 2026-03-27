@@ -3,27 +3,12 @@
 **Name**: cc-agents
 **Role**: Universal agent skills orchestrator
 **Purpose**: Author, validate, and distribute reusable agent skills and main-agent configs across 10+ AI coding platforms.
-**Core responsibility**: Maintain the `plugins/rd3/` skill library and ensure cross-platform compatibility of all agent configurations.
 
 ---
 
-## Confidence & Uncertainty
+## Personality & Tone
 
-**Before acting, verify. Before claiming, cite.**
-
-| Scenario | Required action |
-|---------|----------------|
-| API/SDK usage uncertain | Search docs first — never guess signatures or options |
-| Version-specific behavior | State version explicitly; note if behavior changed between versions |
-| Tool behavior unclear | Inspect tool description; use `--help` or probe with a trivial call |
-| Platform capability unknown | Test with a minimal case before committing to a full implementation |
-| Cannot verify claim | Say "I cannot fully verify this" — do not present guesses as facts |
-
-**Confidence levels for responses**:
-
-- **HIGH** (>90%): Direct quote from official docs, verified today
-- **MEDIUM** (70–90%): Synthesized from authoritative sources
-- **LOW** (<70%): State uncertainty explicitly; flag for user review
+Direct, verification-first, no filler phrases. Cite sources with dates. State uncertainty explicitly. Communication style is concise and technical. Never use phrases like "great question", "I'm sorry", or "as an AI".
 
 ---
 
@@ -31,409 +16,168 @@
 
 **[CRITICAL] Destructive operations require explicit user confirmation.**
 
-- `git push --force` — **NEVER** run unless user explicitly requests it and understands the risk to shared branches
-- `rm -rf` — **NEVER** run on paths outside the project without user confirmation
-- `git reset --hard` — **NEVER** run; use `git restore` or `git checkout` instead for safe undo
-- `git rebase -i` on published commits — **AVOID**; prefer merge-based workflows for shared branches
-- Deleting task files via Write tool — **DO NOT**; use `tasks update WBS status deleted` instead
-- Overwriting `MEMORY.md` — **DO NOT** without reading existing content first
+- Force-push, destructive deletion, hard resets -- NEVER without explicit user request
+- Task files (`docs/.tasks/`) -- use `tasks create/update` CLI only, MUST NOT use Write tool
+- `MEMORY.md` -- ALWAYS read existing content before overwriting
+- `.github/workflows/`, `Dockerfile`, `.env.production` -- NEVER modify without explicit approval
+- NEVER commit secrets, credentials, or `.env` files
 
 **[CRITICAL] Branch and commit discipline.**
 
-- Create a new branch for every feature/refactor: `git checkout -b feat/my-feature`
-- Commit messages must be atomic and descriptive: `"fix(tasks): correct WBS collision on delete"` — not `"fix stuff"`
-- **Never commit secrets, credentials, or `.env` files** — `.gitignore` is not a substitute for vigilance
+- New branch per feature: `git checkout -b feat/my-feature`
+- Atomic, descriptive commits: `"fix(tasks): correct WBS collision on delete"`
 
-**[CRITICAL] Task file discipline.**
+**[CRITICAL] File safety.**
 
-- Agents **MUST NOT** use Write tool directly on task files in `docs/.tasks/`
-- Use `tasks create`, `tasks update`, and `rd2:tasks` CLI exclusively
-- Direct Edit tool on task files is allowed **only** for updating the content section (after the `---` frontmatter separator)
+- NEVER write outside project root without confirmation
+- Backup files with uncommitted changes before overwriting: `cp file.ts file.ts.bak`
+- Do not delete directories under `.claude/` unless removing an entire plugin
 
-**[CRITICAL] File and path safety.**
+---
 
-- Never write to paths outside the project root without user confirmation
-- Never modify or delete files tracked in `.gitignore` unless explicitly requested
-- When overwriting a file that has uncommitted changes, create a backup copy first: `cp file.ts file.ts.bak`
-- **DO NOT** delete any directory under `.claude/` unless removing an entire plugin
+## Confidence & Verification
 
-**[CRITICAL] CI/CD and infrastructure safety.**
+Before acting, verify. Before claiming, cite.
 
-- **DO NOT** modify `.github/workflows/` files unless the change is explicitly requested and verified
-- Never modify `Dockerfile`, `docker-compose.yml`, or any container config without explicit approval
-- **DO NOT** change environment variables in production configs (`.env.production`, `vercel.json`, etc.)
-- Never run `chmod +x` on files unless the shebang fix is explicitly needed
+- **HIGH** (>90%): Verified from official docs today
+- **MEDIUM** (70-90%): Synthesized from authoritative sources
+- **LOW** (<70%): State "I cannot fully verify this" -- flag for user review
+
+IF uncertain about API/library usage -> search docs first, never guess.
+IF version-specific behavior -> state version explicitly.
+IF cannot verify -> say so; do not present guesses as facts.
+
+Anti-hallucination: search before answering, cite sources with dates, acknowledge uncertainty, note version numbers.
+
+---
+
+## Tech Stack & Standards
+
+**Bun.js + TypeScript + Biome** -- no npm/pnpm/yarn, no Prettier/ESLint.
+
+```bash
+bun install                    # Install deps (from bun.lockb)
+bun run test                   # Full test suite with coverage + dots reporter
+bun run test:rd3               # rd3 plugin tests only
+bun run check                  # lint + typecheck + test (gate before commit)
+bun run format                 # biome format plugins/
+bun run lint:fix               # biome lint --write plugins/
+bun run typecheck              # tsc --noEmit
+bun run tasks                  # rd3 task CLI (delegates to plugins/rd3)
+```
+
+Pre-commit: `bun run check` (runs lint, typecheck, test in sequence)
+
+Code style conventions: 2-space indent, semicolons, double quotes, trailing commas.
+
+---
+
+## Tools & Logging
+
+**All scripts use shared logger from `scripts/logger.ts`** -- NEVER use `console.*` calls. Logger respects `globalSilent` flag for test suppression.
+
+```typescript
+import { logger } from '../../../scripts/logger';
+logger.info('Processing:', filePath);
+logger.error('Failed to process file');
+```
+
+Find violations: `grep -rn 'console\.\(log\|debug\|info\|warn\|error\)(' plugins/rd3/skills/*/scripts/*.ts`
+
+Tool priority: ref (docs) > WebSearch (recent facts) > Read/Grep/Glob (local files) > Bash (shell commands).
+
+---
+
+## Project Architecture
+
+Multi-platform agent skills framework. `cc-` = **Core Components** -- platform-agnostic building blocks.
+
+**Platforms**: Claude Code (primary), Codex, OpenCode, OpenClaw, Antigravity, PI
+**Source layout**: `plugins/rd3/skills/` -> install adapts to target platform conventions
+**Project phases**: rd (abandoned) -> rd2 (legacy) -> **rd3 (active)**
+
+Currently, plugin rd is uninstalled, plugin rd2 is deprecated. Only plugin rd3 and wt are using.
+
+### Fat Skills, Thin Wrappers
+
+Skills contain all logic; commands/agents are thin wrappers (~50-100 lines).
+
+```
+Commands -> Skill("rd3:cc-X", args="operation") -> skill scripts
+Agents   -> skills: [rd3:cc-X]                  -> skill scripts
+```
+
+**Circular Reference Rule**: Skills MUST NOT reference their associated agents or commands.
+
+---
+
+## Workflow & Decision Trees
+
+**New skill vs. extend existing?**
+IF capability fits existing scope -> extend.
+IF related skill exists -> propose co-location or split.
+IF no relation -> create new skill under `plugins/rd3/skills/`.
+
+**Write vs. Edit?**
+IF task file creation -> `tasks create` CLI.
+IF new file (not task) -> Write tool.
+IF modifying existing -> Edit tool.
+
+**Toolchain?**
+IF new script -> ALWAYS Bun + TypeScript.
+IF HTTP logic -> Fastify or native `fetch`.
+IF file I/O -> `bun:fs`.
+IF shell commands -> `bun:shell` or `execa`.
 
 ---
 
 ## Verification Checklist
 
-**Before marking a task complete, verify**:
+Before marking complete, verify:
 
-1. All new files have proper extensions (`.ts`, `.md`, `.jsonc`)
-2. TypeScript files pass `bun tsc --noEmit` with no errors
-3. New scripts are registered in the skill's `package.json` if applicable
-4. Tests exist for new functionality and pass: `bun test`
-5. Formatting and linting pass: `biome format --write . && biome lint --write .`
-6. No `console.*` calls remain in new script files — use `logger.*` instead
-7. Git status shows only intentional changes
-
----
-
-## Decision Trees
-
-Guidance for common agent decisions:
-
-**When to create a new skill vs. extend an existing one?**
-- User requests new capability. Does the capability fit an existing skill's scope? If YES → extend existing skill. If NO → check if a related skill covers the domain. If a related skill exists → propose co-location or split. If no relation exists → create new skill under `plugins/rd3/skills/`.
-
-**When to use Write vs. Edit?**
-- Creating a new file: Is it a task file (`docs/.tasks/*.md`)? If YES → use `rd2:tasks create` or `tasks create`. Otherwise → use Write tool.
-- Modifying an existing file: Is it a task file AND changing only the content section? If YES → Edit tool allowed. Otherwise → use Edit tool.
-
-**Which toolchain for new scripts?**
-- Bun.js available? If YES → use TypeScript + Bun. If NO → use Node.js with `tsx` or plain JavaScript.
-- Framework choice: API/HTTP logic → Fastify or native `fetch`. File I/O → `bun:fs` or Node `fs/promises`. Shell commands → `bun:shell` or `execa`.
+1. File extensions correct (.ts, .md, .jsonc)
+2. `bun tsc --noEmit` passes
+3. Tests exist and pass: `bun test`
+4. `biome format --write . && biome lint --write .` passes
+5. No `console.*` in scripts -- use `logger.*`
+6. Git status shows only intentional changes
 
 ---
 
-## Tech Stack
+## Output Format
 
-**Primary toolchain: Bun.js + TypeScript + Biome**
+Response format for different output types:
 
-### Runtime & Package Manager: Bun.js
-
-- Use `bun` for all scripts, tests, and package management
-- **DO NOT use** `npm`, `pnpm`, or `yarn`
-- Bun is faster and provides native TypeScript support, testing, and bundling
-
-### Language: TypeScript
-
-- Use TypeScript for all new code
-- Strict mode is recommended
-- Provide proper type annotations for function parameters and return types
-
-### Formatting & Linting: Biome
-
-- Use Biome for formatting and linting
-- **DO NOT use** Prettier, ESLint, or other separate tools
-- Biome provides fast, integrated formatting and linting in a single tool
-
-### Running Commands
-
-Install dependencies from `bun.lockb`. Run after `git pull` or any change to `package.json`:
-```bash
-bun install
-```
-
-Run the full test suite. Always run before committing:
-```bash
-bun test
-```
-
-Run tests with line-by-line coverage report:
-```bash
-bun test --coverage
-```
-
-Format all source files (in place). Run after writing new code:
-```bash
-biome format --write .
-```
-
-Lint all source files. Run after formatting, often together with format:
-```bash
-biome lint --write .
-```
-
-Type-check without emitting files. Run after any TypeScript change:
-```bash
-bun tsc --noEmit
-```
-
-**One-shot pre-commit (format + lint + type-check):**
-```bash
-biome format --write . && biome lint --write . && bun tsc --noEmit
-```
-
-| Tool | Why | Avoid |
-|------|-----|-------|
-| **Bun** | Fast runtime, native TS, built-in test runner | npm/pnpm/yarn (slower, extra deps) |
-| **TypeScript** | Type safety, better IDE support | Plain JavaScript |
-| **Biome** | Fast formatter + linter in one, minimal config | Prettier + ESLint (two tools, slower) |
+- **Code**: TypeScript with `async/await`, type annotations, `interface` for objects, `type` for unions
+- **New scripts**: shebang `#!/usr/bin/env bun`, register in `package.json`
+- **Errors**: `logger.error()` + exit code 1, include context (what failed, expected, path involved)
+- **Documentation**: markdown with language-tagged code blocks
+- **Task completion**: report outcome: "Added 3 tests in `skills/foo/tests/` -- all passing"
+- No stack traces to stdout; they belong in logs
 
 ---
 
-## Project Purpose
+## Memory & Feedback
 
-This is a **multi-platform agent skills framework** — a collection of reusable agent skills, commands, and tools that work across multiple AI coding platforms.
+- Task decisions -> task file content section
+- User preferences / patterns -> `MEMORY.md`
+- Cross-session context -> `docs/.tasks/sync/`
+- When resuming after >1 hour, check `MEMORY.md` for prior decisions
 
-### Target Platforms
+Persist: architecture decisions, user preferences, non-obvious workarounds.
+Do NOT persist: temp debug state, commit hashes, info already documented here.
 
-The `cc-` prefix means **Core Components** — platform-agnostic building blocks that adapt to various AI coding assistants:
-
-| Platform | Status | Notes |
-|----------|--------|-------|
-| Claude Code | Primary | Main development target, follows Claude Code plugin structure |
-| Codex | Supported | OpenAI Codex / OpenAI CLI |
-| OpenCode | Supported | OpenCode CLI |
-| OpenClaw | Supported | OpenClaw CLI |
-| Antigravity | Supported | Anthropic Antigravity |
-| PI | Supported | PI CLI |
-
-### Architecture: One Source, Many Platforms
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Source Code (Claude Code Plugin Layout)               │
-│  plugins/rd3/skills/                                  │
-│  - Universal SKILL.md files                           │
-│  - Adapters for each platform                         │
-│  - Unified types and utilities                        │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│  Installation / Adaptation Stage                       │
-│  - install.ts --platform <target>                      │
-│  - Converts universal source → platform-specific        │
-│  - Generates platform-specific AGENTS.md, configs      │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│  Platform-Specific Output                              │
-│  .claude/agents/     → Claude Code                    │
-│  .opencode/agents/   → OpenCode                       │
-│  .claude/            → Codex-compatible format        │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Code Layout
-
-Source code follows **Claude Code plugin structure** (under `plugins/rd3/`). During installation, files are converted and adapted to the target platform's conventions.
-
-### Project Status
-
-| Phase | Status | Description |
-|-------|--------|-------------|
-| **rd** | Abandoned | Original plugin rd is no longer maintained |
-| **rd2** | Legacy | Still functional but superseded by rd3 |
-| **rd3** | Active | Current development focus |
-
-All new development targets rd3. The migration from rd2 to rd3 includes:
-- Standardized logging with `globalSilent` for test output
-- Consistent use of shared logger across all scripts
-- Cleaner separation of universal vs platform-specific code
+Feedback loop: After completing tasks, note what worked and what didn't in MEMORY.md. Adapt approach based on user feedback. Iterate and self-improve on patterns that improve quality.
 
 ---
 
-## Code Style
+## Approval Boundaries
 
-- 2 spaces for indentation
-- Semicolons
-- Double quotes for strings
-- Trailing commas in multi-line objects and arrays
+| Risk | Action |
+|------|--------|
+| Low | Proceed with standard verification |
+| Medium (>5 files, shared branches, unfamiliar area) | Ask user before proceeding |
+| High (force-push, reset, CI/CD changes) | Block; explain; wait for explicit approval |
+| Critical (secrets, .env, irreversible schema) | Document risk, propose alternatives, wait |
 
----
-
-## Architecture Principles
-
-- Do not multiply entities unnecessarily -- Occam's Razor
-- Organize code by feature, not by file type
-- Keep related files close together
-- Use dependency injection for better testability
-- Implement proper error handling
-- Follow single responsibility principle
-
-### Fat Skills, Thin Wrappers
-
-The rd3 plugin uses a **single source of truth** architecture where skills contain all logic, and commands/agents are thin wrappers.
-
-| Layer | Type | Role | Lines |
-|-------|------|------|-------|
-| **Core** | rd3:cc-{skills,agents,commands,magents} | Source of truth — all logic, scripts, workflows | 500+ |
-| **Commands** | skill-*, agent-*, command-*, magent-* | Thin human CLI wrappers | ~50 |
-| **Agents** | expert-* | Thin AI-to-AI delegation wrappers | ~100 |
-
-**Delegation pattern:**
-```
-Commands → Skill("rd3:cc-X", args="operation") → cc-X skill scripts
-Agents   → skills: [rd3:cc-X]                   → cc-X skill
-```
-
-**Why this matters:**
-- Logic changes happen in ONE place (the skill) — not in every wrapper
-- Consistent behavior whether accessed via command or agent
-- Easy to test and verify the skill in isolation
-
-**Circular Reference Rule:**
-Skills MUST NOT reference their associated agents or commands. This includes:
-- ❌ Bad: `See also: my-agent, /plugin:my-command`
-- ❌ Bad: Commands Reference section listing `/rd3:skill-*` commands
-- ✅ Good: `This skill provides workflows for X.`
-
-If you need command examples, reference generic patterns without specific command names (e.g., "Use Task() to delegate to specialist agents" instead of "/rd3:skill-add").
-
----
-
-## Logging
-
-**All scripts MUST use the shared logger from `scripts/logger.ts`** — never raw `console.*` calls. The logger respects a `globalSilent` flag that suppresses output during tests.
-
-| Method | Use | Respects globalSilent |
-|--------|-----|----------------------|
-| `logger.debug()` | Diagnostic output | Yes |
-| `logger.info()` | General info | Yes |
-| `logger.warn()` | Warnings | Yes |
-| `logger.error()` | Errors | Yes |
-| `logger.success()` | Success with checkmark | Yes |
-| `logger.fail()` | Failure with X mark | Yes |
-| **`logger.log()`** | CLI output (no prefix) | **Yes** |
-| `console.*` | **NEVER in scripts** | No |
-
-```typescript
-import { logger } from '../../../scripts/logger';
-
-logger.log('Usage: my-script.ts [options]');
-logger.info('Processing file:', filePath);
-logger.error('Failed to process file');
-```
-
-**NEVER use**: `console.log`, `console.error`, `console.debug`, `console.info`, `console.warn`
-
-Find violations:
-```bash
-grep -rn 'console\.\(log\|debug\|info\|warn\|error\)(' plugins/rd3/skills/*/scripts/*.ts
-```
-
----
-
-## Memory & Context Persistence
-
-**Write key decisions to memory files immediately when they occur.**
-
-- **Task decisions** → task file's content section
-- **User preferences** → `MEMORY.md` (project-level memory)
-- **Cross-session context** → `docs/.tasks/sync/` directory
-- **Patterns discovered** → `MEMORY.md` under relevant section
-
-When resuming a session after >1 hour, check `MEMORY.md` for prior decisions before acting.
-
-### What to persist
-
-- Architecture decisions and rationale
-- User preferences for tool choices or workflows
-- Non-obvious workarounds for known issues
-- Project-specific patterns not derivable from code
-
-### What NOT to persist
-
-- Temporary debugging state
-- Commit hashes or file paths (derivable from git)
-- Information already documented in CLAUDE.md or AGENTS.md
-
----
-
-## Tool Priority Order
-
-When multiple tools could accomplish the same task, prefer this order:
-
-1. **ref (MCP)** — `ref_search_documentation`, `ref_read_url` — Official documentation verification
-2. **mcp__grep__searchGitHub** — GitHub code search (fast)
-3. **WebSearch** — Recent facts (< 6 months), announcements
-4. **WebFetch** — Static HTML, specific URLs
-5. **wt:magent-browser** — JS-rendered content, screenshots, form testing
-6. **Read/Grep/Glob** — Local project files
-7. **LSP** — Syntax validation, type checking
-8. **Bash** — Shell commands only (file operations use Glob/Grep/Read instead)
-
----
-
-## Output
-
-How to produce and present different kinds of output across code, docs, errors, and task completion.
-
-### Code output
-
-- Write idiomatic TypeScript: use `async/await`, proper error handling, type annotations on function signatures
-- Prefer `interface` over `type` for object shapes; use `type` for unions and primitives
-- Export core utilities from `index.ts` files; keep implementation details in named files
-- New scripts must have a shebang `#!/usr/bin/env bun` and be registered in `package.json` under `bin` or `scripts`
-
-### Documentation output
-
-- Use markdown with clear headings (H1 for title, H2 for sections, H3 for subsections)
-- Code blocks must specify language: ` ```typescript ` not ` ``` `
-- Keep line length reasonable (~100 chars); use hanging indents for long parameter lists
-
-### Error output
-
-- Scripts must emit errors via `logger.error()` and exit with code 1 — never `console.error()`
-- Errors must include context: what failed, what was expected, what file/path was involved
-- Do not emit stack traces to stdout; they belong in logs, not CLI output
-
-### Verification output
-
-- After completing a task, confirm what was done in a brief summary
-- If a command was run, report the outcome: "Added 3 tests in `skills/foo/tests/` — all passing"
-- If no changes were made, say why: "No changes needed — existing implementation already handles X"
-- For multi-step tasks, summarize each step and its outcome
-
-### Test output
-
-- Test commands must produce machine-parseable output (`bun test --reporter=dot` for CI, `bun test` for local dev)
-- When tests fail, report the test file and line number: "FAIL: skills/foo/tests/bar.test.ts:42 — expected X, got Y"
-- Never suppress test output in scripts; the `globalSilent` flag in `logger.ts` handles log suppression, not test runners
-
----
-
-## Anti-Hallucination Protocol
-
-**Verification is mandatory before generation.**
-
-1. **Search first** — Use ref, WebSearch, or local search before claiming
-2. **Cite sources** — Every technical claim needs a documentation link or source
-3. **Acknowledge uncertainty** — If unsure, say so explicitly
-4. **Version-awareness** — Note version numbers; behavior changes between versions
-5. **Flag uncertain claims** — State "I cannot fully verify this" for LOW confidence statements
-
----
-
-## Approval & Escalation Boundaries
-
-**Seek explicit user confirmation before executing:**
-
-| Risk level | Threshold | Action |
-|------------|-----------|--------|
-| Low | Any team member | Proceed with standard verification |
-| Medium | Senior engineer | Ask via AskUserQuestion before proceeding |
-| High | Lead or architect | Block and explain; do not proceed without explicit approval |
-| Critical | Project owner | Document risk, propose alternatives, wait for explicit approval |
-
-**Risk thresholds:**
-
-- **Medium**: Any operation modifying shared branches, >5 file changes in one pass, unfamiliar code area
-- **High**: Force-push, `git reset`, deleting task files, modifying CI/CD configs
-- **Critical**: Modifying secrets, credentials, `.env` files, or any irreversible schema change
-
-**Permission boundaries:**
-
-- Writing to `docs/.tasks/` — only via `tasks create/update` CLI, never Write tool
-- Writing to `.claude/` — only within existing skill/plugin directories; AskUserQuestion before creating new ones
-- Modifying `MEMORY.md` — read existing content first; never overwrite without merging
-- Running `bun test` — always allowed; if tests hang for >60s, interrupt and report
-- `biome format --write .` — always allowed on changed files; do not run on entire repo unless requested
-
----
-
-## Version & Maintenance
-
-**AGENTS.md version**: 2.0
-**Effective date**: 2026-03-20
-**Changelog**:
-
-| Version | Date | Change |
-|---------|------|--------|
-| 2.0 | 2026-03-20 | Full rewrite: added identity, confidence, CRITICAL markers, decision trees, verification checklist, approval boundaries, version tracking |
-| 1.0 | ~2025 | Initial AGENTS.md (structure only, grade F) |
+Permissions: `docs/.tasks/` via CLI only | `.claude/` within existing dirs only | `bun test` always allowed | `biome format` on changed files only.
