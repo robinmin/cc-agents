@@ -683,7 +683,7 @@ describe('unknown checker method', () => {
 // maker variants
 // ============================================================
 describe('maker variants', () => {
-    test('delegate_to maker completes without running command', async () => {
+    test('delegate_to maker without command completes', async () => {
         const manifest = makeManifest([
             {
                 name: 'delegate-node',
@@ -695,6 +695,28 @@ describe('maker variants', () => {
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('completed');
         expect(state.nodes[0].maker_status).toBe('completed');
+    });
+
+    test('delegate_to maker falls back to command when command is present', async () => {
+        const outputFile = `${nextChainId()}-delegate-output.txt`;
+        const manifest = makeManifest([
+            {
+                name: 'delegate-command-node',
+                type: 'single',
+                maker: {
+                    delegate_to: 'rd3:code-implement-common',
+                    command: `echo generated > ${outputFile}`,
+                },
+                checker: {
+                    method: 'file-exists',
+                    config: { paths: [outputFile] },
+                },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('completed');
+        expect(state.nodes[0].maker_status).toBe('completed');
+        expect(state.nodes[0].checker_result).toBe('pass');
     });
 
     test('no maker defined → checker runs standalone', async () => {
