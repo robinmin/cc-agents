@@ -47,7 +47,7 @@ Task-file-driven software development with machine-first verification (BDD) + hu
 | 2 | **`bdd-workflow`** | BDD scenario generation + Gherkin execution + machine verification | Functional verification without manual test authoring |
 | 3 | **`functional-review`** | Phase 8 gate: verify implementation against task file using bdd-workflow | No skill reviews "did we build what was asked" |
 | 4 | **`request-intake`** | Heuristic Q&A to bootstrap task file from one-liner | Entry point for the pipeline |
-| 5 | **`task-workflow`** | Orchestrate full pipeline, read profile, skip/insert phases, delegate to verification-chain | Ties everything together |
+| 5 | **`orchestration-dev`** | Orchestrate full pipeline, read profile, skip/insert phases, delegate to verification-chain | Ties everything together |
 | 6 | **`code-docs`** | Auto-generate JSDoc/TSDoc, update task file References | Documentation is manual today |
 
 ---
@@ -61,7 +61,7 @@ Task-file-driven software development with machine-first verification (BDD) + hu
 | `expert-request-intake.md` | `request-intake` | Bootstrap task file from one-liner |
 | `expert-bdd-workflow.md` | `bdd-workflow` | Run BDD scenarios |
 | `expert-functional-review.md` | `functional-review` | Verify implementation vs task file |
-| `expert-task-workflow.md` | `task-workflow` | Orchestrate full pipeline |
+| `expert-orchestration-dev.md` | `orchestration-dev` | Orchestrate full pipeline |
 | `expert-verification-chain.md` | `verification-chain` | Execute a chain manifest |
 
 **Commands** (human-facing CLI):
@@ -71,7 +71,7 @@ Task-file-driven software development with machine-first verification (BDD) + hu
 | `/rd3:request-intake` | Bootstrap task file via guided Q&A |
 | `/rd3:bdd` | Run BDD workflow on a task file |
 | `/rd3:functional-review` | Run functional review on a task file |
-| `/rd3:task-workflow` | Kick off full pipeline |
+| `/rd3:orchestration-dev` | Kick off full pipeline |
 | `/rd3:cov` | Execute a chain manifest directly |
 
 ---
@@ -98,11 +98,11 @@ These existing skills are well-covered and don't need rework:
 2. bdd-workflow           ← enables machine-first functional verification
 3. functional-review      ← fills phase 8 gap
 4. request-intake         ← pipeline entry point
-5. task-workflow          ← orchestrates everything
+5. orchestration-dev      ← orchestrates everything
 6. code-docs              ← nice-to-have, manual docs acceptable temporarily
 ```
 
-Each skill is independent except: `bdd-workflow` and `functional-review` both depend on `verification-chain`; `task-workflow` depends on all others.
+Each skill is independent except: `bdd-workflow` and `functional-review` both depend on `verification-chain`; `orchestration-dev` depends on all others.
 
 
 ### Requirements
@@ -163,7 +163,7 @@ All 9 workflow phases mapped to existing rd3 skills. Gaps documented with severi
 - Acceptance: 5 exported functions without JSDoc -> JSDoc added to all 5; existing JSDoc preserved; API reference has TOC
 - **Complexity: S (4-8h)**
 
-#### R6: Build `task-workflow` Skill (Pipeline Orchestrator)
+#### R6: Build `orchestration-dev` Skill (Pipeline Orchestrator)
 - Orchestrate full 9-phase pipeline; read task `profile`; skip/insert phases per profile matrix; manage gates
 - Inputs: `task_ref`, optional `start_phase`, optional `skip_phases[]`, optional `dry_run`
 - Outputs: execution log; task `impl_progress` updated per phase; final status update
@@ -188,11 +188,11 @@ All 9 workflow phases mapped to existing rd3 skills. Gaps documented with severi
 - Acceptance: simple profile -> runs only Phase 5,6 (60%); standard -> full pipeline in order; dry_run shows plan without execution; start_phase resumes correctly
 - **Complexity: L (20-30h)**
 
-#### R7: Build `expert-task-workflow` Agent + `/rd3:task-workflow` Command
-- Thin agent wrapper (~50 lines) delegating to `task-workflow` skill
+#### R7: Build `expert-orchestration-dev` Agent + `/rd3:orchestration-dev` Command
+- Thin agent wrapper (~50 lines) delegating to `orchestration-dev` skill
 - Agent lists all phase skills in `skills:` frontmatter array
 - Command is thin YAML frontmatter wrapper around agent
-- Dependencies: `task-workflow` skill
+- Dependencies: `orchestration-dev` skill
 - **Complexity: XS (3h total)**
 
 #### R8: Prerequisite — Add `profile` Field to `rd3:tasks` Schema
@@ -214,7 +214,7 @@ All 9 workflow phases mapped to existing rd3 skills. Gaps documented with severi
 2. Skills MUST NOT reference their associated agents or commands (circular reference rule)
 3. All scripts use Bun.js + TypeScript + Biome; use `logger.*` not `console.*`
 4. `bdd-workflow` v1 scope excludes network/database assertions (file-system + CLI only)
-5. `task-workflow` v1 uses simple sequential delegation, NOT verification-chain (clean, debuggable)
+5. `orchestration-dev` v1 uses simple sequential delegation, NOT verification-chain (clean, debuggable)
 6. No skill rework needed for existing Phase 2-7 skills — they are solid as-is
 
 ### Q&A
@@ -228,10 +228,10 @@ A: LLM-interpreted execution with delegation to verification-chain's determinist
 **Q3: Should .feature files persist or be ephemeral?**
 A: Persist in `tests/features/` as living documentation.
 
-**Q4: How does task-workflow handle rework loops?**
+**Q4: How does orchestration-dev handle rework loops?**
 A: Max 2 rework iterations before escalating to user for manual intervention.
 
-**Q5: Does task-workflow need verification-chain in v1?**
+**Q5: Does orchestration-dev need verification-chain in v1?**
 A: No. v1 is simple sequential delegation. verification-chain integration is v2 enhancement for complex DAGs.
 
 ### Design
@@ -248,23 +248,23 @@ A: No. v1 is simple sequential delegation. verification-chain integration is v2 
          |                          |
          +---------+----------------+
                    |
-             task-workflow
+            orchestration-dev
                    |
-         expert-task-workflow (agent)
+         expert-orchestration-dev (agent)
                    |
-         /rd3:task-workflow (command)
+         /rd3:orchestration-dev (command)
 ```
 
 #### Sprint Plan
 - **Sprint 1 (Weeks 1-2):** R8 (tasks profile field) + R2 (request-intake) + R5 (code-docs) — independent, immediately useful
 - **Sprint 2 (Weeks 3-4):** R3 (bdd-workflow) + R4 (functional-review) — Phase 8 operational
-- **Sprint 3 (Weeks 5-6):** R6 (task-workflow) + R7 (agent + command) — full pipeline E2E
+- **Sprint 3 (Weeks 5-6):** R6 (orchestration-dev) + R7 (agent + command) — full pipeline E2E
 
 #### Risks
 | Risk | Severity | Mitigation |
 |------|----------|------------|
 | bdd-workflow execution non-determinism | HIGH | 80%+ steps use deterministic checkers; LLM checker as fallback only |
-| task-workflow integration complexity | MEDIUM | v1 simple sequential; SKILL.md-driven (not TypeScript script) |
+| orchestration-dev integration complexity | MEDIUM | v1 simple sequential; SKILL.md-driven (not TypeScript script) |
 | Profile heuristics may skip needed phases | MEDIUM | Allow manual override; always show plan and confirm before running |
 | Scope creep on request-intake | LOW | Hard cap: max 7 questions, max 3 Q&A rounds |
 | code-docs quality | LOW | Quality check rejects generic descriptions |
@@ -295,6 +295,6 @@ A: No. v1 is simple sequential delegation. verification-chain integration is v2 
 
 - Task 0265: verification-chain skill (completed)
 - Existing rd3 skills: 29 skills in `plugins/rd3/skills/`
-- rd2:task-workflow (13-step legacy, deprecated — reference only)
+- rd2:task-workflow (13-step legacy, deprecated — reference only for orchestration-dev)
 
 
