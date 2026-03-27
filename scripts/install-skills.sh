@@ -311,7 +311,12 @@ map_resources() {
 
     print_info "Mapping plugin resources to rulesync format..."
 
-    # Create rulesync directories if they don't exist
+    # Clean rulesync directories to remove stale artifacts from previous runs
+    # (e.g., non-prefixed skill dirs from older install formats)
+    rm -rf "${RULESYNC_SKILLS_DIR:?}"/*
+    rm -rf "${RULESYNC_SUBDIR:?}"/*
+
+    # Create rulesync directories
     mkdir -p "$RULESYNC_SKILLS_DIR"
     mkdir -p "$RULESYNC_SUBDIR"
 
@@ -331,8 +336,9 @@ map_resources() {
                     mkdir -p "$target_skill_dir"
 
                     # Transform command to skill format
-                    # Adds required 'name' field to frontmatter if missing
-                    adapt_command_to_skill "$cmd_file" "$target_skill_dir/SKILL.md"
+                    # Adds required 'name' field matching directory name and
+                    # rewrites rd3:skill-name references for installed targets
+                    adapt_command_to_skill "$cmd_file" "$target_skill_dir/SKILL.md" "${PLUGIN}-cmd-${cmd_name}"
 
                     print_success "Mapped command: $cmd_name -> ${PLUGIN}-cmd-${cmd_name}"
                 fi
@@ -358,13 +364,17 @@ map_resources() {
                         # Create skill directory
                         mkdir -p "$target_skill_dir"
 
-                        # Copy main skill file
-                        cp "$skill_file" "$target_skill_dir/SKILL.md"
+                        # Copy main skill file, rewriting name field and
+                        # rd3:skill-name references for installed targets
+                        rewrite_skill_for_install "$skill_file" "$target_skill_dir/SKILL.md" "${PLUGIN}-${skill_name}"
 
                         # Copy supporting directories if they exist
                         for subdir in scripts references templates assets; do
                             if [ -d "${skill_dir}${subdir}" ]; then
                                 cp -r "${skill_dir}${subdir}" "$target_skill_dir/"
+                                # Rewrite rd3:skill-name -> rd3-skill-name in
+                                # all supporting files so LLMs can resolve refs
+                                find "$target_skill_dir/$subdir" -type f -exec perl -pi -e 's/\b(rd3):([a-z][-a-z]*)/$1-$2/g' {} + 2>/dev/null || true
                             fi
                         done
 
@@ -400,9 +410,56 @@ map_resources() {
     echo
 }
 
+# Rewrite the 'name' field in SKILL.md to match the target directory name
+# and rewrite rd3:skill-name -> rd3-skill-name references in content.
+#
+# Pi and other agents discover skills by directory name, so the 'name' field
+# in frontmatter must match. Additionally, the rd3: colon format only works
+# inside Claude Code's own plugin system; installed skills need hyphenated
+# names so LLMs can resolve them as directory references.
+#
+# Args:
+#   $1 - Source skill file path
+#   $2 - Target skill file path
+#   $3 - Expected skill name (must match directory name)
+rewrite_skill_for_install() {
+    local source_file="$1"
+    local target_file="$2"
+    local expected_name="$3"
+
+    cp "$source_file" "$target_file"
+
+    # Rewrite name field to match directory name
+    sed -i '' "s/^name:.*/name: ${expected_name}/" "$target_file"
+
+    # Rewrite rd3:skill-name -> rd3-skill-name references
+    rewrite_skill_references "$target_file"
+}
+
+# Rewrite rd3:skill-name -> rd3-skill-name in a file.
+# The colon format (rd3:sys-debugging) only works inside Claude Code's plugin
+# system. When skills are installed as directories for other agents, the LLM
+# needs hyphenated names (rd3-sys-debugging) to match directory names.
+#
+# Uses a perl one-liner for reliable word-boundary matching since the colon
+# pattern rd3: could appear in URLs, code blocks, or other contexts that
+# should NOT be rewritten.
+#
+# Args:
+#   $1 - File path to rewrite
+rewrite_skill_references() {
+    local file="$1"
+    if [ ! -f "$file" ]; then return; fi
+
+    # Match rd3: followed by a lowercase letter and hyphens (skill name pattern)
+    # Replace the colon with a hyphen
+    perl -pi -e 's/\b(rd3):([a-z][-a-z]*)/$1-$2/g' "$file"
+}
+
 # Adapt command file to conform to Skills 2.0 format
 # The Skills 2.0 standard requires a 'name' field in the YAML frontmatter.
-# This function ensures commands have the required metadata.
+# This function ensures commands have the required metadata matching the
+# directory name, and rewrites rd3:skill-name references for installed targets.
 #
 # Input:  plugins/rd3/commands/skill-add.md (may lack 'name' field)
 # Output: .rulesync/skills/rd3-cmd-skill-add/SKILL.md (with 'name' field)
@@ -410,19 +467,21 @@ map_resources() {
 # Args:
 #   $1 - Source command file path
 #   $2 - Target skill file path
+#   $3 - Expected skill name (must match directory name)
 adapt_command_to_skill() {
     local source_file="$1"
     local target_file="$2"
+    local expected_name="$3"
     local cmd_name=$(basename "$source_file" .md)
-    local skill_name="${PLUGIN}-${cmd_name}"
-
-    # Read the command file content
-    local content=$(cat "$source_file")
 
     # Check if frontmatter already has 'name' field
-    # If yes, just copy as-is (already valid)
+    # If yes, copy and rewrite the name + references
     if grep -q "^name:" "$source_file" 2>/dev/null; then
         cp "$source_file" "$target_file"
+        # Rewrite name field to match directory name
+        sed -i '' "s/^name:.*/name: ${expected_name}/" "$target_file"
+        # Rewrite rd3:skill-name -> rd3-skill-name references
+        rewrite_skill_references "$target_file"
         return
     fi
 
@@ -431,21 +490,24 @@ adapt_command_to_skill() {
     if grep -q "^---" "$source_file" 2>/dev/null; then
         # Has frontmatter (--- markers) but no name field
         # Use awk to insert 'name' after the opening ---
-        awk -v name="$skill_name" 'NR==1 && /^---/ {print; print "name: " name; next} /^---/ {print; next} {print}' "$source_file" > "$target_file"
+        awk -v name="$expected_name" 'NR==1 && /^---/ {print; print "name: " name; next} /^---/ {print; next} {print}' "$source_file" > "$target_file"
     else
         # No frontmatter at all
         # Create complete frontmatter with required fields
         local description=$(head -n 5 "$source_file" | grep -v "^#" | head -n 1 | tr -d '\n')
         cat > "$target_file" <<EOF
 ---
-name: $skill_name
+name: $expected_name
 description: ${description:-${cmd_name} command for ${PLUGIN} plugin}
 disable-model-invocation: true
 ---
 
-$content
+$(cat "$source_file")
 EOF
     fi
+
+    # Rewrite rd3:skill-name -> rd3-skill-name references
+    rewrite_skill_references "$target_file"
 }
 
 # =============================================================================
