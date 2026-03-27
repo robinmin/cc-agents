@@ -93,6 +93,7 @@ describe('runFileExistsCheck', () => {
         expect(result.result).toBe('fail');
         expect(result.evidence.file_paths_found).toHaveLength(0);
         expect(result.evidence.error).toContain('non-existent-file.xyz');
+        expect(result.error).toContain('non-existent-file.xyz');
     });
 
     test('partial match returns fail', async () => {
@@ -133,6 +134,7 @@ describe('runContentMatchCheck', () => {
         );
         expect(result.result).toBe('fail');
         expect(result.evidence.content_match_found).toBe(false);
+        expect(result.error).toContain('not found');
     });
 
     test('pattern found + must_exist=false returns fail', async () => {
@@ -162,6 +164,7 @@ describe('runContentMatchCheck', () => {
         const result = await runContentMatchCheck({ file: 'nonexistent.txt', pattern: '.*', must_exist: true }, CWD);
         expect(result.result).toBe('fail');
         expect(result.evidence.error).toContain('Could not read file');
+        expect(result.error).toContain('Could not read file');
     });
 
     test('invalid regex pattern returns fail', async () => {
@@ -172,6 +175,7 @@ describe('runContentMatchCheck', () => {
         );
         expect(result.result).toBe('fail');
         expect(result.evidence.error).toContain('Invalid regex pattern');
+        expect(result.error).toContain('Invalid regex pattern');
     });
 });
 
@@ -395,6 +399,7 @@ describe('runCompoundCheck', () => {
 
         expect(result.result).toBe('fail');
         expect(result.evidence.error).toContain('subcheck-1');
+        expect(result.error).toContain('subcheck-1');
     });
 
     test('OR operator - one pass returns pass', async () => {
