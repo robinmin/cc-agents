@@ -18,6 +18,7 @@
             "!**/examples/**",
             "!**/demo/**",
             "!**/wt/**",
+            "!**/templates/**",
             "!**/tests/test_hooks/invalid-json.json"
         ]
     },
