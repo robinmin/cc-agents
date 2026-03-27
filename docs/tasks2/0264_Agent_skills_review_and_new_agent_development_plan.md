@@ -61,7 +61,7 @@ Task-file-driven software development with machine-first verification (BDD) + hu
 | `expert-request-intake.md` | `request-intake` | Bootstrap task file from one-liner |
 | `expert-bdd-workflow.md` | `bdd-workflow` | Run BDD scenarios |
 | `expert-functional-review.md` | `functional-review` | Verify implementation vs task file |
-| `expert-orchestration-dev.md` | `orchestration-dev` | Orchestrate full pipeline |
+| `orchestrator-dev.md` | `orchestration-dev` | Orchestrate full pipeline |
 | `expert-verification-chain.md` | `verification-chain` | Execute a chain manifest |
 
 **Commands** (human-facing CLI):
@@ -188,7 +188,7 @@ All 9 workflow phases mapped to existing rd3 skills. Gaps documented with severi
 - Acceptance: simple profile -> runs only Phase 5,6 (60%); standard -> full pipeline in order; dry_run shows plan without execution; start_phase resumes correctly
 - **Complexity: L (20-30h)**
 
-#### R7: Build `expert-orchestration-dev` Agent + `/rd3:orchestration-dev` Command
+#### R7: Build `orchestrator-dev` Agent + `/rd3:orchestration-dev` Command
 - Thin agent wrapper (~50 lines) delegating to `orchestration-dev` skill
 - Agent lists all phase skills in `skills:` frontmatter array
 - Command is thin YAML frontmatter wrapper around agent
@@ -250,7 +250,7 @@ A: No. v1 is simple sequential delegation. verification-chain integration is v2 
                    |
             orchestration-dev
                    |
-         expert-orchestration-dev (agent)
+         orchestrator-dev (agent)
                    |
          /rd3:orchestration-dev (command)
 ```
