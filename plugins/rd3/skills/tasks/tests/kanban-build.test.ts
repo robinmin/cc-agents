@@ -65,7 +65,7 @@ status: Todo
         expect(backlogCol?.tasks).toHaveLength(0);
     });
 
-    test('skips files with invalid status', () => {
+    test('normalizes files with invalid status to Backlog', () => {
         writeFileSync(
             join(tempDir, 'docs', 'tasks', '0047_bad-status.md'),
             `---
@@ -78,8 +78,9 @@ status: UnknownStatus
         );
         const columns = buildKanbanFromFolder('docs/tasks', tempDir);
         const backlogCol = columns.find((c) => c.status === 'Backlog');
-        // All 6 valid statuses are represented in columns; UnknownStatus is not in KANBAN_STATUS_ORDER
-        expect(backlogCol?.tasks).toHaveLength(0);
+        // UnknownStatus is normalized to Backlog by parseFrontmatter
+        expect(backlogCol?.tasks).toHaveLength(1);
+        expect(backlogCol?.tasks[0]?.name).toBe('Bad Status');
     });
 
     test('uses Done checkbox for Done tasks', () => {
