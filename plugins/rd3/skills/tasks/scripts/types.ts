@@ -26,6 +26,7 @@ export interface TaskFrontmatter {
     estimated_hours?: number;
     tags?: string[];
     dependencies?: string[];
+    profile?: 'simple' | 'standard' | 'complex' | 'research';
     impl_progress: ImplProgress;
 }
 
@@ -87,6 +88,7 @@ export interface CliArgs {
     estimatedHours?: number;
     tags?: string[];
     dependencies?: string[];
+    profile?: string;
     phase?: ImplPhase;
     phaseStatus?: string;
     baseCounter?: number;
