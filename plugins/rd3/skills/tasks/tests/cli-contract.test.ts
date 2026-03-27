@@ -95,6 +95,13 @@ describe('tasks CLI contracts', () => {
         expect(runCli(tempDir, ['init']).exitCode).toBe(0);
         expect(runCli(tempDir, ['create', 'Status Parse']).exitCode).toBe(0);
 
+        // Pre-populate sections required for WIP transition (Background + Requirements)
+        const taskPath = join(tempDir, 'docs/tasks/0001_Status_Parse.md');
+        const taskContent = readFileSync(taskPath, 'utf-8')
+            .replace('### Background\n\n', '### Background\n\nWe need this feature.\n')
+            .replace('### Requirements\n\n', '### Requirements\n\nImplement the feature.\n');
+        writeFileSync(taskPath, taskContent);
+
         const result = runCli(tempDir, ['update', '0001', 'wip', '--dry-run', '--json']);
         expect(result.exitCode).toBe(0);
 
@@ -216,7 +223,19 @@ describe('tasks CLI contracts', () => {
         expect(runCli(tempDir, ['init']).exitCode).toBe(0);
         expect(runCli(tempDir, ['create', 'Backlog Task']).exitCode).toBe(0);
         expect(runCli(tempDir, ['create', 'Done Task']).exitCode).toBe(0);
-        expect(runCli(tempDir, ['update', '0002', 'done', '--force']).exitCode).toBe(0);
+
+        // Pre-populate all sections required for Done transition
+        const doneTaskPath = join(tempDir, 'docs/tasks/0002_Done_Task.md');
+        const doneTaskContent = readFileSync(doneTaskPath, 'utf-8')
+            .replace('### Background\n\n', '### Background\n\nDone task background.\n')
+            .replace('### Requirements\n\n', '### Requirements\n\nDone task requirements.\n')
+            .replace('### Q&A\n\n', '### Q&A\n\nDone task clarifications.\n')
+            .replace('### Design\n\n', '### Design\n\nDone task design.\n')
+            .replace('### Solution\n\n', '### Solution\n\nDone task solution.\n')
+            .replace('### Plan\n\n', '### Plan\n\n- [x] Done task plan step 1\n');
+        writeFileSync(doneTaskPath, doneTaskContent);
+
+        expect(runCli(tempDir, ['update', '0002', 'done']).exitCode).toBe(0);
 
         const result = runCli(tempDir, ['list']);
         expect(result.exitCode).toBe(0);
