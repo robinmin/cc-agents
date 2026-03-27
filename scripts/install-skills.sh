@@ -453,7 +453,7 @@ rewrite_skill_references() {
 
     # Match rd3: followed by a lowercase letter and hyphens (skill name pattern)
     # Replace the colon with a hyphen
-    perl -pi -e 's/\b(rd3):([a-z][-a-z]*)/$1-$2/g' "$file"
+    perl -pi -e 's/\b(rd3[a-z0-9-]*):([a-z][a-z0-9-]*)/$1-$2/g' "$file"
 }
 
 # Adapt command file to conform to Skills 2.0 format
