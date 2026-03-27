@@ -22,10 +22,9 @@ Extract 3-4 key quantitative findings for dashboard display at top.
 
 ### Step 3: Convert MD to HTML
 
-Use Python script:
+Use the TypeScript script (run from project root):
 ```bash
-cd ~/.claude/skills/deep-research
-python scripts/md_to_html.py [markdown_report_path]
+bun plugins/rd3/skills/deep-research/scripts/md_to_html.ts [markdown_report_path]
 ```
 
 **Script outputs two parts:**
@@ -72,7 +71,7 @@ NOTE: This step is optional for speed. Basic [N] citations are sufficient.
 ### Step 6: Verify HTML
 
 ```bash
-python scripts/verify_html.py --html [html_path] --md [md_path]
+bun plugins/rd3/skills/deep-research/scripts/verify_html.ts --html [html_path] --md [md_path]
 ```
 - Pass: Proceed to open
 - Fail: Fix errors and re-run
@@ -88,7 +87,7 @@ open [html_path]
 
 **Option A: WeasyPrint Direct (Preferred)**
 
-1. Create print-optimized HTML following `./reference/weasyprint_guidelines.md`
+1. Create print-optimized HTML following `./reference/weasyprint_guidelines.md` (if WeasyPrint is installed)
 2. Critical CSS:
    - `page-break-inside: avoid` on tables, boxes
    - `page-break-after: avoid` on headings
@@ -98,6 +97,10 @@ open [html_path]
 3. Generate: `weasyprint [html_path] [pdf_path]`
 4. Open: `open [pdf_path]`
 
-**Option B: generating-pdf Skill**
+**Option B: Browser Print**
+
+Open HTML in browser and use Print > Save as PDF.
+
+**Option C: generating-pdf Skill**
 
 Use Task tool with general-purpose agent, invoke generating-pdf skill.
