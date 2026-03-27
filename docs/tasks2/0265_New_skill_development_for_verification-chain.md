@@ -1,17 +1,17 @@
 ---
 name: New skill development for verification-chain
 description: New skill development for verification-chain
-status: Todo
+status: Done
 created_at: 2026-03-26T21:36:27.403Z
-updated_at: 2026-03-26T21:56:32.783Z
+updated_at: 2026-03-27T06:00:07.423Z
 folder: docs/tasks2
 type: task
 impl_progress:
-  planning: pending
-  design: pending
-  implementation: pending
-  review: pending
-  testing: pending
+  planning: completed
+  design: completed
+  implementation: completed
+  review: completed
+  testing: completed
 ---
 
 ## 0265. New skill development for verification-chain
@@ -195,6 +195,20 @@ All four workflow skills are **thin wrappers** — they define a chain manifest 
 
 | Type | Path | Agent | Date |
 | ---- | ---- | ----- | ---- |
+| Skill definition | plugins/rd3/skills/verification-chain/SKILL.md | claude | 2026-03-26 |
+| Type definitions | plugins/rd3/skills/verification-chain/scripts/types.ts | claude | 2026-03-26 |
+| Chain interpreter | plugins/rd3/skills/verification-chain/scripts/interpreter.ts | claude | 2026-03-26 |
+| CLI checker | plugins/rd3/skills/verification-chain/scripts/methods/cli.ts | claude | 2026-03-26 |
+| LLM checker | plugins/rd3/skills/verification-chain/scripts/methods/llm.ts | claude | 2026-03-26 |
+| Human checker | plugins/rd3/skills/verification-chain/scripts/methods/human.ts | claude | 2026-03-26 |
+| File-exists checker | plugins/rd3/skills/verification-chain/scripts/methods/file_exists.ts | claude | 2026-03-26 |
+| Content-match checker | plugins/rd3/skills/verification-chain/scripts/methods/content_match.ts | claude | 2026-03-26 |
+| Compound checker | plugins/rd3/skills/verification-chain/scripts/methods/compound.ts | claude | 2026-03-26 |
+| Method exports | plugins/rd3/skills/verification-chain/scripts/methods/index.ts | claude | 2026-03-26 |
+| Unit tests | plugins/rd3/skills/verification-chain/tests/methods.test.ts | claude | 2026-03-26 |
+| Interpreter tests | plugins/rd3/skills/verification-chain/tests/interpreter.test.ts | claude | 2026-03-26 |
+| Integration tests | plugins/rd3/skills/verification-chain/tests/integration.test.ts | claude | 2026-03-26 |
+| Examples | plugins/rd3/skills/verification-chain/references/examples.md | claude | 2026-03-26 |
 
 ### References
 
