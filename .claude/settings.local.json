@@ -52,7 +52,8 @@
       "Bash(sg scan:*)",
       "Bash(sg run:*)",
       "Bash(biome lint:*)",
-      "Bash(biome format:*)"
+      "Bash(biome format:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []
