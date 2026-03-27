@@ -34,20 +34,20 @@ Agent patterns follow existing expert-* agents (expert-skill.md). Command follow
 ### Design
 
 Created:
-- expert-orchestration-dev.md - Agent with all 16 phase skills listed
+- orchestrator-dev.md - Agent with all 16 phase skills listed
 - orchestration-dev.md - Command with argument hints and examples
 
 
 ### Solution
 
 Created:
-- `plugins/rd3/agents/expert-orchestration-dev.md` - Thin agent wrapper
+- `plugins/rd3/agents/orchestrator-dev.md` - Thin agent wrapper
 - `plugins/rd3/commands/orchestration-dev.md` - Slash command
 
 
 ### Plan
 
-- [x] Create expert-orchestration-dev.md agent
+- [x] Create orchestrator-dev.md agent
 - [x] Create orchestration-dev.md command
 - [x] Verify lint, typecheck, tests pass
 
@@ -64,7 +64,7 @@ bun run check: 1909 pass, 0 fail
 
 | Type | Path | Agent | Date |
 | ---- | ---- | ----- | ---- |
-| created | plugins/rd3/agents/expert-orchestration-dev.md | orchestrator | 2026-03-27 |
+| created | plugins/rd3/agents/orchestrator-dev.md | orchestrator | 2026-03-27 |
 | created | plugins/rd3/commands/orchestration-dev.md | orchestrator | 2026-03-27 |
 
 
