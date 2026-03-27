@@ -63,7 +63,7 @@ bun run check                  # lint + typecheck + test (gate before commit)
 bun run format                 # biome format plugins/
 bun run lint:fix               # biome lint --write plugins/
 bun run typecheck              # tsc --noEmit
-bun run tasks                  # rd3 task CLI (delegates to plugins/rd3)
+tasks                          # rd3 task CLI (delegates to plugins/rd3)
 ```
 
 Pre-commit: `bun run check` (runs lint, typecheck, test in sequence)
