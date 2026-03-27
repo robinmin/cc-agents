@@ -7,37 +7,31 @@ import { resolve } from 'node:path';
 import { logger } from '../../../../scripts/logger';
 import type { ToolInput } from '../types';
 
-const LEGACY_META_DIR = 'docs/.tasks';
 const LEGACY_CONFIG_FILE = 'docs/.tasks/config.jsonc';
 
 // Cached patterns for performance (loaded once per process)
 let cachedPatterns: { protected: RegExp[]; exempt: RegExp[] } | null = null;
 
 /**
- * Load protected and exempt patterns from config dynamically.
- * Uses CLAUDE_PROJECT_DIR env var if available (set by Claude Code hook system).
+ * Load protected and exempt patterns from config.jsonc.
+ * Always resolves the project root from the script's own location (process.argv[1]),
+ * then walks up until it finds docs/.tasks/config.jsonc.
+ * Falls back to hardcoded patterns only if config cannot be loaded.
  */
 function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
     if (cachedPatterns) {
         return cachedPatterns;
     }
 
-    // Determine project root
-    const projectRoot = process.env.CLAUDE_PROJECT_DIR || findProjectRoot();
+    // Derive plugin root from the script's own path: tasks.ts lives at
+    // <plugin-root>/skills/tasks/scripts/tasks.ts
+    const scriptPath = process.argv[1] ?? '';
+    const pluginRoot = resolve(scriptPath, '../../../../..');
 
-    if (!projectRoot) {
-        // Fallback to legacy hardcoded patterns if no project root found
-        cachedPatterns = {
-            protected: [/^docs\/tasks\/.+\.md$/, /^docs\/prompts\/.+\.md$/],
-            exempt: [/^docs\/tasks\/\d{4}\/.+$/],
-        };
-        return cachedPatterns;
-    }
-
-    // Load config from docs/.tasks/config.jsonc
-    const configPath = resolve(projectRoot, LEGACY_CONFIG_FILE);
-
-    let folders: string[] = [LEGACY_META_DIR.replace('docs/.tasks', 'docs/prompts')]; // legacy fallback
+    // Find project root by walking up from plugin root until we find docs/.tasks/config.jsonc
+    const configPath = resolve(pluginRoot, LEGACY_CONFIG_FILE);
+    let folders: string[] = [];
+    let configLoaded = false;
 
     if (existsSync(configPath)) {
         try {
@@ -52,25 +46,29 @@ function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
             };
             if (parsed.folders) {
                 folders = Object.keys(parsed.folders);
+                configLoaded = true;
             }
         } catch {
-            // Use legacy fallback
+            // config unreadable — fall through to fallback
         }
     }
 
+    if (!configLoaded) {
+        // Fallback: cover the three standard folders if config missing
+        folders = ['docs/tasks', 'docs/tasks2', 'docs/prompts'];
+        logger.warn('[GUARD] Could not load config.jsonc — using folder-based fallback');
+    }
+
     // Build protected patterns from configured folders
+    // Protected: blocks direct .md writes directly under each folder
     const protectedPatterns: RegExp[] = folders.map((folder) => {
-        // Escape special regex chars in folder path and build pattern
-        // that matches any .md file directly under the folder (not subdirectories)
         const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         return new RegExp(`^${escaped}/.+.md$`);
     });
 
-    // Exempt patterns: allow subdirectories (e.g., docs/tasks/0089/0089_summary.md)
-    // These are managed by 'tasks put' command
+    // Exempt: allows subdirectory paths (docs/tasks/<wbs>/<files>) managed by tasks put
     const exemptPatterns: RegExp[] = folders.map((folder) => {
         const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // Use double backslash for regex escapes in template literal
         return new RegExp(`^${escaped}/\\d{4}/.+$`);
     });
 
@@ -82,22 +80,6 @@ function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
     return cachedPatterns;
 }
 
-/**
- * Walk up from cwd to find project root (contains .git or docs/).
- * Falls back to cwd if not found within 10 levels.
- */
-function findProjectRoot(): string | null {
-    let dir = process.cwd();
-    for (let i = 0; i < 10; i++) {
-        if (existsSync(resolve(dir, '.git')) || existsSync(resolve(dir, 'docs'))) {
-            return dir;
-        }
-        const parent = resolve(dir, '..');
-        if (parent === dir) break;
-        dir = parent;
-    }
-    return null;
-}
 
 export function checkWriteGuard(
     toolName: string,
