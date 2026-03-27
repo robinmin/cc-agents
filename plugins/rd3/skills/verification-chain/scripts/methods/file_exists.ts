@@ -1,7 +1,7 @@
 import { access } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { FileExistsCheckerConfig, MethodResult, CheckerEvidence } from '../types';
-import { logger } from '../../../scripts/logger';
+import { logger } from '../../../../scripts/logger';
 
 const F_OK = 0;
 

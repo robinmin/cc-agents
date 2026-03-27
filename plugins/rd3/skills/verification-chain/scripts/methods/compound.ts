@@ -15,7 +15,7 @@ import { runFileExistsCheck } from './file_exists';
 import { runContentMatchCheck } from './content_match';
 import { runLlmCheck } from './llm';
 import { runHumanCheck } from './human';
-import { logger } from '../../../scripts/logger';
+import { logger } from '../../../../scripts/logger';
 
 /**
  * Run a compound check with multiple sub-checks.

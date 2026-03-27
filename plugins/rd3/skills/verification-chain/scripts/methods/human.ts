@@ -1,5 +1,5 @@
 import type { HumanCheckerConfig, MethodResult, CheckerEvidence } from '../types';
-import { logger } from '../../../scripts/logger';
+import { logger } from '../../../../scripts/logger';
 
 /**
  * Human verification check.

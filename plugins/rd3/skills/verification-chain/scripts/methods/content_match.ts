@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ContentMatchCheckerConfig, MethodResult, CheckerEvidence } from '../types';
-import { logger } from '../../../scripts/logger';
+import { logger } from '../../../../scripts/logger';
 
 /**
  * Check if a file's content matches (or doesn't match) a regex pattern.

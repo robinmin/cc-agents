@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LlmCheckerConfig, MethodResult, CheckerEvidence } from '../types';
-import { logger } from '../../../scripts/logger';
+import { logger } from '../../../../scripts/logger';
 
 const DEFAULT_PROMPT_TEMPLATE = `You are a verification checker. For each item in the checklist, determine if it PASSES or FAILS.
 

@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import type { CliCheckerConfig, MethodResult, CheckerEvidence } from '../types';
-import { logger } from '../../../scripts/logger';
+import { logger } from '../../../../scripts/logger';
 
 /**
  * Run a CLI command and check its exit code against expected values.

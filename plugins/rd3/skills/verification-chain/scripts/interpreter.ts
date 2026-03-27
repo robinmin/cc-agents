@@ -29,7 +29,7 @@ import { runContentMatchCheck } from './methods/content_match';
 import { runLlmCheck } from './methods/llm';
 import { runHumanCheck } from './methods/human';
 import { runCompoundCheck } from './methods/compound';
-import { logger } from '../../scripts/logger';
+import { logger } from '../../../scripts/logger';
 
 // ----------------------------------------------------------------
 // State persistence
@@ -455,9 +455,9 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
 
     // Global retry loop
     let globalRetryRemaining = state.global_retry?.remaining ?? 0;
-    let globalRetryTotal = state.global_retry?.total ?? 0;
+    const globalRetryTotal = state.global_retry?.total ?? 0;
 
-    mainLoop: while (true) {
+    while (true) {
         // Find next pending or running node
         // When chain is paused, current_node is 'running' - we need to resume it
         const nextNode = manifest.nodes.find((n) => {
