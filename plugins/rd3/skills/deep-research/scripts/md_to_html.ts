@@ -318,15 +318,13 @@ function closeSections(html: string): string {
 }
 
 function main(): void {
-    const { positionals } = parseCli(
-        {
-            name: 'md_to_html.ts',
-            description: 'Convert markdown research reports to structured HTML',
-            options: {},
-            allowPositionals: true,
-            examples: ['bun md_to_html.ts report.md'],
-        },
-    );
+    const { positionals } = parseCli({
+        name: 'md_to_html.ts',
+        description: 'Convert markdown research reports to structured HTML',
+        options: {},
+        allowPositionals: true,
+        examples: ['bun md_to_html.ts report.md'],
+    });
 
     const mdFile = positionals[0];
     if (!mdFile) {
