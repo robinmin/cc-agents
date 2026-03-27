@@ -87,6 +87,29 @@ For non-trivial tasks, plan before implementing:
 - **No `console.*` in scripts** — use the shared logger from `scripts/logger.ts`
 - **Anti-hallucination**: search docs before answering, cite sources with dates
 
+### Preferred Tools
+
+- **Text/regex search**: always use `rg` (ripgrep) over `grep`. Faster, respects .gitignore, color output by default.
+- **AST/structure search**: use `sg` (ast-grep) for code pattern matching — functions, classes, async patterns, inheritance.
+- **Rewrite**: use `sg run --pattern 'A' --rewrite 'B' --lang LANG` for safe structural rewrites.
+- **Never use bare `grep` or `find | xargs grep`** when `rg` is available.
+- **Use `sg scan --rule <file>`** for pre-built detection rules (console-log, async-no-trycatch, etc.).
+- **For non-code files** (JSON, YAML, MD, TOML): use `rg` — it handles them natively.
+
+```bash
+# Text search
+rg "FIXME" -n -C 3
+
+# AST pattern search
+sg run --pattern 'async function $F() { $$$ }' --lang typescript
+
+# Safe rewrite
+sg run --pattern 'console.log($$$)' --rewrite 'logger.log($$$)' --lang typescript
+
+# Scan with pre-built rule
+sg scan --rule references/rules/console-log.yml --files-with-matches
+```
+
 ### Confidence Levels
 
 | Level | Threshold | Behavior |
