@@ -154,9 +154,7 @@ class ReportValidator {
         // Check for truncation placeholders
         const bibTruncations = findBibliographyTruncationPatterns(bibSection);
         if (bibTruncations.length > 0) {
-            this.runner.addError(
-                `CRITICAL: Bibliography contains truncation placeholder: ${bibTruncations[0]}`,
-            );
+            this.runner.addError(`CRITICAL: Bibliography contains truncation placeholder: ${bibTruncations[0]}`);
             this.runner.addError('   This makes the report UNUSABLE - complete bibliography required');
             return false;
         }
