@@ -138,6 +138,52 @@ export const VALID_STATUSES: TaskStatus[] = ['Backlog', 'Todo', 'WIP', 'Testing'
 
 export const VALID_PHASES: ImplPhase[] = ['planning', 'design', 'implementation', 'review', 'testing'];
 
+export const STATUS_ALIASES: Record<string, TaskStatus> = {
+    inprogress: 'WIP',
+    in_progress: 'WIP',
+    'in-progress': 'WIP',
+    progress: 'WIP',
+    working: 'WIP',
+    active: 'WIP',
+    review: 'Testing',
+    complete: 'Done',
+    completed: 'Done',
+    finished: 'Done',
+    pending: 'Backlog',
+    queued: 'Backlog',
+    ready: 'Todo',
+    hold: 'Blocked',
+    'on-hold': 'Blocked',
+    onhold: 'Blocked',
+    waiting: 'Blocked',
+};
+
+export interface NormalizedStatus {
+    status: TaskStatus;
+    wasNormalized: boolean;
+    recognized: boolean;
+    original?: string;
+}
+
+export function normalizeStatus(raw: string): NormalizedStatus {
+    // Exact match
+    if (VALID_STATUSES.includes(raw as TaskStatus)) {
+        return { status: raw as TaskStatus, wasNormalized: false, recognized: true };
+    }
+    // Case-insensitive exact match
+    const ciMatch = VALID_STATUSES.find((s) => s.toLowerCase() === raw.toLowerCase());
+    if (ciMatch) {
+        return { status: ciMatch, wasNormalized: true, recognized: true, original: raw };
+    }
+    // Alias match
+    const alias = STATUS_ALIASES[raw.toLowerCase()];
+    if (alias) {
+        return { status: alias, wasNormalized: true, recognized: true, original: raw };
+    }
+    // Unknown — default to Backlog
+    return { status: 'Backlog', wasNormalized: true, recognized: false, original: raw };
+}
+
 export const STATUS_EMOJI: Record<TaskStatus, string> = {
     Backlog: '🔴',
     Todo: '🔵',
