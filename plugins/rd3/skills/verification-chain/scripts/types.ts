@@ -170,15 +170,3 @@ export interface MethodResult {
     error?: string;
 }
 
-// Interpreter options
-export interface InterpreterOptions {
-    manifest: ChainManifest;
-    state_dir?: string;
-    on_node_start?: (node: ChainNode) => void;
-    on_node_complete?: (node: ChainNode, state: NodeExecutionState) => void;
-    on_checker_start?: (node_name: string, method: CheckerMethod) => void;
-    on_checker_complete?: (node_name: string, result: MethodResult) => void;
-    on_chain_pause?: (state: ChainState) => void;
-    on_chain_complete?: (state: ChainState) => void;
-    on_chain_fail?: (state: ChainState, reason: string) => void;
-}
