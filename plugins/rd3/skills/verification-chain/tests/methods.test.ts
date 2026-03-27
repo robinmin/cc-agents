@@ -2,15 +2,15 @@ import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
-import { runCliCheck } from '../methods/cli';
-import { runFileExistsCheck } from '../methods/file_exists';
-import { runContentMatchCheck } from '../methods/content_match';
-import { runLlmCheck } from '../methods/llm';
-import { runHumanCheck } from '../methods/human';
-import { runCompoundCheck } from '../methods/compound';
-import type { Checker } from '../types';
+import { runCliCheck } from '../scripts/methods/cli';
+import { runFileExistsCheck } from '../scripts/methods/file_exists';
+import { runContentMatchCheck } from '../scripts/methods/content_match';
+import { runLlmCheck } from '../scripts/methods/llm';
+import { runHumanCheck } from '../scripts/methods/human';
+import { runCompoundCheck } from '../scripts/methods/compound';
+import type { Checker } from '../scripts/types';
 
-// @ts-ignore - Bun provides __dirname in CommonJS-like contexts
+// @ts-expect-error - Bun provides __dirname in CommonJS-like contexts
 const TEST_DIR = join(__dirname, 'test-fixtures');
 const CWD = TEST_DIR;
 
