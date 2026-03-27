@@ -108,15 +108,43 @@ function convertBibliographySection(markdown: string): string {
 
     let html = markdown;
 
-    // Convert each [N] citation to a proper bibliography entry
-    // Look for patterns like [1] Title - URL
-    html = html.replace(
-        /\[(\d+)\]\s*(.+?)\s*-\s*(https?:\/\/[^\s)]+)/g,
-        '<div class="bib-entry"><span class="bib-number">[$1]</span> <a href="$3" target="_blank">$2</a></div>',
-    );
+    // Convert each [N] citation to a proper bibliography entry.
+    // Supports two common formats:
+    //   Format A: [1] Author (Year). "Title". Publication. https://url
+    //   Format B: [1] Title - https://url
+    // Format A is more common in academic-style reports.
+    const entries: string[] = [];
+    const lines = html.split('\n').filter((l) => l.trim());
 
-    // Convert any remaining **bold** sections
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    for (const line of lines) {
+        const match = line.trim().match(/^\[(\d+)\]\s+(.+)$/);
+        if (!match) continue;
+
+        const num = match[1];
+        const rest = match[2];
+
+        // Try to extract URL from the end of the line
+        const urlMatch = rest.match(/(https?:\/\/[^\s)]+)\s*$/);
+        const url = urlMatch ? urlMatch[1] : null;
+        const text = url ? rest.slice(0, rest.lastIndexOf(url)).replace(/\s+$/, '') : rest;
+
+        // Apply inline formatting
+        const formattedText = text
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        if (url) {
+            entries.push(
+                `<div class="bib-entry"><span class="bib-number">[${num}]</span> <a href="${url}" target="_blank">${formattedText}</a></div>`,
+            );
+        } else {
+            entries.push(
+                `<div class="bib-entry"><span class="bib-number">[${num}]</span> ${formattedText}</div>`,
+            );
+        }
+    }
+
+    html = entries.join('\n');
 
     // Wrap in bibliography content div
     html = `<div class="bibliography-content">${html}</div>`;
