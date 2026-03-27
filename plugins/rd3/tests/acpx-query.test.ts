@@ -1,185 +1,177 @@
-import { describe, expect, test } from "bun:test";
-import { buildAcpxCommand, buildAcpxFileCommand, getEnv } from "../scripts/libs/acpx-query";
+import { describe, expect, test } from 'bun:test';
+import { buildAcpxCommand, buildAcpxFileCommand, getEnv } from '../scripts/libs/acpx-query';
 
 // execAcpx, queryLlm, queryLlmFromFile require Bun.spawnSync mocking.
 // Since Bun.spawnSync is a built-in, we test these via integration-style tests
 // that verify the code paths without actually spawning (when acpx is absent).
 
-describe("getEnv", () => {
-  test("returns undefined for missing env key", () => {
-    // (import.meta as {env: Record<string,string|undefined>}).env returns {}
-    // when no env vars are set in test context
-    const result = getEnv("DEFINITELY_NOT_SET_12345");
-    expect(result).toBeUndefined();
-  });
+describe('getEnv', () => {
+    test('returns undefined for missing env key', () => {
+        // (import.meta as {env: Record<string,string|undefined>}).env returns {}
+        // when no env vars are set in test context
+        const result = getEnv('DEFINITELY_NOT_SET_12345');
+        expect(result).toBeUndefined();
+    });
 });
 
-describe("buildAcpxCommand", () => {
-  test("builds command with defaults", () => {
-    const cmd = buildAcpxCommand("summarize this", {
-      agent: "claude",
-      acpxBin: "acpx",
-      format: "quiet",
+describe('buildAcpxCommand', () => {
+    test('builds command with defaults', () => {
+        const cmd = buildAcpxCommand('summarize this', {
+            agent: 'claude',
+            acpxBin: 'acpx',
+            format: 'quiet',
+        });
+        expect(cmd).toEqual(['acpx', '--format', 'quiet', 'claude', 'exec', 'summarize this']);
     });
-    expect(cmd).toEqual(["acpx", "--format", "quiet", "claude", "exec", "summarize this"]);
-  });
 
-  test("uses custom agent", () => {
-    const cmd = buildAcpxCommand("hello", {
-      agent: "codex",
-      acpxBin: "acpx",
-      format: "quiet",
+    test('uses custom agent', () => {
+        const cmd = buildAcpxCommand('hello', {
+            agent: 'codex',
+            acpxBin: 'acpx',
+            format: 'quiet',
+        });
+        expect(cmd[3]).toBe('codex');
     });
-    expect(cmd[3]).toBe("codex");
-  });
 
-  test("uses custom format", () => {
-    const cmd = buildAcpxCommand("hello", {
-      agent: "claude",
-      acpxBin: "acpx",
-      format: "json",
+    test('uses custom format', () => {
+        const cmd = buildAcpxCommand('hello', {
+            agent: 'claude',
+            acpxBin: 'acpx',
+            format: 'json',
+        });
+        expect(cmd[1]).toBe('--format');
+        expect(cmd[2]).toBe('json');
     });
-    expect(cmd[1]).toBe("--format");
-    expect(cmd[2]).toBe("json");
-  });
 
-  test("uses custom acpx binary path", () => {
-    const cmd = buildAcpxCommand("hello", {
-      agent: "claude",
-      acpxBin: "/usr/local/bin/acpx",
-      format: "quiet",
+    test('uses custom acpx binary path', () => {
+        const cmd = buildAcpxCommand('hello', {
+            agent: 'claude',
+            acpxBin: '/usr/local/bin/acpx',
+            format: 'quiet',
+        });
+        expect(cmd[0]).toBe('/usr/local/bin/acpx');
     });
-    expect(cmd[0]).toBe("/usr/local/bin/acpx");
-  });
 
-  test("preserves prompt text exactly", () => {
-    const prompt = "What is the meaning of life?";
-    const cmd = buildAcpxCommand(prompt, {
-      agent: "claude",
-      acpxBin: "acpx",
-      format: "quiet",
+    test('preserves prompt text exactly', () => {
+        const prompt = 'What is the meaning of life?';
+        const cmd = buildAcpxCommand(prompt, {
+            agent: 'claude',
+            acpxBin: 'acpx',
+            format: 'quiet',
+        });
+        expect(cmd[5]).toBe(prompt);
     });
-    expect(cmd[5]).toBe(prompt);
-  });
 
-  test("command structure is correct with all options", () => {
-    const cmd = buildAcpxCommand("prompt text", {
-      agent: "custom-agent",
-      acpxBin: "/bin/acpx",
-      format: "text",
+    test('command structure is correct with all options', () => {
+        const cmd = buildAcpxCommand('prompt text', {
+            agent: 'custom-agent',
+            acpxBin: '/bin/acpx',
+            format: 'text',
+        });
+        // Order: bin, --format, format, agent, exec, prompt
+        expect(cmd[0]).toBe('/bin/acpx');
+        expect(cmd[1]).toBe('--format');
+        expect(cmd[2]).toBe('text');
+        expect(cmd[3]).toBe('custom-agent');
+        expect(cmd[4]).toBe('exec');
+        expect(cmd[5]).toBe('prompt text');
     });
-    // Order: bin, --format, format, agent, exec, prompt
-    expect(cmd[0]).toBe("/bin/acpx");
-    expect(cmd[1]).toBe("--format");
-    expect(cmd[2]).toBe("text");
-    expect(cmd[3]).toBe("custom-agent");
-    expect(cmd[4]).toBe("exec");
-    expect(cmd[5]).toBe("prompt text");
-  });
 
-  test("passing undefined options uses all defaults", () => {
-    // When options is undefined, getEnv provides defaults
-    const cmd = buildAcpxCommand("test prompt");
-    expect(cmd[0]).toBe("acpx"); // default acpxBin from env or "acpx"
-    expect(cmd[1]).toBe("--format");
-    expect(cmd[2]).toBe("quiet"); // default format
-    expect(cmd[3]).toBe("claude"); // default agent from env or "claude"
-    expect(cmd[4]).toBe("exec");
-    expect(cmd[5]).toBe("test prompt");
-  });
+    test('passing undefined options uses all defaults', () => {
+        // When options is undefined, getEnv provides defaults
+        const cmd = buildAcpxCommand('test prompt');
+        expect(cmd[0]).toBe('acpx'); // default acpxBin from env or "acpx"
+        expect(cmd[1]).toBe('--format');
+        expect(cmd[2]).toBe('quiet'); // default format
+        expect(cmd[3]).toBe('claude'); // default agent from env or "claude"
+        expect(cmd[4]).toBe('exec');
+        expect(cmd[5]).toBe('test prompt');
+    });
 });
 
-describe("buildAcpxFileCommand", () => {
-  test("builds file command with --file flag", () => {
-    const cmd = buildAcpxFileCommand("/tmp/prompt.txt", {
-      agent: "claude",
-      acpxBin: "acpx",
-      format: "quiet",
+describe('buildAcpxFileCommand', () => {
+    test('builds file command with --file flag', () => {
+        const cmd = buildAcpxFileCommand('/tmp/prompt.txt', {
+            agent: 'claude',
+            acpxBin: 'acpx',
+            format: 'quiet',
+        });
+        expect(cmd).toEqual(['acpx', '--format', 'quiet', 'claude', 'exec', '--file', '/tmp/prompt.txt']);
     });
-    expect(cmd).toEqual([
-      "acpx",
-      "--format",
-      "quiet",
-      "claude",
-      "exec",
-      "--file",
-      "/tmp/prompt.txt",
-    ]);
-  });
 
-  test("supports stdin via dash", () => {
-    const cmd = buildAcpxFileCommand("-", {
-      agent: "claude",
-      acpxBin: "acpx",
-      format: "quiet",
+    test('supports stdin via dash', () => {
+        const cmd = buildAcpxFileCommand('-', {
+            agent: 'claude',
+            acpxBin: 'acpx',
+            format: 'quiet',
+        });
+        expect(cmd[6]).toBe('-');
     });
-    expect(cmd[6]).toBe("-");
-  });
 
-  test("file path with spaces is preserved", () => {
-    const cmd = buildAcpxFileCommand("/tmp/my prompts/file with spaces.txt", {
-      agent: "claude",
-      acpxBin: "acpx",
-      format: "quiet",
+    test('file path with spaces is preserved', () => {
+        const cmd = buildAcpxFileCommand('/tmp/my prompts/file with spaces.txt', {
+            agent: 'claude',
+            acpxBin: 'acpx',
+            format: 'quiet',
+        });
+        expect(cmd[6]).toBe('/tmp/my prompts/file with spaces.txt');
     });
-    expect(cmd[6]).toBe("/tmp/my prompts/file with spaces.txt");
-  });
 
-  test("passing undefined options uses all defaults", () => {
-    const cmd = buildAcpxFileCommand("/tmp/file.txt");
-    expect(cmd[0]).toBe("acpx");
-    expect(cmd[1]).toBe("--format");
-    expect(cmd[2]).toBe("quiet");
-    expect(cmd[3]).toBe("claude");
-    expect(cmd[4]).toBe("exec");
-    expect(cmd[5]).toBe("--file");
-    expect(cmd[6]).toBe("/tmp/file.txt");
-  });
+    test('passing undefined options uses all defaults', () => {
+        const cmd = buildAcpxFileCommand('/tmp/file.txt');
+        expect(cmd[0]).toBe('acpx');
+        expect(cmd[1]).toBe('--format');
+        expect(cmd[2]).toBe('quiet');
+        expect(cmd[3]).toBe('claude');
+        expect(cmd[4]).toBe('exec');
+        expect(cmd[5]).toBe('--file');
+        expect(cmd[6]).toBe('/tmp/file.txt');
+    });
 });
 
-describe("execAcpx", () => {
-  // execAcpx calls Bun.spawnSync - we test it with a real short-lived command
-  // that we know will succeed (echo). This tests the full execution path.
+describe('execAcpx', () => {
+    // execAcpx calls Bun.spawnSync - we test it with a real short-lived command
+    // that we know will succeed (echo). This tests the full execution path.
 
-  test("executes a simple command and returns result", () => {
-    // Use a command that will succeed
-    const { execAcpx } = require("../scripts/libs/acpx-query");
-    const result = execAcpx(["echo", "hello"]);
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout.trim()).toBe("hello");
-    expect(result.stderr).toBe("");
-    expect(result.ok).toBe(true);
-  });
+    test('executes a simple command and returns result', () => {
+        // Use a command that will succeed
+        const { execAcpx } = require('../scripts/libs/acpx-query');
+        const result = execAcpx(['echo', 'hello']);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout.trim()).toBe('hello');
+        expect(result.stderr).toBe('');
+        expect(result.ok).toBe(true);
+    });
 
-  test("captures stderr from a failing command", () => {
-    const { execAcpx } = require("../scripts/libs/acpx-query");
-    const result = execAcpx(["sh", "-c", "echo error >&2 && exit 1"]);
-    expect(result.exitCode).not.toBe(0);
-    expect(result.ok).toBe(false);
-  });
+    test('captures stderr from a failing command', () => {
+        const { execAcpx } = require('../scripts/libs/acpx-query');
+        const result = execAcpx(['sh', '-c', 'echo error >&2 && exit 1']);
+        expect(result.exitCode).not.toBe(0);
+        expect(result.ok).toBe(false);
+    });
 });
 
-describe("queryLlm", () => {
-  test("returns result from execAcpx", () => {
-    const { queryLlm } = require("../scripts/libs/acpx-query");
-    // Use a command that succeeds quickly
-    const result = queryLlm("echo test", { acpxBin: "echo", agent: "test" });
-    expect(result).toBeDefined();
-    expect(typeof result.exitCode).toBe("number");
-    expect(typeof result.stdout).toBe("string");
-    expect(typeof result.stderr).toBe("string");
-    expect(typeof result.ok).toBe("boolean");
-  });
+describe('queryLlm', () => {
+    test('returns result from execAcpx', () => {
+        const { queryLlm } = require('../scripts/libs/acpx-query');
+        // Use a command that succeeds quickly
+        const result = queryLlm('echo test', { acpxBin: 'echo', agent: 'test' });
+        expect(result).toBeDefined();
+        expect(typeof result.exitCode).toBe('number');
+        expect(typeof result.stdout).toBe('string');
+        expect(typeof result.stderr).toBe('string');
+        expect(typeof result.ok).toBe('boolean');
+    });
 });
 
-describe("queryLlmFromFile", () => {
-  test("returns result from execAcpx", () => {
-    const { queryLlmFromFile } = require("../scripts/libs/acpx-query");
-    // Use echo as stand-in for acpx to verify the function works
-    const result = queryLlmFromFile("-", { acpxBin: "cat", agent: "test" });
-    expect(result).toBeDefined();
-    expect(typeof result.exitCode).toBe("number");
-    expect(typeof result.stdout).toBe("string");
-    expect(typeof result.stderr).toBe("string");
-  });
+describe('queryLlmFromFile', () => {
+    test('returns result from execAcpx', () => {
+        const { queryLlmFromFile } = require('../scripts/libs/acpx-query');
+        // Use echo as stand-in for acpx to verify the function works
+        const result = queryLlmFromFile('-', { acpxBin: 'cat', agent: 'test' });
+        expect(result).toBeDefined();
+        expect(typeof result.exitCode).toBe('number');
+        expect(typeof result.stdout).toBe('string');
+        expect(typeof result.stderr).toBe('string');
+    });
 });
