@@ -2,10 +2,10 @@ import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:tes
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
-import { runChain, resumeChain } from '../interpreter';
-import type { ChainManifest, SingleNode, ChainState } from '../types';
+import { runChain, resumeChain } from '../scripts/interpreter';
+import type { ChainManifest, SingleNode, ChainState } from '../scripts/types';
 
-// @ts-ignore - Bun provides __dirname in CommonJS-like contexts
+// @ts-expect-error - Bun provides __dirname in CommonJS-like contexts
 const TEST_DIR = join(__dirname, 'interpreter-fixtures');
 
 // Unique chain ID counter to prevent state file collisions between tests
@@ -469,7 +469,7 @@ describe('compound checker in chain', () => {
 // ============================================================
 describe('checker retry', () => {
     test('checker retries on failure up to retry count', async () => {
-        let attempts = 0;
+        const attempts = 0;
         const manifest: ChainManifest = makeManifest([
             {
                 name: 'retry-node',
