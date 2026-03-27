@@ -99,11 +99,103 @@ describe("ValidationRunner", () => {
     expect(() => runner.printSummary()).not.toThrow();
   });
 
-  test("getReport returns copies of arrays", () => {
+  test("printSummary prints ALL CHECKS PASSED when empty", () => {
+    const runner = new ValidationRunner();
+    expect(() => runner.printSummary()).not.toThrow();
+  });
+
+  test("printSummary prints VALIDATION PASSED (with warnings) when only warnings", () => {
+    const runner = new ValidationRunner();
+    runner.addWarning("minor issue");
+    expect(() => runner.printSummary()).not.toThrow();
+  });
+
+  test("runChecks with empty array returns passed=true", () => {
+    const runner = new ValidationRunner();
+    const report = runner.runChecks([]);
+    expect(report.passed).toBe(true);
+    expect(report.errors).toHaveLength(0);
+  });
+
+  test("runChecks with single failing check returns passed=false", () => {
+    const runner = new ValidationRunner();
+    const checks: Array<[string, () => boolean]> = [
+      ["Failing Check", () => {
+        runner.addError("failed");
+        return false;
+      }],
+    ];
+    const report = runner.runChecks(checks);
+    expect(report.passed).toBe(false);
+    expect(report.errors).toEqual(["failed"]);
+  });
+
+  test("getReport returns copies of errors array", () => {
     const runner = new ValidationRunner();
     runner.addError("error");
     const report = runner.getReport();
     report.errors.push("injected");
     expect(runner.errors).toHaveLength(1);
+  });
+
+  test("getReport returns copies of warnings array", () => {
+    const runner = new ValidationRunner();
+    runner.addWarning("warning");
+    const report = runner.getReport();
+    report.warnings.push("injected");
+    expect(runner.warnings).toHaveLength(1);
+  });
+
+  test("printSummary prints VALIDATION FAILED when errors exist without warnings", () => {
+    const runner = new ValidationRunner();
+    runner.addError("critical error");
+    expect(() => runner.printSummary()).not.toThrow();
+  });
+
+  test("runChecks with check that adds warnings but passes", () => {
+    const runner = new ValidationRunner();
+    const checks: Array<[string, () => boolean]> = [
+      ["Warn Check", () => {
+        runner.addWarning("minor issue");
+        return true;
+      }],
+    ];
+    const report = runner.runChecks(checks);
+    expect(report.passed).toBe(true);
+    expect(report.warnings).toEqual(["minor issue"]);
+  });
+
+  test("runChecks with multiple errors and warnings", () => {
+    const runner = new ValidationRunner();
+    const checks: Array<[string, () => boolean]> = [
+      ["Error Check", () => {
+        runner.addError("error 1");
+        return false;
+      }],
+      ["Warn Check", () => {
+        runner.addWarning("warning 1");
+        return true;
+      }],
+      ["Error Check 2", () => {
+        runner.addError("error 2");
+        return false;
+      }],
+    ];
+    const report = runner.runChecks(checks);
+    expect(report.passed).toBe(false);
+    expect(report.errors).toEqual(["error 1", "error 2"]);
+    expect(report.warnings).toEqual(["warning 1"]);
+  });
+
+  test("addError and addWarning accumulate across multiple calls", () => {
+    const runner = new ValidationRunner();
+    runner.addError("e1");
+    runner.addWarning("w1");
+    runner.addError("e2");
+    runner.addWarning("w2");
+    expect(runner.errors).toEqual(["e1", "e2"]);
+    expect(runner.warnings).toEqual(["w1", "w2"]);
+    const report = runner.getReport();
+    expect(report.passed).toBe(false);
   });
 });
