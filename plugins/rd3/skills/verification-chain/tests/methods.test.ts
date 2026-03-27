@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, mock } from 'bun:test';
 import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
@@ -10,7 +10,6 @@ import { runHumanCheck } from '../scripts/methods/human';
 import { runCompoundCheck } from '../scripts/methods/compound';
 import type { Checker } from '../scripts/types';
 
-// @ts-expect-error - Bun provides __dirname in CommonJS-like contexts
 const TEST_DIR = join(__dirname, 'test-fixtures');
 const CWD = TEST_DIR;
 
@@ -62,6 +61,19 @@ describe('runCliCheck', () => {
         const result = await runCliCheck({ command: 'echo "error" >&2' }, CWD);
         expect(result.result).toBe('pass');
         expect(result.evidence.cli_output).toContain('error');
+    });
+
+    test('times out when command exceeds timeout', async () => {
+        const result = await runCliCheck({ command: 'sleep 10', timeout: 1 }, CWD);
+        expect(result.result).toBe('fail');
+        expect(result.evidence.error).toContain('timed out');
+    });
+
+    test('handles spawn error when cwd does not exist', async () => {
+        const result = await runCliCheck({ command: 'echo hello' }, '/nonexistent/path/that/does/not/exist');
+        expect(result.result).toBe('fail');
+        expect(result.evidence.cli_exit_code).toBe(-1);
+        expect(result.evidence.error).toContain('Spawn error');
     });
 });
 
@@ -151,6 +163,16 @@ describe('runContentMatchCheck', () => {
         expect(result.result).toBe('fail');
         expect(result.evidence.error).toContain('Could not read file');
     });
+
+    test('invalid regex pattern returns fail', async () => {
+        writeFileSync(join(TEST_DIR, 'regex-invalid.txt'), 'hello');
+        const result = await runContentMatchCheck(
+            { file: 'regex-invalid.txt', pattern: '[invalid(', must_exist: true },
+            CWD,
+        );
+        expect(result.result).toBe('fail');
+        expect(result.evidence.error).toContain('Invalid regex pattern');
+    });
 });
 
 // ============================================================
@@ -178,6 +200,130 @@ describe('runLlmCheck', () => {
         expect(result.result).toBe('fail');
         // The LLM will fail to produce valid output, causing checklist items to fail
         expect(result.evidence.error).toBeDefined();
+    });
+
+    test('parses PASS output and passes when all items pass', async () => {
+        const env = import.meta as { env: Record<string, string | undefined> };
+        const originalEnv = env.env.LLM_CLI_COMMAND;
+        env.env.LLM_CLI_COMMAND = 'echo "[PASS] item1: reason1" && echo "[PASS] item2: reason2"';
+        try {
+            const result = await runLlmCheck({ checklist: ['item1', 'item2'] });
+            expect(result.result).toBe('pass');
+            expect(result.evidence.llm_results).toHaveLength(2);
+            expect(result.evidence.llm_results?.[0]?.passed).toBe(true);
+            expect(result.evidence.llm_results?.[1]?.passed).toBe(true);
+        } finally {
+            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
+            else delete env.env.LLM_CLI_COMMAND;
+        }
+    });
+
+    test('parses FAIL output and fails when items fail', async () => {
+        const env = import.meta as { env: Record<string, string | undefined> };
+        const originalEnv = env.env.LLM_CLI_COMMAND;
+        env.env.LLM_CLI_COMMAND = 'echo "[FAIL] item1: bad"';
+        try {
+            const result = await runLlmCheck({ checklist: ['item1'] });
+            expect(result.result).toBe('fail');
+            expect(result.evidence.llm_results).toHaveLength(1);
+            expect(result.evidence.llm_results?.[0]?.passed).toBe(false);
+        } finally {
+            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
+            else delete env.env.LLM_CLI_COMMAND;
+        }
+    });
+
+    test('mixed PASS/FAIL output fails check', async () => {
+        const env = import.meta as { env: Record<string, string | undefined> };
+        const originalEnv = env.env.LLM_CLI_COMMAND;
+        env.env.LLM_CLI_COMMAND = 'echo "[PASS] item1: ok" && echo "[FAIL] item2: bad"';
+        try {
+            const result = await runLlmCheck({ checklist: ['item1', 'item2'] });
+            expect(result.result).toBe('fail');
+            expect(result.evidence.llm_results).toHaveLength(2);
+        } finally {
+            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
+            else delete env.env.LLM_CLI_COMMAND;
+        }
+    });
+
+    test('collects stderr output without affecting result', async () => {
+        const env = import.meta as { env: Record<string, string | undefined> };
+        const originalEnv = env.env.LLM_CLI_COMMAND;
+        env.env.LLM_CLI_COMMAND = 'echo "[PASS] item1: ok" && echo "debug info" >&2';
+        try {
+            const result = await runLlmCheck({ checklist: ['item1'] });
+            expect(result.result).toBe('pass');
+        } finally {
+            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
+            else delete env.env.LLM_CLI_COMMAND;
+        }
+    });
+
+    test('handles partial output (fewer results than checklist items)', async () => {
+        const env = import.meta as { env: Record<string, string | undefined> };
+        const originalEnv = env.env.LLM_CLI_COMMAND;
+        env.env.LLM_CLI_COMMAND = 'echo "[PASS] item1: ok"';
+        try {
+            const result = await runLlmCheck({ checklist: ['item1', 'item2', 'item3'] });
+            expect(result.result).toBe('fail');
+            expect(result.evidence.llm_results).toHaveLength(1);
+        } finally {
+            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
+            else delete env.env.LLM_CLI_COMMAND;
+        }
+    });
+});
+
+// ============================================================
+// runLlmCheck - spawn error (via dependency injection)
+// ============================================================
+describe('runLlmCheck - error paths', () => {
+    test('handles spawn error via injected spawn function', async () => {
+        const env = import.meta as { env: Record<string, string | undefined> };
+        const originalEnv = env.env.LLM_CLI_COMMAND;
+        env.env.LLM_CLI_COMMAND = 'cat';
+        try {
+            const handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
+            const mockSpawn = mock(() => {
+                const child = {
+                    stdout: {
+                        on: (ev: string, fn: (...a: unknown[]) => void) => {
+                            const key = `stdout.${ev}`;
+                            if (!handlers[key]) handlers[key] = [];
+                            handlers[key].push(fn);
+                        },
+                    },
+                    stderr: {
+                        on: (ev: string, fn: (...a: unknown[]) => void) => {
+                            const key = `stderr.${ev}`;
+                            if (!handlers[key]) handlers[key] = [];
+                            handlers[key].push(fn);
+                        },
+                    },
+                    on: (ev: string, fn: (...a: unknown[]) => void) => {
+                        if (!handlers[ev]) handlers[ev] = [];
+                        handlers[ev].push(fn);
+                    },
+                    kill: () => {},
+                };
+                setTimeout(() => {
+                    for (const fn of handlers.error ?? []) {
+                        fn(new Error('mock: ENOENT'));
+                    }
+                }, 0);
+                return child;
+            });
+            const result = await runLlmCheck(
+                { checklist: ['item1'] },
+                mockSpawn as unknown as typeof import('node:child_process').spawn,
+            );
+            expect(result.result).toBe('fail');
+            expect(result.evidence.error).toContain('Spawn error');
+        } finally {
+            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
+            else delete env.env.LLM_CLI_COMMAND;
+        }
     });
 });
 
@@ -338,5 +484,74 @@ describe('runCompoundCheck', () => {
 
         // Both should complete without hanging
         expect(result.evidence.compound_results).toHaveLength(2);
+    });
+
+    test('unsupported sub-check method returns fail', async () => {
+        const result = await runCompoundCheck(
+            {
+                operator: 'and',
+                // biome-ignore lint/suspicious/noExplicitAny: intentional - testing unsupported method
+                checks: [{ method: 'compound' as any, config: {} as any }],
+            },
+            CWD,
+        );
+        expect(result.result).toBe('fail');
+        // biome-ignore lint/suspicious/noExplicitAny: intentional - accessing error field on failed sub-check
+        expect((result.evidence.compound_results?.[0] as any)?.error).toContain('Unsupported method');
+    });
+
+    test('runs cli sub-check within compound', async () => {
+        const result = await runCompoundCheck(
+            {
+                operator: 'and',
+                checks: [
+                    { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                    { method: 'file-exists', config: { paths: ['and-test-1.txt'] } },
+                ] as Checker[],
+            },
+            CWD,
+        );
+        expect(result.result).toBe('pass');
+        expect(result.evidence.compound_results).toHaveLength(2);
+    });
+
+    test('runs content-match sub-check within compound', async () => {
+        writeFileSync(join(TEST_DIR, 'cm-compound.txt'), 'hello world');
+        const result = await runCompoundCheck(
+            {
+                operator: 'and',
+                checks: [
+                    {
+                        method: 'content-match',
+                        config: { file: 'cm-compound.txt', pattern: 'hello', must_exist: true },
+                    },
+                ] as Checker[],
+            },
+            CWD,
+        );
+        expect(result.result).toBe('pass');
+    });
+
+    test('runs llm sub-check - fails without LLM_CLI_COMMAND', async () => {
+        const result = await runCompoundCheck(
+            {
+                operator: 'and',
+                checks: [{ method: 'llm', config: { checklist: ['item1'] } }] as Checker[],
+            },
+            CWD,
+        );
+        expect(result.result).toBe('fail');
+    });
+
+    test('human sub-check causes compound to pause', async () => {
+        const result = await runCompoundCheck(
+            {
+                operator: 'and',
+                checks: [{ method: 'human', config: { prompt: 'Approve?', choices: ['approve'] } }] as Checker[],
+            },
+            CWD,
+        );
+        expect(result.result).toBe('paused');
+        expect(result.evidence.error).toContain('paused');
     });
 });
