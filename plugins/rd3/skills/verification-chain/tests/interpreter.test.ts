@@ -5,7 +5,6 @@ import { setGlobalSilent } from '../../../scripts/logger';
 import { runChain, resumeChain } from '../scripts/interpreter';
 import type { ChainManifest, SingleNode, ChainState } from '../scripts/types';
 
-// @ts-expect-error - Bun provides __dirname in CommonJS-like contexts
 const TEST_DIR = join(__dirname, 'interpreter-fixtures');
 
 // Unique chain ID counter to prevent state file collisions between tests
@@ -469,7 +468,6 @@ describe('compound checker in chain', () => {
 // ============================================================
 describe('checker retry', () => {
     test('checker retries on failure up to retry count', async () => {
-        const attempts = 0;
         const manifest: ChainManifest = makeManifest([
             {
                 name: 'retry-node',
@@ -563,5 +561,445 @@ describe('callbacks', () => {
             onChainPause: () => callCount++,
         });
         expect(callCount).toBe(1);
+    });
+});
+
+// ============================================================
+// file-exists checker (direct dispatch)
+// ============================================================
+describe('file-exists checker (direct dispatch)', () => {
+    test('file exists → node passes', async () => {
+        writeFileSync(join(TEST_DIR, 'artifact.txt'), 'data');
+        const manifest = makeManifest([
+            {
+                name: 'fe-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: { method: 'file-exists', config: { paths: ['artifact.txt'] } },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('completed');
+        expect(state.nodes[0].checker_result).toBe('pass');
+    });
+
+    test('file missing → node fails', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'fe-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: { method: 'file-exists', config: { paths: ['nope.txt'] } },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        expect(state.nodes[0].checker_result).toBe('fail');
+    });
+});
+
+// ============================================================
+// content-match checker (direct dispatch)
+// ============================================================
+describe('content-match checker (direct dispatch)', () => {
+    test('pattern found → node passes', async () => {
+        writeFileSync(join(TEST_DIR, 'test.txt'), 'hello world');
+        const manifest = makeManifest([
+            {
+                name: 'cm-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: { method: 'content-match', config: { file: 'test.txt', pattern: 'hello', must_exist: true } },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('completed');
+        expect(state.nodes[0].checker_result).toBe('pass');
+    });
+
+    test('pattern not found → node fails', async () => {
+        writeFileSync(join(TEST_DIR, 'test.txt'), 'hello world');
+        const manifest = makeManifest([
+            {
+                name: 'cm-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: {
+                    method: 'content-match',
+                    config: { file: 'test.txt', pattern: 'goodbye', must_exist: true },
+                },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        expect(state.nodes[0].checker_result).toBe('fail');
+    });
+});
+
+// ============================================================
+// llm checker (direct dispatch, no LLM_CLI_COMMAND)
+// ============================================================
+describe('llm checker (direct dispatch)', () => {
+    test('no LLM_CLI_COMMAND env → checker fails', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'llm-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: { method: 'llm', config: { checklist: ['item1'] } },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        expect(state.nodes[0].checker_result).toBe('fail');
+    });
+});
+
+// ============================================================
+// unknown checker method
+// ============================================================
+describe('unknown checker method', () => {
+    test('returns fail for unknown method', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'unknown-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: {
+                    // biome-ignore lint/suspicious/noExplicitAny: intentional - testing invalid method
+                    method: 'nonexistent' as any,
+                    // biome-ignore lint/suspicious/noExplicitAny: intentional - testing invalid config
+                    config: {} as any,
+                },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        expect(state.nodes[0].checker_result).toBe('fail');
+    });
+});
+
+// ============================================================
+// maker variants
+// ============================================================
+describe('maker variants', () => {
+    test('delegate_to maker completes without running command', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'delegate-node',
+                type: 'single',
+                maker: { delegate_to: 'rd3:code-implement-common' },
+                checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('completed');
+        expect(state.nodes[0].maker_status).toBe('completed');
+    });
+
+    test('no maker defined → checker runs standalone', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'no-maker-node',
+                type: 'single',
+                maker: {},
+                checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('completed');
+        expect(state.nodes[0].maker_status).toBe('completed');
+        expect(state.nodes[0].checker_result).toBe('pass');
+    });
+
+    test('maker command producing stderr still succeeds', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'stderr-node',
+                type: 'single',
+                maker: { command: 'echo err >&2 && echo ok' },
+                checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('completed');
+        expect(state.nodes[0].maker_status).toBe('completed');
+    });
+});
+
+// ============================================================
+// checker retry with failures
+// ============================================================
+describe('checker retry with failures', () => {
+    test('retries specified number of times', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'retry-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: {
+                    method: 'cli',
+                    config: { command: 'exit 1' },
+                    retry: 2,
+                },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        // Evidence is pushed once after the loop (last attempt only)
+        expect(state.nodes[0].evidence).toHaveLength(1);
+    });
+
+    test('retry: 0 means single attempt', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'no-retry-node',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: {
+                    method: 'cli',
+                    config: { command: 'exit 1' },
+                    retry: 0,
+                },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        expect(state.nodes[0].evidence).toHaveLength(1);
+    });
+});
+
+// ============================================================
+// checker on_fail: skip
+// ============================================================
+describe('checker on_fail: skip', () => {
+    test('skips failed checker node and continues chain', async () => {
+        const manifest = makeManifest([
+            makeSingleNode('node1', 'echo ok', 'echo ok'),
+            {
+                name: 'skip-checker',
+                type: 'single',
+                maker: { command: 'echo hello' },
+                checker: {
+                    method: 'cli',
+                    config: { command: 'exit 1' },
+                    on_fail: 'skip',
+                },
+            },
+            makeSingleNode('node3', 'echo three', 'echo ok'),
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('completed');
+        expect(state.nodes[1].status).toBe('skipped');
+        expect(state.nodes[2].status).toBe('completed');
+    });
+});
+
+// ============================================================
+// parallel group - convergence failure policies
+// ============================================================
+describe('parallel group convergence failure policies', () => {
+    test('convergence fails with manifest on_node_fail: skip', async () => {
+        const manifest = makeManifest(
+            [
+                {
+                    name: 'pg-skip',
+                    type: 'parallel-group',
+                    convergence: 'all',
+                    children: [
+                        { name: 'c1', maker: { command: 'echo one' } },
+                        { name: 'c2', maker: { command: 'exit 1' } },
+                    ],
+                    checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                },
+                makeSingleNode('after', 'echo after', 'echo ok'),
+            ],
+            'pg-skip-test',
+        );
+        manifest.on_node_fail = 'skip';
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.nodes[0].status).toBe('skipped');
+        expect(state.nodes[1].status).toBe('completed');
+    });
+
+    test('convergence fails with manifest on_node_fail: continue', async () => {
+        const manifest = makeManifest(
+            [
+                {
+                    name: 'pg-continue',
+                    type: 'parallel-group',
+                    convergence: 'all',
+                    children: [
+                        { name: 'c1', maker: { command: 'echo one' } },
+                        { name: 'c2', maker: { command: 'exit 1' } },
+                    ],
+                    checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                },
+                makeSingleNode('after', 'echo after', 'echo ok'),
+            ],
+            'pg-continue-test',
+        );
+        manifest.on_node_fail = 'continue';
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.nodes[0].status).toBe('failed');
+        expect(state.nodes[1].status).toBe('completed');
+    });
+});
+
+// ============================================================
+// parallel group - checker failure after convergence
+// ============================================================
+describe('parallel group checker failure', () => {
+    test('all children pass but checker fails → chain halts', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'pg-checker-fail',
+                type: 'parallel-group',
+                convergence: 'all',
+                children: [
+                    { name: 'c1', maker: { command: 'echo one' } },
+                    { name: 'c2', maker: { command: 'echo two' } },
+                ],
+                checker: { method: 'cli', config: { command: 'exit 1' } },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        expect(state.nodes[0].status).toBe('failed');
+    });
+
+    test('checker fails with on_fail: skip → chain continues', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'pg-checker-skip',
+                type: 'parallel-group',
+                convergence: 'all',
+                children: [{ name: 'c1', maker: { command: 'echo one' } }],
+                checker: { method: 'cli', config: { command: 'exit 1' }, on_fail: 'skip' },
+            },
+            makeSingleNode('after', 'echo after', 'echo ok'),
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.nodes[0].status).toBe('skipped');
+        expect(state.nodes[1].status).toBe('completed');
+    });
+
+    test('checker fails with on_fail: continue → chain continues', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'pg-checker-continue',
+                type: 'parallel-group',
+                convergence: 'all',
+                children: [{ name: 'c1', maker: { command: 'echo one' } }],
+                checker: { method: 'cli', config: { command: 'exit 1' }, on_fail: 'continue' },
+            },
+            makeSingleNode('after', 'echo after', 'echo ok'),
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.nodes[0].status).toBe('failed');
+        expect(state.nodes[1].status).toBe('completed');
+    });
+});
+
+// ============================================================
+// parallel group - human checker pause
+// ============================================================
+describe('parallel group human pause', () => {
+    test('parallel group with human checker pauses chain', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'pg-pause',
+                type: 'parallel-group',
+                convergence: 'all',
+                children: [{ name: 'c1', maker: { command: 'echo one' } }],
+                checker: {
+                    method: 'human',
+                    config: { prompt: 'Approve?', choices: ['approve', 'reject'] },
+                },
+            },
+        ]);
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('paused');
+        expect(state.paused_node).toBe('pg-pause');
+    });
+});
+
+// ============================================================
+// global retry
+// ============================================================
+describe('global retry', () => {
+    test('retries failed nodes when global_retry is configured', async () => {
+        const manifest = makeManifest(
+            [
+                {
+                    name: 'retry-node',
+                    type: 'single',
+                    maker: { command: 'exit 1' },
+                    checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                },
+            ],
+            'global-retry-test',
+        );
+        // Use 'continue' so chain doesn't halt on maker failure and reaches the global retry logic
+        manifest.on_node_fail = 'continue';
+        manifest.global_retry = { remaining: 1, total: 1 };
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        expect(state.global_retry?.remaining).toBe(0);
+    });
+
+    test('no retry when global_retry remaining is 0', async () => {
+        const manifest = makeManifest(
+            [
+                {
+                    name: 'no-retry-node',
+                    type: 'single',
+                    maker: { command: 'exit 1' },
+                    checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                },
+            ],
+            'no-global-retry-test',
+        );
+        manifest.on_node_fail = 'continue';
+        manifest.global_retry = { remaining: 0, total: 1 };
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+    });
+});
+
+// ============================================================
+// new manifest nodes in existing state
+// ============================================================
+describe('new manifest nodes in existing state', () => {
+    test('new nodes are added to existing state and processed', async () => {
+        const chainId = 'new-nodes-test';
+        const manifest1 = makeManifest([makeSingleNode('node1', 'echo one', 'echo ok')], chainId);
+        const state1 = await runChain({ manifest: manifest1, stateDir: TEST_DIR });
+        expect(state1.status).toBe('completed');
+
+        const manifest2 = makeManifest(
+            [makeSingleNode('node1', 'echo one', 'echo ok'), makeSingleNode('node2', 'echo two', 'echo ok')],
+            chainId,
+        );
+        const state2 = await runChain({ manifest: manifest2, stateDir: TEST_DIR });
+        expect(state2.status).toBe('completed');
+        expect(state2.nodes).toHaveLength(2);
+        expect(state2.nodes[1].status).toBe('completed');
+    });
+});
+
+// ============================================================
+// resumeChain error cases
+// ============================================================
+describe('resumeChain errors', () => {
+    test('throws when no state file exists', async () => {
+        const manifest = makeManifest([makeSingleNode('node1', 'echo hello', 'echo ok')], 'no-state-resume-test');
+        await expect(resumeChain({ manifest, stateDir: TEST_DIR })).rejects.toThrow('No chain state found');
+    });
+
+    test('throws when chain is not paused (completed)', async () => {
+        const manifest = makeManifest([makeSingleNode('node1', 'echo hello', 'echo ok')], 'not-paused-resume-test');
+        await runChain({ manifest, stateDir: TEST_DIR });
+        await expect(resumeChain({ manifest, stateDir: TEST_DIR })).rejects.toThrow('Chain is not paused');
     });
 });
