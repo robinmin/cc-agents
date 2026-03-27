@@ -14,8 +14,13 @@
  *   bun verify_citations.ts --report [path] --strict
  */
 
-import { readFileSync } from 'node:fs';
 import { logger } from '../../../scripts/logger';
+import { parseCli } from '../../../scripts/libs/cli-args';
+import { readFile } from '../../../scripts/utils';
+import {
+    BIBLIOGRAPHY_SECTION_PATTERN,
+    extractBibliographyEntries as extractBibEntries,
+} from '../../../scripts/libs/research-patterns';
 
 interface BibliographyEntry {
     num: string;
@@ -72,7 +77,7 @@ class CitationVerifier {
 
     private readReport(): string {
         try {
-            return readFileSync(this.reportPath, 'utf-8');
+            return readFile(this.reportPath);
         } catch (e) {
             logger.error(`Cannot read report: ${e}`);
             process.exit(1);
@@ -80,8 +85,7 @@ class CitationVerifier {
     }
 
     extractBibliography(): BibliographyEntry[] {
-        const pattern = /## Bibliography([\s\S]*?)(?=\n## |$)/i;
-        const match = this.content.match(pattern);
+        const match = this.content.match(BIBLIOGRAPHY_SECTION_PATTERN);
 
         if (!match) {
             this.errors.push('No Bibliography section found');
@@ -89,50 +93,26 @@ class CitationVerifier {
         }
 
         const bibSection = match[1];
-        const entries: BibliographyEntry[] = [];
-        const lines = bibSection.trim().split('\n');
 
-        let currentEntry: BibliographyEntry | null = null;
+        // Use shared extraction for raw entries, then enrich with metadata parsing
+        const rawEntries = extractBibEntries(bibSection);
 
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (!trimmedLine) continue;
+        return rawEntries.map((entry) => {
+            const raw = entry.raw;
+            const yearMatch = raw.match(/\((\d{4})\)/);
+            const titleMatch = raw.match(/"([^"]+)"/);
+            const doiMatch = raw.match(/doi\.org\/(10\.\S+)/);
+            const urlMatch = raw.match(/https?:\/\/[^\s)]+/);
 
-            // Check if starts with citation number [N]
-            const matchNum = trimmedLine.match(/^\[(\d+)\]\s+(.+)$/);
-            if (matchNum) {
-                if (currentEntry) {
-                    entries.push(currentEntry);
-                }
-
-                const num = matchNum[1];
-                const rest = matchNum[2];
-
-                // Try to parse: Author (Year). "Title". Venue. URL
-                const yearMatch = rest.match(/\((\d{4})\)/);
-                const titleMatch = rest.match(/"([^"]+)"/);
-                const doiMatch = rest.match(/doi\.org\/(10\.\S+)/);
-                const urlMatch = rest.match(/https?:\/\/[^\s)]+/);
-
-                currentEntry = {
-                    num,
-                    raw: rest,
-                    year: yearMatch ? yearMatch[1] : null,
-                    title: titleMatch ? titleMatch[1] : null,
-                    doi: doiMatch ? doiMatch[1] : null,
-                    url: urlMatch ? urlMatch[0] : null,
-                };
-            } else if (currentEntry) {
-                // Multi-line entry, append to raw
-                currentEntry.raw += ` ${trimmedLine}`;
-            }
-        }
-
-        if (currentEntry) {
-            entries.push(currentEntry);
-        }
-
-        return entries;
+            return {
+                num: String(entry.num),
+                raw,
+                year: yearMatch ? yearMatch[1] : null,
+                title: titleMatch ? titleMatch[1] : null,
+                doi: doiMatch ? doiMatch[1] : null,
+                url: urlMatch ? urlMatch[0] : null,
+            };
+        });
     }
 
     private async verifyDoi(doi: string): Promise<[boolean, Record<string, unknown>]> {
@@ -418,39 +398,28 @@ class CitationVerifier {
     }
 }
 
+export { CitationVerifier };
+
 async function main(): Promise<void> {
-    const args = process.argv.slice(2);
+    const { values } = parseCli({
+        name: 'verify_citations.ts',
+        description: 'Verify research report citations via DOI resolution and URL checks',
+        options: {
+            report: { type: 'string', short: 'r', required: true },
+            strict: { type: 'boolean', default: false },
+        },
+        examples: [
+            'bun verify_citations.ts --report report.md',
+            'bun verify_citations.ts -r report.md --strict',
+        ],
+    });
 
-    if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        logger.log('Usage: verify_citations.ts --report <path> [--strict]');
-        logger.log('\nExamples:');
-        logger.log('  bun verify_citations.ts --report report.md');
-        logger.log('  bun verify_citations.ts -r report.md --strict');
-        logger.log('\nNote: Requires internet connection to check DOIs.');
-        logger.log('Uses free DOI resolver - no API key needed.');
-        process.exit(0);
-    }
-
-    let reportPath: string | null = null;
-    let strictMode = false;
-
-    for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--report' || args[i] === '-r') {
-            reportPath = args[i + 1];
-        } else if (args[i] === '--strict') {
-            strictMode = true;
-        }
-    }
-
-    if (!reportPath) {
-        logger.error('Error: --report argument is required');
-        process.exit(1);
-    }
-
-    const verifier = new CitationVerifier(reportPath, strictMode);
+    const verifier = new CitationVerifier(values.report as string, values.strict as boolean);
     const passed = await verifier.verifyAll();
 
     process.exit(passed ? 0 : 1);
 }
 
-main();
+if (import.meta.main) {
+    main();
+}
