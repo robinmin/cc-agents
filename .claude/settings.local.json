@@ -53,7 +53,8 @@
       "Bash(sg run:*)",
       "Bash(biome lint:*)",
       "Bash(biome format:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []
