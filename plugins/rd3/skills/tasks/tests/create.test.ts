@@ -157,4 +157,114 @@ impl_progress:
             expect(result.error).toContain('Failed to write task file');
         }
     });
+    test('persists profile field when provided during task creation', () => {
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            JSON.stringify(
+                {
+                    $schema_version: 1,
+                    active_folder: 'docs/tasks',
+                    folders: {
+                        'docs/tasks': { base_counter: 0 },
+                    },
+                },
+                null,
+                2,
+            ),
+        );
+
+        const result = createTask(tempDir, 'Profile Test', undefined, {
+            profile: 'complex',
+            quiet: true,
+        });
+        expect(result.ok).toBe(true);
+
+        const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_Profile_Test.md'), 'utf-8');
+        expect(content).toContain('profile: "complex"');
+    });
+
+    test('accepts all valid profile values during task creation', () => {
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            JSON.stringify(
+                {
+                    $schema_version: 1,
+                    active_folder: 'docs/tasks',
+                    folders: {
+                        'docs/tasks': { base_counter: 0 },
+                    },
+                },
+                null,
+                2,
+            ),
+        );
+
+        for (const profileVal of ['simple', 'standard', 'complex', 'research']) {
+            const result = createTask(tempDir, `Profile ${profileVal}`, undefined, {
+                profile: profileVal,
+                quiet: true,
+            });
+            expect(result.ok).toBe(true);
+            const content = readFileSync(
+                join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`),
+                'utf-8',
+            );
+            expect(content).toContain(`profile: "${profileVal}"`);
+            // Clean up for next iteration
+            rmSync(join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`), { force: true });
+        }
+    });
+
+    test('backward compatible - tasks without profile remain valid', () => {
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            JSON.stringify(
+                {
+                    $schema_version: 1,
+                    active_folder: 'docs/tasks',
+                    folders: {
+                        'docs/tasks': { base_counter: 0 },
+                    },
+                },
+                null,
+                2,
+            ),
+        );
+
+        const result = createTask(tempDir, 'No Profile', undefined, {
+            quiet: true,
+        });
+        expect(result.ok).toBe(true);
+
+        const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_No_Profile.md'), 'utf-8');
+        // Profile field should NOT be present when not specified (backward compatibility)
+        expect(content).not.toContain('profile:');
+    });
+
+    test('rejects invalid profile values', () => {
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            JSON.stringify(
+                {
+                    $schema_version: 1,
+                    active_folder: 'docs/tasks',
+                    folders: {
+                        'docs/tasks': { base_counter: 0 },
+                    },
+                },
+                null,
+                2,
+            ),
+        );
+
+        const result = createTask(tempDir, 'Bad Profile', undefined, {
+            profile: 'invalid',
+            quiet: true,
+        });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error).toContain('Invalid profile');
+        }
+    });
+
 });
