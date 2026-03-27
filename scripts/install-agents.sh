@@ -17,29 +17,22 @@
 #   targets      Target agents: all, pi, claude, codexcli, geminicli, opencode, openclaw, antigravity
 #
 # Options:
-#   --global       Install to user-level global directories (e.g., ~/.pi/agent/AGENTS.md)
-#   --project-dir  Target project directory (default: current directory)
-#   --dry-run      Preview changes without executing
-#   --verbose      Enable verbose output
-#   --help         Show this help message
+#   --project       Install to project-level directory (default: global)
+#   --project-dir   Target project directory (default: current directory, used with --project)
+#   --dry-run       Preview changes without executing
+#   --verbose       Enable verbose output
+#   --help          Show this help message
 #
 # Examples:
 #   ./scripts/install-agents.sh team-stark-children pi
 #   ./scripts/install-agents.sh team-stark-children all
-#   ./scripts/install-agents.sh team-stark-children claude --global
+#   ./scripts/install-agents.sh team-stark-children claude --project
 #   ./scripts/install-agents.sh team-stark-children codexcli,geminicli --verbose
-#   ./scripts/install-agents.sh team-stark-children pi --project-dir /path/to/my-project
+#   ./scripts/install-agents.sh team-stark-children pi --project --project-dir /path/to/my-project
 #
 # Install Strategy:
 #
-#   Project-level:
-#     1. Write concatenated config to <dir>/AGENTS.md
-#     2. Create symlinks for platforms that need different filenames:
-#        - claude:  .claude/CLAUDE.md -> AGENTS.md
-#        - geminicli: GEMINI.md -> AGENTS.md
-#        - opencode: .opencode/instructions.md -> ../AGENTS.md
-#
-#   Global (--global):
+#   Global (default):
 #     Direct write to each platform's expected path:
 #        - pi:          ~/.pi/agent/AGENTS.md
 #        - claude:      ~/.claude/CLAUDE.md
@@ -47,6 +40,13 @@
 #        - geminicli:   ~/.gemini/GEMINI.md
 #        - opencode:    ~/.opencode/instructions.md
 #        - antigravity: ~/.antigravity/AGENTS.md
+#
+#   Project-level (--project):
+#     1. Write concatenated config to <dir>/AGENTS.md
+#     2. Create symlinks for platforms that need different filenames:
+#        - claude:  .claude/CLAUDE.md -> AGENTS.md
+#        - geminicli: GEMINI.md -> AGENTS.md
+#        - opencode: .opencode/instructions.md -> ../AGENTS.md
 #
 # Environment:
 #   PROJECT_ROOT    - Root directory of the project (auto-detected)
@@ -66,7 +66,7 @@ AGENT_NAME=""
 TARGETS=""
 DRY_RUN=false
 VERBOSE=false
-GLOBAL=false
+PROJECT=false
 PROJECT_DIR=""
 
 AVAILABLE_TARGETS="pi,claude,codexcli,geminicli,opencode,openclaw,antigravity"
@@ -111,18 +111,18 @@ usage() {
     printf "    agent-name   Agent folder name in magents/ (e.g., team-stark-children)\n"
     printf "    targets      Target agents: all, pi, claude, codexcli, geminicli, opencode, openclaw, antigravity\n\n"
     printf "${GREEN}OPTIONS:${NC}\n"
-    printf "    --global       Install to user-level directories (e.g., ~/.pi/agent/AGENTS.md)\n"
-    printf "    --project-dir  Target project directory (default: current directory)\n"
+    printf "    --project       Install to project-level directory (default: global)\n"
+    printf "    --project-dir   Target project directory (default: current directory, used with --project)\n"
     printf "    --dry-run      Preview changes without executing\n"
     printf "    --verbose      Enable verbose output\n"
     printf "    --help         Show this help message\n\n"
     printf "${GREEN}EXAMPLES:${NC}\n"
-    printf "    # Install agent config to pi in current directory\n"
+    printf "    # Install agent config to pi globally (default)\n"
     printf "    $(basename "$0") team-stark-children pi\n\n"
     printf "    # Install agent config to all supported agents globally\n"
-    printf "    $(basename "$0") team-stark-children all --global\n\n"
+    printf "    $(basename "$0") team-stark-children all\n\n"
     printf "    # Install to a specific project directory\n"
-    printf "    $(basename "$0") team-stark-children claude --project-dir /path/to/my-project\n\n"
+    printf "    $(basename "$0") team-stark-children claude --project --project-dir /path/to/my-project\n\n"
     printf "    # Install to multiple agents\n"
     printf "    $(basename "$0") team-stark-children codexcli,geminicli --verbose\n\n"
     printf "${GREEN}TARGETS:${NC}\n"
@@ -154,7 +154,7 @@ print_header() {
 parse_args() {
     while [ $# -gt 0 ]; do
         case $1 in
-            --global)     GLOBAL=true; shift ;;
+            --project)    PROJECT=true; shift ;;
             --project-dir)
                 PROJECT_DIR="$2"; shift 2 ;;
             --project-dir=*)
@@ -373,16 +373,13 @@ install_project_level() {
             return 0
         fi
 
-        # Write AGENTS.md if not already written by another target
-        if [ ! -f "$agents_path" ]; then
-            mkdir -p "$(dirname "$agents_path")"
-            concatenate_agent_config "$agent_dir" "$agents_path"
-            print_success "Wrote: ${agents_path}"
-        else
-            if [ "$VERBOSE" = "true" ]; then
-                print_info "AGENTS.md already exists, skipping write"
-            fi
+        # Write AGENTS.md (backup if already written by another target)
+        if [ -f "$agents_path" ]; then
+            backup_if_exists "$agents_path"
         fi
+        mkdir -p "$(dirname "$agents_path")"
+        concatenate_agent_config "$agent_dir" "$agents_path"
+        print_success "Wrote: ${agents_path}"
 
         # Remove existing symlink or backup existing file
         if [ -L "$link_path" ]; then
@@ -406,14 +403,11 @@ install_project_level() {
         fi
 
         if [ -f "$agents_path" ]; then
-            if [ "$VERBOSE" = "true" ]; then
-                print_info "AGENTS.md already exists, skipping write"
-            fi
-        else
-            mkdir -p "$(dirname "$agents_path")"
-            concatenate_agent_config "$agent_dir" "$agents_path"
-            print_success "${target}: ${agents_path}"
+            backup_if_exists "$agents_path"
         fi
+        mkdir -p "$(dirname "$agents_path")"
+        concatenate_agent_config "$agent_dir" "$agents_path"
+        print_success "${target}: ${agents_path}"
     fi
 }
 
@@ -491,31 +485,40 @@ main() {
 
     local agent_dir="${PROJECT_ROOT}/magents/${AGENT_NAME}"
 
-    if [ "$GLOBAL" = "true" ]; then
-        print_info "Installing ${AGENT_NAME} globally (direct write)..."
-    else
+    if [ "$PROJECT" = "true" ]; then
         print_info "Installing ${AGENT_NAME} to project level (AGENTS.md + symlinks)..."
+        print_info "Target directory: $(cd "${PROJECT_DIR:-.}" && pwd)"
+    else
+        print_info "Installing ${AGENT_NAME} globally (direct write)..."
     fi
     echo
 
     local targets_list
     targets_list=$(echo "$actual_targets" | tr ',' ' ')
     for target in $targets_list; do
-        if [ "$GLOBAL" = "true" ]; then
-            install_global "$target" "$agent_dir"
-        else
+        if [ "$PROJECT" = "true" ]; then
             install_project_level "$target" "$agent_dir" "${PROJECT_DIR:-.}"
+        else
+            install_global "$target" "$agent_dir"
         fi
     done
 
     echo
     print_success "Installation completed successfully!"
     echo
-    if [ "$GLOBAL" = "true" ]; then
-        print_info "Installed ${AGENT_NAME} globally to: ${actual_targets}"
-    else
+    if [ "$PROJECT" = "true" ]; then
         print_info "Installed ${AGENT_NAME} to project level: ${actual_targets}"
+        print_info "Target directory: $(cd "${PROJECT_DIR:-.}" && pwd)"
         print_info "AGENTS.md is the canonical file; symlinks created for non-native platforms"
+    else
+        print_info "Installed ${AGENT_NAME} globally to: ${actual_targets}"
+        for target in $targets_list; do
+            local output_path
+            output_path=$(get_global_path "$target")
+            if [ -n "$output_path" ]; then
+                print_info "  ${target}: ${output_path}"
+            fi
+        done
     fi
     print_info "Files assembled: ${AGENT_FILES[*]} (MEMORY.md excluded — agent-local)"
 }
