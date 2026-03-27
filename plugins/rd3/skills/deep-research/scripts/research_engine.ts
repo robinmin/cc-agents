@@ -4,9 +4,11 @@
  * Orchestrates comprehensive research across multiple sources with verification and synthesis
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { logger } from '../../../scripts/logger';
+import { parseCli } from '../../../scripts/libs/cli-args';
+import { ensureDir, readFile, writeFile } from '../../../scripts/utils';
 
 enum ResearchPhase {
     SCOPE = 'scope',
@@ -58,11 +60,7 @@ class ResearchEngine {
     constructor(mode: ResearchMode = ResearchMode.STANDARD) {
         this.mode = mode;
         this.outputDir = join(process.env.HOME || '', '.claude', 'research_output');
-        try {
-            mkdirSync(this.outputDir, { recursive: true });
-        } catch {
-            // Directory may already exist
-        }
+        ensureDir(this.outputDir);
     }
 
     initializeResearch(query: string): ResearchState {
@@ -454,7 +452,7 @@ Save report to file with timestamp.
             const stateFile = join(this.outputDir, `research_state_${timestamp}.json`);
             if (this.state) {
                 try {
-                    writeFileSync(stateFile, JSON.stringify(this.state, null, 2));
+                    writeFile(stateFile, JSON.stringify(this.state, null, 2));
                 } catch {
                     // Ignore write errors
                 }
@@ -476,42 +474,28 @@ Save report to file with timestamp.
 }
 
 function main(): void {
-    const args = process.argv.slice(2);
+    const { values } = parseCli({
+        name: 'research_engine.ts',
+        description: 'Deep research engine for Claude Code - orchestrates multi-phase research',
+        options: {
+            query: { type: 'string', short: 'q', required: true },
+            mode: { type: 'string', short: 'm', default: 'standard' },
+            resume: { type: 'string' },
+        },
+        examples: [
+            "bun research_engine.ts --query 'state of quantum computing 2025' --mode deep",
+            "bun research_engine.ts -q 'PostgreSQL vs Supabase comparison' -m standard",
+        ],
+    });
 
-    if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        logger.log('Usage: research_engine.ts --query <question> [--mode <mode>]');
-        logger.log('\nOptions:');
-        logger.log('  --query, -q   Research question or topic (required)');
-        logger.log('  --mode, -m    Research depth mode: quick, standard, deep, ultradeep (default: standard)');
-        logger.log('  --resume      Resume from saved state file');
-        logger.log('\nExamples:');
-        logger.log("  bun research_engine.ts --query 'state of quantum computing 2025' --mode deep");
-        logger.log("  bun research_engine.ts -q 'PostgreSQL vs Supabase comparison' -m standard");
-        process.exit(0);
-    }
+    const query = values.query as string;
+    const modeArg = (values.mode as string).toLowerCase();
+    const resumePath = values.resume as string | undefined;
 
-    let query: string | null = null;
     let mode = ResearchMode.STANDARD;
-    let resumePath: string | null = null;
-
-    for (let i = 0; i < args.length; i++) {
-        if (args[i] === '--query' || args[i] === '-q') {
-            query = args[i + 1];
-        } else if (args[i] === '--mode' || args[i] === '-m') {
-            const modeArg = args[i + 1]?.toLowerCase();
-            if (modeArg === 'quick') mode = ResearchMode.QUICK;
-            else if (modeArg === 'deep') mode = ResearchMode.DEEP;
-            else if (modeArg === 'ultradeep') mode = ResearchMode.ULTRADEEP;
-            else mode = ResearchMode.STANDARD;
-        } else if (args[i] === '--resume') {
-            resumePath = args[i + 1];
-        }
-    }
-
-    if (!query) {
-        logger.error('Error: --query argument is required');
-        process.exit(1);
-    }
+    if (modeArg === 'quick') mode = ResearchMode.QUICK;
+    else if (modeArg === 'deep') mode = ResearchMode.DEEP;
+    else if (modeArg === 'ultradeep') mode = ResearchMode.ULTRADEEP;
 
     const engine = new ResearchEngine(mode);
 
@@ -521,7 +505,7 @@ function main(): void {
             process.exit(1);
         }
         try {
-            const stateData = readFileSync(resumePath, 'utf-8');
+            const stateData = readFile(resumePath);
             const savedState = JSON.parse(stateData) as ResearchState;
             engine.restoreState(savedState);
             logger.log(`Resumed research from: ${resumePath} (phase: ${savedState.phase})`);
@@ -537,4 +521,6 @@ function main(): void {
     logger.log(`\nNow Claude should execute each phase using the displayed instructions.`);
 }
 
-main();
+if (import.meta.main) {
+    main();
+}
