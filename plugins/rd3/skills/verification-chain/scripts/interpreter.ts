@@ -123,11 +123,12 @@ async function runMaker(
     cwd: string,
 ): Promise<{ status: 'completed' | 'failed'; output?: string; error?: string }> {
     if (maker.delegate_to) {
-        // Delegate to another skill via subagent
-        logger.debug(`Delegating maker to skill: ${maker.delegate_to}`);
-        // TODO: Implement skill delegation via subagent
-        // For now, fall through to command execution
-        return { status: 'completed' };
+        if (!maker.command) {
+            logger.warn(`delegate_to "${maker.delegate_to}" is not yet implemented — maker will silently succeed`);
+            return { status: 'completed' };
+        }
+
+        logger.warn(`delegate_to "${maker.delegate_to}" is not yet implemented — falling back to maker.command`);
     }
 
     if (maker.command) {
@@ -426,8 +427,6 @@ export interface RunChainOptions {
     stateDir?: string;
     onNodeStart?: (node: ChainNode) => void;
     onNodeComplete?: (node: ChainNode, state: NodeExecutionState) => void;
-    onCheckerStart?: (nodeName: string, method: CheckerMethod) => void;
-    onCheckerComplete?: (nodeName: string, result: MethodResult) => void;
     onChainPause?: (state: ChainState) => void;
     onChainComplete?: (state: ChainState) => void;
     onChainFail?: (state: ChainState, reason: string) => void;
@@ -439,8 +438,6 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         stateDir = '.',
         onNodeStart,
         onNodeComplete,
-        onCheckerStart: _onCheckerStart,
-        onCheckerComplete: _onCheckerComplete,
         onChainPause,
         onChainComplete,
         onChainFail,
