@@ -131,11 +131,12 @@ async function runMaker(
     }
 
     if (maker.command) {
+        const cmd = maker.command;
         const timeout = (maker.timeout ?? 3600) * 1000;
         return new Promise((resolve) => {
             let stdout = '';
             let stderr = '';
-            const child = spawn(maker.command!, [], {
+            const child = spawn(cmd, [], {
                 shell: true,
                 cwd,
                 timeout,
@@ -229,8 +230,11 @@ async function executeSingleNode(
         }
     }
 
-    // checkerResult is guaranteed non-null after the loop
-    const cr = checkerResult!;
+    // checkerResult is guaranteed non-null after the loop (at least 1 iteration runs)
+    if (!checkerResult) {
+        return { halted: true, reason: 'Checker returned no result' };
+    }
+    const cr = checkerResult;
 
     state.checker_status = cr.result === 'paused' ? 'paused' : 'completed';
     state.checker_result = cr.result;
@@ -281,21 +285,29 @@ async function executeParallelGroupNode(
     state.status = 'running';
     state.started_at = new Date().toISOString();
 
+    // Ensure parallel_children is initialized
+    if (!state.parallel_children) {
+        state.parallel_children = Object.fromEntries(
+            node.children.map((c) => [c.name, { maker_status: 'pending' as MakerStatus }]),
+        );
+    }
+    const parallelChildren = state.parallel_children;
+
     // Run all child makers concurrently
     const childPromises = node.children.map(async (child) => {
-        state.parallel_children![child.name].maker_status = 'running';
+        parallelChildren[child.name].maker_status = 'running';
 
         const result = await runMaker(child.maker, cwd);
 
         if (result.status === 'failed') {
             const err = result.error;
-            state.parallel_children![child.name] = {
+            parallelChildren[child.name] = {
                 maker_status: 'failed',
                 maker_result: 'fail',
                 ...(err ? { error: err } : {}),
             };
         } else {
-            state.parallel_children![child.name] = {
+            parallelChildren[child.name] = {
                 maker_status: 'completed',
                 maker_result: 'pass',
             };
@@ -427,8 +439,8 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         stateDir = '.',
         onNodeStart,
         onNodeComplete,
-        onCheckerStart,
-        onCheckerComplete,
+        onCheckerStart: _onCheckerStart,
+        onCheckerComplete: _onCheckerComplete,
         onChainPause,
         onChainComplete,
         onChainFail,
@@ -437,18 +449,20 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
     const statePath = join(stateDir, 'cov', `${manifest.chain_id}-${manifest.task_wbs}-cov-state.json`);
 
     // Load existing state or create new
-    let state = loadState(statePath);
-    if (!state) {
-        state = getDefaultState(manifest);
+    let _state = loadState(statePath);
+    if (!_state) {
+        _state = getDefaultState(manifest);
     } else {
         // Ensure every manifest node has a state entry (handles new nodes added to manifest)
         for (const manifestNode of manifest.nodes) {
-            const existing = state.nodes.find((n) => n.name === manifestNode.name);
+            const existing = _state.nodes.find((n) => n.name === manifestNode.name);
             if (!existing) {
-                state.nodes.push(createNodeExecutionState(manifestNode));
+                _state.nodes.push(createNodeExecutionState(manifestNode));
             }
         }
     }
+    // state is guaranteed non-null after above block
+    const state = _state;
     saveState(state, statePath);
 
     logger.log(`Starting chain ${manifest.chain_name} (${manifest.chain_id})`);
@@ -461,24 +475,24 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         // Find next pending or running node
         // When chain is paused, current_node is 'running' - we need to resume it
         const nextNode = manifest.nodes.find((n) => {
-            const ns = nodeState(state!, n.name);
+            const ns = nodeState(state, n.name);
             return ns === undefined || ns.status === 'pending' || ns.status === 'running';
         });
 
         if (!nextNode) {
             // All nodes processed - check if we need to retry globally
-            const hasFailed = state!.nodes.some((n) => n.status === 'failed');
+            const hasFailed = state?.nodes.some((n) => n.status === 'failed');
 
             if (hasFailed && globalRetryRemaining > 0) {
                 globalRetryRemaining--;
-                state!.global_retry = {
+                state.global_retry = {
                     remaining: globalRetryRemaining,
                     total: globalRetryTotal,
                 };
                 logger.log(`Global retry: ${globalRetryRemaining}/${globalRetryTotal} remaining`);
 
                 // Reset failed/skipped nodes to pending for retry
-                for (const ns of state!.nodes) {
+                for (const ns of state.nodes) {
                     if (ns.status === 'failed' || ns.status === 'skipped') {
                         // Only reset if maker succeeded before - don't re-run succeeded nodes
                         if (ns.maker_status !== 'completed') {
@@ -486,34 +500,34 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                         }
                     }
                 }
-                saveState(state!, statePath);
+                saveState(state, statePath);
                 continue;
             }
 
             if (hasFailed) {
-                state!.status = 'failed';
-                state!.updated_at = new Date().toISOString();
-                saveState(state!, statePath);
-                const failedNodes = state!.nodes.filter((n) => n.status === 'failed').map((n) => n.name);
+                state.status = 'failed';
+                state.updated_at = new Date().toISOString();
+                saveState(state, statePath);
+                const failedNodes = state.nodes.filter((n) => n.status === 'failed').map((n) => n.name);
                 const reason = `Failed nodes: ${failedNodes.join(', ')}`;
                 logger.error(`Chain failed: ${reason}`);
-                onChainFail?.(state!, reason);
-                return state!;
+                onChainFail?.(state, reason);
+                return state;
             }
 
             // All completed successfully
-            state!.status = 'completed';
-            state!.updated_at = new Date().toISOString();
-            saveState(state!, statePath);
+            state.status = 'completed';
+            state.updated_at = new Date().toISOString();
+            saveState(state, statePath);
             logger.success(`Chain ${manifest.chain_name} completed successfully`);
-            onChainComplete?.(state!);
-            return state!;
+            onChainComplete?.(state);
+            return state;
         }
 
         // Execute next node
-        state!.current_node = nextNode.name;
-        state!.updated_at = new Date().toISOString();
-        saveState(state!, statePath);
+        state.current_node = nextNode.name;
+        state.updated_at = new Date().toISOString();
+        saveState(state, statePath);
 
         logger.log(`Executing node: ${nextNode.name} (${nextNode.type})`);
         onNodeStart?.(nextNode);
@@ -522,43 +536,45 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         let haltReason: string | undefined;
 
         if (nextNode.type === 'single') {
-            const ns = nodeState(state!, nextNode.name)!;
+            const ns = nodeState(state, nextNode.name);
+            if (!ns) continue;
             ({ halted, reason: haltReason } = await executeSingleNode(
                 nextNode as SingleNode,
                 ns,
                 manifest,
-                state!,
+                state,
                 stateDir,
             ));
         } else if (nextNode.type === 'parallel-group') {
-            const ns = nodeState(state!, nextNode.name)!;
+            const ns = nodeState(state, nextNode.name);
+            if (!ns) continue;
             ({ halted, reason: haltReason } = await executeParallelGroupNode(
                 nextNode as ParallelGroupNode,
                 ns,
                 manifest,
-                state!,
+                state,
                 stateDir,
             ));
         }
 
-        state!.updated_at = new Date().toISOString();
-        saveState(state!, statePath);
+        state.updated_at = new Date().toISOString();
+        saveState(state, statePath);
 
-        const ns = nodeState(state!, nextNode.name)!;
-        onNodeComplete?.(nextNode, ns);
+        const ns = nodeState(state, nextNode.name);
+        if (ns) onNodeComplete?.(nextNode, ns);
 
         if (halted) {
             if (haltReason === 'human_pause') {
                 logger.log(`Chain paused at node ${nextNode.name}, awaiting human input`);
-                onChainPause?.(state!);
+                onChainPause?.(state);
             } else {
                 logger.error(`Chain halted at node ${nextNode.name}: ${haltReason}`);
-                state!.status = 'failed';
-                state!.updated_at = new Date().toISOString();
-                saveState(state!, statePath);
-                onChainFail?.(state!, haltReason ?? 'unknown');
+                state.status = 'failed';
+                state.updated_at = new Date().toISOString();
+                saveState(state, statePath);
+                onChainFail?.(state, haltReason ?? 'unknown');
             }
-            return state!;
+            return state;
         }
     }
 }
