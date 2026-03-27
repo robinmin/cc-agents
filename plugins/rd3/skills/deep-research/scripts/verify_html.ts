@@ -84,7 +84,14 @@ class HTMLVerifier {
 
     private checkNoPlaceholders(html: string): void {
         // Template variable placeholders (HTML-specific)
-        const templateVars = ['{{TITLE}}', '{{DATE}}', '{{CONTENT}}', '{{BIBLIOGRAPHY}}', '{{METRICS_DASHBOARD}}', '{{SOURCE_COUNT}}'];
+        const templateVars = [
+            '{{TITLE}}',
+            '{{DATE}}',
+            '{{CONTENT}}',
+            '{{BIBLIOGRAPHY}}',
+            '{{METRICS_DASHBOARD}}',
+            '{{SOURCE_COUNT}}',
+        ];
         // Combine with shared placeholder strings
         const allPlaceholders = [...templateVars, ...PLACEHOLDER_STRINGS.filter((p) => !p.startsWith('['))];
 
@@ -102,7 +109,9 @@ class HTMLVerifier {
         const emojis = html.match(emojiPattern);
         if (emojis && emojis.length > 0) {
             const uniqueEmojis = new Set(emojis);
-            this.runner.addError(`Found ${emojis.length} emojis in HTML (should be none): ${[...uniqueEmojis].join(' ')}`);
+            this.runner.addError(
+                `Found ${emojis.length} emojis in HTML (should be none): ${[...uniqueEmojis].join(' ')}`,
+            );
         }
     }
 
@@ -157,7 +166,6 @@ class HTMLVerifier {
             }
         }
     }
-
 }
 
 export { HTMLVerifier };
