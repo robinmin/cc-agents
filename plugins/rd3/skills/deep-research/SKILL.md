@@ -62,10 +62,11 @@ Mode Selection
 - Report structure: [report_template.md](./templates/report_template.md)
 - HTML styling: [mckinsey_report_template.html](./templates/mckinsey_report_template.html)
 
-**Scripts:**
-- `bun scripts/validate_report.ts --report [path]`
-- `bun scripts/verify_citations.ts --report [path]`
-- `bun scripts/md_to_html.ts [markdown_path]`
+**Scripts (run from project root):**
+- `bun plugins/rd3/skills/deep-research/scripts/validate_report.ts --report [path]`
+- `bun plugins/rd3/skills/deep-research/scripts/verify_citations.ts --report [path]`
+- `bun plugins/rd3/skills/deep-research/scripts/verify_html.ts --html [html_path] --md [md_path]`
+- `bun plugins/rd3/skills/deep-research/scripts/md_to_html.ts [markdown_path]`
 
 ---
 
@@ -81,7 +82,7 @@ Mode Selection
 - Bibliography (COMPLETE - every citation, no placeholders)
 - Methodology Appendix
 
-**Output files (all to `~/Documents/[Topic]_Research_[YYYYMMDD]/`):**
+**Output files (all to `~/tcc/[Topic]_Research_[YYYYMMDD]/`):**
 - Markdown (primary source)
 - HTML (McKinsey style, auto-opened)
 - PDF (professional print, auto-opened)
