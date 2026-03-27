@@ -5,80 +5,80 @@
  * found in validate_report.ts, verify_html.ts, and similar scripts.
  */
 
-import { logger } from "../logger";
+import { logger } from '../logger';
 
 export interface ValidationReport {
-  passed: boolean;
-  errors: string[];
-  warnings: string[];
+    passed: boolean;
+    errors: string[];
+    warnings: string[];
 }
 
 export type CheckFn = () => boolean;
 
 export class ValidationRunner {
-  readonly errors: string[] = [];
-  readonly warnings: string[] = [];
+    readonly errors: string[] = [];
+    readonly warnings: string[] = [];
 
-  // biome-ignore lint/complexity/noUselessConstructor: explicit constructor required for V8 function coverage tracking (implicit constructor is not counted as a separate function entry)
-  constructor() {}
+    // biome-ignore lint/complexity/noUselessConstructor: explicit constructor required for V8 function coverage tracking (implicit constructor is not counted as a separate function entry)
+    constructor() {}
 
-  addError(message: string): void {
-    this.errors.push(message);
-  }
-
-  addWarning(message: string): void {
-    this.warnings.push(message);
-  }
-
-  /**
-   * Run a series of named checks. Each check function should call
-   * addError/addWarning on this runner and return true if the check passed.
-   */
-  runChecks(checks: Array<[string, CheckFn]>): ValidationReport {
-    for (const [checkName, checkFn] of checks) {
-      logger.log(`  Checking: ${checkName}...`);
-      const passed = checkFn();
-      logger.log(passed ? "  PASS" : "  FAIL");
+    addError(message: string): void {
+        this.errors.push(message);
     }
 
-    return this.getReport();
-  }
-
-  getReport(): ValidationReport {
-    return {
-      passed: this.errors.length === 0,
-      errors: [...this.errors],
-      warnings: [...this.warnings],
-    };
-  }
-
-  printSummary(): void {
-    logger.log(`\n${"=".repeat(60)}`);
-    logger.log("VALIDATION SUMMARY");
-    logger.log(`${"=".repeat(60)}\n`);
-
-    if (this.errors.length > 0) {
-      logger.log(`ERRORS (${this.errors.length}):`);
-      for (const error of this.errors) {
-        logger.log(`   - ${error}`);
-      }
-      logger.log();
+    addWarning(message: string): void {
+        this.warnings.push(message);
     }
 
-    if (this.warnings.length > 0) {
-      logger.log(`WARNINGS (${this.warnings.length}):`);
-      for (const warning of this.warnings) {
-        logger.log(`   - ${warning}`);
-      }
-      logger.log();
+    /**
+     * Run a series of named checks. Each check function should call
+     * addError/addWarning on this runner and return true if the check passed.
+     */
+    runChecks(checks: Array<[string, CheckFn]>): ValidationReport {
+        for (const [checkName, checkFn] of checks) {
+            logger.log(`  Checking: ${checkName}...`);
+            const passed = checkFn();
+            logger.log(passed ? '  PASS' : '  FAIL');
+        }
+
+        return this.getReport();
     }
 
-    if (this.errors.length === 0 && this.warnings.length === 0) {
-      logger.log("ALL CHECKS PASSED\n");
-    } else if (this.warnings.length > 0) {
-      logger.log("VALIDATION PASSED (with warnings)\n");
-    } else {
-      logger.log("VALIDATION FAILED - Please fix errors\n");
+    getReport(): ValidationReport {
+        return {
+            passed: this.errors.length === 0,
+            errors: [...this.errors],
+            warnings: [...this.warnings],
+        };
     }
-  }
+
+    printSummary(): void {
+        logger.log(`\n${'='.repeat(60)}`);
+        logger.log('VALIDATION SUMMARY');
+        logger.log(`${'='.repeat(60)}\n`);
+
+        if (this.errors.length > 0) {
+            logger.log(`ERRORS (${this.errors.length}):`);
+            for (const error of this.errors) {
+                logger.log(`   - ${error}`);
+            }
+            logger.log();
+        }
+
+        if (this.warnings.length > 0) {
+            logger.log(`WARNINGS (${this.warnings.length}):`);
+            for (const warning of this.warnings) {
+                logger.log(`   - ${warning}`);
+            }
+            logger.log();
+        }
+
+        if (this.errors.length === 0 && this.warnings.length === 0) {
+            logger.log('ALL CHECKS PASSED\n');
+        } else if (this.warnings.length > 0) {
+            logger.log('VALIDATION PASSED (with warnings)\n');
+        } else {
+            logger.log('VALIDATION FAILED - Please fix errors\n');
+        }
+    }
 }
