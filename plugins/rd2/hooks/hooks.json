@@ -46,18 +46,6 @@
                     }
                 ]
             }
-        ],
-        "Stop": [
-            {
-                "matcher": "*",
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "python3 ${CLAUDE_PLUGIN_ROOT}/skills/anti-hallucination/scripts/ah_guard.py",
-                        "timeout": 30
-                    }
-                ]
-            }
         ]
     }
 }
