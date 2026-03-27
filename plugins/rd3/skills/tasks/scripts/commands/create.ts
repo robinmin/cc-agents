@@ -20,6 +20,7 @@ export function createTask(
         estimatedHours?: number;
         dependencies?: string[];
         tags?: string[];
+        profile?: string;
         quiet?: boolean;
     } = {},
 ): Result<{ wbs: string; path: string }> {
@@ -67,6 +68,13 @@ export function createTask(
     content = upsertFrontmatterField(content, 'estimated_hours', options.estimatedHours);
     content = upsertFrontmatterField(content, 'dependencies', options.dependencies);
     content = upsertFrontmatterField(content, 'tags', options.tags);
+    if (options.profile !== undefined) {
+        const validProfiles = ['simple', 'standard', 'complex', 'research'];
+        if (!validProfiles.includes(options.profile)) {
+            return err(`Invalid profile: "${options.profile}". Valid values: ${validProfiles.join(', ')}`);
+        }
+    }
+    content = upsertFrontmatterField(content, 'profile', options.profile);
 
     // Write file
     const fileName = `${wbs}_${name.replace(/\s+/g, '_')}.md`;
