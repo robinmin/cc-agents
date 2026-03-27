@@ -5,7 +5,7 @@
 ### Citation Verification
 
 ```bash
-python scripts/verify_citations.py --report [path]
+bun plugins/rd3/skills/deep-research/scripts/verify_citations.ts --report [path]
 ```
 
 **Checks:**
@@ -18,7 +18,7 @@ python scripts/verify_citations.py --report [path]
 ### Structure & Quality Validation
 
 ```bash
-python scripts/validate_report.py --report [path]
+bun plugins/rd3/skills/deep-research/scripts/validate_report.ts --report [path]
 ```
 
 **9 automated checks:**
@@ -40,8 +40,8 @@ python scripts/validate_report.py --report [path]
 
 **After generating ANY report, run this loop:**
 
-1. Run `python scripts/validate_report.py --report [path]`
-2. Run `python scripts/verify_citations.py --report [path]`
+1. Run `bun plugins/rd3/skills/deep-research/scripts/validate_report.ts --report [path]`
+2. Run `bun plugins/rd3/skills/deep-research/scripts/verify_citations.ts --report [path]`
 3. If EITHER fails:
    - Read error output carefully
    - Fix the specific issues identified
