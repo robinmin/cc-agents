@@ -1,0 +1,18 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Research output (kept local, generated at runtime)
+research_state_*.json
+research_report_*.json
+
+# Test output
+.coverage
+htmlcov/
