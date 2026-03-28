@@ -39,7 +39,7 @@ Generate concise, user-friendly changelogs from git commits. Translates technica
 ### Phase 1: Gather Context
 
 ```bash
-git log --oneline --since="<since>" --until="<until>"
+git log --oneline <since>..<until>
 git diff --stat <since>..<until>
 git tag --sort=-version:refname | head -1
 ```
