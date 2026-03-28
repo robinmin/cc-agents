@@ -1,6 +1,6 @@
 ---
-description: Generate unit tests to reach the default unit target: per-file coverage >=90% and 100% pass
-argument-hint: "<task-ref> [--auto] [--coverage <n>]"
+description: Generate unit tests to reach the default unit target, optionally on another execution channel
+argument-hint: "<task-ref> [--auto] [--coverage <n>] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 disable-model-invocation: true
 ---
@@ -24,6 +24,7 @@ Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and
 | `task-ref` | Yes | WBS number or file path |
 | `--auto` | No | Auto-approve gates |
 | `--coverage <n>` | No | Override the default per-file coverage target |
+| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `current` |
 
 ### Smart Positional Detection
 
@@ -34,14 +35,17 @@ Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and
 
 ## Workflow
 
-Delegates to **rd3:orchestration-dev** with unit profile:
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. Non-`current` values are delegated via **rd3:run-acp**.
 
 ```
-# Default unit target (per-file >=90%, 100% tests pass)
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit")
+# Default unit target on the current channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --channel current")
 
-# Custom coverage threshold
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 90")
+# Custom coverage threshold on the current channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 90 --channel current")
+
+# Execute the same workflow on another ACP-backed channel
+Skill(skill="rd3:run-acp", args="codex exec \"rd3:orchestration-dev {task-ref} --profile unit --coverage 90 --channel codex\"")
 ```
 
 ## Completion Criteria
@@ -60,9 +64,11 @@ If any test fails: NOT completed, MUST fix or extend tests until the suite is fu
 /rd3:dev-unit 0274
 /rd3:dev-unit 0274 --coverage 90
 /rd3:dev-unit 0274 --coverage 90 --auto
+/rd3:dev-unit 0274 --channel gemini
 ```
 
 ## See Also
 
 - **/rd3:dev-run**: Profile-driven pipeline execution
 - **rd3:sys-testing**: Test execution skill
+- **rd3:run-acp**: Cross-channel execution wrapper
