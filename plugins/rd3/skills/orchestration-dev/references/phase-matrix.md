@@ -39,7 +39,7 @@ Run a specific phase or phase group. Used by convenience commands.
 | 6 | Unit Testing | **run** (60%) | **run** (80%) | **run** (80%) | **run** (60%) | skip | skip | **run** | skip | skip |
 | 7 | Code Review | **skip** | **run** | **run** | **run** | skip | skip | skip | **run** | skip |
 | 8 | Functional Review | **skip** | bdd only | bdd+functional | bdd+functional | skip | skip | skip | skip | skip |
-| 9 | Documentation | **skip** | task-refs | **full** | **full** | skip | skip | skip | skip | **run** |
+| 9 | Documentation | **skip** | **run** | **run** | **run** | skip | skip | skip | skip | **run** |
 
 ### Legend
 
@@ -47,8 +47,6 @@ Run a specific phase or phase group. Used by convenience commands.
 - **run**: Phase is executed with default settings
 - **bdd only**: Only BDD workflow executes (no LLM functional review)
 - **bdd+functional**: Both BDD workflow and functional review execute
-- **full**: Phase is fully executed
-- **task-refs**: Task references only (no full docs)
 
 ## Phase Descriptions
 
@@ -121,12 +119,17 @@ Verifies implementation against requirements.
 ### Phase 9: Documentation
 **Skill:** `rd3:code-docs`
 
-Generates documentation artifacts.
+Refreshes canonical project documentation.
+Any diagram added during Phase 9 must use Mermaid in fenced markdown blocks.
 
 **Entry criteria:** Implementation complete
-**Exit criteria:** Documentation generated per doc_types
+**Exit criteria:** Relevant canonical docs refreshed and stale statements reconciled
 
-**For standard profile:** Task references only (no full docs)
+Canonical docs:
+- `docs/01_ARCHITECTURE_SPEC.md`
+- `docs/02_DEVELOPER_SPEC.md`
+- `docs/03_USER_MANUAL.md`
+- `docs/99_EXPERIENCE.md`
 
 ## Phase Dependencies
 
