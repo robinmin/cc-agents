@@ -74,7 +74,7 @@ const PHASE_OUTPUTS: Record<PhaseNumber, string[]> = {
     6: ['Test Results', 'Coverage Report'],
     7: ['Review Report'],
     8: ['Functional Verdict'],
-    9: ['Documentation Artifacts'],
+    9: ['Refreshed Project Docs'],
 };
 
 // Phase matrix: which phases to execute per profile
@@ -209,7 +209,7 @@ function getAutoGateCriteria(coverageThreshold: number): Record<PhaseNumber, str
         6: `Coverage >= ${coverageThreshold}%`,
         7: 'No blocking issues, human approval',
         8: 'Verdict pass or partial with approval',
-        9: 'Documentation artifacts generated',
+        9: 'Relevant project docs refreshed',
     };
 }
 
@@ -226,10 +226,6 @@ function getPhaseOutputs(profile: Profile, phase: PhaseNumber): string[] {
         return ['BDD Report'];
     }
 
-    if (phase === 9 && profile === 'standard') {
-        return ['Task References'];
-    }
-
     return PHASE_OUTPUTS[phase];
 }
 
@@ -240,10 +236,6 @@ function getPhaseGateCriteria(
 ): string {
     if (phase === 8 && profile === 'standard') {
         return 'BDD scenarios generated and executed';
-    }
-
-    if (phase === 9 && profile === 'standard') {
-        return 'Task references generated';
     }
 
     return autoGateCriteria[phase];
