@@ -1,6 +1,9 @@
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { setGlobalSilent } from '../../../scripts/logger';
-import { generateExecutionPlan, main, validateProfile } from '../scripts/plan';
+import { createExecutionPlan, generateExecutionPlan, main, validateProfile } from '../scripts/plan';
 
 beforeAll(() => {
     setGlobalSilent(true);
@@ -10,6 +13,7 @@ const originalExit = process.exit;
 
 afterEach(() => {
     process.exit = originalExit;
+    process.chdir('/Users/robin/projects/cc-agents');
 });
 
 function stubExit(): void {
@@ -20,12 +24,12 @@ function stubExit(): void {
 
 describe('generateExecutionPlan', () => {
     test('uses the previous executed phase as the input dependency', () => {
-        const plan = generateExecutionPlan('0266', 'standard', [7]);
-        const phase4 = plan.phases.find((phase) => phase.number === 4);
+        const plan = generateExecutionPlan('0266', 'complex');
+        const phase2 = plan.phases.find((phase) => phase.number === 2);
         const phase8 = plan.phases.find((phase) => phase.number === 8);
 
-        expect(phase4?.inputs).toEqual(['Phase 1 outputs']);
-        expect(phase8?.inputs).toEqual(['Phase 6 outputs']);
+        expect(phase2?.inputs).toEqual(['Phase 1 outputs']);
+        expect(phase8?.inputs).toEqual(['Phase 7 outputs']);
     });
 
     test('uses task_ref inputs when the first executed phase has no predecessor', () => {
@@ -64,12 +68,24 @@ describe('generateExecutionPlan', () => {
         expect(phase9?.gateCriteria).toBe('Documentation artifacts generated');
     });
 
-    test('counts human gates and estimated duration after skipped phases', () => {
-        const plan = generateExecutionPlan('0266', 'complex', [3, 7, 8]);
+    test('counts human gates and estimated duration after skipping a trailing suffix', () => {
+        const plan = generateExecutionPlan('0266', 'complex', [8, 9]);
 
-        expect(plan.estimated_duration_hours).toBe(11);
-        expect(plan.total_gates).toBe(6);
-        expect(plan.human_gates).toBe(0);
+        expect(plan.estimated_duration_hours).toBe(14);
+        expect(plan.total_gates).toBe(7);
+        expect(plan.human_gates).toBe(2);
+    });
+
+    test('rejects skip-phases that would break required dependencies', () => {
+        expect(() => generateExecutionPlan('0266', 'standard', [5])).toThrow(
+            'Invalid skip-phases for profile "standard"',
+        );
+    });
+
+    test('uses profile-specific default coverage thresholds', () => {
+        expect(generateExecutionPlan('0266', 'simple').coverage_threshold).toBe(60);
+        expect(generateExecutionPlan('0266', 'standard').coverage_threshold).toBe(80);
+        expect(generateExecutionPlan('0266', 'research').coverage_threshold).toBe(60);
     });
 });
 
@@ -119,6 +135,7 @@ describe('validateProfile', () => {
         expect(validateProfile('simple')).toBe(true);
         expect(validateProfile('standard')).toBe(true);
         expect(validateProfile('complex')).toBe(true);
+        expect(validateProfile('research')).toBe(true);
     });
 
     test('accepts phase profiles', () => {
@@ -130,14 +147,112 @@ describe('validateProfile', () => {
     });
 
     test('rejects invalid profiles', () => {
-        expect(validateProfile('research')).toBe(false);
         expect(validateProfile('invalid')).toBe(false);
+    });
+});
+
+describe('createExecutionPlan', () => {
+    test('reads task profile from a task file path when no override is provided', () => {
+        const tempDir = mkdtempSync(join(tmpdir(), 'orchestration-plan-'));
+        const taskPath = join(tempDir, '0266_example.md');
+
+        writeFileSync(
+            taskPath,
+            `---
+name: example
+description: example
+status: Backlog
+created_at: 2026-03-28T00:00:00.000Z
+updated_at: 2026-03-28T00:00:00.000Z
+profile: "research"
+impl_progress:
+  planning: pending
+  design: pending
+  implementation: pending
+  review: pending
+  testing: pending
+---
+
+## 0266. example
+`,
+            'utf-8',
+        );
+
+        const plan = createExecutionPlan(taskPath);
+
+        expect(plan.profile).toBe('research');
+        expect(plan.task_path).toBe(taskPath);
+        expect(plan.coverage_threshold).toBe(60);
+
+        rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    test('reads task profile from WBS-resolved task files', () => {
+        const tempDir = mkdtempSync(join(tmpdir(), 'orchestration-wbs-'));
+        mkdirSync(join(tempDir, 'docs', '.tasks'), { recursive: true });
+        mkdirSync(join(tempDir, 'docs', 'tasks'), { recursive: true });
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            `{
+  "active_folder": "docs/tasks",
+  "folders": {
+    "docs/tasks": { "base_counter": 0 }
+  }
+}
+`,
+            'utf-8',
+        );
+        writeFileSync(
+            join(tempDir, 'docs', 'tasks', '0266_example.md'),
+            `---
+name: example
+description: example
+status: Backlog
+created_at: 2026-03-28T00:00:00.000Z
+updated_at: 2026-03-28T00:00:00.000Z
+profile: "simple"
+impl_progress:
+  planning: pending
+  design: pending
+  implementation: pending
+  review: pending
+  testing: pending
+---
+
+## 0266. example
+`,
+            'utf-8',
+        );
+
+        process.chdir(tempDir);
+        const plan = createExecutionPlan('0266');
+
+        expect(plan.profile).toBe('simple');
+        expect(plan.coverage_threshold).toBe(60);
+
+        rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    test('surfaces auto, dry-run, and refine flags in the generated plan', () => {
+        const plan = createExecutionPlan('0266', { profile: 'standard', auto: true, dryRun: true, refine: true });
+        const phase1 = plan.phases.find((phase) => phase.number === 1);
+
+        expect(plan.auto_approve_human_gates).toBe(true);
+        expect(plan.dry_run).toBe(true);
+        expect(plan.refine_mode).toBe(true);
+        expect(phase1?.inputs).toContain('mode=refine');
+    });
+
+    test('rejects refine mode when the selected profile does not include phase 1', () => {
+        expect(() => createExecutionPlan('0266', { profile: 'unit', refine: true })).toThrow(
+            'Refine mode requires phase 1 to be in the execution plan.',
+        );
     });
 });
 
 describe('plan main', () => {
     test('generates a plan for valid CLI args', () => {
-        expect(() => main(['0266', '--profile', 'complex', '--skip', '2,7,12'])).not.toThrow();
+        expect(() => main(['0266', '--profile', 'complex', '--skip', '8,9', '--auto', '--refine'])).not.toThrow();
     });
 
     test('exits with code 1 when task_ref is missing', () => {
@@ -152,13 +267,10 @@ describe('plan main', () => {
         expect(() => main(['0266', '--profile', 'invalid'])).toThrow('EXIT:1');
     });
 
-    test('ignores non-phase values in the skip list', () => {
-        // Use the skip list directly with only valid values — boundary filtering
-        // is tested at the CLI parse level (--skip handler filters n>=1 && n<=9)
-        const plan = generateExecutionPlan('0266', 'standard', [7]);
-        const numbers = plan.phases.map((phase) => phase.number);
+    test('exits with code 1 when skip phases break required dependencies', () => {
+        stubExit();
 
-        expect(numbers).toEqual([1, 4, 5, 6, 8, 9]);
+        expect(() => main(['0266', '--profile', 'standard', '--skip-phases', '5'])).toThrow('EXIT:1');
     });
 
     test('uses coverage override in gate criteria and plan output', () => {
@@ -167,11 +279,6 @@ describe('plan main', () => {
 
         expect(phase6?.gateCriteria).toContain('90');
         expect(plan.coverage_threshold).toBe(90);
-    });
-
-    test('defaults coverage threshold to 80 when no override', () => {
-        const plan = generateExecutionPlan('0266', 'standard');
-        expect(plan.coverage_threshold).toBe(80);
     });
 
     test('phase 8 gate is auto/human hybrid', () => {
