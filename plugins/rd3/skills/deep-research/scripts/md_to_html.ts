@@ -138,9 +138,7 @@ function convertBibliographySection(markdown: string): string {
                 `<div class="bib-entry"><span class="bib-number">[${num}]</span> <a href="${url}" target="_blank">${formattedText}</a></div>`,
             );
         } else {
-            entries.push(
-                `<div class="bib-entry"><span class="bib-number">[${num}]</span> ${formattedText}</div>`,
-            );
+            entries.push(`<div class="bib-entry"><span class="bib-number">[${num}]</span> ${formattedText}</div>`);
         }
     }
 
@@ -345,7 +343,7 @@ function closeSections(html: string): string {
     return result.join('\n');
 }
 
-function main(): void {
+export function main(): void {
     const { positionals } = parseCli({
         name: 'md_to_html.ts',
         description: 'Convert markdown research reports to structured HTML',
