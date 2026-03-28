@@ -61,11 +61,14 @@ interface RequestIntakeInput {
   domain_hints?: string[];     // Optional domain tags to guide question selection
   mode?: 'create' | 'refine'; // 'create' (default): gather new requirements
                                // 'refine': improve existing requirements
+  execution_channel?: string; // Default: 'current'; preserved by orchestration
   // Valid formats: "backend", "frontend", "database", "auth", "api",
   // "devops", "testing", "security", "performance", "accessibility"
   // Free-form text also accepted — used for keyword matching against taxonomy
 }
 ```
+
+`execution_channel` is normally injected by `rd3:orchestration-dev`. Use `current` for in-channel execution, or an ACP agent name when the workflow is routed through `rd3:run-acp`.
 
 ### Modes
 
