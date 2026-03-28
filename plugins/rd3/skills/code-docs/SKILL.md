@@ -1,259 +1,225 @@
 ---
 name: code-docs
-description: "Auto-generate documentation artifacts: JSDoc/TSDoc comments, API reference stubs, task References, and changelog entries. Phase 9 finisher for the 9-phase orchestration pipeline. Persona: Senior Technical Writer."
+description: "Refresh cumulative project documentation after implementation by selectively updating canonical docs such as architecture, developer spec, user manual, and experience log. Phase 9 finisher for the rd3 pipeline. Persona: Senior Technical Writer."
 license: Apache-2.0
-version: 1.0.0
+version: 1.1.0
 created_at: 2026-03-27
-updated_at: 2026-03-27
+updated_at: 2026-03-28
 platform: rd3
 type: technique
-tags: [documentation, jsdoc, api-reference, changelog, phase-9]
+tags: [documentation, maintenance, architecture, developer-spec, user-manual, experience, phase-9]
 metadata:
   author: cc-agents
   platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity"
   category: documentation
   interactions:
-    - generator
+    - curator
 see_also:
   - rd3:request-intake
   - rd3:functional-review
   - rd3:orchestration-dev
 ---
 
-# rd3:code-docs — Automated Documentation Generation
+# rd3:code-docs — Cumulative Documentation Refresh
 
-Auto-generate documentation artifacts from source code using TypeScript compiler API for accurate symbol extraction. Supports JSDoc/TSDoc inline comments, API reference stubs, task References section updates, and conventional changelog entries.
+Refresh a fixed set of cumulative project documents after implementation so knowledge is preserved in the right place instead of being left in tasks, commits, or chat history.
 
 **Key distinction:**
-- **`code-docs`** = documentation generation from source (Phase 9)
-- **`request-intake`** = requirements elicitation (Phase 1)
-- **`functional-review`** = verification against requirements (Phase 8)
+- **`code-docs`** = refresh and curate long-lived project documentation (Phase 9)
+- **`request-intake`** = define requirements before implementation (Phase 1)
+- **`functional-review`** = verify implementation against requirements (Phase 8)
 
 ## When to Use
 
-**Trigger phrases:** "generate docs", "add documentation", "update jsdoc", "create api reference", "generate changelog", "document"
+**Trigger phrases:** "refresh docs", "update architecture doc", "update developer spec", "update user manual", "record experience", "phase 9 docs"
 
 Load this skill when:
-- Finishing implementation and need documentation artifacts
-- Updating legacy code without adequate JSDoc
-- Generating API reference documentation from TypeScript source
-- Creating changelog entries in conventional-changelog format
-- Updating task References section with implementation artifacts
+- Implementation changed architecture, workflows, APIs, or user-visible behavior
+- A task exposed a bug fix, workaround, or operational lesson worth preserving
+- The task closed a gap between current behavior and project documentation
+- You need to selectively refresh project docs instead of generating source-level API docs
 
-Do not use this skill for requirements documentation (use `rd3:request-intake`) or verification (use `rd3:functional-review`).
+Do not use this skill for requirements authoring (use `rd3:request-intake`) or implementation verification (use `rd3:functional-review`).
+
+## Canonical Documentation Set
+
+Phase 9 operates on a small, stable set of cumulative project docs.
+
+| Path | Purpose | Update When |
+|------|---------|-------------|
+| `docs/01_ARCHITECTURE_SPEC.md` | System architecture, boundaries, major design decisions | Structure, responsibilities, flow, integration points, or invariants changed |
+| `docs/02_DEVELOPER_SPEC.md` | Internal developer-facing functional and implementation guidance | New workflows, commands, extension points, conventions, or operational steps were introduced |
+| `docs/03_USER_MANUAL.md` | User-facing usage guidance | CLI behavior, setup steps, options, or user-visible output changed |
+| `docs/99_EXPERIENCE.md` | Lessons learned from bugs, fixes, regressions, and operational surprises | A task revealed a non-obvious pitfall, debugging pattern, or durable workaround |
+
+This set is intentionally opinionated. Prefer updating one of these files over creating a new ad hoc document.
+
+See `references/canonical-doc-structure.md` for the default skeleton of each canonical doc.
 
 ## Overview
 
-The code-docs skill uses TypeScript compiler API (`ts.createProgram`) for accurate symbol extraction rather than regex-based parsing:
+The code-docs skill is a documentation refresh workflow, not a doc generator:
 
-1. **Analyze** source files to extract exported symbols
-2. **Filter** symbols that need documentation (skip adequate existing JSDoc)
-3. **Generate** documentation per doc_type specification
-4. **Validate** output against quality checklist
-5. **Persist** documentation artifacts
+1. **Collect** task context from requirements, implementation artifacts, review notes, and tests
+2. **Classify** which canonical docs are actually affected
+3. **Read** the existing target docs before editing
+4. **Merge** the new information into the right sections
+5. **Validate** that the docs remain cumulative, specific, and non-duplicative
+6. **Persist** only the docs that materially changed
 
 ## Input Schema
 
 ```typescript
 interface CodeDocsInput {
   task_ref: string;                    // WBS number or path to task file
-  source_paths: string[];              // Source files/dirs to document
-  doc_types: DocType[];               // What to generate
-  style?: 'minimal' | 'comprehensive'; // Detail level (default: comprehensive)
+  source_paths?: string[];             // Changed files or artifact paths from implementation
+  target_docs?: CanonicalDoc[];        // Optional override; default = auto-select from canonical set
+  change_summary?: string[];           // Key changes, fixes, or behaviors to preserve
+  style?: 'delta-first' | 'integrated'; // Default: integrated
 }
 
-type DocType = 'jsdoc' | 'api-ref' | 'task-refs' | 'changelog-entry';
+type CanonicalDoc =
+  | 'docs/01_ARCHITECTURE_SPEC.md'
+  | 'docs/02_DEVELOPER_SPEC.md'
+  | 'docs/03_USER_MANUAL.md'
+  | 'docs/99_EXPERIENCE.md';
 ```
 
-### Style Impact per Doc Type
+## Selection Rules
 
-| doc_type | minimal | comprehensive |
-|----------|---------|---------------|
-| jsdoc | @param + @returns only | @param + @returns + @throws + @example + @see |
-| api-ref | Function signatures + one-line descriptions | Full descriptions + examples + type details |
-| task-refs | File paths only | File paths + line ranges + descriptions |
-| changelog-entry | Type + scope + subject | Type + scope + subject + body + breaking changes |
+Choose the smallest set of docs that preserves the task’s durable knowledge.
 
-## Quick Start
+### `docs/01_ARCHITECTURE_SPEC.md`
 
-```
-1. Load task file via task_ref
-2. Parse source_paths using TypeScript compiler API
-3. For each doc_type:
-   - jsdoc: Extract exports, generate/update JSDoc comments
-   - api-ref: Generate markdown API reference with TOC
-   - task-refs: Update task file References section
-   - changelog-entry: Generate conventional-changelog format
-4. Validate output against quality checklist
-5. Write artifacts to source files or task file
-```
+Update this file when the task changed:
+- component boundaries
+- data/control flow
+- integration points between modules or plugins
+- invariants, constraints, or layering rules
+- architecture decisions that future work must preserve
 
-## DocType Workflows
+Do **not** update this file for small implementation details with no design impact.
 
-### jsdoc
+### `docs/02_DEVELOPER_SPEC.md`
 
-**Goal:** Generate/update JSDoc/TSDoc comments for exported symbols.
+Update this file when the task changed:
+- internal developer workflows
+- command/skill behavior
+- extension points, conventions, or maintenance guidance
+- troubleshooting instructions developers need during future work
 
-```typescript
-// Extract exported symbols using TypeScript compiler API
-// Use: import * as ts from 'typescript';
-// const program = ts.createProgram(sourcePaths, { target: ts.ScriptTarget.ESNext });
-// const checker = program.getTypeChecker();
-// Walk source file AST with ts.forEachChild to find exported declarations
-const symbols = extractExports(sourcePath);
+This is the default target for most implementation-oriented tasks.
 
-// Filter: skip symbols with adequate existing JSDoc (>50 chars)
-const needsDocs = symbols.filter(s => 
-  !s.jsdoc || s.jsdoc.length < 50 || isGenericJSDoc(s.jsdoc)
-);
+### `docs/03_USER_MANUAL.md`
 
-// Generate JSDoc for each symbol
-for (const symbol of needsDocs) {
-  const jsdoc = generateJSDoc(symbol, style);
-  // Validate: reject generic descriptions
-  if (isGenericDescription(jsdoc)) {
-    throw new Error(`Generic JSDoc rejected for ${symbol.name}`);
-  }
-  // Insert/update JSDoc in source
-  insertJSDoc(sourceFile, symbol, jsdoc);
-}
-```
+Update this file when the task changed:
+- user-facing commands, flags, or options
+- installation, setup, or usage steps
+- visible output, examples, or expected behavior
 
-**JSDoc template:**
-```typescript
-/**
- * {description - specific, not generic}
- * @param {paramName} {paramType} - {description}
- * @returns {returnType} - {description}
- * @throws {errorType} - {when thrown}
- * @example
- * ```typescript
- * {usage example}
- * ```
- */
-```
+Do not put internal maintenance details here.
 
-**Quality rules:**
-- Minimum 50 characters of meaningful description
-- Reject: "This function does something", "A class that represents..."
-- @param/@returns/@throws required for comprehensive style
-- @example required for public API functions
+### `docs/99_EXPERIENCE.md`
 
-### api-ref
+Update this file when the task uncovered:
+- root causes behind bugs or regressions
+- durable debugging heuristics
+- common failure modes
+- workarounds, caveats, or lessons learned worth reusing
 
-**Goal:** Generate markdown API reference with table of contents.
+This file should capture insight, not a chronological dump.
 
-```typescript
-// Generate markdown API reference
-const toc = generateTOC(symbols);
-const sections = symbols.map(s => generateAPISection(s, style));
-const reference = `# API Reference\n\n${toc}\n\n${sections.join('\n\n')}`;
+## Refresh Workflow
+
+### 1. Gather Inputs
+
+Read:
+- task Background, Requirements, Solution, Review, Testing, and Artifacts sections
+- changed file paths from `source_paths` or task artifacts
+- relevant command/skill docs that were touched by the task
+
+### 2. Decide Target Docs
+
+```text
+IF boundaries / architecture changed
+  → update docs/01_ARCHITECTURE_SPEC.md
+
+IF internal behavior / developer workflow changed
+  → update docs/02_DEVELOPER_SPEC.md
+
+IF user-visible behavior changed
+  → update docs/03_USER_MANUAL.md
+
+IF the task taught a durable lesson
+  → update docs/99_EXPERIENCE.md
 ```
 
-**API reference template:**
-```markdown
-# API Reference
+### 3. Read Existing Docs First
 
-## Table of Contents
-- [Functions](#functions)
-- [Classes](#classes)
-- [Types](#types)
+Never overwrite blindly. Merge into the existing structure:
+- extend existing sections where possible
+- add a small new section only when the information does not fit anywhere
+- avoid repeating the task narrative in multiple files
 
-## Functions
+### 4. Diagram Rule
 
-### functionName
+If a document needs a diagram, it MUST be written as Mermaid inside a fenced markdown code block.
 
-\`\`\`typescript
-function functionName(param: ParamType): ReturnType
-\`\`\`
-
-{description}
-
-**Parameters:**
-- `param` (ParamType): {description}
-
-**Returns:** {description}
-
-**Throws:** {errorType} - {when}
-
-**Example:**
-\`\`\`typescript
-// {example usage}
-\`\`\`
+~~~~markdown
+```mermaid
+flowchart TD
+  A[Task Context] --> B[Select Canonical Docs]
+  B --> C[Refresh Existing Sections]
 ```
+~~~~
 
-### task-refs
+Do not use ASCII art, screenshots, or prose-only substitutes when a diagram would materially improve understanding.
 
-**Goal:** Update task file References section with implementation artifacts.
+### 5. Write Integrated Updates
 
-```typescript
-// Extract artifact paths from source
-const artifacts = discoverArtifacts(sourcePaths);
+Preferred style: **integrated**
+- update the relevant section directly so the doc reads as current truth
+- avoid large “Task 0274 update” dumps unless the doc is explicitly changelog-like
 
-// Generate References section entry
-const refEntry = artifacts.map(a => 
-  `- ${a.path} - ${a.type} - ${formatDate(new Date())}`
-).join('\n');
+Alternative style: **delta-first**
+- add a short update block first, then fold it into integrated prose when practical
 
-// Read task file, find/update References section
-updateTaskSection(taskPath, 'References', refEntry);
-```
+## Document Patterns
 
-### changelog-entry
+See `references/doc-templates.md` for section patterns. High-level expectations:
 
-**Goal:** Generate entry in conventional-changelog format.
-
-```typescript
-// Analyze git diff or source changes
-const changes = analyzeChanges(sourcePaths);
-
-// Generate changelog entry
-const entry = {
-  type: determineChangeType(changes), // feat|fix|docs|refactor|test|chore
-  scope: extractScope(changes),       // affected module/component
-  subject: summarizeChanges(changes),  // brief description
-  breaking: hasBreakingChanges(changes),
-};
-const formatted = formatChangelogEntry(entry);
-```
-
-**Version and date inference:**
-- `version`: Read from `package.json` `version` field. Fallback: latest git tag. If neither exists, use `Unreleased`.
-- `date`: Current date in YYYY-MM-DD format.
-
-**Conventional changelog format:**
-```
-## {version} ({date})
-
-### {type}({scope}): {subject}
-
-{description of change}
-
-BREAKING CHANGE: {breaking change description}
-```
+- `01_ARCHITECTURE_SPEC`: systems, boundaries, flow, invariants
+- `02_DEVELOPER_SPEC`: commands, lifecycle, maintenance steps, extension rules
+- `03_USER_MANUAL`: user tasks, examples, expected results, caveats
+- `99_EXPERIENCE`: concise lesson, trigger/symptom, root cause, fix, prevention
 
 ## Quality Checklist
 
-See `references/quality-checklist.md` for:
-- JSDoc rejection criteria (generic descriptions, missing @params)
-- API reference completeness standards
-- Changelog format requirements
+See `references/quality-checklist.md`.
+
+The core quality bar:
+- update only docs affected by the task
+- preserve cumulative readability
+- remove or rewrite stale statements that conflict with the implementation
+- do not duplicate the same detail across architecture, developer, and user docs unless the audience truly differs
+- record durable lessons in `99_EXPERIENCE.md`, not transient debugging noise
+- when diagrams are used, render them as Mermaid fenced blocks
 
 ## Integration
 
 **tasks CLI integration:**
 ```bash
-# Generate JSDoc for specific files
-rd3:code-docs 0266 --source-paths plugins/rd3/skills/tasks/scripts/ --doc-types jsdoc
+# Refresh docs selected from task context
+rd3:code-docs 0274
 
-# Generate full documentation package
-rd3:code-docs 0266 --source-paths src/ --doc-types jsdoc,api-ref,task-refs
+# Refresh docs for a task with explicit source context
+rd3:code-docs 0274 --source-paths plugins/rd3/skills/orchestration-dev/,plugins/rd3/commands/
 
-# Generate changelog entry
-rd3:code-docs 0266 --source-paths src/ --doc-types changelog-entry
+# Force a specific target set
+rd3:code-docs 0274 --target-docs docs/02_DEVELOPER_SPEC.md,docs/99_EXPERIENCE.md
 ```
 
 **Phase integration:**
-- Phase 9 of 9-phase orchestration pipeline
-- Input feeds from implementation phase artifacts
-- Output used by `rd3:functional-review` for traceability
+- Phase 9 of the rd3 orchestration pipeline
+- Input typically comes from implementation artifacts, review findings, and testing outcomes
+- Output is a refreshed subset of canonical project docs
