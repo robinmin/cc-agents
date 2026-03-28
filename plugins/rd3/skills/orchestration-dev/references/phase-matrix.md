@@ -13,6 +13,7 @@ Determine phase selection based on task complexity.
 | **simple** | Single deliverable | 1-2 | 0-1 |
 | **standard** | Moderate scope | 2-5 | 2-3 |
 | **complex** | Large scope | 6+ | 4+ |
+| **research** | Investigation-heavy scope | 2-6 | 2-4 |
 
 ### Phase Profiles
 
@@ -28,17 +29,17 @@ Run a specific phase or phase group. Used by convenience commands.
 
 ## Phase Execution Matrix
 
-| Phase | Name | simple | standard | complex | refine | plan | unit | review | docs |
-|-------|------|--------|----------|---------|--------|------|------|--------|------|
-| 1 | Request Intake | **skip** | **run** | **run** | **run** | skip | skip | skip | skip |
-| 2 | Architecture | **skip** | skip | **run** | skip | **run** | skip | skip | skip |
-| 3 | Design | **skip** | skip | **run** | skip | **run** | skip | skip | skip |
-| 4 | Task Decomposition | **skip** | **run** | **run** | skip | **run** | skip | skip | skip |
-| 5 | Implementation | **run** | **run** | **run** | skip | skip | skip | skip | skip |
-| 6 | Unit Testing | **run** | **run** | **run** | skip | skip | **run** | skip | skip |
-| 7 | Code Review | **skip** | **run** | **run** | skip | skip | skip | **run** | skip |
-| 8 | Functional Review | **skip** | bdd only | bdd+functional | skip | skip | skip | skip | skip |
-| 9 | Documentation | **skip** | task-refs | **full** | skip | skip | skip | skip | **run** |
+| Phase | Name | simple | standard | complex | research | refine | plan | unit | review | docs |
+|-------|------|--------|----------|---------|----------|--------|------|------|--------|------|
+| 1 | Request Intake | **skip** | **run** | **run** | **run** | **run** | skip | skip | skip | skip |
+| 2 | Architecture | **skip** | skip | **run** | **run** | skip | **run** | skip | skip | skip |
+| 3 | Design | **skip** | skip | **run** | **run** | skip | **run** | skip | skip | skip |
+| 4 | Task Decomposition | **skip** | **run** | **run** | **run** | skip | **run** | skip | skip | skip |
+| 5 | Implementation | **run** | **run** | **run** | **run** | skip | skip | skip | skip | skip |
+| 6 | Unit Testing | **run** (60%) | **run** (80%) | **run** (80%) | **run** (60%) | skip | skip | **run** | skip | skip |
+| 7 | Code Review | **skip** | **run** | **run** | **run** | skip | skip | skip | **run** | skip |
+| 8 | Functional Review | **skip** | bdd only | bdd+functional | bdd+functional | skip | skip | skip | skip | skip |
+| 9 | Documentation | **skip** | task-refs | **full** | **full** | skip | skip | skip | skip | **run** |
 
 ### Legend
 
@@ -94,10 +95,10 @@ Implements the solution.
 ### Phase 6: Unit Testing
 **Skills:** `rd3:sys-testing`, `rd3:advanced-testing`
 
-Runs tests and verifies coverage against the project-level threshold.
+Runs tests and verifies coverage against the profile-sensitive default threshold.
 
 **Entry criteria:** Implementation complete
-**Exit criteria:** Coverage >= project threshold, all tests pass
+**Exit criteria:** Coverage >= profile threshold, all tests pass
 
 ### Phase 7: Code Review
 **Skill:** `rd3:code-review-common`
@@ -130,20 +131,24 @@ Generates documentation artifacts.
 ## Phase Dependencies
 
 ```
-1 (Intake) [standard, complex]
-  ├─> 2 (Architecture) [complex only]
+1 (Intake) [standard, complex, research]
+  ├─> 2 (Architecture) [complex, research]
   │     └─> 3 (Design)
-  │           └─> 4 (Decomposition) [standard, complex]
+  │           └─> 4 (Decomposition) [standard, complex, research]
   │                 └─> 5 (Implementation) [all profiles]
   │                       ├─> 6 (Testing) [all profiles]
-  │                       │     └─> 7 (Code Review) [standard, complex]
-  │                       │           └─> 8 (Functional Review) [standard, complex]
-  │                       │                 └─> 9 (Documentation) [standard, complex]
+  │                       │     └─> 7 (Code Review) [standard, complex, research]
+  │                       │           └─> 8 (Functional Review) [standard, complex, research]
+  │                       │                 └─> 9 (Documentation) [standard, complex, research]
   │
-  └─> 4 (Decomposition) [standard, complex — when phases 2-3 skipped]
+  └─> 4 (Decomposition) [standard, complex, research — when phases 2-3 skipped]
         └─> 5 (Implementation) [all profiles]
               └─> 6 (Testing) [all profiles]
 ```
+
+## Skip Phase Constraint
+
+The planner only accepts **trailing** skipped phases. Skipping an interior phase would invalidate downstream inputs, so combinations like "skip phase 5 but keep phase 6" are rejected.
 
 ## Skip Phase Rationale
 
