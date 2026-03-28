@@ -31,6 +31,7 @@ export interface ExecutionPlan {
     task_ref: string;
     task_path?: string;
     profile: Profile;
+    execution_channel: string;
     phases: Phase[];
     estimated_duration_hours: number;
     total_gates: number;
@@ -122,6 +123,7 @@ interface CreateExecutionPlanOptions {
     profile?: Profile;
     skipPhases?: PhaseNumber[];
     coverageOverride?: number;
+    executionChannel?: string;
     auto?: boolean;
     dryRun?: boolean;
     refine?: boolean;
@@ -304,6 +306,7 @@ export function generateExecutionPlan(
     return {
         task_ref: taskRef,
         profile,
+        execution_channel: 'current',
         phases,
         estimated_duration_hours: estimatedDuration,
         total_gates: phases.length,
@@ -341,6 +344,7 @@ export function createExecutionPlan(taskRef: string, options: CreateExecutionPla
     return {
         ...plan,
         phases,
+        execution_channel: options.executionChannel ?? 'current',
         auto_approve_human_gates: options.auto ?? false,
         refine_mode: refineMode,
         dry_run: options.dryRun ?? false,
@@ -358,9 +362,9 @@ export function validateProfile(profile: string): profile is Profile {
 export function main(args = process.argv.slice(2)): void {
     if (args.length < 1) {
         logger.error(
-            'Usage: plan.ts <task_ref> [--profile <profile>] [--skip-phases <phases>] [--coverage <n>] [--auto] [--dry-run] [--refine]',
+            'Usage: plan.ts <task_ref> [--profile <profile>] [--skip-phases <phases>] [--coverage <n>] [--channel <agent|current>] [--auto] [--dry-run] [--refine]',
         );
-        logger.error('Example: plan.ts 0266 --profile standard --skip-phases 8,9 --coverage 90 --auto');
+        logger.error('Example: plan.ts 0266 --profile standard --skip-phases 8,9 --coverage 90 --channel codex --auto');
         process.exit(1);
     }
 
@@ -368,6 +372,7 @@ export function main(args = process.argv.slice(2)): void {
     let profile: Profile | undefined;
     const skipPhases: PhaseNumber[] = [];
     let coverageOverride: number | undefined;
+    let executionChannel = 'current';
     let dryRun = false;
     let auto = false;
     let refine = false;
@@ -395,6 +400,8 @@ export function main(args = process.argv.slice(2)): void {
                 logger.error(`Invalid coverage: ${cov}. Must be 1-100.`);
                 process.exit(1);
             }
+        } else if (args[i] === '--channel' && i + 1 < args.length) {
+            executionChannel = args[++i];
         } else if (args[i] === '--dry-run') {
             dryRun = true;
         } else if (args[i] === '--auto') {
@@ -412,6 +419,7 @@ export function main(args = process.argv.slice(2)): void {
             refine,
             ...(profile ? { profile } : {}),
             ...(coverageOverride !== undefined ? { coverageOverride } : {}),
+            executionChannel,
         };
         const plan = createExecutionPlan(taskRef, options);
         logger.log(JSON.stringify(plan, null, 2));
