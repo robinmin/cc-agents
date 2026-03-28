@@ -129,4 +129,4 @@ constructor() {}
 
 - **rd3:sys-debugging**: Four-phase debugging framework
 - **rd3:orchestration-dev**: Full 9-phase pipeline orchestrator
-- **/rd3:dev-run**: End-to-end execution (phases 1-7)
+- **/rd3:dev-run**: End-to-end execution (phases 1-9)
