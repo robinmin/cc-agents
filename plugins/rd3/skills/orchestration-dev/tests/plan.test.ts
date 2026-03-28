@@ -86,6 +86,12 @@ describe('generateExecutionPlan', () => {
         expect(generateExecutionPlan('0266', 'simple').coverage_threshold).toBe(60);
         expect(generateExecutionPlan('0266', 'standard').coverage_threshold).toBe(80);
         expect(generateExecutionPlan('0266', 'research').coverage_threshold).toBe(60);
+        expect(generateExecutionPlan('0266', 'unit').coverage_threshold).toBe(90);
+    });
+
+    test('uses stricter default phase-6 gate criteria for the unit profile', () => {
+        const plan = generateExecutionPlan('0266', 'unit');
+        expect(plan.phases[0].gateCriteria).toBe('Per-file coverage >= 90%, 100% tests pass');
     });
 });
 
