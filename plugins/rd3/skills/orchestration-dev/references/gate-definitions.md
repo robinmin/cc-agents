@@ -80,18 +80,25 @@ Approve, reject, or request rework?
 
 **Pass Criteria:**
 ```typescript
-function checkTestGate(task: TaskFile, coverageOverride?: number): boolean {
-    const threshold = coverageOverride ?? PROJECT_COVERAGE_THRESHOLD;
-    const coverage = task.test_results.coverage;
-    return coverage >= threshold;
+function checkTestGate(task: TaskFile, profile: Profile, coverageOverride?: number): boolean {
+    const threshold = coverageOverride ?? (profile === 'unit' ? 90 : PROJECT_COVERAGE_THRESHOLD);
+    const hasFailures = task.test_results.some((result) => result.status === 'failed');
+    const perFileCoverage = task.coverage?.per_file ?? {};
+
+    if (hasFailures) return false;
+    if (profile === 'unit') {
+        return Object.values(perFileCoverage).every((value) => value >= threshold);
+    }
+
+    return task.coverage?.lines >= threshold;
 }
 ```
 
-**Coverage Threshold:** Project-level constant. Override via `--coverage` flag.
+**Coverage Threshold:** Project-level constant for task profiles. The `unit` phase profile defaults to per-file coverage >=90%. Override via `--coverage` flag.
 
 **Fail Action:** Rework loop (max 2 iterations), then escalate
 
-**Why:** Coverage threshold ensures minimum test quality
+**Why:** Coverage thresholds plus 100% passing tests ensure the suite is both broad enough and currently healthy
 
 ## Review Gate
 
