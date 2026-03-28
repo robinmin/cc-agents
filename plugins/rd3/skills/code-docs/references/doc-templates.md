@@ -1,206 +1,143 @@
-# Documentation Templates
+# Documentation Refresh Patterns
 
-This document contains templates for generating JSDoc, API references, and changelog entries.
+This document provides section patterns for the canonical documentation set refreshed by `rd3:code-docs`.
 
-## JSDoc Templates
+The goal is not to generate boilerplate. The goal is to merge new implementation knowledge into the right long-lived document with minimal duplication.
 
-### Minimal JSDoc (style: minimal)
+If a diagram is useful, write it as Mermaid in a fenced markdown block.
 
-```typescript
-/**
- * {brief description}
- * @param {paramType} paramName - {description}
- * @returns {returnType}
- */
-```
+## `docs/01_ARCHITECTURE_SPEC.md`
 
-### Comprehensive JSDoc (style: comprehensive)
+Use this document for enduring system truth.
 
-```typescript
-/**
- * {detailed description explaining purpose, behavior, and side effects}
- * 
- * {additional context that helps future maintainers understand intent}
- * 
- * @param {paramType} paramName - {description of parameter and its role}
- * @param {paramType} optionalParam - {description} (optional)
- * @returns {returnType} - {description of return value}
- * @throws {ErrorType} - {description of when this error is thrown}
- * @example
- * ```typescript
- * // Setup
- * const result = {functionName}({example input});
- * 
- * // Verification
- * expect(result).toBe({expected output});
- * ```
- */
-```
-
-### Class JSDoc
-
-```typescript
-/**
- * {className} - {brief one-line description}
- * 
- * {detailed description of class purpose and usage}
- * 
- * @example
- * ```typescript
- * const instance = new {className}({constructorParams});
- * ```
- */
-```
-
-### Type/Interface JSDoc
-
-```typescript
-/**
- * {TypeName} - {brief description}
- * 
- * {detailed description of type purpose and usage}
- * 
- * @example
- * ```typescript
- * const value: {typeName} = {example};
- * ```
- */
-```
-
-## API Reference Templates
-
-### Function API Section
+### Good update shapes
 
 ```markdown
-### {functionName}
+## Runtime Flow
 
-\`\`\`typescript
-function {functionName}({param1}: {param1Type}, {param2}?: {param2Type}): {returnType}
-\`\`\`
-
-{description}
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `param1` | `{param1Type}` | Yes | {description} |
-| `param2` | `{param2Type}` | No | {description} |
-
-**Returns:** {description of return value}
-
-**Throws:**
-
-| Error | Condition |
-|-------|-----------|
-| `{ErrorType}` | {when thrown} |
-
-**Example:**
-\`\`\`typescript
-{usage example}
-\`\`\`
+1. Phase 1 refines the task and assigns a profile.
+2. The planner resolves the profile from task frontmatter before applying overrides.
+3. Phase 9 refreshes canonical project docs based on changed behavior.
 ```
 
-### Class API Section
+~~~~markdown
+## Runtime Flow Diagram
+
+```mermaid
+flowchart TD
+  A[Task File] --> B[Resolve Profile]
+  B --> C[Run Phases]
+  C --> D[Refresh Canonical Docs]
+```
+~~~~
 
 ```markdown
-### {ClassName}
+## Constraints
 
-**Kind:** class
-
-{description}
-
-### Constructor
-
-\`\`\`typescript
-new {ClassName}({params})
-\`\`\`
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| `param1` | `{param1Type}` | Yes | {description} |
-
-### Properties
-
-| Name | Type | Description |
-|------|------|-------------|
-| `property1` | `{type}` | {description} |
-
-### Methods
-
-#### {methodName}
-
-\`\`\`typescript
-{methodSignature}
-\`\`\`
-
-{description}
-
-**Parameters:** See Function API Section
-
-**Returns:** {description}
+- `--skip-phases` only supports trailing phases because downstream phases depend on upstream artifacts.
+- `simple` and `research` profiles default to a 60% test gate; `standard` and `complex` default to 80%.
 ```
 
-### Type/Interface API Section
+### Avoid
+
+- task-by-task chronology
+- detailed command examples better suited for developers or users
+- bug diary content that belongs in `99_EXPERIENCE.md`
+
+## `docs/02_DEVELOPER_SPEC.md`
+
+Use this document for internal developer-facing guidance.
+
+### Good update shapes
 
 ```markdown
-### {TypeName}
+## Phase 9 Documentation Refresh
 
-**Kind:** {type|interface}
+When Phase 9 runs, update only the relevant canonical docs:
 
-\`\`\`typescript
-type {TypeName} = {definition};
-\`\`\`
-
-{description}
-
-**Properties:**
-
-| Name | Type | Description |
-|------|------|-------------|
-| `prop1` | `{type}` | {description} |
+- `docs/01_ARCHITECTURE_SPEC.md` for architectural changes
+- `docs/02_DEVELOPER_SPEC.md` for internal workflow changes
+- `docs/03_USER_MANUAL.md` for user-visible behavior changes
+- `docs/99_EXPERIENCE.md` for durable lessons from bugs and fixes
 ```
-
-## Changelog Entry Template
-
-### Conventional Changelog Format
 
 ```markdown
-## {version} ({date})
+## Command Behavior
 
-### {type}({scope}): {subject}
-
-{description of change in 2-3 sentences}
-
-{if breaking changes}
-BREAKING CHANGE: {description of breaking change and migration path}
-{/if}
-
-<!-- 
-Affected files:
-{file1}
-{file2}
--->
+`/rd3:dev-review` is task-scoped. It accepts a WBS number or task file path and delegates to Phase 7 using task context.
 ```
 
-### Change Types
+### Avoid
 
-| Type | Use When |
-|------|----------|
-| `feat` | New feature added |
-| `fix` | Bug fix |
-| `docs` | Documentation only changes |
-| `style` | Formatting, white-space (no code change) |
-| `refactor` | Code change that neither fixes bug nor adds feature |
-| `perf` | Performance improvement |
-| `test` | Adding or correcting tests |
-| `chore` | Maintenance tasks, dependency updates |
+- architecture rationale already captured in `01_ARCHITECTURE_SPEC.md`
+- user-facing step-by-step usage that belongs in `03_USER_MANUAL.md`
 
-### Scope Extraction
+## `docs/03_USER_MANUAL.md`
 
-Extract scope from affected module/component name:
-- File path: `src/api/user.ts` → scope: `api/user`
-- Feature: `src/auth/oauth.ts` → scope: `auth/oauth`
-- Component: `ui/Button.tsx` → scope: `ui/button`
+Use this document for externally visible behavior.
+
+### Good update shapes
+
+```markdown
+## Reviewing a Task
+
+Use `/rd3:dev-review <task-ref>` to review a task after implementation.
+
+Examples:
+
+- `/rd3:dev-review 0274`
+- `/rd3:dev-review docs/tasks2/0274_add_dev_slash_commands.md`
+```
+
+```markdown
+## Running the Pipeline
+
+Use `/rd3:dev-run <task-ref> --profile research` for investigation-heavy work. This profile runs the full pipeline and uses a lighter default test gate.
+```
+
+### Avoid
+
+- internal implementation details of the skill system
+- maintenance heuristics intended only for developers
+
+## `docs/99_EXPERIENCE.md`
+
+Use this document for durable lessons from real work.
+
+### Preferred entry pattern
+
+```markdown
+## Trailing Phase Skips Only
+
+### Symptom
+
+The planner could emit impossible phase chains such as testing without implementation.
+
+### Root Cause
+
+`--skip-phases` was treated as a simple filter, and phase dependencies were recomputed from the previous remaining phase instead of validated against required upstream outputs.
+
+### Fix
+
+Reject non-trailing skipped phases and keep the dependency chain explicit.
+
+### Prevention
+
+When a phase consumes artifacts from an earlier phase, validate skip combinations before producing a plan.
+```
+
+### Avoid
+
+- raw terminal transcripts
+- transient debugging notes without reusable lessons
+- emotional narrative instead of operational insight
+
+## Merge Strategy
+
+When updating docs:
+
+1. Prefer integrating into an existing section.
+2. Add a new section only when the topic is genuinely new.
+3. Rewrite stale lines instead of appending contradictory text.
+4. Keep examples short and specific to current behavior.
+5. When a diagram helps, use Mermaid fenced blocks only.
