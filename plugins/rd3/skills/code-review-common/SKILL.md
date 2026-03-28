@@ -54,6 +54,19 @@ This skill provides a systematic approach to code review using the **SECU Framew
 - Structured output with `rd3:tasks` integration
 - OWASP Top 10 vulnerability detection
 
+## Execution Channel Contract
+
+This skill may be invoked with:
+
+```typescript
+interface ReviewRouting {
+  execution_channel?: string; // Default: 'current'
+}
+```
+
+- `current` means execute the review on the current channel.
+- Any ACP agent name means the caller should route the review through `rd3:run-acp` and preserve the same value in the delegated input.
+
 ## Quick Start
 
 ```bash
@@ -171,7 +184,10 @@ Design → architect review → decisions documented
 ### Execution via rd3:run-acp
 
 ```bash
-# Delegate review to a specific channel agent
+# Review on the current channel
+review src/auth/ --execution-channel current
+
+# Delegate review to a specific ACP channel agent
 acpx <agent> "Review src/auth/ for security issues"
 
 # Multi-channel parallel review
