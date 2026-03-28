@@ -1,15 +1,15 @@
 ---
-description: Comprehensive code review for a task or project scope
-argument-hint: "<task-ref | path> [--auto]"
+description: Comprehensive code review for a task scope
+argument-hint: "<task-ref> [--auto]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 disable-model-invocation: true
 ---
 
 # Dev Review
 
-Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation quality for a specific task or project scope.
+Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation quality for a specific task scope.
 
-**Shortcut for:** `/dev-run {task-ref} --profile review`
+**Shortcut for:** `/rd3:dev-run {task-ref} --profile review`
 
 ## When to Use
 
@@ -21,7 +21,7 @@ Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation qu
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `task-ref \| path` | Yes | WBS number, file path, or directory to review |
+| `task-ref` | Yes | WBS number or task file path |
 | `--auto` | No | Auto-approve gates |
 
 ### Smart Positional Detection
@@ -36,6 +36,9 @@ Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation qu
 Delegates to **rd3:orchestration-dev** with review profile:
 
 ```
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review")
+
+# Optional: bypass the review gate
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --auto")
 ```
 
@@ -52,11 +55,11 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --auto")
 ## Examples
 
 ```bash
-/dev-review 0274
-/dev-review docs/tasks2/0274_add_dev_slash_commands.md
+/rd3:dev-review 0274
+/rd3:dev-review docs/tasks2/0274_add_dev_slash_commands.md
 ```
 
 ## See Also
 
-- **/dev-run**: Profile-driven pipeline execution
+- **/rd3:dev-run**: Profile-driven pipeline execution
 - **rd3:code-review-common**: Code review skill
