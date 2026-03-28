@@ -103,8 +103,8 @@ This is a **standalone git utility**, not a pipeline phase shortcut. It does not
 
 ## See Also
 
-- **/dev-changelog**: Generate changelog from commits
-- **/dev-run**: Profile-driven pipeline execution
+- **/rd3:dev-changelog**: Generate changelog from commits
+- **/rd3:dev-run**: Profile-driven pipeline execution
 
 ## References
 
