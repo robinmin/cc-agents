@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Execute phase 9 (Documentation) of the 9-phase pipeline. Generates and updates documentation based on implementation artifacts.
 
-**Shortcut for:** `/dev-run {task-ref} --profile docs`
+**Shortcut for:** `/rd3:dev-run {task-ref} --profile docs`
 
 ## When to Use
 
@@ -42,11 +42,11 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs --auto")
 ## Examples
 
 ```bash
-/dev-docs 0274
-/dev-docs 0274 --auto
+/rd3:dev-docs 0274
+/rd3:dev-docs 0274 --auto
 ```
 
 ## See Also
 
-- **/dev-run**: Profile-driven pipeline execution
+- **/rd3:dev-run**: Profile-driven pipeline execution
 - **rd3:code-docs**: Documentation generation skill
