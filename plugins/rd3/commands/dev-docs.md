@@ -36,7 +36,7 @@ Execute phase 9 (Documentation) of the 9-phase pipeline. Generates and updates d
 Delegates to **rd3:orchestration-dev** with docs profile:
 
 ```
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs --auto")
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs")
 ```
 
 ## Examples
