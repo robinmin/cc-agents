@@ -9,11 +9,11 @@ disable-model-invocation: true
 
 Execute phases 2-4 of the 9-phase pipeline: Architecture, Design, and Task Decomposition.
 
-**Shortcut for:** `/dev-run {task-ref} --profile plan`
+**Shortcut for:** `/rd3:dev-run {task-ref} --profile plan`
 
 ## When to Use
 
-- After requirements are refined (via `/dev-refine`)
+- After requirements are refined (via `/rd3:dev-refine`)
 - Task needs architecture and design before implementation
 - Breaking down a task into implementable subtasks
 
@@ -36,17 +36,20 @@ Execute phases 2-4 of the 9-phase pipeline: Architecture, Design, and Task Decom
 Delegates to **rd3:orchestration-dev** with plan profile:
 
 ```
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile plan")
+
+# Optional: bypass the design gate
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile plan --auto")
 ```
 
 ## Examples
 
 ```bash
-/dev-plan 0274
-/dev-plan docs/tasks2/0274_add_dev_slash_commands.md
+/rd3:dev-plan 0274
+/rd3:dev-plan docs/tasks2/0274_add_dev_slash_commands.md
 ```
 
 ## See Also
 
-- **/dev-run**: Profile-driven pipeline execution
-- **/dev-refine**: Refine requirements (phase 1)
+- **/rd3:dev-run**: Profile-driven pipeline execution
+- **/rd3:dev-refine**: Refine requirements (phase 1)
