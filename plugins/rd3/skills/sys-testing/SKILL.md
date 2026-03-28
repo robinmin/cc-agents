@@ -39,6 +39,10 @@ When this skill is invoked by `/rd3:dev-unit` or the orchestration `unit` profil
 
 An explicit `--coverage` override may raise or lower the coverage target, but it does not relax the requirement that the test suite must be fully passing.
 
+The orchestration layer may also pass `execution_channel`:
+- `current` means run tests on the current channel
+- Any ACP agent name means the caller routed this skill through `rd3:run-acp`
+
 ## When to Use
 
 Use this skill when:
