@@ -1,0 +1,360 @@
+# Delegation Map
+
+This document maps phases to specialist skills with their inputs and outputs.
+
+## Phase -> Skill Mapping
+
+| Phase | Primary Skill | Aliases | Sub-skills |
+|-------|---------------|---------|------------|
+| 1 | `rd3:request-intake` | intake | - |
+| 2a | `rd3:backend-architect` | backend-arch | - |
+| 2b | `rd3:frontend-architect` | frontend-arch | - |
+| 3a | `rd3:backend-design` | backend-design | - |
+| 3b | `rd3:frontend-design` | frontend-design | - |
+| 3c | `rd3:ui-ux-design` | ui-ux-design | - |
+| 4 | `rd3:task-decomposition` | decompose | - |
+| 5 | `rd3:code-implement-common` | implement | - |
+| 6 | `rd3:sys-testing` | testing | `rd3:advanced-testing` |
+| 7 | `rd3:code-review-common` | review | - |
+| 8a | `rd3:bdd-workflow` | bdd | - |
+| 8b | `rd3:functional-review` | func-review | - |
+| 9 | `rd3:code-docs` | docs | - |
+
+## Phase 1: Request Intake
+
+**Skill:** `rd3:request-intake`
+
+### Inputs
+```typescript
+{
+    task_ref: string;          // WBS number or path
+    description?: string;       // Additional context
+    domain_hints?: string[];   // Domain expertise hints
+}
+```
+
+### Outputs
+```typescript
+{
+    background: string;         // 100+ chars
+    requirements: string[];      // Numbered, testable
+    constraints: string[];      // Explicit limits
+    profile: Profile;           // simple|standard|complex|research
+}
+```
+
+### Updates Task File Sections
+- Background
+- Requirements
+- Constraints
+- Profile (frontmatter)
+
+## Phase 2: Architecture
+
+**Skills:** `rd3:backend-architect` or `rd3:frontend-architect`
+
+### Inputs
+```typescript
+{
+    task_ref: string;
+    requirements: string[];      // From Phase 1
+    constraints: string[];       // From Phase 1
+}
+```
+
+### Outputs
+```typescript
+{
+    architecture_doc: string;   // Markdown document
+    components: Component[];
+    api_contracts: APIContract[];
+}
+
+interface Component {
+    name: string;
+    type: 'frontend' | 'backend' | 'database' | 'service';
+    responsibilities: string[];
+    dependencies: string[];
+}
+
+interface APIContract {
+    endpoint: string;
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    request_schema: object;
+    response_schema: object;
+}
+```
+
+### Updates Task File Sections
+- Design (architecture subsection)
+
+## Phase 3: Design
+
+**Skills:** `rd3:backend-design`, `rd3:frontend-design`, `rd3:ui-ux-design`
+
+### Inputs
+```typescript
+{
+    task_ref: string;
+    architecture: ArchitectureDoc;  // From Phase 2
+    requirements: string[];
+}
+```
+
+### Outputs
+```typescript
+{
+    design_doc: string;
+    data_models: DataModel[];
+    api_schemas: APISchema[];
+    ui_specs?: UISpec[];           // If UI involved
+}
+
+interface DataModel {
+    name: string;
+    fields: Field[];
+    relationships: Relationship[];
+}
+
+interface Field {
+    name: string;
+    type: string;
+    required: boolean;
+    validation?: string;
+}
+
+interface APISchema {
+    endpoint: string;
+    request: object;    // JSON schema
+    response: object;  // JSON schema
+}
+
+interface UISpec {
+    component: string;
+    props: object;
+    states: string[];
+}
+```
+
+### Updates Task File Sections
+- Design (full design document)
+
+## Phase 4: Task Decomposition
+
+**Skill:** `rd3:task-decomposition`
+
+### Inputs
+```typescript
+{
+    task_ref: string;
+    requirements: string[];
+    design?: DesignDoc;           // If available
+}
+```
+
+### Outputs
+```typescript
+{
+    subtasks: Subtask[];
+}
+
+interface Subtask {
+    wbs: string;
+    name: string;
+    description: string;
+    dependencies: string[];        // WBS numbers
+    estimated_hours?: number;
+}
+```
+
+### Side Effects
+- Creates subtask files via `tasks batch-create`
+
+## Phase 5: Implementation
+
+**Skill:** `rd3:code-implement-common`
+
+### Inputs
+```typescript
+{
+    task_ref: string;             // Parent task or subtask
+    solution: string;             // From Solution section
+    design?: DesignDoc;           // If available
+}
+```
+
+### Outputs
+```typescript
+{
+    artifacts: Artifact[];
+}
+
+interface Artifact {
+    type: 'file' | 'directory';
+    path: string;
+    action: 'create' | 'modify' | 'delete';
+}
+```
+
+### Updates Task File Sections
+- Artifacts
+
+## Phase 6: Unit Testing
+
+**Skills:** `rd3:sys-testing` + `rd3:advanced-testing`
+
+### Inputs
+```typescript
+{
+    task_ref: string;
+    source_paths: string[];       // Implementation artifacts
+    coverage_threshold: number;   // 60% or 80%
+}
+```
+
+### Outputs
+```typescript
+{
+    coverage: CoverageResult;
+    test_results: TestResult[];
+}
+
+interface CoverageResult {
+    lines: number;                // % lines covered
+    functions: number;           // % functions covered
+    branches: number;            // % branches covered
+}
+
+interface TestResult {
+    file: string;
+    status: 'passed' | 'failed';
+    duration_ms: number;
+    errors?: string[];
+}
+```
+
+### Gate
+- Coverage >= threshold
+
+## Phase 7: Code Review
+
+**Skill:** `rd3:code-review-common`
+
+### Inputs
+```typescript
+{
+    task_ref: string;
+    source_paths: string[];
+    review_depth?: 'quick' | 'thorough';
+}
+```
+
+### Outputs
+```typescript
+{
+    issues: Issue[];
+    verdict: 'approve' | 'request_changes' | 'reject';
+}
+
+interface Issue {
+    severity: 'error' | 'warning' | 'suggestion';
+    file: string;
+    line?: number;
+    message: string;
+    rule?: string;
+}
+```
+
+### Gate
+- Human approval (or auto-approve if no errors)
+
+## Phase 8a: BDD Workflow
+
+**Skill:** `rd3:bdd-workflow`
+
+### Inputs
+```typescript
+{
+    task_ref: string;
+    mode: 'generate' | 'execute' | 'full';
+    source_paths?: string[];
+    feature_dir?: string;
+}
+```
+
+### Outputs
+```typescript
+{
+    feature_files: string[];
+    execution_report: BDDReport;
+}
+```
+
+## Phase 8b: Functional Review
+
+**Skill:** `rd3:functional-review`
+
+### Inputs
+```typescript
+{
+    task_ref: string;
+    bdd_report?: BDDReport;        // From Phase 8a
+    source_paths?: string[];
+    review_depth?: 'quick' | 'thorough';
+}
+```
+
+### Outputs
+```typescript
+{
+    verdict: 'pass' | 'partial' | 'fail';
+    requirements: RequirementVerdict[];
+}
+```
+
+## Phase 9: Documentation
+
+**Skill:** `rd3:code-docs`
+
+### Inputs
+```typescript
+{
+    task_ref: string;
+    source_paths: string[];
+    doc_types: DocType[];
+    style?: 'minimal' | 'comprehensive';
+}
+
+type DocType = 'jsdoc' | 'api-ref' | 'task-refs' | 'changelog-entry';
+```
+
+### Outputs
+```typescript
+{
+    artifacts: DocArtifact[];
+}
+
+interface DocArtifact {
+    type: DocType;
+    path: string;
+    action: 'create' | 'modify';
+}
+```
+
+## Skill Alias Reference
+
+| Alias | Full Skill Name |
+|-------|----------------|
+| intake | `rd3:request-intake` |
+| backend-arch | `rd3:backend-architect` |
+| frontend-arch | `rd3:frontend-architect` |
+| backend-design | `rd3:backend-design` |
+| frontend-design | `rd3:frontend-design` |
+| ui-ux-design | `rd3:ui-ux-design` |
+| decompose | `rd3:task-decomposition` |
+| implement | `rd3:code-implement-common` |
+| testing | `rd3:sys-testing` |
+| review | `rd3:code-review-common` |
+| bdd | `rd3:bdd-workflow` |
+| func-review | `rd3:functional-review` |
+| docs | `rd3:code-docs` |
