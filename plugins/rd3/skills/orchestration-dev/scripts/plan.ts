@@ -99,6 +99,10 @@ const PROFILE_COVERAGE_THRESHOLDS: Record<TaskProfile, number> = {
     research: 60,
 };
 
+const PHASE_PROFILE_COVERAGE_THRESHOLDS: Partial<Record<PhaseProfile, number>> = {
+    unit: 90,
+};
+
 // Human gate phases (Phase 8 is auto/human hybrid — auto for pass, human for partial)
 const HUMAN_GATES: PhaseNumber[] = [3, 7, 8]; // Design review, Code review, Functional review (partial)
 
@@ -136,7 +140,7 @@ function getCoverageThreshold(profile: Profile, coverageOverride?: number): numb
         return PROFILE_COVERAGE_THRESHOLDS[profile];
     }
 
-    return PROFILE_COVERAGE_THRESHOLDS.standard;
+    return PHASE_PROFILE_COVERAGE_THRESHOLDS[profile] ?? PROFILE_COVERAGE_THRESHOLDS.standard;
 }
 
 function resolveTaskPath(taskRef: string): string | undefined {
@@ -198,15 +202,23 @@ function validateSkipPhases(profile: Profile, skipPhases: PhaseNumber[]): void {
     }
 }
 
+function getTestingGateCriteria(profile: Profile, coverageThreshold: number): string {
+    if (profile === 'unit') {
+        return `Per-file coverage >= ${coverageThreshold}%, 100% tests pass`;
+    }
+
+    return `Coverage >= ${coverageThreshold}%, 100% tests pass`;
+}
+
 // Auto gate criteria
-function getAutoGateCriteria(coverageThreshold: number): Record<PhaseNumber, string> {
+function getAutoGateCriteria(profile: Profile, coverageThreshold: number): Record<PhaseNumber, string> {
     return {
         1: 'Background 100+ chars, Requirements numbered, Profile assigned',
         2: 'Architecture document exists',
         3: 'Design specs complete',
         4: 'Subtask list generated',
         5: 'Implementation artifacts exist',
-        6: `Coverage >= ${coverageThreshold}%`,
+        6: getTestingGateCriteria(profile, coverageThreshold),
         7: 'No blocking issues, human approval',
         8: 'Verdict pass or partial with approval',
         9: 'Relevant project docs refreshed',
@@ -257,7 +269,7 @@ export function generateExecutionPlan(
     const phasesToExecute = PHASE_MATRIX[profile].filter((p) => !skipPhases.includes(p));
 
     // Build phase objects
-    const autoGateCriteria = getAutoGateCriteria(coverageThreshold);
+    const autoGateCriteria = getAutoGateCriteria(profile, coverageThreshold);
     const phases: Phase[] = phasesToExecute.map((num, index) => {
         const previousPhase = phasesToExecute[index - 1];
 
