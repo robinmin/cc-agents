@@ -80,7 +80,6 @@ function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
     return cachedPatterns;
 }
 
-
 export function checkWriteGuard(
     toolName: string,
     filePath: string,
