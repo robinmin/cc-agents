@@ -24,6 +24,7 @@ Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:o
 | `simple` | 5, 6 | Single deliverable, 1-2 files |
 | `standard` | 1, 4, 5, 6, 7, 8(bdd), 9(refs) | Moderate scope, 2-5 files |
 | `complex` | 1-9 (all) | Large scope, 6+ files, full rigor |
+| `research` | 1-9 (all) | Investigation-heavy work with a lighter default test gate |
 
 Default: read from task frontmatter, fall back to `standard`.
 
@@ -31,11 +32,11 @@ Default: read from task frontmatter, fall back to `standard`.
 
 | Profile | Phases | Shortcut Command |
 |---------|--------|-----------------|
-| `refine` | 1 | `/dev-refine` |
-| `plan` | 2, 3, 4 | `/dev-plan` |
-| `unit` | 6 | `/dev-unit` |
-| `review` | 7 | `/dev-review` |
-| `docs` | 9 | `/dev-docs` |
+| `refine` | 1 | `/rd3:dev-refine` |
+| `plan` | 2, 3, 4 | `/rd3:dev-plan` |
+| `unit` | 6 | `/rd3:dev-unit` |
+| `review` | 7 | `/rd3:dev-review` |
+| `docs` | 9 | `/rd3:dev-docs` |
 
 ## Arguments
 
@@ -47,7 +48,7 @@ Default: read from task frontmatter, fall back to `standard`.
 | `--coverage <n>` | No | Override project coverage threshold for phase 6 |
 | `--dry-run` | No | Preview execution plan without executing |
 | `--refine` | No | Run phase 1 in refine mode |
-| `--skip-phases <n,n>` | No | Skip specific phases (advanced) |
+| `--skip-phases <n,n>` | No | Skip trailing phases only (advanced) |
 
 ### Smart Positional Detection
 
@@ -62,13 +63,16 @@ Delegates to **rd3:orchestration-dev** skill:
 
 ```
 # Default (profile from task file)
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --auto")
+Skill(skill="rd3:orchestration-dev", args="{task-ref}")
 
 # Override profile
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile complex --auto")
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile complex")
 
 # Phase profile
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --auto")
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit")
+
+# Auto-approve human gates
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --auto")
 
 # Dry run
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --dry-run")
@@ -95,32 +99,38 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --refine --coverage 90 --a
 
 ```bash
 # Full pipeline (profile from task file)
-/dev-run 0274
+/rd3:dev-run 0274
 
 # Simple task (impl + test only)
-/dev-run 0274 --profile simple
+/rd3:dev-run 0274 --profile simple
 
 # Complex task (all 9 phases)
-/dev-run 0274 --profile complex
+/rd3:dev-run 0274 --profile complex
+
+# Research task (all 9 phases, 60% default test gate)
+/rd3:dev-run 0274 --profile research
 
 # Phase profile: just unit testing
-/dev-run 0274 --profile unit
+/rd3:dev-run 0274 --profile unit
 
 # Refine mode + custom coverage
-/dev-run 0274 --refine --coverage 90 --auto
+/rd3:dev-run 0274 --refine --coverage 90 --auto
 
 # Preview without executing
-/dev-run 0274 --dry-run
+/rd3:dev-run 0274 --dry-run
 
 # End-to-end, no pauses
-/dev-run 0274 --auto
+/rd3:dev-run 0274 --auto
+
+# Skip only trailing phases
+/rd3:dev-run 0274 --profile complex --skip-phases 8,9
 ```
 
 ## See Also
 
 - **rd3:orchestration-dev**: Full 9-phase pipeline orchestrator skill
-- **/dev-refine**: Refine requirements (shortcut for `--profile refine`)
-- **/dev-plan**: Architecture + design + decomposition (shortcut for `--profile plan`)
-- **/dev-unit**: Unit testing only (shortcut for `--profile unit`)
-- **/dev-review**: Code review only (shortcut for `--profile review`)
-- **/dev-docs**: Documentation only (shortcut for `--profile docs`)
+- **/rd3:dev-refine**: Refine requirements (shortcut for `--profile refine`)
+- **/rd3:dev-plan**: Architecture + design + decomposition (shortcut for `--profile plan`)
+- **/rd3:dev-unit**: Unit testing only (shortcut for `--profile unit`)
+- **/rd3:dev-review**: Code review only (shortcut for `--profile review`)
+- **/rd3:dev-docs**: Documentation only (shortcut for `--profile docs`)
