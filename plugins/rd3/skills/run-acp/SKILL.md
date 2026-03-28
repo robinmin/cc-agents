@@ -42,6 +42,16 @@ Core capabilities:
 - Structured streaming output (`text`, `json`, `quiet`)
 - Built-in agent registry plus raw `--agent` escape hatch
 
+## Slash Command Channel Convention
+
+Some rd3 slash commands expose `--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>`.
+
+- `current` is a slash-command/orchestration shorthand meaning "stay on the current channel".
+- `claude-code` is the user-facing slash-command alias for the ACP agent name `claude`.
+- `codex`, `openclaw`, `opencode`, and `pi` map directly to ACP agent names.
+- `antigravity` is a user-facing channel option and should be resolved through a configured ACP agent command for Antigravity in the local `acpx` config.
+- When a wrapper resolves a non-`current` value, it should delegate through `rd3:run-acp` and preserve that value as `execution_channel` for downstream skills.
+
 ## Install
 
 ```bash
