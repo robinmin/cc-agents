@@ -78,7 +78,7 @@ interface OrchestrationInput {
     skip_phases?: PhaseNumber[];         // Phases to skip (CLI: --skip-phases)
     dry_run?: boolean;                   // Output plan without executing
     auto?: boolean;                      // Auto-approve human gates (no pause)
-    coverage?: number;                   // Override project coverage threshold (phase 6)
+    coverage?: number;                   // Override phase 6 coverage target (unit profile default: per-file 90%)
     refine?: boolean;                    // Pass mode=refine to request-intake (phase 1)
 }
 ```
@@ -106,7 +106,7 @@ Run a specific phase or group. Used by convenience commands (`/rd3:dev-refine`, 
 |---------|--------|-------------|
 | `refine` | 1 | Requirements refinement (refine mode) |
 | `plan` | 2, 3, 4 | Architecture, design, decomposition |
-| `unit` | 6 | Unit testing only |
+| `unit` | 6 | Unit testing only with default target: per-file coverage >=90% and 100% pass |
 | `review` | 7 | Code review only |
 | `docs` | 9 | Documentation only |
 
@@ -202,7 +202,7 @@ async function execute(input: OrchestrationInput): Promise<ExecutionResult> {
 | 3 | `rd3:backend-design` OR `rd3:frontend-design` OR `rd3:ui-ux-design` | task_ref, architecture | Design specs |
 | 4 | `rd3:task-decomposition` | task_ref | Subtasks WBS list |
 | 5 | `rd3:code-implement-common` | task_ref | Implementation artifacts |
-| 6 | `rd3:sys-testing` + `rd3:advanced-testing` | task_ref | Test results |
+| 6 | `rd3:sys-testing` + `rd3:advanced-testing` | task_ref, coverage target | Test results, coverage report |
 | 7 | `rd3:code-review-common` | task_ref | Review report |
 | 8 | `rd3:bdd-workflow` + `rd3:functional-review` | task_ref, bdd_report | Verdict |
 | 9 | `rd3:code-docs` | task_ref, source_paths?, target_docs?, change_summary? | Refreshed project docs |
@@ -236,7 +236,7 @@ async function executePhase(phase: Phase, task: TaskFile): Promise<PhaseResult> 
 |------|------|---------|------------|
 | Solution Gate | Auto | Solution section populated | Pass/Fail |
 | Design Gate | Human | Design section reviewed | Approve/Reject/Rework |
-| Test Gate | Auto | Coverage >= threshold | Pass/Fail |
+| Test Gate | Auto | Coverage target met and 100% tests pass | Pass/Fail |
 | Review Gate | Human | Code review completed | Approve/Reject |
 | Functional Gate | Auto/Human | BDD + functional review | Pass/Partial/Fail |
 | Documentation Gate | Auto | Docs generated | Pass/Fail |
@@ -246,15 +246,18 @@ async function executePhase(phase: Phase, task: TaskFile): Promise<PhaseResult> 
 ```typescript
 const AUTO_GATES: Record<PhaseNumber, GateChecker> = {
     5: (result) => result.artifacts.length > 0,
-    6: (result) => result.coverage >= getCoverageThreshold(input.coverage),
+    6: (result) =>
+        result.failed_tests === 0 &&
+        Object.values(result.coverage.per_file ?? {}).every((value) => value >= getCoverageThreshold(profile, input.coverage)),
     7: (result) => result.issues.filter(i => i.severity === 'error').length === 0,
     8: (result) => result.verdict !== 'fail',
     9: (result) => result.artifacts.length > 0,
 };
 
-function getCoverageThreshold(override?: number): number {
+function getCoverageThreshold(profile: Profile, override?: number): number {
     if (override !== undefined) return override; // --coverage flag wins
-    return PROFILE_DEFAULT_COVERAGE_THRESHOLD; // 60% for simple/research, 80% otherwise
+    if (profile === 'unit') return 90;          // /dev-unit stricter default
+    return PROFILE_DEFAULT_COVERAGE_THRESHOLD;  // 60% for simple/research, 80% otherwise
 }
 ```
 
@@ -343,7 +346,7 @@ rd3:orchestration-dev 0266 --profile unit
 # Auto-approve human gates (end-to-end, no pauses)
 rd3:orchestration-dev 0266 --auto
 
-# Override coverage threshold for phase 6
+# Override the default unit coverage target
 rd3:orchestration-dev 0266 --coverage 90
 
 # Dry run (preview)
