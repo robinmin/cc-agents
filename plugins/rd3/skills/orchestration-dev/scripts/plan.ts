@@ -6,9 +6,15 @@
  * and outputs JSON execution plan.
  */
 
+import { existsSync, readFileSync } from 'node:fs';
+import { isAbsolute, resolve } from 'node:path';
 import { logger } from '../../../scripts/logger';
+import { getProjectRoot, loadConfig } from '../../tasks/scripts/lib/config';
+import { findTaskByWbs } from '../../tasks/scripts/lib/wbs';
 
-export type Profile = 'simple' | 'standard' | 'complex' | 'refine' | 'plan' | 'unit' | 'review' | 'docs';
+export type TaskProfile = 'simple' | 'standard' | 'complex' | 'research';
+export type PhaseProfile = 'refine' | 'plan' | 'unit' | 'review' | 'docs';
+export type Profile = TaskProfile | PhaseProfile;
 export type PhaseNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export interface Phase {
@@ -23,12 +29,16 @@ export interface Phase {
 
 export interface ExecutionPlan {
     task_ref: string;
+    task_path?: string;
     profile: Profile;
     phases: Phase[];
     estimated_duration_hours: number;
     total_gates: number;
     human_gates: number;
     coverage_threshold: number;
+    auto_approve_human_gates: boolean;
+    refine_mode: boolean;
+    dry_run: boolean;
 }
 
 const PHASE_NAMES: Record<PhaseNumber, string> = {
@@ -73,6 +83,7 @@ const PHASE_MATRIX: Record<Profile, PhaseNumber[]> = {
     simple: [5, 6],
     standard: [1, 4, 5, 6, 7, 8, 9],
     complex: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    research: [1, 2, 3, 4, 5, 6, 7, 8, 9],
     // Phase profiles (single-phase shortcuts)
     refine: [1],
     plan: [2, 3, 4],
@@ -81,11 +92,111 @@ const PHASE_MATRIX: Record<Profile, PhaseNumber[]> = {
     docs: [9],
 };
 
-// Coverage threshold: default project-level constant (override via --coverage flag)
-const DEFAULT_COVERAGE_THRESHOLD = 80;
+const PROFILE_COVERAGE_THRESHOLDS: Record<TaskProfile, number> = {
+    simple: 60,
+    standard: 80,
+    complex: 80,
+    research: 60,
+};
 
 // Human gate phases (Phase 8 is auto/human hybrid — auto for pass, human for partial)
 const HUMAN_GATES: PhaseNumber[] = [3, 7, 8]; // Design review, Code review, Functional review (partial)
+
+const VALID_PROFILES = [
+    'simple',
+    'standard',
+    'complex',
+    'research',
+    'refine',
+    'plan',
+    'unit',
+    'review',
+    'docs',
+] as const;
+
+interface CreateExecutionPlanOptions {
+    profile?: Profile;
+    skipPhases?: PhaseNumber[];
+    coverageOverride?: number;
+    auto?: boolean;
+    dryRun?: boolean;
+    refine?: boolean;
+}
+
+function isTaskProfile(profile: Profile): profile is TaskProfile {
+    return profile === 'simple' || profile === 'standard' || profile === 'complex' || profile === 'research';
+}
+
+function getCoverageThreshold(profile: Profile, coverageOverride?: number): number {
+    if (coverageOverride !== undefined) {
+        return coverageOverride;
+    }
+
+    if (isTaskProfile(profile)) {
+        return PROFILE_COVERAGE_THRESHOLDS[profile];
+    }
+
+    return PROFILE_COVERAGE_THRESHOLDS.standard;
+}
+
+function resolveTaskPath(taskRef: string): string | undefined {
+    if (taskRef.endsWith('.md')) {
+        const taskPath = isAbsolute(taskRef) ? taskRef : resolve(getProjectRoot(), taskRef);
+        return existsSync(taskPath) ? taskPath : undefined;
+    }
+
+    const projectRoot = getProjectRoot();
+    const config = loadConfig(projectRoot);
+    const taskPath = findTaskByWbs(taskRef, config, projectRoot);
+
+    return taskPath ?? undefined;
+}
+
+function resolveProfileFromTask(taskPath: string | undefined): Profile | undefined {
+    if (!taskPath) {
+        return undefined;
+    }
+
+    try {
+        const content = readFileSync(taskPath, 'utf-8');
+        const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+        if (!frontmatterMatch) {
+            return undefined;
+        }
+
+        const profileMatch = frontmatterMatch[1].match(/^profile:\s*"?([a-z-]+)"?\s*$/m);
+        if (!profileMatch) {
+            return undefined;
+        }
+
+        const profile = profileMatch[1];
+        return validateProfile(profile) ? profile : undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+function validateSkipPhases(profile: Profile, skipPhases: PhaseNumber[]): void {
+    if (skipPhases.length === 0) {
+        return;
+    }
+
+    const basePhases = PHASE_MATRIX[profile];
+    let sawSkippedPhase = false;
+
+    for (const phase of basePhases) {
+        if (skipPhases.includes(phase)) {
+            sawSkippedPhase = true;
+            continue;
+        }
+
+        if (sawSkippedPhase) {
+            throw new Error(
+                `Invalid skip-phases for profile "${profile}": skipping phase ${basePhases[basePhases.indexOf(phase) - 1]} requires skipping downstream phase ${phase} as well.`,
+            );
+        }
+    }
+}
 
 // Auto gate criteria
 function getAutoGateCriteria(coverageThreshold: number): Record<PhaseNumber, string> {
@@ -147,7 +258,8 @@ export function generateExecutionPlan(
     skipPhases: PhaseNumber[] = [],
     coverageOverride?: number,
 ): ExecutionPlan {
-    const coverageThreshold = coverageOverride ?? DEFAULT_COVERAGE_THRESHOLD;
+    validateSkipPhases(profile, skipPhases);
+    const coverageThreshold = getCoverageThreshold(profile, coverageOverride);
 
     // Get phases to execute based on profile
     const phasesToExecute = PHASE_MATRIX[profile].filter((p) => !skipPhases.includes(p));
@@ -193,6 +305,42 @@ export function generateExecutionPlan(
         total_gates: phases.length,
         human_gates: humanGateCount,
         coverage_threshold: coverageThreshold,
+        auto_approve_human_gates: false,
+        refine_mode: false,
+        dry_run: false,
+    };
+}
+
+export function createExecutionPlan(taskRef: string, options: CreateExecutionPlanOptions = {}): ExecutionPlan {
+    const taskPath = resolveTaskPath(taskRef);
+    const profile = options.profile ?? resolveProfileFromTask(taskPath) ?? 'standard';
+    const refineMode = options.refine ?? false;
+
+    if (refineMode && !PHASE_MATRIX[profile].includes(1)) {
+        throw new Error(
+            `Refine mode requires phase 1 to be in the execution plan. Profile "${profile}" does not include phase 1.`,
+        );
+    }
+
+    const plan = generateExecutionPlan(taskRef, profile, options.skipPhases ?? [], options.coverageOverride);
+    const phases = plan.phases.map((phase) => {
+        if (phase.number !== 1 || !refineMode) {
+            return phase;
+        }
+
+        return {
+            ...phase,
+            inputs: [...phase.inputs, 'mode=refine'],
+        };
+    });
+
+    return {
+        ...plan,
+        phases,
+        auto_approve_human_gates: options.auto ?? false,
+        refine_mode: refineMode,
+        dry_run: options.dryRun ?? false,
+        ...(taskPath ? { task_path: taskPath } : {}),
     };
 }
 
@@ -200,21 +348,25 @@ export function generateExecutionPlan(
  * Validate task profile
  */
 export function validateProfile(profile: string): profile is Profile {
-    return ['simple', 'standard', 'complex', 'refine', 'plan', 'unit', 'review', 'docs'].includes(profile);
+    return VALID_PROFILES.includes(profile as (typeof VALID_PROFILES)[number]);
 }
 
 export function main(args = process.argv.slice(2)): void {
     if (args.length < 1) {
-        logger.error('Usage: plan.ts <task_ref> [--profile <profile>] [--skip-phases <phases>] [--coverage <n>]');
-        logger.error('Example: plan.ts 0266 --profile standard --skip-phases 7,8 --coverage 90');
+        logger.error(
+            'Usage: plan.ts <task_ref> [--profile <profile>] [--skip-phases <phases>] [--coverage <n>] [--auto] [--dry-run] [--refine]',
+        );
+        logger.error('Example: plan.ts 0266 --profile standard --skip-phases 8,9 --coverage 90 --auto');
         process.exit(1);
     }
 
     const taskRef = args[0];
-    let profile: Profile = 'standard';
+    let profile: Profile | undefined;
     const skipPhases: PhaseNumber[] = [];
     let coverageOverride: number | undefined;
     let dryRun = false;
+    let auto = false;
+    let refine = false;
 
     // Parse args
     for (let i = 1; i < args.length; i++) {
@@ -224,7 +376,7 @@ export function main(args = process.argv.slice(2)): void {
                 profile = p;
             } else {
                 logger.error(`Invalid profile: ${p}`);
-                logger.error('Valid profiles: simple, standard, complex, refine, plan, unit, review, docs');
+                logger.error(`Valid profiles: ${VALID_PROFILES.join(', ')}`);
                 process.exit(1);
             }
         } else if ((args[i] === '--skip' || args[i] === '--skip-phases') && i + 1 < args.length) {
@@ -241,16 +393,28 @@ export function main(args = process.argv.slice(2)): void {
             }
         } else if (args[i] === '--dry-run') {
             dryRun = true;
+        } else if (args[i] === '--auto') {
+            auto = true;
+        } else if (args[i] === '--refine') {
+            refine = true;
         }
     }
 
-    const plan = generateExecutionPlan(taskRef, profile, skipPhases, coverageOverride);
-
-    if (dryRun) {
-        logger.info('[DRY RUN] Execution plan generated (no side effects):');
+    try {
+        const options: CreateExecutionPlanOptions = {
+            skipPhases,
+            auto,
+            dryRun,
+            refine,
+            ...(profile ? { profile } : {}),
+            ...(coverageOverride !== undefined ? { coverageOverride } : {}),
+        };
+        const plan = createExecutionPlan(taskRef, options);
+        logger.log(JSON.stringify(plan, null, 2));
+    } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
     }
-
-    logger.info(JSON.stringify(plan, null, 2));
 }
 
 // CLI entry point
