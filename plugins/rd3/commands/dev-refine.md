@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Refine task requirements by analyzing existing content for quality issues and improving them through targeted Q&A.
 
-**Shortcut for:** `/dev-run {task-ref} --profile refine`
+**Shortcut for:** `/rd3:dev-run {task-ref} --profile refine`
 
 ## When to Use
 
@@ -37,17 +37,20 @@ Refine task requirements by analyzing existing content for quality issues and im
 Delegates to **rd3:orchestration-dev** with refine profile:
 
 ```
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile refine")
+
+# Optional: bypass any future human gates
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile refine --auto")
 ```
 
 ## Examples
 
 ```bash
-/dev-refine 0274
-/dev-refine docs/tasks2/0274_add_dev_slash_commands.md
+/rd3:dev-refine 0274
+/rd3:dev-refine docs/tasks2/0274_add_dev_slash_commands.md
 ```
 
 ## See Also
 
-- **/dev-run**: Profile-driven pipeline execution
+- **/rd3:dev-run**: Profile-driven pipeline execution
 - **rd3:request-intake**: Requirements elicitation skill
