@@ -245,3 +245,87 @@ Citation verification checks that cited sources actually support the claims attr
 
 **Verdict**: Citation is valid and supports the claim.
 ```
+
+---
+
+## Anti-Hallucination Workflow
+
+A 7-step workflow that forces verification before any answer is generated, transforming the agent from "confident intern who guesses" to "rigorous senior who cites sources."
+
+### Why This Matters
+
+Standard approaches verify after generation — by then, the agent is anchored to its initial (potentially hallucinated) answer. This workflow forces verification before synthesis, making hallucination structurally difficult.
+
+### The 7 Steps
+
+```
+Step 1: IDENTIFY CLAIMS
+  └── Extract all factual claims from user query or generated draft
+  └── Each claim becomes a verification target
+
+Step 2: PLAN VERIFICATION
+  └── For each claim: "What source type can verify this?"
+  └── Map claims to tools: ref, WebSearch, GitHub, arXiv
+
+Step 3: EXECUTE SEARCH
+  └── Use optimal tool per claim type
+  └── Cast a wide net — better to have too many sources than too few
+
+Step 4: ASSESS EVIDENCE
+  └── Evaluate source quality, recency, consensus
+  └── Apply evidence hierarchy (see source-evaluation.md)
+
+Step 5: SYNTHESIZE
+  └── Combine verified claims with source attribution
+  └── Do NOT include unverified claims as facts
+
+Step 6: SCORE CONFIDENCE
+  └── Assign HIGH/MEDIUM/LOW/UNVERIFIED per claim
+  └── Overall confidence = weakest critical claim
+
+Step 7: REVISE IF NEEDED
+  └── If critical claims are LOW/UNVERIFIED, flag for user review
+  └── Do NOT soften failures — be explicit about what failed
+```
+
+### Red Flags — STOP and Verify
+
+These patterns have HIGH hallucination risk. Always verify before answering:
+
+| Red Flag Pattern | Risk Level | Required Action |
+|-----------------|-----------|-----------------|
+| Specific numbers without sources | HIGH | Search for authoritative source |
+| "I recall" or "I think" language | HIGH | Immediate verification required |
+| Single source for controversial claim | HIGH | Find corroborating sources |
+| Outdated sources for fast-moving topics | HIGH | Search for recent information |
+| Conflicting claims across sources | MEDIUM | Explicitly note conflict, assess source quality |
+| Industry blog contradicting official docs | MEDIUM | Trust official docs, note discrepancy |
+| No publication date on source | MEDIUM | State uncertainty about recency |
+| Anonymous or unverifiable authorship | MEDIUM | Lower confidence, seek confirmation |
+
+### Fallback Protocol
+
+When primary verification tools are unavailable:
+
+```
+IF ref_search_documentation unavailable:
+├── Try WebSearch with "site:docs.{library}.com"
+├── Try WebFetch for known documentation URLs
+├── Try WebSearch for "{library} official documentation"
+└── State: "Documentation access limited, confidence reduced to MEDIUM"
+
+IF mcp__grep__searchGitHub unavailable:
+├── Try WebSearch with "site:github.com {query}"
+├── Try WebFetch for specific repository URLs
+└── State: "GitHub search limited, using web sources"
+
+IF WebSearch unavailable:
+├── Use ref for documentation-based verification
+├── Use local codebase (Read, Grep) for project-specific claims
+└── State: "Web search unavailable, verification limited to local and documentation sources"
+
+IF all verification tools fail:
+├── State: "I cannot verify this from authoritative sources"
+├── Mark all affected claims as UNVERIFIED
+└── Suggest user perform manual verification
+```

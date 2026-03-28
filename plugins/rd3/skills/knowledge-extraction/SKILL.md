@@ -2,9 +2,9 @@
 name: knowledge-extraction
 description: "Extract, synthesize, and validate information from multiple sources with cross-verification, chain-of-verification, RAG-grounded synthesis, deduplication, and source attribution. Trigger when: researching APIs/libraries/frameworks, verifying facts, consolidating from PDFs/web/code, cross-referencing docs, fact-checking claims, investigating version-specific behavior, gathering architectural decision info, or performing multi-hop reasoning across interconnected sources."
 license: Apache-2.0
-version: 2.0.0
+version: 2.1.0
 created_at: 2026-03-23
-updated_at: 2026-03-24
+updated_at: 2026-03-27
 type: technique
 tags: [research, verification, synthesis, knowledge, chain-of-verification, RAG, multi-hop, engineering-core]
 metadata:
@@ -22,6 +22,11 @@ see_also:
   - rd3:knowledge-extraction/references/deduplication
   - rd3:knowledge-extraction/references/tool-selection
   - rd3:knowledge-extraction/references/synthesis-patterns
+  - rd3:knowledge-extraction/references/research-methodology
+  - rd3:knowledge-extraction/references/research-process
+  - rd3:knowledge-extraction/references/source-evaluation
+  - rd3:knowledge-extraction/references/citation-attribution
+  - rd3:knowledge-extraction/references/output-templates
 ---
 
 # rd3:knowledge-extraction — Information Extraction and Synthesis
@@ -47,6 +52,12 @@ Activate this skill when:
 - Responding to "what is X?" or "how does Y work?" questions
 - **Reconciling multiple versions** of the same document or skill content
 - **Merging conflicting content** during skill migration or document consolidation
+- **Conducting systematic literature reviews** with PRISMA methodology
+- **Performing evidence synthesis** or meta-analysis across multiple studies
+- **Identifying knowledge gaps** in a research area
+- **Applying research methodology guidance** (PICO, SMART, search strategy design)
+- **Ensuring proper citation and attribution** in research outputs
+- **Fact-checking claims** with multi-source verification and confidence scoring
 
 **Key distinction:**
 - **`rd3:knowledge-extraction`** = Information extraction, verification, and synthesis
@@ -97,6 +108,24 @@ See [Usage Examples](references/usage-examples.md) for full step-by-step walkthr
 | Multi-Source Reconciliation | Merging conflicting document versions | Detect conflicts → Deterministic merge → Score quality (0-100) → Attribution |
 
 See [Extraction Workflows](references/extraction-workflows.md) for detailed steps, scripts, and CLI usage.
+
+## Research Workflows
+
+For deeper research tasks (literature reviews, evidence synthesis, fact-checking), use the **5-phase research process**:
+
+1. **Define Scope** — Clarify question, set recency threshold, choose confidence level
+2. **Design Search Strategy** — Select tools, construct queries, plan verification
+3. **Execute Systematic Search** — Run searches, gather sources, assess quality
+4. **Synthesize and Verify** — Cross-reference, resolve conflicts, score confidence
+5. **Present Results** — Structure output using appropriate template
+
+See [Research Process](references/research-process.md) for full details and decision framework.
+
+**Supporting references:**
+- [Research Methodology](references/research-methodology.md) — PRISMA, meta-analysis, PICO, search strategy, synthesis patterns
+- [Source Evaluation](references/source-evaluation.md) — Credibility assessment, evidence hierarchy, bias detection
+- [Citation & Attribution](references/citation-attribution.md) — Citation formats, quotation vs paraphrase, attribution practices
+- [Output Templates](references/output-templates.md) — Research Synthesis, Quick Verification, Literature Review, Error Response templates
 
 ## Output Format
 
@@ -192,7 +221,12 @@ For comprehensive patterns and examples, see:
 - **`references/validation-methods.md`** — Triangulation, credibility assessment, confidence scoring
 - **`references/conflict-resolution.md`** — Handling factual, interpretive, temporal, and scope disagreements
 - **`references/deduplication.md`** — Content merging and duplicate elimination strategies
-- **`references/synthesis-patterns.md`** — Chain-of-Verification, RAG-grounded synthesis, multi-hop reasoning, and citation verification (SOTA techniques)
+- **`references/synthesis-patterns.md`** — Chain-of-Verification, RAG-grounded synthesis, multi-hop reasoning, citation verification, anti-hallucination workflow, red flags, and fallback protocol
+- **`references/research-methodology.md`** — PRISMA systematic review, meta-analysis, PICO/SMART question formulation, search strategy design, knowledge synthesis patterns
+- **`references/research-process.md`** — Five-phase research process (Define, Design, Execute, Synthesize, Present) with decision framework and workflow routing
+- **`references/source-evaluation.md`** — Evidence hierarchy, CRAAP test, publication bias detection, citation analysis, preprint and gray literature evaluation
+- **`references/citation-attribution.md`** — Citation style guides (APA, IEEE, ACM), in-text formats, DOI/URL handling, quotation vs paraphrase, attribution best practices
+- **`references/output-templates.md`** — Four structured output templates: Research Synthesis, Quick Verification, Literature Review, Error Response
 
 ## Platform Notes
 
