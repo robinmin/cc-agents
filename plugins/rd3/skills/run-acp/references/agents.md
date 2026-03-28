@@ -21,6 +21,20 @@ Reference for built-in agents and custom adapter usage supported by `acpx`.
 | `opencode` | `npx -y opencode-ai acp` | OpenCode |
 | `qwen` | `qwen --acp` | Qwen Code |
 
+## Slash Command Channel Values
+
+These are the user-facing values exposed by rd3 slash commands:
+
+| Slash Command Value | ACP Resolution | Notes |
+|---------------------|----------------|-------|
+| `current` | none | Stay on current channel; do not open ACP delegation |
+| `claude-code` | `claude` | User-facing alias for Claude Code |
+| `codex` | `codex` | Built-in ACP registry entry |
+| `openclaw` | `openclaw` | Built-in ACP registry entry |
+| `opencode` | `opencode` | Built-in ACP registry entry |
+| `antigravity` | configured agent command | Requires local ACP agent registration in `acpx` config |
+| `pi` | `pi` | Built-in ACP registry entry |
+
 Aliases:
 
 - `factory-droid` -> `droid`
