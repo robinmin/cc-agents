@@ -30,6 +30,15 @@ Test execution, coverage measurement, gap analysis, and pragmatic test extension
 
 **Not for:** writing tests before code (use `rd3:tdd-workflow`) or debugging failing tests (use `rd3:sys-debugging`).
 
+## Orchestration Defaults
+
+When this skill is invoked by `/rd3:dev-unit` or the orchestration `unit` profile, the default target is:
+
+- per-file coverage >=90%
+- 100% passing tests
+
+An explicit `--coverage` override may raise or lower the coverage target, but it does not relax the requirement that the test suite must be fully passing.
+
 ## When to Use
 
 Use this skill when:
