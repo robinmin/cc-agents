@@ -13,16 +13,16 @@ Generate concise, user-friendly changelogs from git commits. Translates technica
 
 ```bash
 # Generate changelog for commits since last tag
-/dev-changelog
+/rd3:dev-changelog
 
 # Generate for specific version
-/dev-changelog --version 2.5.0
+/rd3:dev-changelog --version 2.5.0
 
 # Generate for date range
-/dev-changelog --since v2.4.0
+/rd3:dev-changelog --since v2.4.0
 
 # Write to custom output file
-/dev-changelog RELEASE_NOTES.md
+/rd3:dev-changelog RELEASE_NOTES.md
 ```
 
 ## Arguments
@@ -99,7 +99,7 @@ This is a **standalone git utility**, not a pipeline phase shortcut. It does not
 
 ## See Also
 
-- **/dev-gitmsg**: Generate conventional commit messages
-- **/dev-run**: Profile-driven pipeline execution
+- **/rd3:dev-gitmsg**: Generate conventional commit messages
+- **/rd3:dev-run**: Profile-driven pipeline execution
 - [Conventional Commits](https://www.conventionalcommits.org/)
 - [Keep a Changelog](https://keepachangelog.com/)
