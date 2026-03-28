@@ -29,9 +29,9 @@ see_also:
   - rd3:bdd-workflow
   - rd3:functional-review
   - rd3:code-docs
-  - /dev-gitmsg
-  - /dev-changelog
-  - /dev-fixall
+  - rd3:dev-gitmsg
+  - rd3:dev-changelog
+  - rd3:dev-fixall
 ---
 
 # rd3:orchestration-dev — 9-Phase Pipeline Orchestrator
@@ -96,10 +96,11 @@ Determine which phases run based on task complexity. Default: read from task fro
 | `simple` | 5, 6 | Single deliverable, 1-2 files, well-understood |
 | `standard` | 1, 4, 5, 6, 7, 8(bdd), 9(refs) | Moderate scope, 2-5 files |
 | `complex` | 1-9 (all) | Large scope, 6+ files, full rigor |
+| `research` | 1-9 (all) | Investigation-heavy work with a lighter default test gate |
 
 ### Phase Profiles
 
-Run a specific phase or group. Used by convenience commands (`/dev-refine`, `/dev-unit`, etc.).
+Run a specific phase or group. Used by convenience commands (`/rd3:dev-refine`, `/rd3:dev-unit`, etc.).
 
 | Profile | Phases | Description |
 |---------|--------|-------------|
@@ -138,15 +139,16 @@ async function dryRun(input: OrchestrationInput): Promise<ExecutionPlan> {
     const profile = input.profile || task.frontmatter.profile || 'standard';
 
     // Generate execution plan
-    const plan = generateExecutionPlan(profile, input.skip_phases);
+    const plan = createExecutionPlan(input.task_ref, {
+        profile,
+        skipPhases: input.skip_phases,
+        auto: input.auto,
+        dryRun: true,
+        refine: input.refine,
+    });
 
     // Output plan without side effects
-    return {
-        profile,
-        phases: plan.phases,
-        estimated_duration: plan.estimateDuration(),
-        gates: plan.gates,
-    };
+    return plan;
 }
 ```
 
@@ -252,7 +254,7 @@ const AUTO_GATES: Record<PhaseNumber, GateChecker> = {
 
 function getCoverageThreshold(override?: number): number {
     if (override !== undefined) return override; // --coverage flag wins
-    return PROJECT_COVERAGE_THRESHOLD; // project-level constant
+    return PROFILE_DEFAULT_COVERAGE_THRESHOLD; // 60% for simple/research, 80% otherwise
 }
 ```
 
@@ -282,6 +284,8 @@ if (input.auto) {
 ```
 
 When `--auto` is set, human gates (Design Gate, Review Gate, Functional Gate) are auto-approved. This enables end-to-end execution for commands like `dev-run` that need continuous flow.
+
+**Skip phase safety:** `--skip-phases` is intentionally limited to trailing phases only. Skipping an interior phase would leave later phases without the inputs they require.
 
 ## Rework Loop
 
