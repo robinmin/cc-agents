@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and iterates until the coverage threshold is met.
 
-**Shortcut for:** `/dev-run {task-ref} --profile unit`
+**Shortcut for:** `/rd3:dev-run {task-ref} --profile unit`
 
 ## When to Use
 
@@ -38,10 +38,10 @@ Delegates to **rd3:orchestration-dev** with unit profile:
 
 ```
 # Default coverage (project threshold)
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --auto")
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit")
 
 # Custom coverage threshold
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 90 --auto")
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 90")
 ```
 
 ## Completion Criteria
@@ -56,12 +56,12 @@ If coverage < threshold: NOT completed, MUST continue adding tests.
 ## Examples
 
 ```bash
-/dev-unit 0274
-/dev-unit 0274 --coverage 90
-/dev-unit 0274 --coverage 90 --auto
+/rd3:dev-unit 0274
+/rd3:dev-unit 0274 --coverage 90
+/rd3:dev-unit 0274 --coverage 90 --auto
 ```
 
 ## See Also
 
-- **/dev-run**: Profile-driven pipeline execution
+- **/rd3:dev-run**: Profile-driven pipeline execution
 - **rd3:sys-testing**: Test execution skill
