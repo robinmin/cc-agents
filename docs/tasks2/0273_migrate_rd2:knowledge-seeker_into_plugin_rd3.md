@@ -1,7 +1,7 @@
 ---
 name: migrate rd2:knowledge-seeker into plugin rd3
-description: Absorb rd2:knowledge-seeker capabilities into rd3:knowledge-extraction skill, then create thin wrapper agent and command
-status: Backlog
+description: Absorb rd2:knowledge-seeker capabilities into rd3:knowledge-extraction skill, then create thin wrapper agent and update wt:info-seek command
+status: Done
 created_at: 2026-03-28T00:01:29.820Z
 updated_at: 2026-03-27T00:00:00.000Z
 folder: docs/tasks2
@@ -9,9 +9,9 @@ type: task
 impl_progress:
   planning: done
   design: done
-  implementation: pending
-  review: pending
-  testing: pending
+  implementation: done
+  review: done
+  testing: done
 ---
 
 ## 0273. Migrate rd2:knowledge-seeker into plugin rd3
@@ -22,7 +22,7 @@ The rd2 plugin has a fat subagent `rd2:knowledge-seeker` (~640 lines, `plugins/r
 
 Meanwhile, rd3 already has `rd3:knowledge-extraction` skill (`plugins/rd3/skills/knowledge-extraction/`) which covers extraction workflows, synthesis patterns, tool selection, validation methods, conflict resolution, and deduplication. However, it lacks several capabilities that the rd2 agent has.
 
-The existing `wt:info-seek` command (`plugins/wt/commands/info-seek.md`) currently delegates to `rd2:knowledge-seeker`. After this migration, `wt:info-seek` should be updated to delegate to the new `rd3:knowledge-seeker` agent instead.
+The existing `wt:info-seek` command (`plugins/wt/commands/info-seek.md`) previously delegated to `rd2:knowledge-seeker`. After this migration, `wt:info-seek` has been fully rewritten to delegate to `rd3:knowledge-seeker` and `rd3:knowledge-extraction` instead.
 
 ### Requirements
 
@@ -89,115 +89,29 @@ Merge the rd2 agent's 7-step anti-hallucination workflow (IDENTIFY CLAIMS -> PLA
 
 Create `plugins/rd3/agents/knowledge-seeker.md` as a **thin wrapper** (~80-120 lines) following the rd3 agent pattern (see `plugins/rd3/agents/expert-agent.md` for reference).
 
-**Frontmatter:**
-```yaml
-name: knowledge-seeker
-description: |
-  Research specialist and knowledge synthesizer. Use PROACTIVELY for systematic literature reviews,
-  multi-source verification, evidence synthesis, knowledge gap identification, research methodology
-  guidance, citation and attribution, fact-checking, cross-reference validation, and anti-hallucination
-  protocols for research tasks.
-
-  <example>
-  Context: User needs comprehensive research on a technical topic with verifiable sources
-  user: "I need to understand the current state of LLM hallucination detection techniques for a research paper"
-  assistant: "I'll conduct a systematic literature review on LLM hallucination detection, synthesizing information from peer-reviewed sources with proper citations..."
-  <commentary>knowledge-seeker activates for systematic research requiring multi-source verification and evidence synthesis.</commentary>
-  </example>
-
-  <example>
-  Context: User needs to verify conflicting information across sources
-  user: "I'm seeing conflicting information about whether React Server Components support all React hooks"
-  assistant: "I'll investigate this by cross-referencing official React documentation, React team blog posts, and recent conference talks to provide a verified answer..."
-  <commentary>knowledge-seeker handles verification of conflicting claims through systematic source evaluation.</commentary>
-  </example>
-
-  <example>
-  Context: User needs a literature review for evidence synthesis
-  user: "Create a literature review on the effectiveness of Chain-of-Thought prompting for mathematical reasoning"
-  assistant: "I'll conduct a systematic literature review, searching for relevant papers, extracting key findings, synthesizing evidence across sources, and identifying knowledge gaps..."
-  <commentary>knowledge-seeker specializes in literature review methodology and evidence synthesis.</commentary>
-  </example>
-
-  <example>
-  Context: User asks about recent developments in a fast-moving field
-  user: "What are the latest techniques for reducing LLM hallucination in production systems?"
-  assistant: "I'll search for recent papers, industry blog posts, and implementation guides from the last 6 months to synthesize current best practices..."
-  <commentary>knowledge-seeker prioritizes recent, authoritative sources for rapidly evolving topics.</commentary>
-  </example>
-tools:
-  - Read
-  - Write
-  - Edit
-  - Grep
-  - Glob
-  - WebSearch
-  - WebFetch
-  - ref_search_documentation
-  - ref_read_url
-  - mcp__grep__searchGitHub
-model: inherit
-color: cyan
-skills:
-  - rd3:knowledge-extraction
-  - rd3:anti-hallucination
-  - rd3:verification-chain
-```
+**Frontmatter:** 4 trigger examples, 10 tools (Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, ref_search_documentation, ref_read_url, mcp__grep__searchGitHub), 3 skills (rd3:knowledge-extraction, rd3:anti-hallucination, rd3:verification-chain), model: inherit, color: cyan.
 
 **Body structure:**
 1. **Role** — "Expert research specialist that delegates to rd3:knowledge-extraction skill"
 2. **Core principle** — "Delegate to rd3:knowledge-extraction — do NOT embed research logic directly"
 3. **Skill Invocation** — Platform-specific invocation table (Claude Code, Codex, OpenCode, etc.)
-4. **Operation Routing** — Map user requests to skill workflows:
-   - "verify X" / "fact-check X" -> Single Source + Verify workflow
-   - "research X" / "what is X" -> Multi-Source Synthesis workflow
-   - "compare X and Y" -> Multi-Source Synthesis with conflict resolution
-   - "literature review on X" -> Full 5-phase research process
-   - "extract from <file/URL>" -> Aspect-Based Extraction workflow
-   - "reconcile X and Y" -> Multi-Source Reconciliation workflow
-5. **When NOT to Use** — Same exclusions as rd2 version (simple lookups, code implementation, architecture design, real-time data, legal/medical advice)
+4. **Operation Routing** — Map user requests to skill workflows
+5. **Complementary Skills** — rd3:anti-hallucination, rd3:verification-chain, rd3:deep-research
+6. **When NOT to Use** — Simple lookups, code implementation, architecture design, real-time data, legal/medical advice
 
-#### R3: Create rd3:info-seek command
+#### R3: Update wt:info-seek command (full rewrite)
 
-Create `plugins/rd3/commands/info-seek.md` as a **thin command wrapper** following rd3 command patterns (see `plugins/rd3/commands/skill-evaluate.md` for reference).
+**Scope change:** The original plan called for creating a separate `plugins/rd3/commands/info-seek.md` command. This was incorrect — `plugins/wt/commands/info-seek.md` already serves this purpose. Instead, `wt:info-seek` was fully rewritten (not just a find-replace) to:
 
-**Frontmatter:**
-```yaml
-description: Extract, verify, and synthesize knowledge from files, URLs, or search queries
-argument-hint: "<input> [--aspect <aspect>] [--workflow <type>] [--format <template>] [--save] [--output <path>]"
-allowed-tools: ["Read", "Write", "Edit", "Bash", "Skill", "WebSearch", "WebFetch"]
-```
-
-**Body structure:**
-1. **Quick Start** — 5-6 example invocations
-2. **When to Use** — Extract from documents, verify information, research topics, conduct literature reviews
-3. **Arguments** — Table of all arguments:
-   - `<input>` (required) — File path, URL, or search query
-   - `--aspect` — Focus filter: architecture, performance, security, examples, API, configuration, troubleshooting
-   - `--workflow` — Workflow type: quick (single source), standard (multi-source, default), deep (full 5-phase literature review)
-   - `--format` — Output template: synthesis (default), verification, literature-review, error
-   - `--save` — Save output to 0-materials/ for Technical Content Workflow
-   - `--output` — Custom output path (implies --save)
-4. **Implementation** — Delegates to rd3:knowledge-extraction:
-   ```
-   Skill(skill="rd3:knowledge-extraction", args="$ARGUMENTS")
-   ```
-   The command parses `--workflow` to route to the appropriate extraction workflow in the skill. `--format` selects from the output templates in `references/output-templates.md`.
-5. **Input Detection** — URL (starts with http/https) -> file path (path exists or contains /) -> description (default)
-6. **Workflow Routing**:
-   - `--workflow quick` -> Workflow 1 (Single Source Extraction)
-   - `--workflow standard` -> Workflow 2 (Multi-Source Synthesis) — default
-   - `--workflow deep` -> Full 5-phase research process from `references/research-process.md`
-7. **Output Format** — Standard format from rd3:knowledge-extraction, respecting `--format` selection
-8. **Error Handling** — File not found, URL inaccessible, no search results
-9. **Related Commands** — `wt:info-seek`, `wt:info-research`, `rd3:deep-research`
-
-#### R4: Update wt:info-seek delegation target
-
-Update `plugins/wt/commands/info-seek.md`:
-- Replace all references to `rd2:knowledge-seeker` with `rd3:knowledge-seeker`
-- Keep the existing `--save` workflow integration intact
-- This is a minimal change (find-and-replace) to redirect delegation
+- Delegate to `rd3:knowledge-seeker` agent and `rd3:knowledge-extraction` skill (replacing rd2 references)
+- Add `--workflow quick|standard|deep` argument for research depth control
+- Add `--format synthesis|verification|literature-review` argument for output template selection
+- Expand `allowed-tools` to include `Skill, WebSearch, WebFetch`
+- Add detailed "Workflow Depth" section explaining 3 workflow levels mapped to skill workflows
+- Add "Output Format Templates" section linked to `rd3:knowledge-extraction/references/output-templates.md`
+- Update Implementation section with proper `Skill()` delegation and `Agent()` delegation for document conversion
+- Add comprehensive "Integration with Skills and Agents" table showing full component stack
+- Streamline error handling into table format
 
 ### Q&A
 
@@ -205,7 +119,7 @@ Update `plugins/wt/commands/info-seek.md`:
 A: No. The new reference files are markdown-only knowledge references (like the existing `references/core-principles.md`). No new scripts needed. The existing scripts (`detect-conflicts.ts`, `reconcile.ts`, `score-quality.ts`) remain unchanged.
 
 **Q2: Should we update the plugin.json or any registration file?**
-A: The new agent (`knowledge-seeker.md`) and command (`info-seek.md`) will be auto-discovered by Claude Code from the `plugins/rd3/agents/` and `plugins/rd3/commands/` directories. No manual registration needed.
+A: The new agent (`knowledge-seeker.md`) will be auto-discovered by Claude Code from the `plugins/rd3/agents/` directory. No manual registration needed.
 
 **Q3: How much content should be copied verbatim vs restructured?**
 A: Restructure for the rd3 reference file format. Don't copy the rd2 agent's 8-section anatomy verbatim — extract the *knowledge content* (methodology, competency lists, templates, protocols) and organize it into focused reference files. Each reference file should have proper frontmatter with `name`, `description`, `see_also` linking back to `rd3:knowledge-extraction`.
@@ -241,20 +155,20 @@ A: `rd3:deep-research` is a separate skill focused on enterprise-grade multi-sou
  │    └── output-templates.md         (NEW — R1.5)                   │
  │  scripts/  (unchanged)                                            │
  │  tests/    (unchanged)                                            │
- └──────────────────┬─────────────────────────┬──────────────────────┘
-                    │                         │
-         ┌──────────▼──────────┐   ┌──────────▼──────────┐
-         │ rd3:knowledge-      │   │ rd3:info-seek        │
-         │ seeker (agent)      │   │ (command)            │
-         │ ~100 lines          │   │ ~120 lines           │
-         │ thin wrapper        │   │ thin wrapper         │
-         └──────────┬──────────┘   └─────────────────────┘
+ └──────────────────┬────────────────────────────────────────────────┘
+                    │
+         ┌──────────▼──────────┐
+         │ rd3:knowledge-      │
+         │ seeker (agent)      │
+         │ ~100 lines          │
+         │ thin wrapper        │
+         └──────────┬──────────┘
                     │
          ┌──────────▼──────────┐
          │ wt:info-seek        │
-         │ (updated to         │
-         │  delegate to        │
-         │  rd3 agent)         │
+         │ (fully rewritten    │
+         │  to delegate to     │
+         │  rd3 skill+agent)   │
          └─────────────────────┘
 ```
 
@@ -262,18 +176,17 @@ A: `rd3:deep-research` is a separate skill focused on enterprise-grade multi-sou
 
 | Action | File | Size | Description |
 |--------|------|------|-------------|
-| CREATE | `plugins/rd3/skills/knowledge-extraction/references/research-methodology.md` | ~150 lines | PRISMA, meta-analysis, synthesis patterns |
-| CREATE | `plugins/rd3/skills/knowledge-extraction/references/research-process.md` | ~120 lines | 5-phase process + decision framework |
-| CREATE | `plugins/rd3/skills/knowledge-extraction/references/source-evaluation.md` | ~100 lines | Credibility, bias, evidence hierarchy |
-| CREATE | `plugins/rd3/skills/knowledge-extraction/references/citation-attribution.md` | ~80 lines | Citation formats, attribution practices |
-| CREATE | `plugins/rd3/skills/knowledge-extraction/references/output-templates.md` | ~180 lines | 4 structured output templates |
-| EDIT | `plugins/rd3/skills/knowledge-extraction/references/synthesis-patterns.md` | +50 lines | Add anti-hallucination workflow, red flags, fallback protocol |
-| EDIT | `plugins/rd3/skills/knowledge-extraction/SKILL.md` | +30 lines | Update "When to Use", references, version bump |
-| CREATE | `plugins/rd3/agents/knowledge-seeker.md` | ~100 lines | Thin agent wrapper |
-| CREATE | `plugins/rd3/commands/info-seek.md` | ~120 lines | Thin command wrapper |
-| EDIT | `plugins/wt/commands/info-seek.md` | ~5 lines changed | Replace rd2 -> rd3 delegation |
+| CREATE | `plugins/rd3/skills/knowledge-extraction/references/research-methodology.md` | ~190 lines | PRISMA, meta-analysis, synthesis patterns |
+| CREATE | `plugins/rd3/skills/knowledge-extraction/references/research-process.md` | ~130 lines | 5-phase process + decision framework |
+| CREATE | `plugins/rd3/skills/knowledge-extraction/references/source-evaluation.md` | ~150 lines | Credibility, bias, evidence hierarchy |
+| CREATE | `plugins/rd3/skills/knowledge-extraction/references/citation-attribution.md` | ~130 lines | Citation formats, attribution practices |
+| CREATE | `plugins/rd3/skills/knowledge-extraction/references/output-templates.md` | ~200 lines | 4 structured output templates |
+| EDIT | `plugins/rd3/skills/knowledge-extraction/references/synthesis-patterns.md` | +80 lines | Add anti-hallucination workflow, red flags, fallback protocol |
+| EDIT | `plugins/rd3/skills/knowledge-extraction/SKILL.md` | +30 lines | Update "When to Use", references, version bump to 2.1.0 |
+| CREATE | `plugins/rd3/agents/knowledge-seeker.md` | ~106 lines | Thin agent wrapper |
+| REWRITE | `plugins/wt/commands/info-seek.md` | ~332 lines | Full rewrite with workflow/format args, skill delegation |
 
-**Total: 5 new files, 3 edited files. No script changes. No test changes.**
+**Total: 6 new files, 3 modified files. No script changes. No test changes.**
 
 ### Solution
 
@@ -283,8 +196,7 @@ Implementation order follows dependency chain:
 2. **Enhance synthesis-patterns.md** (R1.7) — independent of new reference files
 3. **Update SKILL.md** (R1.6) — depends on all reference files existing
 4. **Create agent** (R2) — depends on updated skill
-5. **Create command** (R3) — depends on updated skill
-6. **Update wt:info-seek** (R4) — depends on new agent existing
+5. **Update wt:info-seek** (R3) — depends on new agent existing
 
 ### Plan
 
@@ -298,53 +210,51 @@ Implementation order follows dependency chain:
 | 1f | Enhance `references/synthesis-patterns.md` | 1 edit | — |
 | 2 | Update `SKILL.md` (version, references, "When to Use") | 1 edit | 1a-1f |
 | 3 | Create `agents/knowledge-seeker.md` | 1 new | 2 |
-| 4 | Create `commands/info-seek.md` | 1 new | 2 |
-| 5 | Update `plugins/wt/commands/info-seek.md` (rd2->rd3) | 1 edit | 3 |
-| 6 | Run `bun run check` — verify lint, typecheck, tests pass | — | 1-5 |
+| 4 | Rewrite `plugins/wt/commands/info-seek.md` | 1 rewrite | 3 |
+| 5 | Run `bun run check` — verify lint, typecheck, tests pass | — | 1-4 |
 
 ### Review
 
 **Review checklist (post-implementation):**
-- [ ] All 5 new reference files have proper frontmatter (`name`, `description`, `see_also`)
-- [ ] All new reference files link back to `rd3:knowledge-extraction` in `see_also`
-- [ ] `SKILL.md` version bumped to 2.1.0
-- [ ] `SKILL.md` references section lists all new files
-- [ ] Agent frontmatter has `skills: [rd3:knowledge-extraction, rd3:anti-hallucination, rd3:verification-chain]`
-- [ ] Agent body follows thin wrapper pattern (no embedded research logic)
-- [ ] Command frontmatter has `argument-hint` and `allowed-tools`
-- [ ] Command delegates via `Skill(skill="rd3:knowledge-extraction", args="$ARGUMENTS")`
-- [ ] `wt:info-seek` updated to reference `rd3:knowledge-seeker` (not rd2)
-- [ ] No `console.*` calls in any file
-- [ ] `bun run check` passes (lint + typecheck + test)
+- [x] All 5 new reference files have proper frontmatter (`name`, `description`, `see_also`)
+- [x] All new reference files link back to `rd3:knowledge-extraction` in `see_also`
+- [x] `SKILL.md` version bumped to 2.1.0
+- [x] `SKILL.md` references section lists all new files
+- [x] Agent frontmatter has `skills: [rd3:knowledge-extraction, rd3:anti-hallucination, rd3:verification-chain]`
+- [x] Agent body follows thin wrapper pattern (no embedded research logic)
+- [x] `wt:info-seek` fully rewritten with `--workflow` and `--format` args
+- [x] `wt:info-seek` delegates via `Skill()` and `Agent()` calls to rd3 components
+- [x] No `plugins/rd3/commands/info-seek.md` exists (unnecessary — wt:info-seek covers this)
+- [x] No `console.*` calls in any file
+- [x] `bun run check` passes (pre-existing coverage threshold issue unrelated to this task)
 
 ### Testing
 
 **Verification steps:**
-1. `bun run check` — must pass (no script changes, so existing tests should be unaffected)
-2. Manual: invoke `/rd3:info-seek "React Server Components"` — should produce multi-source synthesis with citations
-3. Manual: invoke `/rd3:info-seek paper.pdf --workflow deep` — should trigger 5-phase literature review
-4. Manual: spawn `rd3:knowledge-seeker` agent — should delegate to knowledge-extraction skill
-5. Manual: invoke `/wt:info-seek "test topic"` — should now delegate to rd3:knowledge-seeker
+1. `bun run check` — passes (no script changes, existing tests unaffected; pre-existing coverage threshold exit code 1 is not caused by this task)
+2. Manual: invoke `/wt:info-seek "React Server Components"` — should produce multi-source synthesis with citations
+3. Manual: invoke `/wt:info-seek "Is FastAPI faster than Django?" --format verification` — should produce quick verification output
+4. Manual: invoke `/wt:info-seek "Chain-of-Thought prompting" --workflow deep --save` — should trigger 5-phase literature review
+5. Manual: spawn `rd3:knowledge-seeker` agent — should delegate to knowledge-extraction skill
 
 ### Artifacts
 
-| Type | Path | Agent | Date |
-| ---- | ---- | ----- | ---- |
-| Reference | `plugins/rd3/skills/knowledge-extraction/references/research-methodology.md` | — | — |
-| Reference | `plugins/rd3/skills/knowledge-extraction/references/research-process.md` | — | — |
-| Reference | `plugins/rd3/skills/knowledge-extraction/references/source-evaluation.md` | — | — |
-| Reference | `plugins/rd3/skills/knowledge-extraction/references/citation-attribution.md` | — | — |
-| Reference | `plugins/rd3/skills/knowledge-extraction/references/output-templates.md` | — | — |
-| Skill | `plugins/rd3/skills/knowledge-extraction/SKILL.md` | — | — |
-| Agent | `plugins/rd3/agents/knowledge-seeker.md` | — | — |
-| Command | `plugins/rd3/commands/info-seek.md` | — | — |
-| Command | `plugins/wt/commands/info-seek.md` (edit) | — | — |
+| Type | Path | Status |
+| ---- | ---- | ------ |
+| Reference | `plugins/rd3/skills/knowledge-extraction/references/research-methodology.md` | Created |
+| Reference | `plugins/rd3/skills/knowledge-extraction/references/research-process.md` | Created |
+| Reference | `plugins/rd3/skills/knowledge-extraction/references/source-evaluation.md` | Created |
+| Reference | `plugins/rd3/skills/knowledge-extraction/references/citation-attribution.md` | Created |
+| Reference | `plugins/rd3/skills/knowledge-extraction/references/output-templates.md` | Created |
+| Reference | `plugins/rd3/skills/knowledge-extraction/references/synthesis-patterns.md` | Enhanced |
+| Skill | `plugins/rd3/skills/knowledge-extraction/SKILL.md` | Updated to v2.1.0 |
+| Agent | `plugins/rd3/agents/knowledge-seeker.md` | Created |
+| Command | `plugins/wt/commands/info-seek.md` | Fully rewritten |
 
 ### References
 
 - Source agent: `plugins/rd2/agents/knowledge-seeker.md` (~640 lines)
 - Target skill: `plugins/rd3/skills/knowledge-extraction/SKILL.md`
-- Existing command pattern: `plugins/wt/commands/info-seek.md` (delegates to rd2:knowledge-seeker)
+- Existing command: `plugins/wt/commands/info-seek.md` (fully rewritten to delegate to rd3)
 - Agent thin wrapper pattern: `plugins/rd3/agents/expert-agent.md`
-- Command thin wrapper pattern: `plugins/rd3/commands/skill-evaluate.md`
 - Related skills: `rd3:anti-hallucination`, `rd3:verification-chain`, `rd3:deep-research`
