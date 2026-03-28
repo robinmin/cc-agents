@@ -15,6 +15,7 @@ metadata:
   interactions:
     - orchestrator
 see_also:
+  - rd3:run-acp
   - rd3:request-intake
   - rd3:backend-architect
   - rd3:frontend-architect
@@ -68,6 +69,7 @@ The orchestration-dev skill:
 5. **Evaluates** gate (human or auto) after each phase
 6. **Handles** rework loops (max 2 iterations)
 7. **Persists** results to task file between phases
+8. **Routes** work to the requested execution channel
 
 ## Input Schema
 
@@ -80,6 +82,7 @@ interface OrchestrationInput {
     auto?: boolean;                      // Auto-approve human gates (no pause)
     coverage?: number;                   // Override phase 6 coverage target (unit profile default: per-file 90%)
     refine?: boolean;                    // Pass mode=refine to request-intake (phase 1)
+    execution_channel?: string;          // Default: 'current'; ACP agent name for cross-channel execution
 }
 ```
 
@@ -145,6 +148,7 @@ async function dryRun(input: OrchestrationInput): Promise<ExecutionPlan> {
         auto: input.auto,
         dryRun: true,
         refine: input.refine,
+        executionChannel: input.execution_channel,
     });
 
     // Output plan without side effects
@@ -197,15 +201,15 @@ async function execute(input: OrchestrationInput): Promise<ExecutionResult> {
 
 | Phase | Primary Skill(s) | Inputs | Outputs |
 |-------|------------------|--------|---------|
-| 1 | `rd3:request-intake` | task_ref, description, domain_hints, mode (refine if input.refine) | Background, Requirements, Constraints, profile |
-| 2 | `rd3:backend-architect` OR `rd3:frontend-architect` | task_ref, requirements | Architecture doc |
-| 3 | `rd3:backend-design` OR `rd3:frontend-design` OR `rd3:ui-ux-design` | task_ref, architecture | Design specs |
-| 4 | `rd3:task-decomposition` | task_ref | Subtasks WBS list |
-| 5 | `rd3:code-implement-common` | task_ref | Implementation artifacts |
-| 6 | `rd3:sys-testing` + `rd3:advanced-testing` | task_ref, coverage target | Test results, coverage report |
-| 7 | `rd3:code-review-common` | task_ref | Review report |
-| 8 | `rd3:bdd-workflow` + `rd3:functional-review` | task_ref, bdd_report | Verdict |
-| 9 | `rd3:code-docs` | task_ref, source_paths?, target_docs?, change_summary? | Refreshed project docs |
+| 1 | `rd3:request-intake` | task_ref, description, domain_hints, mode, execution_channel | Background, Requirements, Constraints, profile |
+| 2 | `rd3:backend-architect` OR `rd3:frontend-architect` | task_ref, requirements, execution_channel | Architecture doc |
+| 3 | `rd3:backend-design` OR `rd3:frontend-design` OR `rd3:ui-ux-design` | task_ref, architecture, execution_channel | Design specs |
+| 4 | `rd3:task-decomposition` | task_ref, execution_channel | Subtasks WBS list |
+| 5 | `rd3:code-implement-common` | task_ref, execution_channel | Implementation artifacts |
+| 6 | `rd3:sys-testing` + `rd3:advanced-testing` | task_ref, coverage target, execution_channel | Test results, coverage report |
+| 7 | `rd3:code-review-common` | task_ref, execution_channel | Review report |
+| 8 | `rd3:bdd-workflow` + `rd3:functional-review` | task_ref, bdd_report, execution_channel | Verdict |
+| 9 | `rd3:code-docs` | task_ref, source_paths?, target_docs?, change_summary?, execution_channel | Refreshed project docs |
 
 **All 15 specialist skills**: request-intake, backend-architect, frontend-architect, backend-design, frontend-design, ui-ux-design, task-decomposition, code-implement-common, sys-testing, advanced-testing, code-review-common, bdd-workflow, functional-review, code-docs, orchestration-dev. Skill selection for phases 2/3 is context-dependent (backend vs frontend vs full-stack). See `references/delegation-map.md` for complete input/output specs.
 
@@ -214,11 +218,16 @@ async function execute(input: OrchestrationInput): Promise<ExecutionResult> {
 ```typescript
 async function executePhase(phase: Phase, task: TaskFile): Promise<PhaseResult> {
     const skill = getSkillForPhase(phase.number);
+    const executionChannel = input.execution_channel ?? 'current';
+    const phaseInput = {
+        ...buildPhaseInput(phase, task),
+        execution_channel: executionChannel,
+    };
 
-    const input = buildPhaseInput(phase, task);
-
-    // Delegate to skill
-    const result = await delegateToSkill(skill, input);
+    const result =
+        executionChannel === 'current'
+            ? await delegateToSkill(skill, phaseInput)
+            : await delegateViaRunAcp(executionChannel, skill, phaseInput);
 
     return {
         phase: phase.number,
@@ -227,6 +236,12 @@ async function executePhase(phase: Phase, task: TaskFile): Promise<PhaseResult> 
     };
 }
 ```
+
+### Channel Resolution
+
+- `execution_channel: 'current'` means execute on the current channel.
+- Any other value should be an ACP agent name supported by `rd3:run-acp`.
+- Slash command wrappers expose this as `--channel <agent|current>` and map it into `execution_channel`.
 
 ## Gate Definitions
 
