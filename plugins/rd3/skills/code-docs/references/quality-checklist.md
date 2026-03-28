@@ -1,133 +1,98 @@
-# Quality Checklist — Documentation Generation
+# Quality Checklist — Cumulative Documentation Refresh
 
-This document defines quality criteria for rejecting generated documentation. Documentation that fails any MUST criterion is rejected.
+This checklist defines the quality bar for `rd3:code-docs`.
 
-## JSDoc Quality Criteria
+Documentation refresh fails if it adds noise, duplicates truth across docs, or leaves stale claims in place.
 
-### MUST Reject (Fails Generation)
+## MUST Pass
+
+| Criterion | Description |
+|-----------|-------------|
+| Correct audience | Each change is written for the intended document audience |
+| Relevant targets only | Only docs affected by the task are updated |
+| Existing content read first | Updates are merged into current content, not written blindly |
+| No stale contradictions | Old statements that conflict with the new behavior are updated or removed |
+| Durable information only | Long-lived knowledge is preserved; transient noise is excluded |
+| Concrete wording | Statements describe actual behavior, rules, or lessons |
+| Mermaid for diagrams | Any diagram is written as Mermaid in a fenced markdown block |
+
+## MUST Reject
 
 | Criterion | Description | Example |
 |-----------|-------------|---------|
-| Generic description | Description doesn't convey specific purpose | "This function does something" |
-| Empty description | No description provided | "" or missing |
-| Generic class description | Class description without specific behavior | "A class that represents something" |
-| Missing @param for required params | Required parameters without documentation | `/** @param x */` when `x` is required |
-| Incorrect @param type | Parameter type doesn't match signature | `@param {string}` when param is `number` |
-| Rejected generic templates | Any of the 8 generic templates below | See list |
+| Blind append | Adds a new block without integrating with existing truth | "Task 0274 changed docs" dump at end of file |
+| Wrong audience | User manual contains internal maintenance guidance | "Update impl_progress before phase completion" in user doc |
+| Duplicate content | Same internal guidance copied into multiple docs without audience change | Same bullet list in architecture and developer spec |
+| Task narrative instead of documentation | Reads like a status report, not project documentation | "We fixed this yesterday during review" |
+| Transient debug noise | Temporary logs, dead-end experiments, or one-off command output preserved | stack traces, temporary shell snippets |
+| Vague experience entry | Lesson lacks symptom, root cause, or prevention value | "Had some issues with planning" |
+| Non-Mermaid diagrams | Diagram uses ASCII art, screenshots, or arbitrary formatting | text-box arrows or pasted images for architecture flow |
 
-### Generic Templates (MUST Reject)
-
-These templates are too generic and MUST be rejected:
-
-1. "This function does something"
-2. "A class that represents something"
-3. "Does something"
-4. "Handle [something]"
-5. "Process [something]"
-6. "Manages [something]"
-7. "This is a [something]"
-8. "Function for [something]" (without specifics)
-
-### MUST Pass (Accept Generation)
+## SHOULD Warn
 
 | Criterion | Description |
 |-----------|-------------|
-| Minimum 50 chars | Description must be at least 50 characters |
-| Specific purpose | Description conveys WHAT and WHY |
-| @param completeness | All parameters documented (comprehensive style) |
-| @returns present | Return value documented (comprehensive style) |
-| @throws for throwers | Error types documented if function throws |
-| @example for public API | Example usage for exported functions |
+| Oversized deltas | Large new sections that should probably be integrated into smaller existing sections |
+| Missing examples | User-facing or developer-facing changes would benefit from a short example |
+| Mixed audiences | A section drifts between architecture, developer, and user concerns |
+| Weak lesson framing | `99_EXPERIENCE.md` entry has a fix but no prevention heuristic |
 
-### SHOULD Warn (Warning, Not Rejection)
+## Audience Guardrails
 
-| Criterion | Description |
-|-----------|-------------|
-| Missing @example | No usage example provided |
-| Short @example | Example less than 2 lines |
-| Missing @throws | Function throws but @throws not documented |
-| Inconsistent naming | Parameter names don't match JSDoc @param |
+### `docs/01_ARCHITECTURE_SPEC.md`
 
-## API Reference Quality Criteria
+Keep:
+- system boundaries
+- responsibilities
+- flows
+- invariants
 
-### MUST Include
+Reject:
+- tutorial steps
+- per-task history
+- bug diary entries
 
-| Section | Description |
-|---------|-------------|
-| Table of Contents | All exported symbols listed with anchor links |
-| Function signature | Full TypeScript signature with types |
-| Description | Purpose and behavior explanation |
-| Parameters table | Name, type, required, description |
-| Return type | Return value description |
-| Examples | At least one usage example |
+### `docs/02_DEVELOPER_SPEC.md`
 
-### MUST Reject
+Keep:
+- developer workflows
+- internal conventions
+- maintenance instructions
+- command/skill behavior
 
-| Criterion | Description |
-|-----------|-------------|
-| Missing TOC | No table of contents |
-| Incomplete signatures | Types replaced with "any" or missing |
-| No description | Empty or placeholder description |
-| Undocumented parameters | Parameters not in parameters table |
+Reject:
+- end-user usage prose
+- architecture rationale better kept in the architecture spec
 
-## Changelog Entry Quality Criteria
+### `docs/03_USER_MANUAL.md`
 
-### MUST Include
+Keep:
+- usage steps
+- examples
+- expected outputs
+- caveats users need
 
-| Field | Description |
-|-------|-------------|
-| Type | One of: feat, fix, docs, style, refactor, perf, test, chore |
-| Scope | Affected module/component |
-| Subject | Brief description (under 50 chars) |
-| Body | Detailed description of the change |
+Reject:
+- implementation details
+- internal maintenance steps
 
-### MUST Match
+### `docs/99_EXPERIENCE.md`
 
-| Field | Must Match |
-|-------|------------|
-| Type | Derived from actual code changes |
-| Scope | Actual affected module path |
-| Breaking | true if any BREAKING CHANGE in diff |
+Keep:
+- symptom
+- root cause
+- fix
+- prevention heuristic
 
-### Format Requirements
+Reject:
+- chronological notes
+- vague “learned something” entries
+- lessons without reuse value
 
-- One blank line between subject and body
-- Body indented or using bullet points
-- Breaking changes marked with `BREAKING CHANGE:` prefix
-- File list in HTML comment after body
+## Final Check Before Persisting
 
-## Integration with LLM Generation
-
-When generating documentation, the LLM should:
-
-1. **Before generating:** Check existing JSDoc length
-2. **During generation:** Use specific templates, avoid generic language
-3. **After generating:** Run quality checklist
-4. **If rejected:** Log reason, retry with specific corrections
-
-### Quality Check Script
-
-```typescript
-function isValidJSDoc(jsdoc: string, style: 'minimal' | 'comprehensive'): boolean {
-    // Check minimum length
-    if (jsdoc.length < 50) return false;
-
-    // Check for generic templates
-    const genericPatterns = [
-        /this (function|class|method) does something/i,
-        /a (class|function|interface) that represents/i,
-        /^does something$/i,
-        /^handle/i,
-        /^process/i,
-        /^manages/i,
-    ];
-    if (genericPatterns.some(p => p.test(jsdoc))) return false;
-
-    // Check @param completeness for comprehensive style
-    if (style === 'comprehensive') {
-        // Additional comprehensive checks
-    }
-
-    return true;
-}
-```
+1. Does each updated file still read like a current source of truth?
+2. Did the task’s durable knowledge land in the minimum correct set of docs?
+3. Did any stale statement remain untouched?
+4. Would a future reader know where to look for this information without consulting the task file?
+5. If diagrams were added, are they Mermaid fenced blocks?
