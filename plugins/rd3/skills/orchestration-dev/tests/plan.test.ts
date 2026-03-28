@@ -51,8 +51,8 @@ describe('generateExecutionPlan', () => {
         expect(phase8?.gateCriteria).toBe('BDD scenarios generated and executed');
 
         expect(phase9?.skill).toBe('rd3:code-docs');
-        expect(phase9?.outputs).toEqual(['Task References']);
-        expect(phase9?.gateCriteria).toBe('Task references generated');
+        expect(phase9?.outputs).toEqual(['Refreshed Project Docs']);
+        expect(phase9?.gateCriteria).toBe('Relevant project docs refreshed');
     });
 
     test('uses full phase 8 and 9 metadata outside the standard profile', () => {
@@ -64,8 +64,8 @@ describe('generateExecutionPlan', () => {
         expect(phase8?.outputs).toEqual(['Functional Verdict']);
         expect(phase8?.gateCriteria).toBe('Verdict pass or partial with approval');
 
-        expect(phase9?.outputs).toEqual(['Documentation Artifacts']);
-        expect(phase9?.gateCriteria).toBe('Documentation artifacts generated');
+        expect(phase9?.outputs).toEqual(['Refreshed Project Docs']);
+        expect(phase9?.gateCriteria).toBe('Relevant project docs refreshed');
     });
 
     test('counts human gates and estimated duration after skipping a trailing suffix', () => {
