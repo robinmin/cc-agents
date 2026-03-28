@@ -36,7 +36,7 @@ Run a specific phase or phase group. Used by convenience commands.
 | 3 | Design | **skip** | skip | **run** | **run** | skip | **run** | skip | skip | skip |
 | 4 | Task Decomposition | **skip** | **run** | **run** | **run** | skip | **run** | skip | skip | skip |
 | 5 | Implementation | **run** | **run** | **run** | **run** | skip | skip | skip | skip | skip |
-| 6 | Unit Testing | **run** (60%) | **run** (80%) | **run** (80%) | **run** (60%) | skip | skip | **run** | skip | skip |
+| 6 | Unit Testing | **run** (60%) | **run** (80%) | **run** (80%) | **run** (60%) | skip | skip | **run** (per-file 90%) | skip | skip |
 | 7 | Code Review | **skip** | **run** | **run** | **run** | skip | skip | skip | **run** | skip |
 | 8 | Functional Review | **skip** | bdd only | bdd+functional | bdd+functional | skip | skip | skip | skip | skip |
 | 9 | Documentation | **skip** | **run** | **run** | **run** | skip | skip | skip | skip | **run** |
@@ -93,10 +93,10 @@ Implements the solution.
 ### Phase 6: Unit Testing
 **Skills:** `rd3:sys-testing`, `rd3:advanced-testing`
 
-Runs tests and verifies coverage against the profile-sensitive default threshold.
+Runs tests and verifies coverage against the profile-sensitive default threshold. The `unit` phase profile uses a stricter default target: per-file coverage >=90% and 100% passing tests.
 
 **Entry criteria:** Implementation complete
-**Exit criteria:** Coverage >= profile threshold, all tests pass
+**Exit criteria:** Coverage target met, all tests pass
 
 ### Phase 7: Code Review
 **Skill:** `rd3:code-review-common`
