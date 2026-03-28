@@ -1,5 +1,5 @@
 ---
-description: Generate and update documentation based on task changes
+description: Refresh cumulative project documentation based on task changes
 argument-hint: "<task-ref> [--auto]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 disable-model-invocation: true
@@ -7,15 +7,15 @@ disable-model-invocation: true
 
 # Dev Docs
 
-Execute phase 9 (Documentation) of the 9-phase pipeline. Generates and updates documentation based on implementation artifacts.
+Execute phase 9 (Documentation) of the 9-phase pipeline. Refreshes the canonical cumulative docs affected by a task.
 
 **Shortcut for:** `/rd3:dev-run {task-ref} --profile docs`
 
 ## When to Use
 
 - After implementation and review are complete
-- Task file has documentation artifacts to generate
-- Updating project docs based on code changes
+- Architecture, developer workflow, or user-visible behavior changed
+- A bug fix or investigation produced a durable lesson worth preserving
 
 ## Arguments
 
@@ -39,6 +39,17 @@ Delegates to **rd3:orchestration-dev** with docs profile:
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs")
 ```
 
+## Canonical Docs Refreshed
+
+- `docs/01_ARCHITECTURE_SPEC.md`: architecture and system boundaries
+- `docs/02_DEVELOPER_SPEC.md`: internal developer-facing functional guidance
+- `docs/03_USER_MANUAL.md`: user-facing usage documentation
+- `docs/99_EXPERIENCE.md`: durable lessons from bugs, fixes, and debugging
+
+The skill should update only the relevant subset for the task. It should not create boilerplate or duplicate the task narrative across all four files.
+
+If a refreshed doc needs a diagram, write it as Mermaid in a fenced markdown block.
+
 ## Examples
 
 ```bash
@@ -49,4 +60,4 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs")
 ## See Also
 
 - **/rd3:dev-run**: Profile-driven pipeline execution
-- **rd3:code-docs**: Documentation generation skill
+- **rd3:code-docs**: Cumulative documentation refresh skill
