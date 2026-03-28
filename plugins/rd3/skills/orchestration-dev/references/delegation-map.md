@@ -208,7 +208,7 @@ interface Artifact {
 {
     task_ref: string;
     source_paths: string[];       // Implementation artifacts
-    coverage_threshold: number;   // 60% or 80%
+    coverage_threshold: number;   // 60%, 80%, or unit-profile default 90%
 }
 ```
 
@@ -223,6 +223,7 @@ interface CoverageResult {
     lines: number;                // % lines covered
     functions: number;           // % functions covered
     branches: number;            // % branches covered
+    per_file?: Record<string, number>; // % line coverage per file when available
 }
 
 interface TestResult {
@@ -234,7 +235,9 @@ interface TestResult {
 ```
 
 ### Gate
-- Coverage >= threshold
+- Coverage target met
+- No failed tests
+- For `unit` profile defaults: per-file coverage >= 90%
 
 ## Phase 7: Code Review
 
