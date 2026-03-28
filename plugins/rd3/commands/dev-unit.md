@@ -1,5 +1,5 @@
 ---
-description: Generate unit tests to meet project coverage threshold
+description: Generate unit tests to reach the default unit target: per-file coverage >=90% and 100% pass
 argument-hint: "<task-ref> [--auto] [--coverage <n>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 disable-model-invocation: true
@@ -7,14 +7,14 @@ disable-model-invocation: true
 
 # Dev Unit
 
-Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and iterates until the coverage threshold is met.
+Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and iterates until the default unit target is met: per-file coverage >=90% and 100% passing tests.
 
 **Shortcut for:** `/rd3:dev-run {task-ref} --profile unit`
 
 ## When to Use
 
 - After implementation is complete
-- Task requires specific coverage threshold
+- Task requires the stricter default unit target
 - Adding tests to newly implemented code
 
 ## Arguments
@@ -23,7 +23,7 @@ Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and
 |----------|----------|-------------|
 | `task-ref` | Yes | WBS number or file path |
 | `--auto` | No | Auto-approve gates |
-| `--coverage <n>` | No | Override project coverage threshold |
+| `--coverage <n>` | No | Override the default per-file coverage target |
 
 ### Smart Positional Detection
 
@@ -37,7 +37,7 @@ Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and
 Delegates to **rd3:orchestration-dev** with unit profile:
 
 ```
-# Default coverage (project threshold)
+# Default unit target (per-file >=90%, 100% tests pass)
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit")
 
 # Custom coverage threshold
@@ -48,10 +48,11 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 
 
 The ONLY way to complete successfully:
 1. Run verification command (`bun run test`)
-2. Coverage meets threshold
-3. All tests pass (0 failures)
+2. Per-file coverage is >=90% by default, unless overridden
+3. All tests pass (0 failures, 100% pass rate)
 
 If coverage < threshold: NOT completed, MUST continue adding tests.
+If any test fails: NOT completed, MUST fix or extend tests until the suite is fully passing.
 
 ## Examples
 
