@@ -189,6 +189,7 @@ impl_progress:
         expect(plan.profile).toBe('research');
         expect(plan.task_path).toBe(taskPath);
         expect(plan.coverage_threshold).toBe(60);
+        expect(plan.execution_channel).toBe('current');
 
         rmSync(tempDir, { recursive: true, force: true });
     });
@@ -239,13 +240,20 @@ impl_progress:
         rmSync(tempDir, { recursive: true, force: true });
     });
 
-    test('surfaces auto, dry-run, and refine flags in the generated plan', () => {
-        const plan = createExecutionPlan('0266', { profile: 'standard', auto: true, dryRun: true, refine: true });
+    test('surfaces auto, dry-run, refine, and execution-channel flags in the generated plan', () => {
+        const plan = createExecutionPlan('0266', {
+            profile: 'standard',
+            auto: true,
+            dryRun: true,
+            refine: true,
+            executionChannel: 'codex',
+        });
         const phase1 = plan.phases.find((phase) => phase.number === 1);
 
         expect(plan.auto_approve_human_gates).toBe(true);
         expect(plan.dry_run).toBe(true);
         expect(plan.refine_mode).toBe(true);
+        expect(plan.execution_channel).toBe('codex');
         expect(phase1?.inputs).toContain('mode=refine');
     });
 
@@ -258,7 +266,9 @@ impl_progress:
 
 describe('plan main', () => {
     test('generates a plan for valid CLI args', () => {
-        expect(() => main(['0266', '--profile', 'complex', '--skip', '8,9', '--auto', '--refine'])).not.toThrow();
+        expect(() =>
+            main(['0266', '--profile', 'complex', '--skip', '8,9', '--auto', '--refine', '--channel', 'codex']),
+        ).not.toThrow();
     });
 
     test('exits with code 1 when task_ref is missing', () => {
@@ -285,11 +295,17 @@ describe('plan main', () => {
 
         expect(phase6?.gateCriteria).toContain('90');
         expect(plan.coverage_threshold).toBe(90);
+        expect(plan.execution_channel).toBe('current');
     });
 
     test('phase 8 gate is auto/human hybrid', () => {
         const plan = generateExecutionPlan('0266', 'complex');
         const phase8 = plan.phases.find((phase) => phase.number === 8);
         expect(phase8?.gate).toBe('auto/human');
+    });
+
+    test('parses channel flag through the CLI plan builder', () => {
+        const plan = createExecutionPlan('0266', { profile: 'review', executionChannel: 'opencode' });
+        expect(plan.execution_channel).toBe('opencode');
     });
 });
