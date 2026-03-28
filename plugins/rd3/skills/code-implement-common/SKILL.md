@@ -150,6 +150,19 @@ implement <task_file_path>
 
 Example: `implement docs/tasks/0047_user_auth.md`
 
+### Execution Channel
+
+This skill may also receive:
+
+```typescript
+interface ImplementationRouting {
+  execution_channel?: string; // Default: 'current'
+}
+```
+
+- `current` means execute in the current channel.
+- Any ACP agent name means the caller should route execution through `rd3:run-acp` and preserve the same value in the delegated input.
+
 ## Git Worktree Workflow
 
 Git worktree provides **isolated workspaces** for implementation without disrupting the main working directory.
@@ -198,10 +211,14 @@ For detailed update examples and templates, see [Progress Reporting](references/
 
 This skill supports cross-channel execution by delegating to specialist agents.
 
-Use `Task()` to delegate work to another channel agent:
+Use `rd3:run-acp` when implementation should execute on another channel:
 
 ```bash
-Task("another-channel-agent", "implement task:docs/tasks/0047_my-task.md")
+# Current channel
+implement task:docs/tasks/0047_my-task.md
+
+# Other channel via ACP
+acpx codex "implement task:docs/tasks/0047_my-task.md"
 ```
 
 ## Integration with rd3:tasks
