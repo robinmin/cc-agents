@@ -1,6 +1,6 @@
 ---
-description: Profile-driven task execution through the 9-phase pipeline
-argument-hint: "<task-ref> [--profile <profile>] [--auto] [--coverage <n>] [--dry-run] [--refine] [--skip-phases <n,n>]"
+description: Profile-driven task execution through the 9-phase pipeline, optionally on another execution channel
+argument-hint: "<task-ref> [--profile <profile>] [--auto] [--coverage <n>] [--dry-run] [--refine] [--skip-phases <n,n>] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 disable-model-invocation: true
 ---
@@ -49,6 +49,7 @@ Default: read from task frontmatter, fall back to `standard`.
 | `--dry-run` | No | Preview execution plan without executing |
 | `--refine` | No | Run phase 1 in refine mode |
 | `--skip-phases <n,n>` | No | Skip trailing phases only (advanced) |
+| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `current` |
 
 ### Smart Positional Detection
 
@@ -59,26 +60,29 @@ Default: read from task frontmatter, fall back to `standard`.
 
 ## Workflow
 
-Delegates to **rd3:orchestration-dev** skill:
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. Non-`current` values are delegated via **rd3:run-acp**.
 
 ```
-# Default (profile from task file)
-Skill(skill="rd3:orchestration-dev", args="{task-ref}")
+# Default (profile from task file, current channel)
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --channel current")
 
-# Override profile
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile complex")
+# Override profile on the current channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile complex --channel current")
 
-# Phase profile
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit")
+# Phase profile on the current channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --channel current")
 
-# Auto-approve human gates
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --auto")
+# Auto-approve human gates on the current channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --auto --channel current")
 
-# Dry run
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --dry-run")
+# Dry run on the current channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --dry-run --channel current")
 
-# Refine mode + custom coverage
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --refine --coverage 90 --auto")
+# Refine mode + custom coverage on the current channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --refine --coverage 90 --auto --channel current")
+
+# Cross-channel execution via ACP
+Skill(skill="rd3:run-acp", args="opencode exec \"rd3:orchestration-dev {task-ref} --profile review --channel opencode\"")
 ```
 
 ### Phase Details
@@ -116,6 +120,9 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --refine --coverage 90 --a
 # Refine mode + custom coverage
 /rd3:dev-run 0274 --refine --coverage 90 --auto
 
+# Execute on another channel
+/rd3:dev-run 0274 --profile review --channel codex
+
 # Preview without executing
 /rd3:dev-run 0274 --dry-run
 
@@ -134,3 +141,4 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --refine --coverage 90 --a
 - **/rd3:dev-unit**: Unit testing only (shortcut for `--profile unit`)
 - **/rd3:dev-review**: Code review only (shortcut for `--profile review`)
 - **/rd3:dev-docs**: Documentation only (shortcut for `--profile docs`)
+- **rd3:run-acp**: Cross-channel execution wrapper
