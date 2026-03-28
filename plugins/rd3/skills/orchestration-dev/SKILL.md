@@ -61,7 +61,7 @@ Do not load this skill directly for single-phase work. Use the specific phase sk
 
 The orchestration-dev skill:
 
-1. **Reads** task frontmatter for profile (simple/standard/complex)
+1. **Reads** task frontmatter for profile (simple/standard/complex/research)
 2. **Determines** which phases to execute based on profile
 3. **Sequences** phases in dependency order
 4. **Delegates** each phase to its specialist skill
@@ -205,7 +205,7 @@ async function execute(input: OrchestrationInput): Promise<ExecutionResult> {
 | 6 | `rd3:sys-testing` + `rd3:advanced-testing` | task_ref | Test results |
 | 7 | `rd3:code-review-common` | task_ref | Review report |
 | 8 | `rd3:bdd-workflow` + `rd3:functional-review` | task_ref, bdd_report | Verdict |
-| 9 | `rd3:code-docs` | task_ref, doc_types | Documentation artifacts |
+| 9 | `rd3:code-docs` | task_ref, source_paths?, target_docs?, change_summary? | Refreshed project docs |
 
 **All 15 specialist skills**: request-intake, backend-architect, frontend-architect, backend-design, frontend-design, ui-ux-design, task-decomposition, code-implement-common, sys-testing, advanced-testing, code-review-common, bdd-workflow, functional-review, code-docs, orchestration-dev. Skill selection for phases 2/3 is context-dependent (backend vs frontend vs full-stack). See `references/delegation-map.md` for complete input/output specs.
 
