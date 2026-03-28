@@ -205,10 +205,7 @@ impl_progress:
                 quiet: true,
             });
             expect(result.ok).toBe(true);
-            const content = readFileSync(
-                join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`),
-                'utf-8',
-            );
+            const content = readFileSync(join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`), 'utf-8');
             expect(content).toContain(`profile: "${profileVal}"`);
             // Clean up for next iteration
             rmSync(join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`), { force: true });
@@ -266,5 +263,4 @@ impl_progress:
             expect(result.error).toContain('Invalid profile');
         }
     });
-
 });
