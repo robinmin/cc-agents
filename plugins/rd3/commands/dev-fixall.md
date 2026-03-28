@@ -15,13 +15,13 @@ Systematically resolve all validation errors (lint, typecheck, tests) using a de
 
 ```bash
 # Auto-detect validation command from project config
-/dev-fixall
+/rd3:dev-fixall
 
 # Explicit validation command
-/dev-fixall "bun run check"
+/rd3:dev-fixall "bun run check"
 
 # Custom retry limit
-/dev-fixall "bun run check" --max-retry=10
+/rd3:dev-fixall "bun run check" --max-retry=10
 ```
 
 ## Arguments
@@ -116,17 +116,17 @@ constructor() {}
 
 ```bash
 # Auto-detect and fix
-/dev-fixall
+/rd3:dev-fixall
 
 # Explicit command
-/dev-fixall "bun run check"
+/rd3:dev-fixall "bun run check"
 
 # TypeScript project
-/dev-fixall "biome check --write . && tsc --noEmit && bun run test"
+/rd3:dev-fixall "biome check --write . && tsc --noEmit && bun run test"
 ```
 
 ## See Also
 
 - **rd3:sys-debugging**: Four-phase debugging framework
 - **rd3:orchestration-dev**: Full 9-phase pipeline orchestrator
-- **/dev-run**: End-to-end execution (phases 1-7)
+- **/rd3:dev-run**: End-to-end execution (phases 1-7)
