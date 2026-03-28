@@ -2,6 +2,17 @@
 
 This document maps phases to specialist skills with their inputs and outputs.
 
+## Cross-Channel Convention
+
+All phase inputs may include:
+
+```typescript
+type ExecutionChannel = 'current' | string;
+```
+
+- `current` means execute on the current channel.
+- Any other value is treated as an ACP agent name and should be delegated via `rd3:run-acp`.
+
 ## Phase -> Skill Mapping
 
 | Phase | Primary Skill | Aliases | Sub-skills |
@@ -30,6 +41,7 @@ This document maps phases to specialist skills with their inputs and outputs.
     task_ref: string;          // WBS number or path
     description?: string;       // Additional context
     domain_hints?: string[];   // Domain expertise hints
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -59,6 +71,7 @@ This document maps phases to specialist skills with their inputs and outputs.
     task_ref: string;
     requirements: string[];      // From Phase 1
     constraints: string[];       // From Phase 1
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -98,6 +111,7 @@ interface APIContract {
     task_ref: string;
     architecture: ArchitectureDoc;  // From Phase 2
     requirements: string[];
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -149,6 +163,7 @@ interface UISpec {
     task_ref: string;
     requirements: string[];
     design?: DesignDoc;           // If available
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -180,6 +195,7 @@ interface Subtask {
     task_ref: string;             // Parent task or subtask
     solution: string;             // From Solution section
     design?: DesignDoc;           // If available
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -209,6 +225,7 @@ interface Artifact {
     task_ref: string;
     source_paths: string[];       // Implementation artifacts
     coverage_threshold: number;   // 60%, 80%, or unit-profile default 90%
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -249,6 +266,7 @@ interface TestResult {
     task_ref: string;
     source_paths: string[];
     review_depth?: 'quick' | 'thorough';
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -282,6 +300,7 @@ interface Issue {
     mode: 'generate' | 'execute' | 'full';
     source_paths?: string[];
     feature_dir?: string;
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -304,6 +323,7 @@ interface Issue {
     bdd_report?: BDDReport;        // From Phase 8a
     source_paths?: string[];
     review_depth?: 'quick' | 'thorough';
+    execution_channel?: ExecutionChannel;
 }
 ```
 
@@ -327,6 +347,7 @@ interface Issue {
     target_docs?: CanonicalDoc[];
     change_summary?: string[];
     style?: 'delta-first' | 'integrated';
+    execution_channel?: ExecutionChannel;
 }
 
 type CanonicalDoc =
