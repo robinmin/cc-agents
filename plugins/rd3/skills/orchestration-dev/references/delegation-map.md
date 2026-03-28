@@ -320,24 +320,24 @@ interface Issue {
 ```typescript
 {
     task_ref: string;
-    source_paths: string[];
-    doc_types: DocType[];
-    style?: 'minimal' | 'comprehensive';
+    source_paths?: string[];
+    target_docs?: CanonicalDoc[];
+    change_summary?: string[];
+    style?: 'delta-first' | 'integrated';
 }
 
-type DocType = 'jsdoc' | 'api-ref' | 'task-refs' | 'changelog-entry';
+type CanonicalDoc =
+    | 'docs/01_ARCHITECTURE_SPEC.md'
+    | 'docs/02_DEVELOPER_SPEC.md'
+    | 'docs/03_USER_MANUAL.md'
+    | 'docs/99_EXPERIENCE.md';
 ```
 
 ### Outputs
 ```typescript
 {
-    artifacts: DocArtifact[];
-}
-
-interface DocArtifact {
-    type: DocType;
-    path: string;
-    action: 'create' | 'modify';
+    updated_docs: CanonicalDoc[];
+    summary: string[];
 }
 ```
 
