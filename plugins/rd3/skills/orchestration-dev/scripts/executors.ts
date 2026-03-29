@@ -1,6 +1,13 @@
 import { execAcpx } from '../../../scripts/libs/acpx-query';
 
-export type NormalizedExecutionChannel = 'current' | 'claude' | 'codex' | 'openclaw' | 'opencode' | 'antigravity' | 'pi';
+export type NormalizedExecutionChannel =
+    | 'current'
+    | 'claude'
+    | 'codex'
+    | 'openclaw'
+    | 'opencode'
+    | 'antigravity'
+    | 'pi';
 export type ExecutorBackend = 'local-child' | 'acp';
 
 export interface ExecutionRequest {
