@@ -213,10 +213,10 @@ describe('install-agents.sh', () => {
         expect(result.status).toBe(0);
         expect(existsSync(join(projectDir, 'AGENTS.md'))).toBe(true);
         expect(lstatSync(join(projectDir, '.claude', 'CLAUDE.md')).isSymbolicLink()).toBe(true);
-        expect(lstatSync(join(projectDir, 'GEMINI.md')).isSymbolicLink()).toBe(true);
+        expect(lstatSync(join(projectDir, '.gemini', 'rules.md')).isSymbolicLink()).toBe(true);
         expect(lstatSync(join(projectDir, '.opencode', 'instructions.md')).isSymbolicLink()).toBe(true);
         expect(readlinkSync(join(projectDir, '.claude', 'CLAUDE.md'))).toBe('../AGENTS.md');
-        expect(readlinkSync(join(projectDir, 'GEMINI.md'))).toBe('AGENTS.md');
+        expect(readlinkSync(join(projectDir, '.gemini', 'rules.md'))).toBe('../AGENTS.md');
         expect(readlinkSync(join(projectDir, '.opencode', 'instructions.md'))).toBe('../AGENTS.md');
         expect(readdirSync(projectDir).some((entry) => entry.startsWith('AGENTS.md.bak.'))).toBe(false);
         expect(result.output).not.toContain('Backed up:');
