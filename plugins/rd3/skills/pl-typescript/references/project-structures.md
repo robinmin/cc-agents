@@ -117,6 +117,20 @@ my-node-service/
 └── tsconfig.json
 ```
 
+## File Organization
+
+Prefer many small, focused files over few large ones:
+
+| Metric | Guideline |
+|--------|-----------|
+| Typical file | 200–400 lines |
+| Maximum file | 800 lines (split beyond this) |
+| Function | <50 lines |
+| Nesting depth | <4 levels |
+| Organization | By feature/domain, not by type |
+
+Extract utilities from large modules early. High cohesion and low coupling make code easier to test, review, and refactor.
+
 ## Structure Best Practices
 
 1. Keep entry points clean with barrel exports
@@ -124,3 +138,5 @@ my-node-service/
 3. Separate concerns (components/services/store/utils)
 4. Use feature modules for large applications
 5. Co-locate tests with source files
+6. Prefer many small files over few large ones
+7. Organize by feature/domain, not by type
