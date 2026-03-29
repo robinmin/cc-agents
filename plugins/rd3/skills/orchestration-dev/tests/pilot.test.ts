@@ -61,7 +61,10 @@ describe('pilot delegate runner', () => {
 describe('pilot phase runner', () => {
     test('runs the phase 6 pilot workflow through verification-chain', async () => {
         const dir = createTempDir('orchestration-pilot-');
-        writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }));
+        writeFileSync(
+            join(dir, 'package.json'),
+            JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }),
+        );
         writeFileSync(join(dir, 'tsconfig.json'), '{}');
         writeFileSync(join(dir, 'biome.json'), '{}');
 
@@ -105,7 +108,10 @@ describe('pilot phase runner', () => {
 
     test('surfaces a paused delegated verification step', async () => {
         const dir = createTempDir('orchestration-pilot-pause-');
-        writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }));
+        writeFileSync(
+            join(dir, 'package.json'),
+            JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }),
+        );
         writeFileSync(join(dir, 'tsconfig.json'), '{}');
         writeFileSync(join(dir, 'biome.json'), '{}');
 
@@ -161,7 +167,10 @@ describe('pilot phase runner', () => {
 
     test('fails the pilot workflow when a delegated verification step keeps failing after retry', async () => {
         const dir = createTempDir('orchestration-pilot-fail-');
-        writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }));
+        writeFileSync(
+            join(dir, 'package.json'),
+            JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }),
+        );
         writeFileSync(join(dir, 'tsconfig.json'), '{}');
         writeFileSync(join(dir, 'biome.json'), '{}');
 
@@ -222,7 +231,10 @@ describe('pilot phase runner', () => {
 
     test('retries a transient delegated verification failure and then completes', async () => {
         const dir = createTempDir('orchestration-pilot-retry-');
-        writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }));
+        writeFileSync(
+            join(dir, 'package.json'),
+            JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }),
+        );
         writeFileSync(join(dir, 'tsconfig.json'), '{}');
         writeFileSync(join(dir, 'biome.json'), '{}');
 
