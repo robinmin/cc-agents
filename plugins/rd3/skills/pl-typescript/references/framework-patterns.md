@@ -137,6 +137,22 @@ function UserProfile({ userId }: { userId: string }) {
 }
 ```
 
+### Utility Hooks
+
+```typescript
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+```
+
 ### Context Typing
 
 ```typescript
@@ -572,6 +588,7 @@ const user = await api.post<User, { name: string }>('/api/users', {
 
 ### React
 - Use functional components with hooks
+- Do not use `React.FC` — use plain function declarations with typed props instead
 - Type props with interfaces
 - Use generic components for reusable logic
 - Type custom hooks explicitly
