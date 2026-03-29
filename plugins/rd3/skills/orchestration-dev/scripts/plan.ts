@@ -11,12 +11,7 @@ import { isAbsolute, resolve } from 'node:path';
 import { logger } from '../../../scripts/logger';
 import { getProjectRoot, loadConfig } from '../../tasks/scripts/lib/config';
 import { findTaskByWbs } from '../../tasks/scripts/lib/wbs';
-import {
-    buildPhaseDefinitions,
-    getCoverageThreshold,
-    PHASE_MATRIX,
-    resolvePhaseSequence,
-} from './contracts';
+import { buildPhaseDefinitions, getCoverageThreshold, PHASE_MATRIX, resolvePhaseSequence } from './contracts';
 import {
     PHASE_DURATIONS,
     type CreateExecutionPlanOptions,
@@ -76,7 +71,9 @@ export function generateExecutionPlan(
 ): ExecutionPlan {
     const coverageThreshold = getCoverageThreshold(profile, coverageOverride);
     const selectedPhases = resolvePhaseSequence(profile, startPhase, skipPhases);
-    const phases = buildPhaseDefinitions(profile, coverageThreshold).filter((phase) => selectedPhases.includes(phase.number));
+    const phases = buildPhaseDefinitions(profile, coverageThreshold).filter((phase) =>
+        selectedPhases.includes(phase.number),
+    );
     const estimatedDuration = phases.reduce((sum, phase) => sum + PHASE_DURATIONS[phase.number], 0);
     const humanGateCount = phases.filter((phase) => phase.gate === 'human' || phase.gate === 'auto/human').length;
 
