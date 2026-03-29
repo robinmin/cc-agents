@@ -68,6 +68,7 @@ DRY_RUN=false
 VERBOSE=false
 PROJECT=false
 PROJECT_DIR=""
+PROJECT_AGENTS_WRITTEN=false
 
 AVAILABLE_TARGETS="pi,claude,codexcli,geminicli,opencode,openclaw,antigravity"
 
@@ -94,7 +95,6 @@ SYMLINK_MAP=(
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m'
@@ -272,7 +272,7 @@ concatenate_agent_config() {
     local agent_dir="$1"
     local output_file="$2"
 
-    > "$output_file"
+    : > "$output_file"
 
     local first=true
     for file in "${AGENT_FILES[@]}"; do
@@ -332,6 +332,24 @@ backup_if_exists() {
     print_info "  Backed up: ${filepath} -> ${backup_path}"
 }
 
+write_project_agents_file_once() {
+    local agent_dir="$1"
+    local agents_path="$2"
+
+    if [ "$PROJECT_AGENTS_WRITTEN" = "true" ]; then
+        return 0
+    fi
+
+    if [ -f "$agents_path" ]; then
+        backup_if_exists "$agents_path"
+    fi
+
+    mkdir -p "$(dirname "$agents_path")"
+    concatenate_agent_config "$agent_dir" "$agents_path"
+    PROJECT_AGENTS_WRITTEN=true
+    print_success "Wrote: ${agents_path}"
+}
+
 # =============================================================================
 # SECTION: Project-Level Installation (Symlink Strategy)
 # =============================================================================
@@ -347,6 +365,7 @@ install_project_level() {
     local target="$1"
     local agent_dir="$2"
     local base_dir="$3"
+    local agents_path="${base_dir}/AGENTS.md"
 
     # Check if this target needs a symlink
     local needs_symlink=false
@@ -365,21 +384,13 @@ install_project_level() {
 
     if [ "$needs_symlink" = "true" ]; then
         # Symlink platform: ensure AGENTS.md is written, then create symlink
-        local agents_path="${base_dir}/AGENTS.md"
-
         if [ "$DRY_RUN" = "true" ]; then
             print_info "Would write: ${agents_path}"
             print_info "Would symlink: ${link_path} -> ${link_target}"
             return 0
         fi
 
-        # Write AGENTS.md (backup if already written by another target)
-        if [ -f "$agents_path" ]; then
-            backup_if_exists "$agents_path"
-        fi
-        mkdir -p "$(dirname "$agents_path")"
-        concatenate_agent_config "$agent_dir" "$agents_path"
-        print_success "Wrote: ${agents_path}"
+        write_project_agents_file_once "$agent_dir" "$agents_path"
 
         # Remove existing symlink or backup existing file
         if [ -L "$link_path" ]; then
@@ -395,18 +406,12 @@ install_project_level() {
         print_success "${target}: ${link_path} -> ${link_target}"
     else
         # Native AGENTS.md platform
-        local agents_path="${base_dir}/AGENTS.md"
-
         if [ "$DRY_RUN" = "true" ]; then
             print_info "Would write: ${agents_path}"
             return 0
         fi
 
-        if [ -f "$agents_path" ]; then
-            backup_if_exists "$agents_path"
-        fi
-        mkdir -p "$(dirname "$agents_path")"
-        concatenate_agent_config "$agent_dir" "$agents_path"
+        write_project_agents_file_once "$agent_dir" "$agents_path"
         print_success "${target}: ${agents_path}"
     fi
 }
@@ -430,10 +435,8 @@ get_global_path() {
         geminicli)   echo "$HOME/.gemini/GEMINI.md" ;;
         opencode)    echo "$HOME/.opencode/instructions.md" ;;
         antigravity) echo "$HOME/.antigravity/AGENTS.md" ;;
-        openclaw)
-            print_warning "OpenClaw does not support global installation, skipping"
-            echo ""
-            ;;
+        openclaw)    return 1 ;;
+        *)           return 1 ;;
     esac
 }
 
@@ -448,9 +451,8 @@ install_global() {
     local agent_dir="$2"
 
     local output_path
-    output_path=$(get_global_path "$target")
-
-    if [ -z "$output_path" ]; then
+    if ! output_path=$(get_global_path "$target"); then
+        print_warning "${target} does not support global installation, skipping"
         return 0
     fi
 
@@ -514,8 +516,7 @@ main() {
         print_info "Installed ${AGENT_NAME} globally to: ${actual_targets}"
         for target in $targets_list; do
             local output_path
-            output_path=$(get_global_path "$target")
-            if [ -n "$output_path" ]; then
+            if output_path=$(get_global_path "$target"); then
                 print_info "  ${target}: ${output_path}"
             fi
         done
