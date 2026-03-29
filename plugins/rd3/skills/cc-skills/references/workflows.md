@@ -1038,7 +1038,7 @@ bun scripts/skill-migrate.ts --from <path> [--from <path>...] --to <path> --appl
 - Detects destination conflicts (files already at destination with same path)
 - With destination conflicts: **blocks apply** unless `--force` is set (prevents silent overwrites)
 - Writes all files to `--to` destination (adds, merges, converted files)
-- Generates `migration-report-<timestamp>.md` with statistics and conflict log
+- Generates migration report at `docs/.migration/migration-report-<skillName>-<timestamp>.md` (NOT inside the skill directory)
 - With `--strict`: blocks apply if average quality score < 70
 
 **Output:** Migrated skill directory + migration report
