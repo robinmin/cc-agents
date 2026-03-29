@@ -161,7 +161,7 @@ Always specify module system — Different environments require different approa
 | **Testing** | Jest | Broad compatibility |
 | **Type Checking** | tsc --noEmit | Fast type checking without build |
 
-## Planning Workflow
+## Workflows
 
 ### Phase 1: Requirements Analysis
 
@@ -216,6 +216,7 @@ Always specify module system — Different environments require different approa
 - Use loose types (`object`, `Function`) without constraints
 - Suppress `strictNullChecks` — handle null/undefined explicitly
 - Use `unknown` without proper type narrowing
+- Use `console.log` in production code — use proper logging libraries
 - Create overly complex generic types without documentation
 - Forget to generate declaration files for libraries
 - Use nested conditional types without intermediate types
@@ -618,4 +619,14 @@ interface UserResponse {
 | `references/vite-config-patterns.md` | Comprehensive Vite configuration |
 | `references/security-patterns.md` | TypeScript security best practices |
 
-See [Additional Resources](references/external-resources.md) for detailed content.
+## Additional Resources
+
+- [TypeScript Documentation](https://www.typescriptlang.org/docs/) — Official docs
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/) — Language reference
+- [TypeScript 5.x Release Notes](https://www.typescriptlang.org/docs/handbook/release-notes/overview.html) — Version features
+- [Vite Documentation](https://vitejs.dev/) — Build tool
+- [Vitest Documentation](https://vitest.dev/) — Testing framework
+- [Zod Documentation](https://zod.dev/) — Schema validation
+- [Node.js Documentation](https://nodejs.org/docs/latest/api/) — Runtime reference
+
+See [references/external-resources.md](references/external-resources.md) for more links.
