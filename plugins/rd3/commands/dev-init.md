@@ -2,7 +2,6 @@
 description: Initialize and validate project infrastructure for the 9-phase pipeline
 argument-hint: "[--stack <auto|typescript-bun-biome|python-uv-ruff|go-mod>] [--json]"
 allowed-tools: ["Read", "Glob", "Bash"]
-disable-model-invocation: true
 ---
 
 # Dev Init
