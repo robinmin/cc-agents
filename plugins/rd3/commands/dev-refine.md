@@ -35,7 +35,7 @@ Refine task requirements by analyzing existing content for quality issues and im
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. Non-`current` values are delegated via **rd3:run-acp**.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
 
 ```
 # Default: execute on the current channel
@@ -44,8 +44,8 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile refine --channel
 # Optional: bypass any future human gates on the current channel
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile refine --auto --channel current")
 
-# Execute the same workflow on another ACP-backed channel
-Skill(skill="rd3:run-acp", args="codex exec \"rd3:orchestration-dev {task-ref} --profile refine --channel codex\"")
+# Execute the same workflow on another channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile refine --channel codex")
 ```
 
 ## Examples
@@ -60,4 +60,4 @@ Skill(skill="rd3:run-acp", args="codex exec \"rd3:orchestration-dev {task-ref} -
 
 - **/rd3:dev-run**: Profile-driven pipeline execution
 - **rd3:request-intake**: Requirements elicitation skill
-- **rd3:run-acp**: Cross-channel execution wrapper
+- **rd3:run-acp**: ACP executor used by orchestration when a delegated phase runs remotely
