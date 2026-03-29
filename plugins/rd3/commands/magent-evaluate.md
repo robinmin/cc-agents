@@ -2,7 +2,6 @@
 description: "Evaluate main agent config quality"
 argument-hint: "<config-path> [--profile <standard|minimal|advanced>] [--json]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Magent Evaluate
