@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { setGlobalSilent } from '../../../scripts/logger';
+import { DOWNSTREAM_EVIDENCE_CONTRACTS, validateSkipPhases } from '../scripts/contracts';
 import { createExecutionPlan, generateExecutionPlan, main, validateProfile } from '../scripts/plan';
 
 beforeAll(() => {
@@ -10,10 +11,11 @@ beforeAll(() => {
 });
 
 const originalExit = process.exit;
+const originalCwd = process.cwd();
 
 afterEach(() => {
     process.exit = originalExit;
-    process.chdir('/Users/robin/projects/cc-agents');
+    process.chdir(originalCwd);
 });
 
 function stubExit(): void {
@@ -23,22 +25,23 @@ function stubExit(): void {
 }
 
 describe('generateExecutionPlan', () => {
-    test('uses the previous executed phase as the input dependency', () => {
+    test('uses explicit phase contracts instead of implicit previous-phase placeholders', () => {
         const plan = generateExecutionPlan('0266', 'complex');
         const phase2 = plan.phases.find((phase) => phase.number === 2);
         const phase8 = plan.phases.find((phase) => phase.number === 8);
 
-        expect(phase2?.inputs).toEqual(['Phase 1 outputs']);
-        expect(phase8?.inputs).toEqual(['Phase 7 outputs']);
+        expect(phase2?.inputs).toEqual(['task_ref', 'requirements', 'constraints']);
+        expect(phase8?.inputs).toEqual(['task_ref', 'mode=full', 'source_paths?', 'bdd_report']);
     });
 
-    test('uses task_ref inputs when the first executed phase has no predecessor', () => {
+    test('uses explicit phase contracts for profiles that begin mid-pipeline', () => {
         const plan = generateExecutionPlan('0266', 'simple');
         const phase5 = plan.phases.find((phase) => phase.number === 5);
         const phase6 = plan.phases.find((phase) => phase.number === 6);
 
-        expect(phase5?.inputs).toEqual(['task_ref', 'description?']);
-        expect(phase6?.inputs).toEqual(['Phase 5 outputs']);
+        expect(phase5?.inputs).toEqual(['task_ref', 'solution', 'design?']);
+        expect(phase6?.inputs).toEqual(['task_ref', 'source_paths', 'coverage_threshold']);
+        expect(phase5?.prerequisites).toEqual(['Solution section populated']);
     });
 
     test('encodes standard-profile phase 8 and 9 special cases', () => {
@@ -49,6 +52,7 @@ describe('generateExecutionPlan', () => {
         expect(phase8?.skill).toBe('rd3:bdd-workflow');
         expect(phase8?.outputs).toEqual(['BDD Report']);
         expect(phase8?.gateCriteria).toBe('BDD scenarios generated and executed');
+        expect(phase8?.gate).toBe('auto');
 
         expect(phase9?.skill).toBe('rd3:code-docs');
         expect(phase9?.outputs).toEqual(['Refreshed Project Docs']);
@@ -69,7 +73,7 @@ describe('generateExecutionPlan', () => {
     });
 
     test('counts human gates and estimated duration after skipping a trailing suffix', () => {
-        const plan = generateExecutionPlan('0266', 'complex', [8, 9]);
+        const plan = generateExecutionPlan('0266', 'complex', undefined, [8, 9]);
 
         expect(plan.estimated_duration_hours).toBe(14);
         expect(plan.total_gates).toBe(7);
@@ -77,9 +81,18 @@ describe('generateExecutionPlan', () => {
     });
 
     test('rejects skip-phases that would break required dependencies', () => {
-        expect(() => generateExecutionPlan('0266', 'standard', [5])).toThrow(
+        expect(() => generateExecutionPlan('0266', 'standard', undefined, [5])).toThrow(
             'Invalid skip-phases for profile "standard"',
         );
+    });
+
+    test('supports starting from a later phase in the selected profile', () => {
+        const plan = generateExecutionPlan('0266', 'complex', 5);
+        expect(plan.phases.map((phase) => phase.number)).toEqual([5, 6, 7, 8, 9]);
+    });
+
+    test('rejects start-phase values that are outside the selected profile', () => {
+        expect(() => generateExecutionPlan('0266', 'simple', 3)).toThrow('Invalid start-phase 3 for profile "simple"');
     });
 
     test('uses profile-specific default coverage thresholds', () => {
@@ -101,16 +114,16 @@ describe('phase profiles', () => {
         expect(plan.phases).toHaveLength(1);
         expect(plan.phases[0].number).toBe(1);
         expect(plan.phases[0].name).toBe('Request Intake');
-        expect(plan.phases[0].inputs).toEqual(['task_ref', 'description?']);
+        expect(plan.phases[0].inputs).toEqual(['task_ref', 'description?', 'domain_hints?']);
     });
 
     test('plan profile runs phases 2, 3, 4', () => {
         const plan = generateExecutionPlan('0266', 'plan');
         expect(plan.phases).toHaveLength(3);
         expect(plan.phases.map((p) => p.number)).toEqual([2, 3, 4]);
-        expect(plan.phases[0].inputs).toEqual(['task_ref', 'description?']);
-        expect(plan.phases[1].inputs).toEqual(['Phase 2 outputs']);
-        expect(plan.phases[2].inputs).toEqual(['Phase 3 outputs']);
+        expect(plan.phases[0].inputs).toEqual(['task_ref', 'requirements', 'constraints']);
+        expect(plan.phases[1].inputs).toEqual(['task_ref', 'architecture', 'requirements']);
+        expect(plan.phases[2].inputs).toEqual(['task_ref', 'requirements', 'design?']);
     });
 
     test('unit profile runs only phase 6', () => {
@@ -133,6 +146,16 @@ describe('phase profiles', () => {
         expect(plan.phases).toHaveLength(1);
         expect(plan.phases[0].number).toBe(9);
         expect(plan.phases[0].name).toBe('Documentation');
+    });
+});
+
+describe('phase contract helpers', () => {
+    test('allows trailing suffix skips through the exported validator', () => {
+        expect(() => validateSkipPhases('complex', [8, 9])).not.toThrow();
+    });
+
+    test('rejects non-trailing skips through the exported validator', () => {
+        expect(() => validateSkipPhases('complex', [7, 9])).toThrow('Invalid skip-phases for profile "complex"');
     });
 });
 
@@ -240,6 +263,50 @@ impl_progress:
         rmSync(tempDir, { recursive: true, force: true });
     });
 
+    test('falls back to standard when the task path does not exist', () => {
+        const plan = createExecutionPlan('/tmp/does-not-exist/0266_missing.md');
+        expect(plan.profile).toBe('standard');
+        expect(plan.task_path).toBeUndefined();
+    });
+
+    test('falls back to standard when task frontmatter is missing or lacks profile', () => {
+        const tempDir = mkdtempSync(join(tmpdir(), 'orchestration-frontmatter-'));
+        const noFrontmatterPath = join(tempDir, '0266_no_frontmatter.md');
+        const noProfilePath = join(tempDir, '0266_no_profile.md');
+
+        writeFileSync(noFrontmatterPath, '## 0266. example\n', 'utf-8');
+        writeFileSync(
+            noProfilePath,
+            `---
+name: example
+description: example
+status: Backlog
+created_at: 2026-03-28T00:00:00.000Z
+updated_at: 2026-03-28T00:00:00.000Z
+---
+`,
+            'utf-8',
+        );
+
+        expect(createExecutionPlan(noFrontmatterPath).profile).toBe('standard');
+        expect(createExecutionPlan(noProfilePath).profile).toBe('standard');
+
+        rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    test('falls back to standard when task profile cannot be read from a directory path', () => {
+        const tempDir = mkdtempSync(join(tmpdir(), 'orchestration-profile-read-'));
+        const taskDirPath = join(tempDir, '0266_directory.md');
+        mkdirSync(taskDirPath, { recursive: true });
+
+        const plan = createExecutionPlan(taskDirPath);
+
+        expect(plan.profile).toBe('standard');
+        expect(plan.task_path).toBe(taskDirPath);
+
+        rmSync(tempDir, { recursive: true, force: true });
+    });
+
     test('surfaces auto, dry-run, refine, and execution-channel flags in the generated plan', () => {
         const plan = createExecutionPlan('0266', {
             profile: 'standard',
@@ -255,6 +322,15 @@ impl_progress:
         expect(plan.refine_mode).toBe(true);
         expect(plan.execution_channel).toBe('codex');
         expect(phase1?.inputs).toContain('mode=refine');
+    });
+
+    test('supports startPhase in createExecutionPlan', () => {
+        const plan = createExecutionPlan('0266', {
+            profile: 'complex',
+            startPhase: 6,
+        });
+
+        expect(plan.phases.map((phase) => phase.number)).toEqual([6, 7, 8, 9]);
     });
 
     test('rejects refine mode when the selected profile does not include phase 1', () => {
@@ -289,8 +365,20 @@ describe('plan main', () => {
         expect(() => main(['0266', '--profile', 'standard', '--skip-phases', '5'])).toThrow('EXIT:1');
     });
 
+    test('exits with code 1 when start-phase is invalid', () => {
+        stubExit();
+
+        expect(() => main(['0266', '--start-phase', '11'])).toThrow('EXIT:1');
+    });
+
+    test('exits with code 1 when coverage is invalid', () => {
+        stubExit();
+
+        expect(() => main(['0266', '--coverage', '101'])).toThrow('EXIT:1');
+    });
+
     test('uses coverage override in gate criteria and plan output', () => {
-        const plan = generateExecutionPlan('0266', 'standard', [], 90);
+        const plan = generateExecutionPlan('0266', 'standard', undefined, [], 90);
         const phase6 = plan.phases.find((phase) => phase.number === 6);
 
         expect(phase6?.gateCriteria).toContain('90');
@@ -298,7 +386,7 @@ describe('plan main', () => {
         expect(plan.execution_channel).toBe('current');
     });
 
-    test('phase 8 gate is auto/human hybrid', () => {
+    test('phase 8 gate remains hybrid outside the standard profile', () => {
         const plan = generateExecutionPlan('0266', 'complex');
         const phase8 = plan.phases.find((phase) => phase.number === 8);
         expect(phase8?.gate).toBe('auto/human');
@@ -307,5 +395,29 @@ describe('plan main', () => {
     test('parses channel flag through the CLI plan builder', () => {
         const plan = createExecutionPlan('0266', { profile: 'review', executionChannel: 'opencode' });
         expect(plan.execution_channel).toBe('opencode');
+    });
+
+    test('accepts start-phase through the CLI plan builder', () => {
+        const plan = createExecutionPlan('0266', { profile: 'complex', startPhase: 7 });
+        expect(plan.phases.map((phase) => phase.number)).toEqual([7, 8, 9]);
+    });
+
+    test('accepts dry-run through the CLI path', () => {
+        expect(() => main(['0266', '--profile', 'unit', '--dry-run'])).not.toThrow();
+    });
+});
+
+describe('downstream evidence contracts', () => {
+    test('defines predictable evidence envelopes for verification-aware skills', () => {
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:request-intake'].required_fields).toEqual([
+            'background',
+            'requirements',
+            'constraints',
+            'profile',
+        ]);
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:bdd-workflow'].kind).toBe('bdd-execution-report');
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:functional-review'].required_fields).toContain(
+            'covered_requirements',
+        );
     });
 });
