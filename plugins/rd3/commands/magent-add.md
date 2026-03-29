@@ -2,7 +2,6 @@
 description: "Synthesize a new main agent configuration"
 argument-hint: "<template> [--platform <platform>] [--output <path>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Magent Add
