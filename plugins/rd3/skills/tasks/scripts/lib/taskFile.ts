@@ -79,6 +79,13 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
         frontmatter.dependencies = dependencies;
     }
 
+    if (fm.profile !== undefined) {
+        const normalizedProfile = stripWrappingQuotes(fm.profile);
+        if (isValidProfile(normalizedProfile)) {
+            frontmatter.profile = normalizedProfile;
+        }
+    }
+
     return frontmatter;
 }
 
@@ -103,8 +110,24 @@ function parseOptionalArray(value?: string): string[] | undefined {
     return value ? [value] : undefined;
 }
 
+function stripWrappingQuotes(value: string): string {
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        return value.slice(1, -1);
+    }
+
+    return value;
+}
+
+function escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isValidProfile(value: string): value is NonNullable<TaskFrontmatter['profile']> {
+    return value === 'simple' || value === 'standard' || value === 'complex' || value === 'research';
+}
+
 export function parseSection(content: string, section: string): string {
-    const headerPattern = new RegExp(`^### ${section}\\n\\n`, 'm');
+    const headerPattern = new RegExp(`^### ${escapeRegex(section)}\\n(?:\\n)?`, 'm');
     const headerMatch = content.match(headerPattern);
     if (!headerMatch || headerMatch.index === undefined) {
         return '';
@@ -143,8 +166,17 @@ export function readTaskFile(path: string): TaskFile | null {
 export function updateFrontmatterField(path: string, field: string, value: string): Result<boolean> {
     try {
         const content = readFileSync(path, 'utf-8');
-        const updated = content.replace(new RegExp(`^(${field}: ).+$`, 'm'), `$1${value}`);
-        writeFileSync(path, updated, 'utf-8');
+        const frontmatterMatch = content.match(FRONTMATTER_REGEX);
+        if (!frontmatterMatch) {
+            return err('Frontmatter block not found');
+        }
+
+        const frontmatterBlock = frontmatterMatch[1];
+        const fieldPattern = new RegExp(`^${field}: .*$`, 'm');
+        const nextContent = fieldPattern.test(frontmatterBlock)
+            ? content.replace(new RegExp(`^(${field}: ).+$`, 'm'), `$1${value}`)
+            : content.replace(FRONTMATTER_REGEX, `---\n${frontmatterBlock}\n${field}: ${value}\n---\n`);
+        writeFileSync(path, nextContent, 'utf-8');
         return ok(true);
     } catch (e) {
         return err(`Failed to update frontmatter: ${e}`);
@@ -166,11 +198,17 @@ export function updateStatus(path: string, status: TaskStatus): Result<boolean> 
 export function updateSection(path: string, section: string, newContent: string): Result<boolean> {
     try {
         const content = readFileSync(path, 'utf-8');
-        const sectionPattern = new RegExp(`(### ${section}\\n\\n)[\\s\\S]*?(?=\\n(?:### |$))`, 'm');
-        if (!sectionPattern.test(content)) {
+        const headerPattern = new RegExp(`^### ${escapeRegex(section)}\\n(?:\\n)?`, 'm');
+        const headerMatch = content.match(headerPattern);
+        if (!headerMatch || headerMatch.index === undefined) {
             return err(`Section '### ${section}' not found`);
         }
-        const updated = content.replace(sectionPattern, `$1${newContent}\n`);
+
+        const start = headerMatch.index + headerMatch[0].length;
+        const remainder = content.slice(start);
+        const nextHeadingIndex = remainder.search(/\n### /);
+        const end = nextHeadingIndex === -1 ? content.length : start + nextHeadingIndex;
+        const updated = `${content.slice(0, start)}${newContent}\n${content.slice(end)}`;
         writeFileSync(path, updated, 'utf-8');
         return ok(true);
     } catch (e) {
@@ -181,11 +219,15 @@ export function updateSection(path: string, section: string, newContent: string)
 export function updateImplPhase(path: string, phase: ImplPhase, phaseStatus: string): Result<boolean> {
     try {
         const content = readFileSync(path, 'utf-8');
-        const updated = content.replace(new RegExp(`^(${phase}: ).+$`, 'm'), `$1${phaseStatus}`);
+        const phasePattern = new RegExp(`^(\\s{2}${phase}: ).+$`, 'm');
+        if (!phasePattern.test(content)) {
+            return err(`impl_progress phase '${phase}' not found`);
+        }
+        const updated = content.replace(phasePattern, `$1${phaseStatus}`);
         writeFileSync(path, updated, 'utf-8');
         return ok(true);
     } catch (e) {
-        return err(`Failed to update impl_phase: ${e}`);
+        return err(`Failed to update impl_progress phase: ${e}`);
     }
 }
 
