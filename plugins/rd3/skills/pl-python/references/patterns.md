@@ -158,9 +158,13 @@ user = User(name="Alice", email="alice@example.com")
 
 ### frozen dataclass (immutable)
 
+**Prefer immutable data structures by default.** Use `frozen=True` for value objects that should not change after creation — this prevents accidental mutation and makes objects safe to use as dict keys or set members.
+
 ```python
 from dataclasses import dataclass
+from typing import NamedTuple
 
+# Frozen dataclass — best for complex value objects with defaults
 @dataclass(frozen=True)
 class Config:
     api_key: str
@@ -168,7 +172,19 @@ class Config:
 
 config = Config(api_key="secret", endpoint="...")
 # config.endpoint = "new"  # Error - frozen!
+
+# NamedTuple — lightweight immutable alternative (no inheritance needed)
+class Point(NamedTuple):
+    x: float
+    y: float
+
+p = Point(3.0, 4.0)
+# p.x = 5.0  # Error - immutable!
 ```
+
+**When to use which:**
+- `@dataclass(frozen=True)` — when you need defaults, `field()`, methods, or inheritance
+- `NamedTuple` — when you want positional construction, tuple unpacking, and minimal overhead
 
 ---
 
