@@ -34,7 +34,7 @@ Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation qu
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. Non-`current` values are delegated via **rd3:run-acp**.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
 
 ```
 # Default: execute on the current channel
@@ -43,8 +43,8 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel
 # Optional: bypass the review gate on the current channel
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --auto --channel current")
 
-# Execute the same workflow on another ACP-backed channel
-Skill(skill="rd3:run-acp", args="codex exec \"rd3:orchestration-dev {task-ref} --profile review --channel codex\"")
+# Execute the same workflow on another channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel codex")
 ```
 
 ## Review Dimensions
@@ -62,11 +62,11 @@ Skill(skill="rd3:run-acp", args="codex exec \"rd3:orchestration-dev {task-ref} -
 ```bash
 /rd3:dev-review 0274
 /rd3:dev-review docs/tasks2/0274_add_dev_slash_commands.md
-/rd3:dev-review 0274 --channel claude
+/rd3:dev-review 0274 --channel claude-code
 ```
 
 ## See Also
 
 - **/rd3:dev-run**: Profile-driven pipeline execution
 - **rd3:code-review-common**: Code review skill
-- **rd3:run-acp**: Cross-channel execution wrapper
+- **rd3:run-acp**: ACP executor used by orchestration when a delegated phase runs remotely
