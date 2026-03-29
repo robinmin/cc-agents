@@ -3,8 +3,6 @@ name: architecture-patterns
 description: "Python architecture patterns: layered, hexagonal, clean, event-driven"
 see_also:
   - rd3:pl-python
-  - rd3:pl-typescript
-  - rd3:backend-architect
 ---
 
 # Python Architecture Patterns
