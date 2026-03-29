@@ -351,6 +351,21 @@ async def client():
 | Private modules | `_private.py` | `_helpers.py` |
 | Type stubs | `<module>.pyi` | `numpy.pyi` |
 
+## File Organization
+
+Prefer many small, focused files over few large ones:
+
+| Metric | Guideline |
+|--------|-----------|
+| Typical module | 200–400 lines |
+| Maximum module | 800 lines (split beyond this) |
+| Function / method | <50 lines |
+| Nesting depth | <4 levels |
+| Class | Single responsibility |
+| Organization | By feature/domain, not by type |
+
+Extract utilities from large modules early. High cohesion and low coupling make code easier to test, review, and refactor.
+
 ---
 
 ## pyproject.toml Reference
