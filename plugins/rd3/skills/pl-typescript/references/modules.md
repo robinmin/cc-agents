@@ -332,3 +332,19 @@ import { format } from '@/utils/format';
 3. Use barrel exports for clean APIs
 4. Use type-only imports to avoid runtime overhead
 5. Use dynamic imports for code splitting
+
+## JSDoc in JavaScript Files
+
+When TypeScript migration is not practical, use JSDoc for type safety in `.js`/`.jsx` files:
+
+```javascript
+/**
+ * @param {{ firstName: string, lastName: string }} user
+ * @returns {string}
+ */
+export function formatUser(user) {
+  return `${user.firstName} ${user.lastName}`;
+}
+```
+
+Keep JSDoc aligned with runtime behavior. Prefer TypeScript migration when feasible.
