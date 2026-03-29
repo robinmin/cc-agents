@@ -867,8 +867,11 @@ async function main(): Promise<void> {
 
         logger.success(`Migration applied to ${resolvedDest}`);
 
-        // Write report to destination
-        const reportPath = join(resolvedDest, `migration-report-${new Date().toISOString().replace(/[:.]/g, '-')}.md`);
+        // Write report to docs/.migration/ (not inside the skill directory)
+        const skillName = resolvedDest.split('/').pop() || 'unknown';
+        const reportDir = join(process.cwd(), 'docs', '.migration');
+        mkdirSync(reportDir, { recursive: true });
+        const reportPath = join(reportDir, `migration-report-${skillName}-${new Date().toISOString().replace(/[:.]/g, '-')}.md`);
         writeFileSync(reportPath, report.details, 'utf-8');
         logger.info(`Report written to ${reportPath}`);
     } else {
