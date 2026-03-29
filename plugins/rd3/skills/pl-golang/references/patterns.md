@@ -329,6 +329,81 @@ parts := []string{"a", "b", "c"}
 result := strings.Join(parts, ",")
 ```
 
+## Repository Pattern
+
+Encapsulate data access behind a consistent interface:
+
+```go
+// Define repository interface in consumer package
+type UserRepository interface {
+    FindByID(ctx context.Context, id string) (*User, error)
+    FindAll(ctx context.Context) ([]User, error)
+    Save(ctx context.Context, user *User) error
+    Delete(ctx context.Context, id string) error
+}
+
+// Concrete implementation
+type postgresUserRepo struct {
+    db *sql.DB
+}
+
+func NewPostgresUserRepo(db *sql.DB) UserRepository {
+    return &postgresUserRepo{db: db}
+}
+
+func (r *postgresUserRepo) FindByID(ctx context.Context, id string) (*User, error) {
+    var user User
+    err := r.db.QueryRowContext(ctx,
+        "SELECT id, name, email FROM users WHERE id = $1", id,
+    ).Scan(&user.ID, &user.Name, &user.Email)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return nil, nil
+        }
+        return nil, fmt.Errorf("querying user %s: %w", id, err)
+    }
+    return &user, nil
+}
+```
+
+**Guidelines:**
+- Define the interface in the consumer package, not the implementation package
+- Accept the interface in constructors via dependency injection
+- Business logic depends on the interface, enabling easy testing with fakes
+
+## API Response Format
+
+Use a consistent envelope for HTTP/JSON APIs:
+
+```go
+// Standard response envelope
+type APIResponse struct {
+    Success bool        `json:"success"`
+    Data    any         `json:"data,omitempty"`
+    Error   string      `json:"error,omitempty"`
+}
+
+// Paginated response
+type PaginatedResponse struct {
+    Success bool        `json:"success"`
+    Data    any         `json:"data,omitempty"`
+    Error   string      `json:"error,omitempty"`
+    Meta    *PageMeta   `json:"meta,omitempty"`
+}
+
+type PageMeta struct {
+    Total  int `json:"total"`
+    Page   int `json:"page"`
+    Limit  int `json:"limit"`
+}
+```
+
+**Guidelines:**
+- Include `success` boolean for client-side branching
+- `Data` is nullable (absent on error); `Error` is nullable (absent on success)
+- Add `Meta` for paginated responses with total count, page, and limit
+- Keep error messages user-friendly in responses; log detailed errors server-side
+
 ## Further Reading
 
 - [Effective Go](https://go.dev/doc/effective_go)
