@@ -35,7 +35,7 @@ Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. Non-`current` values are delegated via **rd3:run-acp**.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
 
 ```
 # Default unit target on the current channel
@@ -44,8 +44,8 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --channel c
 # Custom coverage threshold on the current channel
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 90 --channel current")
 
-# Execute the same workflow on another ACP-backed channel
-Skill(skill="rd3:run-acp", args="codex exec \"rd3:orchestration-dev {task-ref} --profile unit --coverage 90 --channel codex\"")
+# Execute the same workflow on another channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 90 --channel codex")
 ```
 
 ## Completion Criteria
@@ -64,11 +64,11 @@ If any test fails: NOT completed, MUST fix or extend tests until the suite is fu
 /rd3:dev-unit 0274
 /rd3:dev-unit 0274 --coverage 90
 /rd3:dev-unit 0274 --coverage 90 --auto
-/rd3:dev-unit 0274 --channel gemini
+/rd3:dev-unit 0274 --channel codex
 ```
 
 ## See Also
 
 - **/rd3:dev-run**: Profile-driven pipeline execution
 - **rd3:sys-testing**: Test execution skill
-- **rd3:run-acp**: Cross-channel execution wrapper
+- **rd3:run-acp**: ACP executor used by orchestration when a delegated phase runs remotely
