@@ -1,0 +1,42 @@
+{
+    "id": "typescript-bun-biome",
+    "label": "TypeScript + Bun + Biome",
+    "phase6": {
+        "required_files": ["package.json", "tsconfig.json", "biome.json"],
+        "steps": [
+            {
+                "name": "typecheck",
+                "skill": "rd3:sys-testing",
+                "command": "bun run typecheck",
+                "prompt": "Run `bun run typecheck` in the repo root. Return only whether it passed and any concrete diagnostics if it failed.",
+                "timeout_seconds": 1800,
+                "checker": {
+                    "method": "cli",
+                    "config": { "command": "bun run typecheck", "exit_codes": [0] }
+                }
+            },
+            {
+                "name": "lint-rd3",
+                "skill": "rd3:sys-testing",
+                "command": "bun run lint:rd3",
+                "prompt": "Run `bun run lint:rd3` in the repo root. Return only whether it passed and the exact file-level issues if it failed.",
+                "timeout_seconds": 1800,
+                "checker": {
+                    "method": "cli",
+                    "config": { "command": "bun run lint:rd3", "exit_codes": [0] }
+                }
+            },
+            {
+                "name": "test-rd3",
+                "skill": "rd3:sys-testing",
+                "command": "bun run test:rd3",
+                "prompt": "Run `bun run test:rd3` in the repo root. Return only whether it passed, plus the concrete failing tests or coverage gate failures if any.",
+                "timeout_seconds": 3600,
+                "checker": {
+                    "method": "cli",
+                    "config": { "command": "bun run test:rd3", "exit_codes": [0] }
+                }
+            }
+        ]
+    }
+}
