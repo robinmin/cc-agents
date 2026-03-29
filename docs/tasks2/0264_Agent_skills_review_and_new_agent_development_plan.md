@@ -61,7 +61,7 @@ Task-file-driven software development with machine-first verification (BDD) + hu
 | `expert-request-intake.md` | `request-intake` | Bootstrap task file from one-liner |
 | `expert-bdd-workflow.md` | `bdd-workflow` | Run BDD scenarios |
 | `expert-functional-review.md` | `functional-review` | Verify implementation vs task file |
-| `orchestrator-dev.md` | `orchestration-dev` | Orchestrate full pipeline |
+| `jon-snow.md` | `orchestration-dev` | Orchestrate full pipeline |
 | `expert-verification-chain.md` | `verification-chain` | Execute a chain manifest |
 
 **Commands** (human-facing CLI):
@@ -188,10 +188,10 @@ All 9 workflow phases mapped to existing rd3 skills. Gaps documented with severi
 - Acceptance: simple profile -> runs only Phase 5,6 (60%); standard -> full pipeline in order; dry_run shows plan without execution; start_phase resumes correctly
 - **Complexity: L (20-30h)**
 
-#### R7: Build `orchestrator-dev` Agent + `/rd3:orchestration-dev` Command
+#### R7: Build `jon-snow` Agent + orchestration command surface
 - Thin agent wrapper (~50 lines) delegating to `orchestration-dev` skill
 - Agent lists all phase skills in `skills:` frontmatter array
-- Command is thin YAML frontmatter wrapper around agent
+- Command surface delegates to `orchestration-dev` skill via `dev-run` and profile-specific `dev-*` wrappers
 - Dependencies: `orchestration-dev` skill
 - **Complexity: XS (3h total)**
 
@@ -250,9 +250,9 @@ A: No. v1 is simple sequential delegation. verification-chain integration is v2 
                    |
             orchestration-dev
                    |
-         orchestrator-dev (agent)
+              jon-snow (agent)
                    |
-         /rd3:orchestration-dev (command)
+     dev-run / dev-plan / dev-review / dev-unit / dev-docs / dev-refine
 ```
 
 #### Sprint Plan
@@ -296,5 +296,4 @@ A: No. v1 is simple sequential delegation. verification-chain integration is v2 
 - Task 0265: verification-chain skill (completed)
 - Existing rd3 skills: 29 skills in `plugins/rd3/skills/`
 - rd2:task-workflow (13-step legacy, deprecated — reference only for orchestration-dev)
-
 
