@@ -2,15 +2,15 @@
 name: orchestration-dev
 description: "9-phase orchestration pipeline coordinator: reads task profile, executes phases with gates, delegates to specialist skills. Capstone skill for the rd3 pipeline. Persona: Senior Workflow Architect."
 license: Apache-2.0
-version: 1.1.0
+version: 1.2.0
 created_at: 2026-03-27
-updated_at: 2026-03-27
+updated_at: 2026-03-28
 platform: rd3
 type: orchestration
 tags: [orchestration, pipeline, phase-gates, delegation, capstone]
 metadata:
   author: cc-agents
-  platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity"
+  platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity,pi"
   category: orchestration
   interactions:
     - orchestrator
@@ -70,6 +70,7 @@ The orchestration-dev skill:
 6. **Handles** rework loops (max 2 iterations)
 7. **Persists** results to task file between phases
 8. **Routes** work to the requested execution channel
+9. **Supports** suffix execution via `start_phase` when resuming or intentionally entering mid-pipeline
 
 ## Input Schema
 
@@ -77,6 +78,7 @@ The orchestration-dev skill:
 interface OrchestrationInput {
     task_ref: string;                    // WBS number or path to task file
     profile?: Profile;                   // Override profile from frontmatter
+    start_phase?: PhaseNumber;           // Start from this phase within the selected profile
     skip_phases?: PhaseNumber[];         // Phases to skip (CLI: --skip-phases)
     dry_run?: boolean;                   // Output plan without executing
     auto?: boolean;                      // Auto-approve human gates (no pause)
@@ -241,7 +243,8 @@ async function executePhase(phase: Phase, task: TaskFile): Promise<PhaseResult> 
 
 - `execution_channel: 'current'` means execute on the current channel.
 - Any other value should be an ACP agent name supported by `rd3:run-acp`.
-- Slash command wrappers expose this as `--channel <agent|current>` and map it into `execution_channel`.
+- Slash command wrappers expose this as `--channel <agent|current>` and pass it into orchestration unchanged.
+- `rd3:orchestration-dev` is the routing authority. It normalizes aliases, keeps `current` work local, and only uses `rd3:run-acp` for delegated remote execution.
 
 ## Gate Definitions
 
@@ -304,6 +307,10 @@ if (input.auto) {
 When `--auto` is set, human gates (Design Gate, Review Gate, Functional Gate) are auto-approved. This enables end-to-end execution for commands like `dev-run` that need continuous flow.
 
 **Skip phase safety:** `--skip-phases` is intentionally limited to trailing phases only. Skipping an interior phase would leave later phases without the inputs they require.
+
+**Start phase safety:** `start_phase` selects a suffix of the selected profile's phase sequence. It is not an arbitrary jump; the chosen phase must already belong to the selected profile.
+
+**Downstream evidence contracts:** orchestration normalizes verification-aware outputs through shared envelopes for `rd3:request-intake`, `rd3:bdd-workflow`, and `rd3:functional-review`.
 
 ## Rework Loop
 
@@ -376,15 +383,31 @@ rd3:orchestration-dev 0266 --auto --coverage 90
 - Uses tasks CLI for progress tracking
 - Reads/writes task file sections between phases
 
+## Gate Architecture
+
+Two gate execution models coexist in v1:
+
+### CoV-Backed Gates (Phase 6)
+
+Phase 6 (Unit Testing) runs through `rd3:verification-chain`. The orchestration runtime builds a Chain-of-Verification manifest from the active stack profile (default: `typescript-bun-biome`) and delegates execution to the CoV interpreter. Each verification step has a real checker (cli, file-exists) that validates the step output independently. Retry, pause/resume, and evidence collection are handled by the CoV interpreter.
+
+### Direct Gates (Phases 1-5, 7-9)
+
+All other phases use the orchestration runtime's own gate evaluation. Auto gates check phase output artifacts (coverage thresholds, test results, generated files). Human gates pause the orchestration state and await user approval via `--auto` or interactive prompt. These phases are not yet wired through verification-chain.
+
+### Why Two Models
+
+The pilot CoV integration targets Phase 6 because it has the richest verification surface (typecheck, lint, test). Remaining phases will migrate to CoV-backed gates in v2, giving every phase the same retry, evidence, and checker capabilities.
+
 ## v1 Limitations
 
 - **Sequential only:** No parallel phase execution
-- **No verification-chain:** Gates use simple checks, not CoV
+- **Pilot verification-chain only:** Phase 6 is the only phase currently backed by CoV; phases 1-5, 7-9 use direct gates
 - **No conditional branching:** Fixed phase order per profile
 - **No rollback:** Cannot undo a completed phase
 
 **v2 enhancements planned:**
 - Parallel execution where phases are independent
-- verification-chain integration for complex gates
+- Expand verification-chain integration across the remaining phases (7, 8, then others)
 - Conditional branching based on phase output
 - Rollback capability for failed phases
