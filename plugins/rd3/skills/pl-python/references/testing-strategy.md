@@ -368,6 +368,39 @@ async def test_create_user(client):
 
 ## Best Practices
 
+### Test Markers for Categorization
+
+Use `pytest.mark` to categorize tests by type, enabling selective runs:
+
+```python
+import pytest
+
+@pytest.mark.unit
+def test_calculate_total():
+    ...
+
+@pytest.mark.integration
+def test_database_connection():
+    ...
+
+@pytest.mark.slow
+def test_full_pipeline():
+    ...
+```
+
+```bash
+# Run only unit tests
+pytest -m unit
+
+# Run everything except slow tests
+pytest -m "not slow"
+
+# Run integration and unit, but not slow
+pytest -m "unit or integration"
+```
+
+Register markers in `pyproject.toml` (see `references/tooling.md` for full configuration).
+
 ### DO
 
 ```python
