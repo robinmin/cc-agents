@@ -1,6 +1,8 @@
 ---
+allowed-tools: ["Bash", "Read", "Grep", "Glob", "Edit"]
 description: Fix all lint, type, and test errors systematically
 argument-hint: "[<validation-command>] [--max-retry=5]"
+model: inherit
 ---
 
 # Dev Fixall
