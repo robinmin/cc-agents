@@ -211,9 +211,10 @@ Useful options:
 
 - `--features=skills`
 - `--features=skills,commands`
-- `--features=skills,commands,subagents`
 - `--dry-run`
 - `--verbose`
+
+`install-skills.sh` installs the rd3 skill surface only. For subagents, use the specialized `cc-agents` adapt/install flows after the skill surface is in place.
 
 ### Codex
 
