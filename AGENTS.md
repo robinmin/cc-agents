@@ -77,6 +77,8 @@ Code style conventions: 2-space indent, semicolons, double quotes, trailing comm
 constructor() {}
 ```
 
+**`biome-ignore` policy**: NEVER add `biome-ignore` comments to bypass lint errors. Fix the underlying code instead. Use proper type casts rather than suppressing `noExplicitAny`. The only permitted exception is `biome-ignore lint/complexity/noUselessConstructor` for the V8 function coverage workaround above.
+
 ---
 
 ## Tools & Logging
