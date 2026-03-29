@@ -5,7 +5,7 @@ license: Apache-2.0
 metadata:
   author: cc-agents
   version: "1.0.0"
-  platforms: "claude-code,codex,openclaw,opencode,antigravity"
+  platforms: "claude-code,codex,openclaw,opencode,antigravity,pi"
   interactions:
     - tool-wrapper
   openclaw:
@@ -50,7 +50,7 @@ Some rd3 slash commands expose `--channel <current|claude-code|codex|openclaw|op
 - `claude-code` is the user-facing slash-command alias for the ACP agent name `claude`.
 - `codex`, `openclaw`, `opencode`, and `pi` map directly to ACP agent names.
 - `antigravity` is a user-facing channel option and should be resolved through a configured ACP agent command for Antigravity in the local `acpx` config.
-- When a wrapper resolves a non-`current` value, it should delegate through `rd3:run-acp` and preserve that value as `execution_channel` for downstream skills.
+- Slash command wrappers should pass the raw channel value into `rd3:orchestration-dev`. Orchestration then decides when delegated phase work should use `rd3:run-acp`.
 
 ## Install
 
