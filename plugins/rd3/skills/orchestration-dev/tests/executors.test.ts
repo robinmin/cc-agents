@@ -159,14 +159,7 @@ describe('executors', () => {
         });
 
         expect(result.status).toBe('failed');
-        expect(result.command).toEqual([
-            '/custom/acpx',
-            '--format',
-            'quiet',
-            'pi',
-            'exec',
-            'inspect the repository',
-        ]);
+        expect(result.command).toEqual(['/custom/acpx', '--format', 'quiet', 'pi', 'exec', 'inspect the repository']);
         expect(result.error).toContain('permission denied');
     });
 });
