@@ -21,6 +21,6 @@ see_also:
 | [pytest Documentation](https://docs.pytest.org/) | Testing framework |
 | [Real Python](https://realpython.com/) | Python tutorials and articles |
 | [Python Packaging User Guide](https://packaging.python.org/) | pyproject.toml guidance |
-| [PEP 703 - No-GIL Mode](https://peps.python.org/pep-0699/) | Experimental free-threaded CPython |
+| [PEP 703 - No-GIL Mode](https://peps.python.org/pep-0703/) | Experimental free-threaded CPython |
 | [PEP 742 - TypeIs](https://peps.python.org/pep-0742/) | Better type narrowing |
 | [asyncio Documentation](https://docs.python.org/3/library/asyncio.html) | Async I/O reference |
