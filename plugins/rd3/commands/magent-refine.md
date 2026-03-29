@@ -2,7 +2,6 @@
 description: "Refine and improve main agent config files"
 argument-hint: "<config-path> [--dry-run] [--apply] [--output <path>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Magent Refine
