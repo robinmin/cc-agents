@@ -253,7 +253,7 @@ workspace.root = "."
 **Per-package pyproject.toml:**
 ```toml
 [project]
-name = "@monorepo/shared"
+name = "monorepo-shared"
 version = "1.0.0"
 requires-python = ">=3.11"
 dependencies = []
