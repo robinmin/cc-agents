@@ -1,10 +1,17 @@
-// update command — update task status, section, or impl_phase
+// update command — update task status, section, frontmatter, or impl_progress
 
 import { existsSync, readFileSync } from 'node:fs';
 import { err, ok, type Result } from '../lib/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
-import { readTaskFile, updateStatus, updateSection, updateImplPhase, validateTaskForTransition } from '../lib/taskFile';
+import {
+    readTaskFile,
+    updateStatus,
+    updateSection,
+    updateImplPhase,
+    updateFrontmatterField,
+    validateTaskForTransition,
+} from '../lib/taskFile';
 import { logger } from '../../../../scripts/logger';
 import type { TaskStatus, ImplPhase } from '../types';
 import { VALID_STATUSES } from '../types';
@@ -15,6 +22,8 @@ export interface UpdateOptions {
     fromFile?: string;
     phase?: ImplPhase;
     phaseStatus?: string;
+    field?: 'profile';
+    value?: string;
     force?: boolean;
     dryRun?: boolean;
     json?: boolean;
@@ -23,12 +32,14 @@ export interface UpdateOptions {
 
 export interface UpdateResult {
     wbs: string;
-    action: 'status' | 'section' | 'phase';
+    action: 'status' | 'section' | 'phase' | 'field';
     dryRun: boolean;
     oldValue?: string;
     newValue?: string;
     warnings?: string[];
 }
+
+const VALID_PROFILES = ['simple', 'standard', 'complex', 'research'] as const;
 
 export function updateTask(projectRoot: string, wbs: string, options: UpdateOptions): Result<UpdateResult> {
     const config = loadConfig(projectRoot);
@@ -119,11 +130,13 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
         return ok({ wbs, action: 'section', dryRun: false, newValue: options.section });
     }
 
-    // Update impl_phase
+    // Update impl_progress phase
     if (options.phase && options.phaseStatus) {
         if (options.dryRun) {
             if (!options.quiet) {
-                logger.log(`[DRY RUN] Would update impl_phase '${options.phase}' → '${options.phaseStatus}' in ${wbs}`);
+                logger.log(
+                    `[DRY RUN] Would update impl_progress '${options.phase}' → '${options.phaseStatus}' in ${wbs}`,
+                );
             }
             return ok({
                 wbs,
@@ -137,7 +150,7 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
         const result = updateImplPhase(taskPath, options.phase, options.phaseStatus);
         if (!result.ok) return result;
         if (!options.quiet) {
-            logger.success(`Updated impl_phase '${options.phase}' in ${wbs}`);
+            logger.success(`Updated impl_progress '${options.phase}' in ${wbs}`);
         }
         return ok({
             wbs,
@@ -145,6 +158,41 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
             dryRun: false,
             oldValue: options.phase,
             newValue: options.phaseStatus,
+        });
+    }
+
+    if (options.field && options.value) {
+        if (options.field === 'profile' && !VALID_PROFILES.includes(options.value as (typeof VALID_PROFILES)[number])) {
+            return err(`Invalid profile: ${options.value}. Valid: ${VALID_PROFILES.join(', ')}`);
+        }
+
+        if (options.dryRun) {
+            if (!options.quiet) {
+                logger.log(
+                    `[DRY RUN] Would update frontmatter field '${options.field}' → '${options.value}' in ${wbs}`,
+                );
+            }
+            return ok({
+                wbs,
+                action: 'field',
+                dryRun: true,
+                ...(task.frontmatter[options.field] ? { oldValue: task.frontmatter[options.field] } : {}),
+                newValue: options.value,
+            });
+        }
+
+        const serializedValue = options.field === 'profile' ? JSON.stringify(options.value) : options.value;
+        const result = updateFrontmatterField(taskPath, options.field, serializedValue);
+        if (!result.ok) return result;
+        if (!options.quiet) {
+            logger.success(`Updated frontmatter field '${options.field}' in ${wbs}`);
+        }
+        return ok({
+            wbs,
+            action: 'field',
+            dryRun: false,
+            ...(task.frontmatter[options.field] ? { oldValue: task.frontmatter[options.field] } : {}),
+            newValue: options.value,
         });
     }
 
