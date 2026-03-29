@@ -272,6 +272,22 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
+### Lightweight Alternative (No Pydantic)
+
+For simple scripts or when Pydantic is not available, use `os.environ` directly with KeyError for required vars:
+
+```python
+import os
+
+# Required variable — raises KeyError if missing (fail-fast)
+api_key: str = os.environ["API_KEY"]
+
+# Optional variable with default
+debug: bool = os.environ.get("DEBUG", "false").lower() == "true"
+```
+
+**Prefer `pydantic-settings`** for applications. This pattern is suitable only for small scripts.
+
 ### .env File Template
 
 ```bash
@@ -304,12 +320,13 @@ class SecretRotator:
         self.rotated_at = datetime.now()
 
     def verify(self, secret: str) -> bool:
-        """Check secret against current and previous."""
-        if self._hash(secret) == self._hash(self.current):
+        """Check secret against current and previous (constant-time comparison)."""
+        import hmac
+        if hmac.compare_digest(self._hash(secret), self._hash(self.current)):
             return True
         # Grace period for previous secret
         if self.previous and datetime.now() - self.rotated_at < timedelta(hours=24):
-            return self._hash(secret) == self._hash(self.previous)
+            return hmac.compare_digest(self._hash(secret), self._hash(self.previous))
         return False
 
     @staticmethod
@@ -345,10 +362,11 @@ is_valid = verify_password("secure_password", hashed)
 
 ```python
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-SECRET_KEY = "your-secret-key"
+# Read from environment — NEVER hardcode secrets
+SECRET_KEY = os.environ["JWT_SECRET_KEY"]
 ALGORITHM = "HS256"
 
 def create_access_token(
@@ -357,7 +375,7 @@ def create_access_token(
 ) -> str:
     """Create JWT access token."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
