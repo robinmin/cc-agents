@@ -581,3 +581,35 @@ class Shape(Protocol):
 
 # Structural subtyping - any class with area() and perimeter() works
 ```
+
+---
+
+## API Response Format
+
+Use a consistent envelope for HTTP/JSON APIs:
+
+```python
+from dataclasses import dataclass
+from typing import Any, Generic, TypeVar
+
+T = TypeVar("T")
+
+@dataclass
+class APIResponse(Generic[T]):
+    success: bool
+    data: T | None = None
+    error: str | None = None
+
+@dataclass
+class PaginatedResponse(APIResponse[list[Any]]):
+    total: int = 0
+    page: int = 1
+    limit: int = 20
+```
+
+**Guidelines:**
+- Include `success` boolean for client-side branching
+- `data` is `None` on error; `error` is `None` on success
+- Add pagination metadata (`total`, `page`, `limit`) for list endpoints
+- Keep error messages user-friendly in responses; log detailed errors server-side
+- Use Pydantic models for request/response validation at API boundaries
