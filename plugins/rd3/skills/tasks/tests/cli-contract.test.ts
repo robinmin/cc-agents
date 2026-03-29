@@ -125,7 +125,15 @@ describe('tasks CLI contracts', () => {
         expect(runCli(tempDir, ['init']).exitCode).toBe(0);
         expect(runCli(tempDir, ['create', 'Phase Update']).exitCode).toBe(0);
 
-        const result = runCli(tempDir, ['update', '0001', '--phase', 'planning', '--phase-status', 'completed', '--json']);
+        const result = runCli(tempDir, [
+            'update',
+            '0001',
+            '--phase',
+            'planning',
+            '--phase-status',
+            'completed',
+            '--json',
+        ]);
         expect(result.exitCode).toBe(0);
 
         const payload = JSON.parse(result.stdout) as {
