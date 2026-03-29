@@ -96,6 +96,17 @@ testing: pending
         expect(fm?.impl_progress?.design).toBe('in_progress');
         expect(fm?.impl_progress?.implementation).toBe('completed');
     });
+
+    test('parses optional profile frontmatter', () => {
+        const content = `---
+name: Profiled Task
+status: Todo
+profile: "research"
+---
+`;
+        const fm = parseFrontmatter(content);
+        expect(fm?.profile).toBe('research');
+    });
 });
 
 describe('parseSection', () => {
@@ -118,6 +129,18 @@ This is the solution.
 
     test('extracts Requirements section', () => {
         expect(parseSection(content, 'Requirements')).toBe('These are requirements.');
+    });
+
+    test('extracts a section when content starts immediately after the heading', () => {
+        const compactContent = `### Background
+This starts immediately.
+
+### Requirements
+
+Need the parser to tolerate compact headings.
+`;
+
+        expect(parseSection(compactContent, 'Background')).toBe('This starts immediately.');
     });
 
     test('extracts multi-line sections until the next heading', () => {
@@ -381,6 +404,71 @@ Background.
     });
 });
 
+describe('updateSection', () => {
+    const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `update-section-test-${Date.now()}`);
+
+    beforeEach(() => {
+        mkdirSync(tempDir, { recursive: true });
+    });
+
+    afterEach(() => {
+        rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    test('updates the first markdown section in a task file', () => {
+        const filePath = join(tempDir, '0001_update-background.md');
+        writeFileSync(
+            filePath,
+            `---
+name: Update Background
+status: Backlog
+---
+
+### Background
+
+Original background.
+
+### Requirements
+
+Original requirements.
+`,
+        );
+
+        const result = updateSection(filePath, 'Background', 'Replaced background.');
+
+        expect(result.ok).toBe(true);
+        const content = readFileSync(filePath, 'utf-8');
+        expect(content).toContain('### Background\n\nReplaced background.');
+        expect(content).toContain('### Requirements\n\nOriginal requirements.');
+    });
+
+    test('updates a section when the original heading has no blank line before content', () => {
+        const filePath = join(tempDir, '0002_compact-background.md');
+        writeFileSync(
+            filePath,
+            `---
+name: Compact Background
+status: Backlog
+---
+
+### Background
+Original compact background.
+
+### Requirements
+
+Original requirements.
+`,
+        );
+
+        const result = updateSection(filePath, 'Background', 'Normalized replacement background.');
+
+        expect(result.ok).toBe(true);
+        const content = readFileSync(filePath, 'utf-8');
+        expect(content).toContain('### Background\nNormalized replacement background.');
+        expect(content).toContain('### Requirements\n\nOriginal requirements.');
+    });
+});
+
 describe('updateFrontmatterField', () => {
     const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `update-fm-field-test-${Date.now()}`);
 
@@ -408,6 +496,25 @@ status: Todo
         expect(result.ok).toBe(true);
         const content = readFileSync(filePath, 'utf-8');
         expect(content).toContain('name: Updated Name');
+    });
+
+    test('inserts a missing frontmatter field before the closing fence', () => {
+        const filePath = join(tempDir, '0048_insert-field-test.md');
+        writeFileSync(
+            filePath,
+            `---
+name: Field Test
+status: Todo
+---
+
+### Background
+`,
+        );
+        const result = updateFrontmatterField(filePath, 'profile', '"standard"');
+        expect(result.ok).toBe(true);
+        const content = readFileSync(filePath, 'utf-8');
+        expect(content).toContain('profile: "standard"');
+        expect(content.indexOf('profile: "standard"')).toBeLessThan(content.indexOf('---\n\n### Background'));
     });
 
     test('returns err for non-existent file', () => {
@@ -505,27 +612,43 @@ describe('updateImplPhase', () => {
         rmSync(tempDir, { recursive: true, force: true });
     });
 
-    test('updates an impl_phase field', () => {
+    test('updates an impl_progress field inside frontmatter indentation', () => {
         const filePath = join(tempDir, '0050_impl-test.md');
         writeFileSync(
             filePath,
             `---
 name: Impl Test
 status: WIP
+impl_progress:
+  planning: pending
+  design: pending
+  implementation: pending
+  review: pending
+  testing: pending
 ---
-
-### impl_progress
-planning: pending
-design: pending
-implementation: pending
-review: pending
-testing: pending
 `,
         );
         const result = updateImplPhase(filePath, 'planning', 'completed');
         expect(result.ok).toBe(true);
         const content = readFileSync(filePath, 'utf-8');
-        expect(content).toContain('planning: completed');
+        expect(content).toContain('  planning: completed');
+    });
+
+    test('returns err when impl_progress phase is not present', () => {
+        const filePath = join(tempDir, '0050_impl-test-missing.md');
+        writeFileSync(
+            filePath,
+            `---
+name: Impl Test
+status: WIP
+---
+`,
+        );
+        const result = updateImplPhase(filePath, 'planning', 'completed');
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error).toContain("impl_progress phase 'planning' not found");
+        }
     });
 
     test('returns err for non-existent file', () => {
