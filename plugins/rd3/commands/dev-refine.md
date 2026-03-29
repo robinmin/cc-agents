@@ -2,7 +2,6 @@
 description: Refine task requirements via structured quality analysis, optionally on another execution channel
 argument-hint: "<task-ref> [--auto] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Dev Refine
