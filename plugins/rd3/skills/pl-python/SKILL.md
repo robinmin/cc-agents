@@ -277,6 +277,7 @@ tests/
 | **Context managers** | Resource cleanup (files, locks, connections) | `references/patterns.md` |
 | **functools** | Memoization, partial functions, decorators | `references/patterns.md` |
 | **dataclass** | Simple internal data containers | `references/patterns.md` |
+| **frozen dataclass / NamedTuple** | Immutable value objects (prefer by default) | `references/patterns.md` |
 | **Pydantic** | API models, external data validation | `references/patterns.md` |
 | **ABC** | Explicit interface enforcement | `references/patterns.md` |
 | **Protocol** | Structural typing (duck typing with types) | `references/type-system.md` |
@@ -319,6 +320,8 @@ tests/
 - Plan error handling (retries, logging, monitoring)
 - Include CI/CD from day one (pytest, ruff, mypy)
 - Use context managers for resource handling
+- Prefer immutable data structures (`frozen=True` dataclass, `NamedTuple`)
+- Use `logging` module instead of `print()` statements
 - Leverage standard library before third-party packages
 - Validate and sanitize all user input
 - Use parameterized queries for database access
@@ -365,30 +368,8 @@ tests/
 
 ## Reference Files
 
-| Reference | Purpose |
-|-----------|---------|
-| `references/async-patterns.md` | Async/await patterns, TaskGroup, pipelines |
-| `references/pitfalls.md` | Common Python mistakes and solutions |
-| `references/libraries.md` | Library selection guide by domain |
-| `references/web-patterns.md` | FastAPI, Flask, Django patterns |
-| `references/version-features.md` | Python 3.11-3.13 feature matrix |
-| `references/type-system.md` | Typing patterns, Protocol, TypeGuard |
-| `references/patterns.md` | Core language patterns |
-| `references/architecture-patterns.md` | Layered, hexagonal, clean architecture |
-| `references/project-structures.md` | Project layout patterns |
-| `references/testing-strategy.md` | pytest, fixtures, coverage |
-| `references/security-patterns.md` | Security best practices |
-| `references/tooling.md` | uv, ruff, mypy, pre-commit setup |
-| `references/output-format.md` | Planning output template |
-
-See [external-resources](references/external-resources.md) for additional reading.
-
-## Additional Resources
-
-### Internal References
-
-| Resource | What You'll Find |
-|----------|-----------------|
+| Reference | What You'll Find |
+|-----------|-----------------|
 | `references/async-patterns.md` | TaskGroup, producer-consumer, pipelines, error handling |
 | `references/architecture-patterns.md` | Layered, hexagonal, clean, event-driven patterns |
 | `references/libraries.md` | Web, async, data, database, testing, CLI library guidance |
@@ -402,8 +383,9 @@ See [external-resources](references/external-resources.md) for additional readin
 | `references/type-system.md` | Protocol, TypeVar, TypeGuard, TypeIs, Self, TypedDict |
 | `references/version-features.md` | Python 3.8–3.13 feature matrix |
 | `references/web-patterns.md` | FastAPI DI, WebSockets, JWT auth, Docker, Kubernetes |
+| `references/external-resources.md` | Curated links to official docs, PEPs, and learning resources |
 
-### External Resources
+## Additional Resources
 
 - [Python Documentation](https://docs.python.org/3/) — Official docs
 - [asyncio documentation](https://docs.python.org/3/library/asyncio.html) — Async I/O
