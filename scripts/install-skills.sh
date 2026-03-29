@@ -766,7 +766,7 @@ copy_to_targets() {
 
     # Gemini CLI: Uses .gemini/skills/ and .agents/skills/
     # .agents/skills/ provides cross-client compatibility
-    if [[ "$targets" == *"geminicli"* ]]; then
+    if [[ "$targets" == *"geminicli"* ]] || [[ "$targets" == *"gemini"* ]]; then
         local gemini_path
         local agents_path
         gemini_path=$(get_path ".gemini/skills" "$HOME/.gemini/skills")
@@ -803,12 +803,16 @@ copy_to_targets() {
         fi
     fi
 
-    # Antigravity: Uses .agents/skills/ only
+    # Antigravity: Uses .gemini/antigravity/skills/ and .agents/skills/
     if [[ "$targets" == *"antigravity"* ]]; then
+        local antigravity_path
         local agents_path
+        antigravity_path=$(get_path ".gemini/antigravity/skills" "$HOME/.gemini/antigravity/skills")
         agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+        add_target_dir "$antigravity_path"
+        print_info "Antigravity skills directory: $antigravity_path"
         add_target_dir "$agents_path"
-        print_info "Antigravity skills directory: $agents_path"
+        print_info "Cross-client skills directory: $agents_path"
     fi
 
     # Augment Code: Not yet implemented
