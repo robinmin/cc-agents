@@ -10,7 +10,7 @@ type: workflow
 tags: [requirements, elicitation, qa, phase-1, orchestration]
 metadata:
   author: cc-agents
-  platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity"
+  platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity,pi"
   category: orchestration
   interactions:
     - knowledge-only
@@ -68,7 +68,7 @@ interface RequestIntakeInput {
 }
 ```
 
-`execution_channel` is normally injected by `rd3:orchestration-dev`. Use `current` for in-channel execution, or an ACP agent name when the workflow is routed through `rd3:run-acp`.
+`execution_channel` is normally injected by `rd3:orchestration-dev`. Use `current` for local execution, or an ACP agent name when orchestration routes delegated work through `rd3:run-acp`.
 
 ### Modes
 
@@ -245,7 +245,7 @@ Write back via tasks CLI (preserve existing non-empty sections):
 tasks update {wbs} --section Background --from-file /tmp/background.md
 tasks update {wbs} --section Requirements --from-file /tmp/requirements.md
 tasks update {wbs} --section Constraints --from-file /tmp/constraints.md
-tasks update {wbs} --section profile --from-file /tmp/profile.txt
+tasks update {wbs} --field profile --value standard
 ```
 
 **CRITICAL:** Do NOT overwrite existing non-empty sections without explicit user confirmation.
