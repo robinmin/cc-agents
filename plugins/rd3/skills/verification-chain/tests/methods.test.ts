@@ -495,12 +495,19 @@ describe('runCompoundCheck', () => {
         const result = await runCompoundCheck(
             {
                 operator: 'and',
-                checks: [{ method: 'compound' as unknown as import('../scripts/types').CheckerMethod, config: {} as unknown as import('../scripts/types').CheckerConfig }],
+                checks: [
+                    {
+                        method: 'compound' as unknown as import('../scripts/types').CheckerMethod,
+                        config: {} as unknown as import('../scripts/types').CheckerConfig,
+                    },
+                ],
             },
             CWD,
         );
         expect(result.result).toBe('fail');
-        expect((result.evidence.compound_results?.[0] as unknown as { error?: string })?.error).toContain('Unsupported method');
+        expect((result.evidence.compound_results?.[0] as unknown as { error?: string })?.error).toContain(
+            'Unsupported method',
+        );
     });
 
     test('runs cli sub-check within compound', async () => {
