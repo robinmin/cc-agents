@@ -297,15 +297,11 @@ describe('formatReport', () => {
             },
             stackFiles: {
                 ready: true,
-                checks: [
-                    { name: 'package.json', present: true, detail: 'found' },
-                ],
+                checks: [{ name: 'package.json', present: true, detail: 'found' }],
             },
             requiredScripts: {
                 ready: true,
-                checks: [
-                    { name: 'typecheck', present: true, detail: 'found: typecheck' },
-                ],
+                checks: [{ name: 'typecheck', present: true, detail: 'found: typecheck' }],
             },
             overall: true,
         };
