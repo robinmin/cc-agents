@@ -2,7 +2,6 @@
 description: "Self-evolution analysis and proposals for main agent configs"
 argument-hint: "<config-path> [--analyze|--propose|--apply <id>|--history|--rollback <ver>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Magent Evolve
