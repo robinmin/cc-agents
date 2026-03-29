@@ -2,7 +2,6 @@
 description: Convert between platform formats
 argument-hint: "<source-path> --to <platform|all> [--output <path>]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # magent-adapt
