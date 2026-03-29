@@ -2,7 +2,6 @@
 description: Analyze slash definition evolution and draft proposals
 argument-hint: "<command-path> --analyze|--propose|--apply <id>|--history|--rollback <ver>"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Command Evolve
