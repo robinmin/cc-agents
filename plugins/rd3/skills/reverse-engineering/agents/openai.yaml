@@ -1,0 +1,16 @@
+name: reverse-engineering
+description: "Codebase reverse-engineering, High-Level Design (HLD) generation,
+  and critical issue audit. Use when analyzing unfamiliar codebases, generating
+  architecture documentation, auditing code quality, onboarding new developers,
+  or assessing technical debt. Triggers on: analyze codebase, explain
+  architecture, generate HLD, audit code quality, technical debt assessment,
+  reverse engineer."
+version: 1.0.0
+icon: 🔍
+category: debugging
+tags:
+  - analysis-core
+  - reverse-engineering
+  - hld
+  - audit
+  - codebase-analysis
