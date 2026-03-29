@@ -13,13 +13,33 @@ export type NodeType = 'single' | 'parallel-group';
 export type ChainStatus = 'running' | 'paused' | 'completed' | 'failed' | 'halted';
 export type NodeStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
 export type OnFailPolicy = 'halt' | 'skip' | 'continue';
-export type MakerStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+export type MakerStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'paused';
 export type CheckerStatus = 'pending' | 'running' | 'completed' | 'failed' | 'paused';
+export type DelegateRunner = (request: DelegateRequest) => Promise<DelegateResult>;
+
+export interface DelegateRequest {
+    skill: string;
+    task_ref?: string;
+    args?: Record<string, unknown>;
+    execution_channel?: string;
+    cwd: string;
+    timeout_ms: number;
+}
+
+export interface DelegateResult {
+    status: 'completed' | 'failed' | 'paused';
+    output?: string;
+    structured_output?: Record<string, unknown>;
+    error?: string;
+}
 
 // Maker definition
 export interface Maker {
     delegate_to?: string; // skill name to delegate to, e.g. "rd3:code-implement-common"
     task_ref?: string; // path to task file or reference
+    args?: Record<string, unknown>; // structured inputs forwarded to delegated skill
+    execution_channel?: string; // requested execution channel for delegated skill
+    cwd?: string; // optional working directory override for maker execution
     command?: string; // raw shell command to execute
     timeout?: number; // seconds, default 3600
 }
@@ -134,6 +154,8 @@ export interface NodeExecutionState {
     maker_status: MakerStatus;
     checker_status: CheckerStatus;
     checker_result?: 'pass' | 'fail' | 'paused';
+    maker_output?: string;
+    maker_error?: string;
     evidence: CheckerEvidence[];
     started_at?: string;
     completed_at?: string;
