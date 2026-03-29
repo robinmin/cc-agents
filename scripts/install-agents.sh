@@ -37,15 +37,15 @@
 #        - pi:          ~/.pi/agent/AGENTS.md
 #        - claude:      ~/.claude/CLAUDE.md
 #        - codexcli:    ~/.codex/AGENTS.md
-#        - geminicli:   ~/.gemini/GEMINI.md
+#        - geminicli:   ~/.gemini/rules.md
 #        - opencode:    ~/.opencode/instructions.md
-#        - antigravity: ~/.antigravity/AGENTS.md
+#        - antigravity: ~/.gemini/antigravity/AGENTS.md
 #
 #   Project-level (--project):
 #     1. Write concatenated config to <dir>/AGENTS.md
 #     2. Create symlinks for platforms that need different filenames:
 #        - claude:  .claude/CLAUDE.md -> AGENTS.md
-#        - geminicli: GEMINI.md -> AGENTS.md
+#        - geminicli: .gemini/rules.md -> ../AGENTS.md
 #        - opencode: .opencode/instructions.md -> ../AGENTS.md
 #
 # Environment:
@@ -87,7 +87,7 @@ AGENT_FILES=(
 # Platforms NOT listed here natively support AGENTS.md (pi, codexcli, openclaw, antigravity).
 SYMLINK_MAP=(
     "claude:.claude/CLAUDE.md:../AGENTS.md"
-    "geminicli:GEMINI.md:AGENTS.md"
+    "geminicli:.gemini/rules.md:../AGENTS.md"
     "opencode:.opencode/instructions.md:../AGENTS.md"
 )
 
@@ -129,7 +129,7 @@ usage() {
     printf "    pi             Pi (AGENTS.md native)\n"
     printf "    claude         Claude Code (symlink: .claude/CLAUDE.md -> AGENTS.md)\n"
     printf "    codexcli       Codex CLI (AGENTS.md native)\n"
-    printf "    geminicli      Gemini CLI (symlink: GEMINI.md -> AGENTS.md)\n"
+    printf "    geminicli      Gemini CLI (symlink: .gemini/rules.md -> ../AGENTS.md)\n"
     printf "    opencode       OpenCode CLI (symlink: .opencode/instructions.md -> ../AGENTS.md)\n"
     printf "    openclaw       OpenClaw (AGENTS.md native)\n"
     printf "    antigravity    Antigravity CLI (AGENTS.md native)\n"
@@ -432,9 +432,9 @@ get_global_path() {
         pi)          echo "$HOME/.pi/agent/AGENTS.md" ;;
         claude)      echo "$HOME/.claude/CLAUDE.md" ;;
         codexcli)    echo "$HOME/.codex/AGENTS.md" ;;
-        geminicli)   echo "$HOME/.gemini/GEMINI.md" ;;
+        geminicli)   echo "$HOME/.gemini/rules.md" ;;
         opencode)    echo "$HOME/.opencode/instructions.md" ;;
-        antigravity) echo "$HOME/.antigravity/AGENTS.md" ;;
+        antigravity) echo "$HOME/.gemini/antigravity/AGENTS.md" ;;
         openclaw)    return 1 ;;
         *)           return 1 ;;
     esac
