@@ -2,7 +2,6 @@
 description: "Evaluate and fix skill issues in one step"
 argument-hint: "<skill-path> [description] [--migrate] [--dry-run] [--platform all|claude|codex|openclaw|opencode|antigravity]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Skill Refine
