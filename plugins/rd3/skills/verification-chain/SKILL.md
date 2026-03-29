@@ -4,8 +4,8 @@ description: Orchestrate Chain-of-Verification (CoV) protocols with Maker-Checke
 license: Apache-2.0
 metadata:
   author: cc-agents
-  version: "1.0.0"
-  platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity"
+  version: "1.1.0"
+  platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity,pi"
   interactions:
     - generator
     - reviewer
@@ -86,8 +86,11 @@ Runs all child makers concurrently. Waits for convergence before running checker
 
 ```typescript
 interface Maker {
-  delegate_to?: string;      // skill name to delegate to (future use)
+  delegate_to?: string;      // skill name to delegate to
   task_ref?: string;         // path to task file
+  args?: Record<string, unknown>;
+  execution_channel?: string;
+  cwd?: string;
   command?: string;           // raw shell command
   timeout?: number;           // seconds, default 3600
 }
