@@ -1,6 +1,6 @@
 ---
 description: Refresh cumulative project documentation based on task changes
-argument-hint: "<task-ref> [--auto]"
+argument-hint: "<task-ref> [--auto] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 disable-model-invocation: true
 ---
@@ -23,6 +23,7 @@ Execute phase 9 (Documentation) of the 9-phase pipeline. Refreshes the canonical
 |----------|----------|-------------|
 | `task-ref` | Yes | WBS number or file path |
 | `--auto` | No | Auto-approve gates |
+| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `current` |
 
 ### Smart Positional Detection
 
@@ -33,10 +34,14 @@ Execute phase 9 (Documentation) of the 9-phase pipeline. Refreshes the canonical
 
 ## Workflow
 
-Delegates to **rd3:orchestration-dev** with docs profile:
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
 
 ```
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs")
+# Default: current channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs --channel current")
+
+# Execute on another channel
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs --channel codex")
 ```
 
 ## Canonical Docs Refreshed
@@ -55,6 +60,7 @@ If a refreshed doc needs a diagram, write it as Mermaid in a fenced markdown blo
 ```bash
 /rd3:dev-docs 0274
 /rd3:dev-docs 0274 --auto
+/rd3:dev-docs 0274 --channel codex
 ```
 
 ## See Also
