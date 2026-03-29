@@ -495,14 +495,12 @@ describe('runCompoundCheck', () => {
         const result = await runCompoundCheck(
             {
                 operator: 'and',
-                // biome-ignore lint/suspicious/noExplicitAny: intentional - testing unsupported method
-                checks: [{ method: 'compound' as any, config: {} as any }],
+                checks: [{ method: 'compound' as unknown as import('../scripts/types').CheckerMethod, config: {} as unknown as import('../scripts/types').CheckerConfig }],
             },
             CWD,
         );
         expect(result.result).toBe('fail');
-        // biome-ignore lint/suspicious/noExplicitAny: intentional - accessing error field on failed sub-check
-        expect((result.evidence.compound_results?.[0] as any)?.error).toContain('Unsupported method');
+        expect((result.evidence.compound_results?.[0] as unknown as { error?: string })?.error).toContain('Unsupported method');
     });
 
     test('runs cli sub-check within compound', async () => {
