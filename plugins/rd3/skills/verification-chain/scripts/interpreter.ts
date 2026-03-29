@@ -22,6 +22,7 @@ import type {
     NodeStatus,
     MakerStatus,
     CheckerStatus,
+    DelegateRunner,
 } from './types';
 import { runCliCheck } from './methods/cli';
 import { runFileExistsCheck } from './methods/file_exists';
@@ -121,14 +122,60 @@ function createNodeExecutionState(node: ChainNode): NodeExecutionState {
 async function runMaker(
     maker: SingleNode['maker'] | ParallelChildNode['maker'],
     cwd: string,
-): Promise<{ status: 'completed' | 'failed'; output?: string; error?: string }> {
+    delegateRunner?: DelegateRunner,
+): Promise<{ status: 'completed' | 'failed' | 'paused'; output?: string; error?: string }> {
     if (maker.delegate_to) {
-        if (!maker.command) {
-            logger.warn(`delegate_to "${maker.delegate_to}" is not yet implemented — maker will silently succeed`);
-            return { status: 'completed' };
+        if (!delegateRunner) {
+            if (maker.command) {
+                logger.warn(
+                    `delegate_to "${maker.delegate_to}" has no delegate runner — falling back to maker.command`,
+                );
+            } else {
+                return {
+                    status: 'failed',
+                    error: `delegate_to "${maker.delegate_to}" requires a configured delegate runner`,
+                };
+            }
         }
 
-        logger.warn(`delegate_to "${maker.delegate_to}" is not yet implemented — falling back to maker.command`);
+        if (delegateRunner) {
+            const delegatedResult = await delegateRunner({
+                skill: maker.delegate_to,
+                cwd: maker.cwd ?? cwd,
+                timeout_ms: (maker.timeout ?? 3600) * 1000,
+                ...(maker.task_ref ? { task_ref: maker.task_ref } : {}),
+                ...(maker.args ? { args: maker.args } : {}),
+                ...(maker.execution_channel ? { execution_channel: maker.execution_channel } : {}),
+            });
+
+            if (delegatedResult.status === 'completed') {
+                const output =
+                    delegatedResult.output ??
+                    (delegatedResult.structured_output ? JSON.stringify(delegatedResult.structured_output) : undefined);
+                return {
+                    status: 'completed',
+                    ...(output ? { output } : {}),
+                };
+            }
+
+            if (delegatedResult.status === 'paused') {
+                const output =
+                    delegatedResult.output ??
+                    (delegatedResult.structured_output ? JSON.stringify(delegatedResult.structured_output) : undefined);
+                return {
+                    status: 'paused',
+                    ...(output ? { output } : {}),
+                    ...(delegatedResult.error ? { error: delegatedResult.error } : {}),
+                };
+            }
+
+            return {
+                status: 'failed',
+                error:
+                    delegatedResult.error ??
+                    `Delegated maker "${maker.delegate_to}" returned ${delegatedResult.status}`,
+            };
+        }
     }
 
     if (maker.command) {
@@ -139,7 +186,7 @@ async function runMaker(
             let stderr = '';
             const child = spawn(cmd, [], {
                 shell: true,
-                cwd,
+                cwd: maker.cwd ?? cwd,
                 timeout,
             });
 
@@ -178,20 +225,49 @@ async function executeSingleNode(
     manifest: ChainManifest,
     chainState: ChainState,
     stateDir: string,
+    delegateRunner?: DelegateRunner,
 ): Promise<{ halted: boolean; reason?: string }> {
     const cwd = stateDir; // TODO: allow custom cwd per node
 
-    // --- Run maker ---
+    // --- Run maker (skip if already completed from a previous run) ---
     state.status = 'running';
-    state.maker_status = 'running';
-    state.started_at = new Date().toISOString();
+    state.started_at ??= new Date().toISOString();
 
-    const makerResult = await runMaker(node.maker, cwd);
+    if (state.maker_status === 'completed') {
+        // Global retry: maker already succeeded, skip to checker
+        logger.debug(`Skipping maker for node ${node.name} — already completed`);
+    }
+
+    const makerResult =
+        state.maker_status === 'completed'
+            ? ({ status: 'completed', output: state.maker_output } as const)
+            : await (async () => {
+                  state.maker_status = 'running';
+                  return runMaker(node.maker, cwd, delegateRunner);
+              })();
+
+    if (makerResult.status === 'paused') {
+        state.maker_status = 'paused';
+        state.status = 'running';
+        if (makerResult.output) {
+            state.maker_output = makerResult.output;
+        }
+        if (makerResult.error) {
+            state.maker_error = makerResult.error;
+        }
+        chainState.status = 'paused';
+        chainState.paused_node = node.name;
+        chainState.paused_at = new Date().toISOString();
+        return { halted: true, reason: 'paused' };
+    }
 
     if (makerResult.status === 'failed') {
         state.maker_status = 'failed';
         state.status = 'failed';
         state.completed_at = new Date().toISOString();
+        if (makerResult.error) {
+            state.maker_error = makerResult.error;
+        }
         logger.error(`Maker failed for node ${node.name}: ${makerResult.error}`);
 
         // Check on_fail policy
@@ -208,6 +284,9 @@ async function executeSingleNode(
     }
 
     state.maker_status = 'completed';
+    if (makerResult.output) {
+        state.maker_output = makerResult.output;
+    }
 
     // --- Run checker ---
     state.checker_status = 'running';
@@ -264,7 +343,7 @@ async function executeSingleNode(
         chainState.status = 'paused';
         chainState.paused_node = node.name;
         chainState.paused_at = new Date().toISOString();
-        return { halted: true, reason: 'human_pause' };
+        return { halted: true, reason: 'paused' };
     }
 
     // Pass
@@ -280,6 +359,7 @@ async function executeParallelGroupNode(
     manifest: ChainManifest,
     chainState: ChainState,
     stateDir: string,
+    delegateRunner?: DelegateRunner,
 ): Promise<{ halted: boolean; reason?: string }> {
     const cwd = stateDir;
 
@@ -298,7 +378,7 @@ async function executeParallelGroupNode(
     const childPromises = node.children.map(async (child) => {
         parallelChildren[child.name].maker_status = 'running';
 
-        const result = await runMaker(child.maker, cwd);
+        const result = await runMaker(child.maker, cwd, delegateRunner);
 
         if (result.status === 'failed') {
             const err = result.error;
@@ -307,15 +387,31 @@ async function executeParallelGroupNode(
                 maker_result: 'fail',
                 ...(err ? { error: err } : {}),
             };
+        } else if (result.status === 'paused') {
+            parallelChildren[child.name] = {
+                maker_status: 'paused',
+                ...(result.error ? { error: result.error } : {}),
+            };
         } else {
             parallelChildren[child.name] = {
                 maker_status: 'completed',
                 maker_result: 'pass',
             };
         }
+
+        return { childName: child.name, status: result.status };
     });
 
-    await Promise.all(childPromises);
+    const childOutcomes = await Promise.all(childPromises);
+
+    const pausedChild = childOutcomes.find((outcome) => outcome.status === 'paused');
+    if (pausedChild) {
+        state.maker_status = 'paused';
+        chainState.status = 'paused';
+        chainState.paused_node = node.name;
+        chainState.paused_at = new Date().toISOString();
+        return { halted: true, reason: 'paused' };
+    }
 
     // Check convergence
     const childResults = Object.values(state.parallel_children ?? {}).map((c) => c.maker_result ?? 'fail');
@@ -384,7 +480,7 @@ async function executeParallelGroupNode(
         chainState.status = 'paused';
         chainState.paused_node = node.name;
         chainState.paused_at = new Date().toISOString();
-        return { halted: true, reason: 'human_pause' };
+        return { halted: true, reason: 'paused' };
     }
 
     state.status = 'completed';
@@ -430,6 +526,7 @@ export interface RunChainOptions {
     onChainPause?: (state: ChainState) => void;
     onChainComplete?: (state: ChainState) => void;
     onChainFail?: (state: ChainState, reason: string) => void;
+    delegateRunner?: DelegateRunner;
 }
 
 export async function runChain(options: RunChainOptions): Promise<ChainState> {
@@ -441,6 +538,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         onChainPause,
         onChainComplete,
         onChainFail,
+        delegateRunner,
     } = options;
 
     const statePath = join(stateDir, 'cov', `${manifest.chain_id}-${manifest.task_wbs}-cov-state.json`);
@@ -491,10 +589,14 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                 // Reset failed/skipped nodes to pending for retry
                 for (const ns of state.nodes) {
                     if (ns.status === 'failed' || ns.status === 'skipped') {
-                        // Only reset if maker succeeded before - don't re-run succeeded nodes
+                        ns.status = 'pending';
+                        ns.checker_status = 'pending';
+                        delete (ns as Partial<NodeExecutionState>).checker_result;
                         if (ns.maker_status !== 'completed') {
-                            ns.status = 'pending';
+                            // Maker failed — re-run the entire node
+                            ns.maker_status = 'pending';
                         }
+                        // Maker succeeded — keep maker_output, re-run checker only
                     }
                 }
                 saveState(state, statePath);
@@ -541,6 +643,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                 manifest,
                 state,
                 stateDir,
+                delegateRunner,
             ));
         } else if (nextNode.type === 'parallel-group') {
             const ns = nodeState(state, nextNode.name);
@@ -551,6 +654,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                 manifest,
                 state,
                 stateDir,
+                delegateRunner,
             ));
         }
 
@@ -561,7 +665,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         if (ns) onNodeComplete?.(nextNode, ns);
 
         if (halted) {
-            if (haltReason === 'human_pause') {
+            if (state.status === 'paused' || haltReason === 'paused') {
                 logger.log(`Chain paused at node ${nextNode.name}, awaiting human input`);
                 onChainPause?.(state);
             } else {
@@ -588,6 +692,7 @@ export interface ResumeChainOptions {
     onNodeComplete?: (node: ChainNode, state: NodeExecutionState) => void;
     onChainComplete?: (state: ChainState) => void;
     onChainFail?: (state: ChainState, reason: string) => void;
+    delegateRunner?: DelegateRunner;
 }
 
 /**
@@ -603,6 +708,7 @@ export async function resumeChain(options: ResumeChainOptions): Promise<ChainSta
         onNodeComplete,
         onChainComplete,
         onChainFail,
+        delegateRunner,
     } = options;
 
     const statePath = join(stateDir, 'cov', `${manifest.chain_id}-${manifest.task_wbs}-cov-state.json`);
@@ -625,8 +731,8 @@ export async function resumeChain(options: ResumeChainOptions): Promise<ChainSta
     // Clear pause state and continue
     state.status = 'running';
     // Use delete to properly remove optional properties per exactOptionalPropertyTypes
-    if ('paused_node' in state) delete (state as unknown as Record<string, unknown>).paused_node;
-    if ('paused_at' in state) delete (state as unknown as Record<string, unknown>).paused_at;
+    if ('paused_node' in state) delete (state as Partial<ChainState>).paused_node;
+    if ('paused_at' in state) delete (state as Partial<ChainState>).paused_at;
     state.updated_at = new Date().toISOString();
     saveState(state, statePath);
 
@@ -640,5 +746,6 @@ export async function resumeChain(options: ResumeChainOptions): Promise<ChainSta
         onNodeComplete: onNodeComplete ?? (() => {}),
         onChainComplete: onChainComplete ?? (() => {}),
         onChainFail: onChainFail ?? (() => {}),
+        ...(delegateRunner ? { delegateRunner } : {}),
     });
 }
