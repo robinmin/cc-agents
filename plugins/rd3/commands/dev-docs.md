@@ -2,7 +2,6 @@
 description: Refresh cumulative project documentation based on task changes
 argument-hint: "<task-ref> [--auto] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Dev Docs
