@@ -91,6 +91,88 @@ describe('tasks CLI contracts', () => {
         expect(content).toContain('### Solution\n\nImplement the documented handoff path.');
     });
 
+    test('create accepts profile and update can modify it as a frontmatter field', () => {
+        expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+
+        const createResult = runCli(tempDir, ['create', 'Profiled Task', '--profile', 'simple', '--json']);
+        expect(createResult.exitCode).toBe(0);
+
+        const createPayload = JSON.parse(createResult.stdout) as {
+            ok: boolean;
+            data: { path: string };
+        };
+        expect(createPayload.ok).toBe(true);
+
+        let content = readFileSync(createPayload.data.path, 'utf-8');
+        expect(content).toContain('profile: "simple"');
+
+        const updateResult = runCli(tempDir, ['update', '0001', '--field', 'profile', '--value', 'research', '--json']);
+        expect(updateResult.exitCode).toBe(0);
+
+        const updatePayload = JSON.parse(updateResult.stdout) as {
+            ok: boolean;
+            data: { action: string; newValue: string };
+        };
+        expect(updatePayload.ok).toBe(true);
+        expect(updatePayload.data.action).toBe('field');
+        expect(updatePayload.data.newValue).toBe('research');
+
+        content = readFileSync(createPayload.data.path, 'utf-8');
+        expect(content).toContain('profile: "research"');
+    });
+
+    test('update phase modifies the indented impl_progress frontmatter block', () => {
+        expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+        expect(runCli(tempDir, ['create', 'Phase Update']).exitCode).toBe(0);
+
+        const result = runCli(tempDir, ['update', '0001', '--phase', 'planning', '--phase-status', 'completed', '--json']);
+        expect(result.exitCode).toBe(0);
+
+        const payload = JSON.parse(result.stdout) as {
+            ok: boolean;
+            data: { action: string; newValue: string };
+        };
+        expect(payload.ok).toBe(true);
+        expect(payload.data.action).toBe('phase');
+        expect(payload.data.newValue).toBe('completed');
+
+        const taskPath = join(tempDir, 'docs/tasks/0001_Phase_Update.md');
+        const content = readFileSync(taskPath, 'utf-8');
+        expect(content).toContain('impl_progress:');
+        expect(content).toContain('  planning: completed');
+    });
+
+    test('update --section can modify the first markdown section', () => {
+        expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+        expect(runCli(tempDir, ['create', 'Background Update']).exitCode).toBe(0);
+
+        const sectionFile = join(tempDir, 'background.md');
+        writeFileSync(sectionFile, 'Updated background content.\n');
+
+        const result = runCli(tempDir, [
+            'update',
+            '0001',
+            '--section',
+            'Background',
+            '--from-file',
+            sectionFile,
+            '--json',
+        ]);
+        expect(result.exitCode).toBe(0);
+
+        const payload = JSON.parse(result.stdout) as {
+            ok: boolean;
+            data: { action: string; newValue: string };
+        };
+        expect(payload.ok).toBe(true);
+        expect(payload.data.action).toBe('section');
+        expect(payload.data.newValue).toBe('Background');
+
+        const taskPath = join(tempDir, 'docs/tasks/0001_Background_Update.md');
+        const content = readFileSync(taskPath, 'utf-8');
+        expect(content).toContain('### Background\n\nUpdated background content.');
+    });
+
     test('update accepts lowercase statuses and emits JSON on dry run', () => {
         expect(runCli(tempDir, ['init']).exitCode).toBe(0);
         expect(runCli(tempDir, ['create', 'Status Parse']).exitCode).toBe(0);
