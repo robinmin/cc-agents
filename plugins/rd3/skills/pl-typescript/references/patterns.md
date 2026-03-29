@@ -188,6 +188,74 @@ function divide(a: number, b: number): Result<number, string> {
 }
 ```
 
+## Immutability Patterns
+
+Prefer immutable updates with `Readonly<T>` and spread operator:
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+}
+
+// BAD: Direct mutation
+function updateUser(user: User, name: string): User {
+  user.name = name; // Mutation!
+  return user;
+}
+
+// GOOD: Immutable update
+function updateUser(user: Readonly<User>, name: string): User {
+  return { ...user, name };
+}
+```
+
+## Error Handling Pattern
+
+Use `async/await` with `try-catch` and narrow `unknown` errors safely:
+
+```typescript
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return 'Unexpected error';
+}
+
+const logger = {
+  error: (message: string, error: unknown) => {
+    // Use a proper logger (pino, winston) in production
+  }
+};
+
+async function loadUser(userId: string): Promise<User> {
+  try {
+    const result = await riskyOperation(userId);
+    return result;
+  } catch (error: unknown) {
+    logger.error('Operation failed', error);
+    throw new Error(getErrorMessage(error));
+  }
+}
+```
+
+## Input Validation with Zod
+
+Use Zod for schema-based validation and infer types from schemas:
+
+```typescript
+import { z } from 'zod';
+
+const userSchema = z.object({
+  email: z.string().email(),
+  age: z.number().int().min(0).max(150)
+});
+
+type UserInput = z.infer<typeof userSchema>;
+
+const validated: UserInput = userSchema.parse(input);
+```
+
 ## Type-Safe Builders
 
 ```typescript
