@@ -2,7 +2,6 @@
 description: Check skill quality score and identify weaknesses
 argument-hint: "<skill-path> [--scope basic|full] [--platform all|claude|codex|openclaw|opencode|antigravity]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Skill Evaluate
