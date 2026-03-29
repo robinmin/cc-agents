@@ -394,6 +394,7 @@ func increment() {
 - [ ] Public API is well-documented
 - [ ] Tests cover edge cases
 - [ ] No race conditions (`go test -race`)
+- [ ] Static security analysis (`gosec ./...`) passed
 - [ ] Variable names are descriptive
 - [ ] Functions are small and focused
 - [ ] Package dependencies make sense
