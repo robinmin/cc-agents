@@ -2,7 +2,6 @@
 description: Generate unit tests to reach the default unit target, optionally on another execution channel
 argument-hint: "<task-ref> [--auto] [--coverage <n>] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Dev Unit
