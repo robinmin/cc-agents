@@ -3,7 +3,6 @@ name: type-system
 description: "Python typing patterns: Protocol, TypeGuard, TypeVar, Self, and advanced type manipulation"
 see_also:
   - rd3:pl-python
-  - rd3:pl-typescript
 ---
 
 # Python Type System Guide
@@ -25,6 +24,9 @@ Complete guide to Python's type system for planning and implementation.
 
 ```python
 from __future__ import annotations  # Enable forward references (3.7+)
+# Note: makes ALL annotations strings at runtime — may break libraries
+# that inspect annotations (e.g. Pydantic v1, cattrs).
+# Pydantic v2 handles this correctly.
 
 # Basic types
 def greet(name: str) -> str:
@@ -406,7 +408,7 @@ fn = lambda x: x + 1  # OK if implicit, avoid if explicit typing needed
 | **Pydantic** | Runtime validation + types | `pydantic.BaseModel` |
 | **attrs** | Classes without boilerplate | `@attrs.define` |
 | **msgspec** | Fast validation, Struct | `msgspec.Struct` |
-| **邪** | Type narrowing | `from narrows import narrows` |
+| **beartype** | Runtime type checking | `@beartype` decorator |
 
 ### Pydantic Integration
 
