@@ -60,7 +60,7 @@ Default: read from task frontmatter, fall back to `standard`.
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. Non-`current` values are delegated via **rd3:run-acp**.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator is the routing authority: `current` stays local, and non-`current` values are routed downstream through **rd3:run-acp** only when a delegated phase needs ACP execution.
 
 ```
 # Default (profile from task file, current channel)
@@ -81,8 +81,8 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --dry-run --channel curren
 # Refine mode + custom coverage on the current channel
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --refine --coverage 90 --auto --channel current")
 
-# Cross-channel execution via ACP
-Skill(skill="rd3:run-acp", args="opencode exec \"rd3:orchestration-dev {task-ref} --profile review --channel opencode\"")
+# Cross-channel execution is still initiated through orchestration
+Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel opencode")
 ```
 
 ### Phase Details
@@ -141,4 +141,4 @@ Skill(skill="rd3:run-acp", args="opencode exec \"rd3:orchestration-dev {task-ref
 - **/rd3:dev-unit**: Unit testing only (shortcut for `--profile unit`)
 - **/rd3:dev-review**: Code review only (shortcut for `--profile review`)
 - **/rd3:dev-docs**: Documentation only (shortcut for `--profile docs`)
-- **rd3:run-acp**: Cross-channel execution wrapper
+- **rd3:run-acp**: ACP executor used by orchestration for delegated remote work
