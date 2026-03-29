@@ -2,7 +2,6 @@
 description: Analyze skill evolution signals and draft proposals
 argument-hint: "<skill-path> --analyze|--propose|--apply <id>|--history|--rollback <ver>"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Skill Evolve
