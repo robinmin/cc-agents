@@ -354,6 +354,7 @@ See `references/project-plan-template.md` for the full template with completion 
 - **Name interfaces with `-er` suffix** — `Reader`, `Writer`, `Closer`
 - **Use table-driven tests** — For multiple test cases
 - **Run `go test -race`** — To detect data races
+- **Run `gosec ./...`** — Static security analysis
 - **Format with `gofmt`** — Consistent style is automatic
 - **Keep goroutine lifetimes explicit** — Always have a way to wait or cancel
 - **Wrap errors with context** — `fmt.Errorf("doing thing: %w", err)`
