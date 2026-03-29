@@ -2,7 +2,6 @@
 description: Profile-driven task execution through the 9-phase pipeline, optionally on another execution channel
 argument-hint: "<task-ref> [--profile <profile>] [--auto] [--coverage <n>] [--dry-run] [--refine] [--skip-phases <n,n>] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
-disable-model-invocation: true
 ---
 
 # Dev Run
