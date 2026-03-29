@@ -3,7 +3,6 @@ name: version-features
 description: "Python 3.11-3.13 feature matrix for version-aware project planning"
 see_also:
   - rd3:pl-python
-  - rd3:pl-typescript
 ---
 
 # Python Version Features
@@ -52,7 +51,7 @@ def is_list_of_strings(val: list) -> TypeIs[list[str]]:
     return all(isinstance(x, str) for x in val)
 
 # Usage
-items: list[int] | list[str] = [1, 2, "hello"]
+items: list[int] | list[str] = ["a", "b"]
 if is_list_of_strings(items):
     # items is narrowed to list[str], not just list
     print(items[0].upper())  # OK - str has .upper()
@@ -63,27 +62,43 @@ if is_list_of_strings(items):
 ```python
 from typing import ReadOnly, TypedDict
 
-class Config(ReadOnly[str, str]):  # Immutable
-    api_key: str
-    endpoint: str
+class Config(TypedDict):
+    api_key: ReadOnly[str]  # Immutable key
+    endpoint: str           # Mutable key
+
+cfg: Config = {"api_key": "secret", "endpoint": "..."}
+# cfg["api_key"] = "new"  # Error - ReadOnly
+cfg["endpoint"] = "new"  # OK
 ```
 
 ### Type Parameter Defaults (PEP 696)
 
+PEP 696 allows default values for type parameters. Use with the PEP 695 syntax:
+
 ```python
-from typing import TypeVar
-
-T = TypeVar("T", default=int)  # Default type parameter
-
-class Container[T]:
-    def __init__(self, value: T = ...):  # Default to int
+# PEP 695 + PEP 696: type parameter with default
+class Container[T=int]:
+    def __init__(self, value: T):
         self.value = value
 
 # T defaults to int
-c = Container()  # Container[int]
+c = Container(42)           # Container[int]
+c_str = Container("hello")  # Container[str] - inferred
+c_explicit = Container[str]("hello")  # Container[str] - explicit
+```
 
-# Override with str
-c = Container[str]("hello")  # Container[str]
+With the older `TypeVar` style (PEP 696 standalone):
+
+```python
+from typing import TypeVar, Generic
+
+T = TypeVar("T", default=int)
+
+class Container(Generic[T]):
+    def __init__(self, value: T):
+        self.value = value
+
+c = Container(42)  # Container[int]
 ```
 
 ### When to Use 3.13+
@@ -202,10 +217,12 @@ async def fetch_all(urls: list[str]) -> list[dict]:
 
 | Feature | `asyncio.gather()` | `asyncio.TaskGroup` |
 |---------|-------------------|---------------------|
-| Cancellation on error | No | Yes (cancels all) |
-| Exception handling | First exception or all | ExceptionGroup |
+| Cancellation on error | No (by default) | Yes (cancels all) |
+| Exception handling | First exception or `return_exceptions=True` | ExceptionGroup |
 | Orphaned tasks | Possible | Impossible |
 | Scope | Unstructured | Structured (context manager) |
+
+See `references/async-patterns.md` for detailed async pattern comparisons.
 
 ### typing.Self (PEP 673)
 
@@ -242,7 +259,7 @@ async def run_all():
             print(f"Error: {exc}")
 ```
 
-### asyncio.timeout() (PEP 678)
+### asyncio.timeout()
 
 ```python
 import asyncio
