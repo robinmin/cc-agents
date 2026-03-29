@@ -3,8 +3,8 @@
 # install-skills.sh - Install plugin skills to target AI coding agents
 # =============================================================================
 #
-# This script installs a plugin's skills, commands, and subagents to various
-# AI coding agents using rulesync for cross-platform compatibility.
+# This script installs a plugin's skills and command wrappers to various
+# AI coding agents using an isolated rulesync workspace for validation.
 #
 # Usage:
 #   ./scripts/install-skills.sh <plugin> <targets> [options]
@@ -14,7 +14,7 @@
 #   targets     Target agents: all, codexcli, geminicli, opencode, openclaw, antigravity, augmentcode
 #
 # Options:
-#   --features  Features to install: skills,commands,subagents (default: all)
+#   --features  Features to install: skills,commands (default: skills,commands)
 #   --global    Install to user-level global directories (e.g., ~/.codex/skills/)
 #   --dry-run   Preview changes without executing
 #   --verbose   Enable verbose output
@@ -29,7 +29,7 @@
 #
 # Environment:
 #   PROJECT_ROOT    - Root directory of the project (auto-detected)
-#   RULESYNC_DIR    - Path to .rulesync directory
+#   RULESYNC_CONFIG_FILE - Path to the rulesync config template
 #
 # Dependencies:
 #   - rulesync (npm install -g rulesync) or npx
@@ -48,19 +48,17 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Rulesync directories for intermediate processing
-RULESYNC_DIR="${PROJECT_ROOT}/.rulesync"
-RULESYNC_SKILLS_DIR="${RULESYNC_DIR}/skills"
-RULESYNC_SUBDIR="${RULESYNC_DIR}/subagents"
+RULESYNC_CONFIG_FILE="${PROJECT_ROOT}/rulesync.jsonc"
 
 # Default configuration values
 PLUGIN=""                                  # Plugin name (e.g., rd3, wt)
 TARGETS=""                                 # Target agents (e.g., codexcli, geminicli)
-FEATURES="skills,commands,subagents"       # Features to install
+FEATURES="skills,commands"                 # Features to install
 DRY_RUN=false                              # Preview mode flag
 VERBOSE=false                              # Verbose output flag
 GLOBAL=false                               # Install to user-level directories
 PROJECT_DIR=""                             # Target project directory (default: current dir)
+WORKSPACE_DIR=""                           # Temporary isolated rulesync workspace
 
 # Supported target agents (rulesync target names)
 # These correspond to the target names in rulesync.jsonc
@@ -71,7 +69,6 @@ AVAILABLE_TARGETS="codexcli,geminicli,opencode,openclaw,antigravity,augmentcode"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m'  # No Color - reset to default
@@ -90,7 +87,7 @@ usage() {
     printf "    plugin      Plugin name (e.g., rd3, wt)\n"
     printf "    targets     Target agents: all, codexcli, geminicli, opencode, openclaw, antigravity, augmentcode\n\n"
     printf "${GREEN}OPTIONS:${NC}\n"
-    printf "    --features      Features to install: skills,commands,subagents (default: all)\n"
+    printf "    --features      Features to install: skills,commands (default: skills,commands)\n"
     printf "    --project-dir   Target project directory (default: current directory)\n"
     printf "    --global        Install to user-level directories (e.g., ~/.codex/skills/)\n"
     printf "    --dry-run       Preview changes without executing\n"
@@ -153,6 +150,14 @@ print_header() {
     printf "${MAGENTA}╚════════════════════════════════════════════════════════════╝${NC}\n\n"
 }
 
+cleanup_workspace() {
+    if [ -n "$WORKSPACE_DIR" ] && [ -d "$WORKSPACE_DIR" ]; then
+        rm -rf "$WORKSPACE_DIR"
+    fi
+}
+
+trap cleanup_workspace EXIT
+
 # =============================================================================
 # SECTION: Argument Parsing
 # =============================================================================
@@ -164,8 +169,8 @@ parse_args() {
     # Loop through all command-line arguments
     while [ $# -gt 0 ]; do
         case $1 in
-            # --features=skill,commands,subagents
-            # Specifies which features to install (default: all)
+            # --features=skills,commands
+            # Specifies which features to install (default: skills,commands)
             --features=*)
                 FEATURES="${1#*=}"
                 shift
@@ -242,6 +247,59 @@ parse_args() {
     fi
 }
 
+feature_enabled() {
+    local feature="$1"
+    case ",${FEATURES}," in
+        *,${feature},*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+validate_features() {
+    local normalized_features="$FEATURES"
+    if [ "$normalized_features" = "all" ]; then
+        normalized_features="skills,commands"
+    fi
+
+    local validated_features=()
+    local feature
+    for feature in $(echo "$normalized_features" | tr ',' ' '); do
+        case "$feature" in
+            skills|commands)
+                validated_features+=("$feature")
+                ;;
+            subagents)
+                print_error "Subagent installation is not supported by install-skills.sh"
+                print_info "Use bun plugins/rd3/skills/cc-agents/scripts/install.ts <agent-file> --target <platform>"
+                exit 1
+                ;;
+            *)
+                print_error "Invalid feature: $feature"
+                print_info "Valid features: skills,commands"
+                exit 1
+                ;;
+        esac
+    done
+
+    if [ "${#validated_features[@]}" -eq 0 ]; then
+        print_error "At least one feature is required"
+        exit 1
+    fi
+
+    FEATURES=$(IFS=,; echo "${validated_features[*]}")
+}
+
+create_rulesync_workspace() {
+    local workspace_dir
+    workspace_dir=$(mktemp -d "${TMPDIR:-/tmp}/install-skills-workspace.XXXXXX")
+
+    if [ -f "$RULESYNC_CONFIG_FILE" ]; then
+        cp "$RULESYNC_CONFIG_FILE" "${workspace_dir}/rulesync.jsonc"
+    fi
+
+    echo "$workspace_dir"
+}
+
 # =============================================================================
 # SECTION: Environment Validation
 # =============================================================================
@@ -271,10 +329,13 @@ validate_environment() {
     fi
     print_success "rulesync available"
 
+    validate_features
+
     # Validate target agent names
     # Skip if "all" is specified (will be expanded later)
     if [ "$TARGETS" != "all" ]; then
-        local targets_list=$(echo "$TARGETS" | tr ',' ' ')
+        local targets_list
+        targets_list=$(echo "$TARGETS" | tr ',' ' ')
         for target in $targets_list; do
             local valid=false
             # Check against available targets
@@ -303,41 +364,38 @@ validate_environment() {
 # This is the core transformation step that converts plugin format to rulesync format:
 #   - commands/*.md -> .rulesync/skills/{PLUGIN}-cmd-*/
 #   - skills/*/SKILL.md -> .rulesync/skills/{PLUGIN}-*/
-#   - agents/*.md or subagents/*.md -> .rulesync/subagents/
 #
 # Each resource type is processed based on FEATURES setting
 map_resources() {
+    local workspace_dir="$1"
     local plugin_dir="${PROJECT_ROOT}/plugins/${PLUGIN}"
+    local workspace_rulesync_dir="${workspace_dir}/.rulesync"
+    local workspace_skills_dir="${workspace_rulesync_dir}/skills"
 
     print_info "Mapping plugin resources to rulesync format..."
 
-    # Clean rulesync directories to remove stale artifacts from previous runs
-    # (e.g., non-prefixed skill dirs from older install formats)
-    rm -rf "${RULESYNC_SKILLS_DIR:?}"/*
-    rm -rf "${RULESYNC_SUBDIR:?}"/*
-
-    # Create rulesync directories
-    mkdir -p "$RULESYNC_SKILLS_DIR"
-    mkdir -p "$RULESYNC_SUBDIR"
+    rm -rf "$workspace_rulesync_dir"
+    mkdir -p "$workspace_skills_dir"
 
     # Process commands directory
     # Commands (*.md files in commands/) are converted to skills
     # This allows slash commands to be used as skills in other agents
-    if [[ "$FEATURES" == *"commands"* ]] || [ "$FEATURES" = "all" ]; then
+    if feature_enabled "commands"; then
         local commands_dir="${plugin_dir}/commands"
         if [ -d "$commands_dir" ]; then
             print_info "Processing commands..."
             for cmd_file in "$commands_dir"/*.md; do
                 if [ -f "$cmd_file" ]; then
-                    local cmd_name=$(basename "$cmd_file" .md)
-                    local target_skill_dir="${RULESYNC_SKILLS_DIR}/${PLUGIN}-cmd-${cmd_name}"
+                    local cmd_name
+                    cmd_name=$(basename "$cmd_file" .md)
+                    local target_skill_dir="${workspace_skills_dir}/${PLUGIN}-cmd-${cmd_name}"
 
                     # Create skill directory
                     mkdir -p "$target_skill_dir"
 
                     # Transform command to skill format
                     # Adds required 'name' field matching directory name and
-                    # rewrites rd3:skill-name references for installed targets
+                    # rewrites plugin:skill-name references for installed targets
                     adapt_command_to_skill "$cmd_file" "$target_skill_dir/SKILL.md" "${PLUGIN}-cmd-${cmd_name}"
 
                     print_success "Mapped command: $cmd_name -> ${PLUGIN}-cmd-${cmd_name}"
@@ -349,32 +407,33 @@ map_resources() {
     # Process skills directory
     # Skills (*/SKILL.md directories in skills/) are copied as-is
     # Includes supporting directories: scripts, references, templates, assets
-    if [[ "$FEATURES" == *"skills"* ]] || [ "$FEATURES" = "all" ]; then
+    if feature_enabled "skills"; then
         local skills_dir="${plugin_dir}/skills"
         if [ -d "$skills_dir" ]; then
             print_info "Processing skills..."
             for skill_dir in "$skills_dir"/*/; do
                 if [ -d "$skill_dir" ]; then
-                    local skill_name=$(basename "$skill_dir")
+                    local skill_name
+                    skill_name=$(basename "$skill_dir")
                     local skill_file="${skill_dir}SKILL.md"
 
                     if [ -f "$skill_file" ]; then
-                        local target_skill_dir="${RULESYNC_SKILLS_DIR}/${PLUGIN}-${skill_name}"
+                        local target_skill_dir="${workspace_skills_dir}/${PLUGIN}-${skill_name}"
 
                         # Create skill directory
                         mkdir -p "$target_skill_dir"
 
                         # Copy main skill file, rewriting name field and
-                        # rd3:skill-name references for installed targets
+                        # plugin:skill-name references for installed targets
                         rewrite_skill_for_install "$skill_file" "$target_skill_dir/SKILL.md" "${PLUGIN}-${skill_name}"
 
                         # Copy supporting directories if they exist
                         for subdir in scripts references templates assets; do
                             if [ -d "${skill_dir}${subdir}" ]; then
                                 cp -r "${skill_dir}${subdir}" "$target_skill_dir/"
-                                # Rewrite rd3:skill-name -> rd3-skill-name in
-                                # all supporting files so LLMs can resolve refs
-                                find "$target_skill_dir/$subdir" -type f -exec perl -pi -e 's/\b(rd3):([a-z][-a-z]*)/$1-$2/g' {} + 2>/dev/null || true
+                                while IFS= read -r -d '' support_file; do
+                                    rewrite_skill_references "$support_file"
+                                done < <(find "$target_skill_dir/$subdir" -type f -print0 2>/dev/null)
                             fi
                         done
 
@@ -385,36 +444,14 @@ map_resources() {
         fi
     fi
 
-    # Process subagents / agents directory
-    # rd3 uses agents/, older plugins may use subagents/
-    if [[ "$FEATURES" == *"subagents"* ]] || [ "$FEATURES" = "all" ]; then
-        local subagents_dir=""
-        if [ -d "${plugin_dir}/agents" ]; then
-            subagents_dir="${plugin_dir}/agents"
-        elif [ -d "${plugin_dir}/subagents" ]; then
-            subagents_dir="${plugin_dir}/subagents"
-        fi
-
-        if [ -n "$subagents_dir" ] && [ -d "$subagents_dir" ]; then
-            print_info "Processing subagents..."
-            for agent_file in "$subagents_dir"/*.md; do
-                if [ -f "$agent_file" ]; then
-                    local agent_name=$(basename "$agent_file" .md)
-                    cp "$agent_file" "${RULESYNC_SUBDIR}/${PLUGIN}-${agent_name}.md"
-                    print_success "Mapped subagent: $agent_name"
-                fi
-            done
-        fi
-    fi
-
     echo
 }
 
 # Rewrite the 'name' field in SKILL.md to match the target directory name
-# and rewrite rd3:skill-name -> rd3-skill-name references in content.
+# and rewrite plugin:skill-name -> plugin-skill-name references in content.
 #
 # Pi and other agents discover skills by directory name, so the 'name' field
-# in frontmatter must match. Additionally, the rd3: colon format only works
+# in frontmatter must match. Additionally, the plugin:skill colon format only works
 # inside Claude Code's own plugin system; installed skills need hyphenated
 # names so LLMs can resolve them as directory references.
 #
@@ -432,17 +469,17 @@ rewrite_skill_for_install() {
     # Rewrite name field to match directory name
     sed -i '' "s/^name:.*/name: ${expected_name}/" "$target_file"
 
-    # Rewrite rd3:skill-name -> rd3-skill-name references
+    # Rewrite plugin:skill-name -> plugin-skill-name references
     rewrite_skill_references "$target_file"
 }
 
-# Rewrite rd3:skill-name -> rd3-skill-name in a file.
-# The colon format (rd3:sys-debugging) only works inside Claude Code's plugin
-# system. When skills are installed as directories for other agents, the LLM
-# needs hyphenated names (rd3-sys-debugging) to match directory names.
+# Rewrite plugin:skill-name -> plugin-skill-name in a file.
+# The colon format only works inside Claude Code's plugin system. When skills
+# are installed as directories for other agents, the LLM needs hyphenated names
+# that match the installed directory names.
 #
 # Uses a perl one-liner for reliable word-boundary matching since the colon
-# pattern rd3: could appear in URLs, code blocks, or other contexts that
+# pattern plugin: could appear in URLs, code blocks, or other contexts that
 # should NOT be rewritten.
 #
 # Args:
@@ -451,15 +488,93 @@ rewrite_skill_references() {
     local file="$1"
     if [ ! -f "$file" ]; then return; fi
 
-    # Match rd3: followed by a lowercase letter and hyphens (skill name pattern)
-    # Replace the colon with a hyphen
-    perl -pi -e 's/\b(rd3[a-z0-9-]*):([a-z][a-z0-9-]*)/$1-$2/g' "$file"
+    PLUGIN_PREFIX="$PLUGIN" perl -0pi -e 'my $prefix = quotemeta($ENV{PLUGIN_PREFIX} // q{}); s/\b(${prefix}):([a-z][a-z0-9-]*)/$1-$2/g;' "$file"
+}
+
+normalize_command_frontmatter() {
+    local source_file="$1"
+    local target_file="$2"
+    local expected_name="$3"
+
+    awk -v name="$expected_name" '
+        function trim(value) {
+            sub(/^[[:space:]]+/, "", value)
+            sub(/[[:space:]]+$/, "", value)
+            return value
+        }
+
+        function quote_yaml(value) {
+            gsub(/\\/, "\\\\", value)
+            gsub(/"/, "\\\"", value)
+            return "\"" value "\""
+        }
+
+        BEGIN {
+            in_frontmatter = 0
+        }
+
+        NR == 1 && /^---[[:space:]]*$/ {
+            in_frontmatter = 1
+            print
+            print "name: " name
+            next
+        }
+
+        in_frontmatter && /^---[[:space:]]*$/ {
+            print
+            in_frontmatter = 0
+            next
+        }
+
+        in_frontmatter {
+            if ($0 ~ /^name:[[:space:]]*/) {
+                next
+            }
+
+            if ($0 ~ /^argument-hint:[[:space:]]*/) {
+                value = trim(substr($0, index($0, ":") + 1))
+                print "argument-hint: " quote_yaml(value)
+                next
+            }
+
+            if ($0 ~ /^allowed-tools:[[:space:]]*/) {
+                value = trim(substr($0, index($0, ":") + 1))
+                if (value ~ /^\[/) {
+                    print
+                    next
+                }
+
+                count = split(value, parts, /,[[:space:]]*/)
+                out = "["
+                for (i = 1; i <= count; i++) {
+                    part = trim(parts[i])
+                    if (part == "") {
+                        continue
+                    }
+                    if (out != "[") {
+                        out = out ", "
+                    }
+                    out = out part
+                }
+                out = out "]"
+                print "allowed-tools: " out
+                next
+            }
+
+            print
+            next
+        }
+
+        {
+            print
+        }
+    ' "$source_file" > "$target_file"
 }
 
 # Adapt command file to conform to Skills 2.0 format
 # The Skills 2.0 standard requires a 'name' field in the YAML frontmatter.
 # This function ensures commands have the required metadata matching the
-# directory name, and rewrites rd3:skill-name references for installed targets.
+# directory name, and rewrites plugin:skill-name references for installed targets.
 #
 # Input:  plugins/rd3/commands/skill-add.md (may lack 'name' field)
 # Output: .rulesync/skills/rd3-cmd-skill-add/SKILL.md (with 'name' field)
@@ -472,29 +587,18 @@ adapt_command_to_skill() {
     local source_file="$1"
     local target_file="$2"
     local expected_name="$3"
-    local cmd_name=$(basename "$source_file" .md)
-
-    # Check if frontmatter already has 'name' field
-    # If yes, copy and rewrite the name + references
-    if grep -q "^name:" "$source_file" 2>/dev/null; then
-        cp "$source_file" "$target_file"
-        # Rewrite name field to match directory name
-        sed -i '' "s/^name:.*/name: ${expected_name}/" "$target_file"
-        # Rewrite rd3:skill-name -> rd3-skill-name references
-        rewrite_skill_references "$target_file"
-        return
-    fi
+    local cmd_name
+    cmd_name=$(basename "$source_file" .md)
 
     # Add 'name' field to frontmatter
     # Different handling based on whether frontmatter exists:
     if grep -q "^---" "$source_file" 2>/dev/null; then
-        # Has frontmatter (--- markers) but no name field
-        # Use awk to insert 'name' after the opening ---
-        awk -v name="$expected_name" 'NR==1 && /^---/ {print; print "name: " name; next} /^---/ {print; next} {print}' "$source_file" > "$target_file"
+        normalize_command_frontmatter "$source_file" "$target_file" "$expected_name"
     else
         # No frontmatter at all
         # Create complete frontmatter with required fields
-        local description=$(head -n 5 "$source_file" | grep -v "^#" | head -n 1 | tr -d '\n')
+        local description
+        description=$(head -n 5 "$source_file" | grep -v "^#" | head -n 1 | tr -d '\n')
         cat > "$target_file" <<EOF
 ---
 name: $expected_name
@@ -506,7 +610,7 @@ $(cat "$source_file")
 EOF
     fi
 
-    # Rewrite rd3:skill-name -> rd3-skill-name references
+    # Rewrite plugin:skill-name -> plugin-skill-name references
     rewrite_skill_references "$target_file"
 }
 
@@ -519,17 +623,15 @@ EOF
 #
 # What it does:
 #   1. Reads skills from .rulesync/skills/
-#   2. Reads commands from .rulesync/commands/
-#   3. Generates files in each target agent's format
+#   2. Validates generated content against selected targets
 #
 # Args:
 #   $1 - Target agents (comma-separated or 'all')
 run_rulesync() {
     local targets="$1"
+    local workspace_dir="$2"
     local rulesync_targets="$targets"
     local rulesync_args=()
-    local rulesync_workdir="$PROJECT_ROOT"
-    local cleanup_workdir=false
 
     # OpenClaw install is handled by direct copy because this workflow does
     # not currently use a rulesync OpenClaw target.
@@ -550,24 +652,14 @@ run_rulesync() {
         rulesync_cmd="npx --yes rulesync"
     fi
 
-    # Build features string based on FEATURES setting
-    # Must match what was mapped in map_resources()
-    local features_str="skills"
-    if [[ "$FEATURES" == *"commands"* ]] || [ "$FEATURES" = "all" ]; then
-        features_str="${features_str},commands"
-    fi
-    if [[ "$FEATURES" == *"subagents"* ]] || [ "$FEATURES" = "all" ]; then
-        features_str="${features_str},subagents"
-    fi
+    local features_str="$FEATURES"
 
     # Dry-run mode: just show what would be executed
     if [ "$DRY_RUN" = "true" ]; then
         print_warning "DRY RUN - Would execute:"
+        echo "   (cd <temp-rulesync-workdir> && $rulesync_cmd generate --targets $rulesync_targets --features $features_str)"
         if [ "$GLOBAL" = "true" ]; then
-            echo "   (cd <temp-rulesync-workdir> && $rulesync_cmd generate --targets $rulesync_targets --features $features_str)"
             echo "   Copy to global directories: $HOME/.codex/skills/, etc."
-        else
-            echo "   $rulesync_cmd generate --targets $rulesync_targets --features $features_str"
         fi
         return 0
     fi
@@ -577,22 +669,8 @@ run_rulesync() {
         rulesync_args+=(--verbose)
     fi
 
-    if [ "$GLOBAL" = "true" ]; then
-        # rulesync v6 resolves source baseDirs to $HOME in --global mode, so it
-        # can no longer see this repo's .rulesync directory. Run generation in a
-        # temporary workspace instead to validate against the local rulesync
-        # source tree without polluting the current repo with .codex/.gemini/etc.
-        rulesync_workdir=$(mktemp -d "${TMPDIR:-/tmp}/install-skills-rulesync.XXXXXX")
-        cleanup_workdir=true
-
-        if [ -f "${PROJECT_ROOT}/rulesync.jsonc" ]; then
-            cp "${PROJECT_ROOT}/rulesync.jsonc" "${rulesync_workdir}/rulesync.jsonc"
-        fi
-        cp -R "$RULESYNC_DIR" "${rulesync_workdir}/.rulesync"
-
-        if [ "$VERBOSE" = "true" ]; then
-            print_info "Using temporary rulesync workspace: $rulesync_workdir"
-        fi
+    if [ "$VERBOSE" = "true" ]; then
+        print_info "Using isolated rulesync workspace: $workspace_dir"
     fi
 
     local command="$rulesync_cmd generate --targets \"$rulesync_targets\" --features \"$features_str\""
@@ -600,12 +678,8 @@ run_rulesync() {
         command="${command} ${arg}"
     done
 
-    (cd "$rulesync_workdir" && eval "$command")
+    (cd "$workspace_dir" && eval "$command")
     local status=$?
-
-    if [ "$cleanup_workdir" = "true" ]; then
-        rm -rf "$rulesync_workdir"
-    fi
 
     if [ $status -ne 0 ]; then
         return $status
@@ -642,6 +716,8 @@ run_rulesync() {
 #   $1 - Target agents (comma-separated)
 copy_to_targets() {
     local targets="$1"
+    local workspace_dir="$2"
+    local workspace_skills_dir="${workspace_dir}/.rulesync/skills"
 
     if [ "$GLOBAL" = "true" ]; then
         print_info "Copying generated files to user-level global paths..."
@@ -651,6 +727,18 @@ copy_to_targets() {
 
     # Array to hold target directories
     local target_dirs=()
+
+    add_target_dir() {
+        local target_dir="$1"
+        local existing_dir=""
+        for existing_dir in "${target_dirs[@]}"; do
+            if [ "$existing_dir" = "$target_dir" ]; then
+                return 0
+            fi
+        done
+
+        target_dirs+=("$target_dir")
+    }
 
     # Helper to get the base path based on GLOBAL flag and PROJECT_DIR
     # Args: $1 - project path (e.g., ".codex/skills")
@@ -670,34 +758,34 @@ copy_to_targets() {
 
     # Codex: Uses .codex/skills/ directory
     if [[ "$targets" == *"codexcli"* ]] || [[ "$targets" == *"codex"* ]]; then
-        local codex_path=$(get_path ".codex/skills" "$HOME/.codex/skills")
-        mkdir -p "$codex_path"
-        target_dirs+=("$codex_path")
+        local codex_path
+        codex_path=$(get_path ".codex/skills" "$HOME/.codex/skills")
+        add_target_dir "$codex_path"
         print_info "Codex skills directory: $codex_path"
     fi
 
     # Gemini CLI: Uses .gemini/skills/ and .agents/skills/
     # .agents/skills/ provides cross-client compatibility
     if [[ "$targets" == *"geminicli"* ]]; then
-        local gemini_path=$(get_path ".gemini/skills" "$HOME/.gemini/skills")
-        local agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
-        mkdir -p "$gemini_path"
-        target_dirs+=("$gemini_path")
+        local gemini_path
+        local agents_path
+        gemini_path=$(get_path ".gemini/skills" "$HOME/.gemini/skills")
+        agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+        add_target_dir "$gemini_path"
         print_info "Gemini CLI skills directory: $gemini_path"
-        mkdir -p "$agents_path"
-        target_dirs+=("$agents_path")
+        add_target_dir "$agents_path"
         print_info "Cross-client skills directory: $agents_path"
     fi
 
     # OpenCode: Uses .opencode/skills/ and .agents/skills/
     if [[ "$targets" == *"opencode"* ]]; then
-        local opencode_path=$(get_path ".opencode/skills" "$HOME/.opencode/skills")
-        local agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
-        mkdir -p "$opencode_path"
-        target_dirs+=("$opencode_path")
+        local opencode_path
+        local agents_path
+        opencode_path=$(get_path ".opencode/skills" "$HOME/.opencode/skills")
+        agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+        add_target_dir "$opencode_path"
         print_info "OpenCode skills directory: $opencode_path"
-        mkdir -p "$agents_path"
-        target_dirs+=("$agents_path")
+        add_target_dir "$agents_path"
         print_info "Cross-client skills directory: $agents_path"
     fi
 
@@ -710,17 +798,16 @@ copy_to_targets() {
             if [ -n "$PROJECT_DIR" ]; then
                 openclaw_path="${PROJECT_DIR}/skills"
             fi
-            mkdir -p "$openclaw_path"
-            target_dirs+=("$openclaw_path")
+            add_target_dir "$openclaw_path"
             print_info "OpenClaw skills directory: $openclaw_path"
         fi
     fi
 
     # Antigravity: Uses .agents/skills/ only
     if [[ "$targets" == *"antigravity"* ]]; then
-        local agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
-        mkdir -p "$agents_path"
-        target_dirs+=("$agents_path")
+        local agents_path
+        agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+        add_target_dir "$agents_path"
         print_info "Antigravity skills directory: $agents_path"
     fi
 
@@ -734,19 +821,17 @@ copy_to_targets() {
         for target_dir in "${target_dirs[@]}"; do
             echo "   $target_dir"
         done
-        if [[ "$FEATURES" == *"subagents"* ]] && [[ "$targets" == *"openclaw"* ]]; then
-            print_warning "OpenClaw subagent installation is not handled by install-skills.sh; use rd3:cc-agents adapt/install flows"
-        fi
         echo
         return 0
     fi
 
     # Copy all skills from rulesync to each target directory
     # Iterates through all mapped skills and copies to all target dirs
-    if [ -d "$RULESYNC_SKILLS_DIR" ]; then
-        for skill_dir in "$RULESYNC_SKILLS_DIR"/*/; do
+    if [ -d "$workspace_skills_dir" ]; then
+        for skill_dir in "$workspace_skills_dir"/*/; do
             if [ -d "$skill_dir" ]; then
-                local skill_name=$(basename "$skill_dir")
+                local skill_name
+                skill_name=$(basename "$skill_dir")
 
                 for target_dir in "${target_dirs[@]}"; do
                     local dest_dir="${target_dir}/${skill_name}"
@@ -759,31 +844,6 @@ copy_to_targets() {
                 done
             fi
         done
-    fi
-
-    # Copy subagents if requested
-    # Currently copies to .claude/subagents/ if it exists
-    if [ -d "$RULESYNC_SUBDIR" ] && [[ "$FEATURES" == *"subagents"* ]]; then
-        # Determine target subagents directory based on PROJECT_DIR
-        local subagents_target_dir=".claude/subagents"
-        if [ -n "$PROJECT_DIR" ]; then
-            subagents_target_dir="${PROJECT_DIR}/.claude/subagents"
-        fi
-
-        for agent_file in "$RULESYNC_SUBDIR"/*.md; do
-            if [ -f "$agent_file" ]; then
-                local agent_name=$(basename "$agent_file")
-
-                if [ -d "$subagents_target_dir" ]; then
-                    cp "$agent_file" "${subagents_target_dir}/${agent_name}"
-                    print_success "Copied subagent: $agent_name -> $subagents_target_dir"
-                fi
-            fi
-        done
-
-        if [[ "$targets" == *"openclaw"* ]]; then
-            print_warning "OpenClaw subagent installation is not handled by install-skills.sh; use rd3:cc-agents adapt/install flows"
-        fi
     fi
 
     echo
@@ -821,14 +881,16 @@ main() {
     # Step 4: Validate environment
     validate_environment
 
-    # Step 5: Map resources to rulesync format
-    map_resources
+    if [ "$DRY_RUN" != "true" ]; then
+        WORKSPACE_DIR=$(create_rulesync_workspace)
+        map_resources "$WORKSPACE_DIR"
+    fi
 
-    # Step 6: Run rulesync
-    run_rulesync "$actual_targets"
+    # Step 5: Run rulesync
+    run_rulesync "$actual_targets" "$WORKSPACE_DIR"
 
-    # Step 7: Copy to target directories
-    copy_to_targets "$actual_targets"
+    # Step 6: Copy to target directories
+    copy_to_targets "$actual_targets" "$WORKSPACE_DIR"
 
     # Step 8: Display completion message
     print_success "Installation completed successfully!"
