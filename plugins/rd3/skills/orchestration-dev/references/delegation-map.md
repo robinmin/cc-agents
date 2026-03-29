@@ -11,7 +11,29 @@ type ExecutionChannel = 'current' | string;
 ```
 
 - `current` means execute on the current channel.
-- Any other value is treated as an ACP agent name and should be delegated via `rd3:run-acp`.
+- Any other value is treated as an ACP agent name.
+- `rd3:orchestration-dev` owns channel normalization and chooses whether delegated work stays local or goes through `rd3:run-acp`.
+
+## Downstream Evidence Contracts
+
+Verification-aware downstream skills should emit predictable envelopes so orchestration can consume them without skill-specific parsing drift:
+
+```typescript
+const DOWNSTREAM_EVIDENCE_CONTRACTS = {
+    'rd3:request-intake': {
+        kind: 'request-intake-result',
+        required_fields: ['background', 'requirements', 'constraints', 'profile'],
+    },
+    'rd3:bdd-workflow': {
+        kind: 'bdd-execution-report',
+        required_fields: ['scenarios', 'passed', 'failed', 'execution_mode'],
+    },
+    'rd3:functional-review': {
+        kind: 'functional-verdict',
+        required_fields: ['verdict', 'covered_requirements', 'missing_requirements'],
+    },
+};
+```
 
 ## Phase -> Skill Mapping
 
