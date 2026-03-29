@@ -666,10 +666,8 @@ describe('unknown checker method', () => {
                 type: 'single',
                 maker: { command: 'echo hello' },
                 checker: {
-                    // biome-ignore lint/suspicious/noExplicitAny: intentional - testing invalid method
-                    method: 'nonexistent' as any,
-                    // biome-ignore lint/suspicious/noExplicitAny: intentional - testing invalid config
-                    config: {} as any,
+                    method: 'nonexistent' as unknown as import('../scripts/types').CheckerMethod,
+                    config: {} as unknown as import('../scripts/types').CheckerConfig,
                 },
             },
         ]);
@@ -683,7 +681,7 @@ describe('unknown checker method', () => {
 // maker variants
 // ============================================================
 describe('maker variants', () => {
-    test('delegate_to maker without command completes', async () => {
+    test('delegate_to maker without a configured runner fails', async () => {
         const manifest = makeManifest([
             {
                 name: 'delegate-node',
@@ -693,8 +691,91 @@ describe('maker variants', () => {
             },
         ]);
         const state = await runChain({ manifest, stateDir: TEST_DIR });
+        expect(state.status).toBe('failed');
+        expect(state.nodes[0].maker_status).toBe('failed');
+        expect(state.nodes[0].maker_error).toContain('requires a configured delegate runner');
+    });
+
+    test('delegate_to maker uses the configured delegate runner', async () => {
+        const manifest = makeManifest([
+            {
+                name: 'delegate-node',
+                type: 'single',
+                maker: {
+                    delegate_to: 'rd3:code-implement-common',
+                    task_ref: '0276',
+                    args: { mode: 'test' },
+                    execution_channel: 'codex',
+                },
+                checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+            },
+        ]);
+        const state = await runChain({
+            manifest,
+            stateDir: TEST_DIR,
+            delegateRunner: async (request) => ({
+                status: 'completed',
+                output: JSON.stringify(request),
+            }),
+        });
         expect(state.status).toBe('completed');
         expect(state.nodes[0].maker_status).toBe('completed');
+        expect(state.nodes[0].maker_output).toContain('"skill":"rd3:code-implement-common"');
+        expect(state.nodes[0].maker_output).toContain('"execution_channel":"codex"');
+    });
+
+    test('delegate_to maker can pause and resume through the configured runner', async () => {
+        const manifest = makeManifest(
+            [
+                {
+                    name: 'delegate-pause-node',
+                    type: 'single',
+                    maker: {
+                        delegate_to: 'rd3:code-review-common',
+                        execution_channel: 'codex',
+                    },
+                    checker: { method: 'cli', config: { command: 'echo ok', exit_codes: [0] } },
+                },
+            ],
+            'delegate-pause-test',
+        );
+
+        let calls = 0;
+        const delegateRunner = async () => {
+            calls++;
+            if (calls === 1) {
+                return {
+                    status: 'paused' as const,
+                    output: 'waiting for delegated review',
+                };
+            }
+
+            return {
+                status: 'completed' as const,
+                output: 'delegated review complete',
+            };
+        };
+
+        const pausedState = await runChain({
+            manifest,
+            stateDir: TEST_DIR,
+            delegateRunner,
+        });
+
+        expect(pausedState.status).toBe('paused');
+        expect(pausedState.paused_node).toBe('delegate-pause-node');
+        expect(pausedState.nodes[0].maker_status).toBe('paused');
+        expect(pausedState.nodes[0].maker_output).toBe('waiting for delegated review');
+
+        const resumedState = await resumeChain({
+            manifest,
+            stateDir: TEST_DIR,
+            delegateRunner,
+        });
+
+        expect(resumedState.status).toBe('completed');
+        expect(resumedState.nodes[0].maker_status).toBe('completed');
+        expect(resumedState.nodes[0].maker_output).toBe('delegated review complete');
     });
 
     test('delegate_to maker falls back to command when command is present', async () => {
@@ -944,6 +1025,54 @@ describe('parallel group human pause', () => {
         expect(state.status).toBe('paused');
         expect(state.paused_node).toBe('pg-pause');
     });
+
+    test('parallel group pauses when a delegated child maker pauses and resumes cleanly', async () => {
+        const manifest = makeManifest(
+            [
+                {
+                    name: 'pg-delegate-pause',
+                    type: 'parallel-group',
+                    convergence: 'all',
+                    children: [
+                        { name: 'delegate-child', maker: { delegate_to: 'rd3:sys-testing' } },
+                        { name: 'local-child', maker: { command: 'echo one' } },
+                    ],
+                    checker: {
+                        method: 'cli',
+                        config: { command: 'echo ok', exit_codes: [0] },
+                    },
+                },
+            ],
+            'pg-delegate-pause-test',
+        );
+
+        let calls = 0;
+        const delegateRunner = async () => {
+            calls++;
+            return calls === 1 ? { status: 'paused' as const } : { status: 'completed' as const };
+        };
+
+        const pausedState = await runChain({
+            manifest,
+            stateDir: TEST_DIR,
+            delegateRunner,
+        });
+
+        expect(pausedState.status).toBe('paused');
+        expect(pausedState.paused_node).toBe('pg-delegate-pause');
+        expect(pausedState.nodes[0].maker_status).toBe('paused');
+        expect(pausedState.nodes[0].parallel_children?.['delegate-child'].maker_status).toBe('paused');
+
+        const resumedState = await resumeChain({
+            manifest,
+            stateDir: TEST_DIR,
+            delegateRunner,
+        });
+
+        expect(resumedState.status).toBe('completed');
+        expect(resumedState.nodes[0].parallel_children?.['delegate-child'].maker_status).toBe('completed');
+        expect(resumedState.nodes[0].checker_result).toBe('pass');
+    });
 });
 
 // ============================================================
@@ -968,6 +1097,48 @@ describe('global retry', () => {
         const state = await runChain({ manifest, stateDir: TEST_DIR });
         expect(state.status).toBe('failed');
         expect(state.global_retry?.remaining).toBe(0);
+    });
+
+    test('retries checker-failed nodes while preserving maker output', async () => {
+        // Maker succeeds and produces stdout, checker fails on first run but passes on retry.
+        // The retry marker file is created between the two global retry attempts.
+        const retryMarker = join(TEST_DIR, `checker-retry-marker-${nextChainId()}`);
+        const manifest = makeManifest(
+            [
+                {
+                    name: 'checker-fail-node',
+                    type: 'single',
+                    maker: { command: 'echo produced-output' },
+                    checker: {
+                        method: 'cli',
+                        config: { command: `test -f ${retryMarker}`, exit_codes: [0] },
+                    },
+                },
+            ],
+            'global-retry-checker-test',
+        );
+        manifest.on_node_fail = 'continue';
+        manifest.global_retry = { remaining: 1, total: 1 };
+
+        // Create the retry marker so the checker passes on the second attempt (global retry)
+        // The global retry loop runs within a single runChain call, so we need the marker
+        // to exist before running. Use a checker that always fails first and passes second:
+        // Instead, use a simpler approach — create a checker script that tracks attempts.
+        const attemptFile = join(TEST_DIR, `checker-attempt-${nextChainId()}`);
+        (manifest.nodes[0] as SingleNode).checker.config = {
+            // First attempt: file doesn't exist → exit 1. Write the file for next attempt.
+            command: `if [ -f ${attemptFile} ]; then exit 0; else touch ${attemptFile} && exit 1; fi`,
+            exit_codes: [0],
+        };
+
+        const state = await runChain({ manifest, stateDir: TEST_DIR });
+        // After global retry, checker should have passed on the second attempt
+        expect(state.status).toBe('completed');
+        expect(state.global_retry?.remaining).toBe(0);
+        expect(state.nodes[0].maker_status).toBe('completed');
+        expect(state.nodes[0].checker_result).toBe('pass');
+        // Maker output is preserved across the retry
+        expect(state.nodes[0].maker_output).toContain('produced-output');
     });
 
     test('no retry when global_retry remaining is 0', async () => {
