@@ -37,7 +37,7 @@ see_also:
 
 # rd3:orchestration-dev — 9-Phase Pipeline Orchestrator
 
-Profile-driven orchestration that executes the 9-phase workflow by delegating each phase to specialist skills, managing gates, and handling rework loops. Phases 5, 6, and 7 use dedicated worker agents while all other phases stay on the direct-to-skill path.
+Profile-driven orchestration for the rd3 9-phase workflow. The current v1 pilot concretely executes phases 5, 6, and 7 only: phases 5 and 7 use dedicated worker agents and phase 6 runs through verification-chain. Direct-skill phases 1-4 and 8-9 remain plan-level definitions until pilot support lands.
 
 **Key distinction:**
 - **`orchestration-dev`** = pipeline orchestration (coordinates all phases)
@@ -61,25 +61,22 @@ Do not load this skill directly for single-phase work. Use the specific phase sk
 ## Quick Start
 
 ```bash
-# Full pipeline on a task (use an ACP channel for end-to-end heavy worker execution in v1)
-rd3:orchestration-dev 0266 --channel codex
-
 # Dry run — preview what would execute
 rd3:orchestration-dev 0266 --dry-run
-
-# End-to-end with auto-approved human gates
-rd3:orchestration-dev 0266 --auto --channel codex
 
 # Override coverage target for a local unit-only run
 rd3:orchestration-dev 0266 --profile unit --coverage 90
 
+# Run implementation + testing locally on the current channel
+rd3:orchestration-dev 0266 --profile simple
+
 # Resume from a specific phase
-rd3:orchestration-dev 0266 --start-phase 5 --channel codex
+rd3:orchestration-dev 0266 --profile simple --start-phase 5
 
 # Single phase profiles
 rd3:orchestration-dev 0266 --profile unit    # Phase 6 only
-rd3:orchestration-dev 0266 --profile review --channel codex  # Phase 7 only
-rd3:orchestration-dev 0266 --profile docs     # Phase 9 only
+rd3:orchestration-dev 0266 --profile review --auto  # Phase 7 only
+rd3:orchestration-dev 0266 --profile complex --dry-run  # Preview unsupported direct-skill phases
 ```
 
 ## Overview
@@ -89,10 +86,10 @@ The orchestration-dev skill:
 1. **Reads** task frontmatter for profile (simple/standard/complex/research)
 2. **Determines** which phases to execute based on profile
 3. **Sequences** phases in dependency order
-4. **Delegates** each phase to its specialist skill
-5. **Evaluates** gate (human or auto) after each phase
-6. **Handles** rework loops (max 2 iterations)
-7. **Persists** results to task file between phases
+4. **Executes** the supported pilot phases (5/6/7) through worker agents or verification-chain
+5. **Evaluates** supported gate semantics (CoV in phase 6, lightweight human-gate pauses elsewhere)
+6. **Persists** pause/failure/completion state for resume
+7. **Persists** orchestration state between phases
 8. **Routes** work to the requested execution channel
 9. **Supports** suffix execution via `start_phase` when resuming or intentionally entering mid-pipeline
 
@@ -159,65 +156,32 @@ const PHASE_NAMES: Record<PhaseNumber, string> = {
 
 ## Execution Flow
 
-### Dry-Run Mode
+The runtime `main()` (runtime.ts) drives all modes:
 
 ```typescript
-async function dryRun(input: OrchestrationInput): Promise<ExecutionPlan> {
-    // Read task profile
-    const task = readTaskFile(input.task_ref);
-    const profile = input.profile || task.frontmatter.profile || 'standard';
+async function main(args: string[]): Promise<void> {
+    const parsed = parseOrchestrationArgs(args);
+    const plan = createExecutionPlan(parsed.taskRef, parsed);
 
-    // Generate execution plan
-    const plan = createExecutionPlan(input.task_ref, {
-        profile,
-        skipPhases: input.skip_phases,
-        auto: input.auto,
-        dryRun: true,
-        refine: input.refine,
-        executionChannel: input.execution_channel,
-    });
-
-    // Output plan without side effects
-    return plan;
-}
-```
-
-### Full Execution Mode
-
-```typescript
-async function execute(input: OrchestrationInput): Promise<ExecutionResult> {
-    const task = readTaskFile(input.task_ref);
-    const profile = input.profile || task.frontmatter.profile || 'standard';
-
-    // Build execution queue
-    const queue = buildExecutionQueue(profile, input);
-
-    const results: PhaseResult[] = [];
-
-    for (const phase of queue) {
-        // Log phase start
-        updateImplProgress(task.wbs, phase, 'in_progress');
-
-        // Execute phase
-        const phaseResult = await executePhase(phase, task);
-        results.push(phaseResult);
-
-        // Evaluate gate
-        const gateResult = evaluateGate(phase, phaseResult);
-
-        if (gateResult.status === 'rejected') {
-            // Rework loop (max 2)
-            const reworkResult = await handleRework(phase, task, gateResult);
-            if (reworkResult.escalate) {
-                return { status: 'failed', failed_phase: phase.number };
-            }
-        }
-
-        // Update progress
-        updateImplProgress(task.wbs, phase, 'completed');
+    if (plan.dry_run) {
+        // Output plan JSON without side effects
+        logger.log(JSON.stringify(plan, null, 2));
+        return;
     }
 
-    return { status: 'completed', results };
+    const runner = createPilotPhaseRunner();
+    const state = parsed.resume
+        ? await resumeOrchestration({ plan, phaseRunner: runner })
+        : await runOrchestration({ plan, phaseRunner: runner });
+}
+
+// Inside runOrchestration:
+for (const phase of plan.phases) {
+    // Skip already-completed phases (resume support)
+    // Validate prerequisites (e.g., Solution section for phase 5)
+    // Run phase with timeout enforcement
+    // Persist state to orchestration/<taskRef>-<runId>-state.json
+    // Pause on human gates unless --auto is set
 }
 ```
 
@@ -250,10 +214,7 @@ async function executePhase(phase: Phase, task: TaskFile): Promise<PhaseResult> 
         execution_channel: executionChannel,
     };
 
-    const result =
-        executionChannel === 'current'
-            ? await delegateToSkill(skill, phaseInput)
-            : await delegateViaRunAcp(executionChannel, skill, phaseInput);
+    const result = await executeThroughPilotRunner(skill, phaseInput, executionChannel);
 
     return {
         phase: phase.number,
@@ -274,12 +235,16 @@ Phases 5, 6, and 7 use the normalized `rd3-phase-worker-v1` contract:
 ### Channel Resolution
 
 - `execution_channel: 'current'` means execute on the current channel when the selected phase has a local pilot runner.
+- Local prompt-backed worker phases on `current` require an explicit prompt-agent binding via `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT`.
 - Any other value should be an ACP agent name supported by `rd3:run-acp`.
 - Slash command wrappers expose this as `--channel <agent|current>` and pass it into orchestration unchanged.
-- `rd3:orchestration-dev` is the routing authority. It normalizes aliases, keeps direct-skill work local, runs the Phase 6 pilot locally on `current`, and uses ACP-backed execution for worker phases that do not yet have a local runner.
-## Rework Loop
+- `rd3:orchestration-dev` is the routing authority. It normalizes aliases, runs worker phases 5, 6, and 7 through the pilot runtime, and currently fails direct-skill phases 1-4 and 8-9 regardless of channel until those phases are implemented in the pilot.
+## Rework Loop (v2 Design)
+
+> **Not implemented in v1.** The rework loop below describes the target behavior for v2, where failed gate evaluations trigger automatic re-execution with feedback. In v1, a failed phase stops the pipeline and requires manual resume or re-run.
 
 ```typescript
+// v2 target — not yet implemented
 async function handleRework(
     phase: Phase,
     task: TaskFile,
@@ -290,22 +255,14 @@ async function handleRework(
 
     while (iterations < MAX_ITERATIONS) {
         iterations++;
-
-        // Gather rework feedback
         const feedback = gateResult.rejection_reason;
-
-        // Re-execute phase with feedback
         const result = await executePhaseWithFeedback(phase, task, feedback);
-
-        // Re-evaluate gate
         const newGateResult = evaluateGate(phase, result);
-
         if (newGateResult.status === 'approved') {
             return { escalate: false, iterations };
         }
     }
 
-    // Max iterations exceeded
     return { escalate: true, iterations, reason: 'Max rework iterations exceeded' };
 }
 ```
@@ -317,6 +274,8 @@ See `references/gate-definitions.md` for auto vs human gate definitions.
 See `references/delegation-map.md` for phase -> skill mapping.
 
 ## Workflows
+
+The workflow maps below describe the full orchestration model. In the current v1 pilot, only phases 5, 6, and 7 are executable; the remaining phases are plan definitions for future runtime support.
 
 ### Standard Development Workflow
 
@@ -348,11 +307,14 @@ Task File → Phase 9 (Documentation)
 ### Resume Interrupted Work
 
 ```bash
-# Resume from phase 5
-rd3:orchestration-dev 0266 --start-phase 5 --channel codex
+# Resume a previously paused orchestration
+rd3:orchestration-dev 0266 --profile unit --resume
 
-# Auto-approve gates and continue
-rd3:orchestration-dev 0266 --start-phase 5 --auto --channel codex
+# Resume from a specific phase (fresh run from that phase onward)
+rd3:orchestration-dev 0266 --profile simple --start-phase 5
+
+# Resume review with auto-approved gate
+rd3:orchestration-dev 0266 --profile review --auto
 ```
 
 ### Dry Run + Execute Cycle
@@ -361,26 +323,25 @@ rd3:orchestration-dev 0266 --start-phase 5 --auto --channel codex
 # 1. Preview execution plan
 rd3:orchestration-dev 0266 --dry-run
 
-# 2. If plan looks good, execute end-to-end on an ACP channel
-rd3:orchestration-dev 0266 --auto --channel codex
+# 2. If plan is a supported pilot slice, execute it
+rd3:orchestration-dev 0266 --profile simple
 ```
 
 ## Integration
 
-**tasks CLI integration:**
+**CLI integration:**
 ```bash
-# Full orchestration (profile from task file)
-rd3:orchestration-dev 0266 --channel codex
-
-# Override profile
-rd3:orchestration-dev 0266 --profile complex --channel codex
-
-# Phase profile (single phase on the current channel)
-rd3:orchestration-dev 0266 --profile refine
+# Supported pilot execution profiles
+rd3:orchestration-dev 0266 --profile simple
 rd3:orchestration-dev 0266 --profile unit
+rd3:orchestration-dev 0266 --profile review --auto
 
-# Auto-approve human gates (end-to-end, no pauses)
-rd3:orchestration-dev 0266 --auto --channel codex
+# Preview larger profile plans
+rd3:orchestration-dev 0266 --profile complex --dry-run
+rd3:orchestration-dev 0266 --profile refine --dry-run
+
+# Supported start-phase resume for the heavy-phase pilot slice
+rd3:orchestration-dev 0266 --profile simple --start-phase 5
 
 # Override the default unit coverage target
 rd3:orchestration-dev 0266 --coverage 90
@@ -388,14 +349,14 @@ rd3:orchestration-dev 0266 --coverage 90
 # Dry run (preview)
 rd3:orchestration-dev 0266 --dry-run
 
-# Combined: auto + custom coverage
-rd3:orchestration-dev 0266 --auto --coverage 90 --channel codex
+# Combined: auto + custom coverage on a supported pilot slice
+rd3:orchestration-dev 0266 --profile unit --auto --coverage 90
 ```
 
-**Phase integration:**
-- Orchestrates all 9 phases in dependency order
-- Uses tasks CLI for progress tracking
-- Reads/writes task file sections between phases
+**State integration:**
+- Builds orchestration plans from the 9-phase matrix in dependency order
+- Persists orchestration progress in `orchestration/*-state.json`
+- Reads task-file prerequisites such as the `Solution` section when a phase declares them
 
 ## Gate Architecture
 
@@ -407,7 +368,7 @@ Phase 6 (Unit Testing) runs through `rd3:verification-chain`. The orchestration 
 
 ### Direct Gates (Phases 1-5, 7-9)
 
-All other phases use the orchestration runtime's own gate evaluation. Auto gates check phase output artifacts (coverage thresholds, test results, generated files). Human gates pause the orchestration state and await user approval via `--auto` or interactive prompt. These phases are not yet wired through verification-chain.
+Outside Phase 6, the pilot currently applies lightweight runtime gate control. Worker phases 5 and 7 return validated worker envelopes on `current` or ACP channels, and phases marked `human` or `auto/human` pause after successful completion unless `--auto` is enabled. Direct-skill pilot execution and richer gate/rework enforcement for phases 1-4 and 8-9 are not implemented yet.
 
 ### Why Two Models
 
@@ -416,12 +377,13 @@ The pilot CoV integration targets Phase 6 because it has the richest verificatio
 ## v1 Limitations
 
 - **Sequential only:** No parallel phase execution
-- **Pilot verification-chain only:** Phase 6 is the only phase currently backed by CoV; phases 1-5, 7-9 use direct gates
+- **Pilot verification-chain only:** Phase 6 is the only phase currently backed by CoV
+- **Current-channel scope is partial:** Local pilot coverage currently exists for phases 5, 6, and 7 only
 - **No conditional branching:** Fixed phase order per profile
 - **No rollback:** Cannot undo a completed phase
 
 **v2 enhancements planned:**
-- Local current-channel worker runners for phases 5 and 7 (current-channel phase 5 and 7 runs pause for handoff in v1)
+- Local current-channel pilot coverage for direct-skill phases 1-4 and 8-9
 - Expand verification-chain integration across the remaining phases (7, 8, then others)
 - Parallel execution where phases are independent
 - Conditional branching based on phase output
