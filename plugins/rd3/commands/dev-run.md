@@ -52,7 +52,7 @@ Default: read from task frontmatter, fall back to `standard`.
 
 ## Workflow
 
-Forward `--channel` (default: `current`) to **rd3:orchestration-dev**. The orchestrator handles routing: `current` stays local, and non-`current` values route downstream through **rd3:run-acp** only when a delegated phase needs ACP execution.
+Forward `--channel` (default: `current`) to **rd3:orchestration-dev**. In the current pilot, `current` executes direct-skill phases locally and runs Phase 6 locally, but heavy worker phases 5 and 7 still require an ACP channel for end-to-end execution. Use `--channel codex` / `opencode` / another ACP agent for a full pipeline run without worker handoff pauses.
 
 ```
 Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS")
@@ -69,28 +69,28 @@ Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --channel opencode")
 <example>
 Run the full pipeline using the profile from the task frontmatter
 ```bash
-/rd3:dev-run 0274
+/rd3:dev-run 0274 --channel codex
 ```
 </example>
 
 <example>
 Run a simple task (implementation + testing only)
 ```bash
-/rd3:dev-run 0274 --profile simple
+/rd3:dev-run 0274 --profile simple --channel codex
 ```
 </example>
 
 <example>
 Run a complex task through all 9 phases
 ```bash
-/rd3:dev-run 0274 --profile complex
+/rd3:dev-run 0274 --profile complex --channel codex
 ```
 </example>
 
 <example>
 Run a research task (all phases, 60% test gate)
 ```bash
-/rd3:dev-run 0274 --profile research
+/rd3:dev-run 0274 --profile research --channel codex
 ```
 </example>
 
