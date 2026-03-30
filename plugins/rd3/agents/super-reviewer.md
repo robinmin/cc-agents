@@ -12,6 +12,9 @@ description: |
 tools: [Read, Grep, Glob, Skill]
 model: inherit
 color: amber
+see_also:
+  - rd3:super-coder
+  - rd3:super-tester
 skills:
   - rd3:code-review-common
   - rd3:anti-hallucination
