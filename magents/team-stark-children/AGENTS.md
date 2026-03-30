@@ -89,6 +89,7 @@ For non-trivial tasks, plan before implementing:
 
 ### Preferred Tools
 
+- **Token optimization**: use `rtk` for all Bash commands. It transparently rewrites commands (e.g., `git status` -> `rtk git status`) via PreToolUse hook, reducing LLM token consumption by 60-90%. No manual intervention needed. Verify with `rtk gain`.
 - **Text/regex search**: always use `rg` (ripgrep) over `grep`. Faster, respects .gitignore, color output by default.
 - **AST/structure search**: use `sg` (ast-grep) for code pattern matching — functions, classes, async patterns, inheritance.
 - **Rewrite**: use `sg run --pattern 'A' --rewrite 'B' --lang LANG` for safe structural rewrites.
@@ -97,6 +98,11 @@ For non-trivial tasks, plan before implementing:
 - **For non-code files** (JSON, YAML, MD, TOML): use `rg` — it handles them natively.
 
 ```bash
+# RTK is automatic via hook — no prefix needed
+git status          # Hook rewrites to: rtk git status (compact output)
+cargo test          # Hook rewrites to: rtk cargo test (failures only)
+cat file.rs         # Hook rewrites to: rtk read file.rs (smart reading)
+
 # Text search
 rg "FIXME" -n -C 3
 
