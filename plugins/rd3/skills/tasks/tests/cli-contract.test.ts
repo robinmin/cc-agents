@@ -22,6 +22,31 @@ function runCli(cwd: string, args: string[]) {
     };
 }
 
+async function runCliAsync(cwd: string, args: string[]) {
+    const child = Bun.spawn({
+        cmd: ['bun', scriptPath, ...args],
+        cwd,
+        env: {
+            ...process.env,
+            CLAUDE_PLUGIN_ROOT: repoRoot,
+        },
+        stdout: 'pipe',
+        stderr: 'pipe',
+    });
+
+    const [exitCode, stdout, stderr] = await Promise.all([
+        child.exited,
+        new Response(child.stdout).text(),
+        new Response(child.stderr).text(),
+    ]);
+
+    return {
+        exitCode,
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+    };
+}
+
 describe('tasks CLI contracts', () => {
     const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `tasks-cli-contract-test-${Date.now()}`);
 
@@ -307,6 +332,38 @@ describe('tasks CLI contracts', () => {
         expect(content).toContain('dependencies: ["0007"]');
         expect(content).toContain('tags: ["agent-output"]');
         expect(content).toContain('### Solution\n\nParse the footer and create the task.');
+    });
+
+    test('concurrent create commands allocate unique WBS numbers', async () => {
+        expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+
+        const results = await Promise.all(
+            Array.from({ length: 4 }, (_, index) =>
+                runCliAsync(tempDir, ['create', `Concurrent ${index + 1}`, '--json']),
+            ),
+        );
+
+        for (const result of results) {
+            expect(result.exitCode).toBe(0);
+        }
+
+        const payloads = results.map(
+            (result) =>
+                JSON.parse(result.stdout) as {
+                    ok: boolean;
+                    data: { wbs: string; path: string };
+                },
+        );
+
+        const wbsValues = payloads.map((payload) => payload.data.wbs).sort();
+        expect(new Set(wbsValues).size).toBe(4);
+        expect(wbsValues).toEqual(['0001', '0002', '0003', '0004']);
+
+        for (const payload of payloads) {
+            expect(payload.ok).toBe(true);
+            const content = readFileSync(payload.data.path, 'utf-8');
+            expect(content).toContain(`## ${payload.data.wbs}.`);
+        }
     });
 
     test('list human output renders a grouped kanban-style board', () => {
