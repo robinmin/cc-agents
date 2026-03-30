@@ -208,7 +208,7 @@ map_resources() {
     rm -rf "$workspace_rulesync_dir"
     mkdir -p "$workspace_skills_dir"
 
-    # Process commands directory -> .rulesync/skills/{PLUGIN}-cmd-*/
+    # Process commands directory -> .rulesync/skills/{PLUGIN}-*/
     if feature_enabled "commands" "$FEATURES"; then
         local commands_dir="${plugin_dir}/commands"
         if [ -d "$commands_dir" ]; then
@@ -217,11 +217,11 @@ map_resources() {
                 if [ -f "$cmd_file" ]; then
                     local cmd_name
                     cmd_name=$(basename "$cmd_file" .md)
-                    local target_skill_dir="${workspace_skills_dir}/${PLUGIN}-cmd-${cmd_name}"
+                    local target_skill_dir="${workspace_skills_dir}/${PLUGIN}-${cmd_name}"
 
                     mkdir -p "$target_skill_dir"
-                    adapt_command_to_skill "$cmd_file" "$target_skill_dir/SKILL.md" "${PLUGIN}-cmd-${cmd_name}"
-                    print_success "Mapped command: $cmd_name -> ${PLUGIN}-cmd-${cmd_name}"
+                    adapt_command_to_skill "$cmd_file" "$target_skill_dir/SKILL.md" "${PLUGIN}-${cmd_name}"
+                    print_success "Mapped command: $cmd_name -> ${PLUGIN}-${cmd_name}"
                 fi
             done
         fi
