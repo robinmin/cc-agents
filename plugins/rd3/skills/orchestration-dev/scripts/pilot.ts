@@ -1,6 +1,6 @@
 import type { DelegateRunner, ChainManifest, ChainState, CheckerConfig } from '../../verification-chain/scripts/types';
 import { runChain } from '../../verification-chain/scripts/interpreter';
-import { PHASE_WORKER_CONTRACTS } from './contracts';
+import { DOWNSTREAM_EVIDENCE_CONTRACTS, PHASE_WORKER_CONTRACTS } from './contracts';
 import { createExecutorForChannel, normalizeExecutionChannel, type ExecutionResult } from './executors';
 import type { Phase } from './model';
 import type { PhaseEvidence, PhaseRunner, PhaseRunnerResult } from './runtime';
@@ -106,6 +106,71 @@ function buildPhaseExecutorEvidence(phase: Phase): PhaseEvidence {
     };
 }
 
+function stripMarkdownCodeFence(value: string): string {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+    return match ? match[1].trim() : trimmed;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseWorkerEnvelope(stdout: string): { ok: true; payload: Record<string, unknown> } | { ok: false; error: string } {
+    const candidate = stripMarkdownCodeFence(stdout);
+    if (!candidate) {
+        return { ok: false, error: 'Worker returned empty stdout; expected a JSON worker envelope' };
+    }
+
+    try {
+        const payload = JSON.parse(candidate) as unknown;
+        if (!isRecord(payload)) {
+            return { ok: false, error: 'Worker envelope must be a JSON object' };
+        }
+
+        return { ok: true, payload };
+    } catch (error) {
+        return {
+            ok: false,
+            error: `Worker returned non-JSON stdout; expected a JSON worker envelope (${error instanceof Error ? error.message : String(error)})`,
+        };
+    }
+}
+
+function validateWorkerEnvelope(phase: Phase, payload: Record<string, unknown>): string[] {
+    const errors: string[] = [];
+    const contract = DOWNSTREAM_EVIDENCE_CONTRACTS[phase.executor];
+
+    if (!contract) {
+        errors.push(`No downstream evidence contract registered for ${phase.executor}`);
+        return errors;
+    }
+
+    for (const field of contract.required_fields) {
+        if (!(field in payload)) {
+            errors.push(`Missing required worker field: ${field}`);
+        }
+    }
+
+    if (payload.phase !== phase.number) {
+        errors.push(`Worker envelope phase mismatch: expected ${phase.number}, received ${String(payload.phase)}`);
+    }
+
+    if (!['completed', 'failed', 'paused'].includes(String(payload.status))) {
+        errors.push(`Worker envelope status must be one of completed, failed, paused; received ${String(payload.status)}`);
+    }
+
+    if (payload.status === 'failed' && typeof payload.failed_stage !== 'string') {
+        errors.push('Worker envelope with status=failed must include failed_stage');
+    }
+
+    if (typeof payload.next_step_recommendation !== 'string') {
+        errors.push('Worker envelope must include a string next_step_recommendation');
+    }
+
+    return errors;
+}
+
 export function buildWorkerPrompt(phase: Phase, context: Parameters<PhaseRunner>[1]): string {
     const workerContract = PHASE_WORKER_CONTRACTS[phase.number as 5 | 6 | 7];
     const phaseContext = {
@@ -179,33 +244,83 @@ async function runWorkerAgentPhase(
         },
     });
 
-    return {
-        status: result.status,
-        evidence: [
-            buildPhaseExecutorEvidence(phase),
-            {
-                kind: 'worker-dispatch',
-                detail: `delegated phase ${phase.number} to ${phase.executor} via ${result.backend}`,
-                payload: {
-                    backend: result.backend,
-                    normalized_channel: result.normalized_channel,
-                    ...(result.command ? { command: result.command } : {}),
-                },
+    const baseEvidence: PhaseEvidence[] = [
+        buildPhaseExecutorEvidence(phase),
+        {
+            kind: 'worker-dispatch',
+            detail: `delegated phase ${phase.number} to ${phase.executor} via ${result.backend}`,
+            payload: {
+                backend: result.backend,
+                normalized_channel: result.normalized_channel,
+                ...(result.command ? { command: result.command } : {}),
             },
-            ...(result.stdout
-                ? [
-                      {
-                          kind: 'worker-output',
-                          detail: result.stdout.slice(0, 200),
-                      } satisfies PhaseEvidence,
-                  ]
-                : []),
+        },
+    ];
+
+    if (!result.stdout) {
+        return {
+            status: 'failed',
+            evidence: baseEvidence,
+            error: result.error ?? `Worker execution for phase ${phase.number} returned no stdout envelope`,
+        };
+    }
+
+    const parsedEnvelope = parseWorkerEnvelope(result.stdout);
+    if (!parsedEnvelope.ok) {
+        return {
+            status: 'failed',
+            evidence: [
+                ...baseEvidence,
+                {
+                    kind: 'worker-output',
+                    detail: result.stdout.slice(0, 200),
+                },
+            ],
+            error: parsedEnvelope.error,
+        };
+    }
+
+    const validationErrors = validateWorkerEnvelope(phase, parsedEnvelope.payload);
+    if (validationErrors.length > 0) {
+        return {
+            status: 'failed',
+            evidence: [
+                ...baseEvidence,
+                {
+                    kind: 'worker-envelope-invalid',
+                    detail: validationErrors.join('; '),
+                    payload: parsedEnvelope.payload,
+                },
+            ],
+            result: parsedEnvelope.payload,
+            error: `Invalid worker envelope for phase ${phase.number}: ${validationErrors.join('; ')}`,
+        };
+    }
+
+    const envelopeStatus = parsedEnvelope.payload.status as PhaseRunnerResult['status'];
+    const errorSummary =
+        typeof parsedEnvelope.payload.error_summary === 'string'
+            ? parsedEnvelope.payload.error_summary
+            : result.error;
+
+    return {
+        status: envelopeStatus,
+        evidence: [
+            ...baseEvidence,
+            {
+                kind: 'worker-envelope',
+                detail: `validated ${phase.executor} worker envelope for phase ${phase.number} with status ${envelopeStatus}`,
+                payload: parsedEnvelope.payload,
+            },
         ],
-        ...(result.status === 'failed'
-            ? { error: result.error ?? `Worker execution failed for phase ${phase.number}` }
-            : result.status === 'paused'
-              ? { error: result.error ?? `Worker execution paused for phase ${phase.number}` }
-              : {}),
+        result: parsedEnvelope.payload,
+        ...(envelopeStatus === 'completed'
+            ? {}
+            : {
+                  error:
+                      errorSummary ??
+                      `Worker envelope returned status ${envelopeStatus} for phase ${phase.number}`,
+              }),
     };
 }
 
