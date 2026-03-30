@@ -30,6 +30,10 @@ metadata:
 
 RTK transparently intercepts Bash commands via a PreToolUse hook, filtering and compressing output so the LLM receives compact results. Single Rust binary, zero dependencies, <10ms overhead.
 
+## Overview
+
+This is a reference skill for operating RTK safely and effectively in agent-driven development workflows. It documents installation, hook behavior, supported commands, output recovery, and troubleshooting so the agent can reason about RTK from verified project context instead of guessing command behavior.
+
 ## When to Use
 
 Use this skill when:
@@ -210,6 +214,8 @@ rtk session                 # RTK adoption across recent sessions
 ```bash
 # Config file location
 ~/.config/rtk/config.toml
+# macOS default:
+~/Library/Application Support/rtk/config.toml
 
 # Hook files (created by rtk init)
 ~/.claude/hooks/rtk-rewrite.sh   # Auto-rewrite hook (primary)
@@ -253,7 +259,7 @@ The `rtk-rewrite.sh` hook runs as a PreToolUse:Bash hook. It calls `rtk rewrite 
 | Full uninstall | `rtk init -g --uninstall` |
 | Full output needed | Check `~/.local/share/rtk/tee/` for unfiltered logs |
 | Filter causes issues | Use `rtk proxy <cmd>` to bypass filtering |
-| Dependency missing | Ensure both `rtk` and `jq` are in PATH |
+| Dependency missing | RTK itself is a single Rust binary with no runtime dependency on `jq`; if commands fail, verify `rtk --version`, PATH, and the target tool binary instead |
 
 ## Name Collision Warning
 
