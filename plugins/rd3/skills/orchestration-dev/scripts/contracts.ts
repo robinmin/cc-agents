@@ -45,7 +45,14 @@ export const PHASE_WORKER_CONTRACTS: Record<WorkerPhaseNumber, PhaseWorkerContra
         canonical_backbone: ['rd3:sys-testing', 'rd3:advanced-testing'],
         supporting_skills: ['rd3:sys-debugging'],
         input_keys: ['task_ref', 'phase_context', 'execution_channel', 'constraints?', 'coverage_threshold'],
-        output_keys: ['status', 'phase', 'test_artifacts', 'evidence_summary', 'failed_stage?', 'next_step_recommendation'],
+        output_keys: [
+            'status',
+            'phase',
+            'test_artifacts',
+            'evidence_summary',
+            'failed_stage?',
+            'next_step_recommendation',
+        ],
         execution_channel_semantics:
             'Orchestration owns channel selection. Worker agents consume the normalized value but must not reinterpret it.',
         anti_recursion_rules: [
@@ -163,17 +170,17 @@ function validateSkipPhasesForSequence(basePhases: PhaseNumber[], profile: Profi
     if (skipPhases.length === 0) {
         return;
     }
-    let sawSkippedPhase = false;
+    let lastSkippedPhase: PhaseNumber | undefined;
 
     for (const phase of basePhases) {
         if (skipPhases.includes(phase)) {
-            sawSkippedPhase = true;
+            lastSkippedPhase = phase;
             continue;
         }
 
-        if (sawSkippedPhase) {
+        if (lastSkippedPhase !== undefined) {
             throw new Error(
-                `Invalid skip-phases for profile "${profile}": skipping phase ${basePhases[basePhases.indexOf(phase) - 1]} requires skipping downstream phase ${phase} as well.`,
+                `Invalid skip-phases for profile "${profile}": skipping phase ${lastSkippedPhase} requires skipping downstream phase ${phase} as well.`,
             );
         }
     }
