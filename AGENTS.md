@@ -118,6 +118,21 @@ Agents   -> skills: [rd3:cc-X]                  -> skill scripts
 
 **Circular Reference Rule**: Skills MUST NOT reference their associated agents or commands.
 
+### Plugin Entity Naming
+
+All plugin entities use a unified naming convention: `{plugin}-{entity-name}`.
+
+| Entity | Source | Installed Name | Claude Code Ref |
+|--------|--------|---------------|-----------------|
+| Skill | `plugins/{p}/skills/{name}/` | `{p}-{name}` | `{p}:{name}` |
+| Command | `plugins/{p}/commands/{name}.md` | `{p}-{name}` | `{p}:{name}` |
+| Subagent | `plugins/{p}/agents/{name}.md` | `{p}-{name}` | `{p}:{name}` |
+
+**Rules:**
+- Entity names MUST be unique within a plugin across all types (no skill/command/agent name collision)
+- Claude Code uses colon syntax; install scripts rewrite colons to hyphens for other platforms
+- The install scripts automatically inject `name:` frontmatter matching the installed directory name
+
 ---
 
 ## Workflow & Decision Trees
