@@ -304,7 +304,9 @@ describe('install-skills.sh', () => {
         );
 
         expect(installedCommand).toContain('name: wt-cmd-image-generate');
-        expect(installedCommand).toContain('argument-hint: "[prompt] [--template name] [--style style] [--output path]"');
+        expect(installedCommand).toContain(
+            'argument-hint: "[prompt] [--template name] [--style style] [--output path]"',
+        );
         expect(installedStyleExtractor).toContain(
             'allowed-tools: [Read, Glob, Grep, Task, mcp__auggie-mcp__codebase-retrieval]',
         );
