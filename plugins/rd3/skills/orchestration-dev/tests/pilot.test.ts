@@ -1,12 +1,12 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setGlobalSilent } from '../../../scripts/logger';
 import { generateExecutionPlan } from '../scripts/plan';
 import { buildWorkerPrompt, createPilotDelegateRunner, createPilotPhaseRunner } from '../scripts/pilot';
 import { PHASE_WORKER_CONTRACTS, PHASE_WORKER_CONTRACT_VERSION } from '../scripts/contracts';
-import { loadVerificationProfile } from '../scripts/verification-profiles';
+import { getVerificationProfilePath, loadVerificationProfile } from '../scripts/verification-profiles';
 import type { OrchestrationState } from '../scripts/runtime';
 
 beforeAll(() => {
@@ -25,6 +25,14 @@ function createTempDir(prefix: string): string {
     const dir = mkdtempSync(join(tmpdir(), prefix));
     tempDirs.push(dir);
     return dir;
+}
+
+function writeVerificationProfile(profileId: string, profile: object): void {
+    const profilePath = getVerificationProfilePath(profileId);
+    const profileDir = dirname(profilePath);
+    mkdirSync(profileDir, { recursive: true });
+    writeFileSync(profilePath, JSON.stringify(profile, null, 2), 'utf-8');
+    tempDirs.push(profileDir);
 }
 
 describe('verification profile loader', () => {
@@ -106,6 +114,52 @@ describe('pilot phase runner', () => {
         expect(result.status).toBe('completed');
         expect(result.evidence?.some((entry) => entry.detail.includes('typecheck: completed'))).toBe(true);
         expect(result.evidence?.some((entry) => entry.detail.includes('test-rd3: completed'))).toBe(true);
+    });
+
+    test('uses the default checker when a phase 6 verification step omits checker config', async () => {
+        const dir = createTempDir('orchestration-pilot-profile-no-checker-');
+        writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { typecheck: 'true' } }));
+        writeFileSync(join(dir, 'tsconfig.json'), '{}');
+        writeFileSync(join(dir, 'biome.json'), '{}');
+        writeVerificationProfile('test-no-checker', {
+            id: 'test-no-checker',
+            label: 'Test No Checker',
+            phase6: {
+                required_files: ['package.json'],
+                steps: [
+                    {
+                        name: 'typecheck-no-checker',
+                        skill: 'rd3:sys-testing',
+                        command: 'bun run typecheck',
+                        prompt: 'Run typecheck without an explicit checker',
+                    },
+                ],
+            },
+        });
+
+        const plan = generateExecutionPlan('0276', 'unit');
+        const phase = plan.phases[0];
+        const runner = createPilotPhaseRunner({
+            local: {
+                runCommand: (cmd) => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: `ok:${cmd}`,
+                }),
+            },
+        });
+
+        const result = await runner(phase, {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: dir,
+            projectRoot: dir,
+            stackProfile: 'test-no-checker',
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.evidence?.some((entry) => entry.detail.includes('typecheck-no-checker: completed'))).toBe(true);
     });
 
     test('delegates phase 5 worker execution through the phase executor on ACP channels', async () => {
@@ -407,8 +461,79 @@ describe('pilot phase runner', () => {
         expect(result.evidence?.some((entry) => entry.detail.includes('test-rd3: completed'))).toBe(true);
     });
 
-    test('pauses current-channel worker phases that do not have a local worker runner yet', async () => {
-        const runner = createPilotPhaseRunner();
+    test('runs phase 5 worker execution locally on the current channel', async () => {
+        const prompts: string[] = [];
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: (prompt) => {
+                    prompts.push(prompt);
+                    return {
+                        status: 'completed',
+                        backend: 'local-child',
+                        normalized_channel: 'current',
+                        stdout: JSON.stringify({
+                            status: 'completed',
+                            phase: 5,
+                            artifacts: [{ path: 'src/example.ts', type: 'source-file' }],
+                            evidence_summary: ['implementation applied locally'],
+                            next_step_recommendation: 'proceed_to_phase_6',
+                        }),
+                    };
+                },
+            },
+        });
+        const plan = generateExecutionPlan('0276', 'simple');
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: {
+                task_ref: plan.task_ref,
+                profile: plan.profile,
+                execution_channel: plan.execution_channel,
+                coverage_threshold: plan.coverage_threshold,
+                status: 'running',
+                auto_approve_human_gates: false,
+                refine_mode: false,
+                dry_run: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                phases: [],
+            },
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('completed');
+        expect(prompts).toHaveLength(1);
+        expect(prompts[0]).toContain('Run rd3 worker agent `rd3:super-coder` in worker mode for Phase 5');
+        expect(result.evidence?.some((entry) => entry.kind === 'worker-envelope')).toBe(true);
+        expect(result.result).toMatchObject({
+            status: 'completed',
+            phase: 5,
+            next_step_recommendation: 'proceed_to_phase_6',
+        });
+    });
+
+    test('runs phase 7 worker execution locally on the current channel', async () => {
+        const prompts: string[] = [];
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: (prompt) => {
+                    prompts.push(prompt);
+                    return {
+                        status: 'completed',
+                        backend: 'local-child',
+                        normalized_channel: 'current',
+                        stdout: JSON.stringify({
+                            status: 'completed',
+                            phase: 7,
+                            findings: [],
+                            evidence_summary: ['review completed locally'],
+                            next_step_recommendation: 'proceed_to_phase_8',
+                        }),
+                    };
+                },
+            },
+        });
         const plan = generateExecutionPlan('0276', 'review');
         const result = await runner(plan.phases[0], {
             plan,
@@ -429,9 +554,15 @@ describe('pilot phase runner', () => {
             projectRoot: process.cwd(),
         });
 
-        expect(result.status).toBe('paused');
-        expect(result.error).toContain('requires an ACP worker channel');
-        expect(result.evidence?.some((entry) => entry.kind === 'worker-handoff-required')).toBe(true);
+        expect(result.status).toBe('completed');
+        expect(prompts).toHaveLength(1);
+        expect(prompts[0]).toContain('Run rd3 worker agent `rd3:super-reviewer` in worker mode for Phase 7');
+        expect(result.evidence?.some((entry) => entry.kind === 'worker-envelope')).toBe(true);
+        expect(result.result).toMatchObject({
+            status: 'completed',
+            phase: 7,
+            next_step_recommendation: 'proceed_to_phase_8',
+        });
     });
 
     test('fails worker-agent execution when the ACP worker does not return a valid JSON envelope', async () => {
@@ -470,6 +601,249 @@ describe('pilot phase runner', () => {
         expect(result.status).toBe('failed');
         expect(result.error).toContain('expected a JSON worker envelope');
         expect(result.evidence?.some((entry) => entry.kind === 'worker-dispatch')).toBe(true);
+    });
+
+    test('fails worker-agent execution when the worker returns no stdout envelope', async () => {
+        const plan = generateExecutionPlan('0276', 'simple');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stderr: 'worker produced no stdout',
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('returned no stdout envelope');
+        expect(result.evidence).toHaveLength(2);
+    });
+
+    test('fails worker-agent execution when the worker returns blank stdout', async () => {
+        const plan = generateExecutionPlan('0276', 'review');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: '   \n',
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('empty stdout');
+        expect(result.evidence?.some((entry) => entry.kind === 'worker-output')).toBe(true);
+    });
+
+    test('fails worker-agent execution when the worker returns a non-object JSON envelope', async () => {
+        const plan = generateExecutionPlan('0276', 'review');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: '[]',
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('JSON object');
+        expect(result.evidence?.some((entry) => entry.kind === 'worker-output')).toBe(true);
+    });
+
+    test('fails worker-agent execution when no downstream evidence contract exists', async () => {
+        const plan = generateExecutionPlan('0276', 'review');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: JSON.stringify({
+                        status: 'completed',
+                        phase: 7,
+                        findings: [],
+                        evidence_summary: ['review completed'],
+                        next_step_recommendation: 'proceed_to_phase_8',
+                    }),
+                }),
+            },
+        });
+
+        const result = await runner(
+            {
+                ...plan.phases[0],
+                executor: 'rd3:missing-worker-contract',
+            },
+            {
+                plan,
+                state: createMinimalState(plan),
+                stateDir: process.cwd(),
+                projectRoot: process.cwd(),
+            },
+        );
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('No downstream evidence contract registered');
+        expect(result.evidence?.some((entry) => entry.kind === 'worker-envelope-invalid')).toBe(true);
+    });
+
+    test('fails worker-agent execution when the worker envelope violates the contract', async () => {
+        const plan = generateExecutionPlan('0276', 'review');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: JSON.stringify({
+                        status: 'failed',
+                        phase: 6,
+                        evidence_summary: ['review failed'],
+                    }),
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.result).toMatchObject({
+            status: 'failed',
+            phase: 6,
+        });
+        expect(result.error).toContain('Missing required worker field: findings');
+        expect(result.error).toContain('phase mismatch');
+        expect(result.error).toContain('must include failed_stage');
+        expect(result.error).toContain('next_step_recommendation');
+    });
+
+    test('fails worker-agent execution when the worker envelope status is invalid', async () => {
+        const plan = generateExecutionPlan('0276', 'review');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: JSON.stringify({
+                        status: 'unknown',
+                        phase: 7,
+                        findings: [],
+                        evidence_summary: ['review drifted'],
+                        next_step_recommendation: 'investigate',
+                    }),
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('status must be one of completed, failed, paused');
+    });
+
+    test('surfaces the default paused-envelope error when no error summary is provided', async () => {
+        const plan = generateExecutionPlan('0276', 'review');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: JSON.stringify({
+                        status: 'paused',
+                        phase: 7,
+                        findings: [],
+                        evidence_summary: ['awaiting reviewer input'],
+                        next_step_recommendation: 'await_human_review',
+                    }),
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('paused');
+        expect(result.error).toContain('Worker envelope returned status paused for phase 7');
+        expect(result.result).toMatchObject({
+            status: 'paused',
+            phase: 7,
+        });
+    });
+
+    test('fails worker-agent execution when the worker envelope has contradictory completed status with failed_stage', async () => {
+        const plan = generateExecutionPlan('0276', 'review');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: JSON.stringify({
+                        status: 'completed',
+                        phase: 7,
+                        findings: [],
+                        evidence_summary: ['review completed'],
+                        next_step_recommendation: 'proceed_to_phase_8',
+                        failed_stage: 'code-review',
+                    }),
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('contradictory');
+        expect(result.evidence?.some((entry) => entry.kind === 'worker-envelope-invalid')).toBe(true);
     });
 
     test('returns failed when delegate runner receives no command and no prompt', async () => {
