@@ -119,7 +119,13 @@ describe('pilot phase runner', () => {
                     commands.push(command);
                     return {
                         ok: true,
-                        stdout: 'phase 5 completed',
+                        stdout: JSON.stringify({
+                            status: 'completed',
+                            phase: 5,
+                            artifacts: [{ path: 'src/example.ts', type: 'source-file' }],
+                            evidence_summary: ['typecheck clean', 'tests pass'],
+                            next_step_recommendation: 'proceed_to_phase_6',
+                        }),
                         stderr: '',
                         exitCode: 0,
                     };
@@ -154,6 +160,11 @@ describe('pilot phase runner', () => {
         expect(result.evidence?.some((entry) => entry.detail.includes('delegated phase 5 to rd3:super-coder'))).toBe(
             true,
         );
+        expect(result.result).toMatchObject({
+            status: 'completed',
+            phase: 5,
+            next_step_recommendation: 'proceed_to_phase_6',
+        });
     });
 
     test('delegates phase 6 verification steps through the phase executor on ACP channels', async () => {
@@ -421,6 +432,44 @@ describe('pilot phase runner', () => {
         expect(result.status).toBe('paused');
         expect(result.error).toContain('requires an ACP worker channel');
         expect(result.evidence?.some((entry) => entry.kind === 'worker-handoff-required')).toBe(true);
+    });
+
+    test('fails worker-agent execution when the ACP worker does not return a valid JSON envelope', async () => {
+        const plan = generateExecutionPlan('0276', 'review');
+        plan.execution_channel = 'codex';
+        const runner = createPilotPhaseRunner({
+            acp: {
+                acpxExec: () => ({
+                    ok: true,
+                    stdout: 'phase 7 completed',
+                    stderr: '',
+                    exitCode: 0,
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: {
+                task_ref: plan.task_ref,
+                profile: plan.profile,
+                execution_channel: plan.execution_channel,
+                coverage_threshold: plan.coverage_threshold,
+                status: 'running',
+                auto_approve_human_gates: false,
+                refine_mode: false,
+                dry_run: false,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+                phases: [],
+            },
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('expected a JSON worker envelope');
+        expect(result.evidence?.some((entry) => entry.kind === 'worker-dispatch')).toBe(true);
     });
 
     test('returns failed when delegate runner receives no command and no prompt', async () => {
