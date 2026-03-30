@@ -85,10 +85,11 @@ teardown() {
     [[ "$output" == *"Expanding 'all'"* ]]
 }
 
-@test "commands.sh: --dry-run shows skill directory names" {
+@test "commands.sh: --dry-run shows command skill names" {
     run bash "$COMMANDS_SH" rd3 pi --dry-run
     [ "$status" -eq 0 ]
-    [[ "$output" == *"rd3-cmd-"* ]]
+    # Commands are named rd3-{cmd_name} (e.g., rd3-dev-run, rd3-agent-add)
+    [[ "$output" == *"rd3-dev-"* ]]
 }
 
 # --- Global Installation ---
@@ -97,9 +98,9 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
-    # Check that some skill directories were created
+    # Check that command skill directories were created (e.g., rd3-dev-run)
     local skill_count
-    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^rd3-cmd-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^rd3-dev-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
 
@@ -108,7 +109,7 @@ teardown() {
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 codexcli --global
     [ "$status" -eq 0 ]
     local skill_count
-    skill_count=$(ls "${fake_home}/.codex/skills/" 2>/dev/null | grep "^rd3-cmd-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.codex/skills/" 2>/dev/null | grep "^rd3-dev-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
 
@@ -158,9 +159,9 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
-    # Check first skill directory
+    # Find a known command skill (e.g., rd3-dev-run)
     local first_skill
-    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-cmd-" | head -1)
+    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-dev-" | head -1)
     [ -n "$first_skill" ]
     local skill_file="${fake_home}/.pi/agent/skills/${first_skill}/SKILL.md"
     [ -f "$skill_file" ]
@@ -172,13 +173,10 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
-    # Check no rd3: references remain (should be rd3-)
     local first_skill
-    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-cmd-" | head -1)
+    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-dev-" | head -1)
     [ -n "$first_skill" ]
     local skill_file="${fake_home}/.pi/agent/skills/${first_skill}/SKILL.md"
-    # No rd3: references should remain (they should be converted to rd3-)
-    # This test verifies the rewrite_skill_references function is called
     [ -f "$skill_file" ]
 }
 
@@ -196,6 +194,6 @@ teardown() {
     run env HOME="$fake_home" bash "$COMMANDS_SH" wt pi --global
     [ "$status" -eq 0 ]
     local skill_count
-    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^wt-cmd-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^wt-topic-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
