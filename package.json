@@ -30,7 +30,7 @@
         "tasks": "bun run --cwd plugins/rd3 tasks",
         "tasks:check": "bun run --cwd plugins/rd3 check",
         "tasks:test": "bun run --cwd plugins/rd3 test",
-        "test:hooks": "bats plugins/rd3/skills/cc-hooks/tests/*.bats"
+        "test-bats": "bats plugins/rd3/skills/cc-hooks/tests/*.bats && bats tests"
     },
     "devDependencies": {
         "@biomejs/biome": "2.3.13",
