@@ -1,11 +1,12 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setGlobalSilent } from '../../../scripts/logger';
 import { createExecutionPlan } from '../scripts/plan';
 import {
     createOrchestrationState,
+    findOrchestrationStatePath,
     getOrchestrationStatePath,
     loadOrchestrationState,
     main,
@@ -19,8 +20,29 @@ beforeAll(() => {
 });
 
 const tempDirs: string[] = [];
+const originalCwd = process.cwd();
+const originalAcpxBin = process.env.ACPX_BIN;
+const originalAcpxAgent = process.env.ACPX_AGENT;
+const originalLocalPromptAgent = process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
 
 afterEach(() => {
+    process.chdir(originalCwd);
+    if (originalAcpxBin === undefined) {
+        delete process.env.ACPX_BIN;
+    } else {
+        process.env.ACPX_BIN = originalAcpxBin;
+    }
+    if (originalAcpxAgent === undefined) {
+        delete process.env.ACPX_AGENT;
+    } else {
+        process.env.ACPX_AGENT = originalAcpxAgent;
+    }
+    if (originalLocalPromptAgent === undefined) {
+        delete process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
+    } else {
+        process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT = originalLocalPromptAgent;
+    }
+
     while (tempDirs.length > 0) {
         rmSync(tempDirs.pop() as string, { recursive: true, force: true });
     }
@@ -82,6 +104,27 @@ function writePilotWorkspaceFiles(dir: string): void {
     writeFileSync(join(dir, 'biome.json'), '{}', 'utf-8');
 }
 
+function writeMockAcpxScript(dir: string): string {
+    const scriptPath = join(dir, 'mock-acpx');
+    writeFileSync(
+        scriptPath,
+        `#!/bin/sh
+prompt="$*"
+if echo "$prompt" | grep -q "Phase 5"; then
+  printf '%s' '{"status":"completed","phase":5,"artifacts":[{"path":"src/example.ts","type":"source-file"}],"evidence_summary":["implementation mocked"],"next_step_recommendation":"proceed_to_phase_6"}'
+elif echo "$prompt" | grep -q "Phase 7"; then
+  printf '%s' '{"status":"completed","phase":7,"findings":[],"evidence_summary":["review mocked"],"next_step_recommendation":"proceed_to_phase_8"}'
+else
+  printf '%s' '{"status":"failed","phase":0,"failed_stage":"mock-acpx","evidence_summary":["unexpected prompt"],"error_summary":"unexpected prompt","next_step_recommendation":"investigate"}'
+  exit 1
+fi
+`,
+        'utf-8',
+    );
+    chmodSync(scriptPath, 0o755);
+    return scriptPath;
+}
+
 function stubExit(): void {
     process.exit = ((code?: number) => {
         throw new Error(`EXIT:${code ?? 0}`);
@@ -95,8 +138,8 @@ describe('orchestration runtime', () => {
     });
 
     test('sanitizes task refs in the state path', () => {
-        const statePath = getOrchestrationStatePath('docs/tasks2/0276 runtime.md', '/tmp/example');
-        expect(statePath).toBe('/tmp/example/orchestration/docs_tasks2_0276_runtime.md-state.json');
+        const statePath = getOrchestrationStatePath('docs/tasks2/0276 runtime.md', '/tmp/example', 'abc123');
+        expect(statePath).toBe('/tmp/example/orchestration/docs_tasks2_0276_runtime.md-abc123-state.json');
     });
 
     test('creates, saves, and reloads orchestration state', () => {
@@ -260,21 +303,74 @@ describe('orchestration runtime', () => {
         });
     });
 
-    test('skips phases already completed in a persisted state', async () => {
+    test('pauses on a completed human gate when auto approval is disabled', async () => {
+        const dir = createTempDir('orchestration-human-gate-pause-');
+        const taskPath = writeTaskFile(dir, '0266_human_gate_pause.md', 'Implementation complete.');
+        const plan = createExecutionPlan(taskPath, { profile: 'review' });
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            phaseRunner: async () => ({
+                status: 'completed',
+                evidence: [{ kind: 'review', detail: 'phase 7 finished cleanly' }],
+                result: {
+                    status: 'completed',
+                    phase: 7,
+                    findings: [],
+                    evidence_summary: ['review completed'],
+                    next_step_recommendation: 'proceed_to_phase_8',
+                },
+            }),
+        });
+
+        expect(state.status).toBe('paused');
+        expect(state.current_phase).toBe(7);
+        expect(state.phases[0].status).toBe('completed');
+        expect(state.phases[0].evidence.some((entry) => entry.kind === 'human-gate')).toBe(true);
+    });
+
+    test('continues past a completed human gate when auto approval is enabled', async () => {
+        const dir = createTempDir('orchestration-human-gate-auto-');
+        const taskPath = writeTaskFile(dir, '0266_human_gate_auto.md', 'Implementation complete.');
+        const plan = createExecutionPlan(taskPath, { profile: 'review', auto: true });
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            phaseRunner: async () => ({
+                status: 'completed',
+                evidence: [{ kind: 'review', detail: 'phase 7 finished cleanly' }],
+                result: {
+                    status: 'completed',
+                    phase: 7,
+                    findings: [],
+                    evidence_summary: ['review completed'],
+                    next_step_recommendation: 'proceed_to_phase_8',
+                },
+            }),
+        });
+
+        expect(state.status).toBe('completed');
+        expect(state.current_phase).toBe(7);
+        expect(state.phases[0].status).toBe('completed');
+        expect(state.phases[0].evidence.some((entry) => entry.kind === 'human-gate')).toBe(false);
+    });
+
+    test('skips phases already completed in a provided orchestration state', async () => {
         const dir = createTempDir('orchestration-preloaded-state-');
         const taskPath = writeTaskFile(dir, '0266_preloaded.md', 'Implement the feature.');
         const plan = createExecutionPlan(taskPath, { profile: 'simple' });
-        const statePath = getOrchestrationStatePath(plan.task_ref, dir);
         const state = createOrchestrationState(plan);
         state.status = 'running';
         state.phases[0].status = 'completed';
         state.phases[0].completed_at = new Date().toISOString();
-        saveOrchestrationState(state, statePath);
 
         const seenPhases: number[] = [];
         const result = await runOrchestration({
             plan,
             projectRoot: dir,
+            initialState: state,
             phaseRunner: async (phase) => {
                 seenPhases.push(phase.number);
                 return { status: 'completed', evidence: [{ kind: 'ok', detail: `phase ${phase.number}` }] };
@@ -285,10 +381,56 @@ describe('orchestration runtime', () => {
         expect(seenPhases).toEqual([6]);
     });
 
+    test('starts a fresh orchestration run instead of reusing a stale persisted state file', async () => {
+        const dir = createTempDir('orchestration-fresh-state-');
+        const taskPath = writeTaskFile(dir, '0266_fresh_state.md', 'Implement the feature.');
+        const stalePlan = createExecutionPlan(taskPath, { profile: 'simple' });
+        const staleStatePath = getOrchestrationStatePath(stalePlan.task_ref, dir);
+        const staleState = createOrchestrationState(stalePlan);
+        staleState.status = 'completed';
+        staleState.phases[0].status = 'completed';
+        staleState.phases[0].completed_at = new Date().toISOString();
+        staleState.phases[1].status = 'completed';
+        staleState.phases[1].completed_at = new Date().toISOString();
+        saveOrchestrationState(staleState, staleStatePath);
+
+        const freshPlan = createExecutionPlan(taskPath, { profile: 'review' });
+        const seenPhases: number[] = [];
+
+        const result = await runOrchestration({
+            plan: freshPlan,
+            projectRoot: dir,
+            phaseRunner: async (phase) => {
+                seenPhases.push(phase.number);
+                return {
+                    status: 'completed',
+                    evidence: [{ kind: 'ok', detail: `phase ${phase.number}` }],
+                    ...(phase.number === 7
+                        ? {
+                              result: {
+                                  status: 'completed',
+                                  phase: 7,
+                                  findings: [],
+                                  evidence_summary: ['review completed'],
+                                  next_step_recommendation: 'proceed_to_phase_8',
+                              },
+                          }
+                        : {}),
+                };
+            },
+        });
+
+        expect(seenPhases).toEqual([7]);
+        expect(result.current_phase).toBe(7);
+        expect(result.phases.map((phase) => phase.number)).toEqual([7]);
+        expect(result.status).toBe('paused');
+        expect(result.phases[0].status).toBe('completed');
+    });
+
     test('respects startPhase by only executing the selected suffix of phases', async () => {
         const dir = createTempDir('orchestration-start-phase-');
         const taskPath = writeTaskFile(dir, '0266_start_phase.md', 'Implement the feature.');
-        const plan = createExecutionPlan(taskPath, { profile: 'complex', startPhase: 6 });
+        const plan = createExecutionPlan(taskPath, { profile: 'complex', startPhase: 6, auto: true });
         const seenPhases: number[] = [];
 
         const result = await runOrchestration({
@@ -337,8 +479,8 @@ describe('orchestration runtime', () => {
         expect(resumed.status).toBe('completed');
         expect(resumed.phases[0].status).toBe('completed');
 
-        const statePath = getOrchestrationStatePath(plan.task_ref, dir);
-        const persisted = JSON.parse(readFileSync(statePath, 'utf-8')) as { status: string };
+        const statePath = findOrchestrationStatePath(plan.task_ref, dir);
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as { status: string };
         expect(persisted.status).toBe('completed');
     });
 
@@ -399,6 +541,71 @@ describe('orchestration runtime', () => {
             }),
         ).rejects.toThrow('Orchestration is not paused');
     });
+
+    test('fails the orchestration when a phase runner times out', async () => {
+        const dir = createTempDir('orchestration-timeout-');
+        const taskPath = writeTaskFile(dir, '0266_timeout.md', 'Implement the feature.');
+        const plan = createExecutionPlan(taskPath, { profile: 'unit' });
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            phaseTimeoutMs: 50,
+            phaseRunner: async () => {
+                await new Promise((resolve) => setTimeout(resolve, 200));
+                return { status: 'completed' as const };
+            },
+        });
+
+        expect(state.status).toBe('failed');
+        expect(state.phases[0].status).toBe('failed');
+        expect(state.phases[0].error).toContain('timed out after 50ms');
+        expect(state.phases[0].evidence.some((entry) => entry.kind === 'timeout')).toBe(true);
+    });
+
+    test('resume rejects when the plan profile does not match the persisted state profile', async () => {
+        const dir = createTempDir('orchestration-resume-profile-mismatch-');
+        const taskPath = writeTaskFile(dir, '0266_profile_mismatch.md', 'Implement the feature.');
+        const unitPlan = createExecutionPlan(taskPath, { profile: 'unit' });
+        const statePath = getOrchestrationStatePath(unitPlan.task_ref, dir);
+        const state = createOrchestrationState(unitPlan);
+        state.status = 'paused';
+        state.current_phase = 6;
+        state.phases[0].status = 'paused';
+        saveOrchestrationState(state, statePath);
+
+        const reviewPlan = createExecutionPlan(taskPath, { profile: 'review' });
+
+        await expect(
+            resumeOrchestration({
+                plan: reviewPlan,
+                projectRoot: dir,
+                phaseRunner: async () => ({ status: 'completed' }),
+            }),
+        ).rejects.toThrow('Resume profile mismatch');
+    });
+
+    test('resume rejects when the plan phase-set does not match the persisted state phase-set', async () => {
+        const dir = createTempDir('orchestration-resume-phaseset-mismatch-');
+        const taskPath = writeTaskFile(dir, '0266_phaseset_mismatch.md', 'Implement the feature.');
+        const simplePlan = createExecutionPlan(taskPath, { profile: 'simple' });
+        const statePath = getOrchestrationStatePath(simplePlan.task_ref, dir);
+        const state = createOrchestrationState(simplePlan);
+        state.status = 'paused';
+        state.current_phase = 5;
+        state.phases[0].status = 'paused';
+        saveOrchestrationState(state, statePath);
+
+        const startPhasePlan = createExecutionPlan(taskPath, { profile: 'simple', startPhase: 6 });
+
+        await expect(
+            resumeOrchestration({
+                plan: startPhasePlan,
+                projectRoot: dir,
+                phaseRunner: async () => ({ status: 'completed' }),
+            }),
+        ).rejects.toThrow('Resume phase-set mismatch');
+    });
 });
 
 describe('runtime main', () => {
@@ -425,6 +632,11 @@ describe('runtime main', () => {
         await expect(main(['0266', '--coverage', '101'])).rejects.toThrow('EXIT:1');
     });
 
+    test('exits when channel is invalid', async () => {
+        stubExit();
+        await expect(main(['0266', '--channel', 'unknown-agent'])).rejects.toThrow('EXIT:1');
+    });
+
     test('exits when start-phase is invalid', async () => {
         stubExit();
         await expect(main(['0266', '--start-phase', '11'])).rejects.toThrow('EXIT:1');
@@ -438,31 +650,127 @@ describe('runtime main', () => {
 
         await expect(main([taskPath, '--profile', 'unit', '--channel', 'current'])).resolves.toBeUndefined();
 
-        const statePath = getOrchestrationStatePath(taskPath, dir);
-        const persisted = JSON.parse(readFileSync(statePath, 'utf-8')) as { status: string };
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as { status: string };
         expect(persisted.status).toBe('completed');
     });
 
-    test('runs the pilot runtime from an explicit start phase', async () => {
+    test('runs the pilot runtime successfully for a local simple-profile workspace with a phase 5 worker', async () => {
+        const dir = createTempDir('orchestration-main-simple-current-');
+        writePilotWorkspaceFiles(dir);
+        process.env.ACPX_BIN = writeMockAcpxScript(dir);
+        process.env.ACPX_AGENT = 'claude';
+        const taskPath = writeTaskFile(dir, '0266_main_simple_current.md', 'Implement the feature.');
+        process.chdir(dir);
+
+        await expect(main([taskPath, '--profile', 'simple', '--channel', 'current'])).resolves.toBeUndefined();
+
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        expect(statePath).not.toBeNull();
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
+            status: string;
+            phases: Array<{ number: number; status: string; result?: Record<string, unknown> }>;
+        };
+        expect(persisted.status).toBe('completed');
+        expect(persisted.phases.map((phase) => phase.number)).toEqual([5, 6]);
+        expect(persisted.phases[0].status).toBe('completed');
+        expect(persisted.phases[0].result).toMatchObject({
+            status: 'completed',
+            phase: 5,
+            next_step_recommendation: 'proceed_to_phase_6',
+        });
+    });
+
+    test('pauses the pilot runtime at the local review gate for a review-profile workspace', async () => {
+        const dir = createTempDir('orchestration-main-review-current-');
+        writePilotWorkspaceFiles(dir);
+        process.env.ACPX_BIN = writeMockAcpxScript(dir);
+        process.env.ACPX_AGENT = 'claude';
+        const taskPath = writeTaskFile(dir, '0266_main_review_current.md', 'Implement the feature.');
+        process.chdir(dir);
+
+        stubExit();
+        await expect(main([taskPath, '--profile', 'review', '--channel', 'current'])).rejects.toThrow('EXIT:1');
+
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        expect(statePath).not.toBeNull();
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
+            status: string;
+            current_phase?: number;
+            phases: Array<{
+                number: number;
+                status: string;
+                result?: Record<string, unknown>;
+                evidence: Array<{ kind: string }>;
+            }>;
+        };
+        expect(persisted.status).toBe('paused');
+        expect(persisted.current_phase).toBe(7);
+        expect(persisted.phases.map((phase) => phase.number)).toEqual([7]);
+        expect(persisted.phases[0].status).toBe('completed');
+        expect(persisted.phases[0].result).toMatchObject({
+            status: 'completed',
+            phase: 7,
+            next_step_recommendation: 'proceed_to_phase_8',
+        });
+        expect(persisted.phases[0].evidence.some((entry) => entry.kind === 'human-gate')).toBe(true);
+    });
+
+    test('pauses at the review gate when starting from phase 6 on current channel without auto approval', async () => {
         const dir = createTempDir('orchestration-main-start-phase-');
         writePilotWorkspaceFiles(dir);
+        process.env.ACPX_BIN = writeMockAcpxScript(dir);
+        process.env.ACPX_AGENT = 'claude';
         const taskPath = writeTaskFile(dir, '0266_main_start_phase.md', 'Implement the feature.');
         process.chdir(dir);
 
-        await expect(main([taskPath, '--profile', 'complex', '--start-phase', '6'])).resolves.toBeUndefined();
+        stubExit();
+        await expect(main([taskPath, '--profile', 'complex', '--start-phase', '6'])).rejects.toThrow('EXIT:1');
 
-        const statePath = getOrchestrationStatePath(taskPath, dir);
-        const persisted = JSON.parse(readFileSync(statePath, 'utf-8')) as {
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        expect(statePath).not.toBeNull();
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
             status: string;
             current_phase?: number;
-            phases: Array<{ number: number }>;
+            phases: Array<{ number: number; status: string }>;
         };
         expect(persisted.status).toBe('paused');
         expect(persisted.current_phase).toBe(7);
         expect(persisted.phases.map((phase) => phase.number)).toEqual([6, 7, 8, 9]);
+        expect(persisted.phases[0].status).toBe('completed');
+        expect(persisted.phases[1].status).toBe('completed');
+        expect(persisted.phases[2].status).toBe('pending');
     });
 
-    test('parses skip-phases and stack-profile arguments in runtime main', async () => {
+    test('exits non-zero after the next unsupported phase when auto approval skips the review pause', async () => {
+        const dir = createTempDir('orchestration-main-start-phase-auto-');
+        writePilotWorkspaceFiles(dir);
+        process.env.ACPX_BIN = writeMockAcpxScript(dir);
+        process.env.ACPX_AGENT = 'claude';
+        const taskPath = writeTaskFile(dir, '0266_main_start_phase_auto.md', 'Implement the feature.');
+        process.chdir(dir);
+
+        stubExit();
+        await expect(main([taskPath, '--profile', 'complex', '--start-phase', '6', '--auto'])).rejects.toThrow(
+            'EXIT:1',
+        );
+
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        expect(statePath).not.toBeNull();
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
+            status: string;
+            current_phase?: number;
+            phases: Array<{ number: number; status: string }>;
+        };
+        expect(persisted.status).toBe('failed');
+        expect(persisted.current_phase).toBe(8);
+        expect(persisted.phases.map((phase) => phase.number)).toEqual([6, 7, 8, 9]);
+        expect(persisted.phases[0].status).toBe('completed');
+        expect(persisted.phases[1].status).toBe('completed');
+        expect(persisted.phases[2].status).toBe('failed');
+    });
+
+    test('treats dry-run as plan-only even when skip-phases and stack-profile arguments are present', async () => {
         const dir = createTempDir('orchestration-main-skip-stack-');
         writePilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_skip_stack.md', 'Implement the feature.');
@@ -487,13 +795,7 @@ describe('runtime main', () => {
             ]),
         ).resolves.toBeUndefined();
 
-        const statePath = getOrchestrationStatePath(taskPath, dir);
-        const persisted = JSON.parse(readFileSync(statePath, 'utf-8')) as {
-            status: string;
-            phases: Array<{ number: number }>;
-        };
-        expect(persisted.status).toBe('completed');
-        expect(persisted.phases.map((phase) => phase.number)).toEqual([6]);
+        expect(findOrchestrationStatePath(taskPath, dir)).toBeNull();
     });
 
     test('can resume the pilot runtime from a previously paused state file', async () => {
