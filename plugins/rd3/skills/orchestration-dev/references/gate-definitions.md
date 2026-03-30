@@ -20,21 +20,21 @@ see_also:
 
 ### Auto Gates
 
-```typescript
-const AUTO_GATES: Record<PhaseNumber, GateChecker> = {
-    5: (result) => result.artifacts.length > 0,
-    6: (result) =>
-        result.failed_tests === 0 &&
-        Object.values(result.coverage.per_file ?? {}).every((value) => value >= getCoverageThreshold(profile, input.coverage)),
-    7: (result) => result.issues.filter(i => i.severity === 'error').length === 0,
-    8: (result) => result.verdict !== 'fail',
-    9: (result) => result.artifacts.length > 0,
-};
+Gate evaluation in the v1 pilot differs by phase:
 
+- **Phase 5 (Implementation):** Worker envelope validation — checks `status`, `artifacts`, and `evidence_summary` are present and non-contradictory.
+- **Phase 6 (Testing):** CoV-backed `rd3:verification-chain` — runs typecheck, lint, and test steps with real checkers. The coverage threshold is set per-profile (simple/research: 60%, standard/complex: 80%, unit: 90%) and can be overridden with `--coverage`.
+- **Phase 7 (Review):** Worker envelope validation — checks `status`, `findings`, and `evidence_summary`. Pauses for human approval unless `--auto` is set.
+- **Phase 8 (Functional):** Not yet in pilot (direct-skill phase).
+- **Phase 9 (Documentation):** Not yet in pilot (direct-skill phase).
+
+Coverage threshold resolution (from `contracts.ts`):
+
+```typescript
 function getCoverageThreshold(profile: Profile, override?: number): number {
-    if (override !== undefined) return override; // --coverage flag wins
-    if (profile === 'unit') return 90;          // /dev-unit stricter default
-    return PROFILE_DEFAULT_COVERAGE_THRESHOLD;  // 60% for simple/research, 80% otherwise
+    if (override !== undefined) return override;  // --coverage flag wins
+    if (isTaskProfile(profile)) return PROFILE_COVERAGE_THRESHOLDS[profile]; // simple: 60, standard: 80, complex: 80, research: 60
+    return PHASE_PROFILE_COVERAGE_THRESHOLDS[profile] ?? 80; // unit: 90, others: 80
 }
 ```
 
@@ -69,4 +69,4 @@ When `--auto` is set, human gates (Design Gate, Review Gate, Functional Gate) ar
 
 **Start phase safety:** `start_phase` selects a suffix of the selected profile's phase sequence. It is not an arbitrary jump; the chosen phase must already belong to the selected profile.
 
-**Downstream evidence contracts:** orchestration normalizes verification-aware outputs through shared envelopes for `rd3:request-intake`, `rd3:bdd-workflow`, and `rd3:functional-review`.
+**Downstream evidence contracts:** orchestration normalizes verification-aware outputs through shared envelopes for `rd3:request-intake`, `rd3:bdd-workflow`, `rd3:functional-review`, `rd3:super-coder`, `rd3:super-tester`, and `rd3:super-reviewer`. Worker phase envelopes (5/6/7) must not include contradictory fields (e.g., `failed_stage` when `status=completed`).
