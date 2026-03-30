@@ -1,0 +1,6 @@
+name: orchestration-dev
+description: "9-phase orchestration pipeline coordinator: reads task profile,
+  executes phases with gates, delegates to specialist skills. Capstone skill for
+  the rd3 pipeline. Persona: Senior Workflow Architect."
+version: 1.3.0
+emoji: 🛠️
