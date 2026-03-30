@@ -157,7 +157,7 @@ Returns: { status, phase, findings, evidence_summary, next_step_recommendation }
 
 | Platform | Invocation | Notes |
 |----------|-----------|-------|
-| Claude Code | `Skill(rd3:cc-agents, evaluate ...)` | Primary platform |
+| Claude Code | `Skill("rd3:code-review-common", args="...")` | Primary direct-entry backbone |
 | Gemini CLI | `gemini review --agent super-reviewer` | JSON agent config |
 | OpenCode | `/review @super-reviewer` | Markdown or JSON |
 | Codex | Agent config in `.codex/` | TOML format |
