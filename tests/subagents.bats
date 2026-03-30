@@ -74,7 +74,8 @@ teardown() {
 @test "subagents.sh: --dry-run shows agent skill names" {
     run bash "$SUBAGENTS_SH" rd3 pi --dry-run
     [ "$status" -eq 0 ]
-    [[ "$output" == *"rd3-agent-"* ]]
+    # Agent names like rd3-super-coder, rd3-jon-snow (no -agent- infix)
+    [[ "$output" == *"rd3-super-"* ]]
 }
 
 @test "subagents.sh: --dry-run with all targets" {
@@ -89,8 +90,9 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$SUBAGENTS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
+    # Check for known agent names (e.g., rd3-super-coder)
     local skill_count
-    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^rd3-agent-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^rd3-super-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
 
@@ -99,7 +101,7 @@ teardown() {
     run env HOME="$fake_home" bash "$SUBAGENTS_SH" rd3 codexcli --global
     [ "$status" -eq 0 ]
     local skill_count
-    skill_count=$(ls "${fake_home}/.codex/skills/" 2>/dev/null | grep "^rd3-agent-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.codex/skills/" 2>/dev/null | grep "^rd3-super-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
 
@@ -140,7 +142,7 @@ teardown() {
     run env HOME="$fake_home" bash "$SUBAGENTS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
     local first_skill
-    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-agent-" | head -1)
+    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-super-" | head -1)
     [ -n "$first_skill" ]
     local skill_file="${fake_home}/.pi/agent/skills/${first_skill}/SKILL.md"
     [ -f "$skill_file" ]
@@ -151,9 +153,8 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$SUBAGENTS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
-    # Verify rd3: references are converted to rd3-
     local first_skill
-    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-agent-" | head -1)
+    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-super-" | head -1)
     [ -n "$first_skill" ]
     local skill_file="${fake_home}/.pi/agent/skills/${first_skill}/SKILL.md"
     [ -f "$skill_file" ]
@@ -178,8 +179,9 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$SUBAGENTS_SH" wt pi --global
     [ "$status" -eq 0 ]
+    # wt agents are like image-generator, magent-browser, super-publisher
     local skill_count
-    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^wt-agent-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^wt-super-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
 
