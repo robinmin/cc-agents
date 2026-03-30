@@ -36,7 +36,10 @@ function createFixtureRepo(): string {
 
     mkdirSync(join(repoRoot, 'scripts', 'command'), { recursive: true });
     mkdirSync(join(repoRoot, 'scripts', 'lib'), { recursive: true });
-    copyFileSync(join(REPO_ROOT, 'scripts', 'command', 'magents.sh'), join(repoRoot, 'scripts', 'command', 'magents.sh'));
+    copyFileSync(
+        join(REPO_ROOT, 'scripts', 'command', 'magents.sh'),
+        join(repoRoot, 'scripts', 'command', 'magents.sh'),
+    );
     copyFileSync(join(REPO_ROOT, 'scripts', 'command', 'skills.sh'), join(repoRoot, 'scripts', 'command', 'skills.sh'));
     copyFileSync(join(REPO_ROOT, 'scripts', 'lib', 'common.sh'), join(repoRoot, 'scripts', 'lib', 'common.sh'));
     chmodSync(join(repoRoot, 'scripts', 'command', 'magents.sh'), 0o755);
