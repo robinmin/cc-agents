@@ -12,11 +12,21 @@ beforeAll(() => {
 
 const originalExit = process.exit;
 const originalCwd = process.cwd();
+const tempDirs: string[] = [];
 
 afterEach(() => {
     process.exit = originalExit;
     process.chdir(originalCwd);
+    while (tempDirs.length > 0) {
+        rmSync(tempDirs.pop() as string, { recursive: true, force: true });
+    }
 });
+
+function createTempDir(prefix: string): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    tempDirs.push(dir);
+    return dir;
+}
 
 function stubExit(): void {
     process.exit = ((code?: number) => {
@@ -208,7 +218,7 @@ describe('validateProfile', () => {
 
 describe('createExecutionPlan', () => {
     test('reads task profile from a task file path when no override is provided', () => {
-        const tempDir = mkdtempSync(join(tmpdir(), 'orchestration-plan-'));
+        const tempDir = createTempDir('orchestration-plan-');
         const taskPath = join(tempDir, '0266_example.md');
 
         writeFileSync(
@@ -239,12 +249,10 @@ impl_progress:
         expect(plan.task_path).toBe(taskPath);
         expect(plan.coverage_threshold).toBe(60);
         expect(plan.execution_channel).toBe('current');
-
-        rmSync(tempDir, { recursive: true, force: true });
     });
 
     test('reads task profile from WBS-resolved task files', () => {
-        const tempDir = mkdtempSync(join(tmpdir(), 'orchestration-wbs-'));
+        const tempDir = createTempDir('orchestration-wbs-');
         mkdirSync(join(tempDir, 'docs', '.tasks'), { recursive: true });
         mkdirSync(join(tempDir, 'docs', 'tasks'), { recursive: true });
         writeFileSync(
@@ -285,8 +293,6 @@ impl_progress:
 
         expect(plan.profile).toBe('simple');
         expect(plan.coverage_threshold).toBe(60);
-
-        rmSync(tempDir, { recursive: true, force: true });
     });
 
     test('falls back to standard when the task path does not exist', () => {
@@ -296,7 +302,7 @@ impl_progress:
     });
 
     test('falls back to standard when task frontmatter is missing or lacks profile', () => {
-        const tempDir = mkdtempSync(join(tmpdir(), 'orchestration-frontmatter-'));
+        const tempDir = createTempDir('orchestration-frontmatter-');
         const noFrontmatterPath = join(tempDir, '0266_no_frontmatter.md');
         const noProfilePath = join(tempDir, '0266_no_profile.md');
 
@@ -316,12 +322,10 @@ updated_at: 2026-03-28T00:00:00.000Z
 
         expect(createExecutionPlan(noFrontmatterPath).profile).toBe('standard');
         expect(createExecutionPlan(noProfilePath).profile).toBe('standard');
-
-        rmSync(tempDir, { recursive: true, force: true });
     });
 
     test('falls back to standard when task profile cannot be read from a directory path', () => {
-        const tempDir = mkdtempSync(join(tmpdir(), 'orchestration-profile-read-'));
+        const tempDir = createTempDir('orchestration-profile-read-');
         const taskDirPath = join(tempDir, '0266_directory.md');
         mkdirSync(taskDirPath, { recursive: true });
 
@@ -329,8 +333,6 @@ updated_at: 2026-03-28T00:00:00.000Z
 
         expect(plan.profile).toBe('standard');
         expect(plan.task_path).toBe(taskDirPath);
-
-        rmSync(tempDir, { recursive: true, force: true });
     });
 
     test('surfaces auto, dry-run, refine, and execution-channel flags in the generated plan', () => {
@@ -348,6 +350,21 @@ updated_at: 2026-03-28T00:00:00.000Z
         expect(plan.refine_mode).toBe(true);
         expect(plan.execution_channel).toBe('codex');
         expect(phase1?.inputs).toContain('mode=refine');
+    });
+
+    test('normalizes execution-channel aliases in the generated plan', () => {
+        const plan = createExecutionPlan('0266', {
+            profile: 'review',
+            executionChannel: 'claude-code',
+        });
+
+        expect(plan.execution_channel).toBe('claude');
+    });
+
+    test('rejects unknown execution-channel values in the generated plan', () => {
+        expect(() => createExecutionPlan('0266', { profile: 'unit', executionChannel: 'unknown-agent' })).toThrow(
+            'Unknown execution channel',
+        );
     });
 
     test('supports startPhase in createExecutionPlan', () => {
@@ -421,6 +438,11 @@ describe('plan main', () => {
     test('parses channel flag through the CLI plan builder', () => {
         const plan = createExecutionPlan('0266', { profile: 'review', executionChannel: 'opencode' });
         expect(plan.execution_channel).toBe('opencode');
+    });
+
+    test('normalizes claude-code channel through the CLI plan builder', () => {
+        const plan = createExecutionPlan('0266', { profile: 'review', executionChannel: 'claude-code' });
+        expect(plan.execution_channel).toBe('claude');
     });
 
     test('accepts start-phase through the CLI plan builder', () => {
