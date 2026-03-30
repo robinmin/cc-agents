@@ -231,6 +231,35 @@ describe('orchestration runtime', () => {
         expect(state.phases[0].completed_at).toBeDefined();
     });
 
+    test('persists structured phase results returned by the phase runner', async () => {
+        const dir = createTempDir('orchestration-phase-result-');
+        const taskPath = writeTaskFile(dir, '0266_phase_result.md', 'Implement the feature.');
+        const plan = createExecutionPlan(taskPath, { profile: 'unit' });
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            phaseRunner: async () => ({
+                status: 'completed',
+                evidence: [{ kind: 'success', detail: 'phase completed' }],
+                result: {
+                    status: 'completed',
+                    phase: 6,
+                    test_artifacts: [{ path: 'coverage/lcov.info' }],
+                    evidence_summary: ['coverage 92%'],
+                    next_step_recommendation: 'proceed_to_phase_7',
+                },
+            }),
+        });
+
+        expect(state.status).toBe('completed');
+        expect(state.phases[0].result).toMatchObject({
+            status: 'completed',
+            phase: 6,
+            next_step_recommendation: 'proceed_to_phase_7',
+        });
+    });
+
     test('skips phases already completed in a persisted state', async () => {
         const dir = createTempDir('orchestration-preloaded-state-');
         const taskPath = writeTaskFile(dir, '0266_preloaded.md', 'Implement the feature.');
