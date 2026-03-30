@@ -23,6 +23,7 @@ export interface ExecutionResult {
     status: 'completed' | 'failed' | 'paused';
     backend: ExecutorBackend;
     normalized_channel: NormalizedExecutionChannel;
+    prompt_agent?: string;
     stdout?: string;
     stderr?: string;
     exit_code?: number;
@@ -38,6 +39,9 @@ export interface Executor {
 
 interface LocalCommandExecutorOptions {
     runCommand?: (cmd: string, cwd: string, timeoutMs?: number) => ExecutionResult;
+    runPrompt?: (prompt: string, cwd: string, timeoutMs?: number) => ExecutionResult;
+    acpxBin?: string;
+    promptAgent?: string;
 }
 
 interface AcpExecutorOptions {
@@ -47,7 +51,7 @@ interface AcpExecutorOptions {
 
 function defaultLocalRunner(cmd: string, cwd: string, timeoutMs?: number): ExecutionResult {
     const result = Bun.spawnSync({
-        cmd: ['zsh', '-lc', cmd],
+        cmd: ['zsh', '-c', cmd],
         cwd,
         env: process.env,
         stdout: 'pipe',
@@ -65,7 +69,54 @@ function defaultLocalRunner(cmd: string, cwd: string, timeoutMs?: number): Execu
         stdout,
         stderr,
         exit_code: result.exitCode,
-        command: ['zsh', '-lc', cmd],
+        command: ['zsh', '-c', cmd],
+        ...(result.exitCode === 0
+            ? {}
+            : { error: stderr || stdout || `Command failed with exit code ${result.exitCode}` }),
+    };
+}
+
+function defaultLocalPromptRunner(
+    prompt: string,
+    cwd: string,
+    timeoutMs?: number,
+    options: Pick<LocalCommandExecutorOptions, 'acpxBin' | 'promptAgent'> = {},
+): ExecutionResult {
+    const acpxBin = options.acpxBin ?? Bun.env.ACPX_BIN ?? 'acpx';
+    const promptAgent = options.promptAgent ?? Bun.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT ?? Bun.env.ACPX_AGENT;
+
+    if (!promptAgent) {
+        return {
+            status: 'failed',
+            backend: 'local-child',
+            normalized_channel: 'current',
+            error: 'Local prompt runner requires an explicit prompt agent via options.promptAgent, ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT, or ACPX_AGENT',
+        };
+    }
+
+    const command = [acpxBin, '--format', 'quiet', promptAgent, 'exec', prompt];
+
+    const result = Bun.spawnSync({
+        cmd: command,
+        cwd,
+        env: process.env,
+        stdout: 'pipe',
+        stderr: 'pipe',
+        ...(timeoutMs !== undefined ? { timeout: timeoutMs } : {}),
+    });
+
+    const stdout = new TextDecoder().decode(result.stdout);
+    const stderr = new TextDecoder().decode(result.stderr);
+
+    return {
+        status: result.exitCode === 0 ? 'completed' : 'failed',
+        backend: 'local-child',
+        normalized_channel: 'current',
+        prompt_agent: promptAgent,
+        stdout,
+        stderr,
+        exit_code: result.exitCode,
+        command,
         ...(result.exitCode === 0
             ? {}
             : { error: stderr || stdout || `Command failed with exit code ${result.exitCode}` }),
@@ -101,22 +152,30 @@ export function normalizeExecutionChannel(channel?: string): NormalizedExecution
 export class LocalCommandExecutor implements Executor {
     readonly backend = 'local-child' as const;
     private readonly runCommand: NonNullable<LocalCommandExecutorOptions['runCommand']>;
+    private readonly runPrompt: NonNullable<LocalCommandExecutorOptions['runPrompt']>;
 
     constructor(options: LocalCommandExecutorOptions = {}) {
         this.runCommand = options.runCommand ?? defaultLocalRunner;
+        this.runPrompt =
+            options.runPrompt ??
+            ((prompt, cwd, timeoutMs) => defaultLocalPromptRunner(prompt, cwd, timeoutMs, options));
     }
 
     async execute(request: ExecutionRequest): Promise<ExecutionResult> {
-        if (!request.command) {
-            return {
-                status: 'failed',
-                backend: this.backend,
-                normalized_channel: 'current',
-                error: 'Local command executor requires request.command',
-            };
+        if (request.command) {
+            return this.runCommand(request.command, request.cwd, request.timeout_ms);
         }
 
-        return this.runCommand(request.command, request.cwd, request.timeout_ms);
+        if (request.prompt) {
+            return this.runPrompt(request.prompt, request.cwd, request.timeout_ms);
+        }
+
+        return {
+            status: 'failed',
+            backend: this.backend,
+            normalized_channel: 'current',
+            error: 'Local command executor requires request.command or request.prompt',
+        };
     }
 }
 
@@ -127,7 +186,7 @@ export class AcpExecutor implements Executor {
 
     constructor(options: AcpExecutorOptions = {}) {
         this.acpxExec = options.acpxExec ?? execAcpx;
-        this.acpxBin = options.acpxBin ?? 'acpx';
+        this.acpxBin = options.acpxBin ?? Bun.env.ACPX_BIN ?? 'acpx';
     }
 
     async execute(request: ExecutionRequest): Promise<ExecutionResult> {
@@ -157,6 +216,7 @@ export class AcpExecutor implements Executor {
             status: result.ok ? 'completed' : 'failed',
             backend: this.backend,
             normalized_channel: normalizedChannel,
+            prompt_agent: normalizedChannel,
             stdout: result.stdout,
             stderr: result.stderr,
             exit_code: result.exitCode,
