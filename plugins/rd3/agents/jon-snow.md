@@ -61,12 +61,12 @@ Invoke `rd3:orchestration-dev` with the appropriate arguments using your platfor
 
 Examples (Claude Code syntax — adapt to your platform):
 ```
-rd3:orchestration-dev 0266
-rd3:orchestration-dev 0266 --start-phase 5
-rd3:orchestration-dev 0266 --profile complex
+rd3:orchestration-dev 0266 --channel codex
+rd3:orchestration-dev 0266 --start-phase 5 --channel codex
+rd3:orchestration-dev 0266 --profile complex --channel codex
 rd3:orchestration-dev 0266 --profile plan --channel codex
 rd3:orchestration-dev 0266 --profile unit --coverage 90
-rd3:orchestration-dev 0266 --auto --channel current
+rd3:orchestration-dev 0266 --auto --channel codex
 rd3:orchestration-dev 0266 --dry-run
 rd3:orchestration-dev 0266 --skip-phases 7,8
 ```
@@ -99,9 +99,9 @@ Map the request to the orchestration profile and flags before delegating:
 ## Examples
 
 ```text
-rd3:orchestration-dev 0266
+rd3:orchestration-dev 0266 --channel codex
 rd3:orchestration-dev 0266 --profile plan --channel codex
-rd3:orchestration-dev 0266 --start-phase 5 --auto
+rd3:orchestration-dev 0266 --start-phase 5 --auto --channel codex
 rd3:orchestration-dev 0266 --profile unit --coverage 90
 ```
 
