@@ -219,6 +219,7 @@ export function parseArgs(argv: string[]): { stack?: StackType; json: boolean } 
     return { json };
 }
 
+// CLI entry point — coverage gap is expected: spawnSync-based tests don't count toward in-process coverage
 if (import.meta.main) {
     const { stack, json } = parseArgs(process.argv.slice(2));
     const projectRoot = process.cwd();
