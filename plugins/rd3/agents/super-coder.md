@@ -17,6 +17,9 @@ description: |
 tools: [Read, Write, Edit, Grep, Glob, Skill, Bash, Agent]
 model: inherit
 color: teal
+see_also:
+  - rd3:super-tester
+  - rd3:super-reviewer
 skills:
   - rd3:run-acp
   - rd3:code-implement-common
