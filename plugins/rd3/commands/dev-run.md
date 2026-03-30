@@ -10,8 +10,8 @@ Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:o
 
 ## When to Use
 
-- Starting a new task end-to-end
-- Running specific phases via phase profiles
+- Running the currently supported pilot phases: implementation, unit testing, and code review
+- Previewing larger profile plans before direct-skill pilot support lands
 - Previewing execution plan without side effects
 
 ## Profiles
@@ -26,6 +26,8 @@ Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:o
 | `research` | 1-9 (all) | Investigation-heavy work with a lighter default test gate |
 
 Default: read from task frontmatter, fall back to `standard`.
+
+Current v1 pilot execution support is narrower than the profile matrix: it concretely executes Phase 5, Phase 6, and Phase 7 only. Profiles that include direct-skill phases 1-4 or 8-9 are still useful for planning, but they are not executable end-to-end in the current pilot runtime.
 
 ### Phase Profiles
 
@@ -52,7 +54,7 @@ Default: read from task frontmatter, fall back to `standard`.
 
 ## Workflow
 
-Forward `--channel` (default: `current`) to **rd3:orchestration-dev**. In the current pilot, `current` executes direct-skill phases locally and runs Phase 6 locally, but heavy worker phases 5 and 7 still require an ACP channel for end-to-end execution. Use `--channel codex` / `opencode` / another ACP agent for a full pipeline run without worker handoff pauses.
+Forward `--channel` (default: `current`) to **rd3:orchestration-dev**. In the current pilot, Phase 5, 6, and 7 are the only executable phases. Phase 5 and 7 use worker-agent envelopes; Phase 6 runs through verification-chain. Review runs pause at the Phase 7 human gate unless `--auto` is set. Local prompt-backed worker execution also requires an explicit prompt agent configuration (`ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT`). Direct-skill phases 1-4 and 8-9 are currently plan-only in this pilot, regardless of channel.
 
 ```
 Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS")
@@ -67,37 +69,37 @@ Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --channel opencode")
 ## Examples
 
 <example>
-Run the full pipeline using the profile from the task frontmatter
+Run a simple task through the currently supported implementation + testing pilot
 ```bash
-/rd3:dev-run 0274 --channel codex
+/rd3:dev-run 0274 --profile simple
 ```
 </example>
 
 <example>
-Run a simple task (implementation + testing only)
+Run unit testing only
 ```bash
-/rd3:dev-run 0274 --profile simple --channel codex
+/rd3:dev-run 0274 --profile unit
 ```
 </example>
 
 <example>
-Run a complex task through all 9 phases
+Run review-only on the current channel and auto-approve the review gate
 ```bash
-/rd3:dev-run 0274 --profile complex --channel codex
+/rd3:dev-run 0274 --profile review --auto
 ```
 </example>
 
 <example>
-Run a research task (all phases, 60% test gate)
+Preview a complex profile plan without executing unsupported direct-skill phases
 ```bash
-/rd3:dev-run 0274 --profile research --channel codex
+/rd3:dev-run 0274 --profile complex --dry-run
 ```
 </example>
 
 <example>
-Run refine mode with custom coverage and auto-approved human gates
+Preview a refine profile plan
 ```bash
-/rd3:dev-run 0274 --refine --coverage 90 --auto
+/rd3:dev-run 0274 --profile refine --dry-run
 ```
 </example>
 
