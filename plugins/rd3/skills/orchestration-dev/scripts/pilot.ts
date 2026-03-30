@@ -1,7 +1,7 @@
 import type { DelegateRunner, ChainManifest, ChainState, CheckerConfig } from '../../verification-chain/scripts/types';
 import { runChain } from '../../verification-chain/scripts/interpreter';
 import { DOWNSTREAM_EVIDENCE_CONTRACTS, PHASE_WORKER_CONTRACTS } from './contracts';
-import { createExecutorForChannel, normalizeExecutionChannel, type ExecutionResult } from './executors';
+import { createExecutorForChannel, type ExecutionResult } from './executors';
 import type { Phase } from './model';
 import type { PhaseEvidence, PhaseRunner, PhaseRunnerResult } from './runtime';
 import { loadVerificationProfile } from './verification-profiles';
@@ -19,6 +19,7 @@ function mapExecutionResult(result: ExecutionResult) {
                   structured_output: {
                       backend: result.backend,
                       normalized_channel: result.normalized_channel,
+                      ...(result.prompt_agent ? { prompt_agent: result.prompt_agent } : {}),
                       ...(result.exit_code !== undefined ? { exit_code: result.exit_code } : {}),
                   },
               }
@@ -116,7 +117,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function parseWorkerEnvelope(stdout: string): { ok: true; payload: Record<string, unknown> } | { ok: false; error: string } {
+function parseWorkerEnvelope(
+    stdout: string,
+): { ok: true; payload: Record<string, unknown> } | { ok: false; error: string } {
     const candidate = stripMarkdownCodeFence(stdout);
     if (!candidate) {
         return { ok: false, error: 'Worker returned empty stdout; expected a JSON worker envelope' };
@@ -157,11 +160,17 @@ function validateWorkerEnvelope(phase: Phase, payload: Record<string, unknown>):
     }
 
     if (!['completed', 'failed', 'paused'].includes(String(payload.status))) {
-        errors.push(`Worker envelope status must be one of completed, failed, paused; received ${String(payload.status)}`);
+        errors.push(
+            `Worker envelope status must be one of completed, failed, paused; received ${String(payload.status)}`,
+        );
     }
 
     if (payload.status === 'failed' && typeof payload.failed_stage !== 'string') {
         errors.push('Worker envelope with status=failed must include failed_stage');
+    }
+
+    if (payload.status === 'completed' && 'failed_stage' in payload) {
+        errors.push('Worker envelope with status=completed must not include failed_stage (contradictory)');
     }
 
     if (typeof payload.next_step_recommendation !== 'string') {
@@ -203,33 +212,11 @@ export function buildWorkerPrompt(phase: Phase, context: Parameters<PhaseRunner>
         .join('\n');
 }
 
-function createLocalWorkerChannelPauseResult(phase: Phase): PhaseRunnerResult {
-    return {
-        status: 'paused',
-        evidence: [
-            buildPhaseExecutorEvidence(phase),
-            {
-                kind: 'worker-handoff-required',
-                detail: `phase ${phase.number} requires worker-agent execution and no current-channel local worker runner is available yet`,
-                payload: {
-                    executor: phase.executor,
-                    canonical_backbone: phase.skill,
-                },
-            },
-        ],
-        error: `Phase ${phase.number} (${phase.name}) requires an ACP worker channel until a current-channel worker runner exists`,
-    };
-}
-
 async function runWorkerAgentPhase(
     phase: Phase,
     context: Parameters<PhaseRunner>[1],
     executorOptions: Parameters<typeof createExecutorForChannel>[1],
 ): Promise<PhaseRunnerResult> {
-    if (normalizeExecutionChannel(context.plan.execution_channel) === 'current') {
-        return createLocalWorkerChannelPauseResult(phase);
-    }
-
     const executor = createExecutorForChannel(context.plan.execution_channel, executorOptions);
     const prompt = buildWorkerPrompt(phase, context);
     const result = await executor.execute({
@@ -252,6 +239,7 @@ async function runWorkerAgentPhase(
             payload: {
                 backend: result.backend,
                 normalized_channel: result.normalized_channel,
+                ...(result.prompt_agent ? { prompt_agent: result.prompt_agent } : {}),
                 ...(result.command ? { command: result.command } : {}),
             },
         },
@@ -299,9 +287,7 @@ async function runWorkerAgentPhase(
 
     const envelopeStatus = parsedEnvelope.payload.status as PhaseRunnerResult['status'];
     const errorSummary =
-        typeof parsedEnvelope.payload.error_summary === 'string'
-            ? parsedEnvelope.payload.error_summary
-            : result.error;
+        typeof parsedEnvelope.payload.error_summary === 'string' ? parsedEnvelope.payload.error_summary : result.error;
 
     return {
         status: envelopeStatus,
@@ -317,9 +303,7 @@ async function runWorkerAgentPhase(
         ...(envelopeStatus === 'completed'
             ? {}
             : {
-                  error:
-                      errorSummary ??
-                      `Worker envelope returned status ${envelopeStatus} for phase ${phase.number}`,
+                  error: errorSummary ?? `Worker envelope returned status ${envelopeStatus} for phase ${phase.number}`,
               }),
     };
 }
