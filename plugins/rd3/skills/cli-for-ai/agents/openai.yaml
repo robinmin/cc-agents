@@ -1,0 +1,11 @@
+name: cli-for-ai
+description: Guide CLI design for AI agent compatibility — apply the 7
+  agent-friendly patterns (structured output, schema introspection, dry-run,
+  next actions, input hardening, context discipline, skill shipping) when
+  building or retrofitting CLI tools.
+version: "1.0"
+icon: 🛠️
+category: debugging
+tags:
+  - code
+  - workflow
