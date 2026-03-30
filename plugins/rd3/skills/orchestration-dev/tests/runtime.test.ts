@@ -158,6 +158,42 @@ describe('orchestration runtime', () => {
         });
     });
 
+    test('preserves worker executor metadata through save and reload round-trip', () => {
+        const dir = createTempDir('orchestration-worker-roundtrip-');
+        const taskPath = writeTaskFile(dir, '0266_worker_roundtrip.md', 'Implement the feature.');
+        const plan = createExecutionPlan(taskPath, { profile: 'complex', startPhase: 5 });
+        const state = createOrchestrationState(plan);
+        const statePath = getOrchestrationStatePath(plan.task_ref, dir);
+
+        saveOrchestrationState(state, statePath);
+        const reloaded = loadOrchestrationState(statePath);
+
+        expect(reloaded?.phases[0]).toMatchObject({
+            number: 5,
+            executor: 'rd3:super-coder',
+            execution_mode: 'worker-agent',
+            worker_contract_version: 'rd3-phase-worker-v1',
+        });
+        expect(reloaded?.phases[1]).toMatchObject({
+            number: 6,
+            executor: 'rd3:super-tester',
+            execution_mode: 'worker-agent',
+            worker_contract_version: 'rd3-phase-worker-v1',
+        });
+        expect(reloaded?.phases[2]).toMatchObject({
+            number: 7,
+            executor: 'rd3:super-reviewer',
+            execution_mode: 'worker-agent',
+            worker_contract_version: 'rd3-phase-worker-v1',
+        });
+        // Non-heavy phase should not have worker_contract_version
+        expect(reloaded?.phases[3]).toMatchObject({
+            number: 8,
+            execution_mode: 'direct-skill',
+        });
+        expect(reloaded?.phases[3]).not.toHaveProperty('worker_contract_version');
+    });
+
     test('fails when a phase prerequisite is missing', async () => {
         const dir = createTempDir('orchestration-prereq-');
         const taskPath = writeTaskFile(dir, '0266_prereq.md');
