@@ -61,24 +61,24 @@ Do not load this skill directly for single-phase work. Use the specific phase sk
 ## Quick Start
 
 ```bash
-# Full pipeline on a task
-rd3:orchestration-dev 0266
+# Full pipeline on a task (use an ACP channel for end-to-end heavy worker execution in v1)
+rd3:orchestration-dev 0266 --channel codex
 
 # Dry run — preview what would execute
 rd3:orchestration-dev 0266 --dry-run
 
 # End-to-end with auto-approved human gates
-rd3:orchestration-dev 0266 --auto
+rd3:orchestration-dev 0266 --auto --channel codex
 
-# Override coverage target (default: 80%)
-rd3:orchestration-dev 0266 --coverage 90
+# Override coverage target for a local unit-only run
+rd3:orchestration-dev 0266 --profile unit --coverage 90
 
 # Resume from a specific phase
-rd3:orchestration-dev 0266 --start-phase 5
+rd3:orchestration-dev 0266 --start-phase 5 --channel codex
 
 # Single phase profiles
 rd3:orchestration-dev 0266 --profile unit    # Phase 6 only
-rd3:orchestration-dev 0266 --profile review  # Phase 7 only
+rd3:orchestration-dev 0266 --profile review --channel codex  # Phase 7 only
 rd3:orchestration-dev 0266 --profile docs     # Phase 9 only
 ```
 
@@ -273,10 +273,10 @@ Phases 5, 6, and 7 use the normalized `rd3-phase-worker-v1` contract:
 
 ### Channel Resolution
 
-- `execution_channel: 'current'` means execute on the current channel.
+- `execution_channel: 'current'` means execute on the current channel when the selected phase has a local pilot runner.
 - Any other value should be an ACP agent name supported by `rd3:run-acp`.
 - Slash command wrappers expose this as `--channel <agent|current>` and pass it into orchestration unchanged.
-- `rd3:orchestration-dev` is the routing authority. It normalizes aliases, keeps `current` work local, and only uses `rd3:run-acp` for delegated remote execution.
+- `rd3:orchestration-dev` is the routing authority. It normalizes aliases, keeps direct-skill work local, runs the Phase 6 pilot locally on `current`, and uses ACP-backed execution for worker phases that do not yet have a local runner.
 ## Rework Loop
 
 ```typescript
@@ -349,10 +349,10 @@ Task File → Phase 9 (Documentation)
 
 ```bash
 # Resume from phase 5
-rd3:orchestration-dev 0266 --start-phase 5
+rd3:orchestration-dev 0266 --start-phase 5 --channel codex
 
 # Auto-approve gates and continue
-rd3:orchestration-dev 0266 --start-phase 5 --auto
+rd3:orchestration-dev 0266 --start-phase 5 --auto --channel codex
 ```
 
 ### Dry Run + Execute Cycle
@@ -361,8 +361,8 @@ rd3:orchestration-dev 0266 --start-phase 5 --auto
 # 1. Preview execution plan
 rd3:orchestration-dev 0266 --dry-run
 
-# 2. If plan looks good, execute
-rd3:orchestration-dev 0266 --auto
+# 2. If plan looks good, execute end-to-end on an ACP channel
+rd3:orchestration-dev 0266 --auto --channel codex
 ```
 
 ## Integration
@@ -370,17 +370,17 @@ rd3:orchestration-dev 0266 --auto
 **tasks CLI integration:**
 ```bash
 # Full orchestration (profile from task file)
-rd3:orchestration-dev 0266
+rd3:orchestration-dev 0266 --channel codex
 
 # Override profile
-rd3:orchestration-dev 0266 --profile complex
+rd3:orchestration-dev 0266 --profile complex --channel codex
 
-# Phase profile (single phase)
+# Phase profile (single phase on the current channel)
 rd3:orchestration-dev 0266 --profile refine
 rd3:orchestration-dev 0266 --profile unit
 
 # Auto-approve human gates (end-to-end, no pauses)
-rd3:orchestration-dev 0266 --auto
+rd3:orchestration-dev 0266 --auto --channel codex
 
 # Override the default unit coverage target
 rd3:orchestration-dev 0266 --coverage 90
@@ -389,7 +389,7 @@ rd3:orchestration-dev 0266 --coverage 90
 rd3:orchestration-dev 0266 --dry-run
 
 # Combined: auto + custom coverage
-rd3:orchestration-dev 0266 --auto --coverage 90
+rd3:orchestration-dev 0266 --auto --coverage 90 --channel codex
 ```
 
 **Phase integration:**
@@ -421,7 +421,7 @@ The pilot CoV integration targets Phase 6 because it has the richest verificatio
 - **No rollback:** Cannot undo a completed phase
 
 **v2 enhancements planned:**
-- Local current-channel worker runners for phases 5 and 7 (currently only ACP-backed channels execute end-to-end)
+- Local current-channel worker runners for phases 5 and 7 (current-channel phase 5 and 7 runs pause for handoff in v1)
 - Expand verification-chain integration across the remaining phases (7, 8, then others)
 - Parallel execution where phases are independent
 - Conditional branching based on phase output
