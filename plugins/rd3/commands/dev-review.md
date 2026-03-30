@@ -33,16 +33,13 @@ Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation qu
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. In the current pilot, Phase 7 has no local current-channel worker runner yet, so `--channel current` pauses for worker handoff and an ACP channel is required for end-to-end review execution.
 
 ```
-# Default: execute on the current channel
+# Current-channel pilot will pause and request worker handoff
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel current")
 
-# Optional: bypass the review gate on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --auto --channel current")
-
-# Execute the same workflow on another channel
+# Execute the review end-to-end on another channel
 Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel codex")
 ```
 
@@ -59,7 +56,7 @@ Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel
 ## Examples
 
 ```bash
-/rd3:dev-review 0274
+/rd3:dev-review 0274 --channel codex
 /rd3:dev-review docs/tasks2/0274_add_dev_slash_commands.md
 /rd3:dev-review 0274 --channel claude-code
 ```
