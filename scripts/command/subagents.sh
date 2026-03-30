@@ -130,7 +130,7 @@ validate_environment() {
 # Args:
 #   $1 - Source agent file path
 #   $2 - Target SKILL.md file path
-#   $3 - Target skill name (e.g., "rd3-agent-super-coder")
+#   $3 - Target skill name (e.g., "rd3-super-coder")
 adapt_subagent_to_skill() {
     local source_file="$1"
     local target_file="$2"
@@ -286,7 +286,7 @@ install_subagents() {
             [ -f "$agent_file" ] || continue
             local agent_name
             agent_name=$(basename "$agent_file" .md)
-            local skill_name="${PLUGIN}-agent-${agent_name}"
+            local skill_name="${PLUGIN}-${agent_name}"
             echo "   ${skill_name}/SKILL.md"
         done
         return 0
@@ -299,7 +299,7 @@ install_subagents() {
 
         local agent_name
         agent_name=$(basename "$agent_file" .md)
-        local skill_name="${PLUGIN}-agent-${agent_name}"
+        local skill_name="${PLUGIN}-${agent_name}"
 
         for target_dir in "${target_dirs[@]}"; do
             local dest_dir="${target_dir}/${skill_name}"
