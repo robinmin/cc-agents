@@ -12,8 +12,10 @@ import { logger } from '../../../scripts/logger';
 import { getProjectRoot, loadConfig } from '../../tasks/scripts/lib/config';
 import { findTaskByWbs } from '../../tasks/scripts/lib/wbs';
 import { buildPhaseDefinitions, getCoverageThreshold, PHASE_MATRIX, resolvePhaseSequence } from './contracts';
+import { normalizeExecutionChannel } from './executors';
 import {
     PHASE_DURATIONS,
+    parseOrchestrationArgs,
     type CreateExecutionPlanOptions,
     type ExecutionPlan,
     type PhaseNumber,
@@ -69,6 +71,7 @@ export function generateExecutionPlan(
     coverageOverride?: number,
     executionChannel = 'current',
 ): ExecutionPlan {
+    const normalizedExecutionChannel = normalizeExecutionChannel(executionChannel);
     const coverageThreshold = getCoverageThreshold(profile, coverageOverride);
     const selectedPhases = resolvePhaseSequence(profile, startPhase, skipPhases);
     const phases = buildPhaseDefinitions(profile, coverageThreshold).filter((phase) =>
@@ -80,7 +83,7 @@ export function generateExecutionPlan(
     return {
         task_ref: taskRef,
         profile,
-        execution_channel: executionChannel,
+        execution_channel: normalizedExecutionChannel,
         phases,
         estimated_duration_hours: estimatedDuration,
         total_gates: phases.length,
@@ -96,6 +99,7 @@ export function createExecutionPlan(taskRef: string, options: CreateExecutionPla
     const taskPath = resolveTaskPath(taskRef);
     const profile = options.profile ?? resolveProfileFromTask(taskPath) ?? 'standard';
     const refineMode = options.refine ?? false;
+    const normalizedExecutionChannel = normalizeExecutionChannel(options.executionChannel);
 
     if (refineMode && !PHASE_MATRIX[profile].includes(1)) {
         throw new Error(
@@ -109,6 +113,7 @@ export function createExecutionPlan(taskRef: string, options: CreateExecutionPla
         options.startPhase,
         options.skipPhases ?? [],
         options.coverageOverride,
+        normalizedExecutionChannel,
     );
     const phases = plan.phases.map((phase) => {
         if (phase.number !== 1 || !refineMode) {
@@ -124,7 +129,7 @@ export function createExecutionPlan(taskRef: string, options: CreateExecutionPla
     return {
         ...plan,
         phases,
-        execution_channel: options.executionChannel ?? 'current',
+        execution_channel: normalizedExecutionChannel,
         auto_approve_human_gates: options.auto ?? false,
         refine_mode: refineMode,
         dry_run: options.dryRun ?? false,
@@ -140,7 +145,15 @@ export function validateProfile(profile: string): profile is Profile {
 }
 
 export function main(args = process.argv.slice(2)): void {
-    if (args.length < 1) {
+    let parsed: ReturnType<typeof parseOrchestrationArgs>;
+    try {
+        parsed = parseOrchestrationArgs(args, validateProfile);
+    } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+    }
+
+    if (!parsed) {
         logger.error(
             'Usage: plan.ts <task_ref> [--profile <profile>] [--start-phase <n>] [--skip-phases <phases>] [--coverage <n>] [--channel <agent|current>] [--auto] [--dry-run] [--refine]',
         );
@@ -150,70 +163,25 @@ export function main(args = process.argv.slice(2)): void {
         process.exit(1);
     }
 
-    const taskRef = args[0];
-    let profile: Profile | undefined;
-    let startPhase: PhaseNumber | undefined;
-    const skipPhases: PhaseNumber[] = [];
-    let coverageOverride: number | undefined;
-    let executionChannel = 'current';
-    let dryRun = false;
-    let auto = false;
-    let refine = false;
-
-    // Parse args
-    for (let i = 1; i < args.length; i++) {
-        if (args[i] === '--profile' && i + 1 < args.length) {
-            const p = args[++i];
-            if (validateProfile(p)) {
-                profile = p;
-            } else {
-                logger.error(`Invalid profile: ${p}`);
-                logger.error(`Valid profiles: ${VALID_PROFILES.join(', ')}`);
-                process.exit(1);
-            }
-        } else if (args[i] === '--start-phase' && i + 1 < args.length) {
-            const parsed = parseInt(args[++i], 10);
-            if (parsed >= 1 && parsed <= 9) {
-                startPhase = parsed as PhaseNumber;
-            } else {
-                logger.error(`Invalid start-phase: ${parsed}. Must be 1-9.`);
-                process.exit(1);
-            }
-        } else if ((args[i] === '--skip' || args[i] === '--skip-phases') && i + 1 < args.length) {
-            const skipStr = args[++i];
-            const skipNums = skipStr.split(',').map((s) => parseInt(s.trim(), 10));
-            skipPhases.push(...(skipNums.filter((n) => n >= 1 && n <= 9) as PhaseNumber[]));
-        } else if (args[i] === '--coverage' && i + 1 < args.length) {
-            const cov = parseInt(args[++i], 10);
-            if (cov > 0 && cov <= 100) {
-                coverageOverride = cov;
-            } else {
-                logger.error(`Invalid coverage: ${cov}. Must be 1-100.`);
-                process.exit(1);
-            }
-        } else if (args[i] === '--channel' && i + 1 < args.length) {
-            executionChannel = args[++i];
-        } else if (args[i] === '--dry-run') {
-            dryRun = true;
-        } else if (args[i] === '--auto') {
-            auto = true;
-        } else if (args[i] === '--refine') {
-            refine = true;
-        }
+    try {
+        normalizeExecutionChannel(parsed.executionChannel);
+    } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
     }
 
     try {
         const options: CreateExecutionPlanOptions = {
-            ...(startPhase ? { startPhase } : {}),
-            skipPhases,
-            auto,
-            dryRun,
-            refine,
-            ...(profile ? { profile } : {}),
-            ...(coverageOverride !== undefined ? { coverageOverride } : {}),
-            executionChannel,
+            ...(parsed.startPhase ? { startPhase: parsed.startPhase } : {}),
+            skipPhases: parsed.skipPhases,
+            auto: parsed.auto,
+            dryRun: parsed.dryRun,
+            refine: parsed.refine,
+            ...(parsed.profile ? { profile: parsed.profile } : {}),
+            ...(parsed.coverageOverride !== undefined ? { coverageOverride: parsed.coverageOverride } : {}),
+            executionChannel: parsed.executionChannel,
         };
-        const plan = createExecutionPlan(taskRef, options);
+        const plan = createExecutionPlan(parsed.taskRef, options);
         logger.log(JSON.stringify(plan, null, 2));
     } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
