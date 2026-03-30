@@ -40,7 +40,7 @@ const DOWNSTREAM_EVIDENCE_CONTRACTS = {
 Phases 5, 6, and 7 use the normalized `rd3-phase-worker-v1` contract.
 
 - Inputs: `task_ref`, `phase_context`, `execution_channel`, plus phase-specific thresholds or focus hints.
-- Outputs: `status`, `phase`, artifacts or findings, `evidence_summary`, optional `failed_stage`, and `next_step_recommendation`.
+- Outputs: `status`, `phase`, `artifacts` (phase 5) / `test_artifacts` (phase 6) / `findings` (phase 7), `evidence_summary`, optional `failed_stage`, and `next_step_recommendation`.
 - Anti-recursion: worker agents must not call `rd3:orchestration-dev`, must not change profile or phase ownership, and must preserve orchestration-owned execution-channel semantics.
 
 ## Phase -> Skill Mapping
