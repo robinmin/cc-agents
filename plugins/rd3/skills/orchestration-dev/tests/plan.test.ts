@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { setGlobalSilent } from '../../../scripts/logger';
-import { DOWNSTREAM_EVIDENCE_CONTRACTS, validateSkipPhases } from '../scripts/contracts';
+import { DOWNSTREAM_EVIDENCE_CONTRACTS, PHASE_WORKER_CONTRACT_VERSION, validateSkipPhases } from '../scripts/contracts';
 import { createExecutionPlan, generateExecutionPlan, main, validateProfile } from '../scripts/plan';
 
 beforeAll(() => {
@@ -42,6 +42,32 @@ describe('generateExecutionPlan', () => {
         expect(phase5?.inputs).toEqual(['task_ref', 'solution', 'design?']);
         expect(phase6?.inputs).toEqual(['task_ref', 'source_paths', 'coverage_threshold']);
         expect(phase5?.prerequisites).toEqual(['Solution section populated']);
+    });
+
+    test('routes heavy phases through worker executors while keeping other phases direct', () => {
+        const plan = generateExecutionPlan('0266', 'complex');
+        const phase1 = plan.phases.find((phase) => phase.number === 1);
+        const phase5 = plan.phases.find((phase) => phase.number === 5);
+        const phase6 = plan.phases.find((phase) => phase.number === 6);
+        const phase7 = plan.phases.find((phase) => phase.number === 7);
+
+        expect(phase1?.execution_mode).toBe('direct-skill');
+        expect(phase1?.executor).toBe('rd3:request-intake');
+
+        expect(phase5?.execution_mode).toBe('worker-agent');
+        expect(phase5?.executor).toBe('rd3:super-coder');
+        expect(phase5?.skill).toBe('rd3:code-implement-common');
+        expect(phase5?.worker_contract_version).toBe(PHASE_WORKER_CONTRACT_VERSION);
+
+        expect(phase6?.execution_mode).toBe('worker-agent');
+        expect(phase6?.executor).toBe('rd3:super-tester');
+        expect(phase6?.skill).toBe('rd3:sys-testing + rd3:advanced-testing');
+        expect(phase6?.worker_contract_version).toBe(PHASE_WORKER_CONTRACT_VERSION);
+
+        expect(phase7?.execution_mode).toBe('worker-agent');
+        expect(phase7?.executor).toBe('rd3:super-reviewer');
+        expect(phase7?.skill).toBe('rd3:code-review-common');
+        expect(phase7?.worker_contract_version).toBe(PHASE_WORKER_CONTRACT_VERSION);
     });
 
     test('encodes standard-profile phase 8 and 9 special cases', () => {
@@ -419,5 +445,18 @@ describe('downstream evidence contracts', () => {
         expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:functional-review'].required_fields).toContain(
             'covered_requirements',
         );
+    });
+
+    test('defines worker-phase evidence envelopes for heavy-phase workers', () => {
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:super-coder'].kind).toBe('worker-phase-result');
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:super-coder'].required_fields).toContain('status');
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:super-coder'].required_fields).toContain('artifacts');
+
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:super-tester'].kind).toBe('worker-phase-result');
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:super-tester'].required_fields).toContain('evidence_summary');
+
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:super-reviewer'].kind).toBe('worker-phase-result');
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:super-reviewer'].required_fields).toContain('findings');
+        expect(DOWNSTREAM_EVIDENCE_CONTRACTS['rd3:super-reviewer'].optional_fields).toContain('failed_stage');
     });
 });

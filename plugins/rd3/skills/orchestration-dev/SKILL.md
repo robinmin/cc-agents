@@ -2,9 +2,9 @@
 name: orchestration-dev
 description: "9-phase orchestration pipeline coordinator: reads task profile, executes phases with gates, delegates to specialist skills. Capstone skill for the rd3 pipeline. Persona: Senior Workflow Architect."
 license: Apache-2.0
-version: 1.2.0
+version: 1.3.0
 created_at: 2026-03-27
-updated_at: 2026-03-28
+updated_at: 2026-03-30
 platform: rd3
 type: orchestration
 tags: [orchestration, pipeline, phase-gates, delegation, capstone]
@@ -13,7 +13,7 @@ metadata:
   platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity,pi"
   category: orchestration
   interactions:
-    - orchestrator
+    - pipeline
 see_also:
   - rd3:run-acp
   - rd3:request-intake
@@ -37,7 +37,7 @@ see_also:
 
 # rd3:orchestration-dev — 9-Phase Pipeline Orchestrator
 
-Profile-driven orchestration that executes the 9-phase workflow by delegating each phase to specialist skills, managing gates, and handling rework loops.
+Profile-driven orchestration that executes the 9-phase workflow by delegating each phase to specialist skills, managing gates, and handling rework loops. Phases 5, 6, and 7 use dedicated worker agents while all other phases stay on the direct-to-skill path.
 
 **Key distinction:**
 - **`orchestration-dev`** = pipeline orchestration (coordinates all phases)
@@ -57,6 +57,30 @@ Load this skill when:
 - Managing phase gates and rework loops
 
 Do not load this skill directly for single-phase work. Use the specific phase skill instead.
+
+## Quick Start
+
+```bash
+# Full pipeline on a task
+rd3:orchestration-dev 0266
+
+# Dry run — preview what would execute
+rd3:orchestration-dev 0266 --dry-run
+
+# End-to-end with auto-approved human gates
+rd3:orchestration-dev 0266 --auto
+
+# Override coverage target (default: 80%)
+rd3:orchestration-dev 0266 --coverage 90
+
+# Resume from a specific phase
+rd3:orchestration-dev 0266 --start-phase 5
+
+# Single phase profiles
+rd3:orchestration-dev 0266 --profile unit    # Phase 6 only
+rd3:orchestration-dev 0266 --profile review  # Phase 7 only
+rd3:orchestration-dev 0266 --profile docs     # Phase 9 only
+```
 
 ## Overview
 
@@ -207,13 +231,13 @@ async function execute(input: OrchestrationInput): Promise<ExecutionResult> {
 | 2 | `rd3:backend-architect` OR `rd3:frontend-architect` | task_ref, requirements, execution_channel | Architecture doc |
 | 3 | `rd3:backend-design` OR `rd3:frontend-design` OR `rd3:ui-ux-design` | task_ref, architecture, execution_channel | Design specs |
 | 4 | `rd3:task-decomposition` | task_ref, execution_channel | Subtasks WBS list |
-| 5 | `rd3:code-implement-common` | task_ref, execution_channel | Implementation artifacts |
-| 6 | `rd3:sys-testing` + `rd3:advanced-testing` | task_ref, coverage target, execution_channel | Test results, coverage report |
-| 7 | `rd3:code-review-common` | task_ref, execution_channel | Review report |
+| 5 | `rd3:super-coder` -> `rd3:code-implement-common` | task_ref, execution_channel | Implementation artifacts |
+| 6 | `rd3:super-tester` -> `rd3:sys-testing` + `rd3:advanced-testing` | task_ref, coverage target, execution_channel | Test results, coverage report |
+| 7 | `rd3:super-reviewer` -> `rd3:code-review-common` | task_ref, execution_channel | Review report |
 | 8 | `rd3:bdd-workflow` + `rd3:functional-review` | task_ref, bdd_report, execution_channel | Verdict |
 | 9 | `rd3:code-docs` | task_ref, source_paths?, target_docs?, change_summary?, execution_channel | Refreshed project docs |
 
-**All 15 specialist skills**: request-intake, backend-architect, frontend-architect, backend-design, frontend-design, ui-ux-design, task-decomposition, code-implement-common, sys-testing, advanced-testing, code-review-common, bdd-workflow, functional-review, code-docs, orchestration-dev. Skill selection for phases 2/3 is context-dependent (backend vs frontend vs full-stack). See `references/delegation-map.md` for complete input/output specs.
+**Routing policy:** `rd3:orchestration-dev` remains the only routing authority. Phase workers for 5, 6, and 7 are thin adapters over the canonical backbones and must not recurse back into orchestration. Skill selection for phases 2/3 remains context-dependent (backend vs frontend vs full-stack). See `references/delegation-map.md` for complete input/output specs.
 
 ### Delegation Pattern
 
@@ -239,79 +263,20 @@ async function executePhase(phase: Phase, task: TaskFile): Promise<PhaseResult> 
 }
 ```
 
+### Heavy-Phase Worker Contract
+
+Phases 5, 6, and 7 use the normalized `rd3-phase-worker-v1` contract:
+
+- Inputs: `task_ref`, `phase_context`, `execution_channel`, plus phase-specific goals such as `coverage_threshold` or `review_depth`.
+- Outputs: `status`, `phase`, artifacts or findings, `evidence_summary`, optional `failed_stage`, and `next_step_recommendation`.
+- Anti-recursion: worker agents must not call `rd3:orchestration-dev`, must not change phase ownership, and must not reinterpret execution-channel semantics.
+
 ### Channel Resolution
 
 - `execution_channel: 'current'` means execute on the current channel.
 - Any other value should be an ACP agent name supported by `rd3:run-acp`.
 - Slash command wrappers expose this as `--channel <agent|current>` and pass it into orchestration unchanged.
 - `rd3:orchestration-dev` is the routing authority. It normalizes aliases, keeps `current` work local, and only uses `rd3:run-acp` for delegated remote execution.
-
-## Gate Definitions
-
-### Gate Types
-
-| Gate | Type | Trigger | Resolution |
-|------|------|---------|------------|
-| Solution Gate | Auto | Solution section populated | Pass/Fail |
-| Design Gate | Human | Design section reviewed | Approve/Reject/Rework |
-| Test Gate | Auto | Coverage target met and 100% tests pass | Pass/Fail |
-| Review Gate | Human | Code review completed | Approve/Reject |
-| Functional Gate | Auto/Human | BDD + functional review | Pass/Partial/Fail |
-| Documentation Gate | Auto | Docs generated | Pass/Fail |
-
-### Auto Gates
-
-```typescript
-const AUTO_GATES: Record<PhaseNumber, GateChecker> = {
-    5: (result) => result.artifacts.length > 0,
-    6: (result) =>
-        result.failed_tests === 0 &&
-        Object.values(result.coverage.per_file ?? {}).every((value) => value >= getCoverageThreshold(profile, input.coverage)),
-    7: (result) => result.issues.filter(i => i.severity === 'error').length === 0,
-    8: (result) => result.verdict !== 'fail',
-    9: (result) => result.artifacts.length > 0,
-};
-
-function getCoverageThreshold(profile: Profile, override?: number): number {
-    if (override !== undefined) return override; // --coverage flag wins
-    if (profile === 'unit') return 90;          // /dev-unit stricter default
-    return PROFILE_DEFAULT_COVERAGE_THRESHOLD;  // 60% for simple/research, 80% otherwise
-}
-```
-
-### Human Gates
-
-For phases with human gates (Design, Review):
-
-**Normal mode** — pauses for human approval:
-```typescript
-const humanGateResult = await askUserQuestion({
-    type: 'approval',
-    prompt: `Phase ${phase.number} (${phase.name}) completed. Review output and approve or request rework.`,
-    choices: ['approve', 'reject', 'rework'],
-});
-```
-
-**Auto mode** (`--auto` flag) — auto-approves all human gates without pausing:
-```typescript
-if (input.auto) {
-    // Auto-approve: log and continue without pausing
-    logger.info(`Phase ${phase.number} (${phase.name}): auto-approved (human gate bypassed)`);
-    gateResult = { status: 'approved' };
-} else {
-    // Normal: pause for human review
-    gateResult = await askUserQuestion({ ... });
-}
-```
-
-When `--auto` is set, human gates (Design Gate, Review Gate, Functional Gate) are auto-approved. This enables end-to-end execution for commands like `dev-run` that need continuous flow.
-
-**Skip phase safety:** `--skip-phases` is intentionally limited to trailing phases only. Skipping an interior phase would leave later phases without the inputs they require.
-
-**Start phase safety:** `start_phase` selects a suffix of the selected profile's phase sequence. It is not an arbitrary jump; the chosen phase must already belong to the selected profile.
-
-**Downstream evidence contracts:** orchestration normalizes verification-aware outputs through shared envelopes for `rd3:request-intake`, `rd3:bdd-workflow`, and `rd3:functional-review`.
-
 ## Rework Loop
 
 ```typescript
@@ -350,6 +315,55 @@ async function handleRework(
 See `references/phase-matrix.md` for the complete profile x phase matrix.
 See `references/gate-definitions.md` for auto vs human gate definitions.
 See `references/delegation-map.md` for phase -> skill mapping.
+
+## Workflows
+
+### Standard Development Workflow
+
+```
+Task File → Phase 1 (Intake) → Phase 4 (Decompose) → Phase 5 (Implement)
+          → Phase 6 (Test) → Phase 7 (Review) → Phase 8 (BDD) → Phase 9 (Docs)
+```
+
+### Complex Project Workflow
+
+```
+Task File → Phase 1 (Intake) → Phase 2 (Architecture) → Phase 3 (Design)
+          → Phase 4 (Decompose) → Phase 5 (Implement) → Phase 6 (Test)
+          → Phase 7 (Review) → Phase 8 (BDD + Functional) → Phase 9 (Docs)
+```
+
+### Unit Testing Focus Workflow
+
+```
+Task File → Phase 6 (Unit Testing) with --coverage 90
+```
+
+### Documentation Refresh Workflow
+
+```
+Task File → Phase 9 (Documentation)
+```
+
+### Resume Interrupted Work
+
+```bash
+# Resume from phase 5
+rd3:orchestration-dev 0266 --start-phase 5
+
+# Auto-approve gates and continue
+rd3:orchestration-dev 0266 --start-phase 5 --auto
+```
+
+### Dry Run + Execute Cycle
+
+```bash
+# 1. Preview execution plan
+rd3:orchestration-dev 0266 --dry-run
+
+# 2. If plan looks good, execute
+rd3:orchestration-dev 0266 --auto
+```
 
 ## Integration
 
@@ -407,7 +421,20 @@ The pilot CoV integration targets Phase 6 because it has the richest verificatio
 - **No rollback:** Cannot undo a completed phase
 
 **v2 enhancements planned:**
-- Parallel execution where phases are independent
+- Local current-channel worker runners for phases 5 and 7 (currently only ACP-backed channels execute end-to-end)
 - Expand verification-chain integration across the remaining phases (7, 8, then others)
+- Parallel execution where phases are independent
 - Conditional branching based on phase output
 - Rollback capability for failed phases
+
+See [Gate Definitions](references/gate-definitions.md) for detailed content.
+
+## Additional Resources
+
+- [Phase Matrix](references/phase-matrix.md) — Profile x phase execution matrix with descriptions and dependencies
+- [Gate Definitions](references/gate-definitions.md) — Auto vs human gate definitions and rework loop behavior
+- [Delegation Map](references/delegation-map.md) — Phase-to-skill mapping with input/output specs
+- [rd3:run-acp](../run-acp/SKILL.md) — Cross-channel execution via ACP agents
+- [rd3:request-intake](../request-intake/SKILL.md) — Phase 1 requirements elicitation
+- [rd3:task-decomposition](../task-decomposition/SKILL.md) — Phase 4 task breakdown
+- [rd3:sys-testing](../sys-testing/SKILL.md) — Phase 6 unit testing foundation

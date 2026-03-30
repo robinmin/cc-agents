@@ -1,262 +1,72 @@
+---
+name: gate-definitions
+description: "Extracted section: Gate Definitions"
+see_also:
+  - rd3:orchestration-dev
+---
+
 # Gate Definitions
 
-This document defines the gates between phases and how they are evaluated.
+### Gate Types
 
-## Gate Overview
-
-| Gate | Type | Location | Pass Criteria | Fail Action |
-|------|------|----------|---------------|-------------|
-| Solution Gate | Auto | Before Phase 5 | Solution section populated | Block Phase 5 |
-| Design Gate | Human | After Phase 3 | Design approved | Rework/Escalate |
-| Test Gate | Auto | After Phase 6 | Coverage >= threshold | Rework/Block |
-| Review Gate | Human | After Phase 7 | Review approved | Rework/Escalate |
-| Functional Gate | Auto/Human | After Phase 8 | Verdict pass/partial | Rework/Escalate |
-| Doc Gate | Auto | After Phase 9 | Docs generated | Rework |
-
-## Gate Type Definitions
+| Gate | Type | Trigger | Resolution |
+|------|------|---------|------------|
+| Solution Gate | Auto | Solution section populated | Pass/Fail |
+| Design Gate | Human | Design section reviewed | Approve/Reject/Rework |
+| Test Gate | Auto | Coverage target met and 100% tests pass | Pass/Fail |
+| Review Gate | Human | Code review completed | Approve/Reject |
+| Functional Gate | Auto/Human | BDD + functional review | Pass/Partial/Fail |
+| Documentation Gate | Auto | Docs generated | Pass/Fail |
 
 ### Auto Gates
-Auto gates are evaluated by checking output characteristics:
-- Presence of expected artifacts
-- Metric thresholds (coverage, error count)
-- Validation results
+
+```typescript
+const AUTO_GATES: Record<PhaseNumber, GateChecker> = {
+    5: (result) => result.artifacts.length > 0,
+    6: (result) =>
+        result.failed_tests === 0 &&
+        Object.values(result.coverage.per_file ?? {}).every((value) => value >= getCoverageThreshold(profile, input.coverage)),
+    7: (result) => result.issues.filter(i => i.severity === 'error').length === 0,
+    8: (result) => result.verdict !== 'fail',
+    9: (result) => result.artifacts.length > 0,
+};
+
+function getCoverageThreshold(profile: Profile, override?: number): number {
+    if (override !== undefined) return override; // --coverage flag wins
+    if (profile === 'unit') return 90;          // /dev-unit stricter default
+    return PROFILE_DEFAULT_COVERAGE_THRESHOLD;  // 60% for simple/research, 80% otherwise
+}
+```
 
 ### Human Gates
-Human gates pause execution and ask for user input:
-- Approve: Proceed to next phase
-- Reject: Request rework with feedback
-- Skip: Skip this phase (with reason)
 
-## Solution Gate
+For phases with human gates (Design, Review):
 
-**Location:** Before Phase 5 (Implementation)
-
-**Type:** Auto
-
-**Pass Criteria:**
+**Normal mode** — pauses for human approval:
 ```typescript
-function checkSolutionGate(task: TaskFile): boolean {
-    return (
-        task.solution.length > 0 &&
-        !task.solution.includes('[Solution added by specialists]')
-    );
-}
+const humanGateResult = await askUserQuestion({
+    type: 'approval',
+    prompt: `Phase ${phase.number} (${phase.name}) completed. Review output and approve or request rework.`,
+    choices: ['approve', 'reject', 'rework'],
+});
 ```
 
-**Fail Action:** Block Phase 5 execution until Solution is populated
-
-**Why:** Solution gate ensures Phase 5 has clear direction
-
-## Design Gate
-
-**Location:** After Phase 3 (Design)
-
-**Type:** Human
-
-**Pass Criteria:**
-- Design document exists
-- Major design decisions are documented
-- No blocking concerns from reviewer
-
-**Human Approval Prompt:**
-```
-Phase 3 (Design) completed.
-
-Design summary:
-- Components defined: {list}
-- API contracts specified: {count}
-- Data models: {list}
-
-Approve, reject, or request rework?
-```
-
-**Fail Action:** Rework loop (max 2 iterations), then escalate
-
-## Test Gate
-
-**Location:** After Phase 6 (Unit Testing)
-
-**Type:** Auto
-
-**Pass Criteria:**
+**Auto mode** (`--auto` flag) — auto-approves all human gates without pausing:
 ```typescript
-function checkTestGate(task: TaskFile, profile: Profile, coverageOverride?: number): boolean {
-    const threshold = coverageOverride ?? (profile === 'unit' ? 90 : PROJECT_COVERAGE_THRESHOLD);
-    const hasFailures = task.test_results.some((result) => result.status === 'failed');
-    const perFileCoverage = task.coverage?.per_file ?? {};
-
-    if (hasFailures) return false;
-    if (profile === 'unit') {
-        return Object.values(perFileCoverage).every((value) => value >= threshold);
-    }
-
-    return task.coverage?.lines >= threshold;
+if (input.auto) {
+    // Auto-approve: log and continue without pausing
+    logger.info(`Phase ${phase.number} (${phase.name}): auto-approved (human gate bypassed)`);
+    gateResult = { status: 'approved' };
+} else {
+    // Normal: pause for human review
+    gateResult = await askUserQuestion({ ... });
 }
 ```
 
-**Coverage Threshold:** Project-level constant for task profiles. The `unit` phase profile defaults to per-file coverage >=90%. Override via `--coverage` flag.
+When `--auto` is set, human gates (Design Gate, Review Gate, Functional Gate) are auto-approved. This enables end-to-end execution for commands like `dev-run` that need continuous flow.
 
-**Fail Action:** Rework loop (max 2 iterations), then escalate
+**Skip phase safety:** `--skip-phases` is intentionally limited to trailing phases only. Skipping an interior phase would leave later phases without the inputs they require.
 
-**Why:** Coverage thresholds plus 100% passing tests ensure the suite is both broad enough and currently healthy
+**Start phase safety:** `start_phase` selects a suffix of the selected profile's phase sequence. It is not an arbitrary jump; the chosen phase must already belong to the selected profile.
 
-## Review Gate
-
-**Location:** After Phase 7 (Code Review)
-
-**Type:** Human
-
-**Pass Criteria:**
-- No blocking issues (errors)
-- Major issues addressed
-- Code quality meets standards
-
-**Human Approval Prompt:**
-```
-Phase 7 (Code Review) completed.
-
-Review summary:
-- Issues found: {count}
-- Errors: {count}
-- Warnings: {count}
-- Suggestions: {count}
-
-Blocking issues: {list or "None"}
-
-Approve, reject, or request rework?
-```
-
-**Fail Action:** Rework loop (max 2 iterations), then escalate
-
-## Functional Gate
-
-**Location:** After Phase 8 (Functional Review)
-
-**Type:** Auto (verdict) + Human (final approval for fail)
-
-**Pass Criteria:**
-```typescript
-function checkFunctionalGate(result: FunctionalReviewResult): boolean {
-    return result.verdict === 'pass' || result.verdict === 'partial';
-}
-```
-
-**Verdict Definitions:**
-- **pass:** All requirements met
-- **partial:** Some requirements partial, no unmet
-- **fail:** Any requirement unmet
-
-**For 'partial' verdict:**
-- Require human approval to proceed
-- Document known limitations
-
-**For 'fail' verdict:**
-- Rework loop (max 2 iterations)
-- Escalate to user for decision
-
-**Human Approval Prompt (for partial):**
-```
-Phase 8 (Functional Review) completed.
-
-Review verdict: PARTIAL
-
-Requirements summary:
-- Met: {count}
-- Partial: {count}
-- Unmet: {count}
-
-Partial requirements:
-{list with reasons}
-
-Proceed with known limitations, or rework?
-```
-
-## Doc Gate
-
-**Location:** After Phase 9 (Documentation)
-
-**Type:** Auto
-
-**Pass Criteria:**
-```typescript
-function checkDocGate(task: TaskFile): boolean {
-    return task.artifacts.docs.length > 0;
-}
-```
-
-**Fail Action:** Rework loop (max 2 iterations)
-
-## Rework Loop
-
-```typescript
-interface ReworkLoop {
-    max_iterations: 2;
-    feedback: string;
-}
-
-function handleRework(phase: Phase, feedback: string): ReworkResult {
-    for (let i = 0; i < MAX_ITERATIONS; i++) {
-        // Re-execute phase with feedback
-        const result = reExecutePhase(phase, feedback);
-        
-        // Re-evaluate gate
-        const gateResult = evaluateGate(phase, result);
-        
-        if (gateResult.status === 'approved') {
-            return { success: true, iterations: i + 1 };
-        }
-    }
-    
-    // Max iterations exceeded
-    return { success: false, escalate: true };
-}
-```
-
-## Escalation
-
-When rework loop fails or gate cannot be passed:
-
-```typescript
-async function escalate(phase: Phase, reason: string): Promise<void> {
-    await askUserQuestion({
-        type: 'choice',
-        prompt: `ESCALATION: Phase ${phase.number} cannot pass gate.\n\nReason: ${reason}\n\nOptions:`,
-        choices: [
-            'Force approve (accept risks)',
-            'Abort pipeline',
-            'Skip phase and continue',
-        ],
-    });
-}
-```
-
-## Gate Evaluation Flow
-
-```
-Phase N executes
-    |
-    v
-Check gate type
-    |
-    +-- Auto gate --> Evaluate criteria --> Pass? --> Yes --> Next phase
-    |                                                       |
-    |                                                       No --> Rework loop
-    |
-    +-- Human gate --> Ask user --> Approve? --> Yes --> Next phase
-                                     |
-                                     No --> Rework loop
-```
-
-## Gate Audit Trail
-
-Each gate evaluation is logged:
-```typescript
-interface GateLog {
-    phase: PhaseNumber;
-    gate_type: 'auto' | 'human';
-    timestamp: string;
-    result: 'passed' | 'failed' | 'skipped' | 'rework';
-    details: object;
-    iterations?: number;
-}
-```
+**Downstream evidence contracts:** orchestration normalizes verification-aware outputs through shared envelopes for `rd3:request-intake`, `rd3:bdd-workflow`, and `rd3:functional-review`.

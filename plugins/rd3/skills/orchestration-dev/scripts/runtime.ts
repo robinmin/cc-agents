@@ -21,6 +21,9 @@ export interface PhaseExecutionRecord {
     number: Phase['number'];
     name: string;
     skill: string;
+    executor: string;
+    execution_mode: Phase['execution_mode'];
+    worker_contract_version?: string;
     gate: Phase['gate'];
     gateCriteria?: string;
     prerequisites?: string[];
@@ -105,6 +108,9 @@ export function createOrchestrationState(plan: ExecutionPlan): OrchestrationStat
             number: phase.number,
             name: phase.name,
             skill: phase.skill,
+            executor: phase.executor,
+            execution_mode: phase.execution_mode,
+            ...(phase.worker_contract_version ? { worker_contract_version: phase.worker_contract_version } : {}),
             gate: phase.gate,
             ...(phase.gateCriteria ? { gateCriteria: phase.gateCriteria } : {}),
             ...(phase.prerequisites ? { prerequisites: phase.prerequisites } : {}),

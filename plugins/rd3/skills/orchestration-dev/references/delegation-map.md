@@ -35,23 +35,31 @@ const DOWNSTREAM_EVIDENCE_CONTRACTS = {
 };
 ```
 
+## Heavy-Phase Worker Contract
+
+Phases 5, 6, and 7 use the normalized `rd3-phase-worker-v1` contract.
+
+- Inputs: `task_ref`, `phase_context`, `execution_channel`, plus phase-specific thresholds or focus hints.
+- Outputs: `status`, `phase`, artifacts or findings, `evidence_summary`, optional `failed_stage`, and `next_step_recommendation`.
+- Anti-recursion: worker agents must not call `rd3:orchestration-dev`, must not change profile or phase ownership, and must preserve orchestration-owned execution-channel semantics.
+
 ## Phase -> Skill Mapping
 
-| Phase | Primary Skill | Aliases | Sub-skills |
-|-------|---------------|---------|------------|
-| 1 | `rd3:request-intake` | intake | - |
-| 2a | `rd3:backend-architect` | backend-arch | - |
-| 2b | `rd3:frontend-architect` | frontend-arch | - |
-| 3a | `rd3:backend-design` | backend-design | - |
-| 3b | `rd3:frontend-design` | frontend-design | - |
-| 3c | `rd3:ui-ux-design` | ui-ux-design | - |
-| 4 | `rd3:task-decomposition` | decompose | - |
-| 5 | `rd3:code-implement-common` | implement | - |
-| 6 | `rd3:sys-testing` | testing | `rd3:advanced-testing` |
-| 7 | `rd3:code-review-common` | review | - |
-| 8a | `rd3:bdd-workflow` | bdd | - |
-| 8b | `rd3:functional-review` | func-review | - |
-| 9 | `rd3:code-docs` | docs | - |
+| Phase | Executor | Canonical Backbone | Aliases | Sub-skills |
+|-------|----------|--------------------|---------|------------|
+| 1 | `rd3:request-intake` | `rd3:request-intake` | intake | - |
+| 2a | `rd3:backend-architect` | `rd3:backend-architect` | backend-arch | - |
+| 2b | `rd3:frontend-architect` | `rd3:frontend-architect` | frontend-arch | - |
+| 3a | `rd3:backend-design` | `rd3:backend-design` | backend-design | - |
+| 3b | `rd3:frontend-design` | `rd3:frontend-design` | frontend-design | - |
+| 3c | `rd3:ui-ux-design` | `rd3:ui-ux-design` | ui-ux-design | - |
+| 4 | `rd3:task-decomposition` | `rd3:task-decomposition` | decompose | - |
+| 5 | `rd3:super-coder` | `rd3:code-implement-common` | implement | `rd3:tdd-workflow`, `rd3:sys-debugging` |
+| 6 | `rd3:super-tester` | `rd3:sys-testing` | testing | `rd3:advanced-testing`, `rd3:sys-debugging` |
+| 7 | `rd3:super-reviewer` | `rd3:code-review-common` | review | - |
+| 8a | `rd3:bdd-workflow` | `rd3:bdd-workflow` | bdd | - |
+| 8b | `rd3:functional-review` | `rd3:functional-review` | func-review | - |
+| 9 | `rd3:code-docs` | `rd3:code-docs` | docs | - |
 
 ## Phase 1: Request Intake
 
@@ -209,7 +217,9 @@ interface Subtask {
 
 ## Phase 5: Implementation
 
-**Skill:** `rd3:code-implement-common`
+**Executor:** `rd3:super-coder`
+
+**Canonical Backbone:** `rd3:code-implement-common`
 
 ### Inputs
 ```typescript
@@ -239,7 +249,9 @@ interface Artifact {
 
 ## Phase 6: Unit Testing
 
-**Skills:** `rd3:sys-testing` + `rd3:advanced-testing`
+**Executor:** `rd3:super-tester`
+
+**Canonical Backbones:** `rd3:sys-testing` + `rd3:advanced-testing`
 
 ### Inputs
 ```typescript
@@ -280,7 +292,9 @@ interface TestResult {
 
 ## Phase 7: Code Review
 
-**Skill:** `rd3:code-review-common`
+**Executor:** `rd3:super-reviewer`
+
+**Canonical Backbone:** `rd3:code-review-common`
 
 ### Inputs
 ```typescript

@@ -83,7 +83,9 @@ Breaks task into implementable subtasks.
 **Exit criteria:** Subtask WBS list with dependencies
 
 ### Phase 5: Implementation
-**Skill:** `rd3:code-implement-common`
+**Executor:** `rd3:super-coder`
+
+**Canonical Backbone:** `rd3:code-implement-common`
 
 Implements the solution.
 
@@ -91,7 +93,9 @@ Implements the solution.
 **Exit criteria:** Implementation artifacts in place
 
 ### Phase 6: Unit Testing
-**Skills:** `rd3:sys-testing`, `rd3:advanced-testing`
+**Executor:** `rd3:super-tester`
+
+**Canonical Backbones:** `rd3:sys-testing`, `rd3:advanced-testing`
 
 Runs tests and verifies coverage against the profile-sensitive default threshold. The `unit` phase profile uses a stricter default target: per-file coverage >=90% and 100% passing tests.
 
@@ -99,7 +103,9 @@ Runs tests and verifies coverage against the profile-sensitive default threshold
 **Exit criteria:** Coverage target met, all tests pass
 
 ### Phase 7: Code Review
-**Skill:** `rd3:code-review-common`
+**Executor:** `rd3:super-reviewer`
+
+**Canonical Backbone:** `rd3:code-review-common`
 
 Reviews code quality.
 

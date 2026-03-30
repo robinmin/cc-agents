@@ -1,5 +1,87 @@
 import type { DownstreamEvidenceEnvelope, Phase, PhaseNumber, Profile, TaskProfile } from './model';
 
+type WorkerPhaseNumber = 5 | 6 | 7;
+
+interface PhaseWorkerContract {
+    phase: WorkerPhaseNumber;
+    worker_agent: string;
+    canonical_backbone: string[];
+    supporting_skills?: string[];
+    input_keys: string[];
+    output_keys: string[];
+    execution_channel_semantics: string;
+    anti_recursion_rules: string[];
+    evidence_expectations: string[];
+    failure_reporting: string[];
+}
+
+export const PHASE_WORKER_CONTRACT_VERSION = 'rd3-phase-worker-v1';
+
+export const PHASE_WORKER_CONTRACTS: Record<WorkerPhaseNumber, PhaseWorkerContract> = {
+    5: {
+        phase: 5,
+        worker_agent: 'rd3:super-coder',
+        canonical_backbone: ['rd3:code-implement-common'],
+        supporting_skills: ['rd3:tdd-workflow', 'rd3:sys-debugging'],
+        input_keys: ['task_ref', 'phase_context', 'execution_channel', 'constraints?', 'implementation_goal?'],
+        output_keys: ['status', 'phase', 'artifacts', 'evidence_summary', 'failed_stage?', 'next_step_recommendation'],
+        execution_channel_semantics:
+            'Orchestration owns channel selection. Worker agents consume the normalized value but must not reinterpret it.',
+        anti_recursion_rules: [
+            'Worker mode is phase-locked and must not call `rd3:orchestration-dev`.',
+            'Worker mode must not change profile, phase ordering, or gate policy.',
+            'Delegation is limited to canonical implementation backbones and supporting skills.',
+        ],
+        evidence_expectations: [
+            'Implementation artifacts changed or produced',
+            'Verification summary for code/test checks run inside the worker scope',
+            'Next-step recommendation for orchestration',
+        ],
+        failure_reporting: ['status=failed', 'failed_stage', 'error_summary', 'recommended_recovery'],
+    },
+    6: {
+        phase: 6,
+        worker_agent: 'rd3:super-tester',
+        canonical_backbone: ['rd3:sys-testing', 'rd3:advanced-testing'],
+        supporting_skills: ['rd3:sys-debugging'],
+        input_keys: ['task_ref', 'phase_context', 'execution_channel', 'constraints?', 'coverage_threshold'],
+        output_keys: ['status', 'phase', 'artifacts', 'evidence_summary', 'failed_stage?', 'next_step_recommendation'],
+        execution_channel_semantics:
+            'Orchestration owns channel selection. Worker agents consume the normalized value but must not reinterpret it.',
+        anti_recursion_rules: [
+            'Worker mode is phase-locked and must not call `rd3:orchestration-dev`.',
+            'Worker mode must not change profile, phase ordering, or gate policy.',
+            'Delegation is limited to canonical testing backbones and supporting skills.',
+        ],
+        evidence_expectations: [
+            'Executed test/coverage evidence',
+            'Threshold or gap summary suitable for gate evaluation',
+            'Next-step recommendation for orchestration',
+        ],
+        failure_reporting: ['status=failed', 'failed_stage', 'error_summary', 'recommended_recovery'],
+    },
+    7: {
+        phase: 7,
+        worker_agent: 'rd3:super-reviewer',
+        canonical_backbone: ['rd3:code-review-common'],
+        input_keys: ['task_ref', 'phase_context', 'execution_channel', 'constraints?', 'review_depth?'],
+        output_keys: ['status', 'phase', 'findings', 'evidence_summary', 'failed_stage?', 'next_step_recommendation'],
+        execution_channel_semantics:
+            'Orchestration owns channel selection. Worker agents consume the normalized value but must not reinterpret it.',
+        anti_recursion_rules: [
+            'Worker mode is phase-locked and must not call `rd3:orchestration-dev`.',
+            'Worker mode must not change profile, phase ordering, or gate policy.',
+            'Delegation is limited to the canonical review backbone.',
+        ],
+        evidence_expectations: [
+            'Structured findings or approval summary',
+            'Severity summary aligned with the review gate',
+            'Next-step recommendation for orchestration',
+        ],
+        failure_reporting: ['status=failed', 'failed_stage', 'error_summary', 'recommended_recovery'],
+    },
+};
+
 export const PHASE_MATRIX: Record<Profile, PhaseNumber[]> = {
     simple: [5, 6],
     standard: [1, 4, 5, 6, 7, 8, 9],
@@ -105,10 +187,20 @@ function getTestingGateCriteria(profile: Profile, coverageThreshold: number): st
     return `Coverage >= ${coverageThreshold}%, 100% tests pass`;
 }
 
+function attachExecutionPolicy(phase: Omit<Phase, 'executor' | 'execution_mode' | 'worker_contract_version'>): Phase {
+    const workerContract = PHASE_WORKER_CONTRACTS[phase.number as WorkerPhaseNumber];
+    return {
+        ...phase,
+        executor: workerContract?.worker_agent ?? phase.skill,
+        execution_mode: workerContract ? 'worker-agent' : 'direct-skill',
+        ...(workerContract ? { worker_contract_version: PHASE_WORKER_CONTRACT_VERSION } : {}),
+    };
+}
+
 function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: number): Phase {
     switch (phase) {
         case 1:
-            return {
+            return attachExecutionPolicy({
                 number: 1,
                 name: PHASE_NAMES[1],
                 skill: 'rd3:request-intake',
@@ -116,9 +208,9 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 outputs: ['Background', 'Requirements', 'Constraints', 'Profile'],
                 gate: 'auto',
                 gateCriteria: 'Background 100+ chars, Requirements numbered, Profile assigned',
-            };
+            });
         case 2:
-            return {
+            return attachExecutionPolicy({
                 number: 2,
                 name: PHASE_NAMES[2],
                 skill: 'rd3:backend-architect',
@@ -126,9 +218,9 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 outputs: ['Architecture Document'],
                 gate: 'auto',
                 gateCriteria: 'Architecture document exists',
-            };
+            });
         case 3:
-            return {
+            return attachExecutionPolicy({
                 number: 3,
                 name: PHASE_NAMES[3],
                 skill: 'rd3:backend-design',
@@ -136,9 +228,9 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 outputs: ['Design Specs'],
                 gate: 'human',
                 gateCriteria: 'Design specs complete',
-            };
+            });
         case 4:
-            return {
+            return attachExecutionPolicy({
                 number: 4,
                 name: PHASE_NAMES[4],
                 skill: 'rd3:task-decomposition',
@@ -146,9 +238,9 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 outputs: ['Subtask WBS list'],
                 gate: 'auto',
                 gateCriteria: 'Subtask list generated',
-            };
+            });
         case 5:
-            return {
+            return attachExecutionPolicy({
                 number: 5,
                 name: PHASE_NAMES[5],
                 skill: 'rd3:code-implement-common',
@@ -157,9 +249,9 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 gate: 'auto',
                 gateCriteria: 'Implementation artifacts exist',
                 prerequisites: ['Solution section populated'],
-            };
+            });
         case 6:
-            return {
+            return attachExecutionPolicy({
                 number: 6,
                 name: PHASE_NAMES[6],
                 skill: 'rd3:sys-testing + rd3:advanced-testing',
@@ -167,9 +259,9 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 outputs: ['Test Results', 'Coverage Report'],
                 gate: 'auto',
                 gateCriteria: getTestingGateCriteria(profile, coverageThreshold),
-            };
+            });
         case 7:
-            return {
+            return attachExecutionPolicy({
                 number: 7,
                 name: PHASE_NAMES[7],
                 skill: 'rd3:code-review-common',
@@ -177,10 +269,10 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 outputs: ['Review Report'],
                 gate: 'human',
                 gateCriteria: 'No blocking issues, human approval',
-            };
+            });
         case 8:
             if (profile === 'standard') {
-                return {
+                return attachExecutionPolicy({
                     number: 8,
                     name: PHASE_NAMES[8],
                     skill: 'rd3:bdd-workflow',
@@ -188,10 +280,10 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                     outputs: ['BDD Report'],
                     gate: 'auto',
                     gateCriteria: 'BDD scenarios generated and executed',
-                };
+                });
             }
 
-            return {
+            return attachExecutionPolicy({
                 number: 8,
                 name: PHASE_NAMES[8],
                 skill: 'rd3:bdd-workflow + rd3:functional-review',
@@ -199,9 +291,9 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 outputs: ['Functional Verdict'],
                 gate: 'auto/human',
                 gateCriteria: 'Verdict pass or partial with approval',
-            };
+            });
         case 9:
-            return {
+            return attachExecutionPolicy({
                 number: 9,
                 name: PHASE_NAMES[9],
                 skill: 'rd3:code-docs',
@@ -209,7 +301,7 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 outputs: ['Refreshed Project Docs'],
                 gate: 'auto',
                 gateCriteria: 'Relevant project docs refreshed',
-            };
+            });
     }
 }
 
@@ -223,6 +315,24 @@ export const DOWNSTREAM_EVIDENCE_CONTRACTS: Record<string, DownstreamEvidenceEnv
         summary: 'Requirements enrichment envelope returned by Phase 1',
         required_fields: ['background', 'requirements', 'constraints', 'profile'],
         optional_fields: ['domain_hints', 'assumptions'],
+    },
+    'rd3:super-coder': {
+        kind: 'worker-phase-result',
+        summary: 'Phase 5 implementation worker output envelope',
+        required_fields: ['status', 'phase', 'artifacts', 'evidence_summary', 'next_step_recommendation'],
+        optional_fields: ['failed_stage'],
+    },
+    'rd3:super-tester': {
+        kind: 'worker-phase-result',
+        summary: 'Phase 6 testing worker output envelope',
+        required_fields: ['status', 'phase', 'artifacts', 'evidence_summary', 'next_step_recommendation'],
+        optional_fields: ['failed_stage'],
+    },
+    'rd3:super-reviewer': {
+        kind: 'worker-phase-result',
+        summary: 'Phase 7 review worker output envelope',
+        required_fields: ['status', 'phase', 'findings', 'evidence_summary', 'next_step_recommendation'],
+        optional_fields: ['failed_stage'],
     },
     'rd3:bdd-workflow': {
         kind: 'bdd-execution-report',

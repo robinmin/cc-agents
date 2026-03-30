@@ -3,11 +3,15 @@ export type PhaseProfile = 'refine' | 'plan' | 'unit' | 'review' | 'docs';
 export type Profile = TaskProfile | PhaseProfile;
 export type PhaseNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type PhaseGate = 'auto' | 'human' | 'auto/human';
+export type PhaseExecutionMode = 'direct-skill' | 'worker-agent';
 
 export interface Phase {
     number: PhaseNumber;
     name: string;
     skill: string;
+    executor: string;
+    execution_mode: PhaseExecutionMode;
+    worker_contract_version?: string;
     inputs: string[];
     outputs: string[];
     gate: PhaseGate;

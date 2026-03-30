@@ -123,6 +123,41 @@ describe('orchestration runtime', () => {
         expect(state.task_path).toBe(taskPath);
     });
 
+    test('records worker executor metadata for heavy phases in orchestration state', () => {
+        const dir = createTempDir('orchestration-worker-metadata-');
+        const taskPath = writeTaskFile(dir, '0266_worker_metadata.md', 'Implement the feature.');
+        const plan = createExecutionPlan(taskPath, { profile: 'complex', startPhase: 5 });
+        const state = createOrchestrationState(plan);
+
+        expect(state.phases.map((phase) => phase.number)).toEqual([5, 6, 7, 8, 9]);
+        expect(state.phases[0]).toMatchObject({
+            number: 5,
+            skill: 'rd3:code-implement-common',
+            executor: 'rd3:super-coder',
+            execution_mode: 'worker-agent',
+            worker_contract_version: 'rd3-phase-worker-v1',
+        });
+        expect(state.phases[1]).toMatchObject({
+            number: 6,
+            skill: 'rd3:sys-testing + rd3:advanced-testing',
+            executor: 'rd3:super-tester',
+            execution_mode: 'worker-agent',
+            worker_contract_version: 'rd3-phase-worker-v1',
+        });
+        expect(state.phases[2]).toMatchObject({
+            number: 7,
+            skill: 'rd3:code-review-common',
+            executor: 'rd3:super-reviewer',
+            execution_mode: 'worker-agent',
+            worker_contract_version: 'rd3-phase-worker-v1',
+        });
+        expect(state.phases[3]).toMatchObject({
+            number: 8,
+            executor: 'rd3:bdd-workflow + rd3:functional-review',
+            execution_mode: 'direct-skill',
+        });
+    });
+
     test('fails when a phase prerequisite is missing', async () => {
         const dir = createTempDir('orchestration-prereq-');
         const taskPath = writeTaskFile(dir, '0266_prereq.md');
@@ -354,9 +389,11 @@ describe('runtime main', () => {
         const statePath = getOrchestrationStatePath(taskPath, dir);
         const persisted = JSON.parse(readFileSync(statePath, 'utf-8')) as {
             status: string;
+            current_phase?: number;
             phases: Array<{ number: number }>;
         };
-        expect(persisted.status).toBe('failed');
+        expect(persisted.status).toBe('paused');
+        expect(persisted.current_phase).toBe(7);
         expect(persisted.phases.map((phase) => phase.number)).toEqual([6, 7, 8, 9]);
     });
 
