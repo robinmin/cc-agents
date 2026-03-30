@@ -1,5 +1,5 @@
 ---
-description: Profile-driven task execution through the 9-phase pipeline, optionally on another execution channel
+description: Profile-driven task execution through the 9-phase pipeline
 argument-hint: "<task-ref> [--profile <profile>] [--auto] [--coverage <n>] [--dry-run] [--refine] [--skip-phases <n,n>] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
@@ -31,113 +31,98 @@ Default: read from task frontmatter, fall back to `standard`.
 
 | Profile | Phases | Shortcut Command |
 |---------|--------|-----------------|
-| `refine` | 1 | `/rd3:dev-refine` |
-| `plan` | 2, 3, 4 | `/rd3:dev-plan` |
-| `unit` | 6 | `/rd3:dev-unit` |
-| `review` | 7 | `/rd3:dev-review` |
-| `docs` | 9 | `/rd3:dev-docs` |
+| `refine` | 1 | Run phase 1 refine |
+| `plan` | 2, 3, 4 | Run phases 2–4 plan |
+| `unit` | 6 | Run phase 6 unit test |
+| `review` | 7 | Run phase 7 code review |
+| `docs` | 9 | Run phase 9 docs |
 
 ## Arguments
 
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `task-ref` | Yes | WBS number or file path |
-| `--profile` | No | Override profile (default: from task frontmatter) |
 | `--auto` | No | Auto-approve human gates (no pauses) |
+| `--profile` | No | Override profile (default: from task frontmatter) |
 | `--coverage <n>` | No | Override project coverage threshold for phase 6 |
 | `--dry-run` | No | Preview execution plan without executing |
 | `--refine` | No | Run phase 1 in refine mode |
 | `--skip-phases <n,n>` | No | Skip trailing phases only (advanced) |
-| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `current` |
-
-### Smart Positional Detection
-
-| Input Pattern | Detection | Example |
-|---------------|-----------|---------|
-| Digits only | WBS number | `0274` |
-| Ends with `.md` | File path | `docs/tasks2/0274_*.md` |
+| `--channel <name>` | No | Execution channel: `current`, `claude-code`, `codex`, `openclaw`, `opencode`, `antigravity`, `pi`. Default: `current` |
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator is the routing authority: `current` stays local, and non-`current` values are routed downstream through **rd3:run-acp** only when a delegated phase needs ACP execution.
+Forward `--channel` (default: `current`) to **rd3:orchestration-dev**. The orchestrator handles routing: `current` stays local, and non-`current` values route downstream through **rd3:run-acp** only when a delegated phase needs ACP execution.
 
 ```
-# Default (profile from task file, current channel)
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --channel current")
-
-# Override profile on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile complex --channel current")
-
-# Phase profile on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --channel current")
-
-# Auto-approve human gates on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --auto --channel current")
-
-# Dry run on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --dry-run --channel current")
-
-# Refine mode + custom coverage on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --refine --coverage 90 --auto --channel current")
-
-# Cross-channel execution is still initiated through orchestration
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel opencode")
+Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS")
+Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --profile complex")
+Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --profile unit")
+Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --auto")
+Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --dry-run")
+Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --refine --coverage 90 --auto")
+Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --channel opencode")
 ```
-
-### Phase Details
-
-| Phase | Skill | Gate |
-|-------|-------|------|
-| 1. Request Intake | `rd3:request-intake` | Auto |
-| 2. Architecture | `rd3:backend-architect` / `rd3:frontend-architect` | Auto |
-| 3. Design | `rd3:backend-design` / `rd3:frontend-design` | Human |
-| 4. Task Decomposition | `rd3:task-decomposition` | Auto |
-| 5. Implementation | `rd3:code-implement-common` | Auto |
-| 6. Unit Testing | `rd3:sys-testing` + `rd3:advanced-testing` | Auto |
-| 7. Code Review | `rd3:code-review-common` | Human |
-| 8. Functional Review | `rd3:bdd-workflow` + `rd3:functional-review` | Auto/Human |
-| 9. Documentation | `rd3:code-docs` | Auto |
 
 ## Examples
 
+<example>
+Run the full pipeline using the profile from the task frontmatter
 ```bash
-# Full pipeline (profile from task file)
 /rd3:dev-run 0274
-
-# Simple task (impl + test only)
-/rd3:dev-run 0274 --profile simple
-
-# Complex task (all 9 phases)
-/rd3:dev-run 0274 --profile complex
-
-# Research task (all 9 phases, 60% default test gate)
-/rd3:dev-run 0274 --profile research
-
-# Phase profile: just unit testing
-/rd3:dev-run 0274 --profile unit
-
-# Refine mode + custom coverage
-/rd3:dev-run 0274 --refine --coverage 90 --auto
-
-# Execute on another channel
-/rd3:dev-run 0274 --profile review --channel codex
-
-# Preview without executing
-/rd3:dev-run 0274 --dry-run
-
-# End-to-end, no pauses
-/rd3:dev-run 0274 --auto
-
-# Skip only trailing phases
-/rd3:dev-run 0274 --profile complex --skip-phases 8,9
 ```
+</example>
+
+<example>
+Run a simple task (implementation + testing only)
+```bash
+/rd3:dev-run 0274 --profile simple
+```
+</example>
+
+<example>
+Run a complex task through all 9 phases
+```bash
+/rd3:dev-run 0274 --profile complex
+```
+</example>
+
+<example>
+Run a research task (all phases, 60% test gate)
+```bash
+/rd3:dev-run 0274 --profile research
+```
+</example>
+
+<example>
+Run refine mode with custom coverage and auto-approved human gates
+```bash
+/rd3:dev-run 0274 --refine --coverage 90 --auto
+```
+</example>
+
+<example>
+Preview the execution plan without running anything
+```bash
+/rd3:dev-run 0274 --dry-run
+```
+</example>
 
 ## See Also
 
 - **rd3:orchestration-dev**: Full 9-phase pipeline orchestrator skill
-- **/rd3:dev-refine**: Refine requirements (shortcut for `--profile refine`)
-- **/rd3:dev-plan**: Architecture + design + decomposition (shortcut for `--profile plan`)
-- **/rd3:dev-unit**: Unit testing only (shortcut for `--profile unit`)
-- **/rd3:dev-review**: Code review only (shortcut for `--profile review`)
-- **/rd3:dev-docs**: Documentation only (shortcut for `--profile docs`)
 - **rd3:run-acp**: ACP executor used by orchestration for delegated remote work
+- Phase shortcut commands: use `--profile <phase-name>` with this command to run individual phases
+
+
+## Platform Notes
+
+### Claude Code (primary)
+Native `Skill()` and `!`cmd`` support. Pass arguments directly: `/rd3:dev-run 0274 --profile complex`.
+
+### Other Platforms
+`Skill()`, `Task()`, `$ARGUMENTS`, `!`cmd$``, and slash command syntax (`/rd3:dev-run`) are Claude Code–only. On Codex, OpenClaw, OpenCode, Antigravity, or Gemini CLI: invoke the orchestration skill directly via Bash:
+```bash
+bun plugins/rd3/skills/orchestration-dev/scripts/run.ts <task-ref> --profile <name> [options]
+```
+See **rd3:orchestration-dev** for available arguments.
