@@ -54,7 +54,8 @@
       "Bash(biome lint:*)",
       "Bash(biome format:*)",
       "Bash(echo:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(bats:*)"
     ],
     "deny": [],
     "ask": []
