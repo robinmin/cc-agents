@@ -34,11 +34,13 @@ function writeText(filePath: string, content: string): void {
 function createFixtureRepo(): string {
     const repoRoot = makeTempDir('install-scripts-fixture-');
 
-    mkdirSync(join(repoRoot, 'scripts'), { recursive: true });
-    copyFileSync(join(REPO_ROOT, 'scripts', 'install-agents.sh'), join(repoRoot, 'scripts', 'install-agents.sh'));
-    copyFileSync(join(REPO_ROOT, 'scripts', 'install-skills.sh'), join(repoRoot, 'scripts', 'install-skills.sh'));
-    chmodSync(join(repoRoot, 'scripts', 'install-agents.sh'), 0o755);
-    chmodSync(join(repoRoot, 'scripts', 'install-skills.sh'), 0o755);
+    mkdirSync(join(repoRoot, 'scripts', 'command'), { recursive: true });
+    mkdirSync(join(repoRoot, 'scripts', 'lib'), { recursive: true });
+    copyFileSync(join(REPO_ROOT, 'scripts', 'command', 'magents.sh'), join(repoRoot, 'scripts', 'command', 'magents.sh'));
+    copyFileSync(join(REPO_ROOT, 'scripts', 'command', 'skills.sh'), join(repoRoot, 'scripts', 'command', 'skills.sh'));
+    copyFileSync(join(REPO_ROOT, 'scripts', 'lib', 'common.sh'), join(repoRoot, 'scripts', 'lib', 'common.sh'));
+    chmodSync(join(repoRoot, 'scripts', 'command', 'magents.sh'), 0o755);
+    chmodSync(join(repoRoot, 'scripts', 'command', 'skills.sh'), 0o755);
 
     writeText(
         join(repoRoot, 'rulesync.jsonc'),
@@ -157,7 +159,7 @@ function runScript(
     args: string[],
     extraEnv: Record<string, string> = {},
 ): { status: number | null; output: string } {
-    const result = spawnSync('bash', [join(repoRoot, 'scripts', scriptName), ...args], {
+    const result = spawnSync('bash', [join(repoRoot, 'scripts', 'command', scriptName), ...args], {
         cwd: repoRoot,
         encoding: 'utf-8',
         env: {
@@ -187,7 +189,7 @@ describe('install-agents.sh', () => {
         const repoRoot = createFixtureRepo();
         const tempHome = makeTempDir('install-agents-home-');
 
-        const result = runScript(repoRoot, 'install-agents.sh', ['team-stark-children', 'codexcli,openclaw'], {
+        const result = runScript(repoRoot, 'magents.sh', ['team-stark-children', 'codexcli,openclaw'], {
             HOME: tempHome,
         });
 
@@ -202,7 +204,7 @@ describe('install-agents.sh', () => {
         const repoRoot = createFixtureRepo();
         const projectDir = makeTempDir('install-agents-project-');
 
-        const result = runScript(repoRoot, 'install-agents.sh', [
+        const result = runScript(repoRoot, 'magents.sh', [
             'team-stark-children',
             'claude,geminicli,opencode,codexcli',
             '--project',
@@ -234,7 +236,7 @@ describe('install-skills.sh', () => {
         const repoRoot = createFixtureRepo();
         const projectDir = makeTempDir('install-skills-project-');
 
-        const result = runScript(repoRoot, 'install-skills.sh', [
+        const result = runScript(repoRoot, 'skills.sh', [
             'rd3',
             'codexcli,opencode',
             '--features=skills,commands',
@@ -245,7 +247,7 @@ describe('install-skills.sh', () => {
         expect(result.status).toBe(0);
         expect(existsSync(join(projectDir, '.codex', 'skills', 'rd3-quick-grep', 'SKILL.md'))).toBe(true);
         expect(existsSync(join(projectDir, '.opencode', 'skills', 'rd3-quick-grep', 'SKILL.md'))).toBe(true);
-        expect(existsSync(join(projectDir, '.agents', 'skills', 'rd3-cmd-plan', 'SKILL.md'))).toBe(true);
+        expect(existsSync(join(projectDir, '.agents', 'skills', 'rd3-plan', 'SKILL.md'))).toBe(true);
         expect(existsSync(join(repoRoot, '.codex'))).toBe(false);
         expect(existsSync(join(repoRoot, '.opencode'))).toBe(false);
         expect(existsSync(join(repoRoot, '.agents'))).toBe(false);
@@ -255,7 +257,7 @@ describe('install-skills.sh', () => {
         const repoRoot = createFixtureRepo();
         const projectDir = makeTempDir('install-skills-wt-project-');
 
-        const result = runScript(repoRoot, 'install-skills.sh', [
+        const result = runScript(repoRoot, 'skills.sh', [
             'wt',
             'opencode',
             '--features=skills',
@@ -284,10 +286,10 @@ describe('install-skills.sh', () => {
         const repoRoot = createFixtureRepo();
         const projectDir = makeTempDir('install-skills-wt-commands-');
 
-        const result = runScript(repoRoot, 'install-skills.sh', [
+        const result = runScript(repoRoot, 'skills.sh', [
             'wt',
             'codexcli',
-            '--features=skills,commands',
+            '--features=commands',
             '--project-dir',
             projectDir,
         ]);
@@ -295,15 +297,15 @@ describe('install-skills.sh', () => {
         expect(result.status).toBe(0);
 
         const installedCommand = readFileSync(
-            join(projectDir, '.codex', 'skills', 'wt-cmd-image-generate', 'SKILL.md'),
+            join(projectDir, '.codex', 'skills', 'wt-image-generate', 'SKILL.md'),
             'utf-8',
         );
         const installedStyleExtractor = readFileSync(
-            join(projectDir, '.codex', 'skills', 'wt-cmd-style-extractor', 'SKILL.md'),
+            join(projectDir, '.codex', 'skills', 'wt-style-extractor', 'SKILL.md'),
             'utf-8',
         );
 
-        expect(installedCommand).toContain('name: wt-cmd-image-generate');
+        expect(installedCommand).toContain('name: wt-image-generate');
         expect(installedCommand).toContain(
             'argument-hint: "[prompt] [--template name] [--style style] [--output path]"',
         );
@@ -317,7 +319,7 @@ describe('install-skills.sh', () => {
         const repoRoot = createFixtureRepo();
         const projectDir = makeTempDir('install-skills-dry-run-');
 
-        const result = runScript(repoRoot, 'install-skills.sh', [
+        const result = runScript(repoRoot, 'skills.sh', [
             'rd3',
             'codexcli',
             '--features=skills,commands',
@@ -335,10 +337,10 @@ describe('install-skills.sh', () => {
     it('rejects unsupported subagent installs instead of succeeding silently', () => {
         const repoRoot = createFixtureRepo();
 
-        const result = runScript(repoRoot, 'install-skills.sh', ['rd3', 'codexcli', '--features=subagents']);
+        const result = runScript(repoRoot, 'skills.sh', ['rd3', 'codexcli', '--features=subagents']);
 
         expect(result.status).toBe(1);
-        expect(result.output).toContain('Subagent installation is not supported by install-skills.sh');
-        expect(result.output).toContain('cc-agents/scripts/install.ts');
+        expect(result.output).toContain('Subagent installation is not supported by skills.sh');
+        expect(result.output).toContain('scripts/command/subagents.sh');
     });
 });
