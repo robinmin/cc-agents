@@ -15,6 +15,9 @@ description: |
 tools: [Read, Glob, Skill, Task]
 model: inherit
 color: green
+see_also:
+  - rd3:super-coder
+  - rd3:super-reviewer
 skills:
   - rd3:run-acp
   - rd3:sys-testing
@@ -83,7 +86,7 @@ When running in worker mode, consume this normalized contract:
 
 - `status`
 - `phase`
-- `artifacts`
+- `test_artifacts`
 - `evidence_summary`
 - `failed_stage?`
 - `next_step_recommendation`
@@ -119,7 +122,7 @@ assistant: Routing to rd3:sys-testing...
 → rd3:sys-testing processes, returns:
   status: completed
   phase: 6
-  artifacts: [{path: tests/utils/string.test.ts, type: test-file}]
+  test_artifacts: [{path: tests/utils/string.test.ts, type: test-file}]
   evidence_summary: {coverage: 92%, tests: 24, passed: 24, failed: 0}
   next_step_recommendation: proceed_to_phase_7
 ```
@@ -188,7 +191,7 @@ assistant: Routing to rd3:sys-debugging...
 ```
 status: completed
 phase: 6
-artifacts:
+test_artifacts:
   - path: <file path>
   - type: test-file | coverage-report
 evidence_summary:
