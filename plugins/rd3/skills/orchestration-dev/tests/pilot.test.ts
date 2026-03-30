@@ -423,6 +423,29 @@ describe('pilot phase runner', () => {
         expect(result.evidence?.some((entry) => entry.kind === 'worker-handoff-required')).toBe(true);
     });
 
+    test('returns failed when delegate runner receives no command and no prompt', async () => {
+        const runner = createPilotDelegateRunner('current', {
+            local: {
+                runCommand: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: 'should not run',
+                }),
+            },
+        });
+
+        const result = await runner({
+            skill: 'rd3:sys-testing',
+            args: {},
+            cwd: '/tmp/example',
+            timeout_ms: 1000,
+        });
+
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('No executable payload');
+    });
+
     test('fails unsupported direct-skill phases in the pilot runner', async () => {
         const runner = createPilotPhaseRunner();
         const plan = generateExecutionPlan('0276', 'complex');
