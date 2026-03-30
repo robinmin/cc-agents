@@ -24,6 +24,21 @@ const DOWNSTREAM_EVIDENCE_CONTRACTS = {
         kind: 'request-intake-result',
         required_fields: ['background', 'requirements', 'constraints', 'profile'],
     },
+    'rd3:super-coder': {
+        kind: 'worker-phase-result',
+        required_fields: ['status', 'phase', 'artifacts', 'evidence_summary', 'next_step_recommendation'],
+        optional_fields: ['failed_stage'],
+    },
+    'rd3:super-tester': {
+        kind: 'worker-phase-result',
+        required_fields: ['status', 'phase', 'test_artifacts', 'evidence_summary', 'next_step_recommendation'],
+        optional_fields: ['failed_stage'],
+    },
+    'rd3:super-reviewer': {
+        kind: 'worker-phase-result',
+        required_fields: ['status', 'phase', 'findings', 'evidence_summary', 'next_step_recommendation'],
+        optional_fields: ['failed_stage'],
+    },
     'rd3:bdd-workflow': {
         kind: 'bdd-execution-report',
         required_fields: ['scenarios', 'passed', 'failed', 'execution_mode'],
