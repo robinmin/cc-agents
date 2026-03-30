@@ -2,19 +2,17 @@
 name: jon-snow
 description: |
   Use PROACTIVELY for rd3 pipeline routing: full runs, resumes, dry-runs, phase-only profiles, and delegated execution channels. Trigger phrases: "run pipeline", "resume from phase 5", "plan task", "unit-only", "review-only", "docs-only", "run on codex".
-
   <example>
   user: "Run task 0266 through the pipeline"
   assistant: "Delegating to rd3:orchestration-dev skill..."
   <commentary>Routes a full pipeline run through the orchestration skill.</commentary>
   </example>
-
   <example>
   user: "Plan task 0312 on Codex"
   assistant: "Delegating to rd3:orchestration-dev with profile=plan and channel=codex..."
   <commentary>Maps plan intent to the plan profile and forwards the execution channel unchanged.</commentary>
   </example>
-tools: [Read, Glob]
+tools: [Read, Glob, Grep, Bash, Skill]
 model: inherit
 color: slate
 skills:
@@ -133,9 +131,9 @@ The following specialist skills are available for delegation:
 | 2 | `rd3:backend-architect` / `rd3:frontend-architect` | Architecture design |
 | 3 | `rd3:backend-design` / `rd3:frontend-design` / `rd3:ui-ux-design` | Detailed design |
 | 4 | `rd3:task-decomposition` | Task breakdown |
-| 5 | `rd3:code-implement-common` | Implementation |
-| 6 | `rd3:sys-testing` / `rd3:advanced-testing` | Unit testing |
-| 7 | `rd3:code-review-common` | Code review |
+| 5 | `rd3:super-coder` -> `rd3:code-implement-common` | Implementation |
+| 6 | `rd3:super-tester` -> `rd3:sys-testing` / `rd3:advanced-testing` | Unit testing |
+| 7 | `rd3:super-reviewer` -> `rd3:code-review-common` | Code review |
 | 8 | `rd3:bdd-workflow` / `rd3:functional-review` | Functional verification |
 | 9 | `rd3:code-docs` | Documentation |
 
