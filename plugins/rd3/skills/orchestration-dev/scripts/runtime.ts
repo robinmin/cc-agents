@@ -1,12 +1,19 @@
 #!/usr/bin/env bun
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { logger } from '../../../scripts/logger';
 import { parseSection } from '../../tasks/scripts/lib/taskFile';
+import { normalizeExecutionChannel } from './executors';
 import { createExecutionPlan, validateProfile } from './plan';
 import { createPilotPhaseRunner } from './pilot';
-import type { ExecutionPlan, Phase, Profile } from './model';
+import {
+    DEFAULT_PHASE_TIMEOUT_MS,
+    parseOrchestrationArgs,
+    type ExecutionPlan,
+    type Phase,
+    type Profile,
+} from './model';
 
 export type OrchestrationStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed';
 export type PhaseExecutionStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'skipped';
@@ -74,10 +81,18 @@ export interface RunOrchestrationOptions {
     stateDir?: string;
     phaseRunner: PhaseRunner;
     stackProfile?: string;
+    initialState?: OrchestrationState;
+    phaseTimeoutMs?: number;
+    runId?: string;
+    statePathOverride?: string;
 }
 
 function now(): string {
     return new Date().toISOString();
+}
+
+function requiresHumanApproval(gate: Phase['gate']): boolean {
+    return gate === 'human' || gate === 'auto/human';
 }
 
 function deleteOptionalField<T extends object>(obj: T, key: keyof T): void {
@@ -88,8 +103,25 @@ function sanitizeTaskRef(taskRef: string): string {
     return taskRef.replace(/[^\w.-]+/g, '_');
 }
 
-export function getOrchestrationStatePath(taskRef: string, stateDir = '.'): string {
-    return join(stateDir, 'orchestration', `${sanitizeTaskRef(taskRef)}-state.json`);
+function generateRunId(): string {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+export function getOrchestrationStatePath(taskRef: string, stateDir = '.', runId?: string): string {
+    const id = runId ?? generateRunId();
+    return join(stateDir, 'orchestration', `${sanitizeTaskRef(taskRef)}-${id}-state.json`);
+}
+
+export function findOrchestrationStatePath(taskRef: string, stateDir = '.'): string | null {
+    const orchestrationDir = join(stateDir, 'orchestration');
+    if (!existsSync(orchestrationDir)) {
+        return null;
+    }
+    const prefix = sanitizeTaskRef(taskRef);
+    const candidates = readdirSync(orchestrationDir)
+        .filter((name) => name.startsWith(`${prefix}-`) && name.endsWith('-state.json'))
+        .sort();
+    return candidates.length > 0 ? join(orchestrationDir, candidates[candidates.length - 1]) : null;
 }
 
 export function createOrchestrationState(plan: ExecutionPlan): OrchestrationState {
@@ -164,10 +196,29 @@ function validatePhasePrerequisites(plan: ExecutionPlan, phase: Phase): string[]
         .filter((value): value is string => value !== null);
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error(`Phase runner timed out after ${timeoutMs}ms: ${label}`)), timeoutMs);
+        }),
+    ]);
+}
+
 export async function runOrchestration(options: RunOrchestrationOptions): Promise<OrchestrationState> {
-    const { plan, projectRoot, stateDir = projectRoot, phaseRunner, stackProfile } = options;
-    const statePath = getOrchestrationStatePath(plan.task_ref, stateDir);
-    const state = loadOrchestrationState(statePath) ?? createOrchestrationState(plan);
+    const {
+        plan,
+        projectRoot,
+        stateDir = projectRoot,
+        phaseRunner,
+        stackProfile,
+        initialState,
+        phaseTimeoutMs,
+        runId,
+        statePathOverride,
+    } = options;
+    const statePath = statePathOverride ?? getOrchestrationStatePath(plan.task_ref, stateDir, runId);
+    const state = initialState ?? createOrchestrationState(plan);
 
     state.status = 'running';
     state.updated_at = now();
@@ -197,13 +248,32 @@ export async function runOrchestration(options: RunOrchestrationOptions): Promis
         state.updated_at = now();
         saveOrchestrationState(state, statePath);
 
-        const result = await phaseRunner(phase, {
-            plan,
-            state,
-            stateDir,
-            projectRoot,
-            ...(stackProfile ? { stackProfile } : {}),
-        });
+        const timeoutMs = phaseTimeoutMs ?? DEFAULT_PHASE_TIMEOUT_MS;
+        let result: PhaseRunnerResult;
+        try {
+            result = await withTimeout(
+                phaseRunner(phase, {
+                    plan,
+                    state,
+                    stateDir,
+                    projectRoot,
+                    ...(stackProfile ? { stackProfile } : {}),
+                }),
+                timeoutMs,
+                `phase ${phase.number} (${phase.name})`,
+            );
+        } catch (error) {
+            result = {
+                status: 'failed',
+                error: error instanceof Error ? error.message : String(error),
+                evidence: [
+                    {
+                        kind: 'timeout',
+                        detail: `Phase ${phase.number} (${phase.name}) timed out after ${timeoutMs}ms`,
+                    },
+                ],
+            };
+        }
 
         phaseState.status = result.status;
         if (result.status === 'paused') {
@@ -239,6 +309,21 @@ export async function runOrchestration(options: RunOrchestrationOptions): Promis
             return state;
         }
 
+        if (result.status === 'completed' && requiresHumanApproval(phase.gate) && !state.auto_approve_human_gates) {
+            phaseState.evidence.push({
+                kind: 'human-gate',
+                detail: `Phase ${phase.number} completed and is awaiting human approval`,
+                payload: {
+                    phase: phase.number,
+                    gate: phase.gate,
+                },
+            });
+            state.status = 'paused';
+            state.updated_at = now();
+            saveOrchestrationState(state, statePath);
+            return state;
+        }
+
         state.updated_at = now();
         saveOrchestrationState(state, statePath);
     }
@@ -249,18 +334,47 @@ export async function runOrchestration(options: RunOrchestrationOptions): Promis
     return state;
 }
 
+function validateResumeCompatibility(plan: ExecutionPlan, state: OrchestrationState): void {
+    if (state.profile !== plan.profile) {
+        throw new Error(
+            `Resume profile mismatch: state has "${state.profile}" but plan requests "${plan.profile}". ` +
+                'Use --resume only with the same profile as the original run, or start a fresh run without --resume.',
+        );
+    }
+
+    const statePhaseNumbers = state.phases.map((phase) => phase.number);
+    const planPhaseNumbers = plan.phases.map((phase) => phase.number);
+    const stateKey = statePhaseNumbers.join(',');
+    const planKey = planPhaseNumbers.join(',');
+
+    if (stateKey !== planKey) {
+        throw new Error(
+            `Resume phase-set mismatch: state has phases [${stateKey}] but plan requests [${planKey}]. ` +
+                'Use --resume only with the same phase set as the original run.',
+        );
+    }
+}
+
 export async function resumeOrchestration(options: RunOrchestrationOptions): Promise<OrchestrationState> {
     const { plan, projectRoot, stateDir = projectRoot } = options;
-    const statePath = getOrchestrationStatePath(plan.task_ref, stateDir);
-    const state = loadOrchestrationState(statePath);
+    const statePath = findOrchestrationStatePath(plan.task_ref, stateDir);
 
+    if (!statePath) {
+        throw new Error(
+            `No orchestration state found for task "${plan.task_ref}" in ${join(stateDir, 'orchestration')}`,
+        );
+    }
+
+    const state = loadOrchestrationState(statePath);
     if (!state) {
-        throw new Error(`No orchestration state found at ${statePath}`);
+        throw new Error(`Failed to load orchestration state from ${statePath}`);
     }
 
     if (state.status !== 'paused') {
         throw new Error(`Orchestration is not paused (status: ${state.status})`);
     }
+
+    validateResumeCompatibility(plan, state);
 
     const pausedPhase = state.phases.find((phase) => phase.status === 'paused');
     if (pausedPhase) {
@@ -271,100 +385,76 @@ export async function resumeOrchestration(options: RunOrchestrationOptions): Pro
     state.updated_at = now();
     saveOrchestrationState(state, statePath);
 
-    return runOrchestration(options);
+    return runOrchestration({
+        ...options,
+        initialState: state,
+        statePathOverride: statePath,
+    });
 }
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
-    if (args.length < 1) {
+    let parsed: ReturnType<typeof parseOrchestrationArgs>;
+    try {
+        parsed = parseOrchestrationArgs(args, validateProfile);
+    } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+    }
+
+    if (!parsed) {
         logger.error(
             'Usage: runtime.ts <task_ref> [--profile <profile>] [--start-phase <n>] [--skip-phases <phases>] [--coverage <n>] [--channel <agent|current>] [--auto] [--dry-run] [--refine] [--stack-profile <id>] [--resume]',
         );
         process.exit(1);
     }
 
-    const taskRef = args[0];
-    let startPhase: Phase['number'] | undefined;
-    const skipPhases: Phase['number'][] = [];
-    let profile: Profile | undefined;
-    let coverageOverride: number | undefined;
-    let executionChannel = 'current';
-    let auto = false;
-    let dryRun = false;
-    let refine = false;
-    let stackProfile = 'typescript-bun-biome';
-    let resume = false;
-
-    for (let i = 1; i < args.length; i++) {
-        if (args[i] === '--profile' && i + 1 < args.length) {
-            const value = args[++i];
-            if (!validateProfile(value)) {
-                logger.error(`Invalid profile: ${value}`);
-                process.exit(1);
-            }
-            profile = value;
-        } else if (args[i] === '--start-phase' && i + 1 < args.length) {
-            const parsed = Number.parseInt(args[++i], 10);
-            if (parsed >= 1 && parsed <= 9) {
-                startPhase = parsed as Phase['number'];
-            } else {
-                logger.error(`Invalid start-phase: ${parsed}. Must be 1-9.`);
-                process.exit(1);
-            }
-        } else if ((args[i] === '--skip' || args[i] === '--skip-phases') && i + 1 < args.length) {
-            const parsed = args[++i]
-                .split(',')
-                .map((value) => Number.parseInt(value.trim(), 10))
-                .filter((value): value is Phase['number'] => value >= 1 && value <= 9);
-            skipPhases.push(...parsed);
-        } else if (args[i] === '--coverage' && i + 1 < args.length) {
-            const parsed = Number.parseInt(args[++i], 10);
-            if (!Number.isFinite(parsed) || parsed < 1 || parsed > 100) {
-                logger.error(`Invalid coverage: ${parsed}. Must be 1-100.`);
-                process.exit(1);
-            }
-            coverageOverride = parsed;
-        } else if (args[i] === '--channel' && i + 1 < args.length) {
-            executionChannel = args[++i];
-        } else if (args[i] === '--auto') {
-            auto = true;
-        } else if (args[i] === '--dry-run') {
-            dryRun = true;
-        } else if (args[i] === '--refine') {
-            refine = true;
-        } else if (args[i] === '--stack-profile' && i + 1 < args.length) {
-            stackProfile = args[++i];
-        } else if (args[i] === '--resume') {
-            resume = true;
-        }
+    try {
+        normalizeExecutionChannel(parsed.executionChannel);
+    } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
     }
 
-    const plan = createExecutionPlan(taskRef, {
-        ...(profile ? { profile } : {}),
-        ...(startPhase ? { startPhase } : {}),
-        ...(skipPhases.length > 0 ? { skipPhases } : {}),
-        ...(coverageOverride !== undefined ? { coverageOverride } : {}),
-        executionChannel,
-        auto,
-        dryRun,
-        refine,
-    });
+    try {
+        const plan = createExecutionPlan(parsed.taskRef, {
+            ...(parsed.profile ? { profile: parsed.profile } : {}),
+            ...(parsed.startPhase ? { startPhase: parsed.startPhase } : {}),
+            ...(parsed.skipPhases.length > 0 ? { skipPhases: parsed.skipPhases } : {}),
+            ...(parsed.coverageOverride !== undefined ? { coverageOverride: parsed.coverageOverride } : {}),
+            executionChannel: parsed.executionChannel,
+            auto: parsed.auto,
+            dryRun: parsed.dryRun,
+            refine: parsed.refine,
+        });
 
-    const runner = createPilotPhaseRunner();
-    const state = resume
-        ? await resumeOrchestration({
-              plan,
-              projectRoot: process.cwd(),
-              phaseRunner: runner,
-              stackProfile,
-          })
-        : await runOrchestration({
-              plan,
-              projectRoot: process.cwd(),
-              phaseRunner: runner,
-              stackProfile,
-          });
+        if (plan.dry_run) {
+            logger.log(JSON.stringify(plan, null, 2));
+            return;
+        }
 
-    logger.log(JSON.stringify(state, null, 2));
+        const runner = createPilotPhaseRunner();
+        const state = parsed.resume
+            ? await resumeOrchestration({
+                  plan,
+                  projectRoot: process.cwd(),
+                  phaseRunner: runner,
+                  stackProfile: parsed.stackProfile,
+              })
+            : await runOrchestration({
+                  plan,
+                  projectRoot: process.cwd(),
+                  phaseRunner: runner,
+                  stackProfile: parsed.stackProfile,
+              });
+
+        logger.log(JSON.stringify(state, null, 2));
+        if (state.status !== 'completed') {
+            process.exit(1);
+        }
+    } catch (error) {
+        logger.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+    }
 }
 
 if (import.meta.main) {
