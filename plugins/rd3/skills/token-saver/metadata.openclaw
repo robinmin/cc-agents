@@ -1,0 +1,8 @@
+name: token-saver
+description: RTK token optimization proxy. Transparent CLI proxy that reduces
+  LLM token consumption by 60-90% via PreToolUse hook auto-rewrite. Use this
+  skill when checking token savings, troubleshooting hook issues, manually
+  optimizing commands, or when the user mentions rtk, token cost, token usage,
+  output compression, or command filtering.
+version: 1.0.0
+emoji: 🛠️
