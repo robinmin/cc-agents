@@ -312,7 +312,7 @@ install_commands() {
 
         local cmd_name
         cmd_name=$(basename "$cmd_file" .md)
-        local skill_name="${PLUGIN}-cmd-${cmd_name}"
+        local skill_name="${PLUGIN}-${cmd_name}"
 
         for target_dir in "${target_dirs[@]}"; do
             local dest_dir="${target_dir}/${skill_name}"
