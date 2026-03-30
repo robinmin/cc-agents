@@ -30,10 +30,6 @@ metadata:
 
 RTK transparently intercepts Bash commands via a PreToolUse hook, filtering and compressing output so the LLM receives compact results. Single Rust binary, zero dependencies, <10ms overhead.
 
-## Overview
-
-RTK transparently intercepts Bash commands via a PreToolUse hook, filtering and compressing output so the LLM receives compact results.
-
 ## When to Use
 
 Use this skill when:
