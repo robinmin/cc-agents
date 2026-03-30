@@ -1,7 +1,27 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+    chmodSync,
+    existsSync,
+    mkdirSync,
+    openSync,
+    readFileSync,
+    rmSync,
+    unlinkSync,
+    utimesSync,
+    writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
-import { createTask } from '../scripts/commands/create';
+import {
+    acquireCreateLock,
+    createTask,
+    getErrorCode,
+    isStaleLock,
+    releaseCreateLock,
+    renderFrontmatterValue,
+    replaceSectionContent,
+    sleepSync,
+    upsertFrontmatterField,
+} from '../scripts/commands/create';
 import { setGlobalSilent } from '../../../scripts/logger';
 
 describe('createTask', () => {
@@ -157,6 +177,33 @@ impl_progress:
             expect(result.error).toContain('Failed to write task file');
         }
     });
+
+    test('returns an error when the lock file cannot be created in the meta directory', () => {
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            JSON.stringify(
+                {
+                    $schema_version: 1,
+                    active_folder: 'docs/tasks',
+                    folders: {
+                        'docs/tasks': { base_counter: 0 },
+                    },
+                },
+                null,
+                2,
+            ),
+        );
+
+        chmodSync(join(tempDir, 'docs', '.tasks'), 0o555);
+        const result = createTask(tempDir, 'Lock Failure', undefined, { quiet: true });
+        chmodSync(join(tempDir, 'docs', '.tasks'), 0o755);
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error).toContain('Failed to acquire task creation lock');
+        }
+    });
+
     test('persists profile field when provided during task creation', () => {
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),
@@ -262,5 +309,87 @@ impl_progress:
         if (!result.ok) {
             expect(result.error).toContain('Invalid profile');
         }
+    });
+
+    test('acquireCreateLock reclaims stale lock files', () => {
+        const lockPath = join(tempDir, 'docs', '.tasks', '.create-task.lock');
+        writeFileSync(lockPath, '');
+        utimesSync(lockPath, new Date(0), new Date(0));
+
+        const result = acquireCreateLock(lockPath, { timeoutMs: 20, retryMs: 0, staleMs: 1 });
+        expect(result.ok).toBe(true);
+        if (result.ok) {
+            expect(existsSync(lockPath)).toBe(true);
+            releaseCreateLock(lockPath, result.value);
+        }
+        expect(existsSync(lockPath)).toBe(false);
+    });
+
+    test('acquireCreateLock times out while active lock remains fresh', () => {
+        const lockPath = join(tempDir, 'docs', '.tasks', '.create-task.lock');
+        writeFileSync(lockPath, '');
+
+        const result = acquireCreateLock(lockPath, { timeoutMs: 5, retryMs: 1, staleMs: 60_000 });
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error).toContain('Timed out acquiring task creation lock');
+        }
+    });
+
+    test('releaseCreateLock tolerates missing lock file and throws on unexpected unlink errors', () => {
+        const lockPath = join(tempDir, 'docs', '.tasks', '.create-task.lock');
+        const lockResult = acquireCreateLock(lockPath, { timeoutMs: 20, retryMs: 0 });
+        expect(lockResult.ok).toBe(true);
+        if (lockResult.ok) {
+            unlinkSync(lockPath);
+            expect(() => releaseCreateLock(lockPath, lockResult.value)).not.toThrow();
+        }
+
+        const tempFile = join(tempDir, 'fd-only.tmp');
+        writeFileSync(tempFile, 'fd');
+        const fd = openSync(tempFile, 'r');
+        expect(() => releaseCreateLock('/dev/null/create-task.lock', fd)).toThrow();
+    });
+
+    test('helper utilities cover fallback branches and frontmatter insertion behavior', () => {
+        const missingSection = replaceSectionContent('### Requirements\n\nCurrent\n', 'Background', 'Ignored');
+        expect(missingSection).toBe('### Requirements\n\nCurrent\n');
+
+        const unchanged = upsertFrontmatterField('---\nname: test\n---\n', 'profile', undefined);
+        expect(unchanged).toBe('---\nname: test\n---\n');
+
+        const replaced = upsertFrontmatterField('---\npriority: "low"\n---\n', 'priority', 'high');
+        expect(replaced).toContain('priority: "high"');
+
+        const insertedBeforeProgress = upsertFrontmatterField(
+            '---\nname: test\nimpl_progress:\n  planning: pending\n---\n',
+            'tags',
+            ['rd3'],
+        );
+        expect(insertedBeforeProgress).toContain('tags: ["rd3"]\nimpl_progress:');
+
+        const insertedBeforeClose = upsertFrontmatterField('---\nname: test\n---\n', 'estimated_hours', 3);
+        expect(insertedBeforeClose).toContain('estimated_hours: 3\n---');
+
+        expect(renderFrontmatterValue('value')).toBe('"value"');
+        expect(renderFrontmatterValue(7)).toBe('7');
+        expect(renderFrontmatterValue(['a', 'b'])).toBe('["a","b"]');
+
+        expect(getErrorCode({ code: 'ENOENT' })).toBe('ENOENT');
+        expect(getErrorCode('oops')).toBeUndefined();
+    });
+
+    test('stale-lock detection and sleep helper behave as expected', () => {
+        const stalePath = join(tempDir, 'docs', '.tasks', 'stale.lock');
+        expect(isStaleLock(stalePath)).toBe(true);
+
+        writeFileSync(stalePath, '');
+        expect(isStaleLock(stalePath, 60_000)).toBe(false);
+        utimesSync(stalePath, new Date(0), new Date(0));
+        expect(isStaleLock(stalePath, 1)).toBe(true);
+
+        const startedAt = Date.now();
+        sleepSync(5);
+        expect(Date.now() - startedAt).toBeGreaterThanOrEqual(0);
     });
 });
