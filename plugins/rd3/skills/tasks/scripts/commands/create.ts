@@ -1,12 +1,22 @@
 // create command — create a new task file
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { err, ok, type Result } from '../lib/result';
 import { loadConfig, resolveFolderPath, getMetaDir } from '../lib/config';
 import { getNextWbs, formatWbs } from '../lib/wbs';
 import { getTemplateVars, substituteTemplateVars, stripInputTips } from '../lib/template';
 import { logger } from '../../../../scripts/logger';
+
+const CREATE_LOCK_RETRY_MS = 10;
+const CREATE_LOCK_TIMEOUT_MS = 5_000;
+const CREATE_LOCK_STALE_MS = 30_000;
+
+interface CreateLockOptions {
+    retryMs?: number;
+    timeoutMs?: number;
+    staleMs?: number;
+}
 
 export function createTask(
     projectRoot: string,
@@ -28,16 +38,19 @@ export function createTask(
     const folder = cliFolder || config.active_folder;
     const folderPath = resolveFolderPath(config, projectRoot, cliFolder);
 
+    if (options.profile !== undefined) {
+        const validProfiles = ['simple', 'standard', 'complex', 'research'];
+        if (!validProfiles.includes(options.profile)) {
+            return err(`Invalid profile: "${options.profile}". Valid values: ${validProfiles.join(', ')}`);
+        }
+    }
+
     if (!existsSync(folderPath)) {
         mkdirSync(folderPath, { recursive: true });
         if (!options.quiet) {
             logger.info(`Created folder: ${folder}`);
         }
     }
-
-    // Get next WBS
-    const nextNum = getNextWbs(config, projectRoot);
-    const wbs = formatWbs(nextNum);
 
     // Load template
     const templatePath = resolve(getMetaDir(projectRoot), 'task.md');
@@ -48,55 +61,136 @@ export function createTask(
         templateContent = getDefaultTemplate();
     }
 
-    // Render template with placeholder cleanup first so section overrides work on both
-    // the built-in template and customized project templates.
-    const vars = getTemplateVars(name, wbs, folder, name);
-    let content = substituteTemplateVars(templateContent, vars);
-    content = stripInputTips(content);
-
-    if (options.background) {
-        content = replaceSectionContent(content, 'Background', options.background);
-    }
-    if (options.requirements) {
-        content = replaceSectionContent(content, 'Requirements', options.requirements);
-    }
-    if (options.solution) {
-        content = replaceSectionContent(content, 'Solution', options.solution);
+    const lockPath = resolve(getMetaDir(projectRoot), '.create-task.lock');
+    const lockResult = acquireCreateLock(lockPath);
+    if (!lockResult.ok) {
+        return err(lockResult.error);
     }
 
-    content = upsertFrontmatterField(content, 'priority', options.priority);
-    content = upsertFrontmatterField(content, 'estimated_hours', options.estimatedHours);
-    content = upsertFrontmatterField(content, 'dependencies', options.dependencies);
-    content = upsertFrontmatterField(content, 'tags', options.tags);
-    if (options.profile !== undefined) {
-        const validProfiles = ['simple', 'standard', 'complex', 'research'];
-        if (!validProfiles.includes(options.profile)) {
-            return err(`Invalid profile: "${options.profile}". Valid values: ${validProfiles.join(', ')}`);
-        }
-    }
-    content = upsertFrontmatterField(content, 'profile', options.profile);
-
-    // Write file
-    const fileName = `${wbs}_${name.replace(/\s+/g, '_')}.md`;
-    const filePath = resolve(folderPath, fileName);
-
-    if (existsSync(filePath)) {
-        return err(`Task already exists: ${fileName}`);
-    }
-
+    let created: Result<{ wbs: string; path: string }>;
     try {
-        writeFileSync(filePath, content, 'utf-8');
-    } catch (e) {
-        return err(`Failed to write task file: ${e}`);
+        // Serialize WBS allocation and file creation so concurrent CLI invocations
+        // cannot observe the same "next" number before either write lands.
+        const nextNum = getNextWbs(config, projectRoot);
+        const wbs = formatWbs(nextNum);
+
+        // Render template with placeholder cleanup after WBS allocation so the
+        // generated content and filename stay consistent inside the critical section.
+        const vars = getTemplateVars(name, wbs, folder, name);
+        let content = substituteTemplateVars(templateContent, vars);
+        content = stripInputTips(content);
+
+        if (options.background) {
+            content = replaceSectionContent(content, 'Background', options.background);
+        }
+        if (options.requirements) {
+            content = replaceSectionContent(content, 'Requirements', options.requirements);
+        }
+        if (options.solution) {
+            content = replaceSectionContent(content, 'Solution', options.solution);
+        }
+
+        content = upsertFrontmatterField(content, 'priority', options.priority);
+        content = upsertFrontmatterField(content, 'estimated_hours', options.estimatedHours);
+        content = upsertFrontmatterField(content, 'dependencies', options.dependencies);
+        content = upsertFrontmatterField(content, 'tags', options.tags);
+        content = upsertFrontmatterField(content, 'profile', options.profile);
+
+        const fileName = `${wbs}_${name.replace(/\s+/g, '_')}.md`;
+        const filePath = resolve(folderPath, fileName);
+
+        if (existsSync(filePath)) {
+            created = err(`Task already exists: ${fileName}`);
+        } else {
+            try {
+                writeFileSync(filePath, content, 'utf-8');
+                created = ok({ wbs, path: filePath });
+            } catch (e) {
+                created = err(`Failed to write task file: ${e}`);
+            }
+        }
+    } finally {
+        releaseCreateLock(lockPath, lockResult.value);
+    }
+
+    if (!created.ok) {
+        return created;
     }
 
     if (!options.quiet) {
-        logger.success(`Created ${wbs} ${name} → ${folder}/${fileName}`);
+        const relativePath = `${folder}/${created.value.path.split('/').pop() ?? ''}`;
+        logger.success(`Created ${created.value.wbs} ${name} → ${relativePath}`);
     }
-    return ok({ wbs, path: filePath });
+    return created;
 }
 
-function replaceSectionContent(content: string, section: string, newContent: string): string {
+export function acquireCreateLock(lockPath: string, options: CreateLockOptions = {}): Result<number> {
+    const retryMs = options.retryMs ?? CREATE_LOCK_RETRY_MS;
+    const timeoutMs = options.timeoutMs ?? CREATE_LOCK_TIMEOUT_MS;
+    const staleMs = options.staleMs ?? CREATE_LOCK_STALE_MS;
+
+    mkdirSync(dirname(lockPath), { recursive: true });
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() <= deadline) {
+        try {
+            const fd = openSync(lockPath, 'wx');
+            return ok(fd);
+        } catch (error) {
+            const code = getErrorCode(error);
+            if (code !== 'EEXIST') {
+                return err(`Failed to acquire task creation lock: ${error}`);
+            }
+
+            if (isStaleLock(lockPath, staleMs)) {
+                try {
+                    unlinkSync(lockPath);
+                    continue;
+                } catch (unlinkError) {
+                    const unlinkCode = getErrorCode(unlinkError);
+                    if (unlinkCode !== 'ENOENT') {
+                        return err(`Failed to clear stale task creation lock: ${unlinkError}`);
+                    }
+                }
+            }
+
+            sleepSync(retryMs);
+        }
+    }
+
+    return err(`Timed out acquiring task creation lock: ${lockPath}`);
+}
+
+export function releaseCreateLock(lockPath: string, fd: number): void {
+    closeSync(fd);
+    try {
+        unlinkSync(lockPath);
+    } catch (error) {
+        const code = getErrorCode(error);
+        if (code !== 'ENOENT') {
+            throw error;
+        }
+    }
+}
+
+export function isStaleLock(lockPath: string, staleMs = CREATE_LOCK_STALE_MS): boolean {
+    try {
+        const stats = statSync(lockPath);
+        return Date.now() - stats.mtimeMs > staleMs;
+    } catch (error) {
+        return getErrorCode(error) === 'ENOENT';
+    }
+}
+
+export function sleepSync(durationMs: number): void {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, durationMs);
+}
+
+export function getErrorCode(error: unknown): string | undefined {
+    return typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : undefined;
+}
+
+export function replaceSectionContent(content: string, section: string, newContent: string): string {
     const sectionPattern = new RegExp(`(### ${section}\\n\\n)[\\s\\S]*?(?=\\n### |$)`, 'm');
     if (!sectionPattern.test(content)) {
         return content;
@@ -105,7 +199,11 @@ function replaceSectionContent(content: string, section: string, newContent: str
     return content.replace(sectionPattern, `$1${newContent.trim()}\n`);
 }
 
-function upsertFrontmatterField(content: string, field: string, value: string | number | string[] | undefined): string {
+export function upsertFrontmatterField(
+    content: string,
+    field: string,
+    value: string | number | string[] | undefined,
+): string {
     if (value === undefined) {
         return content;
     }
@@ -123,7 +221,7 @@ function upsertFrontmatterField(content: string, field: string, value: string | 
     return content.replace(/\n---\n/, `\n${field}: ${renderedValue}\n---\n`);
 }
 
-function renderFrontmatterValue(value: string | number | string[]): string {
+export function renderFrontmatterValue(value: string | number | string[]): string {
     if (Array.isArray(value)) {
         return JSON.stringify(value);
     }
