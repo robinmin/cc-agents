@@ -45,7 +45,7 @@ export const PHASE_WORKER_CONTRACTS: Record<WorkerPhaseNumber, PhaseWorkerContra
         canonical_backbone: ['rd3:sys-testing', 'rd3:advanced-testing'],
         supporting_skills: ['rd3:sys-debugging'],
         input_keys: ['task_ref', 'phase_context', 'execution_channel', 'constraints?', 'coverage_threshold'],
-        output_keys: ['status', 'phase', 'artifacts', 'evidence_summary', 'failed_stage?', 'next_step_recommendation'],
+        output_keys: ['status', 'phase', 'test_artifacts', 'evidence_summary', 'failed_stage?', 'next_step_recommendation'],
         execution_channel_semantics:
             'Orchestration owns channel selection. Worker agents consume the normalized value but must not reinterpret it.',
         anti_recursion_rules: [
@@ -325,7 +325,7 @@ export const DOWNSTREAM_EVIDENCE_CONTRACTS: Record<string, DownstreamEvidenceEnv
     'rd3:super-tester': {
         kind: 'worker-phase-result',
         summary: 'Phase 6 testing worker output envelope',
-        required_fields: ['status', 'phase', 'artifacts', 'evidence_summary', 'next_step_recommendation'],
+        required_fields: ['status', 'phase', 'test_artifacts', 'evidence_summary', 'next_step_recommendation'],
         optional_fields: ['failed_stage'],
     },
     'rd3:super-reviewer': {
