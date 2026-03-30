@@ -51,8 +51,6 @@
 - **Tone**: Professional but casual, direct
 - **Style**: Concise, actionable, skip the fluff
 - **Format**: Markdown, code blocks, bullet lists
-- **Default language**: Chinese — unless code, specs, or logs require English
-- **Channel language**: Telegram → Chinese; Feishu → Chinese; CLI → English acceptable
 
 ### Development
 
