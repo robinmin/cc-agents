@@ -137,6 +137,8 @@ The following specialist skills are available for delegation:
 | 8 | `rd3:bdd-workflow` / `rd3:functional-review` | Functional verification |
 | 9 | `rd3:code-docs` | Documentation |
 
+**Note for v1 Pilot:** Currently, only Phases 5, 6, and 7 are executable end-to-end within the orchestration pipeline. Phases 1-4 and 8-9 are plan-only. Furthermore, if executing worker phases (5 and 7) on the `current` channel, the local prompt runner requires an explicit prompt agent configured by the user via `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT` environment variables.
+
 `rd3:orchestration-dev` is the routing authority for local vs ACP-backed execution. This wrapper should pass the requested channel through, not reinterpret it.
 
 ## Process
@@ -159,6 +161,7 @@ The following specialist skills are available for delegation:
 | Missing task reference | Ask for the WBS number or task file path |
 | Invalid phase/profile combination | Report the mismatch and restate valid profile/flag choices |
 | Skill invocation unavailable | Fall back to the platform's alternative skill invocation mechanism |
+| Missing prompt agent configuration | Instruct the user to set `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT` |
 | Delegated orchestration failure | Report the error verbatim and identify the failed phase if present |
 | Unknown execution channel | Pass through only recognized `current` or ACP agent values |
 
