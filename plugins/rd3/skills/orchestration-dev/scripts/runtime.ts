@@ -31,6 +31,7 @@ export interface PhaseExecutionRecord {
     started_at?: string;
     completed_at?: string;
     evidence: PhaseEvidence[];
+    result?: Record<string, unknown>;
     error?: string;
 }
 
@@ -53,6 +54,7 @@ export interface OrchestrationState {
 export interface PhaseRunnerResult {
     status: Extract<PhaseExecutionStatus, 'completed' | 'paused' | 'failed' | 'skipped'>;
     evidence?: PhaseEvidence[];
+    result?: Record<string, unknown>;
     error?: string;
 }
 
@@ -212,6 +214,11 @@ export async function runOrchestration(options: RunOrchestrationOptions): Promis
             phaseState.completed_at = now();
         }
         phaseState.evidence.push(...(result.evidence ?? []));
+        if (result.result) {
+            phaseState.result = result.result;
+        } else if ('result' in phaseState) {
+            deleteOptionalField(phaseState, 'result');
+        }
         if (result.error) {
             phaseState.error = result.error;
         } else if ('error' in phaseState) {
