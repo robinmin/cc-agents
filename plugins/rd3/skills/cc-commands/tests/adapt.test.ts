@@ -1,26 +1,31 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const TEST_DIR = '/tmp/cc-commands-adapt-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ADAPT_SCRIPT = join(__dirname, '..', 'scripts', 'adapt.ts');
+let testDir = '';
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-commands-adapt-'));
+}
 
 describe('Integration: adapt command', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        testDir = createTestDir();
     });
 
     afterEach(() => {
-        if (existsSync(TEST_DIR)) {
-            rmSync(TEST_DIR, { recursive: true, force: true });
+        if (testDir && existsSync(testDir)) {
+            rmSync(testDir, { recursive: true, force: true });
         }
+        testDir = '';
     });
 
     it('should adapt a single command file path', async () => {
-        const commandPath = join(TEST_DIR, 'test-command.md');
+        const commandPath = join(testDir, 'test-command.md');
         writeFileSync(
             commandPath,
             `---
@@ -44,7 +49,7 @@ Use this command to verify direct path adaptation.
         const exitCode = await proc.exited;
         expect(exitCode).toBe(0);
 
-        const openaiYamlPath = join(TEST_DIR, 'agents', 'openai.yaml');
+        const openaiYamlPath = join(testDir, 'agents', 'openai.yaml');
         expect(existsSync(openaiYamlPath)).toBe(true);
         expect(readFileSync(openaiYamlPath, 'utf-8')).toContain('name: test-command');
     });
