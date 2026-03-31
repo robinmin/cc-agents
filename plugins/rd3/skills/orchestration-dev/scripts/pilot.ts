@@ -1,13 +1,36 @@
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, isAbsolute, join } from 'node:path';
 import type { DelegateRunner, ChainManifest, ChainState, CheckerConfig } from '../../verification-chain/scripts/types';
-import { runChain } from '../../verification-chain/scripts/interpreter';
+import { resumeChain, runChain } from '../../verification-chain/scripts/interpreter';
 import { DOWNSTREAM_EVIDENCE_CONTRACTS, PHASE_WORKER_CONTRACTS } from './contracts';
+import { buildPhaseManifest, GATE_PROFILES, type GateProfileDef } from './gates';
+import { buildDirectSkillPrompt, isDirectSkillPhase } from './direct-skill-runner';
 import { createExecutorForChannel, type ExecutionResult } from './executors';
 import type { Phase } from './model';
 import type { PhaseEvidence, PhaseRunner, PhaseRunnerResult } from './runtime';
+import { getOrchestrationArtifactsRootFromStatePath } from './state-paths';
 import { loadVerificationProfile } from './verification-profiles';
 
 const DEFAULT_VERIFICATION_PROMPT = (cwd: string, command: string) =>
     `In ${cwd}, run this verification command and report only the result:\n${command}`;
+
+function writeGateEvidenceFile(cwd: string, path: string, payload: Record<string, unknown>): void {
+    const resolvedPath = isAbsolute(path) ? path : join(cwd, path);
+    mkdirSync(dirname(resolvedPath), { recursive: true });
+    writeFileSync(resolvedPath, JSON.stringify(payload, null, 2), 'utf-8');
+}
+
+function getChainStatePath(artifactRoot: string, manifest: ChainManifest): string {
+    return join(artifactRoot, 'cov', `${manifest.chain_id}-${manifest.task_wbs}-cov-state.json`);
+}
+
+function resolveRuntimeArtifactsRoot(context: Parameters<PhaseRunner>[1]): string {
+    if (!context.statePath) {
+        return context.projectRoot;
+    }
+
+    return getOrchestrationArtifactsRootFromStatePath(context.statePath);
+}
 
 function mapExecutionResult(result: ExecutionResult) {
     return {
@@ -43,6 +66,10 @@ function buildDelegatedWorkerPrompt(skill: string, prompt: string, args?: Record
     ]
         .filter((line): line is string => Boolean(line))
         .join('\n');
+}
+
+function buildDelegatedPrompt(skill: string, prompt: string, args?: Record<string, unknown>): string {
+    return args?.expect_worker_envelope === true ? buildDelegatedWorkerPrompt(skill, prompt, args) : prompt;
 }
 
 function buildPhase6Manifest(phase: Phase, taskRef: string, profileId: string): ChainManifest {
@@ -180,6 +207,85 @@ function validateWorkerEnvelope(phase: Phase, payload: Record<string, unknown>):
     return errors;
 }
 
+function buildGenericGateProfile(phase: Phase, context: Parameters<PhaseRunner>[1]): GateProfileDef {
+    const baseProfile = GATE_PROFILES[phase.number];
+    const steps = baseProfile.steps.map((step, index) => {
+        if (index !== 0) {
+            return step;
+        }
+
+        if (phase.execution_mode === 'worker-agent') {
+            return {
+                ...step,
+                prompt: buildWorkerPrompt(phase, context),
+                skill: phase.skill,
+                expect_worker_envelope: true,
+                timeout_seconds: step.timeout_seconds ?? 3600,
+                ...(step.checker ? { checker: step.checker } : {}),
+            };
+        }
+
+        if (isDirectSkillPhase(phase.number)) {
+            return {
+                ...step,
+                prompt: buildDirectSkillPrompt(phase, context),
+                skill: phase.skill,
+                execution_channel: 'current',
+                timeout_seconds: step.timeout_seconds ?? 3600,
+                ...(step.checker ? { checker: step.checker } : {}),
+            };
+        }
+
+        return step;
+    });
+
+    return {
+        ...baseProfile,
+        steps,
+    };
+}
+
+function parsePhaseResultFromChain(phase: Phase, state: ChainState): Record<string, unknown> | undefined {
+    const makerOutput = state.nodes.find((node) => typeof node.maker_output === 'string')?.maker_output?.trim();
+    if (!makerOutput) {
+        return undefined;
+    }
+
+    try {
+        const parsed = JSON.parse(makerOutput) as unknown;
+        if (isRecord(parsed)) {
+            return parsed;
+        }
+    } catch {
+        // Direct-skill phases may emit plain text. Preserve a compact summary.
+    }
+
+    return {
+        phase: phase.number,
+        status: state.status,
+        output: makerOutput,
+    };
+}
+
+function buildPhaseErrorFromChain(state: ChainState): string {
+    const pausedNode = state.nodes.find(
+        (node) => node.status === 'running' || node.status === 'pending' || node.checker_result === 'paused',
+    );
+    const failedNode = state.nodes.find((node) => node.status === 'failed');
+    const relevantNode = failedNode ?? pausedNode;
+
+    if (relevantNode?.maker_error) {
+        return relevantNode.maker_error;
+    }
+
+    const checkerError = relevantNode?.evidence.find((entry) => entry.error)?.error;
+    if (checkerError) {
+        return checkerError;
+    }
+
+    return `Phase verification ended with status ${state.status}`;
+}
+
 export function buildWorkerPrompt(phase: Phase, context: Parameters<PhaseRunner>[1]): string {
     const workerContract = PHASE_WORKER_CONTRACTS[phase.number as 5 | 6 | 7];
     const phaseContext = {
@@ -212,102 +318,6 @@ export function buildWorkerPrompt(phase: Phase, context: Parameters<PhaseRunner>
         .join('\n');
 }
 
-async function runWorkerAgentPhase(
-    phase: Phase,
-    context: Parameters<PhaseRunner>[1],
-    executorOptions: Parameters<typeof createExecutorForChannel>[1],
-): Promise<PhaseRunnerResult> {
-    const executor = createExecutorForChannel(context.plan.execution_channel, executorOptions);
-    const prompt = buildWorkerPrompt(phase, context);
-    const result = await executor.execute({
-        channel: context.plan.execution_channel,
-        cwd: context.projectRoot,
-        timeout_ms: 60 * 60 * 1000,
-        prompt,
-        metadata: {
-            skill: phase.executor,
-            task_ref: context.plan.task_ref,
-            phase: phase.number,
-        },
-    });
-
-    const baseEvidence: PhaseEvidence[] = [
-        buildPhaseExecutorEvidence(phase),
-        {
-            kind: 'worker-dispatch',
-            detail: `delegated phase ${phase.number} to ${phase.executor} via ${result.backend}`,
-            payload: {
-                backend: result.backend,
-                normalized_channel: result.normalized_channel,
-                ...(result.prompt_agent ? { prompt_agent: result.prompt_agent } : {}),
-                ...(result.command ? { command: result.command } : {}),
-            },
-        },
-    ];
-
-    if (!result.stdout) {
-        return {
-            status: 'failed',
-            evidence: baseEvidence,
-            error: result.error ?? `Worker execution for phase ${phase.number} returned no stdout envelope`,
-        };
-    }
-
-    const parsedEnvelope = parseWorkerEnvelope(result.stdout);
-    if (!parsedEnvelope.ok) {
-        return {
-            status: 'failed',
-            evidence: [
-                ...baseEvidence,
-                {
-                    kind: 'worker-output',
-                    detail: result.stdout.slice(0, 200),
-                },
-            ],
-            error: parsedEnvelope.error,
-        };
-    }
-
-    const validationErrors = validateWorkerEnvelope(phase, parsedEnvelope.payload);
-    if (validationErrors.length > 0) {
-        return {
-            status: 'failed',
-            evidence: [
-                ...baseEvidence,
-                {
-                    kind: 'worker-envelope-invalid',
-                    detail: validationErrors.join('; '),
-                    payload: parsedEnvelope.payload,
-                },
-            ],
-            result: parsedEnvelope.payload,
-            error: `Invalid worker envelope for phase ${phase.number}: ${validationErrors.join('; ')}`,
-        };
-    }
-
-    const envelopeStatus = parsedEnvelope.payload.status as PhaseRunnerResult['status'];
-    const errorSummary =
-        typeof parsedEnvelope.payload.error_summary === 'string' ? parsedEnvelope.payload.error_summary : result.error;
-
-    return {
-        status: envelopeStatus,
-        evidence: [
-            ...baseEvidence,
-            {
-                kind: 'worker-envelope',
-                detail: `validated ${phase.executor} worker envelope for phase ${phase.number} with status ${envelopeStatus}`,
-                payload: parsedEnvelope.payload,
-            },
-        ],
-        result: parsedEnvelope.payload,
-        ...(envelopeStatus === 'completed'
-            ? {}
-            : {
-                  error: errorSummary ?? `Worker envelope returned status ${envelopeStatus} for phase ${phase.number}`,
-              }),
-    };
-}
-
 function buildPhaseEvidence(state: ChainState): PhaseEvidence[] {
     return state.nodes.map((node) => ({
         kind: 'cov-node',
@@ -326,13 +336,13 @@ export function createPilotDelegateRunner(
     channel: string,
     options: Parameters<typeof createExecutorForChannel>[1] = {},
 ): DelegateRunner {
-    const executor = createExecutorForChannel(channel, options);
-
     return async (request) => {
+        const requestedChannel = request.execution_channel ?? channel;
+        const executor = createExecutorForChannel(requestedChannel, options);
         const command = typeof request.args?.command === 'string' ? request.args.command : undefined;
         const prompt =
             typeof request.args?.prompt === 'string'
-                ? buildDelegatedWorkerPrompt(request.skill, request.args.prompt, request.args)
+                ? buildDelegatedPrompt(request.skill, request.args.prompt, request.args)
                 : command
                   ? DEFAULT_VERIFICATION_PROMPT(request.cwd, command)
                   : undefined;
@@ -345,7 +355,7 @@ export function createPilotDelegateRunner(
         }
 
         const result = await executor.execute({
-            channel: request.execution_channel ?? channel,
+            channel: requestedChannel,
             cwd: request.cwd,
             timeout_ms: request.timeout_ms,
             ...(command ? { command } : {}),
@@ -355,15 +365,104 @@ export function createPilotDelegateRunner(
                 ...(request.task_ref ? { task_ref: request.task_ref } : {}),
             },
         });
+        const evidenceOutputPath =
+            typeof request.args?.evidence_output_path === 'string' ? request.args.evidence_output_path : undefined;
+
+        const phaseNumber =
+            typeof request.args?.phase === 'number' ? (request.args.phase as Phase['number']) : undefined;
+        const expectsWorkerEnvelope = request.args?.expect_worker_envelope === true;
+
+        if (expectsWorkerEnvelope && phaseNumber !== undefined) {
+            const phaseForValidation: Phase = {
+                number: phaseNumber,
+                name: `Phase ${phaseNumber}`,
+                skill:
+                    typeof request.args?.downstream_skill === 'string' ? request.args.downstream_skill : request.skill,
+                executor: request.skill,
+                execution_mode: 'worker-agent',
+                inputs: [],
+                outputs: [],
+                gate: 'auto',
+            };
+
+            if (!result.stdout) {
+                return {
+                    status: 'failed',
+                    error: `Worker execution for phase ${phaseNumber} returned no stdout envelope`,
+                };
+            }
+
+            const parsedEnvelope = parseWorkerEnvelope(result.stdout);
+            if (!parsedEnvelope.ok) {
+                return {
+                    status: 'failed',
+                    error: parsedEnvelope.error,
+                    output: result.stdout,
+                };
+            }
+
+            const validationErrors = validateWorkerEnvelope(phaseForValidation, parsedEnvelope.payload);
+            if (validationErrors.length > 0) {
+                return {
+                    status: 'failed',
+                    error: `Invalid worker envelope for phase ${phaseNumber}: ${validationErrors.join('; ')}`,
+                    output: result.stdout,
+                    structured_output: parsedEnvelope.payload,
+                };
+            }
+
+            const envelopeStatus = parsedEnvelope.payload.status as Extract<
+                PhaseRunnerResult['status'],
+                'completed' | 'failed' | 'paused'
+            >;
+            const errorSummary =
+                typeof parsedEnvelope.payload.error_summary === 'string'
+                    ? parsedEnvelope.payload.error_summary
+                    : (result.error ?? `Worker envelope returned status ${envelopeStatus} for phase ${phaseNumber}`);
+
+            if (evidenceOutputPath) {
+                writeGateEvidenceFile(request.cwd, evidenceOutputPath, {
+                    phase: phaseNumber,
+                    step: request.args?.step,
+                    skill: request.skill,
+                    requested_execution_channel: requestedChannel,
+                    normalized_channel: result.normalized_channel,
+                    backend: result.backend,
+                    status: envelopeStatus,
+                    has_output: Boolean(result.stdout?.trim()),
+                    has_structured_output: true,
+                    raw_output: result.stdout ?? '',
+                    structured_output: parsedEnvelope.payload,
+                    ...(errorSummary ? { error: errorSummary } : {}),
+                });
+            }
+
+            return {
+                status: envelopeStatus,
+                output: result.stdout,
+                structured_output: parsedEnvelope.payload,
+                ...(envelopeStatus === 'completed' ? {} : { error: errorSummary }),
+            };
+        }
+
+        if (evidenceOutputPath) {
+            writeGateEvidenceFile(request.cwd, evidenceOutputPath, {
+                phase: phaseNumber ?? null,
+                step: request.args?.step,
+                skill: request.skill,
+                requested_execution_channel: requestedChannel,
+                normalized_channel: result.normalized_channel,
+                backend: result.backend,
+                status: result.status,
+                has_output: Boolean(result.stdout?.trim()),
+                has_structured_output: Boolean(result.structured_output),
+                raw_output: result.stdout ?? '',
+                ...(result.structured_output ? { structured_output: result.structured_output } : {}),
+                ...(result.error ? { error: result.error } : {}),
+            });
+        }
 
         return mapExecutionResult(result);
-    };
-}
-
-function unsupportedPhaseResult(phase: Phase): PhaseRunnerResult {
-    return {
-        status: 'failed',
-        error: `Pilot runner does not yet support phase ${phase.number} (${phase.name}) via ${phase.executor}`,
     };
 }
 
@@ -371,26 +470,63 @@ export function createPilotPhaseRunner(
     executorOptions: Parameters<typeof createExecutorForChannel>[1] = {},
 ): PhaseRunner {
     return async (phase, context) => {
-        if (phase.execution_mode === 'worker-agent' && phase.number !== 6) {
-            return runWorkerAgentPhase(phase, context, executorOptions);
+        const runtimeArtifactsRoot = resolveRuntimeArtifactsRoot(context);
+        const manifest =
+            phase.number === 6
+                ? buildPhase6Manifest(phase, context.plan.task_ref, context.stackProfile ?? 'typescript-bun-biome')
+                : buildPhaseManifest(
+                      phase,
+                      context.plan.task_ref,
+                      {
+                          project_root: context.projectRoot,
+                          auto_approve_human_gates: context.state.auto_approve_human_gates,
+                          run_artifact_root: runtimeArtifactsRoot,
+                          ...(context.plan.task_path ? { task_path: context.plan.task_path } : {}),
+                      },
+                      buildGenericGateProfile(phase, context),
+                  );
+        const delegateRunner = createPilotDelegateRunner(context.plan.execution_channel, executorOptions);
+        const chainStatePath = getChainStatePath(runtimeArtifactsRoot, manifest);
+        let state: ChainState;
+
+        try {
+            if (context.rework_feedback) {
+                // Force a fresh run by deleting existing state
+                if (existsSync(runtimeArtifactsRoot)) {
+                    rmSync(runtimeArtifactsRoot, { recursive: true, force: true });
+                }
+            }
+            const existing = JSON.parse(readFileSync(chainStatePath, 'utf-8')) as { status?: string };
+            state =
+                existing.status === 'paused'
+                    ? await resumeChain({
+                          manifest,
+                          stateDir: runtimeArtifactsRoot,
+                          cwd: context.projectRoot,
+                          humanResponse: 'approve',
+                          delegateRunner,
+                      })
+                    : await runChain({
+                          manifest,
+                          stateDir: runtimeArtifactsRoot,
+                          cwd: context.projectRoot,
+                          delegateRunner,
+                      });
+        } catch {
+            state = await runChain({
+                manifest,
+                stateDir: runtimeArtifactsRoot,
+                cwd: context.projectRoot,
+                delegateRunner,
+            });
         }
 
-        if (phase.number !== 6) {
-            return unsupportedPhaseResult(phase);
-        }
-
-        const profileId = context.stackProfile ?? 'typescript-bun-biome';
-        const manifest = buildPhase6Manifest(phase, context.plan.task_ref, profileId);
-        const state = await runChain({
-            manifest,
-            stateDir: context.projectRoot,
-            delegateRunner: createPilotDelegateRunner(context.plan.execution_channel, executorOptions),
-        });
-
+        const result = parsePhaseResultFromChain(phase, state);
         return {
             status: state.status === 'completed' ? 'completed' : state.status === 'paused' ? 'paused' : 'failed',
             evidence: [buildPhaseExecutorEvidence(phase), ...buildPhaseEvidence(state)],
-            ...(state.status === 'completed' ? {} : { error: `Phase verification ended with status ${state.status}` }),
+            ...(result ? { result } : {}),
+            ...(state.status === 'completed' ? {} : { error: buildPhaseErrorFromChain(state) }),
         };
     };
 }
