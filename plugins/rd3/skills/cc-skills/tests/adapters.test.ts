@@ -3,7 +3,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AntigravityAdapter } from '../scripts/adapters/antigravity';
 import { ClaudeAdapter } from '../scripts/adapters/claude';
@@ -12,7 +13,11 @@ import { OpenClawAdapter, createOpenClawAdapter } from '../scripts/adapters/open
 import { OpenCodeAdapter, createOpenCodeAdapter } from '../scripts/adapters/opencode';
 import type { Skill } from '../scripts/types';
 
-const TEST_DIR = '/tmp/adapter-test';
+let TEST_DIR = '';
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-skills-adapters-'));
+}
 
 function createMockSkill(overrides: Partial<Skill> = {}): Skill {
     return {
@@ -57,8 +62,7 @@ describe('ClaudeAdapter', () => {
 
     beforeEach(() => {
         adapter = new ClaudeAdapter();
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
         createTestSkillFiles();
     });
 
@@ -66,6 +70,7 @@ describe('ClaudeAdapter', () => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
         }
+        TEST_DIR = '';
     });
 
     it('should have correct platform', () => {
@@ -123,8 +128,7 @@ describe('CodexAdapter', () => {
 
     beforeEach(() => {
         adapter = createCodexAdapter();
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
         createTestSkillFiles();
     });
 
@@ -132,6 +136,7 @@ describe('CodexAdapter', () => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
         }
+        TEST_DIR = '';
     });
 
     it('should have correct platform', () => {
@@ -199,8 +204,7 @@ describe('OpenClawAdapter', () => {
 
     beforeEach(() => {
         adapter = createOpenClawAdapter();
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
         createTestSkillFiles();
     });
 
@@ -208,6 +212,7 @@ describe('OpenClawAdapter', () => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
         }
+        TEST_DIR = '';
     });
 
     it('should have correct platform', () => {
@@ -266,8 +271,7 @@ describe('OpenCodeAdapter', () => {
 
     beforeEach(() => {
         adapter = createOpenCodeAdapter();
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
         createTestSkillFiles();
     });
 
@@ -275,6 +279,7 @@ describe('OpenCodeAdapter', () => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
         }
+        TEST_DIR = '';
     });
 
     it('should have correct platform', () => {
@@ -345,8 +350,7 @@ describe('AntigravityAdapter', () => {
 
     beforeEach(() => {
         adapter = new AntigravityAdapter();
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
         createTestSkillFiles();
     });
 
@@ -354,6 +358,7 @@ describe('AntigravityAdapter', () => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
         }
+        TEST_DIR = '';
     });
 
     it('should have correct platform', () => {
