@@ -95,17 +95,17 @@ This is **by design** for the current scope — the runner confirms the phase is
 
 ## P2: Backlog (infrastructure / process)
 
-### F6: Bun test runner hangs with 66+ concurrent test files
+### ~~F6: Bun test runner hangs with 66+ concurrent test files~~ RESOLVED
 
 Running `bun test plugins/rd3/skills/` hangs indefinitely. Root cause: Bun's test runner spawns too many concurrent processes. Tests pass when split into batches of 6-8 files. This affects all rd3 skills, not just orchestration-dev.
 
-**Action**: Investigate `bunfig.toml` concurrency limits or add a test batching script.
+**Resolution (2026-03-31)**: No longer reproducible with Bun 1.3.11. Full suite of 71 test files (2053 tests) completes in 7.25s with 0 failures. Likely fixed by Bun upgrade or `root = "plugins/rd3"` in bunfig.toml.
 
-### F7: Phase 3 (Design) adds marginal value for implementation-heavy tasks
+### ~~F7: Phase 3 (Design) adds marginal value for implementation-heavy tasks~~ RESOLVED
 
 During task 0292, phase 3 was skipped entirely. The architecture phase (2) already contained enough detail. For implementation tasks (vs greenfield architecture), the design phase has diminishing returns.
 
-**Action**: Consider implicit skip for implementation profiles (simple, unit, review, docs).
+**Resolution (2026-03-31)**: Already addressed via `PHASE_MATRIX` in `contracts.ts:92-102`. Phase 3 is skipped for `simple` and `standard` profiles, included only for `complex` and `research`. Phase-only profiles (`unit`, `review`, `docs`, `refine`) also exclude Phase 3.
 
 ### F8: No context budget awareness in pipeline
 
@@ -145,13 +145,13 @@ rollbackMain(['--undo', '0292', '5']);
 
 ### Plan
 
-- [ ] F1: Update SKILL.md (6 locations)
-- [ ] F2: Fix rollback test TS2554
-- [ ] F3: Decide on `--undo` routing (architecture decision needed)
-- [ ] F4: Decide on `evaluateCoVGate()` integration (architecture decision needed)
-- [ ] F5: Document direct-skill synthesized results in SKILL.md
-- [ ] F6: Investigate Bun test concurrency fix
-- [ ] F7: Evaluate Phase 3 skip for impl profiles
+- [x] F1: Update SKILL.md (6 locations)
+- [x] F2: Fix rollback test TS2554
+- [x] F3: Decide on `--undo` routing (architecture decision needed)
+- [x] F4: Decide on `evaluateCoVGate()` integration (architecture decision needed)
+- [x] F5: Document direct-skill synthesized results in SKILL.md
+- [x] ~~F6: Investigate Bun test concurrency fix~~ RESOLVED — Bun 1.3.11 no longer hangs, 71 files / 2053 tests pass in 7.25s
+- [x] ~~F7: Evaluate Phase 3 skip for impl profiles~~ RESOLVED — PHASE_MATRIX in contracts.ts:92-102 already skips Phase 3 for simple/standard profiles
 - [ ] F8: Investigate context budget estimation
 
 ### Testing
