@@ -29,12 +29,6 @@ function createTempDir(prefix: string): string {
     return dir;
 }
 
-function stubExit(): void {
-    process.exit = ((code?: number) => {
-        throw new Error(`EXIT:${code ?? 0}`);
-    }) as typeof process.exit;
-}
-
 describe('generateExecutionPlan', () => {
     test('uses explicit phase contracts instead of implicit previous-phase placeholders', () => {
         const plan = generateExecutionPlan('0266', 'complex');
