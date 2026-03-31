@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { setGlobalSilent } from '../../../scripts/logger';
 import { DOWNSTREAM_EVIDENCE_CONTRACTS, PHASE_WORKER_CONTRACT_VERSION, validateSkipPhases } from '../scripts/contracts';
+import { parseOrchestrationArgs } from '../scripts/model';
 import { createExecutionPlan, generateExecutionPlan, main, validateProfile } from '../scripts/plan';
 
 beforeAll(() => {
@@ -216,6 +217,76 @@ describe('validateProfile', () => {
     });
 });
 
+describe('parseOrchestrationArgs', () => {
+    test('parses --undo with valid phase number', () => {
+        const result = parseOrchestrationArgs(['0292', '--undo', '5'], validateProfile);
+        expect(result).not.toBeNull();
+        expect(result?.undo).toBe(5);
+    });
+
+    test('rejects --undo with out-of-range phase number', () => {
+        expect(() => parseOrchestrationArgs(['0292', '--undo', '11'], validateProfile)).toThrow(
+            'Invalid undo phase: 11. Must be 1-9.',
+        );
+    });
+
+    test('rejects --undo with zero phase number', () => {
+        expect(() => parseOrchestrationArgs(['0292', '--undo', '0'], validateProfile)).toThrow(
+            'Invalid undo phase: 0. Must be 1-9.',
+        );
+    });
+
+    test('parses --undo-dry-run flag', () => {
+        const result = parseOrchestrationArgs(['0292', '--undo-dry-run'], validateProfile);
+        expect(result).not.toBeNull();
+        expect(result?.undoDryRun).toBe(true);
+    });
+
+    test('parses --undo and --undo-dry-run together', () => {
+        const result = parseOrchestrationArgs(['0292', '--undo', '3', '--undo-dry-run'], validateProfile);
+        expect(result).not.toBeNull();
+        expect(result?.undo).toBe(3);
+        expect(result?.undoDryRun).toBe(true);
+    });
+
+    test('undo is undefined when --undo is not provided', () => {
+        const result = parseOrchestrationArgs(['0292'], validateProfile);
+        expect(result).not.toBeNull();
+        expect(result?.undo).toBeUndefined();
+        expect(result?.undoDryRun).toBe(false);
+    });
+
+    test('parses --start-phase with valid phase number', () => {
+        const result = parseOrchestrationArgs(['0292', '--start-phase', '5'], validateProfile);
+        expect(result).not.toBeNull();
+        expect(result?.startPhase).toBe(5);
+    });
+
+    test('parses --coverage with valid number', () => {
+        const result = parseOrchestrationArgs(['0292', '--coverage', '90'], validateProfile);
+        expect(result).not.toBeNull();
+        expect(result?.coverageOverride).toBe(90);
+    });
+
+    test('parses --stack-profile', () => {
+        const result = parseOrchestrationArgs(['0292', '--stack-profile', 'typescript-bun-biome'], validateProfile);
+        expect(result).not.toBeNull();
+        expect(result?.stackProfile).toBe('typescript-bun-biome');
+    });
+
+    test('parses --rework-max-iterations', () => {
+        const result = parseOrchestrationArgs(['0292', '--rework-max-iterations', '4'], validateProfile);
+        expect(result).not.toBeNull();
+        expect(result?.reworkMaxIterations).toBe(4);
+    });
+
+    test('rejects invalid --rework-max-iterations values', () => {
+        expect(() => parseOrchestrationArgs(['0292', '--rework-max-iterations', '0'], validateProfile)).toThrow(
+            'Invalid rework max iterations: 0. Must be >= 1.',
+        );
+    });
+});
+
 describe('createExecutionPlan', () => {
     test('reads task profile from a task file path when no override is provided', () => {
         const tempDir = createTempDir('orchestration-plan-');
@@ -391,33 +462,23 @@ describe('plan main', () => {
     });
 
     test('exits with code 1 when task_ref is missing', () => {
-        stubExit();
-
-        expect(() => main([])).toThrow('EXIT:1');
+        expect(main([])).toBe(1);
     });
 
     test('exits with code 1 when profile is invalid', () => {
-        stubExit();
-
-        expect(() => main(['0266', '--profile', 'invalid'])).toThrow('EXIT:1');
+        expect(main(['0266', '--profile', 'invalid'])).toBe(1);
     });
 
     test('exits with code 1 when skip phases break required dependencies', () => {
-        stubExit();
-
-        expect(() => main(['0266', '--profile', 'standard', '--skip-phases', '5'])).toThrow('EXIT:1');
+        expect(main(['0266', '--profile', 'standard', '--skip-phases', '5'])).toBe(1);
     });
 
     test('exits with code 1 when start-phase is invalid', () => {
-        stubExit();
-
-        expect(() => main(['0266', '--start-phase', '11'])).toThrow('EXIT:1');
+        expect(main(['0266', '--start-phase', '11'])).toBe(1);
     });
 
     test('exits with code 1 when coverage is invalid', () => {
-        stubExit();
-
-        expect(() => main(['0266', '--coverage', '101'])).toThrow('EXIT:1');
+        expect(main(['0266', '--coverage', '101'])).toBe(1);
     });
 
     test('uses coverage override in gate criteria and plan output', () => {
