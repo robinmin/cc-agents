@@ -170,3 +170,4 @@ vite.config.ts.timestamp-*
 /plugins/wt/skills/image-generate/scripts/config_loader.py
 /.ant-colony
 /docs/.migration
+/.rtk/
