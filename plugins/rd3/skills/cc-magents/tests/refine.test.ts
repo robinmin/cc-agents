@@ -10,7 +10,8 @@ import {
     main,
 } from '../scripts/refine';
 import type { MagentEvaluationReport, UniversalMainAgent, RefineAction } from '../scripts/types';
-import { writeFileSync, unlinkSync, mkdirSync, rmdirSync } from 'node:fs';
+import { writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 describe('refine', () => {
@@ -602,9 +603,12 @@ describe('refine', () => {
     });
 
     describe('refine', () => {
-        const TEST_FILE = '/tmp/test-refine-config.md';
+        let testDir = '';
+        let TEST_FILE = '';
 
         beforeEach(() => {
+            testDir = mkdtempSync(join(tmpdir(), 'cc-magents-refine-'));
+            TEST_FILE = join(testDir, 'test-refine-config.md');
             writeFileSync(
                 TEST_FILE,
                 `# Identity
@@ -628,11 +632,9 @@ Some custom section.
         });
 
         afterEach(() => {
-            try {
-                unlinkSync(TEST_FILE);
-            } catch {
-                /* ignore */
-            }
+            rmSync(testDir, { recursive: true, force: true });
+            testDir = '';
+            TEST_FILE = '';
         });
 
         it('should return error for non-existent file', async () => {
@@ -669,7 +671,7 @@ Some custom section.
 
         it('should calculate gradeAfter when dryRun is false and evaluate is true', async () => {
             // Use a separate output file to avoid overwriting TEST_FILE
-            const outputFile = '/tmp/test-refine-output.md';
+            const outputFile = join(testDir, 'test-refine-output.md');
             try {
                 const result = await refine({
                     filePath: TEST_FILE,
@@ -692,7 +694,7 @@ Some custom section.
         });
 
         it('should write refined content when dryRun is false', async () => {
-            const outputFile = '/tmp/test-refine-write.md';
+            const outputFile = join(testDir, 'test-refine-write.md');
             try {
                 const result = await refine({
                     filePath: TEST_FILE,
@@ -715,8 +717,8 @@ Some custom section.
 
         it('should add missing sections when dryRun is false', async () => {
             // Create a file with only Identity section - missing Rules and Tools
-            const incompleteFile = '/tmp/test-refine-incomplete.md';
-            const outputFile = '/tmp/test-refine-complete.md';
+            const incompleteFile = join(testDir, 'test-refine-incomplete.md');
+            const outputFile = join(testDir, 'test-refine-complete.md');
             try {
                 writeFileSync(
                     incompleteFile,
@@ -753,8 +755,8 @@ I am a minimal test agent.
 
         it('should add validation errors to warnings when validation fails', async () => {
             // Create a file with embedded secret that should fail validation
-            const invalidFile = '/tmp/test-refine-invalid.md';
-            const outputFile = '/tmp/test-refine-invalid-output.md';
+            const invalidFile = join(testDir, 'test-refine-invalid.md');
+            const outputFile = join(testDir, 'test-refine-invalid-output.md');
             try {
                 writeFileSync(
                     invalidFile,
@@ -794,7 +796,7 @@ API Key: sk-ant-secret1234567890abcdefghijklmnopqrstuvwxyz`,
 });
 
 describe('main CLI function', () => {
-    const TEST_DIR = '/tmp/magent-refine-cli-test';
+    let TEST_DIR = '';
 
     // Suppress console output during CLI tests
     const originalConsole = {
@@ -806,7 +808,7 @@ describe('main CLI function', () => {
     };
 
     beforeEach(() => {
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = mkdtempSync(join(tmpdir(), 'cc-magents-refine-cli-'));
         // Suppress console output
         console.debug = () => {};
         console.info = () => {};
@@ -816,11 +818,8 @@ describe('main CLI function', () => {
     });
 
     afterEach(() => {
-        try {
-            rmdirSync(TEST_DIR, { recursive: true });
-        } catch {
-            /* ignore */
-        }
+        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = '';
         // Restore console
         console.debug = originalConsole.debug;
         console.info = originalConsole.info;
