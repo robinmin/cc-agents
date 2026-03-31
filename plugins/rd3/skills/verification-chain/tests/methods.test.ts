@@ -1,5 +1,6 @@
-import { describe, test, expect, beforeAll, afterAll, mock } from 'bun:test';
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { describe, test, expect, beforeAll, afterEach, beforeEach, mock } from 'bun:test';
+import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
 import { runCliCheck } from '../scripts/methods/cli';
@@ -10,16 +11,26 @@ import { runHumanCheck } from '../scripts/methods/human';
 import { runCompoundCheck } from '../scripts/methods/compound';
 import type { Checker } from '../scripts/types';
 
-const TEST_DIR = join(__dirname, 'test-fixtures');
-const CWD = TEST_DIR;
+let TEST_DIR = '';
+let CWD = '';
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'verification-methods-'));
+}
 
 beforeAll(() => {
     setGlobalSilent(true);
-    mkdirSync(TEST_DIR, { recursive: true });
 });
 
-afterAll(() => {
+beforeEach(() => {
+    TEST_DIR = createTestDir();
+    CWD = TEST_DIR;
+});
+
+afterEach(() => {
     rmSync(TEST_DIR, { recursive: true, force: true });
+    TEST_DIR = '';
+    CWD = '';
 });
 
 // ============================================================
@@ -511,6 +522,7 @@ describe('runCompoundCheck', () => {
     });
 
     test('runs cli sub-check within compound', async () => {
+        writeFileSync(join(TEST_DIR, 'and-test-1.txt'), 'content');
         const result = await runCompoundCheck(
             {
                 operator: 'and',
