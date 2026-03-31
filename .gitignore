@@ -171,3 +171,8 @@ vite.config.ts.timestamp-*
 /.ant-colony
 /docs/.migration
 /.rtk/
+
+# Test artifact patterns (prevent leaked test dirs from accidental commit)
+dist-*/
+*-skill/
+test-output-*.md
