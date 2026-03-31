@@ -7,66 +7,69 @@ see_also:
 
 # Gate Definitions
 
-### Gate Types
+## Gate Model
 
-| Gate | Type | Trigger | Resolution |
-|------|------|---------|------------|
-| Solution Gate | Auto | Solution section populated | Pass/Fail |
-| Design Gate | Human | Design section reviewed | Approve/Reject/Rework |
-| Test Gate | Auto | Coverage target met and 100% tests pass | Pass/Fail |
-| Review Gate | Human | Code review completed | Approve/Reject |
-| Functional Gate | Auto/Human | BDD + functional review | Pass/Partial/Fail |
-| Documentation Gate | Auto | Docs generated | Pass/Fail |
+All orchestration phases now execute through Chain-of-Verification manifests.
 
-### Auto Gates
+Each phase gate has two layers:
 
-Gate evaluation in the v1 pilot differs by phase:
+1. A deterministic validation node
+2. An optional human approval node for phases whose gate type is `human` or `auto/human`
 
-- **Phase 5 (Implementation):** Worker envelope validation — checks `status`, `artifacts`, and `evidence_summary` are present and non-contradictory.
-- **Phase 6 (Testing):** CoV-backed `rd3:verification-chain` — runs typecheck, lint, and test steps with real checkers. The coverage threshold is set per-profile (simple/research: 60%, standard/complex: 80%, unit: 90%) and can be overridden with `--coverage`.
-- **Phase 7 (Review):** Worker envelope validation — checks `status`, `findings`, and `evidence_summary`. Pauses for human approval unless `--auto` is set.
-- **Phase 8 (Functional):** Not yet in pilot (direct-skill phase).
-- **Phase 9 (Documentation):** Not yet in pilot (direct-skill phase).
+The deterministic node validates persisted phase-step evidence with CoV checker methods such as:
 
-Coverage threshold resolution (from `contracts.ts`):
+- `file-exists`
+- `content-match`
+- `compound`
+- `cli` for stack-profile verification commands in Phase 6
 
-```typescript
-function getCoverageThreshold(profile: Profile, override?: number): number {
-    if (override !== undefined) return override;  // --coverage flag wins
-    if (isTaskProfile(profile)) return PROFILE_COVERAGE_THRESHOLDS[profile]; // simple: 60, standard: 80, complex: 80, research: 60
-    return PHASE_PROFILE_COVERAGE_THRESHOLDS[profile] ?? 80; // unit: 90, others: 80
-}
-```
+## Phase Coverage
 
-### Human Gates
+| Phase | Validation Surface | Human Node |
+|------|---------------------|-----------|
+| 1 Request Intake | Persisted step evidence + task-file profile/background/requirements/constraints checks when a task file is available | No |
+| 2 Architecture | Persisted step evidence + non-empty direct-skill output | No |
+| 3 Design | Persisted step evidence + non-empty direct-skill output | Yes |
+| 4 Task Decomposition | Persisted step evidence + non-empty direct-skill output | No |
+| 5 Implementation | Validated worker envelope evidence (`artifacts`, `next_step_recommendation`) | No |
+| 6 Unit Testing | Stack-profile verification manifest (`cli`, `file-exists`) | No |
+| 7 Code Review | Validated worker envelope evidence (`findings`, `next_step_recommendation`) | Yes |
+| 8 Functional Review | Persisted step evidence + non-empty direct-skill output | `auto/human` on complex/research |
+| 9 Documentation | Persisted step evidence + non-empty direct-skill output | No |
 
-For phases with human gates (Design, Review):
+## Human Gates
 
-**Normal mode** — pauses for human approval:
-```typescript
-const humanGateResult = await askUserQuestion({
-    type: 'approval',
-    prompt: `Phase ${phase.number} (${phase.name}) completed. Review output and approve or request rework.`,
-    choices: ['approve', 'reject', 'rework'],
-});
-```
+Human-gated phases use the CoV `human` checker.
 
-**Auto mode** (`--auto` flag) — auto-approves all human gates without pausing:
-```typescript
-if (input.auto) {
-    // Auto-approve: log and continue without pausing
-    logger.info(`Phase ${phase.number} (${phase.name}): auto-approved (human gate bypassed)`);
-    gateResult = { status: 'approved' };
-} else {
-    // Normal: pause for human review
-    gateResult = await askUserQuestion({ ... });
-}
-```
+Normal mode:
 
-When `--auto` is set, human gates (Design Gate, Review Gate, Functional Gate) are auto-approved. This enables end-to-end execution for commands like `dev-run` that need continuous flow.
+- The deterministic validation node must pass first.
+- The subsequent `human-approval` node pauses the chain.
+- Orchestration state pauses at the phase with status `paused`.
 
-**Skip phase safety:** `--skip-phases` is intentionally limited to trailing phases only. Skipping an interior phase would leave later phases without the inputs they require.
+Auto mode (`--auto`):
 
-**Start phase safety:** `start_phase` selects a suffix of the selected profile's phase sequence. It is not an arbitrary jump; the chosen phase must already belong to the selected profile.
+- The human node is omitted from the manifest.
+- The phase completes immediately after deterministic validation succeeds.
 
-**Downstream evidence contracts:** orchestration normalizes verification-aware outputs through shared envelopes for `rd3:request-intake`, `rd3:bdd-workflow`, `rd3:functional-review`, `rd3:super-coder`, `rd3:super-tester`, and `rd3:super-reviewer`. Worker phase envelopes (5/6/7) must not include contradictory fields (e.g., `failed_stage` when `status=completed`).
+Resume behavior:
+
+- Resuming a paused orchestration implicitly approves the paused CoV human gate and continues from the saved chain state.
+
+## Channel Routing
+
+- Worker phases 5-7 execute on the requested orchestration channel (`current` or ACP agent).
+- Direct-skill phases 1-4 and 8-9 are always pinned to `current`.
+- CoV validation runs in the project workspace regardless of where the maker executed.
+
+## Rework Interaction
+
+- Rework retries operate at the phase level in `runtime.ts`.
+- If a phase gate fails, the rejection reason is fed back into the next phase attempt.
+- The public CLI defaults to `max_iterations: 2` and `escalation_state: 'paused'`.
+- `--rework-max-iterations N` overrides the retry count for CLI runs.
+
+## Notes
+
+- Generic gate profiles are defined in `scripts/gates.ts`; there are no external JSON gate-profile files.
+- Direct-skill phases no longer use synthetic success placeholders; they execute prompt-backed work and persist normalized gate evidence for CoV.
