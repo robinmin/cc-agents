@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { detectSourcePlatform, installAgent, main, parseCliArgs } from '../scripts/install';
 
-const TEST_DIR = '/tmp/cc-agents-install-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const INSTALL_SCRIPT = join(__dirname, '..', 'scripts', 'install.ts');
 const FIXTURES_DIR = join(__dirname, 'fixtures');
+let testDir = '';
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-agents-install-'));
+}
 
 class ExitError extends Error {
     code: number | undefined;
@@ -57,18 +62,18 @@ function muteConsole(): () => void {
 
 describe('install.ts', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        testDir = createTestDir();
     });
 
     afterEach(() => {
-        if (existsSync(TEST_DIR)) {
-            rmSync(TEST_DIR, { recursive: true, force: true });
+        if (testDir && existsSync(testDir)) {
+            rmSync(testDir, { recursive: true, force: true });
         }
+        testDir = '';
     });
 
     it('should detect generated OpenClaw JSON as openclaw', () => {
-        const filePath = join(TEST_DIR, 'sample-openclaw.json');
+        const filePath = join(testDir, 'sample-openclaw.json');
         writeFileSync(
             filePath,
             JSON.stringify({
@@ -84,10 +89,10 @@ describe('install.ts', () => {
     });
 
     it('should detect platform types across supported file formats', () => {
-        const codexPath = join(TEST_DIR, 'sample.toml');
+        const codexPath = join(testDir, 'sample.toml');
         writeFileSync(codexPath, 'name = "codex-agent"\ndescription = "Codex agent"\n', 'utf-8');
 
-        const opencodeJsonPath = join(TEST_DIR, 'sample-opencode.json');
+        const opencodeJsonPath = join(testDir, 'sample-opencode.json');
         writeFileSync(
             opencodeJsonPath,
             JSON.stringify({
@@ -98,7 +103,7 @@ describe('install.ts', () => {
             'utf-8',
         );
 
-        const geminiPath = join(TEST_DIR, 'sample-gemini.md');
+        const geminiPath = join(testDir, 'sample-gemini.md');
         writeFileSync(
             geminiPath,
             `---
@@ -112,7 +117,7 @@ Body`,
             'utf-8',
         );
 
-        const opencodeMdPath = join(TEST_DIR, 'sample-opencode.md');
+        const opencodeMdPath = join(testDir, 'sample-opencode.md');
         writeFileSync(
             opencodeMdPath,
             `---
@@ -126,7 +131,7 @@ Body`,
             'utf-8',
         );
 
-        const claudePath = join(TEST_DIR, 'sample-claude.md');
+        const claudePath = join(testDir, 'sample-claude.md');
         writeFileSync(
             claudePath,
             `---
@@ -138,7 +143,7 @@ Body`,
             'utf-8',
         );
 
-        const fallbackPath = join(TEST_DIR, 'sample.unknown');
+        const fallbackPath = join(testDir, 'sample.unknown');
         writeFileSync(fallbackPath, 'unknown', 'utf-8');
 
         expect(detectSourcePlatform(codexPath)).toBe('codex');
@@ -150,7 +155,7 @@ Body`,
     });
 
     it('should parse CLI args for a directory of agent sources', () => {
-        const agentsDir = join(TEST_DIR, 'agents');
+        const agentsDir = join(testDir, 'agents');
         mkdirSync(agentsDir, { recursive: true });
         writeFileSync(join(agentsDir, 'one.md'), '---\nname: one\ndescription: one\n---\n\nBody', 'utf-8');
         writeFileSync(join(agentsDir, 'two.toml'), 'name = "two"\ndescription = "two"\n', 'utf-8');
@@ -186,7 +191,7 @@ Body`,
 
             exitMock = mockExit();
             try {
-                expect(() => parseCliArgs([TEST_DIR])).toThrow('exit');
+                expect(() => parseCliArgs([testDir])).toThrow('exit');
                 expect(exitMock.getCode()).toBe(1);
             } finally {
                 exitMock.restore();
@@ -194,7 +199,7 @@ Body`,
 
             exitMock = mockExit();
             try {
-                expect(() => parseCliArgs([TEST_DIR, '--target', 'invalid'])).toThrow('exit');
+                expect(() => parseCliArgs([testDir, '--target', 'invalid'])).toThrow('exit');
                 expect(exitMock.getCode()).toBe(1);
             } finally {
                 exitMock.restore();
@@ -202,7 +207,7 @@ Body`,
 
             exitMock = mockExit();
             try {
-                expect(() => parseCliArgs([join(TEST_DIR, 'missing.md'), '--target', 'codex'])).toThrow('exit');
+                expect(() => parseCliArgs([join(testDir, 'missing.md'), '--target', 'codex'])).toThrow('exit');
                 expect(exitMock.getCode()).toBe(1);
             } finally {
                 exitMock.restore();
@@ -213,7 +218,7 @@ Body`,
     });
 
     it('should auto-install OpenClaw JSON without requiring --source-platform', async () => {
-        const filePath = join(TEST_DIR, 'sample-openclaw.json');
+        const filePath = join(testDir, 'sample-openclaw.json');
         writeFileSync(
             filePath,
             JSON.stringify({
@@ -243,7 +248,7 @@ Body`,
     });
 
     it('should fail gracefully when source path is missing', async () => {
-        const missingPath = join(TEST_DIR, 'missing-agent.json');
+        const missingPath = join(testDir, 'missing-agent.json');
 
         const proc = Bun.spawn(['bun', 'run', INSTALL_SCRIPT, missingPath, '--target', 'codex'], {
             env: {
@@ -268,7 +273,7 @@ Body`,
 
     it('should dry-run install when source and target platforms match', async () => {
         const sourcePath = resolve(FIXTURES_DIR, 'minimal-agent.md');
-        const result = await installAgent(sourcePath, 'claude', join(TEST_DIR, 'install-dir'), undefined, true);
+        const result = await installAgent(sourcePath, 'claude', join(testDir, 'install-dir'), undefined, true);
 
         expect(result.success).toBe(true);
         expect(result.agentName).toBe('minimal-agent');
@@ -278,7 +283,7 @@ Body`,
 
     it('should copy source file when source and target platforms match', async () => {
         const sourcePath = resolve(FIXTURES_DIR, 'minimal-agent.md');
-        const installDir = join(TEST_DIR, 'same-platform');
+        const installDir = join(testDir, 'same-platform');
         const result = await installAgent(sourcePath, 'claude', installDir, undefined, false);
 
         expect(result.success).toBe(true);
@@ -287,7 +292,7 @@ Body`,
     });
 
     it('should cross-install between platforms in dry-run mode', async () => {
-        const filePath = join(TEST_DIR, 'sample-openclaw.json');
+        const filePath = join(testDir, 'sample-openclaw.json');
         writeFileSync(
             filePath,
             JSON.stringify({
@@ -299,7 +304,7 @@ Body`,
             'utf-8',
         );
 
-        const result = await installAgent(filePath, 'codex', join(TEST_DIR, 'codex-install'), undefined, true);
+        const result = await installAgent(filePath, 'codex', join(testDir, 'codex-install'), undefined, true);
 
         expect(result.success).toBe(true);
         expect(result.installedPath).toContain('sample-agent.toml');
@@ -308,7 +313,7 @@ Body`,
 
     it('should cross-install between platforms and write generated files', async () => {
         const sourcePath = resolve(FIXTURES_DIR, 'minimal-agent.md');
-        const installDir = join(TEST_DIR, 'codex-install');
+        const installDir = join(testDir, 'codex-install');
         const result = await installAgent(sourcePath, 'codex', installDir, undefined, false);
 
         expect(result.success).toBe(true);
@@ -318,7 +323,7 @@ Body`,
 
     it('should surface adaptation errors from installAgent', async () => {
         const sourcePath = resolve(FIXTURES_DIR, 'invalid-frontmatter.md');
-        const result = await installAgent(sourcePath, 'codex', join(TEST_DIR, 'bad-install'), undefined, true);
+        const result = await installAgent(sourcePath, 'codex', join(testDir, 'bad-install'), undefined, true);
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
