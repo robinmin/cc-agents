@@ -192,6 +192,7 @@ install_claude_code() {
         for plugin in $(echo "$PLUGINS" | tr ',' ' '); do
             echo "   claude plugin update ${plugin}@cc-agents"
         done
+        echo "   bash scripts/command/magents.sh ${AGENT_NAME} claude  # ~/.claude/CLAUDE.md"
         return 0
     fi
 
@@ -207,6 +208,14 @@ install_claude_code() {
     done
 
     print_success "Claude Code plugins updated"
+
+    # Install main agent config to ~/.claude/CLAUDE.md
+    if [ "$SKIP_MAGENTS" = "false" ]; then
+        printf "\n${BOLD}${CYAN}── Main Agent Config (magents) ──${NC}\n"
+        bash "${SCRIPT_DIR}/command/magents.sh" "$AGENT_NAME" claude
+    else
+        print_info "Skipping magents (--skip-magents)"
+    fi
 }
 
 # =============================================================================
