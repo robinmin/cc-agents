@@ -5,6 +5,31 @@ export type PhaseNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type PhaseGate = 'auto' | 'human' | 'auto/human';
 export type PhaseExecutionMode = 'direct-skill' | 'worker-agent';
 
+export interface ReworkConfig {
+    max_iterations: number;
+    feedback_injection: boolean;
+    escalation_state: 'paused' | 'failed';
+}
+
+export interface RollbackSnapshot {
+    phase: PhaseNumber;
+    files_before: string[];
+    files_after: string[];
+    tracked_before?: string[];
+    tracked_after?: string[];
+    untracked_before?: string[];
+    untracked_after?: string[];
+    modified_before?: string[];
+    git_head_before: string;
+    created_at: string;
+}
+
+export interface UndoOptions {
+    task_ref: string;
+    phase: PhaseNumber;
+    dry_run: boolean;
+}
+
 export interface Phase {
     number: PhaseNumber;
     name: string;
@@ -83,6 +108,9 @@ export interface ParsedOrchestrationArgs {
     refine: boolean;
     stackProfile: string;
     resume: boolean;
+    undo?: PhaseNumber;
+    undoDryRun: boolean;
+    reworkMaxIterations?: number;
 }
 
 export function parseOrchestrationArgs(
@@ -102,6 +130,7 @@ export function parseOrchestrationArgs(
         refine: false,
         stackProfile: 'typescript-bun-biome',
         resume: false,
+        undoDryRun: false,
     };
 
     for (let i = 1; i < args.length; i++) {
@@ -141,6 +170,20 @@ export function parseOrchestrationArgs(
             result.stackProfile = args[++i];
         } else if (args[i] === '--resume') {
             result.resume = true;
+        } else if (args[i] === '--undo' && i + 1 < args.length) {
+            const parsed = Number.parseInt(args[++i], 10);
+            if (parsed < 1 || parsed > 9) {
+                throw new Error(`Invalid undo phase: ${parsed}. Must be 1-9.`);
+            }
+            result.undo = parsed as PhaseNumber;
+        } else if (args[i] === '--undo-dry-run') {
+            result.undoDryRun = true;
+        } else if (args[i] === '--rework-max-iterations' && i + 1 < args.length) {
+            const parsed = Number.parseInt(args[++i], 10);
+            if (!Number.isFinite(parsed) || parsed < 1) {
+                throw new Error(`Invalid rework max iterations: ${parsed}. Must be >= 1.`);
+            }
+            result.reworkMaxIterations = parsed;
         }
     }
 
