@@ -33,7 +33,7 @@ Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation qu
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. In the current pilot, Phase 7 has a local current-channel worker runner, so review-only execution works on `--channel current`. Phase 7 still carries a human gate, so the run pauses after review unless you pass `--auto`. ACP channels remain available when you want the review delegated onto another agent.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. Phase 7 runs via worker agent on the `current` channel and carries a human gate — the run pauses after review unless you pass `--auto`. ACP channels are available when you want the review delegated onto another agent.
 
 ```
 # Run review locally on the current channel (pauses for approval unless --auto)
