@@ -1,12 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { mock } from 'bun:test';
-import { mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { MagentPlatform } from '../scripts/types';
 import { main, validateMagentConfig } from '../scripts/validate';
 import { setGlobalSilent } from '../../../scripts/logger';
 
-const TEST_DIR = '/tmp/magent-validate-test';
+let TEST_DIR = '';
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-magents-validate-'));
+}
 
 function createTestFile(name: string, content: string): string {
     const filePath = join(TEST_DIR, name);
@@ -16,17 +21,12 @@ function createTestFile(name: string, content: string): string {
 
 describe('validate', () => {
     beforeEach(() => {
-        // Create test directory
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
     });
 
     afterEach(() => {
-        // Clean up test directory recursively
-        try {
-            rmdirSync(TEST_DIR, { recursive: true });
-        } catch {
-            /* ignore */
-        }
+        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = '';
     });
 
     describe('validateMagentConfig', () => {
@@ -333,17 +333,14 @@ I am a test agent.`;
 
 describe('main CLI function', () => {
     beforeEach(() => {
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
         setGlobalSilent(true);
     });
 
     afterEach(() => {
         setGlobalSilent(false);
-        try {
-            rmdirSync(TEST_DIR, { recursive: true });
-        } catch {
-            /* ignore */
-        }
+        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = '';
     });
 
     it('should show help and exit with 0 when --help is passed', async () => {
