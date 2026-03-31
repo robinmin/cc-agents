@@ -3,24 +3,30 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const TEST_DIR = '/tmp/adapt-integration-test';
+let TEST_DIR = '';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS_DIR = join(__dirname, '..', 'scripts');
 const ADAPT_SCRIPT = join(SCRIPTS_DIR, 'adapt.ts');
 
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-skills-adapt-'));
+}
+
 describe('Integration: adapt command', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = createTestDir();
     });
 
     afterEach(() => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
         }
+        TEST_DIR = '';
     });
 
     it('should show help', async () => {
