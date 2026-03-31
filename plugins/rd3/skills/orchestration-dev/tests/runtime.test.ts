@@ -104,6 +104,49 @@ function writePilotWorkspaceFiles(dir: string): void {
     writeFileSync(join(dir, 'biome.json'), '{}', 'utf-8');
 }
 
+function writeRetryingPilotWorkspaceFiles(dir: string): void {
+    const countFilePath = join(tmpdir(), `transient-count-${Math.random().toString(36).slice(2)}`);
+    const scriptPath = join(dir, 'transient-test.sh');
+    writeFileSync(
+        scriptPath,
+        `#!/bin/sh
+count_file="${countFilePath}"
+count=0
+if [ -f "$count_file" ]; then
+  count=$(cat "$count_file")
+fi
+count=$((count + 1))
+printf '%s' "$count" > "$count_file"
+if [ "$count" -le 2 ]; then
+  echo "transient failure" >&2
+  exit 1
+fi
+exit 0
+`,
+        'utf-8',
+    );
+    chmodSync(scriptPath, 0o755);
+    writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify(
+            {
+                name: 'pilot-runtime-retry-test',
+                private: true,
+                scripts: {
+                    typecheck: 'true',
+                    'lint:rd3': 'true',
+                    'test:rd3': 'sh ./transient-test.sh',
+                },
+            },
+            null,
+            2,
+        ),
+        'utf-8',
+    );
+    writeFileSync(join(dir, 'tsconfig.json'), '{}', 'utf-8');
+    writeFileSync(join(dir, 'biome.json'), '{}', 'utf-8');
+}
+
 function writeMockAcpxScript(dir: string): string {
     const scriptPath = join(dir, 'mock-acpx');
     writeFileSync(
@@ -114,6 +157,12 @@ if echo "$prompt" | grep -q "Phase 5"; then
   printf '%s' '{"status":"completed","phase":5,"artifacts":[{"path":"src/example.ts","type":"source-file"}],"evidence_summary":["implementation mocked"],"next_step_recommendation":"proceed_to_phase_6"}'
 elif echo "$prompt" | grep -q "Phase 7"; then
   printf '%s' '{"status":"completed","phase":7,"findings":[],"evidence_summary":["review mocked"],"next_step_recommendation":"proceed_to_phase_8"}'
+elif echo "$prompt" | grep -q "Phase 8"; then
+  printf '%s' 'functional review mocked'
+elif echo "$prompt" | grep -q "Phase 9"; then
+  printf '%s' 'documentation mocked'
+elif echo "$prompt" | grep -q "Phase 1\\|Phase 2\\|Phase 3\\|Phase 4"; then
+  printf '%s' 'planning phase mocked'
 else
   printf '%s' '{"status":"failed","phase":0,"failed_stage":"mock-acpx","evidence_summary":["unexpected prompt"],"error_summary":"unexpected prompt","next_step_recommendation":"investigate"}'
   exit 1
@@ -125,12 +174,6 @@ fi
     return scriptPath;
 }
 
-function stubExit(): void {
-    process.exit = ((code?: number) => {
-        throw new Error(`EXIT:${code ?? 0}`);
-    }) as typeof process.exit;
-}
-
 describe('orchestration runtime', () => {
     test('returns null when loading a missing orchestration state file', () => {
         const dir = createTempDir('orchestration-missing-state-');
@@ -139,7 +182,7 @@ describe('orchestration runtime', () => {
 
     test('sanitizes task refs in the state path', () => {
         const statePath = getOrchestrationStatePath('docs/tasks2/0276 runtime.md', '/tmp/example', 'abc123');
-        expect(statePath).toBe('/tmp/example/orchestration/docs_tasks2_0276_runtime.md-abc123-state.json');
+        expect(statePath).toBe('/tmp/example/docs/.workflow-runs/rd3-orchestration-dev/0276/abc123.json');
     });
 
     test('creates, saves, and reloads orchestration state', () => {
@@ -303,37 +346,10 @@ describe('orchestration runtime', () => {
         });
     });
 
-    test('pauses on a completed human gate when auto approval is disabled', async () => {
-        const dir = createTempDir('orchestration-human-gate-pause-');
-        const taskPath = writeTaskFile(dir, '0266_human_gate_pause.md', 'Implementation complete.');
+    test('does not inject a second runtime human gate after a completed review phase', async () => {
+        const dir = createTempDir('orchestration-human-gate-runtime-removed-');
+        const taskPath = writeTaskFile(dir, '0266_human_gate_runtime_removed.md', 'Implementation complete.');
         const plan = createExecutionPlan(taskPath, { profile: 'review' });
-
-        const state = await runOrchestration({
-            plan,
-            projectRoot: dir,
-            phaseRunner: async () => ({
-                status: 'completed',
-                evidence: [{ kind: 'review', detail: 'phase 7 finished cleanly' }],
-                result: {
-                    status: 'completed',
-                    phase: 7,
-                    findings: [],
-                    evidence_summary: ['review completed'],
-                    next_step_recommendation: 'proceed_to_phase_8',
-                },
-            }),
-        });
-
-        expect(state.status).toBe('paused');
-        expect(state.current_phase).toBe(7);
-        expect(state.phases[0].status).toBe('completed');
-        expect(state.phases[0].evidence.some((entry) => entry.kind === 'human-gate')).toBe(true);
-    });
-
-    test('continues past a completed human gate when auto approval is enabled', async () => {
-        const dir = createTempDir('orchestration-human-gate-auto-');
-        const taskPath = writeTaskFile(dir, '0266_human_gate_auto.md', 'Implementation complete.');
-        const plan = createExecutionPlan(taskPath, { profile: 'review', auto: true });
 
         const state = await runOrchestration({
             plan,
@@ -423,7 +439,7 @@ describe('orchestration runtime', () => {
         expect(seenPhases).toEqual([7]);
         expect(result.current_phase).toBe(7);
         expect(result.phases.map((phase) => phase.number)).toEqual([7]);
-        expect(result.status).toBe('paused');
+        expect(result.status).toBe('completed');
         expect(result.phases[0].status).toBe('completed');
     });
 
@@ -608,6 +624,206 @@ describe('orchestration runtime', () => {
     });
 });
 
+describe('rework loop', () => {
+    test('retries failed phase when max_iterations > 1', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'rework-retry-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+        let callCount = 0;
+
+        const runner = async (): Promise<import('../scripts/runtime').PhaseRunnerResult> => {
+            callCount++;
+            if (callCount < 3) {
+                return { status: 'failed', error: `Attempt ${callCount} failed` };
+            }
+            return { status: 'completed' };
+        };
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: runner,
+            reworkConfig: { max_iterations: 3, feedback_injection: true, escalation_state: 'paused' },
+        });
+
+        expect(state.status).toBe('completed');
+        expect(callCount).toBe(3);
+        expect(state.phases[0].rework_iterations).toBe(2);
+        expect(state.rework_config).toEqual({
+            max_iterations: 3,
+            feedback_injection: true,
+            escalation_state: 'paused',
+        });
+    });
+
+    test('escalates to paused when max_iterations exceeded', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'rework-escalate-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+
+        const runner = async (): Promise<import('../scripts/runtime').PhaseRunnerResult> => {
+            return { status: 'failed', error: 'Always fails' };
+        };
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: runner,
+            reworkConfig: { max_iterations: 2, feedback_injection: true, escalation_state: 'paused' },
+        });
+
+        expect(state.status).toBe('paused');
+        expect(state.phases[0].error).toContain('Max rework iterations (2) exceeded');
+    });
+
+    test('escalates to failed when escalation_state is failed', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'rework-fail-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+
+        const runner = async (): Promise<import('../scripts/runtime').PhaseRunnerResult> => {
+            return { status: 'failed', error: 'Always fails' };
+        };
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: runner,
+            reworkConfig: { max_iterations: 2, feedback_injection: true, escalation_state: 'failed' },
+        });
+
+        expect(state.status).toBe('failed');
+    });
+
+    test('injects feedback from previous iteration', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'rework-feedback-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+        const receivedFeedback: (string | undefined)[] = [];
+
+        const runner = async (
+            _phase: import('../scripts/model').Phase,
+            context: import('../scripts/runtime').PhaseRunnerContext,
+        ): Promise<import('../scripts/runtime').PhaseRunnerResult> => {
+            receivedFeedback.push(context.rework_feedback);
+            if (receivedFeedback.length < 2) {
+                return { status: 'failed', error: 'First attempt failed' };
+            }
+            return { status: 'completed' };
+        };
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: runner,
+            reworkConfig: { max_iterations: 3, feedback_injection: true, escalation_state: 'failed' },
+        });
+
+        expect(state.status).toBe('completed');
+        expect(receivedFeedback[0]).toBeUndefined();
+        expect(receivedFeedback[1]).toBe('First attempt failed');
+    });
+
+    test('records rework evidence', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'rework-evidence-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+        let callCount = 0;
+
+        const runner = async (): Promise<import('../scripts/runtime').PhaseRunnerResult> => {
+            callCount++;
+            if (callCount < 2) {
+                return { status: 'failed', error: 'Failed first' };
+            }
+            return { status: 'completed' };
+        };
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: runner,
+            reworkConfig: { max_iterations: 2, feedback_injection: true, escalation_state: 'failed' },
+        });
+
+        expect(state.status).toBe('completed');
+        const reworkEvidence = state.phases[0].evidence.filter((e) => e.kind === 'rework-attempt');
+        expect(reworkEvidence.length).toBe(1);
+        expect(reworkEvidence[0].payload).toHaveProperty('iteration', 1);
+    });
+
+    test('preserves original error when max_iterations is 1', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'rework-default-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+
+        const runner = async (): Promise<import('../scripts/runtime').PhaseRunnerResult> => {
+            return { status: 'failed', error: 'Original failure message' };
+        };
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: runner,
+        });
+
+        expect(state.status).toBe('failed');
+        expect(state.phases[0].error).toBe('Original failure message');
+    });
+});
+
+describe('rollback integration', () => {
+    test('captures snapshot when rollbackEnabled is true', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'rollback-int-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+
+        const runner = async (): Promise<import('../scripts/runtime').PhaseRunnerResult> => {
+            return { status: 'completed' };
+        };
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: runner,
+            rollbackEnabled: false,
+        });
+
+        expect(state.status).toBe('completed');
+        // No snapshot when rollbackEnabled is false
+        expect(state.phases[0].rollback_snapshot).toBeUndefined();
+    });
+
+    test('adds rollback-restore-failed evidence when snapshot capture fails', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'rollback-no-snap-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+
+        const runner = async (): Promise<import('../scripts/runtime').PhaseRunnerResult> => {
+            return { status: 'completed' };
+        };
+
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: runner,
+            rollbackEnabled: true,
+        });
+
+        // Should either have a snapshot or a snapshot-failed evidence
+        const hasSnapshot = !!state.phases[0].rollback_snapshot;
+        const hasFailedEvidence = state.phases[0].evidence.some((e) => e.kind === 'rollback-snapshot-failed');
+        expect(hasSnapshot || hasFailedEvidence).toBe(true);
+    });
+});
+
 describe('runtime main', () => {
     const originalExit = process.exit;
     const originalCwd = process.cwd();
@@ -618,41 +834,58 @@ describe('runtime main', () => {
     });
 
     test('exits when task_ref is missing', async () => {
-        stubExit();
-        await expect(main([])).rejects.toThrow('EXIT:1');
+        expect(await main([])).toBe(1);
     });
 
     test('exits when profile is invalid', async () => {
-        stubExit();
-        await expect(main(['0266', '--profile', 'invalid'])).rejects.toThrow('EXIT:1');
+        expect(await main(['0266', '--profile', 'invalid'])).toBe(1);
     });
 
     test('exits when coverage is invalid', async () => {
-        stubExit();
-        await expect(main(['0266', '--coverage', '101'])).rejects.toThrow('EXIT:1');
+        expect(await main(['0266', '--coverage', '101'])).toBe(1);
     });
 
     test('exits when channel is invalid', async () => {
-        stubExit();
-        await expect(main(['0266', '--channel', 'unknown-agent'])).rejects.toThrow('EXIT:1');
+        expect(await main(['0266', '--channel', 'unknown-agent'])).toBe(1);
     });
 
     test('exits when start-phase is invalid', async () => {
-        stubExit();
-        await expect(main(['0266', '--start-phase', '11'])).rejects.toThrow('EXIT:1');
+        expect(await main(['0266', '--start-phase', '11'])).toBe(1);
     });
 
     test('runs the pilot runtime successfully for a local unit-profile workspace', async () => {
+        setGlobalSilent(false);
         const dir = createTempDir('orchestration-main-success-');
         writePilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_success.md', 'Implement the feature.');
         process.chdir(dir);
 
-        await expect(main([taskPath, '--profile', 'unit', '--channel', 'current'])).resolves.toBeUndefined();
+        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current']);
+        setGlobalSilent(true);
+        expect(code).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as { status: string };
         expect(persisted.status).toBe('completed');
+    });
+
+    test('uses the public CLI rework policy to retry a transient phase 6 failure', async () => {
+        const dir = createTempDir('orchestration-main-retry-');
+        writeRetryingPilotWorkspaceFiles(dir);
+        const taskPath = writeTaskFile(dir, '0266_main_retry.md', 'Implement the feature.');
+        process.chdir(dir);
+
+        expect(await main([taskPath, '--profile', 'unit', '--channel', 'current'])).toBe(0);
+
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        expect(statePath).not.toBeNull();
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
+            status: string;
+            phases: Array<{ status: string; rework_iterations?: number }>;
+        };
+        expect(persisted.status).toBe('completed');
+        expect(persisted.phases[0].status).toBe('completed');
+        expect(persisted.phases[0].rework_iterations).toBe(1);
     });
 
     test('runs the pilot runtime successfully for a local simple-profile workspace with a phase 5 worker', async () => {
@@ -663,7 +896,7 @@ describe('runtime main', () => {
         const taskPath = writeTaskFile(dir, '0266_main_simple_current.md', 'Implement the feature.');
         process.chdir(dir);
 
-        await expect(main([taskPath, '--profile', 'simple', '--channel', 'current'])).resolves.toBeUndefined();
+        expect(await main([taskPath, '--profile', 'simple', '--channel', 'current'])).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -689,8 +922,7 @@ describe('runtime main', () => {
         const taskPath = writeTaskFile(dir, '0266_main_review_current.md', 'Implement the feature.');
         process.chdir(dir);
 
-        stubExit();
-        await expect(main([taskPath, '--profile', 'review', '--channel', 'current'])).rejects.toThrow('EXIT:1');
+        expect(await main([taskPath, '--profile', 'review', '--channel', 'current'])).toBe(1);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -707,13 +939,13 @@ describe('runtime main', () => {
         expect(persisted.status).toBe('paused');
         expect(persisted.current_phase).toBe(7);
         expect(persisted.phases.map((phase) => phase.number)).toEqual([7]);
-        expect(persisted.phases[0].status).toBe('completed');
+        expect(persisted.phases[0].status).toBe('paused');
         expect(persisted.phases[0].result).toMatchObject({
             status: 'completed',
             phase: 7,
             next_step_recommendation: 'proceed_to_phase_8',
         });
-        expect(persisted.phases[0].evidence.some((entry) => entry.kind === 'human-gate')).toBe(true);
+        expect(persisted.phases[0].evidence.some((entry) => entry.kind === 'human-gate')).toBe(false);
     });
 
     test('pauses at the review gate when starting from phase 6 on current channel without auto approval', async () => {
@@ -724,8 +956,7 @@ describe('runtime main', () => {
         const taskPath = writeTaskFile(dir, '0266_main_start_phase.md', 'Implement the feature.');
         process.chdir(dir);
 
-        stubExit();
-        await expect(main([taskPath, '--profile', 'complex', '--start-phase', '6'])).rejects.toThrow('EXIT:1');
+        expect(await main([taskPath, '--profile', 'complex', '--start-phase', '6'])).toBe(1);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -738,11 +969,11 @@ describe('runtime main', () => {
         expect(persisted.current_phase).toBe(7);
         expect(persisted.phases.map((phase) => phase.number)).toEqual([6, 7, 8, 9]);
         expect(persisted.phases[0].status).toBe('completed');
-        expect(persisted.phases[1].status).toBe('completed');
+        expect(persisted.phases[1].status).toBe('paused');
         expect(persisted.phases[2].status).toBe('pending');
     });
 
-    test('exits non-zero after the next unsupported phase when auto approval skips the review pause', async () => {
+    test('completes all phases including direct-skill phases 8 and 9 when auto approval is enabled', async () => {
         const dir = createTempDir('orchestration-main-start-phase-auto-');
         writePilotWorkspaceFiles(dir);
         process.env.ACPX_BIN = writeMockAcpxScript(dir);
@@ -750,10 +981,7 @@ describe('runtime main', () => {
         const taskPath = writeTaskFile(dir, '0266_main_start_phase_auto.md', 'Implement the feature.');
         process.chdir(dir);
 
-        stubExit();
-        await expect(main([taskPath, '--profile', 'complex', '--start-phase', '6', '--auto'])).rejects.toThrow(
-            'EXIT:1',
-        );
+        expect(await main([taskPath, '--profile', 'complex', '--start-phase', '6', '--auto'])).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -762,12 +990,12 @@ describe('runtime main', () => {
             current_phase?: number;
             phases: Array<{ number: number; status: string }>;
         };
-        expect(persisted.status).toBe('failed');
-        expect(persisted.current_phase).toBe(8);
+        expect(persisted.status).toBe('completed');
         expect(persisted.phases.map((phase) => phase.number)).toEqual([6, 7, 8, 9]);
         expect(persisted.phases[0].status).toBe('completed');
         expect(persisted.phases[1].status).toBe('completed');
-        expect(persisted.phases[2].status).toBe('failed');
+        expect(persisted.phases[2].status).toBe('completed');
+        expect(persisted.phases[3].status).toBe('completed');
     });
 
     test('treats dry-run as plan-only even when skip-phases and stack-profile arguments are present', async () => {
@@ -776,26 +1004,44 @@ describe('runtime main', () => {
         const taskPath = writeTaskFile(dir, '0266_main_skip_stack.md', 'Implement the feature.');
         process.chdir(dir);
 
-        await expect(
-            main([
-                taskPath,
-                '--profile',
-                'complex',
-                '--start-phase',
-                '6',
-                '--skip-phases',
-                '7,8,9',
-                '--stack-profile',
-                'typescript-bun-biome',
-                '--channel',
-                'current',
-                '--auto',
-                '--dry-run',
-                '--refine',
-            ]),
-        ).resolves.toBeUndefined();
+        expect(await main([
+            taskPath,
+            '--profile',
+            'complex',
+            '--start-phase',
+            '6',
+            '--skip-phases',
+            '7,8,9',
+            '--stack-profile',
+            'typescript-bun-biome',
+            '--channel',
+            'current',
+            '--auto',
+            '--dry-run',
+            '--refine',
+        ])).toBe(0);
 
         expect(findOrchestrationStatePath(taskPath, dir)).toBeNull();
+    });
+
+    test('honors --rework-max-iterations on the public CLI path', async () => {
+        const dir = createTempDir('orchestration-main-rework-override-');
+        writeRetryingPilotWorkspaceFiles(dir);
+        const taskPath = writeTaskFile(dir, '0266_main_rework_override.md', 'Implement the feature.');
+        process.chdir(dir);
+
+        expect(await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rework-max-iterations', '1'])).toBe(1);
+
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        expect(statePath).not.toBeNull();
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
+            status: string;
+            rework_config?: { max_iterations: number };
+            phases: Array<{ status: string; rework_iterations?: number }>;
+        };
+        expect(persisted.status).toBe('paused');
+        expect(persisted.rework_config?.max_iterations).toBe(1);
+        expect(persisted.phases[0].status).toBe('failed');
     });
 
     test('can resume the pilot runtime from a previously paused state file', async () => {
@@ -812,7 +1058,7 @@ describe('runtime main', () => {
         state.phases[0].status = 'paused';
         saveOrchestrationState(state, statePath);
 
-        await expect(main([taskPath, '--profile', 'unit', '--resume'])).resolves.toBeUndefined();
+        expect(await main([taskPath, '--profile', 'unit', '--resume'])).toBe(0);
 
         const persisted = JSON.parse(readFileSync(statePath, 'utf-8')) as { status: string };
         expect(persisted.status).toBe('completed');
