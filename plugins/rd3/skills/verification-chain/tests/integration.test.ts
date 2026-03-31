@@ -1,25 +1,26 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { describe, test, expect, beforeAll, afterEach, beforeEach } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
 import { runChain, resumeChain } from '../scripts/interpreter';
 import type { ChainManifest } from '../scripts/types';
 
-const TEST_DIR = join(__dirname, 'integration-fixtures');
+let TEST_DIR = '';
 
 let chainIdCounter = 0;
 
 beforeAll(() => {
     setGlobalSilent(true);
-    mkdirSync(TEST_DIR, { recursive: true });
-});
-
-afterAll(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
 });
 
 beforeEach(() => {
-    rmSync(join(TEST_DIR, 'cov'), { recursive: true, force: true });
+    TEST_DIR = mkdtempSync(join(tmpdir(), 'verification-integration-'));
+});
+
+afterEach(() => {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+    TEST_DIR = '';
 });
 
 function nextChainId(): string {
