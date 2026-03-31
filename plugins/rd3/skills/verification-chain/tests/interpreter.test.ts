@@ -1,27 +1,27 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { describe, test, expect, beforeAll, afterEach, beforeEach } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
 import { runChain, resumeChain } from '../scripts/interpreter';
 import type { ChainManifest, SingleNode, ChainState } from '../scripts/types';
 
-const TEST_DIR = join(__dirname, 'interpreter-fixtures');
+let TEST_DIR = '';
 
 // Unique chain ID counter to prevent state file collisions between tests
 let chainIdCounter = 0;
 
 beforeAll(() => {
     setGlobalSilent(true);
-    mkdirSync(TEST_DIR, { recursive: true });
-});
-
-afterAll(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true });
 });
 
 beforeEach(() => {
-    // Clear cov directory before each test to prevent stale state collisions
-    rmSync(join(TEST_DIR, 'cov'), { recursive: true, force: true });
+    TEST_DIR = mkdtempSync(join(tmpdir(), 'verification-interpreter-'));
+});
+
+afterEach(() => {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+    TEST_DIR = '';
 });
 
 function nextChainId(): string {
