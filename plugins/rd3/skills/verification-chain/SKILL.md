@@ -33,7 +33,7 @@ A **chain** is a directed sequence of **nodes**. Each node has a **maker** (prod
 - **Parallel groups**: multiple makers run concurrently, then a single checker verifies convergence
 - **Human gates**: pause chain and wait for human approval/rejection/request_changes
 - **Global retry**: re-run failed nodes while preserving successful intermediate results
-- **State persistence**: resume interrupted chains from `cov/<chain_id>-<task_wbs>-cov-state.json`
+- **State persistence**: resume interrupted chains from `<stateDir>/cov/<chain_id>-<task_wbs>-cov-state.json`
 
 ## Chain Manifest Schema
 
@@ -243,7 +243,7 @@ const resumedState = await resumeChain({
 
 ## State Persistence
 
-Chain state is saved to `cov/<chain_id>-<task_wbs>-cov-state.json` after every node transition. Resume reads this file to continue from where the chain left off.
+Chain state is saved to `<stateDir>/cov/<chain_id>-<task_wbs>-cov-state.json` after every node transition. Resume reads this file to continue from where the chain left off. Orchestrators can choose a project root, a per-run artifact directory, or any other runtime namespace by passing the appropriate `stateDir`.
 
 ## CheckerEvidence Fields
 
