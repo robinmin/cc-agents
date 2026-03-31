@@ -10,8 +10,8 @@ Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:o
 
 ## When to Use
 
-- Running the currently supported pilot phases: implementation, unit testing, and code review
-- Previewing larger profile plans before direct-skill pilot support lands
+- Running end-to-end task execution through the 9-phase pipeline
+- Executing any combination of phases via profiles
 - Previewing execution plan without side effects
 
 ## Profiles
@@ -26,8 +26,6 @@ Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:o
 | `research` | 1-9 (all) | Investigation-heavy work with a lighter default test gate |
 
 Default: read from task frontmatter, fall back to `standard`.
-
-Current v1 pilot execution support is narrower than the profile matrix: it concretely executes Phase 5, Phase 6, and Phase 7 only. Profiles that include direct-skill phases 1-4 or 8-9 are still useful for planning, but they are not executable end-to-end in the current pilot runtime.
 
 ### Phase Profiles
 
@@ -54,7 +52,7 @@ Current v1 pilot execution support is narrower than the profile matrix: it concr
 
 ## Workflow
 
-Forward `--channel` (default: `current`) to **rd3:orchestration-dev**. In the current pilot, Phase 5, 6, and 7 are the only executable phases. Phase 5 and 7 use worker-agent envelopes; Phase 6 runs through verification-chain. Review runs pause at the Phase 7 human gate unless `--auto` is set. Local prompt-backed worker execution also requires an explicit prompt agent configuration (`ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT`). Direct-skill phases 1-4 and 8-9 are currently plan-only in this pilot, regardless of channel.
+Forward `--channel` (default: `current`) to **rd3:orchestration-dev**. All 9 phases are executable. Phases 5-7 use worker-agent envelopes; Phase 6 runs through verification-chain. Phases 1-4 and 8-9 execute as direct-skill phases on the `current` channel. Review runs pause at the Phase 7 human gate unless `--auto` is set. Worker phases (5, 7) require `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT` for local prompt execution.
 
 ```
 Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS")
@@ -69,7 +67,7 @@ Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --channel opencode")
 ## Examples
 
 <example>
-Run a simple task through the currently supported implementation + testing pilot
+Run a simple task (implementation + testing)
 ```bash
 /rd3:dev-run 0274 --profile simple
 ```
@@ -90,7 +88,7 @@ Run review-only on the current channel and auto-approve the review gate
 </example>
 
 <example>
-Preview a complex profile plan without executing unsupported direct-skill phases
+Preview a complex profile plan without executing
 ```bash
 /rd3:dev-run 0274 --profile complex --dry-run
 ```
