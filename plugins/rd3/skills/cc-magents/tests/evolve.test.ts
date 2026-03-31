@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import {
     existsSync,
+    mkdtempSync,
     mkdirSync,
     readFileSync,
     readdirSync,
@@ -9,6 +10,7 @@ import {
     unlinkSync,
     writeFileSync,
 } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getEvolutionStoragePaths } from '../../../scripts/evolution-engine';
@@ -29,9 +31,13 @@ import {
 } from '../scripts/evolve';
 import type { EvolutionDataSource } from '../scripts/types';
 
-const TEST_DIR = '/tmp/magent-evolve-test';
-const TEST_CONFIG = join(TEST_DIR, 'test-evolve-config.md');
+let TEST_DIR = '';
+let TEST_CONFIG = '';
 const EVOLVE_SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts', 'evolve.ts');
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-magents-evolve-'));
+}
 
 function getStoragePaths(configPath: string): ReturnType<typeof getEvolutionStoragePaths> {
     return getEvolutionStoragePaths('.cc-magents', configPath);
@@ -53,8 +59,8 @@ function runGit(args: string[], cwd: string): void {
 
 describe('evolve', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
+        TEST_CONFIG = join(TEST_DIR, 'test-evolve-config.md');
         const content = `# Identity
 
 I am a test agent.
@@ -81,6 +87,8 @@ Use the Read and Write tools.
     afterEach(() => {
         rmSync(TEST_DIR, { recursive: true, force: true });
         rmSync(getStoragePaths(TEST_CONFIG).rootDir, { recursive: true, force: true });
+        TEST_DIR = '';
+        TEST_CONFIG = '';
     });
 
     describe('analyzePatterns', () => {
@@ -1978,15 +1986,19 @@ describe('getEvolveHelp', () => {
 });
 
 describe('handleEvolveCLI', () => {
-    const TEST_DIR = '/tmp/magent-evolve-cli-test';
+    let TEST_DIR = '';
+
+    function createCliTestDir(): string {
+        return mkdtempSync(join(tmpdir(), 'cc-magents-evolve-cli-'));
+    }
 
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createCliTestDir();
     });
 
     afterEach(() => {
         rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = '';
     });
 
     it('should return help and exit 0 when --help passed', async () => {
