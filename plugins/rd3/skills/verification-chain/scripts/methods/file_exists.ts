@@ -1,5 +1,5 @@
 import { access } from 'node:fs/promises';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import type { FileExistsCheckerConfig, MethodResult, CheckerEvidence } from '../types';
 import { logger } from '../../../../scripts/logger';
 
@@ -21,7 +21,7 @@ export async function runFileExistsCheck(config: FileExistsCheckerConfig, cwd?: 
 
     await Promise.all(
         config.paths.map(async (path) => {
-            const fullPath = cwd ? join(cwd, path) : path;
+            const fullPath = !cwd || isAbsolute(path) ? path : join(cwd, path);
             try {
                 await access(fullPath, F_OK);
                 filePathsFound.push(path);
