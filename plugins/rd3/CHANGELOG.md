@@ -2,6 +2,87 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.3] - 2026-03-30
+
+### New Features
+
+- **rd3:orchestration-dev Pipeline v2**: 9-phase orchestration pipeline with profile-driven execution, CoV-backed gate manifests, and automated rollback
+  - Profile system (simple, standard, complex, research) determines which phases run
+  - Phase profiles (refine, plan, unit, review, docs) for single-phase execution
+  - Worker phases (5-7) routed to execution channels; direct-skill phases (1-4, 8-9) pinned to current
+  - Dry-run preview, resume from any phase, `--undo` rollback via git-based sandbox
+  - Automated rework loops with configurable retry limits
+  - 11 scripts: model, contracts, init, plan, pilot, runtime, gates, executors, rollback, direct-skill-runner, state-paths
+  - Full test suite: pilot (27 tests), runtime (27 tests), init, plan, rollback, gates, executors, state-paths, direct-skill-runner
+
+- **21 New Skills**: Expanded specialist capabilities
+  - `orchestration-dev` - 9-phase pipeline orchestrator (capstone)
+  - `deep-research` - Enterprise-grade systematic research
+  - `reverse-engineering` - Codebase reverse engineering and HLD generation
+  - `verification-chain` - Chain-of-Verification orchestration
+  - `advanced-testing` - Mutation testing, property-based testing, accessibility testing
+  - `code-implement-common` - Unified code implementation
+  - `code-review-common` - Unified code review coordination
+  - `code-docs` - Cumulative project documentation refresh
+  - `backend-design` / `frontend-design` - Implementation pattern skills
+  - `bdd-workflow` / `functional-review` - BDD and requirements traceability
+  - `request-intake` - Requirements elicitation from vague inputs
+  - `brainstorm` - Structured ideation workflow
+  - `cc-hooks` - Claude Code plugin hooks management
+  - `cli-for-ai` - CLI-for-AI skill
+  - `pl-golang` / `pl-javascript` / `pl-python` / `pl-typescript` - Language-specific planning
+  - `token-saver` / `ui-ux-design` - Utility and design skills
+
+- **5 New Subagents**: Expanded agent ecosystem
+  - `jon-snow` - Pipeline routing agent (full runs, resumes, dry-runs, phase profiles)
+  - `knowledge-seeker` - Research specialist and knowledge synthesis
+  - `super-coder` - Full-stack code implementation with cross-channel support
+  - `super-tester` - Test writing, coverage measurement, TDD workflows
+  - `super-reviewer` - Comprehensive code review coordination
+
+- **12 New Slash Commands**: Developer productivity shortcuts
+  - `dev-run` - Profile-driven pipeline execution
+  - `dev-plan` - Architecture and design planning
+  - `dev-unit` - Unit test generation
+  - `dev-review` - Comprehensive code review
+  - `dev-docs` - Documentation refresh
+  - `dev-fixall` - Fix lint, type, and test issues
+  - `dev-gitmsg` - Conventional commit message generation
+  - `dev-changelog` - Changelog generation from git history
+  - `dev-init` - Project initialization and validation
+  - `dev-refine` - Requirements refinement
+  - `dev-reverse` - HLD generation from codebase
+  - `skill-migrate` - Migrate and merge skills from rd2 to rd3
+
+- **4 New Shared Libraries**: Reusable script infrastructure
+  - `acpx-query` - ACP agent query utilities
+  - `cli-args` - CLI argument parsing
+  - `research-patterns` - Research methodology patterns
+  - `validation-runner` - Validation execution framework
+
+### Improvements
+
+- **Delegation Map**: Complete phase-to-skill delegation reference for all 9 pipeline phases
+- **Phase Matrix**: Profile-based phase selection with gate definitions
+- **Verification Profiles**: Per-profile gate configuration with CoV integration
+- **Enhanced Agents**: Updated expert-skill agent for pipeline v2 coordination
+- **Test Infrastructure**: Added shared test helpers with centralized test data directory
+
+### Fixes
+
+- Fixed test artifact pollution from missing TEST_DIR initialization in 4 describe blocks
+- Removed dead code (unused imports, evaluateCoVGate, buildPhaseEvidence) from gates module
+- Fixed direct-skill limitation documentation for pipeline v2
+- Wired `--undo` flag execution into runtime for rollback support
+- Fixed best-practice-fixes script for pipeline v2 compatibility
+
+### Internal Changes
+
+- 448 files changed, 85,804 insertions across 50 commits
+- 8 new shared test files with 1,329 lines of test infrastructure
+- 29 files in orchestration-dev skill (8,949 lines including tests)
+- Removed empty frontmatter lines from 11 command files
+
 ## [0.3.5] - 2026-03-24
 
 ### 🔧 Improvements
