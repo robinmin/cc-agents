@@ -3,7 +3,7 @@
  *
  * Orchestrates chain execution: runs makers, dispatches checkers,
  * handles retry logic, manages pause/resume for human checks,
- * persists State to cov/<chain_id>-<wbs>-cov-state.json.
+ * persists state to <stateDir>/cov/<chain_id>-<wbs>-cov-state.json.
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -226,8 +226,9 @@ async function executeSingleNode(
     chainState: ChainState,
     stateDir: string,
     delegateRunner?: DelegateRunner,
+    cwd?: string,
 ): Promise<{ halted: boolean; reason?: string }> {
-    const cwd = stateDir; // TODO: allow custom cwd per node
+    const resolvedCwd = cwd ?? stateDir;
 
     // --- Run maker (skip if already completed from a previous run) ---
     state.status = 'running';
@@ -243,7 +244,7 @@ async function executeSingleNode(
             ? ({ status: 'completed', output: state.maker_output } as const)
             : await (async () => {
                   state.maker_status = 'running';
-                  return runMaker(node.maker, cwd, delegateRunner);
+                  return runMaker(node.maker, resolvedCwd, delegateRunner);
               })();
 
     if (makerResult.status === 'paused') {
@@ -299,7 +300,12 @@ async function executeSingleNode(
         attempts++;
         logger.debug(`Running checker for node ${node.name} (attempt ${attempts}/${maxAttempts})`);
 
-        checkerResult = await runChecker(node.checker.method, node.checker.config, cwd, chainState.paused_response);
+        checkerResult = await runChecker(
+            node.checker.method,
+            node.checker.config,
+            resolvedCwd,
+            chainState.paused_response,
+        );
 
         if (checkerResult.result !== 'fail') {
             break;
@@ -360,8 +366,9 @@ async function executeParallelGroupNode(
     chainState: ChainState,
     stateDir: string,
     delegateRunner?: DelegateRunner,
+    cwd?: string,
 ): Promise<{ halted: boolean; reason?: string }> {
-    const cwd = stateDir;
+    const resolvedCwd = cwd ?? stateDir;
 
     state.status = 'running';
     state.started_at = new Date().toISOString();
@@ -378,7 +385,7 @@ async function executeParallelGroupNode(
     const childPromises = node.children.map(async (child) => {
         parallelChildren[child.name].maker_status = 'running';
 
-        const result = await runMaker(child.maker, cwd, delegateRunner);
+        const result = await runMaker(child.maker, resolvedCwd, delegateRunner);
 
         if (result.status === 'failed') {
             const err = result.error;
@@ -453,7 +460,12 @@ async function executeParallelGroupNode(
     state.maker_status = 'completed';
     state.checker_status = 'running';
 
-    const checkerResult = await runChecker(node.checker.method, node.checker.config, cwd, chainState.paused_response);
+    const checkerResult = await runChecker(
+        node.checker.method,
+        node.checker.config,
+        resolvedCwd,
+        chainState.paused_response,
+    );
 
     state.checker_status = checkerResult.result === 'paused' ? 'paused' : 'completed';
     state.checker_result = checkerResult.result;
@@ -521,6 +533,7 @@ function nodeState(state: ChainState, name: string): NodeExecutionState | undefi
 export interface RunChainOptions {
     manifest: ChainManifest;
     stateDir?: string;
+    cwd?: string | undefined;
     onNodeStart?: (node: ChainNode) => void;
     onNodeComplete?: (node: ChainNode, state: NodeExecutionState) => void;
     onChainPause?: (state: ChainState) => void;
@@ -533,6 +546,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
     const {
         manifest,
         stateDir = '.',
+        cwd,
         onNodeStart,
         onNodeComplete,
         onChainPause,
@@ -644,6 +658,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                 state,
                 stateDir,
                 delegateRunner,
+                cwd,
             ));
         } else if (nextNode.type === 'parallel-group') {
             const ns = nodeState(state, nextNode.name);
@@ -655,6 +670,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                 state,
                 stateDir,
                 delegateRunner,
+                cwd,
             ));
         }
 
@@ -687,6 +703,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
 export interface ResumeChainOptions {
     manifest: ChainManifest;
     stateDir?: string;
+    cwd?: string | undefined;
     humanResponse?: string;
     onNodeStart?: (node: ChainNode) => void;
     onNodeComplete?: (node: ChainNode, state: NodeExecutionState) => void;
@@ -703,6 +720,7 @@ export async function resumeChain(options: ResumeChainOptions): Promise<ChainSta
     const {
         manifest,
         stateDir = '.',
+        cwd,
         humanResponse,
         onNodeStart,
         onNodeComplete,
@@ -742,6 +760,7 @@ export async function resumeChain(options: ResumeChainOptions): Promise<ChainSta
     return runChain({
         manifest,
         stateDir,
+        cwd,
         onNodeStart: onNodeStart ?? (() => {}),
         onNodeComplete: onNodeComplete ?? (() => {}),
         onChainComplete: onChainComplete ?? (() => {}),
