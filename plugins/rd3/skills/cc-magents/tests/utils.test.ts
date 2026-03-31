@@ -15,7 +15,8 @@ import {
     detectHierarchy,
 } from '../scripts/utils';
 import type { MagentSection } from '../scripts/types';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 describe('utils', () => {
@@ -529,17 +530,17 @@ I am a test agent.
     // discoverAgentConfigs
     // ============================================================================
     describe('discoverAgentConfigs', () => {
-        const tempRoot = '/tmp/cc-magents-utils-discovery';
+        let tempRoot = '';
 
         beforeEach(() => {
-            rmSync(tempRoot, { recursive: true, force: true });
-            mkdirSync(tempRoot, { recursive: true });
+            tempRoot = mkdtempSync(join(tmpdir(), 'cc-magents-utils-discovery-'));
         });
 
         afterEach(() => {
             if (existsSync(tempRoot)) {
                 rmSync(tempRoot, { recursive: true, force: true });
             }
+            tempRoot = '';
         });
 
         it('should discover known platform config files', () => {
