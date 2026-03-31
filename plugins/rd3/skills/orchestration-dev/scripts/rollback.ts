@@ -42,7 +42,8 @@ function getUntrackedFiles(cwd: string): string[] {
 
 function getModifiedFiles(cwd: string): string[] {
     try {
-        const output = execSync('git diff --name-only', {
+        // Use HEAD diff to catch both staged and unstaged changes
+        const output = execSync('git diff HEAD --name-only', {
             cwd,
             encoding: 'utf-8',
             stdio: ['pipe', 'pipe', 'pipe'],
@@ -94,6 +95,12 @@ interface RestorePlan {
     filesToRemove: string[];
 }
 
+export function checkDirtyFiles(cwd: string, snapshot: RollbackSnapshot): string[] {
+    const modifiedBefore = new Set(snapshot.modified_before ?? []);
+    const modifiedNow = getModifiedFiles(cwd);
+    return modifiedNow.filter(f => !modifiedBefore.has(f));
+}
+
 function getRestorePlan(cwd: string, snapshot: RollbackSnapshot): RestorePlan {
     const filesBefore = new Set(snapshot.files_before);
     const filesAfter = new Set(
@@ -109,8 +116,17 @@ function getRestorePlan(cwd: string, snapshot: RollbackSnapshot): RestorePlan {
     };
 }
 
-export function restoreSnapshot(cwd: string, snapshot: RollbackSnapshot): RestoreResult {
+export function restoreSnapshot(cwd: string, snapshot: RollbackSnapshot, force?: boolean): RestoreResult {
     const result: RestoreResult = { restored: [], removed: [], errors: [] };
+    
+    // Check for dirty files that would be lost
+    if (!force) {
+        const dirtyFiles = checkDirtyFiles(cwd, snapshot);
+        if (dirtyFiles.length > 0) {
+            throw new Error(`Cannot restore snapshot: uncommitted changes detected in files that were clean before the phase started: ${dirtyFiles.join(', ')}. Use force=true to override.`);
+        }
+    }
+    
     const restorePlan = getRestorePlan(cwd, snapshot);
 
     // New files created during the phase — remove them
@@ -161,7 +177,7 @@ function clearPhaseState(phaseRecord: Record<string, unknown>): void {
 }
 
 export function executeUndo(options: UndoOptions, stateDir: string): UndoResult {
-    const { task_ref, phase, dry_run } = options;
+    const { task_ref, phase, dry_run, force } = options;
     const result: UndoResult = {
         phase,
         task_ref,
@@ -224,10 +240,15 @@ export function executeUndo(options: UndoOptions, stateDir: string): UndoResult 
     }
 
     // Perform the actual restore
-    const restoreResult = restoreSnapshot(stateDir, snapshot);
-    result.files_to_restore = restoreResult.restored;
-    result.files_to_remove = restoreResult.removed;
-    result.errors.push(...restoreResult.errors);
+    try {
+        const restoreResult = restoreSnapshot(stateDir, snapshot, force);
+        result.files_to_restore = restoreResult.restored;
+        result.files_to_remove = restoreResult.removed;
+        result.errors.push(...restoreResult.errors);
+    } catch (error) {
+        result.errors.push(error instanceof Error ? error.message : String(error));
+        return result;
+    }
 
     // Clear the selected phase and any downstream state that is now stale.
     for (const downstreamPhase of state.phases) {

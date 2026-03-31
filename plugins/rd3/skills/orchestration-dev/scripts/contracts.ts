@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { DownstreamEvidenceEnvelope, Phase, PhaseNumber, Profile, TaskProfile } from './model';
 
 type WorkerPhaseNumber = 5 | 6 | 7;
@@ -194,6 +195,21 @@ function getTestingGateCriteria(profile: Profile, coverageThreshold: number): st
     return `Coverage >= ${coverageThreshold}%, 100% tests pass`;
 }
 
+export function resolveDomain(taskPath?: string): 'backend' | 'frontend' | 'fullstack' {
+    if (!taskPath) return 'backend';
+    try {
+        const content = readFileSync(taskPath, 'utf-8');
+        const fm = content.match(/^---\n([\s\S]*?)\n---/);
+        if (fm) {
+            const domainMatch = fm[1].match(/^domain:\s*"?(\w+)"?\s*$/m);
+            if (domainMatch && ['backend', 'frontend', 'fullstack'].includes(domainMatch[1])) {
+                return domainMatch[1] as 'backend' | 'frontend' | 'fullstack';
+            }
+        }
+    } catch { /* ignore */ }
+    return 'backend';
+}
+
 function attachExecutionPolicy(phase: Omit<Phase, 'executor' | 'execution_mode' | 'worker_contract_version'>): Phase {
     const workerContract = PHASE_WORKER_CONTRACTS[phase.number as WorkerPhaseNumber];
     return {
@@ -204,7 +220,7 @@ function attachExecutionPolicy(phase: Omit<Phase, 'executor' | 'execution_mode' 
     };
 }
 
-function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: number): Phase {
+function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: number, taskPath?: string): Phase {
     switch (phase) {
         case 1:
             return attachExecutionPolicy({
@@ -216,26 +232,32 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
                 gate: 'auto',
                 gateCriteria: 'Background 100+ chars, Requirements numbered, Profile assigned',
             });
-        case 2:
+        case 2: {
+            const domain = resolveDomain(taskPath);
+            const skill = domain === 'frontend' ? 'rd3:frontend-architect' : 'rd3:backend-architect';
             return attachExecutionPolicy({
                 number: 2,
                 name: PHASE_NAMES[2],
-                skill: 'rd3:backend-architect',
+                skill,
                 inputs: ['task_ref', 'requirements', 'constraints'],
                 outputs: ['Architecture Document'],
                 gate: 'auto',
                 gateCriteria: 'Architecture document exists',
             });
-        case 3:
+        }
+        case 3: {
+            const domain = resolveDomain(taskPath);
+            const skill = domain === 'frontend' ? 'rd3:frontend-design' : 'rd3:backend-design';
             return attachExecutionPolicy({
                 number: 3,
                 name: PHASE_NAMES[3],
-                skill: 'rd3:backend-design',
+                skill,
                 inputs: ['task_ref', 'architecture', 'requirements'],
                 outputs: ['Design Specs'],
                 gate: 'human',
                 gateCriteria: 'Design specs complete',
             });
+        }
         case 4:
             return attachExecutionPolicy({
                 number: 4,
@@ -312,8 +334,8 @@ function getBasePhase(profile: Profile, phase: PhaseNumber, coverageThreshold: n
     }
 }
 
-export function buildPhaseDefinitions(profile: Profile, coverageThreshold: number): Phase[] {
-    return PHASE_MATRIX[profile].map((phaseNumber) => getBasePhase(profile, phaseNumber, coverageThreshold));
+export function buildPhaseDefinitions(profile: Profile, coverageThreshold: number, taskPath?: string): Phase[] {
+    return PHASE_MATRIX[profile].map((phaseNumber) => getBasePhase(profile, phaseNumber, coverageThreshold, taskPath));
 }
 
 export const DOWNSTREAM_EVIDENCE_CONTRACTS: Record<string, DownstreamEvidenceEnvelope> = {

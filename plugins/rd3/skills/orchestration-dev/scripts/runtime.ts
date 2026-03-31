@@ -23,6 +23,8 @@ import {
     getWorkflowRunsRoot,
 } from './state-paths';
 
+export const CURRENT_SCHEMA_VERSION = 1;
+
 export type OrchestrationStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed';
 export type PhaseExecutionStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'skipped';
 
@@ -66,6 +68,7 @@ export interface OrchestrationState {
     dry_run: boolean;
     created_at: string;
     updated_at: string;
+    schema_version?: number;
     phases: PhaseExecutionRecord[];
 }
 
@@ -138,6 +141,7 @@ export function createOrchestrationState(plan: ExecutionPlan, reworkConfig?: Rew
         dry_run: plan.dry_run,
         created_at: timestamp,
         updated_at: timestamp,
+        schema_version: CURRENT_SCHEMA_VERSION,
         phases: plan.phases.map((phase) => ({
             number: phase.number,
             name: phase.name,
@@ -155,11 +159,18 @@ export function createOrchestrationState(plan: ExecutionPlan, reworkConfig?: Rew
 }
 
 export function loadOrchestrationState(path: string): OrchestrationState | null {
+    let state: OrchestrationState | null = null;
     try {
-        return JSON.parse(readFileSync(path, 'utf-8')) as OrchestrationState;
+        state = JSON.parse(readFileSync(path, 'utf-8')) as OrchestrationState;
     } catch {
         return null;
     }
+    if (state.schema_version !== undefined && state.schema_version > CURRENT_SCHEMA_VERSION) {
+        throw new Error(
+            `Cannot load orchestration state: schema_version ${state.schema_version} is newer than supported version ${CURRENT_SCHEMA_VERSION}. Please update the orchestration tool.`,
+        );
+    }
+    return state;
 }
 
 export function saveOrchestrationState(state: OrchestrationState, path: string): void {
@@ -288,13 +299,17 @@ async function executePhaseOnce(options: PhaseExecutionOptions): Promise<PhaseRu
 
         return await withTimeout(phaseRunner(phase, context), timeoutMs, `phase ${phase.number} (${phase.name})`);
     } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        const isTimeout = errorMsg.startsWith('Phase runner timed out');
         return {
             status: 'failed',
-            error: error instanceof Error ? error.message : String(error),
+            error: errorMsg,
             evidence: [
                 {
-                    kind: 'timeout',
-                    detail: `Phase ${phase.number} (${phase.name}) timed out after ${timeoutMs}ms`,
+                    kind: isTimeout ? 'timeout' : 'failure',
+                    detail: isTimeout
+                        ? `Phase ${phase.number} (${phase.name}) timed out after ${timeoutMs}ms`
+                        : `Phase ${phase.number} (${phase.name}) failed: ${errorMsg}`,
                 },
             ],
         };

@@ -1,11 +1,12 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setGlobalSilent } from '../../../scripts/logger';
 import { createExecutionPlan } from '../scripts/plan';
 import {
     createOrchestrationState,
+    CURRENT_SCHEMA_VERSION,
     findOrchestrationStatePath,
     getOrchestrationStatePath,
     loadOrchestrationState,
@@ -14,6 +15,7 @@ import {
     runOrchestration,
     saveOrchestrationState,
 } from '../scripts/runtime';
+import { createRunLock, getLockPath, getOrchestrationRunDir, isRunLocked, releaseRunLock } from '../scripts/state-paths';
 
 beforeAll(() => {
     setGlobalSilent(true);
@@ -1030,7 +1032,9 @@ describe('runtime main', () => {
         const taskPath = writeTaskFile(dir, '0266_main_rework_override.md', 'Implement the feature.');
         process.chdir(dir);
 
-        expect(await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rework-max-iterations', '1'])).toBe(1);
+        expect(
+            await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rework-max-iterations', '1']),
+        ).toBe(1);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -1062,5 +1066,142 @@ describe('runtime main', () => {
 
         const persisted = JSON.parse(readFileSync(statePath, 'utf-8')) as { status: string };
         expect(persisted.status).toBe('completed');
+    });
+});
+
+describe('schema version', () => {
+    test('createOrchestrationState sets schema_version to CURRENT_SCHEMA_VERSION', () => {
+        const dir = createTempDir('orchestration-schema-create-');
+        const taskPath = writeTaskFile(dir, '0266_schema_create.md', 'Implement the feature.');
+        const plan = createExecutionPlan(taskPath, { profile: 'simple' });
+        const state = createOrchestrationState(plan);
+        expect(state.schema_version).toBe(CURRENT_SCHEMA_VERSION);
+        expect(state.schema_version).toBe(1);
+    });
+
+    test('rejects state files with a future schema version', () => {
+        const dir = createTempDir('orchestration-schema-future-');
+        const taskPath = writeTaskFile(dir, '0266_schema_future.md', 'Implement the feature.');
+        const plan = createExecutionPlan(taskPath, { profile: 'simple' });
+        const state = createOrchestrationState(plan);
+        state.schema_version = 999;
+        const statePath = getOrchestrationStatePath(plan.task_ref, dir);
+        saveOrchestrationState(state, statePath);
+        expect(() => loadOrchestrationState(statePath)).toThrow(/schema_version.*999/);
+    });
+
+    test('loads state files with current schema version', () => {
+        const dir = createTempDir('orchestration-schema-current-');
+        const taskPath = writeTaskFile(dir, '0266_schema_current.md', 'Implement the feature.');
+        const plan = createExecutionPlan(taskPath, { profile: 'simple' });
+        const state = createOrchestrationState(plan);
+        const statePath = getOrchestrationStatePath(plan.task_ref, dir);
+        saveOrchestrationState(state, statePath);
+        const loaded = loadOrchestrationState(statePath);
+        expect(loaded?.schema_version).toBe(CURRENT_SCHEMA_VERSION);
+    });
+
+    test('loads state files without schema version (backward compat)', () => {
+        const dir = createTempDir('orchestration-schema-none-');
+        const taskPath = writeTaskFile(dir, '0266_schema_none.md', 'Implement the feature.');
+        const plan = createExecutionPlan(taskPath, { profile: 'simple' });
+        const state = createOrchestrationState(plan);
+        delete state.schema_version;
+        const statePath = getOrchestrationStatePath(plan.task_ref, dir);
+        saveOrchestrationState(state, statePath);
+        const loaded = loadOrchestrationState(statePath);
+        expect(loaded).not.toBeNull();
+        expect(loaded?.task_ref).toBe(plan.task_ref);
+    });
+
+    test('returns null when loading a file with corrupt JSON', () => {
+        const dir = createTempDir('orchestration-schema-corrupt-');
+        const corruptPath = join(dir, 'corrupt.json');
+        writeFileSync(corruptPath, '{ not valid json ', 'utf-8');
+        expect(loadOrchestrationState(corruptPath)).toBeNull();
+    });
+});
+
+describe('error type discrimination', () => {
+    test('reports timeout evidence when phase times out', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'err-timeout-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseTimeoutMs: 10,
+            phaseRunner: async () => {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                return { status: 'completed' as const };
+            },
+        });
+        expect(state.phases[0].evidence.some((e) => e.kind === 'timeout')).toBe(true);
+        expect(state.phases[0].error).toContain('timed out');
+    });
+
+    test('reports failure evidence when phase runner throws', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'err-failure-'));
+        tempDirs.push(dir);
+        const plan = createExecutionPlan('0292', { profile: 'unit' });
+        const state = await runOrchestration({
+            plan,
+            projectRoot: dir,
+            stateDir: dir,
+            phaseRunner: async () => {
+                throw new Error('boom');
+            },
+        });
+        expect(state.phases[0].evidence.some((e) => e.kind === 'failure')).toBe(true);
+        expect(state.phases[0].error).toContain('boom');
+        expect(state.phases[0].error).not.toContain('timed out');
+    });
+});
+
+describe('run lock', () => {
+    test('acquires and releases a run lock', () => {
+        const dir = mkdtempSync(join(tmpdir(), 'run-lock-basic-'));
+        tempDirs.push(dir);
+        const runDir = getOrchestrationRunDir('0292', dir);
+
+        const lockPath = createRunLock(runDir);
+        expect(lockPath).not.toBeNull();
+        expect(isRunLocked(runDir)).toBe(true);
+
+        releaseRunLock(runDir);
+        expect(isRunLocked(runDir)).toBe(false);
+    });
+
+    test('returns null when run is already locked by an active process', () => {
+        const dir = mkdtempSync(join(tmpdir(), 'run-lock-contention-'));
+        tempDirs.push(dir);
+        const runDir = getOrchestrationRunDir('0292', dir);
+
+        const lockPath = createRunLock(runDir);
+        expect(lockPath).not.toBeNull();
+
+        // Second lock attempt returns null — same process holds it
+        const secondAttempt = createRunLock(runDir);
+        expect(secondAttempt).toBeNull();
+    });
+
+    test('treats stale lock from dead process as unlocked', () => {
+        const dir = mkdtempSync(join(tmpdir(), 'run-lock-stale-'));
+        tempDirs.push(dir);
+        const runDir = getOrchestrationRunDir('0292', dir);
+
+        // Write a stale lock with a PID that doesn't exist
+        mkdirSync(runDir, { recursive: true });
+        const lockPath = getLockPath(runDir);
+        writeFileSync(lockPath, '999999999', 'utf-8');
+
+        // Should report as not locked (stale)
+        expect(isRunLocked(runDir)).toBe(false);
+
+        // Should be able to acquire the lock
+        const newLock = createRunLock(runDir);
+        expect(newLock).not.toBeNull();
+        expect(isRunLocked(runDir)).toBe(true);
     });
 });

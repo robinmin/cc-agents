@@ -70,11 +70,12 @@ export function generateExecutionPlan(
     skipPhases: PhaseNumber[] = [],
     coverageOverride?: number,
     executionChannel = 'current',
+    taskPath?: string,
 ): ExecutionPlan {
     const normalizedExecutionChannel = normalizeExecutionChannel(executionChannel);
     const coverageThreshold = getCoverageThreshold(profile, coverageOverride);
     const selectedPhases = resolvePhaseSequence(profile, startPhase, skipPhases);
-    const phases = buildPhaseDefinitions(profile, coverageThreshold).filter((phase) =>
+    const phases = buildPhaseDefinitions(profile, coverageThreshold, taskPath).filter((phase) =>
         selectedPhases.includes(phase.number),
     );
     const estimatedDuration = phases.reduce((sum, phase) => sum + PHASE_DURATIONS[phase.number], 0);
@@ -114,6 +115,7 @@ export function createExecutionPlan(taskRef: string, options: CreateExecutionPla
         options.skipPhases ?? [],
         options.coverageOverride,
         normalizedExecutionChannel,
+        taskPath,
     );
     const phases = plan.phases.map((phase) => {
         if (phase.number !== 1 || !refineMode) {

@@ -176,3 +176,5 @@ vite.config.ts.timestamp-*
 dist-*/
 *-skill/
 test-output-*.md
+.ant-colony/
+/docs/.workflow-runs

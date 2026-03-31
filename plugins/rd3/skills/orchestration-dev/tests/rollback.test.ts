@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, test } from 'bun:test';
 import {
     captureSnapshot,
+    checkDirtyFiles,
     executeUndo,
     finalizeSnapshot,
     main as rollbackMain,
@@ -119,7 +120,7 @@ describe('rollback', () => {
             writeFileSync(join(dir, 'phase-owned.txt'), 'modified content');
 
             const finalized = finalizeSnapshot(dir, snapshot);
-            const result = restoreSnapshot(dir, finalized);
+            const result = restoreSnapshot(dir, finalized, true); // Use force to allow the test
 
             expect(result.restored).toContain('phase-owned.txt');
         });
@@ -138,11 +139,167 @@ describe('rollback', () => {
             writeFileSync(join(dir, 'phase-owned.txt'), 'phase-only changes');
 
             const finalized = finalizeSnapshot(dir, snapshot);
-            const result = restoreSnapshot(dir, finalized);
+            const result = restoreSnapshot(dir, finalized, true); // Use force to allow the test
 
             expect(result.restored).toContain('phase-owned.txt');
             expect(result.restored).not.toContain('initial.txt');
             expect(readFileSync(join(dir, 'initial.txt'), 'utf-8')).toBe('user draft before snapshot plus phase edits');
+        });
+    });
+
+    describe('checkDirtyFiles', () => {
+        test('detects files that are dirty now but were clean before snapshot', () => {
+            const dir = trackDir(createTempDir('rollback-dirty-check'));
+            initGitRepo(dir);
+            writeFileSync(join(dir, 'test-file.txt'), 'clean content');
+            Bun.spawnSync({ cmd: ['git', 'add', '.'], cwd: dir });
+            Bun.spawnSync({ cmd: ['git', 'commit', '-m', 'add test file'], cwd: dir });
+
+            // Capture snapshot when file is clean
+            const snapshot = captureSnapshot(dir, 5);
+            
+            // Now modify the file
+            writeFileSync(join(dir, 'test-file.txt'), 'modified content');
+            
+            const dirtyFiles = checkDirtyFiles(dir, snapshot);
+            
+            expect(dirtyFiles).toContain('test-file.txt');
+        });
+        
+        test('does not report files that were already dirty before snapshot', () => {
+            const dir = trackDir(createTempDir('rollback-dirty-before'));
+            initGitRepo(dir);
+            writeFileSync(join(dir, 'test-file.txt'), 'clean content');
+            Bun.spawnSync({ cmd: ['git', 'add', '.'], cwd: dir });
+            Bun.spawnSync({ cmd: ['git', 'commit', '-m', 'add test file'], cwd: dir });
+            
+            // Make file dirty before snapshot
+            writeFileSync(join(dir, 'test-file.txt'), 'dirty before snapshot');
+            const snapshot = captureSnapshot(dir, 5);
+            
+            // Modify file more
+            writeFileSync(join(dir, 'test-file.txt'), 'dirty before snapshot + more changes');
+            
+            const dirtyFiles = checkDirtyFiles(dir, snapshot);
+            
+            expect(dirtyFiles).not.toContain('test-file.txt');
+        });
+        
+        test('returns empty array when no new dirty files', () => {
+            const dir = trackDir(createTempDir('rollback-no-dirty'));
+            initGitRepo(dir);
+            
+            const snapshot = captureSnapshot(dir, 5);
+            const dirtyFiles = checkDirtyFiles(dir, snapshot);
+            
+            expect(dirtyFiles).toEqual([]);
+        });
+    });
+
+    describe('restoreSnapshot with force parameter', () => {
+        test('throws error when dirty files detected and force=false', () => {
+            const dir = trackDir(createTempDir('rollback-force-false'));
+            initGitRepo(dir);
+            writeFileSync(join(dir, 'test-file.txt'), 'clean content');
+            Bun.spawnSync({ cmd: ['git', 'add', '.'], cwd: dir });
+            Bun.spawnSync({ cmd: ['git', 'commit', '-m', 'add test file'], cwd: dir });
+
+            const snapshot = captureSnapshot(dir, 5);
+            writeFileSync(join(dir, 'test-file.txt'), 'modified after snapshot');
+            const finalized = finalizeSnapshot(dir, snapshot);
+            
+            expect(() => restoreSnapshot(dir, finalized, false)).toThrow(
+                /Cannot restore snapshot: uncommitted changes detected/
+            );
+        });
+        
+        test('throws error when dirty files detected and force not specified', () => {
+            const dir = trackDir(createTempDir('rollback-force-undefined'));
+            initGitRepo(dir);
+            writeFileSync(join(dir, 'test-file.txt'), 'clean content');
+            Bun.spawnSync({ cmd: ['git', 'add', '.'], cwd: dir });
+            Bun.spawnSync({ cmd: ['git', 'commit', '-m', 'add test file'], cwd: dir });
+
+            const snapshot = captureSnapshot(dir, 5);
+            writeFileSync(join(dir, 'test-file.txt'), 'modified after snapshot');
+            const finalized = finalizeSnapshot(dir, snapshot);
+            
+            expect(() => restoreSnapshot(dir, finalized)).toThrow(
+                /Cannot restore snapshot: uncommitted changes detected/
+            );
+        });
+        
+        test('proceeds with restoration when force=true despite dirty files', () => {
+            const dir = trackDir(createTempDir('rollback-force-true'));
+            initGitRepo(dir);
+            writeFileSync(join(dir, 'test-file.txt'), 'clean content');
+            Bun.spawnSync({ cmd: ['git', 'add', '.'], cwd: dir });
+            Bun.spawnSync({ cmd: ['git', 'commit', '-m', 'add test file'], cwd: dir });
+
+            const snapshot = captureSnapshot(dir, 5);
+            writeFileSync(join(dir, 'test-file.txt'), 'modified after snapshot');
+            const finalized = finalizeSnapshot(dir, snapshot);
+            
+            const result = restoreSnapshot(dir, finalized, true);
+            
+            expect(result.errors).toHaveLength(0);
+            expect(result.restored).toContain('test-file.txt');
+        });
+        
+        test('proceeds normally when no dirty files and force=false', () => {
+            const dir = trackDir(createTempDir('rollback-force-nodirty'));
+            initGitRepo(dir);
+            
+            const snapshot = captureSnapshot(dir, 5);
+            writeFileSync(join(dir, 'new-file.txt'), 'created during phase');
+            const finalized = finalizeSnapshot(dir, snapshot);
+
+            const result = restoreSnapshot(dir, finalized, false);
+
+            expect(result.errors).toHaveLength(0);
+            expect(result.removed).toContain('new-file.txt');
+        });
+    });
+
+    describe('executeUndo with force parameter', () => {
+        test('passes force parameter through to restoreSnapshot', () => {
+            const dir = trackDir(createTempDir('rollback-undo-force'));
+            initGitRepo(dir);
+            writeFileSync(join(dir, 'test-file.txt'), 'clean content');
+            Bun.spawnSync({ cmd: ['git', 'add', '.'], cwd: dir });
+            Bun.spawnSync({ cmd: ['git', 'commit', '-m', 'add test file'], cwd: dir });
+
+            const snapshot: RollbackSnapshot = {
+                phase: 5,
+                files_before: ['initial.txt', 'test-file.txt'],
+                files_after: ['initial.txt', 'test-file.txt'],
+                modified_before: [],
+                git_head_before: 'abc123',
+                created_at: new Date().toISOString(),
+            };
+
+            const state = {
+                phases: [
+                    {
+                        number: 5,
+                        status: 'completed',
+                        rollback_snapshot: snapshot,
+                    },
+                ],
+            };
+
+            writeCanonicalState(dir, '0292', state);
+            
+            // Make file dirty after snapshot
+            writeFileSync(join(dir, 'test-file.txt'), 'modified after phase');
+            
+            // Without force, should fail
+            const resultNoForce = executeUndo({ task_ref: '0292', phase: 5, dry_run: false }, dir);
+            expect(resultNoForce.errors.some(e => e.includes('Cannot restore snapshot'))).toBe(true);
+            
+            // With force, should succeed
+            const resultWithForce = executeUndo({ task_ref: '0292', phase: 5, dry_run: false, force: true }, dir);
+            expect(resultWithForce.errors.filter(e => e.includes('Cannot restore snapshot'))).toHaveLength(0);
         });
     });
 
