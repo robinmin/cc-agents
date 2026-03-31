@@ -1,27 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getEvolutionStoragePaths } from '../../../scripts/evolution-engine';
 
-const TEST_DIR = '/tmp/cc-commands-evolve-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const EVOLVE_SCRIPT = join(__dirname, '..', 'scripts', 'evolve.ts');
+let testDir = '';
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-commands-evolve-'));
+}
 
 describe('Integration: evolve command', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        testDir = createTestDir();
     });
 
     afterEach(() => {
-        if (existsSync(TEST_DIR)) {
-            rmSync(TEST_DIR, { recursive: true, force: true });
+        if (testDir && existsSync(testDir)) {
+            rmSync(testDir, { recursive: true, force: true });
         }
-        const storage = getEvolutionStoragePaths('.cc-commands', join(TEST_DIR, 'review-code.md'));
+        const storage = getEvolutionStoragePaths('.cc-commands', join(testDir, 'review-code.md'));
         if (existsSync(storage.rootDir)) {
             rmSync(storage.rootDir, { recursive: true, force: true });
         }
+        testDir = '';
     });
 
     it('should show help', async () => {
@@ -35,7 +40,7 @@ describe('Integration: evolve command', () => {
     });
 
     it('should analyze command evolution signals', async () => {
-        const commandPath = join(TEST_DIR, 'review-code.md');
+        const commandPath = join(testDir, 'review-code.md');
         writeFileSync(
             commandPath,
             `---
@@ -63,7 +68,7 @@ description: Review code for placeholder evolution tests
     });
 
     it('should apply and rollback a saved proposal', async () => {
-        const commandPath = join(TEST_DIR, 'review-code.md');
+        const commandPath = join(testDir, 'review-code.md');
         writeFileSync(
             commandPath,
             `---
