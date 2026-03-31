@@ -10,7 +10,8 @@ import {
     main,
 } from '../scripts/synthesize';
 import type { DomainTemplate, MagentPlatform, ProjectDetection } from '../scripts/types';
-import { writeFileSync, mkdirSync, rmdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 
 function createTestProject(parentDir: string, name: string, files: Record<string, string>): string {
@@ -26,14 +27,15 @@ function createTestProject(parentDir: string, name: string, files: Record<string
 }
 
 describe('synthesize', () => {
-    const TEST_DIR = '/tmp/magent-synthesize-test';
+    let TEST_DIR = '';
+
+    beforeEach(() => {
+        TEST_DIR = mkdtempSync(join(tmpdir(), 'cc-magents-synthesize-'));
+    });
 
     afterEach(() => {
-        try {
-            rmdirSync(TEST_DIR, { recursive: true });
-        } catch {
-            /* ignore */
-        }
+        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = '';
     });
 
     describe('AVAILABLE_TEMPLATES', () => {
@@ -850,9 +852,8 @@ I am a test.
     });
 
     describe('synthesize', () => {
-        const TEST_OUTPUT = join(TEST_DIR, 'test-output-AGENTS.md');
-
         it('should synthesize from a valid template', async () => {
+            const TEST_OUTPUT = join(TEST_DIR, 'test-output-AGENTS.md');
             mkdirSync(TEST_DIR, { recursive: true });
             const result = await synthesize({
                 template: 'dev-agent',
@@ -868,6 +869,7 @@ I am a test.
         });
 
         it('should fail for invalid template', async () => {
+            const TEST_OUTPUT = join(TEST_DIR, 'test-output-AGENTS.md');
             mkdirSync(TEST_DIR, { recursive: true });
             const result = await synthesize({
                 template: 'non-existent-template' as DomainTemplate,
@@ -897,6 +899,7 @@ I am a test.
         });
 
         it('should auto-detect template and warn when no project files found', async () => {
+            const TEST_OUTPUT = join(TEST_DIR, 'test-output-AGENTS.md');
             mkdirSync(TEST_DIR, { recursive: true });
             // Create an empty project root with no detectable files
             const result = await synthesize({
@@ -963,7 +966,7 @@ I am a test.
         };
 
         beforeEach(() => {
-            mkdirSync(TEST_DIR, { recursive: true });
+            TEST_DIR = mkdtempSync(join(tmpdir(), 'cc-magents-synthesize-cli-'));
             // Suppress console output
             console.debug = () => {};
             console.info = () => {};
@@ -973,11 +976,8 @@ I am a test.
         });
 
         afterEach(() => {
-            try {
-                rmdirSync(TEST_DIR, { recursive: true });
-            } catch {
-                /* ignore */
-            }
+            rmSync(TEST_DIR, { recursive: true, force: true });
+            TEST_DIR = '';
             // Restore console
             console.debug = originalConsole.debug;
             console.info = originalConsole.info;
@@ -1106,18 +1106,15 @@ I am a test.
 });
 
 describe('synthesize with overrides', () => {
-    const TEST_DIR = '/tmp/magent-synthesize-override-test';
+    let TEST_DIR = '';
 
     beforeEach(() => {
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = mkdtempSync(join(tmpdir(), 'cc-magents-synthesize-override-'));
     });
 
     afterEach(() => {
-        try {
-            rmdirSync(TEST_DIR, { recursive: true });
-        } catch {
-            /* ignore */
-        }
+        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = '';
     });
 
     it('should return error when templateLoaderOverride returns null', async () => {
