@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { mkdirSync, rmdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setGlobalSilent } from '../../../scripts/logger';
 import {
@@ -13,7 +14,11 @@ import {
 import { MAGENT_EVALUATION_CONFIG } from '../scripts/evaluation.config';
 import type { MagentValidationResult } from '../scripts/types';
 
-const TEST_DIR = '/tmp/magent-evaluate-test';
+let TEST_DIR = '';
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-magents-evaluate-'));
+}
 
 function createTestFile(name: string, content: string): string {
     const filePath = join(TEST_DIR, name);
@@ -40,17 +45,14 @@ function createValidationResult(overrides: Partial<MagentValidationResult> = {})
 
 describe('evaluate', () => {
     beforeEach(() => {
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
         setGlobalSilent(true);
     });
 
     afterEach(() => {
         setGlobalSilent(false);
-        try {
-            rmdirSync(TEST_DIR, { recursive: true });
-        } catch {
-            /* ignore */
-        }
+        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = '';
     });
 
     describe('evaluateMagentConfig', () => {
