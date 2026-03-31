@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import type { ContentMatchCheckerConfig, MethodResult, CheckerEvidence } from '../types';
 import { logger } from '../../../../scripts/logger';
 
@@ -14,7 +14,7 @@ export async function runContentMatchCheck(config: ContentMatchCheckerConfig, cw
         timestamp: new Date().toISOString(),
     };
 
-    const fullPath = cwd ? join(cwd, config.file) : config.file;
+    const fullPath = !cwd || isAbsolute(config.file) ? config.file : join(cwd, config.file);
 
     let content: string;
     try {
