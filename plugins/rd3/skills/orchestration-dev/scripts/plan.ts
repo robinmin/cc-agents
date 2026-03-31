@@ -144,13 +144,13 @@ export function validateProfile(profile: string): profile is Profile {
     return VALID_PROFILES.includes(profile as (typeof VALID_PROFILES)[number]);
 }
 
-export function main(args = process.argv.slice(2)): void {
+export function main(args = process.argv.slice(2)): number {
     let parsed: ReturnType<typeof parseOrchestrationArgs>;
     try {
         parsed = parseOrchestrationArgs(args, validateProfile);
     } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        return 1;
     }
 
     if (!parsed) {
@@ -160,14 +160,14 @@ export function main(args = process.argv.slice(2)): void {
         logger.error(
             'Example: plan.ts 0266 --profile standard --start-phase 5 --skip-phases 8,9 --coverage 90 --channel codex --auto',
         );
-        process.exit(1);
+        return 1;
     }
 
     try {
         normalizeExecutionChannel(parsed.executionChannel);
     } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        return 1;
     }
 
     try {
@@ -183,13 +183,14 @@ export function main(args = process.argv.slice(2)): void {
         };
         const plan = createExecutionPlan(parsed.taskRef, options);
         logger.log(JSON.stringify(plan, null, 2));
+        return 0;
     } catch (error) {
         logger.error(error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        return 1;
     }
 }
 
 // CLI entry point
 if (import.meta.main) {
-    main();
+    process.exit(main());
 }
