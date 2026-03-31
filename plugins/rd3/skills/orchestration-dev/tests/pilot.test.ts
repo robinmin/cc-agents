@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setGlobalSilent } from '../../../scripts/logger';
@@ -7,6 +7,7 @@ import { generateExecutionPlan } from '../scripts/plan';
 import { buildWorkerPrompt, createPilotDelegateRunner, createPilotPhaseRunner } from '../scripts/pilot';
 import { PHASE_WORKER_CONTRACTS, PHASE_WORKER_CONTRACT_VERSION } from '../scripts/contracts';
 import { getVerificationProfilePath, loadVerificationProfile } from '../scripts/verification-profiles';
+import { getOrchestrationStatePath } from '../scripts/runtime';
 import type { OrchestrationState } from '../scripts/runtime';
 
 beforeAll(() => {
@@ -163,6 +164,7 @@ describe('pilot phase runner', () => {
     });
 
     test('delegates phase 5 worker execution through the phase executor on ACP channels', async () => {
+        const dir = createTempDir('orchestration-pilot-phase5-acp-');
         const plan = generateExecutionPlan('0276', 'simple');
         plan.execution_channel = 'codex';
         const phase = plan.phases[0];
@@ -202,8 +204,8 @@ describe('pilot phase runner', () => {
                 updated_at: new Date().toISOString(),
                 phases: [],
             },
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('completed');
@@ -211,9 +213,7 @@ describe('pilot phase runner', () => {
         expect(commands[0][3]).toBe('codex');
         expect(commands[0][5]).toContain('Run rd3 worker agent `rd3:super-coder` in worker mode for Phase 5');
         expect(commands[0][5]).toContain('Canonical backbone: rd3:code-implement-common');
-        expect(result.evidence?.some((entry) => entry.detail.includes('delegated phase 5 to rd3:super-coder'))).toBe(
-            true,
-        );
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-artifacts: completed'))).toBe(true);
         expect(result.result).toMatchObject({
             status: 'completed',
             phase: 5,
@@ -271,8 +271,7 @@ describe('pilot phase runner', () => {
         expect(result.status).toBe('completed');
         expect(commands).toHaveLength(3);
         expect(commands[0][3]).toBe('codex');
-        expect(commands[0][5]).toContain('delegated rd3 worker activity via `rd3:super-tester`');
-        expect(commands[0][5]).toContain('Canonical downstream skill: `rd3:sys-testing`.');
+        expect(commands[0][5]).toContain('Run `bun run typecheck` in the repo root.');
     });
 
     test('surfaces a paused delegated verification step', async () => {
@@ -393,7 +392,7 @@ describe('pilot phase runner', () => {
         });
 
         expect(result.status).toBe('failed');
-        expect(result.error).toContain('status failed');
+        expect(result.error).toContain('tests failed');
         expect(attempts['bun run test:rd3']).toBe(2);
         expect(result.evidence?.some((entry) => entry.detail.includes('test-rd3: failed'))).toBe(true);
     });
@@ -462,6 +461,7 @@ describe('pilot phase runner', () => {
     });
 
     test('runs phase 5 worker execution locally on the current channel', async () => {
+        const dir = createTempDir('orchestration-pilot-phase5-current-');
         const prompts: string[] = [];
         const runner = createPilotPhaseRunner({
             local: {
@@ -498,14 +498,14 @@ describe('pilot phase runner', () => {
                 updated_at: new Date().toISOString(),
                 phases: [],
             },
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('completed');
         expect(prompts).toHaveLength(1);
         expect(prompts[0]).toContain('Run rd3 worker agent `rd3:super-coder` in worker mode for Phase 5');
-        expect(result.evidence?.some((entry) => entry.kind === 'worker-envelope')).toBe(true);
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-artifacts: completed'))).toBe(true);
         expect(result.result).toMatchObject({
             status: 'completed',
             phase: 5,
@@ -514,6 +514,7 @@ describe('pilot phase runner', () => {
     });
 
     test('runs phase 7 worker execution locally on the current channel', async () => {
+        const dir = createTempDir('orchestration-pilot-phase7-current-');
         const prompts: string[] = [];
         const runner = createPilotPhaseRunner({
             local: {
@@ -538,26 +539,17 @@ describe('pilot phase runner', () => {
         const result = await runner(plan.phases[0], {
             plan,
             state: {
-                task_ref: plan.task_ref,
-                profile: plan.profile,
-                execution_channel: plan.execution_channel,
-                coverage_threshold: plan.coverage_threshold,
-                status: 'running',
-                auto_approve_human_gates: false,
-                refine_mode: false,
-                dry_run: false,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                phases: [],
+                ...createMinimalState(plan),
+                auto_approve_human_gates: true,
             },
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('completed');
         expect(prompts).toHaveLength(1);
         expect(prompts[0]).toContain('Run rd3 worker agent `rd3:super-reviewer` in worker mode for Phase 7');
-        expect(result.evidence?.some((entry) => entry.kind === 'worker-envelope')).toBe(true);
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-review: completed'))).toBe(true);
         expect(result.result).toMatchObject({
             status: 'completed',
             phase: 7,
@@ -565,7 +557,117 @@ describe('pilot phase runner', () => {
         });
     });
 
+    test('pins direct-skill phases to the current channel even when the plan channel is remote', async () => {
+        const dir = createTempDir('orchestration-pilot-phase1-remote-plan-');
+        const prompts: string[] = [];
+        const acpCommands: string[][] = [];
+        const plan = generateExecutionPlan('0276', 'complex');
+        plan.execution_channel = 'codex';
+        const phase = plan.phases[0];
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: (prompt) => {
+                    prompts.push(prompt);
+                    return {
+                        status: 'completed',
+                        backend: 'local-child',
+                        normalized_channel: 'current',
+                        stdout: 'phase 1 completed locally',
+                    };
+                },
+            },
+            acp: {
+                acpxExec: (command) => {
+                    acpCommands.push(command);
+                    return {
+                        ok: true,
+                        stdout: 'unexpected ACP dispatch',
+                        stderr: '',
+                        exitCode: 0,
+                    };
+                },
+            },
+        });
+
+        const result = await runner(phase, {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: dir,
+            projectRoot: dir,
+        });
+
+        expect(result.status).toBe('completed');
+        expect(prompts).toHaveLength(1);
+        expect(acpCommands).toHaveLength(0);
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-requirements: completed'))).toBe(true);
+    });
+
+    test('pauses review phases inside CoV human approval nodes', async () => {
+        const dir = createTempDir('orchestration-pilot-phase7-human-pause-');
+        const plan = generateExecutionPlan('0276', 'review');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: JSON.stringify({
+                        status: 'completed',
+                        phase: 7,
+                        findings: [],
+                        evidence_summary: ['review completed locally'],
+                        next_step_recommendation: 'proceed_to_phase_8',
+                    }),
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: dir,
+            projectRoot: dir,
+        });
+
+        expect(result.status).toBe('paused');
+        expect(result.evidence?.some((entry) => entry.detail.includes('human-approval'))).toBe(true);
+    });
+
+    test('auto-approves CoV human nodes when orchestration auto mode is enabled', async () => {
+        const dir = createTempDir('orchestration-pilot-phase7-human-auto-');
+        const plan = generateExecutionPlan('0276', 'review');
+        const state = createMinimalState(plan);
+        state.auto_approve_human_gates = true;
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: JSON.stringify({
+                        status: 'completed',
+                        phase: 7,
+                        findings: [],
+                        evidence_summary: ['review completed locally'],
+                        next_step_recommendation: 'proceed_to_phase_8',
+                    }),
+                }),
+            },
+        });
+
+        const result = await runner(plan.phases[0], {
+            plan,
+            state,
+            stateDir: dir,
+            projectRoot: dir,
+        });
+
+        expect(result.status).toBe('completed');
+        expect(result.evidence?.some((entry) => entry.detail.includes('human-approval'))).toBe(false);
+    });
+
     test('fails worker-agent execution when the ACP worker does not return a valid JSON envelope', async () => {
+        const dir = createTempDir('orchestration-pilot-invalid-acp-envelope-');
         const plan = generateExecutionPlan('0276', 'review');
         plan.execution_channel = 'codex';
         const runner = createPilotPhaseRunner({
@@ -594,16 +696,17 @@ describe('pilot phase runner', () => {
                 updated_at: new Date().toISOString(),
                 phases: [],
             },
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('failed');
         expect(result.error).toContain('expected a JSON worker envelope');
-        expect(result.evidence?.some((entry) => entry.kind === 'worker-dispatch')).toBe(true);
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-review: failed'))).toBe(true);
     });
 
     test('fails worker-agent execution when the worker returns no stdout envelope', async () => {
+        const dir = createTempDir('orchestration-pilot-no-stdout-envelope-');
         const plan = generateExecutionPlan('0276', 'simple');
         const runner = createPilotPhaseRunner({
             local: {
@@ -619,8 +722,8 @@ describe('pilot phase runner', () => {
         const result = await runner(plan.phases[0], {
             plan,
             state: createMinimalState(plan),
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('failed');
@@ -629,6 +732,7 @@ describe('pilot phase runner', () => {
     });
 
     test('fails worker-agent execution when the worker returns blank stdout', async () => {
+        const dir = createTempDir('orchestration-pilot-blank-envelope-');
         const plan = generateExecutionPlan('0276', 'review');
         const runner = createPilotPhaseRunner({
             local: {
@@ -644,16 +748,17 @@ describe('pilot phase runner', () => {
         const result = await runner(plan.phases[0], {
             plan,
             state: createMinimalState(plan),
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('failed');
         expect(result.error).toContain('empty stdout');
-        expect(result.evidence?.some((entry) => entry.kind === 'worker-output')).toBe(true);
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-review: failed'))).toBe(true);
     });
 
     test('fails worker-agent execution when the worker returns a non-object JSON envelope', async () => {
+        const dir = createTempDir('orchestration-pilot-array-envelope-');
         const plan = generateExecutionPlan('0276', 'review');
         const runner = createPilotPhaseRunner({
             local: {
@@ -669,16 +774,17 @@ describe('pilot phase runner', () => {
         const result = await runner(plan.phases[0], {
             plan,
             state: createMinimalState(plan),
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('failed');
         expect(result.error).toContain('JSON object');
-        expect(result.evidence?.some((entry) => entry.kind === 'worker-output')).toBe(true);
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-review: failed'))).toBe(true);
     });
 
     test('fails worker-agent execution when no downstream evidence contract exists', async () => {
+        const dir = createTempDir('orchestration-pilot-missing-contract-');
         const plan = generateExecutionPlan('0276', 'review');
         const runner = createPilotPhaseRunner({
             local: {
@@ -705,17 +811,18 @@ describe('pilot phase runner', () => {
             {
                 plan,
                 state: createMinimalState(plan),
-                stateDir: process.cwd(),
-                projectRoot: process.cwd(),
+                stateDir: dir,
+                projectRoot: dir,
             },
         );
 
         expect(result.status).toBe('failed');
         expect(result.error).toContain('No downstream evidence contract registered');
-        expect(result.evidence?.some((entry) => entry.kind === 'worker-envelope-invalid')).toBe(true);
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-review: failed'))).toBe(true);
     });
 
     test('fails worker-agent execution when the worker envelope violates the contract', async () => {
+        const dir = createTempDir('orchestration-pilot-contract-violation-');
         const plan = generateExecutionPlan('0276', 'review');
         const runner = createPilotPhaseRunner({
             local: {
@@ -735,15 +842,11 @@ describe('pilot phase runner', () => {
         const result = await runner(plan.phases[0], {
             plan,
             state: createMinimalState(plan),
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('failed');
-        expect(result.result).toMatchObject({
-            status: 'failed',
-            phase: 6,
-        });
         expect(result.error).toContain('Missing required worker field: findings');
         expect(result.error).toContain('phase mismatch');
         expect(result.error).toContain('must include failed_stage');
@@ -751,6 +854,7 @@ describe('pilot phase runner', () => {
     });
 
     test('fails worker-agent execution when the worker envelope status is invalid', async () => {
+        const dir = createTempDir('orchestration-pilot-invalid-status-');
         const plan = generateExecutionPlan('0276', 'review');
         const runner = createPilotPhaseRunner({
             local: {
@@ -772,8 +876,8 @@ describe('pilot phase runner', () => {
         const result = await runner(plan.phases[0], {
             plan,
             state: createMinimalState(plan),
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('failed');
@@ -781,6 +885,7 @@ describe('pilot phase runner', () => {
     });
 
     test('surfaces the default paused-envelope error when no error summary is provided', async () => {
+        const dir = createTempDir('orchestration-pilot-paused-envelope-');
         const plan = generateExecutionPlan('0276', 'review');
         const runner = createPilotPhaseRunner({
             local: {
@@ -802,8 +907,8 @@ describe('pilot phase runner', () => {
         const result = await runner(plan.phases[0], {
             plan,
             state: createMinimalState(plan),
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('paused');
@@ -815,6 +920,7 @@ describe('pilot phase runner', () => {
     });
 
     test('fails worker-agent execution when the worker envelope has contradictory completed status with failed_stage', async () => {
+        const dir = createTempDir('orchestration-pilot-contradictory-envelope-');
         const plan = generateExecutionPlan('0276', 'review');
         const runner = createPilotPhaseRunner({
             local: {
@@ -837,13 +943,13 @@ describe('pilot phase runner', () => {
         const result = await runner(plan.phases[0], {
             plan,
             state: createMinimalState(plan),
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
         expect(result.status).toBe('failed');
         expect(result.error).toContain('contradictory');
-        expect(result.evidence?.some((entry) => entry.kind === 'worker-envelope-invalid')).toBe(true);
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-review: failed'))).toBe(true);
     });
 
     test('returns failed when delegate runner receives no command and no prompt', async () => {
@@ -869,8 +975,22 @@ describe('pilot phase runner', () => {
         expect(result.error).toContain('No executable payload');
     });
 
-    test('fails unsupported direct-skill phases in the pilot runner', async () => {
-        const runner = createPilotPhaseRunner();
+    test('runs direct-skill phases through the CoV gate runner', async () => {
+        const dir = createTempDir('orchestration-pilot-direct-cov-');
+        const prompts: string[] = [];
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: (prompt) => {
+                    prompts.push(prompt);
+                    return {
+                        status: 'completed',
+                        backend: 'local-child',
+                        normalized_channel: 'current',
+                        stdout: 'bdd completed',
+                    };
+                },
+            },
+        });
         const plan = generateExecutionPlan('0276', 'complex');
         const phase = plan.phases.find((entry) => entry.number === 8);
         if (!phase) {
@@ -879,24 +999,75 @@ describe('pilot phase runner', () => {
         const result = await runner(phase, {
             plan,
             state: {
-                task_ref: plan.task_ref,
-                profile: plan.profile,
-                execution_channel: plan.execution_channel,
-                coverage_threshold: plan.coverage_threshold,
-                status: 'running',
-                auto_approve_human_gates: false,
-                refine_mode: false,
-                dry_run: false,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                phases: [],
+                ...createMinimalState(plan),
+                auto_approve_human_gates: true,
             },
-            stateDir: process.cwd(),
-            projectRoot: process.cwd(),
+            stateDir: dir,
+            projectRoot: dir,
         });
 
-        expect(result.status).toBe('failed');
-        expect(result.error).toContain('does not yet support phase 8');
+        expect(result.status).toBe('completed');
+        expect(prompts).toHaveLength(1);
+        expect(prompts[0]).toContain('Execute Phase 8');
+        expect(result.evidence?.some((entry) => entry.detail.includes('validate-functional: completed'))).toBe(true);
+    });
+
+    test('stores CoV state and gate evidence under the canonical run artifact directory', async () => {
+        const dir = createTempDir('orchestration-pilot-run-artifacts-');
+        const statePath = getOrchestrationStatePath('0276', dir, 'run-123');
+        const runner = createPilotPhaseRunner({
+            local: {
+                runPrompt: () => ({
+                    status: 'completed',
+                    backend: 'local-child',
+                    normalized_channel: 'current',
+                    stdout: 'functional review mocked',
+                }),
+            },
+        });
+        const plan = generateExecutionPlan('0276', 'complex');
+        const phase = plan.phases.find((entry) => entry.number === 8);
+        if (!phase) {
+            throw new Error('Expected phase 8 to exist');
+        }
+
+        const result = await runner(phase, {
+            plan,
+            state: {
+                ...createMinimalState(plan),
+                auto_approve_human_gates: true,
+            },
+            stateDir: dir,
+            projectRoot: dir,
+            statePath,
+        });
+
+        expect(result.status).toBe('completed');
+
+        const covPath = join(
+            dir,
+            'docs',
+            '.workflow-runs',
+            'rd3-orchestration-dev',
+            '0276',
+            'run-123',
+            'cov',
+            'phase8-functional-review-0276-0276-cov-state.json',
+        );
+        const gatePath = join(
+            dir,
+            'docs',
+            '.workflow-runs',
+            'rd3-orchestration-dev',
+            '0276',
+            'run-123',
+            'gates',
+            'phase-8-validate-functional.json',
+        );
+
+        expect(existsSync(covPath)).toBe(true);
+        expect(existsSync(gatePath)).toBe(true);
+        expect(readFileSync(gatePath, 'utf-8')).toContain('"status": "completed"');
     });
 });
 
