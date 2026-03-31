@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { adaptAgent, adaptToAll, main, parseCliArgs, printResults, validateOptions } from '../scripts/adapt';
 import { setGlobalSilent } from '../../../scripts/logger';
 
-const TEST_DIR = '/tmp/cc-agents-adapt-test';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURES_DIR = join(__dirname, 'fixtures');
+let TEST_DIR = '';
+
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-agents-adapt-'));
+}
 
 class ExitError extends Error {
     code: number | undefined;
@@ -64,14 +69,16 @@ function muteConsole(): () => void {
 
 describe('adapt.ts', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
-        mkdirSync(TEST_DIR, { recursive: true });
+        TEST_DIR = createTestDir();
         // Suppress all console output for all tests
         muteConsole();
     });
 
     afterEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        if (TEST_DIR && existsSync(TEST_DIR)) {
+            rmSync(TEST_DIR, { recursive: true, force: true });
+        }
+        TEST_DIR = '';
     });
 
     it('should parse CLI args with default all-target behavior', () => {
