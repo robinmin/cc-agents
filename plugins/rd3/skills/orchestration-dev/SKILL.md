@@ -37,7 +37,7 @@ see_also:
 
 # rd3:orchestration-dev — 9-Phase Pipeline Orchestrator
 
-Profile-driven orchestration for the rd3 9-phase workflow. The current v1 pilot concretely executes phases 5, 6, and 7 only: phases 5 and 7 use dedicated worker agents and phase 6 runs through verification-chain. Direct-skill phases 1-4 and 8-9 remain plan-level definitions until pilot support lands.
+Profile-driven orchestration for the rd3 9-phase workflow. All phases run through CoV-backed gate manifests: worker phases 5-7 use worker agents on the requested execution channel, while direct-skill phases 1-4 and 8-9 are pinned to the `current` channel and execute through prompt-backed native delegation. Automated rework loops, rollback, and git-based sandbox restoration are available.
 
 **Key distinction:**
 - **`orchestration-dev`** = pipeline orchestration (coordinates all phases)
@@ -76,7 +76,7 @@ rd3:orchestration-dev 0266 --profile simple --start-phase 5
 # Single phase profiles
 rd3:orchestration-dev 0266 --profile unit    # Phase 6 only
 rd3:orchestration-dev 0266 --profile review --auto  # Phase 7 only
-rd3:orchestration-dev 0266 --profile complex --dry-run  # Preview unsupported direct-skill phases
+rd3:orchestration-dev 0266 --profile complex --dry-run  # Preview all 9 phases
 ```
 
 ## Overview
@@ -86,11 +86,11 @@ The orchestration-dev skill:
 1. **Reads** task frontmatter for profile (simple/standard/complex/research)
 2. **Determines** which phases to execute based on profile
 3. **Sequences** phases in dependency order
-4. **Executes** the supported pilot phases (5/6/7) through worker agents or verification-chain
-5. **Evaluates** supported gate semantics (CoV in phase 6, lightweight human-gate pauses elsewhere)
-6. **Persists** pause/failure/completion state for resume
+4. **Executes** all phases: worker-agent phases (5-7) through worker agents or verification-chain, direct-skill phases (1-4, 8-9) via native delegation
+5. **Evaluates** all phases through CoV-backed gate manifests with deterministic checkers and CoV human approval nodes where required
+6. **Persists** pause/failure/completion state for resume with rollback snapshots
 7. **Persists** orchestration state between phases
-8. **Routes** work to the requested execution channel
+8. **Routes** worker phases to the requested execution channel and pins direct-skill phases to `current`
 9. **Supports** suffix execution via `start_phase` when resuming or intentionally entering mid-pipeline
 
 ## Input Schema
@@ -105,6 +105,7 @@ interface OrchestrationInput {
     auto?: boolean;                      // Auto-approve human gates (no pause)
     coverage?: number;                   // Override phase 6 coverage target (unit profile default: per-file 90%)
     refine?: boolean;                    // Pass mode=refine to request-intake (phase 1)
+    rework_max_iterations?: number;      // Override public CLI retry count
     execution_channel?: string;          // Default: 'current'; ACP agent name for cross-channel execution
 }
 ```
@@ -180,8 +181,9 @@ for (const phase of plan.phases) {
     // Skip already-completed phases (resume support)
     // Validate prerequisites (e.g., Solution section for phase 5)
     // Run phase with timeout enforcement
-    // Persist state to orchestration/<taskRef>-<runId>-state.json
-    // Pause on human gates unless --auto is set
+    // Persist state to docs/.workflow-runs/rd3-orchestration-dev/<wbs>/<run-id>.json
+    // Persist CoV checkpoints and gate evidence under the sibling <run-id>/ artifact directory
+    // Pause when the phase runner returns a paused CoV human-gate state
 }
 ```
 
@@ -234,38 +236,33 @@ Phases 5, 6, and 7 use the normalized `rd3-phase-worker-v1` contract:
 
 ### Channel Resolution
 
-- `execution_channel: 'current'` means execute on the current channel when the selected phase has a local pilot runner.
+- `execution_channel: 'current'` means execute all worker phases locally and run direct-skill phases locally as well.
 - Local prompt-backed worker phases on `current` require an explicit prompt-agent binding via `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT`.
 - Any other value should be an ACP agent name supported by `rd3:run-acp`.
 - Slash command wrappers expose this as `--channel <agent|current>` and pass it into orchestration unchanged.
-- `rd3:orchestration-dev` is the routing authority. It normalizes aliases, runs worker phases 5, 6, and 7 through the pilot runtime, and currently fails direct-skill phases 1-4 and 8-9 regardless of channel until those phases are implemented in the pilot.
-## Rework Loop (v2 Design)
+- `rd3:orchestration-dev` is the routing authority. It normalizes aliases, runs worker phases 5, 6, and 7 on the requested channel, and forces direct-skill phases 1-4 and 8-9 onto the `current` channel even when the overall plan uses ACP.
+## Rework Loop
 
-> **Not implemented in v1.** The rework loop below describes the target behavior for v2, where failed gate evaluations trigger automatic re-execution with feedback. In v1, a failed phase stops the pipeline and requires manual resume or re-run.
+When a phase fails, the runtime can automatically re-execute it with injected feedback before escalating:
 
 ```typescript
-// v2 target — not yet implemented
-async function handleRework(
-    phase: Phase,
-    task: TaskFile,
-    gateResult: GateResult
-): Promise<ReworkResult> {
-    let iterations = 0;
-    const MAX_ITERATIONS = 2;
+// Implemented in runtime.ts:runOrchestration()
+const DEFAULT_REWORK_CONFIG: ReworkConfig = {
+    max_iterations: 1,
+    feedback_injection: true,
+    escalation_state: 'failed',
+};
 
-    while (iterations < MAX_ITERATIONS) {
-        iterations++;
-        const feedback = gateResult.rejection_reason;
-        const result = await executePhaseWithFeedback(phase, task, feedback);
-        const newGateResult = evaluateGate(phase, result);
-        if (newGateResult.status === 'approved') {
-            return { escalate: false, iterations };
-        }
-    }
-
-    return { escalate: true, iterations, reason: 'Max rework iterations exceeded' };
-}
+const PUBLIC_CLI_REWORK_CONFIG: ReworkConfig = {
+    max_iterations: 2,
+    feedback_injection: true,
+    escalation_state: 'paused',
+};
 ```
+
+**Behavior**: On phase failure, if `max_iterations > 1`, the runtime captures the error as `rework_feedback`, resets the phase to `pending`, and re-executes with the feedback injected into the phase runner context. If max iterations are exceeded, the pipeline escalates to the configured `escalation_state` (`paused` or `failed`).
+
+**Configuration**: The public CLI defaults to `max_iterations: 2` / `escalation_state: 'paused'`. Pass `--rework-max-iterations N` to override the retry count. The effective rework config is stored in the orchestration state file for transparency.
 
 ## Execution Plan
 
@@ -275,7 +272,7 @@ See `references/delegation-map.md` for phase -> skill mapping.
 
 ## Workflows
 
-The workflow maps below describe the full orchestration model. In the current v1 pilot, only phases 5, 6, and 7 are executable; the remaining phases are plan definitions for future runtime support.
+The workflow maps below describe the full orchestration model. Worker-agent phases (5-7) use dedicated worker agents with CoV verification on the requested channel, and direct-skill phases (1-4, 8-9) use native skill delegation on the `current` channel.
 
 ### Standard Development Workflow
 
@@ -355,39 +352,37 @@ rd3:orchestration-dev 0266 --profile unit --auto --coverage 90
 
 **State integration:**
 - Builds orchestration plans from the 9-phase matrix in dependency order
-- Persists orchestration progress in `orchestration/*-state.json`
+- Persists orchestration progress in `docs/.workflow-runs/rd3-orchestration-dev/<wbs>/<run-id>.json`
+- Persists run-scoped CoV checkpoints in `docs/.workflow-runs/rd3-orchestration-dev/<wbs>/<run-id>/cov/`
+- Persists run-scoped gate evidence in `docs/.workflow-runs/rd3-orchestration-dev/<wbs>/<run-id>/gates/`
 - Reads task-file prerequisites such as the `Solution` section when a phase declares them
 
 ## Gate Architecture
 
-Two gate execution models coexist in v1:
+All phases now run through CoV-backed gate manifests.
 
-### CoV-Backed Gates (Phase 6)
+### Universal CoV Gates
 
-Phase 6 (Unit Testing) runs through `rd3:verification-chain`. The orchestration runtime builds a Chain-of-Verification manifest from the active stack profile (default: `typescript-bun-biome`) and delegates execution to the CoV interpreter. Each verification step has a real checker (cli, file-exists) that validates the step output independently. Retry, pause/resume, and evidence collection are handled by the CoV interpreter.
+Phase 6 still uses the stack-profile-specific verification manifest from `verification-chain`, but phases 1-5 and 7-9 now also execute through CoV manifests built in `gates.ts`. Each phase persists normalized step evidence into the run-scoped artifact directory, and the gate checker validates that evidence deterministically through `file-exists`, `content-match`, `compound`, or `human` checkers.
 
-### Direct Gates (Phases 1-5, 7-9)
+### Human Approval
 
-Outside Phase 6, the pilot currently applies lightweight runtime gate control. Worker phases 5 and 7 return validated worker envelopes on `current` or ACP channels, and phases marked `human` or `auto/human` pause after successful completion unless `--auto` is enabled. Direct-skill pilot execution and richer gate/rework enforcement for phases 1-4 and 8-9 are not implemented yet.
+Phases marked `human` or `auto/human` add a CoV human-checker node after the deterministic validation node. `--auto` omits the human node. When a human node pauses, resuming orchestration implicitly approves the paused CoV gate and continues the phase from the saved chain state.
 
-### Why Two Models
+### Gate Profiles
 
-The pilot CoV integration targets Phase 6 because it has the richest verification surface (typecheck, lint, test). Remaining phases will migrate to CoV-backed gates in v2, giving every phase the same retry, evidence, and checker capabilities.
+Universal gate profiles are defined in `gates.ts` (`GATE_PROFILES`) for all 9 phases. There is no longer a split between "phase 6 CoV" and "lightweight direct gates".
 
-## v1 Limitations
+## Current Limitations
 
 - **Sequential only:** No parallel phase execution
-- **Pilot verification-chain only:** Phase 6 is the only phase currently backed by CoV
-- **Current-channel scope is partial:** Local pilot coverage currently exists for phases 5, 6, and 7 only
 - **No conditional branching:** Fixed phase order per profile
-- **No rollback:** Cannot undo a completed phase
+- **Resume semantics for human gates are approval-only:** orchestration resume currently treats resuming a paused CoV human gate as approval rather than collecting an explicit reject/request-changes response
 
-**v2 enhancements planned:**
-- Local current-channel pilot coverage for direct-skill phases 1-4 and 8-9
-- Expand verification-chain integration across the remaining phases (7, 8, then others)
+**Planned enhancements:**
+- Richer explicit resume responses for paused human CoV gates
 - Parallel execution where phases are independent
 - Conditional branching based on phase output
-- Rollback capability for failed phases
 
 See [Gate Definitions](references/gate-definitions.md) for detailed content.
 
