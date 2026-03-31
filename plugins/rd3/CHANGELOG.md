@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.4] - 2026-03-31
+
+### Improvements
+
+- **Orchestration-Dev Defensive Hardening (Task 0294)**: Production stability fixes for the 9-phase pipeline
+  - **Schema Versioning**: Added `schema_version` field to `OrchestrationState`; rejects future schema versions on load with descriptive error message
+  - **Run Lock**: PID-based `.run.lock` files prevent concurrent orchestration for the same task; auto-released via try/finally even on failure
+  - **Rollback Safety**: `checkDirtyFiles()` detects both staged and unstaged changes (`git diff HEAD`); `force` parameter bypass for emergency rollback
+  - **Phase Timeouts**: Per-phase timeout defaults via `PHASE_TIMEOUT_MS` map (replaces single global timeout)
+  - **Error Discrimination**: `executePhaseOnce` now distinguishes timeouts from thrown errors (`kind: 'timeout'` vs `kind: 'failure'`); actionable messages via `formatPhaseError()`
+  - **Domain Routing**: `resolveDomain()` in contracts routes Phase 2/3 to specialist skills based on task domain
+
+- **CLI-for-AI Skill**: New `rd3:cli-for-ai` agent skill for designing CLI tools that work well with AI agents
+
+- **Installation Scripts**: Refactored all installation scripts for cleaner cross-platform support
+
+- **Main Agent Configs**: Enhanced main agent configurations for improved token efficiency
+
+### Documentation
+
+- **Comprehensive Review**: 1,143-line architecture review of orchestration-dev (scoring B+ / 78/100)
+- **SOTA Research**: 827-line research brief on agent orchestration state-of-the-art (2026)
+- Both documents serve as the spec for Track 2 next-generation pipeline rebuild
+
+### Fixes
+
+- Fixed state file race conditions with timestamp-based sorting in `state-paths.ts`
+- Fixed `.gitignore` defensive patterns for test artifacts
+- Fixed permission issues in project scripts
+
+### Test Coverage
+
+- 2335 tests passing (+10 from baseline 2325), 5594 expect() calls
+- New tests for schema validation (3), error type discrimination (2), run lock lifecycle (3), rollback dirty files (2)
+- 100% function coverage achieved on `state-paths.ts` and `rollback.ts`
+
 ## [0.4.3] - 2026-03-30
 
 ### New Features
