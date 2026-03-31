@@ -3,23 +3,29 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const TEST_DIR = '/tmp/script-integration-test';
+let TEST_DIR = '';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS_DIR = join(__dirname, '..', 'scripts');
 
+function createTestDir(): string {
+    return mkdtempSync(join(tmpdir(), 'cc-skills-scripts-'));
+}
+
 describe('Integration: scaffold command', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = createTestDir();
     });
 
     afterEach(() => {
         if (existsSync(TEST_DIR)) {
             rmSync(TEST_DIR, { recursive: true, force: true });
         }
+        TEST_DIR = '';
     });
 
     it('should scaffold skill with technique template', async () => {
@@ -171,7 +177,7 @@ describe('Integration: scaffold command', () => {
 
 describe('Integration: validate command', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = createTestDir();
     });
 
     afterEach(() => {
@@ -276,7 +282,7 @@ Use this skill when you need a documented workflow without executable scripts.
 
 describe('Integration: evaluate command', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = createTestDir();
     });
 
     afterEach(() => {
@@ -431,7 +437,7 @@ TODO
 
 describe('Integration: refine command', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = createTestDir();
     });
 
     afterEach(() => {
@@ -539,7 +545,7 @@ ${lines}
 
 describe('Integration: package command', () => {
     beforeEach(() => {
-        rmSync(TEST_DIR, { recursive: true, force: true });
+        TEST_DIR = createTestDir();
     });
 
     afterEach(() => {
