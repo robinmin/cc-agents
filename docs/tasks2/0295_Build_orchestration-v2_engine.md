@@ -1,9 +1,9 @@
 ---
 name: Build orchestration-v2 engine
 description: Build orchestration-v2 engine
-status: Todo
+status: Done
 created_at: 2026-03-31T23:23:09.195Z
-updated_at: 2026-03-31T23:36:11.290Z
+updated_at: 2026-04-01T22:14:06.696Z
 folder: docs/tasks2
 type: task
 priority: "high"
@@ -55,9 +55,24 @@ CLI command: orchestrator (system-level symlink to entry script)
 
 ### Design
 
+Micro-kernel architecture with pluggable subsystems. FSM handles lifecycle (IDLE/RUNNING/PAUSED/COMPLETED/FAILED), DAG handles scheduling (topological sort + parallel dispatch). Event-sourced SQLite for state, YAML for pipeline definitions, CLI-first interface.
 
+See docs/orchestration-v2-blueprint.md for the single source of truth.
 
 ### Solution
+
+Built in 8 phases (0296-0303):
+
+- Phase 0 (0296): Blueprint document — the architectural spec
+- Phase 1 (0297): System design — CLI arg parsing, module dependency graph, SKILL.md + reference docs
+- Phase 2 (0298): Structure scaffolding — directory structure, model.ts with all types, stub modules
+- Phase 3 (0299): Common parts — event bus, SQLite state (6 tables), YAML parser/validator/resolver, MockExecutor
+- Phase 4 (0300): Core engine — FSM engine, DAG scheduler, hook registry, LocalBun/AcpExecutor, executor pool, CoV driver, pipeline runner
+- Phase 5 (0301): CLI + observability — all 11 commands wired, status display, report generation, metrics aggregation, trends
+- Phase 6 (0302): Migration — default pipeline YAML from PHASE_MATRIX, 4 presets ported, v1→v2 state migration script
+- Phase 7 (0303): New workflows — parallel verification examples, per-project custom pipelines, security-first pipeline
+
+Result: 25 source files, 23 test files, 500 tests passing, 92.88% line coverage. All subtasks marked Done.
 
 
 
