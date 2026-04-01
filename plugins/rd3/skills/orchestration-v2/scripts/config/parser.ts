@@ -4,7 +4,7 @@
  * Parses pipeline YAML files and produces validated PipelineDefinition objects.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { PipelineDefinition, ValidationResult, PhaseDefinition } from '../model';
 import { validateSchema } from './schema';
@@ -36,6 +36,7 @@ export function validatePipeline(def: PipelineDefinition): ValidationResult {
         presets: def.presets,
     });
     const errors: import('../model').ValidationError[] = [...schemaResult.errors];
+    const warnings: import('../model').ValidationError[] = [...(schemaResult.warnings ?? [])];
 
     // Check DAG cycles
     if (hasCycle(def.phases)) {
@@ -84,9 +85,24 @@ export function validatePipeline(def: PipelineDefinition): ValidationResult {
         }
     }
 
+    // Check skill existence (non-fatal: executors only need the string alias)
+    for (const [name, phase] of Object.entries(def.phases)) {
+        const skillRef = phase.skill;
+        if (!skillRef) continue;
+
+        const pluginPath = resolveSkillPluginPath(skillRef);
+        if (pluginPath && !existsSync(pluginPath)) {
+            warnings.push({
+                rule: 'skill_not_found',
+                message: `Phase "${name}" references skill "${skillRef}" but directory not found at ${pluginPath}`,
+            });
+        }
+    }
+
     return {
         valid: errors.length === 0,
         errors,
+        warnings,
     };
 }
 
@@ -520,6 +536,42 @@ function rawToPipelineDefinition(raw: Record<string, unknown>): PipelineDefiniti
         ...(raw.presets != null ? { presets: raw.presets as PipelineDefinition['presets'] } : {}),
         ...(raw.hooks != null ? { hooks: raw.hooks as PipelineDefinition['hooks'] } : {}),
     } as PipelineDefinition;
+}
+
+/**
+ * Resolve a skill reference (e.g., "rd3:request-intake") to its plugin directory path.
+ * Returns null if the reference doesn't follow the "plugin:skill-name" pattern.
+ */
+function resolveSkillPluginPath(skillRef: string): string | null {
+    const colonIdx = skillRef.indexOf(':');
+    if (colonIdx === -1) return null;
+
+    const plugin = skillRef.slice(0, colonIdx);
+    const skillName = skillRef.slice(colonIdx + 1);
+    if (!plugin || !skillName) return null;
+
+    // Resolve relative to project root: plugins/<plugin>/skills/<skillName>/
+    // Walk up from this file to find project root (where plugins/ dir exists)
+    const projectRoot = findProjectRoot();
+    if (!projectRoot) return null;
+
+    return resolve(projectRoot, 'plugins', plugin, 'skills', skillName);
+}
+
+/**
+ * Find project root by walking up from this file looking for a plugins/ directory.
+ */
+function findProjectRoot(): string | null {
+    let dir = resolve(import.meta.dir);
+    for (let i = 0; i < 10; i++) {
+        if (existsSync(resolve(dir, 'plugins'))) {
+            return dir;
+        }
+        const parent = resolve(dir, '..');
+        if (parent === dir) break;
+        dir = parent;
+    }
+    return null;
 }
 
 function hasCycle(phases: Readonly<Record<string, PhaseDefinition>>): boolean {
