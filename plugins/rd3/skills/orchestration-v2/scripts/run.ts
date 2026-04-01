@@ -7,11 +7,12 @@
  * Commands: run, resume, status, report, validate, list, history, undo, inspect, prune, migrate
  */
 
+import { resolve } from 'node:path';
 import { parseArgs, validateCommand } from './cli/commands';
 import { formatStatusOutput, formatStatusJson } from './cli/status';
 import { outputReport } from './cli/report';
 import { PipelineRunner } from './engine/runner';
-import { parsePipelineYaml, parseYamlString, validatePipeline } from './config/parser';
+import { parsePipelineYaml, validatePipeline } from './config/parser';
 import { resolveExtends } from './config/resolver';
 import { StateManager } from './state/manager';
 import { Queries } from './state/queries';
@@ -27,10 +28,10 @@ import {
     EXIT_STATE_ERROR,
 } from './model';
 import { migrateFromV1 } from './state/migrate-v1';
-import type { RunOptions, ResumeOptions, ReportFormat } from './model';
+import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, ValidationResult } from './model';
 
 const DB_PATH = '.orchestrator/state.db';
-const PRESETS_DIR = 'references/examples';
+const PRESETS_DIR = resolve(import.meta.dir, '../references/examples');
 
 function printHelp(): void {
     logger.info(`orchestrator — DAG-based pipeline orchestration engine
@@ -81,106 +82,126 @@ async function main(): Promise<void> {
         process.exit(EXIT_INVALID_ARGS);
     }
 
-    const state = new StateManager({ dbPath: DB_PATH });
-    try {
-        await state.init();
-        const queries = new Queries(state.getDb());
+    let state: StateManager | null = null;
+    let queries: Queries | null = null;
 
+    const getStateContext = async (): Promise<{ state: StateManager; queries: Queries }> => {
+        if (!state) {
+            state = new StateManager({ dbPath: DB_PATH });
+            await state.init();
+            queries = new Queries(state.getDb());
+        }
+
+        return { state, queries: queries as Queries };
+    };
+
+    try {
         switch (parsed.command) {
-            case 'run':
-                await handleRun(parsed.options, state);
+            case 'run': {
+                const ctx = await getStateContext();
+                await handleRun(parsed.options, ctx.state);
                 break;
-            case 'resume':
-                await handleResume(parsed.options, state);
+            }
+            case 'resume': {
+                const ctx = await getStateContext();
+                await handleResume(parsed.options, ctx.state);
                 break;
-            case 'status':
-                await handleStatus(parsed.options, queries);
+            }
+            case 'status': {
+                const ctx = await getStateContext();
+                await handleStatus(parsed.options, ctx.queries);
                 break;
-            case 'report':
-                await handleReport(parsed.options, queries);
+            }
+            case 'report': {
+                const ctx = await getStateContext();
+                await handleReport(parsed.options, ctx.queries);
                 break;
+            }
             case 'validate':
                 await handleValidate(parsed.options);
                 break;
             case 'list':
                 await handleList();
                 break;
-            case 'history':
-                await handleHistory(parsed.options, queries);
+            case 'history': {
+                const ctx = await getStateContext();
+                await handleHistory(parsed.options, ctx.queries);
                 break;
-            case 'undo':
-                await handleUndo(parsed.options, state);
+            }
+            case 'undo': {
+                const ctx = await getStateContext();
+                await handleUndo(parsed.options, ctx.state);
                 break;
-            case 'inspect':
-                await handleInspect(parsed.options, queries);
+            }
+            case 'inspect': {
+                const ctx = await getStateContext();
+                await handleInspect(parsed.options, ctx.state, ctx.queries);
                 break;
-            case 'prune':
-                await handlePrune(state);
+            }
+            case 'prune': {
+                const ctx = await getStateContext();
+                await handlePrune(ctx.state);
                 break;
-            case 'migrate':
-                await handleMigrate(parsed.options, state);
+            }
+            case 'migrate': {
+                const ctx = await getStateContext();
+                await handleMigrate(parsed.options, ctx.state);
                 break;
+            }
             default:
                 logger.error(`Unknown command: ${parsed.command}`);
                 process.exit(EXIT_INVALID_ARGS);
         }
     } finally {
-        await state.close();
+        const currentState = state as StateManager | null;
+        if (currentState) {
+            await currentState.close();
+        }
     }
 }
 
 async function handleRun(options: Record<string, unknown>, state: StateManager): Promise<void> {
     const taskRef = options.taskRef as string;
     const preset = (options.preset as string | undefined) ?? 'default';
-    const pipelineFile = `${PRESETS_DIR}/${preset}.yaml`;
-
-    let pipelineDef: import('./model').PipelineDefinition;
     try {
-        const [def, validation] = await parsePipelineYaml(pipelineFile);
+        const pipelineFile = resolvePipelineFile(options.file as string | undefined, preset);
+        const [pipelineDef, validation] = await loadValidatedPipeline(pipelineFile);
         if (!validation.valid) {
             logger.error(`Pipeline validation failed: ${validation.errors.map((e) => e.message).join(', ')}`);
             process.exit(EXIT_VALIDATION_FAILED);
         }
-        pipelineDef = await resolveExtends(def, PRESETS_DIR);
-    } catch {
-        // Try parsing without extends
-        const content = await Bun.file(pipelineFile).text();
-        const raw = parseYamlString(content);
-        const validation = validatePipeline(raw as unknown as import('./model').PipelineDefinition);
-        if (!validation.valid) {
-            logger.error(`Pipeline validation failed: ${validation.errors.map((e) => e.message).join(', ')}`);
-            process.exit(EXIT_VALIDATION_FAILED);
+
+        if (options.dryRun) {
+            logger.info('[dry-run] Pipeline valid. Would execute:');
+            for (const phaseName of Object.keys(pipelineDef.phases)) {
+                logger.info(`  - ${phaseName}`);
+            }
+            process.exit(EXIT_SUCCESS);
         }
-        pipelineDef = raw as unknown as import('./model').PipelineDefinition;
-    }
 
-    if (options.dryRun) {
-        logger.info('[dry-run] Pipeline valid. Would execute:');
-        const phases = (pipelineDef as unknown as { phases: { name: string }[] }).phases;
-        for (const phase of phases) {
-            logger.info(`  - ${phase.name}`);
+        const runOptions: RunOptions = {
+            taskRef,
+            ...(options.preset != null && { preset: options.preset as string }),
+            ...(options.phases != null && { phases: options.phases as readonly string[] }),
+            ...(options.channel != null && { channel: options.channel as string }),
+            ...(options.coverage != null && { coverage: options.coverage as number }),
+            ...(options.auto === true && { auto: true }),
+        };
+
+        const runner = new PipelineRunner(state);
+        const result = await runner.run(runOptions, pipelineDef);
+
+        if (result.status === 'COMPLETED') {
+            process.exit(EXIT_SUCCESS);
+        } else if (result.status === 'PAUSED') {
+            process.exit(EXIT_PIPELINE_PAUSED);
+        } else {
+            process.exit(EXIT_PIPELINE_FAILED);
         }
-        process.exit(EXIT_SUCCESS);
-    }
-
-    const runOptions: RunOptions = {
-        taskRef,
-        ...(options.preset != null && { preset: options.preset as string }),
-        ...(options.phases != null && { phases: options.phases as readonly string[] }),
-        ...(options.channel != null && { channel: options.channel as string }),
-        ...(options.coverage != null && { coverage: options.coverage as number }),
-        ...(options.auto != null && { auto: true }),
-    };
-
-    const runner = new PipelineRunner(state);
-    const result = await runner.run(runOptions, pipelineDef as unknown as import('./model').PipelineDefinition);
-
-    if (result.status === 'COMPLETED') {
-        process.exit(EXIT_SUCCESS);
-    } else if (result.status === 'PAUSED') {
-        process.exit(EXIT_PIPELINE_PAUSED);
-    } else {
-        process.exit(EXIT_PIPELINE_FAILED);
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logger.error(`Failed to load pipeline: ${msg}`);
+        process.exit(EXIT_VALIDATION_FAILED);
     }
 }
 
@@ -199,7 +220,8 @@ async function handleResume(options: Record<string, unknown>, state: StateManage
 
     const resumeOptions: ResumeOptions = {
         taskRef,
-        approve: true,
+        ...(options.reject === true ? { reject: true } : { approve: options.approve !== false }),
+        ...(options.auto === true && { auto: true }),
     };
 
     const runner = new PipelineRunner(state);
@@ -279,14 +301,13 @@ async function handleReport(options: Record<string, unknown>, queries: Queries):
 }
 
 async function handleValidate(options: Record<string, unknown>): Promise<void> {
-    const file = (options.file as string | undefined) ?? `${PRESETS_DIR}/default.yaml`;
+    const file = resolvePipelineFile(options.file as string | undefined, 'default');
     try {
-        const [def, validation] = await parsePipelineYaml(file);
+        const [def, validation] = await loadValidatedPipeline(file);
         if (validation.valid) {
             logger.info(`✓ Pipeline valid: ${file}`);
-            const phases = (def as unknown as { phases: { name: string }[] }).phases;
-            for (const phase of phases) {
-                logger.info(`  ✓ ${phase.name}`);
+            for (const phaseName of Object.keys(def.phases)) {
+                logger.info(`  ✓ ${phaseName}`);
             }
             process.exit(EXIT_SUCCESS);
         } else {
@@ -339,12 +360,18 @@ async function handleHistory(options: Record<string, unknown>, queries: Queries)
 }
 
 async function handleUndo(_options: Record<string, unknown>, _state: StateManager): Promise<void> {
-    logger.info('Undo not yet implemented (requires Phase 6 rollback support)');
-    process.exit(EXIT_SUCCESS);
+    logger.error('Undo not yet implemented (requires Phase 6 rollback support)');
+    process.exit(EXIT_STATE_ERROR);
 }
 
-async function handleInspect(options: Record<string, unknown>, queries: Queries): Promise<void> {
+async function handleInspect(options: Record<string, unknown>, state: StateManager, queries: Queries): Promise<void> {
     const taskRef = options.taskRef as string;
+    const phaseName = ((options.phaseName as string | undefined) ?? (options.phase as string | undefined))?.trim();
+    if (!phaseName) {
+        logger.error('Missing required argument: phase');
+        process.exit(EXIT_INVALID_ARGS);
+    }
+
     const history = await queries.getHistory(100);
     const match = history.find((h) => h.taskRef === taskRef);
     if (!match) {
@@ -356,18 +383,94 @@ async function handleInspect(options: Record<string, unknown>, queries: Queries)
         logger.error('Could not load run data.');
         process.exit(EXIT_STATE_ERROR);
     }
-    const reporter = new Reporter();
-    process.stdout.write(`${reporter.formatStatusTable(summary)}\n`);
+
+    const phase = summary.phases.find((entry) => entry.name === phaseName);
+    if (!phase) {
+        logger.error(`Phase "${phaseName}" not found in run ${summary.run.id}`);
+        process.exit(EXIT_INVALID_ARGS);
+    }
+
+    const gateResults = await state.getGateResults(summary.run.id, phaseName);
+    const detail = {
+        runId: summary.run.id,
+        taskRef: summary.run.task_ref,
+        pipeline: summary.run.pipeline_name,
+        preset: summary.run.preset ?? 'default',
+        phase: {
+            name: phase.name,
+            status: phase.status,
+            skill: phase.skill,
+            reworkIteration: phase.rework_iteration,
+            ...(phase.started_at && { startedAt: phase.started_at.toISOString() }),
+            ...(phase.completed_at && { completedAt: phase.completed_at.toISOString() }),
+            ...(phase.error_code && { errorCode: phase.error_code }),
+            ...(phase.error_message && { errorMessage: phase.error_message }),
+        },
+        gateResults: gateResults.map((result) => ({
+            step: result.step_name,
+            checker: result.checker_method,
+            passed: result.passed,
+            ...(result.duration_ms != null && { durationMs: result.duration_ms }),
+            ...(result.created_at && { createdAt: result.created_at.toISOString() }),
+            ...(result.evidence && { evidence: result.evidence }),
+        })),
+    };
+
+    if (options.json) {
+        process.stdout.write(`${JSON.stringify(detail, null, 2)}\n`);
+        process.exit(EXIT_SUCCESS);
+    }
+
+    const lines = [
+        `Run: ${detail.taskRef} (${detail.runId})`,
+        `Pipeline: ${detail.pipeline}  Preset: ${detail.preset}`,
+        `Phase: ${detail.phase.name}`,
+        `Status: ${detail.phase.status}`,
+        `Skill: ${detail.phase.skill}`,
+        `Rework: ${detail.phase.reworkIteration}`,
+    ];
+
+    if (detail.phase.startedAt) {
+        lines.push(`Started: ${detail.phase.startedAt}`);
+    }
+    if (detail.phase.completedAt) {
+        lines.push(`Completed: ${detail.phase.completedAt}`);
+    }
+    if (detail.phase.errorCode || detail.phase.errorMessage) {
+        lines.push(
+            `Error: ${detail.phase.errorCode ?? 'UNKNOWN'}${detail.phase.errorMessage ? ` — ${detail.phase.errorMessage}` : ''}`,
+        );
+    }
+
+    if (options.evidence) {
+        lines.push('');
+        lines.push('Evidence:');
+        if (detail.gateResults.length === 0) {
+            lines.push('  none');
+        } else {
+            for (const result of detail.gateResults) {
+                lines.push(`  - ${result.step} (${result.checker}): ${result.passed ? 'pass' : 'fail'}`);
+                if (result.evidence) {
+                    lines.push(`    ${JSON.stringify(result.evidence)}`);
+                }
+            }
+        }
+    }
+
+    process.stdout.write(`${lines.join('\n')}\n`);
     process.exit(EXIT_SUCCESS);
 }
 
 async function handlePrune(_state: StateManager): Promise<void> {
-    logger.info('Prune not yet implemented (Phase 6 compact support)');
-    process.exit(EXIT_SUCCESS);
+    logger.error('Prune not yet implemented (Phase 6 compact support)');
+    process.exit(EXIT_STATE_ERROR);
 }
 
 async function handleMigrate(options: Record<string, unknown>, state: StateManager): Promise<void> {
-    const v1Dir = (options.dir as string | undefined) ?? 'docs/.workflow-runs/rd3-orchestration-dev';
+    const v1Dir =
+        (options.dir as string | undefined) ??
+        (options.fromV1Path as string | undefined) ??
+        'docs/.workflow-runs/rd3-orchestration-dev';
     const result = await migrateFromV1(state.getDb(), v1Dir);
     if (result.errors.length > 0) {
         logger.error(`Migration completed with ${result.errors.length} error(s)`);
@@ -378,6 +481,16 @@ async function handleMigrate(options: Record<string, unknown>, state: StateManag
     }
     logger.info(`Successfully migrated ${result.migrated} run(s)`);
     process.exit(EXIT_SUCCESS);
+}
+
+function resolvePipelineFile(file: string | undefined, preset: string): string {
+    return file ?? resolve(PRESETS_DIR, `${preset}.yaml`);
+}
+
+async function loadValidatedPipeline(file: string): Promise<[PipelineDefinition, ValidationResult]> {
+    const [definition] = await parsePipelineYaml(file);
+    const resolvedDefinition = await resolveExtends(definition, file);
+    return [resolvedDefinition, validatePipeline(resolvedDefinition)];
 }
 
 main().catch((err: unknown) => {
