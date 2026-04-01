@@ -35,21 +35,37 @@ Implement the foundation layer that everything else depends on: model.ts (types,
 
 ### Design
 
-
+Foundation layer with no upstream dependencies. SQLite via bun:sqlite with WAL mode. Event-sourced state with append-only event store. YAML parser hand-rolled for pipeline subset. Config resolver with extends chain (max 2 levels, circular detection).
 
 ### Solution
 
-
+- model.ts: OrchestratorError with code/category/exitCode, all shared types (433 lines)
+- event-bus.ts: typed EventEmitter with subscribe/unsubscribe/subscribeAll/clear
+- state/manager.ts: SQLite connection, WAL mode, schema init, CRUD for runs/phases/gates/rollback/resource usage
+- state/events.ts: append-only EventStore with query/prune
+- state/migrations.ts: schema version tracking with idempotent DDL (6 tables, 8 indexes)
+- state/queries.ts: aggregation queries (history, trends, preset stats, model usage, phase duration)
+- config/schema.ts: validation with gate types, timeout format, preset subgraph checks
+- config/parser.ts: hand-rolled YAML parser + validate with cycle detection
+- config/resolver.ts: extends resolution with deep merge, max 2 levels, circular detection
+- executors/mock.ts: MockExecutor with scripted responses and call logging
 
 ### Plan
 
-
+1. Implement model.ts with all types and OrchestratorError
+2. Implement event-bus.ts
+3. Implement state/ (manager, events, migrations, queries)
+4. Implement config/ (schema, parser, resolver)
+5. Implement executors/mock.ts
+6. Write tests for each module targeting 90%+ coverage
 
 ### Review
 
-
+All 11 requirements verified. SQLite schema has 6 tables with CHECK constraints and indexes. YAML parser handles the full pipeline subset including block scalars, inline objects, arrays. Resolver handles extends with proper deep merge. 91.26% line coverage.
 
 ### Testing
+
+`bun run check` passes. 571 tests across 25 files. Coverage: 91.26% lines, 86.98% statements.
 
 
 
