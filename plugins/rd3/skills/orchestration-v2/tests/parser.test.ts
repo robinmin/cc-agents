@@ -368,7 +368,7 @@ describe('parser — validatePipeline', () => {
                         timeout: '30m',
                     },
                     architecture: {
-                        skill: 'rd3:architecture',
+                        skill: 'rd3:backend-architect',
                         gate: {
                             type: 'human',
                             rework: {
@@ -381,7 +381,7 @@ describe('parser — validatePipeline', () => {
                         payload: { detail_level: 'high' },
                     },
                     implement: {
-                        skill: 'rd3:code-implement',
+                        skill: 'rd3:code-implement-common',
                         gate: { type: 'auto' },
                         timeout: '2h',
                         after: ['architecture'],
@@ -694,7 +694,7 @@ phases:
     gate: { type: auto }
     timeout: 30m
   implement:
-    skill: rd3:code-implement
+    skill: rd3:code-implement-common
     after: [intake]
     timeout: 2h
     payload:
@@ -819,7 +819,7 @@ phases:
     timeout: 30m
   
   architecture:
-    skill: rd3:architecture-design
+    skill: rd3:backend-architect
     after: [intake]
     gate:
       type: human
@@ -832,7 +832,7 @@ phases:
       include_diagrams: true
   
   implement:
-    skill: rd3:code-implement
+    skill: rd3:code-implement-common
     after: [architecture]
     gate: { type: auto }
     timeout: 4h
@@ -852,7 +852,7 @@ phases:
     timeout: 2h
   
   deployment:
-    skill: rd3:deployment
+    skill: rd3:code-implement-common
     after: [testing]
     gate: { type: auto }
     timeout: 1h
