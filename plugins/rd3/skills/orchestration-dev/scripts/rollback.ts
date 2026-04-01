@@ -98,7 +98,7 @@ interface RestorePlan {
 export function checkDirtyFiles(cwd: string, snapshot: RollbackSnapshot): string[] {
     const modifiedBefore = new Set(snapshot.modified_before ?? []);
     const modifiedNow = getModifiedFiles(cwd);
-    return modifiedNow.filter(f => !modifiedBefore.has(f));
+    return modifiedNow.filter((f) => !modifiedBefore.has(f));
 }
 
 function getRestorePlan(cwd: string, snapshot: RollbackSnapshot): RestorePlan {
@@ -118,15 +118,17 @@ function getRestorePlan(cwd: string, snapshot: RollbackSnapshot): RestorePlan {
 
 export function restoreSnapshot(cwd: string, snapshot: RollbackSnapshot, force?: boolean): RestoreResult {
     const result: RestoreResult = { restored: [], removed: [], errors: [] };
-    
+
     // Check for dirty files that would be lost
     if (!force) {
         const dirtyFiles = checkDirtyFiles(cwd, snapshot);
         if (dirtyFiles.length > 0) {
-            throw new Error(`Cannot restore snapshot: uncommitted changes detected in files that were clean before the phase started: ${dirtyFiles.join(', ')}. Use force=true to override.`);
+            throw new Error(
+                `Cannot restore snapshot: uncommitted changes detected in files that were clean before the phase started: ${dirtyFiles.join(', ')}. Use force=true to override.`,
+            );
         }
     }
-    
+
     const restorePlan = getRestorePlan(cwd, snapshot);
 
     // New files created during the phase — remove them
