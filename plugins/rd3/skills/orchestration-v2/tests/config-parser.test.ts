@@ -449,7 +449,7 @@ describe('config/parser — validatePipeline', () => {
                     timeout: '30m',
                 },
                 implement: {
-                    skill: 'rd3:code-implement',
+                    skill: 'rd3:code-implement-common',
                     gate: { type: 'auto' },
                     timeout: '2h',
                     after: ['intake'],
@@ -581,7 +581,7 @@ schema_version: 1
 name: test-pipeline
 phases:
   implement:
-    skill: rd3:code-implement
+    skill: rd3:code-implement-common
     gate: { type: auto }
     timeout: 1h
   test:
@@ -600,7 +600,7 @@ presets:
 
             expect(validation.valid).toBe(true);
             expect(definition.name).toBe('test-pipeline');
-            expect(definition.phases.implement.skill).toBe('rd3:code-implement');
+            expect(definition.phases.implement.skill).toBe('rd3:code-implement-common');
             expect(definition.phases.test.after).toEqual(['implement']);
             expect(definition.presets?.basic.phases).toEqual(['implement', 'test']);
         } finally {
@@ -651,5 +651,68 @@ phases:
         } finally {
             rmSync(tmpDir, { recursive: true, force: true });
         }
+    });
+});
+
+/* ── Skill existence validation ── */
+
+describe('config/parser — validatePipeline skill existence', () => {
+    test('detects non-existent skill referenced by phase', () => {
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'bad-skill',
+            phases: {
+                intake: { skill: 'rd3:request-intake' },
+                implement: { skill: 'rd3:nonexistent-skill' },
+            },
+        };
+
+        const result = validatePipeline(pipeline);
+        // Non-existent skill is a warning, not a hard error — execution may still work
+        expect(result.valid).toBe(true);
+        expect(result.warnings.some((e) => e.rule === 'skill_not_found')).toBe(true);
+        expect(result.warnings.find((e) => e.rule === 'skill_not_found')?.message).toContain('nonexistent-skill');
+    });
+
+    test('accepts existing skills', () => {
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'valid-skills',
+            phases: {
+                intake: { skill: 'rd3:request-intake' },
+                test: { skill: 'rd3:sys-testing' },
+            },
+        };
+
+        const result = validatePipeline(pipeline);
+        expect(result.valid).toBe(true);
+    });
+
+    test('skips check for skills without plugin prefix', () => {
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'no-prefix',
+            phases: {
+                step: { skill: 'simple-name' },
+            },
+        };
+
+        const result = validatePipeline(pipeline);
+        expect(result.valid).toBe(true);
+    });
+
+    test('skips check for empty skill reference', () => {
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'empty-skill',
+            phases: {
+                step: { skill: 'placeholder' as string },
+            },
+        };
+
+        const result = validatePipeline(pipeline);
+        // No plugin prefix — skill existence check is skipped
+        expect(result.errors.some((e) => e.rule === 'skill_not_found')).toBe(false);
+        expect(result.warnings.some((e) => e.rule === 'skill_not_found')).toBe(false);
     });
 });
