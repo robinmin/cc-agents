@@ -88,7 +88,7 @@ orchestrator resume <task>
 
 ### Per-project customization
 
-Create `.rd3/pipeline.yaml` extending the base:
+Create `docs/.workflows/pipeline.yaml` extending the base:
 
 ```yaml
 schema_version: 1
@@ -104,7 +104,7 @@ phases:
 ### Always validate after edits
 
 ```bash
-orchestrator validate .rd3/pipeline.yaml
+orchestrator validate docs/.workflows/pipeline.yaml
 ```
 
 ## Error Recovery Patterns
