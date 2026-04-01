@@ -401,4 +401,41 @@ describe('observability/reporter — Reporter', () => {
         expect(typeof reporter.formatStatusTable(summary)).toBe('string');
         expect(typeof reporter.formatTrendReport(trends)).toBe('string');
     });
+
+    test('format() dispatches to table formatter', () => {
+        const reporter = new Reporter();
+        const summary = createMockSummary();
+
+        const result = reporter.format(summary, 'table');
+
+        expect(result).toContain('TASK-001');
+        expect(result).toContain('────────────────');
+    });
+
+    test('format() dispatches to markdown formatter', () => {
+        const reporter = new Reporter();
+        const summary = createMockSummary();
+
+        const result = reporter.format(summary, 'markdown');
+
+        expect(result).toContain('# Pipeline Report');
+    });
+
+    test('format() dispatches to json formatter', () => {
+        const reporter = new Reporter();
+        const summary = createMockSummary();
+
+        const result = reporter.format(summary, 'json');
+
+        expect(() => JSON.parse(result)).not.toThrow();
+    });
+
+    test('format() dispatches to summary formatter', () => {
+        const reporter = new Reporter();
+        const summary = createMockSummary();
+
+        const result = reporter.format(summary, 'summary');
+
+        expect(result).toContain('Run TASK-001');
+    });
 });
