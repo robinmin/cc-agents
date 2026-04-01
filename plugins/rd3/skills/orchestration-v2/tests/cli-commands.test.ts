@@ -52,6 +52,32 @@ describe('cli/commands — parseArgs', () => {
         expect(result.command).toBe('history');
     });
 
+    test('parses history command with --preset filter', () => {
+        const result = parseArgs(['history', '--preset', 'security-first']);
+        expect(result.command).toBe('history');
+        expect(result.options.preset).toBe('security-first');
+    });
+
+    test('parses history command with --since filter', () => {
+        const result = parseArgs(['history', '--since', '2026-01-01']);
+        expect(result.command).toBe('history');
+        expect(result.options.since).toBe('2026-01-01');
+    });
+
+    test('parses history command with --failed filter', () => {
+        const result = parseArgs(['history', '--failed']);
+        expect(result.command).toBe('history');
+        expect(result.options.failed).toBe(true);
+    });
+
+    test('parses history command with combined filters', () => {
+        const result = parseArgs(['history', '--preset', 'quick', '--failed', '--limit', '5']);
+        expect(result.command).toBe('history');
+        expect(result.options.preset).toBe('quick');
+        expect(result.options.failed).toBe(true);
+        expect(result.options.limit).toBe(5);
+    });
+
     test('parses migrate command', () => {
         const result = parseArgs(['migrate']);
         expect(result.command).toBe('migrate');
