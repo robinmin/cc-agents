@@ -87,9 +87,20 @@ export function parseArgs(argv: string[]): ParsedCommand {
         } else if ((arg === '--output' || arg === '-o') && argv[i + 1]) {
             options.output = argv[i + 1];
             i++;
+        } else if (arg === '--older-than' && argv[i + 1]) {
+            options.olderThan = argv[i + 1];
+            i++;
+        } else if (arg === '--keep-last' && argv[i + 1]) {
+            options.keepLast = Number(argv[i + 1]);
+            i++;
         } else if ((arg === '--limit' || arg === '--last') && argv[i + 1]) {
             options.limit = Number(argv[i + 1]);
             i++;
+        } else if (arg === '--since' && argv[i + 1]) {
+            options.since = argv[i + 1];
+            i++;
+        } else if (arg === '--failed') {
+            options.failed = true;
         } else if (arg.startsWith('-')) {
             // Unknown flag — skip
         } else {
