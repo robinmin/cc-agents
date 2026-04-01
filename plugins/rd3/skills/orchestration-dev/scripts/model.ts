@@ -74,15 +74,15 @@ export interface CreateExecutionPlanOptions {
 export const DEFAULT_PHASE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
 
 export const PHASE_TIMEOUT_MS: Record<PhaseNumber, number> = {
-    1: 900000,    // 15min
-    2: 1800000,   // 30min
-    3: 1800000,   // 30min
-    4: 1800000,   // 30min
-    5: 7200000,   // 2h
-    6: 3600000,   // 1h
-    7: 1800000,   // 30min
-    8: 1800000,   // 30min
-    9: 1200000,   // 20min
+    1: 900000, // 15min
+    2: 1800000, // 30min
+    3: 1800000, // 30min
+    4: 1800000, // 30min
+    5: 7200000, // 2h
+    6: 3600000, // 1h
+    7: 1800000, // 30min
+    8: 1800000, // 30min
+    9: 1200000, // 20min
 };
 
 export const VALID_PROFILES = [
