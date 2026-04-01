@@ -35,21 +35,35 @@ Create implementation-ready specifications from the blueprint. CLI arg parsing d
 
 ### Design
 
-
+Hand-rolled CLI arg parser in `scripts/cli/commands.ts` with positional + flag parsing. Module dependency graph follows build phases 0-7 from blueprint. SKILL.md with full frontmatter. Reference docs cover CLI commands, YAML guide, error codes, and agent cooperation patterns.
 
 ### Solution
 
-
+All design deliverables implemented:
+- `SKILL.md` with frontmatter, quick start, core concepts, CLI reference table
+- `references/cli-reference.md` — all 11 commands documented with flags, examples, exit codes
+- `references/pipeline-yaml-guide.md` — schema, DAG deps, presets, extends, hooks, validation rules
+- `references/error-codes.md` — 18 error codes across 4 categories with recovery strategies
+- `references/agent-cooperation.md` — reading state, resuming, customizing, error patterns
+- `references/examples/default.yaml` (10 phases, 4 presets), `quick-fix.yaml`, `security-first.yaml`
+- Additional examples: `docs.yaml`, `plan.yaml`, `refine.yaml`, `review.yaml`, `unit.yaml`
+- CLI arg parsing in `scripts/cli/commands.ts` with `--phases`, `--preset`, and all other flags
 
 ### Plan
 
-
+1. Write SKILL.md with frontmatter and body content
+2. Create reference documents (cli-reference, pipeline-yaml-guide, error-codes, agent-cooperation)
+3. Create example pipeline YAMLs (default, quick-fix, security-first + extras)
+4. Implement CLI arg parser in commands.ts
+5. Verify all docs are consistent with blueprint
 
 ### Review
 
-
+All 9 requirements verified. CLI reference covers all 11 commands. YAML guide explains presets (not profiles). Error codes match model.ts definitions. Example YAMLs validate against schema.
 
 ### Testing
+
+Verification: SKILL.md, all 4 reference docs, and all example YAMLs exist and are substantive. CLI arg parsing tested via 27 test files covering the orchestration-v2 skill.
 
 
 
