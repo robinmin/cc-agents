@@ -76,7 +76,9 @@ describe('migrations', () => {
         const { db, cleanup } = makeTempDb();
         try {
             // First, create schema_version manually at version 0 (older than CURRENT)
-            db.exec('CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+            db.exec(
+                'CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at DATETIME DEFAULT CURRENT_TIMESTAMP)',
+            );
             db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(0);
 
             // Now run migrations — should detect version 0 < CURRENT and apply DDL
