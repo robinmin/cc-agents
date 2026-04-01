@@ -15,7 +15,13 @@ import {
     runOrchestration,
     saveOrchestrationState,
 } from '../scripts/runtime';
-import { createRunLock, getLockPath, getOrchestrationRunDir, isRunLocked, releaseRunLock } from '../scripts/state-paths';
+import {
+    createRunLock,
+    getLockPath,
+    getOrchestrationRunDir,
+    isRunLocked,
+    releaseRunLock,
+} from '../scripts/state-paths';
 
 beforeAll(() => {
     setGlobalSilent(true);
@@ -1006,22 +1012,24 @@ describe('runtime main', () => {
         const taskPath = writeTaskFile(dir, '0266_main_skip_stack.md', 'Implement the feature.');
         process.chdir(dir);
 
-        expect(await main([
-            taskPath,
-            '--profile',
-            'complex',
-            '--start-phase',
-            '6',
-            '--skip-phases',
-            '7,8,9',
-            '--stack-profile',
-            'typescript-bun-biome',
-            '--channel',
-            'current',
-            '--auto',
-            '--dry-run',
-            '--refine',
-        ])).toBe(0);
+        expect(
+            await main([
+                taskPath,
+                '--profile',
+                'complex',
+                '--start-phase',
+                '6',
+                '--skip-phases',
+                '7,8,9',
+                '--stack-profile',
+                'typescript-bun-biome',
+                '--channel',
+                'current',
+                '--auto',
+                '--dry-run',
+                '--refine',
+            ]),
+        ).toBe(0);
 
         expect(findOrchestrationStatePath(taskPath, dir)).toBeNull();
     });
