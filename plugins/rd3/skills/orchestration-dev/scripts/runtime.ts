@@ -576,7 +576,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     if (parsed.undo !== undefined) {
         try {
             const result = executeUndo(
-                { task_ref: parsed.taskRef, phase: parsed.undo, dry_run: parsed.undoDryRun },
+                { task_ref: parsed.taskRef, phase: parsed.undo, dry_run: parsed.undoDryRun, force: parsed.undoForce },
                 process.cwd(),
             );
             logger.log(JSON.stringify(result, null, 2));
@@ -608,31 +608,19 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
         }
 
         const runner = createPilotPhaseRunner();
-        const state = parsed.resume
-            ? await resumeOrchestration({
-                  plan,
-                  projectRoot: process.cwd(),
-                  phaseRunner: runner,
-                  stackProfile: parsed.stackProfile,
-                  reworkConfig: {
-                      ...PUBLIC_CLI_REWORK_CONFIG,
-                      ...(parsed.reworkMaxIterations !== undefined
-                          ? { max_iterations: parsed.reworkMaxIterations }
-                          : {}),
-                  },
-              })
-            : await runOrchestration({
-                  plan,
-                  projectRoot: process.cwd(),
-                  phaseRunner: runner,
-                  stackProfile: parsed.stackProfile,
-                  reworkConfig: {
-                      ...PUBLIC_CLI_REWORK_CONFIG,
-                      ...(parsed.reworkMaxIterations !== undefined
-                          ? { max_iterations: parsed.reworkMaxIterations }
-                          : {}),
-                  },
-              });
+        const reworkConfig = {
+            ...PUBLIC_CLI_REWORK_CONFIG,
+            ...(parsed.reworkMaxIterations !== undefined ? { max_iterations: parsed.reworkMaxIterations } : {}),
+        };
+        const sharedOpts = {
+            plan,
+            projectRoot: process.cwd(),
+            phaseRunner: runner,
+            stackProfile: parsed.stackProfile,
+            rollbackEnabled: parsed.rollback,
+            reworkConfig,
+        };
+        const state = parsed.resume ? await resumeOrchestration(sharedOpts) : await runOrchestration(sharedOpts);
 
         logger.log(JSON.stringify(state, null, 2));
         return state.status === 'completed' ? 0 : 1;
