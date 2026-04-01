@@ -100,14 +100,7 @@ describe('getOrchestrationRunArtifactsDir', () => {
     test('returns artifacts dir under run dir', () => {
         const stateDir = createTempDir('sp-art-');
         const result = getOrchestrationRunArtifactsDir('0292_Task.md', 'run-001', stateDir);
-        const expected = join(
-            stateDir,
-            'docs',
-            '.workflow-runs',
-            'rd3-orchestration-dev',
-            '0292',
-            'run-001',
-        );
+        const expected = join(stateDir, 'docs', '.workflow-runs', 'rd3-orchestration-dev', '0292', 'run-001');
         expect(result).toBe(expected);
     });
 });
