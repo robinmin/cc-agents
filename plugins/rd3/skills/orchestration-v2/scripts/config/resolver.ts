@@ -5,8 +5,8 @@
  * Max 2 levels, no circular inheritance.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { readFileSync, statSync } from 'node:fs';
+import { resolve, dirname, extname } from 'node:path';
 import type { PipelineDefinition, PhaseDefinition, PipelineHooks } from '../model';
 import { parseYamlString } from './parser';
 import { OrchestratorError } from '../model';
@@ -37,7 +37,7 @@ async function resolveChain(
         );
     }
 
-    const extendsPath = resolve(dirname(basePath), def.extends);
+    const extendsPath = resolve(resolveBaseDirectory(basePath), def.extends);
     if (visited.has(extendsPath)) {
         throw new OrchestratorError('EXTENDS_CIRCULAR', `Circular extends detected: ${extendsPath}`);
     }
@@ -48,6 +48,14 @@ async function resolveChain(
     parent = await resolveChain(parent, extendsPath, depth + 1, visited);
 
     return mergePipeline(parent, def);
+}
+
+function resolveBaseDirectory(basePath: string): string {
+    try {
+        return statSync(basePath).isDirectory() ? basePath : dirname(basePath);
+    } catch {
+        return extname(basePath) ? dirname(basePath) : basePath;
+    }
 }
 
 function mergePipeline(parent: PipelineDefinition, child: PipelineDefinition): PipelineDefinition {
