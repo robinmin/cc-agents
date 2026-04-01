@@ -6,14 +6,14 @@
  * polluting the project root or leaking into system temp.
  */
 
-import { existsSync, mkdtempSync, mkdirSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const __dirname = join(fileURLToPath(import.meta.url), "..");
+const __dirname = join(fileURLToPath(import.meta.url), '..');
 
 /** Base directory for all test artifacts — gitignored via .gitignore */
-export const TEST_DATA_DIR = join(__dirname, "data");
+export const TEST_DATA_DIR = join(__dirname, 'data');
 
 /**
  * Create a unique test directory under plugins/rd3/tests/data/.
@@ -22,15 +22,15 @@ export const TEST_DATA_DIR = join(__dirname, "data");
  * (e.g. read-only filesystem in CI).
  */
 export function createTestDataDir(prefix: string): string {
-	mkdirSync(TEST_DATA_DIR, { recursive: true });
-	return mkdtempSync(join(TEST_DATA_DIR, prefix));
+    mkdirSync(TEST_DATA_DIR, { recursive: true });
+    return mkdtempSync(join(TEST_DATA_DIR, prefix));
 }
 
 /**
  * Safely remove a test directory. No-op if path is empty or does not exist.
  */
 export function cleanupTestDir(dir: string): void {
-	if (dir && existsSync(dir)) {
-		rmSync(dir, { recursive: true, force: true });
-	}
+    if (dir && existsSync(dir)) {
+        rmSync(dir, { recursive: true, force: true });
+    }
 }
