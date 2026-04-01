@@ -352,7 +352,10 @@ describe('config/resolver — resolveExtends', () => {
         mkdirSync(tmpDir, { recursive: true });
 
         const childPath = join(tmpDir, 'child.yaml');
-        writeFileSync(childPath, `schema_version: 1\nname: child\nextends: nonexistent.yaml\nphases:\n  x:\n    skill: test\n`);
+        writeFileSync(
+            childPath,
+            `schema_version: 1\nname: child\nextends: nonexistent.yaml\nphases:\n  x:\n    skill: test\n`,
+        );
 
         try {
             const [def] = await parsePipelineYaml(childPath);
@@ -557,7 +560,10 @@ phases:
         const childPath = join(tmpDir, 'child.yaml');
 
         writeFileSync(parentPath, `schema_version: 1\nname: parent\nphases:\n  a:\n    skill: test\n`);
-        writeFileSync(childPath, `schema_version: 1\nname: child\nextends: parent.yaml\nphases:\n  b:\n    skill: test\n`);
+        writeFileSync(
+            childPath,
+            `schema_version: 1\nname: child\nextends: parent.yaml\nphases:\n  b:\n    skill: test\n`,
+        );
 
         try {
             const [childDef] = await parsePipelineYaml(childPath);
@@ -577,7 +583,10 @@ phases:
         const childPath = join(tmpDir, 'child.yaml');
 
         writeFileSync(parentPath, `schema_version: 1\nname: parent\nphases:\n  a:\n    skill: test\n`);
-        writeFileSync(childPath, `schema_version: 1\nname: child\nextends: parent.yaml\nphases:\n  b:\n    skill: test\n`);
+        writeFileSync(
+            childPath,
+            `schema_version: 1\nname: child\nextends: parent.yaml\nphases:\n  b:\n    skill: test\n`,
+        );
 
         try {
             const [childDef] = await parsePipelineYaml(childPath);
@@ -596,7 +605,10 @@ phases:
         const childPath = join(tmpDir, 'child.yaml');
 
         writeFileSync(parentPath, `schema_version: 1\nname: parent\nphases:\n  a:\n    skill: test\n`);
-        writeFileSync(childPath, `schema_version: 1\nname: child\nextends: parent.yaml\nphases:\n  b:\n    skill: test\n`);
+        writeFileSync(
+            childPath,
+            `schema_version: 1\nname: child\nextends: parent.yaml\nphases:\n  b:\n    skill: test\n`,
+        );
 
         try {
             const [childDef] = await parsePipelineYaml(childPath);
@@ -617,7 +629,10 @@ phases:
         const childPath = join(tmpDir, 'child.yaml');
 
         writeFileSync(parentPath, `schema_version: 1\nname: parent\nphases:\n  a:\n    skill: test\n`);
-        writeFileSync(childPath, `schema_version: 1\nname: child\nextends: parent.yaml\nphases:\n  b:\n    skill: test\n`);
+        writeFileSync(
+            childPath,
+            `schema_version: 1\nname: child\nextends: parent.yaml\nphases:\n  b:\n    skill: test\n`,
+        );
 
         try {
             const [childDef] = await parsePipelineYaml(childPath);
