@@ -38,6 +38,9 @@ export function parseArgs(argv: string[]): ParsedCommand {
             options.verbose = true;
         } else if (arg === '--quiet') {
             options.quiet = true;
+        } else if (arg === '--state-dir' && argv[i + 1]) {
+            options.stateDir = argv[i + 1];
+            i++;
         } else if (arg === '--auto') {
             options.auto = true;
         } else if (arg === '--approve') {
@@ -58,7 +61,7 @@ export function parseArgs(argv: string[]): ParsedCommand {
         } else if (arg === '--phases' && argv[i + 1]) {
             options.phases = argv[i + 1].split(',');
             i++;
-        } else if (arg === '--file' && argv[i + 1]) {
+        } else if ((arg === '--file' || arg === '--pipeline') && argv[i + 1]) {
             options.file = argv[i + 1];
             i++;
         } else if (arg === '--dir' && argv[i + 1]) {
@@ -81,8 +84,11 @@ export function parseArgs(argv: string[]): ParsedCommand {
             options.all = true;
         } else if (arg === '--json') {
             options.json = true;
-        } else if (arg === '--output' && argv[i + 1]) {
+        } else if ((arg === '--output' || arg === '-o') && argv[i + 1]) {
             options.output = argv[i + 1];
+            i++;
+        } else if ((arg === '--limit' || arg === '--last') && argv[i + 1]) {
+            options.limit = Number(argv[i + 1]);
             i++;
         } else if (arg.startsWith('-')) {
             // Unknown flag — skip
