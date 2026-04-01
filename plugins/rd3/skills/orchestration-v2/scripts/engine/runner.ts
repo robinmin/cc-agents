@@ -242,6 +242,12 @@ export class PipelineRunner {
 
                     await this.emitEvent(runId, 'phase.started', { phase: phaseName });
 
+                    await this.hooks.execute('on-phase-start', {
+                        phase: phaseName,
+                        task_ref: options.taskRef,
+                        run_id: runId,
+                    });
+
                     // Execute with rework loop
                     const phaseResult = await this.executePhaseWithRework(runId, phaseName, phaseDef, options);
 
@@ -249,6 +255,17 @@ export class PipelineRunner {
                         if (phaseDef.gate?.type === 'human' && phaseDef.gate.rework?.escalation === 'pause') {
                             this.dag.markPaused(phaseName);
                             await this.state.updatePhaseStatus(runId, phaseName, 'paused');
+                            await this.hooks.execute('on-phase-failure', {
+                                phase: phaseName,
+                                task_ref: options.taskRef,
+                                run_id: runId,
+                                ...(phaseResult.errorMessage && { error: phaseResult.errorMessage }),
+                            });
+                            await this.hooks.execute('on-pause', {
+                                phase: phaseName,
+                                task_ref: options.taskRef,
+                                run_id: runId,
+                            });
                             this.fsm.transition('human-gate');
                             await this.state.updateRunStatus(runId, 'PAUSED');
                             await this.emitEvent(runId, 'run.paused', {
@@ -272,6 +289,12 @@ export class PipelineRunner {
                             phaseResult.errorCode,
                             phaseResult.errorMessage,
                         );
+                        await this.hooks.execute('on-phase-failure', {
+                            phase: phaseName,
+                            task_ref: options.taskRef,
+                            run_id: runId,
+                            ...(phaseResult.errorMessage && { error: phaseResult.errorMessage }),
+                        });
                         await this.failPausedRun(
                             runId,
                             phaseResult.errorMessage ?? `Phase ${phaseName} failed`,
@@ -295,6 +318,11 @@ export class PipelineRunner {
                     if (gateResult.status === 'pending') {
                         this.dag.markPaused(phaseName);
                         await this.state.updatePhaseStatus(runId, phaseName, 'paused');
+                        await this.hooks.execute('on-pause', {
+                            phase: phaseName,
+                            task_ref: options.taskRef,
+                            run_id: runId,
+                        });
                         this.fsm.transition('human-gate');
                         await this.state.updateRunStatus(runId, 'PAUSED');
                         await this.emitEvent(runId, 'run.paused', {
@@ -318,6 +346,11 @@ export class PipelineRunner {
                                 // Pause for human review
                                 this.dag.markPaused(phaseName);
                                 await this.state.updatePhaseStatus(runId, phaseName, 'paused');
+                                await this.hooks.execute('on-pause', {
+                                    phase: phaseName,
+                                    task_ref: options.taskRef,
+                                    run_id: runId,
+                                });
                                 this.fsm.transition('human-gate');
                                 await this.state.updateRunStatus(runId, 'PAUSED');
                                 await this.emitEvent(runId, 'run.paused', {
