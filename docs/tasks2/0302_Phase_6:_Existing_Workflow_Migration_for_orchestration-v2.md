@@ -35,21 +35,30 @@ Migrate current orchestration-dev workflows to orchestration-v2. Create default 
 
 ### Design
 
-
+V1 JSON state migration to V2 SQLite. Phase number to name mapping. V1 status to V2 FSM state mapping. Transactional migration per file. Coexistence with separate state stores (JSON vs SQLite).
 
 ### Solution
 
-
+- references/examples/default.yaml: 10 phases (intake→docs) with 4 presets (simple, standard, complex, research) and parallel verify-bdd/verify-func
+- state/migrate-v1.ts: migrateFromV1() scanning v1 JSON files, mapping phase numbers to names, inserting runs/phases/events atomically per file via transactions
+- run.ts: `orchestrator migrate --from-v1` command handling with dir option
+- Coexistence documented in SKILL.md: v1 uses JSON, v2 uses SQLite, no shared state
 
 ### Plan
 
-
+1. Create default.yaml from PHASE_MATRIX with all 9 phases and 4 presets
+2. Implement migrateFromV1 with V1State type definitions
+3. Add phase number→name mapping and status mapping
+4. Wire migrate command in run.ts CLI
+5. Write migration tests
 
 ### Review
 
-
+All 8 requirements verified. default.yaml has 10 phases with parallel verify-bdd/verify-func. Migration handles phase number mapping, status mapping, evidence migration as events. Coexistence documented. Tests in migrate-v1.test.ts.
 
 ### Testing
+
+`bun run check` passes. migrate-v1.test.ts covers: successful migration, invalid state files, empty directories, error handling. 91.26% line coverage.
 
 
 
