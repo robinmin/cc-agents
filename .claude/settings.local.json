@@ -60,7 +60,11 @@
       "Bash(biome format:*)",
       "Bash(echo:*)",
       "Bash(ls:*)",
-      "Bash(bats:*)"
+      "Bash(bats:*)",
+
+      "Bash(rtk find:*)",
+      "Bash(rtk tasks:*)",
+      "Bash(rtk bun:*)"
     ],
     "deny": [],
     "ask": []
