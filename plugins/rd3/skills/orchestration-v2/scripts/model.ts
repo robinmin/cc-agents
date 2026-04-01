@@ -81,6 +81,7 @@ export interface ValidationError {
 export interface ValidationResult {
     readonly valid: boolean;
     readonly errors: readonly ValidationError[];
+    readonly warnings: readonly ValidationError[];
 }
 
 // ─── Executor ──────────────────────────────────────────────────────────────────
