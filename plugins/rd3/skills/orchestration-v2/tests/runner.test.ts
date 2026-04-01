@@ -546,21 +546,58 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
 
     describe('Resume Functionality', () => {
         test('should resume paused run with approval', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'test-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                    review: {
+                        skill: 'rd3:code-review',
+                        gate: { type: 'human' },
+                        after: ['implement'],
+                    },
+                    docs: {
+                        skill: 'rd3:code-docs',
+                        gate: { type: 'auto' },
+                        after: ['review'],
+                    },
+                },
+            };
+
             // First create a paused run
             const runRecord = await stateManager.createRun({
                 id: 'test-run-resume-001',
                 task_ref: 'resume-001',
-                phases_requested: 'implement',
+                phases_requested: 'implement,review,docs',
                 status: 'PAUSED',
-                config_snapshot: {},
+                config_snapshot: pipeline as unknown as Record<string, unknown>,
                 pipeline_name: 'test-pipeline',
             });
 
             await stateManager.createPhase({
                 run_id: runRecord,
                 name: 'implement',
-                status: 'paused',
+                status: 'completed',
                 skill: 'rd3:code-implement',
+                rework_iteration: 0,
+            });
+
+            await stateManager.createPhase({
+                run_id: runRecord,
+                name: 'review',
+                status: 'paused',
+                skill: 'rd3:code-review',
+                rework_iteration: 0,
+            });
+
+            await stateManager.createPhase({
+                run_id: runRecord,
+                name: 'docs',
+                status: 'pending',
+                skill: 'rd3:code-docs',
                 rework_iteration: 0,
             });
 
@@ -570,27 +607,57 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             };
 
             const result = await runner.resume(resumeOptions);
+            const resumedRun = await stateManager.getRun(runRecord);
+            const docsPhase = await stateManager.getPhase(runRecord, 'docs');
+            const reviewPhase = await stateManager.getPhase(runRecord, 'review');
 
             expect(result.status).toBe('COMPLETED');
             expect(result.exitCode).toBe(0);
+            expect(resumedRun?.status).toBe('COMPLETED');
+            expect(reviewPhase?.status).toBe('completed');
+            expect(docsPhase?.status).toBe('completed');
         });
 
         test('should handle resume with rejection', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'test-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                    review: {
+                        skill: 'rd3:code-review',
+                        gate: { type: 'human' },
+                        after: ['implement'],
+                    },
+                },
+            };
+
             // Create a paused run
             const runRecord = await stateManager.createRun({
                 id: 'test-run-resume-002',
                 task_ref: 'resume-002',
-                phases_requested: 'implement',
+                phases_requested: 'implement,review',
                 status: 'PAUSED',
-                config_snapshot: {},
+                config_snapshot: pipeline as unknown as Record<string, unknown>,
                 pipeline_name: 'test-pipeline',
             });
 
             await stateManager.createPhase({
                 run_id: runRecord,
                 name: 'implement',
-                status: 'paused',
+                status: 'completed',
                 skill: 'rd3:code-implement',
+                rework_iteration: 0,
+            });
+
+            await stateManager.createPhase({
+                run_id: runRecord,
+                name: 'review',
+                status: 'paused',
+                skill: 'rd3:code-review',
                 rework_iteration: 0,
             });
 
@@ -600,9 +667,13 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             };
 
             const result = await runner.resume(resumeOptions);
+            const resumedRun = await stateManager.getRun(runRecord);
+            const reviewPhase = await stateManager.getPhase(runRecord, 'review');
 
-            expect(result.status).toBe('COMPLETED');
-            expect(result.exitCode).toBe(0);
+            expect(result.status).toBe('FAILED');
+            expect(result.exitCode).toBe(1);
+            expect(resumedRun?.status).toBe('FAILED');
+            expect(reviewPhase?.status).toBe('failed');
         });
 
         test('should fail to resume non-existent run', async () => {
