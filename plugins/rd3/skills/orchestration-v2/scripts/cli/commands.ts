@@ -40,6 +40,12 @@ export function parseArgs(argv: string[]): ParsedCommand {
             options.quiet = true;
         } else if (arg === '--auto') {
             options.auto = true;
+        } else if (arg === '--approve') {
+            options.approve = true;
+        } else if (arg === '--reject') {
+            options.reject = true;
+        } else if (arg === '--evidence') {
+            options.evidence = true;
         } else if (arg === '--format' && argv[i + 1]) {
             options.format = argv[i + 1];
             i++;
@@ -55,9 +61,19 @@ export function parseArgs(argv: string[]): ParsedCommand {
         } else if (arg === '--file' && argv[i + 1]) {
             options.file = argv[i + 1];
             i++;
+        } else if (arg === '--dir' && argv[i + 1]) {
+            options.dir = argv[i + 1];
+            i++;
         } else if (arg === '--phase' && argv[i + 1]) {
             options.phase = argv[i + 1];
+            options.phaseName = argv[i + 1];
             i++;
+        } else if (arg === '--from-v1') {
+            options.fromV1 = true;
+            if (argv[i + 1] && !argv[i + 1].startsWith('-')) {
+                options.dir = argv[i + 1];
+                i++;
+            }
         } else if (arg === '--coverage' && argv[i + 1]) {
             options.coverage = Number(argv[i + 1]);
             i++;
