@@ -205,6 +205,8 @@ export function executeUndo(options: UndoOptions, stateDir: string): UndoResult 
     }
 
     const state = JSON.parse(readFileSync(statePath, 'utf-8')) as {
+        status?: string;
+        updated_at?: string;
         phases: Array<{
             number: number;
             status: string;
@@ -262,6 +264,9 @@ export function executeUndo(options: UndoOptions, stateDir: string): UndoResult 
         result.phases_cleared.push(downstreamPhase.number as PhaseNumber);
     }
 
+    // Update run status to paused — pipeline needs to continue from undone phase
+    state.status = 'paused';
+    state.updated_at = new Date().toISOString();
     writeFileSync(statePath, JSON.stringify(state, null, 2), 'utf-8');
     result.state_cleared = true;
 
