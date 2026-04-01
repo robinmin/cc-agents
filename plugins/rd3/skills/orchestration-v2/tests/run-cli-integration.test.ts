@@ -91,7 +91,7 @@ phases:
 
     test('inspect shows only the requested phase detail', async () => {
         const cwd = createTempCwd('inspect');
-        const dbPath = join(cwd, '.orchestrator', 'state.db');
+        const dbPath = join(cwd, 'docs', '.workflow-runs', 'state.db');
         const state = new StateManager({ dbPath });
         await state.init();
 
