@@ -61,7 +61,7 @@ orchestrator status 0266
 
 ### Pipeline YAML
 
-Pipelines are defined in `.rd3/pipeline.yaml`. The YAML declares **what** phases exist, their skills, dependencies, and parameters. The engine handles **how** they execute.
+Pipelines are defined in `docs/.workflows/pipeline.yaml`. The YAML declares **what** phases exist, their skills, dependencies, and parameters. The engine handles **how** they execute.
 
 ```yaml
 schema_version: 1
