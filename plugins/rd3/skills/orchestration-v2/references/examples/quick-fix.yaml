@@ -1,0 +1,33 @@
+# Quick-fix pipeline — implement + test only
+schema_version: 1
+name: quick-fix
+
+stack:
+  language: typescript
+  runtime: bun
+  linter: biome
+  test: "bun test"
+  coverage: "bun test --coverage"
+
+phases:
+  implement:
+    skill: rd3:code-implement-common
+    gate:
+      type: auto
+      rework: { max_iterations: 2, escalation: fail }
+    timeout: 1h
+
+  test:
+    skill: rd3:sys-testing
+    gate:
+      type: auto
+      rework: { max_iterations: 2, escalation: fail }
+    timeout: 30m
+    after: [implement]
+    payload:
+      coverage_threshold: 60
+
+presets:
+  simple:
+    phases: [implement, test]
+    defaults: { coverage_threshold: 60 }

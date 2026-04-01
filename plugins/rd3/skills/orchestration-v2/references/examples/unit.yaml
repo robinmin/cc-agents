@@ -1,0 +1,20 @@
+# Unit testing only — single-phase pipeline for rd3:super-tester
+schema_version: 1
+name: unit
+
+stack:
+  language: typescript
+  runtime: bun
+  linter: biome
+  test: "bun test"
+  coverage: "bun test --coverage"
+
+phases:
+  test:
+    skill: rd3:sys-testing
+    gate:
+      type: auto
+      rework: { max_iterations: 3, escalation: fail }
+    timeout: 1h
+    payload:
+      coverage_threshold: 90

@@ -1,0 +1,16 @@
+# Refine only — single-phase pipeline for rd3:dev-refine
+schema_version: 1
+name: refine
+
+stack:
+  language: typescript
+  runtime: bun
+  linter: biome
+  test: "bun test"
+  coverage: "bun test --coverage"
+
+phases:
+  intake:
+    skill: rd3:request-intake
+    gate: { type: auto }
+    timeout: 30m

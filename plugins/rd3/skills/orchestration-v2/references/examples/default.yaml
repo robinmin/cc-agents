@@ -1,0 +1,99 @@
+# Default 9-phase pipeline for rd3
+schema_version: 1
+name: default
+
+stack:
+  language: typescript
+  runtime: bun
+  linter: biome
+  test: "bun test"
+  coverage: "bun test --coverage"
+
+phases:
+  intake:
+    skill: rd3:request-intake
+    gate: { type: auto }
+    timeout: 30m
+
+  arch:
+    skill: rd3:backend-architect
+    gate: { type: auto }
+    timeout: 1h
+    after: [intake]
+
+  design:
+    skill: rd3:backend-design
+    gate: { type: auto }
+    timeout: 1h
+    after: [arch]
+
+  decompose:
+    skill: rd3:task-decomposition
+    gate: { type: auto }
+    timeout: 30m
+    after: [design]
+
+  implement:
+    skill: rd3:code-implement-common
+    gate:
+      type: auto
+      rework: { max_iterations: 2, escalation: pause }
+    timeout: 2h
+    after: [decompose]
+    payload:
+      tdd: true
+      sandbox: git-worktree
+
+  test:
+    skill: rd3:sys-testing
+    gate:
+      type: auto
+      rework: { max_iterations: 3, escalation: pause }
+    timeout: 1h
+    after: [implement]
+    payload:
+      coverage_threshold: 80
+
+  review:
+    skill: rd3:code-review-common
+    gate: { type: human }
+    after: [test]
+    payload:
+      depth: thorough
+      focus_areas: [security, performance]
+
+  verify-bdd:
+    skill: rd3:bdd-workflow
+    gate: { type: auto }
+    timeout: 30m
+    after: [review]
+    payload:
+      depth: standard
+
+  verify-func:
+    skill: rd3:functional-review
+    gate: { type: auto }
+    timeout: 30m
+    after: [review]
+    payload:
+      depth: standard
+
+  docs:
+    skill: rd3:code-docs
+    gate: { type: auto }
+    timeout: 30m
+    after: [verify-bdd, verify-func]
+
+presets:
+  simple:
+    phases: [implement, test]
+    defaults: { coverage_threshold: 60 }
+  standard:
+    phases: [intake, implement, test, review, docs]
+    defaults: { coverage_threshold: 80 }
+  complex:
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    defaults: { coverage_threshold: 80 }
+  research:
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    defaults: { coverage_threshold: 60 }

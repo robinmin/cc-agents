@@ -1,0 +1,19 @@
+# Review only — single-phase pipeline for rd3:super-reviewer
+schema_version: 1
+name: review
+
+stack:
+  language: typescript
+  runtime: bun
+  linter: biome
+  test: "bun test"
+  coverage: "bun test --coverage"
+
+phases:
+  review:
+    skill: rd3:code-review-common
+    gate: { type: human }
+    timeout: 30m
+    payload:
+      depth: thorough
+      focus_areas: [security, performance]
