@@ -68,7 +68,7 @@ describe('scripts/run.ts CLI integration', () => {
 name: parent
 phases:
   implement:
-    skill: rd3:code-implement
+    skill: rd3:code-implement-common
 `,
         );
         writeFileSync(
@@ -78,7 +78,7 @@ name: child
 extends: default.yaml
 phases:
   review:
-    skill: rd3:code-review
+    skill: rd3:code-review-common
     after: [implement]
 `,
         );
@@ -154,7 +154,7 @@ phases:
         expect(result.stdout).not.toContain('implement completed');
     });
 
-    test('undo and prune fail until support exists, and migrate accepts a source dir', () => {
+    test('undo fails until support exists, prune succeeds, and migrate accepts a source dir', () => {
         const cwd = createTempCwd('commands');
         const legacyDir = join(cwd, 'legacy-state');
         mkdirSync(legacyDir, { recursive: true });
@@ -166,6 +166,87 @@ phases:
         expect(migrateResult.exitCode).toBe(0);
         expect(migrateResult.stdout).toContain('Successfully migrated 0 run(s)');
         expect(undoResult.exitCode).toBe(13);
-        expect(pruneResult.exitCode).toBe(13);
+        // Prune now implemented — succeeds with 0 exit, reports 0 runs pruned
+        expect(pruneResult.exitCode).toBe(0);
+        expect(pruneResult.stdout).toContain('Pruned 0 run(s)');
+    });
+
+    test('prune --dry-run reports counts without deleting', async () => {
+        const cwd = createTempCwd('prune-dry');
+        const dbPath = join(cwd, 'docs', '.workflow-runs', 'state.db');
+        const state = new StateManager({ dbPath });
+        await state.init();
+
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'prune-test',
+            phases: { implement: { skill: 'rd3:code-implement' } },
+        };
+
+        await state.createRun({
+            id: 'run-prune-001',
+            task_ref: 'prune-task',
+            phases_requested: 'implement',
+            status: 'COMPLETED',
+            config_snapshot: pipeline as unknown as Record<string, unknown>,
+            pipeline_name: 'prune-test',
+        });
+        await state.createPhase({
+            run_id: 'run-prune-001',
+            name: 'implement',
+            status: 'completed',
+            skill: 'rd3:code-implement',
+            rework_iteration: 0,
+        });
+
+        // Add events
+        const db = state.getDb();
+        db.prepare('INSERT INTO events (run_id, event_type, payload) VALUES (?, ?, ?)').run(
+            'run-prune-001',
+            'phase.completed',
+            '{}',
+        );
+        await state.close();
+
+        const result = runCli(['prune', '--older-than', '1s', '--dry-run'], cwd);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('[dry-run]');
+        expect(result.stdout).toContain('Runs affected: 1');
+        expect(result.stdout).toContain('Events: 1');
+    });
+
+    test('prune --keep-last deletes beyond the kept count', async () => {
+        const cwd = createTempCwd('prune-keep');
+        const dbPath = join(cwd, 'docs', '.workflow-runs', 'state.db');
+        const state = new StateManager({ dbPath });
+        await state.init();
+
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'prune-test',
+            phases: { implement: { skill: 'rd3:code-implement' } },
+        };
+
+        await state.createRun({
+            id: 'run-keep-001',
+            task_ref: 'keep-task-1',
+            phases_requested: 'implement',
+            status: 'COMPLETED',
+            config_snapshot: pipeline as unknown as Record<string, unknown>,
+            pipeline_name: 'prune-test',
+        });
+        await state.createRun({
+            id: 'run-keep-002',
+            task_ref: 'keep-task-2',
+            phases_requested: 'implement',
+            status: 'COMPLETED',
+            config_snapshot: pipeline as unknown as Record<string, unknown>,
+            pipeline_name: 'prune-test',
+        });
+        await state.close();
+
+        const result = runCli(['prune', '--keep-last', '1'], cwd);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pruned 1 run(s)');
     });
 });
