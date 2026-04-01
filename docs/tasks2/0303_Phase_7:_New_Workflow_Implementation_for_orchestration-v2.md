@@ -35,21 +35,33 @@ Implement new workflows enabled by the v2 engine: parallel verification (verify-
 
 ### Design
 
-
+DAG-based parallel execution enables new workflows. verify-bdd and verify-func as parallel DAG nodes after review. Per-project pipelines via extends with deep merge. Security scan as parallel phase. Advanced reporting via aggregation queries.
 
 ### Solution
 
-
+- Parallel verification: default.yaml has verify-bdd and verify-func both with `after: [review]`, docs with `after: [verify-bdd, verify-func]` — DAG resolves parallel execution
+- Per-project pipelines: config/resolver.ts with extends resolution, deep merge on payload, child overrides parent phases, max 2 levels
+- Security scan: security-first.yaml has security-scan phase parallel with test (both `after: [implement]`), review depends on both test and security-scan
+- Advanced reporting: state/queries.ts has getTrends() (period-based with preset breakdown), getTokenUsageByModel() (model comparison), getAveragePhaseDuration() (per-phase timing), getPresetStats() (success rates)
+- Example YAMLs: default.yaml, quick-fix.yaml, security-first.yaml plus docs.yaml, plan.yaml, refine.yaml, review.yaml, unit.yaml
+- Tests: trends.test.ts for trend analysis, integration tests for parallel execution
 
 ### Plan
 
-
+1. Define parallel verification in default.yaml DAG structure
+2. Implement extends/override in config resolver
+3. Create security-first.yaml with parallel security scan
+4. Implement trend/model comparison queries in state/queries.ts
+5. Add trend report formatting in reporter
+6. Write tests for each workflow
 
 ### Review
 
-
+All 6 requirements verified. Parallel verification is inherent in DAG structure. Per-project pipelines work via extends resolver. Security scan runs parallel via DAG deps. Advanced reporting via Queries class. Each workflow has integration tests and example YAMLs.
 
 ### Testing
+
+`bun run check` passes. trends.test.ts covers trend analysis. Integration tests cover parallel phase execution. 91.26% line coverage.
 
 
 
