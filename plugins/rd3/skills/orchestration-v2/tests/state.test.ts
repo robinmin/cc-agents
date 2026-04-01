@@ -71,6 +71,35 @@ describe('migrations', () => {
             cleanup();
         }
     });
+
+    test('upgrades from older schema version', () => {
+        const { db, cleanup } = makeTempDb();
+        try {
+            // First, create schema_version manually at version 0 (older than CURRENT)
+            db.exec('CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at DATETIME DEFAULT CURRENT_TIMESTAMP)');
+            db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(0);
+
+            // Now run migrations — should detect version 0 < CURRENT and apply DDL
+            runMigrations(db);
+
+            // Tables should exist
+            const tables = db
+                .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+                .all() as Array<{ name: string }>;
+            const tableNames = tables.map((t) => t.name);
+            expect(tableNames).toContain('events');
+            expect(tableNames).toContain('runs');
+            expect(tableNames).toContain('phases');
+
+            // Version should be updated
+            const row = db.prepare('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1').get() as {
+                version: number;
+            } | null;
+            expect(row?.version).toBe(CURRENT_SCHEMA_VERSION);
+        } finally {
+            cleanup();
+        }
+    });
 });
 
 describe('EventStore', () => {
@@ -531,6 +560,345 @@ describe('Queries', () => {
             const simpleStat = stats.find((s) => s.preset === 'simple');
             expect(simpleStat?.totalRuns).toBe(2);
             expect(simpleStat?.successes).toBe(1);
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('getRunSummary returns null for non-existent run', async () => {
+        const { queries, mgr, cleanup } = makeQueries();
+        try {
+            await mgr.init();
+
+            const summary = await queries.getRunSummary('nonexistent');
+            expect(summary).toBeNull();
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('getRunSummary with phases and multiple resource entries', async () => {
+        const { queries, mgr, cleanup } = makeQueries();
+        try {
+            await mgr.init();
+
+            await mgr.createRun({
+                id: 'run-full',
+                task_ref: '0300',
+                preset: 'standard',
+                phases_requested: 'implement,test',
+                status: 'COMPLETED',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+
+            await mgr.createPhase({
+                run_id: 'run-full',
+                name: 'implement',
+                status: 'completed',
+                skill: 'rd3:code-implement',
+                rework_iteration: 0,
+            });
+            await mgr.createPhase({
+                run_id: 'run-full',
+                name: 'test',
+                status: 'completed',
+                skill: 'rd3:sys-testing',
+                rework_iteration: 1,
+            });
+
+            await mgr.saveResourceUsage({
+                run_id: 'run-full',
+                phase_name: 'implement',
+                model_id: 'gpt-4',
+                model_provider: 'openai',
+                input_tokens: 5000,
+                output_tokens: 2000,
+                cache_read_tokens: 1000,
+                cache_creation_tokens: 500,
+                wall_clock_ms: 15000,
+                execution_ms: 14000,
+            });
+            await mgr.saveResourceUsage({
+                run_id: 'run-full',
+                phase_name: 'test',
+                model_id: 'claude-3',
+                model_provider: 'anthropic',
+                input_tokens: 3000,
+                output_tokens: 1000,
+                cache_read_tokens: 0,
+                cache_creation_tokens: 0,
+                wall_clock_ms: 10000,
+                execution_ms: 9000,
+            });
+
+            const summary = await queries.getRunSummary('run-full');
+            expect(summary).not.toBeNull();
+            expect(summary?.phases).toHaveLength(2);
+            expect(summary?.totalInputTokens).toBe(8000);
+            expect(summary?.totalOutputTokens).toBe(3000);
+            expect(summary?.totalWallMs).toBe(25000);
+            expect(summary?.modelsUsed).toHaveLength(2);
+            expect(summary?.modelsUsed).toContain('gpt-4');
+            expect(summary?.modelsUsed).toContain('claude-3');
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('getHistory with since filter', async () => {
+        const { queries, mgr, cleanup } = makeQueries();
+        try {
+            await mgr.init();
+
+            await mgr.createRun({
+                id: 'h-since',
+                task_ref: '040',
+                phases_requested: 'test',
+                status: 'COMPLETED',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+
+            // Filter with a since date far in the past
+            const results = await queries.getHistory(10, { since: '2000-01-01' });
+            expect(results).toHaveLength(1);
+            expect(results[0].runId).toBe('h-since');
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('getTokenUsageByModel aggregates correctly', async () => {
+        const { queries, mgr, cleanup } = makeQueries();
+        try {
+            await mgr.init();
+
+            await mgr.createRun({
+                id: 'run-tok',
+                task_ref: '050',
+                phases_requested: 'test',
+                status: 'COMPLETED',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+
+            await mgr.saveResourceUsage({
+                run_id: 'run-tok',
+                phase_name: 'implement',
+                model_id: 'gpt-4',
+                model_provider: 'openai',
+                input_tokens: 5000,
+                output_tokens: 2000,
+                cache_read_tokens: 0,
+                cache_creation_tokens: 0,
+                wall_clock_ms: 10000,
+                execution_ms: 9000,
+            });
+            await mgr.saveResourceUsage({
+                run_id: 'run-tok',
+                phase_name: 'test',
+                model_id: 'gpt-4',
+                model_provider: 'openai',
+                input_tokens: 3000,
+                output_tokens: 1000,
+                cache_read_tokens: 0,
+                cache_creation_tokens: 0,
+                wall_clock_ms: 5000,
+                execution_ms: 4500,
+            });
+            await mgr.saveResourceUsage({
+                run_id: 'run-tok',
+                phase_name: 'implement',
+                model_id: 'claude-3',
+                model_provider: 'anthropic',
+                input_tokens: 4000,
+                output_tokens: 1500,
+                cache_read_tokens: 0,
+                cache_creation_tokens: 0,
+                wall_clock_ms: 8000,
+                execution_ms: 7000,
+            });
+
+            const usage = await queries.getTokenUsageByModel();
+            expect(usage).toHaveLength(2);
+
+            const gpt4 = usage.find((u) => u.model_id === 'gpt-4');
+            expect(gpt4?.total_input).toBe(8000);
+            expect(gpt4?.total_output).toBe(3000);
+            expect(gpt4?.call_count).toBe(2);
+
+            const claude3 = usage.find((u) => u.model_id === 'claude-3');
+            expect(claude3?.total_input).toBe(4000);
+            expect(claude3?.call_count).toBe(1);
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('getResourceUsageForRun returns records', async () => {
+        const { queries, mgr, cleanup } = makeQueries();
+        try {
+            await mgr.init();
+
+            await mgr.createRun({
+                id: 'run-res',
+                task_ref: '060',
+                phases_requested: 'test',
+                status: 'COMPLETED',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+
+            await mgr.saveResourceUsage({
+                run_id: 'run-res',
+                phase_name: 'implement',
+                model_id: 'gpt-4',
+                model_provider: 'openai',
+                input_tokens: 1000,
+                output_tokens: 500,
+                cache_read_tokens: 100,
+                cache_creation_tokens: 50,
+                wall_clock_ms: 5000,
+                execution_ms: 4000,
+            });
+
+            const records = await queries.getResourceUsageForRun('run-res');
+            expect(records).toHaveLength(1);
+            expect(records[0].model_id).toBe('gpt-4');
+            expect(records[0].input_tokens).toBe(1000);
+            expect(records[0].output_tokens).toBe(500);
+            expect(records[0].cache_read_tokens).toBe(100);
+            expect(records[0].cache_creation_tokens).toBe(50);
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('getTrends returns aggregated data', async () => {
+        const { queries, mgr, cleanup } = makeQueries();
+        try {
+            await mgr.init();
+
+            await mgr.createRun({
+                id: 't1',
+                task_ref: '070',
+                preset: 'simple',
+                phases_requested: 'test',
+                status: 'COMPLETED',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+            await mgr.createRun({
+                id: 't2',
+                task_ref: '071',
+                preset: 'simple',
+                phases_requested: 'test',
+                status: 'FAILED',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+            await mgr.createRun({
+                id: 't3',
+                task_ref: '072',
+                preset: 'complex',
+                phases_requested: 'test',
+                status: 'COMPLETED',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+
+            const trends = await queries.getTrends(30);
+            expect(trends.periodDays).toBe(30);
+            expect(trends.totalRuns).toBe(3);
+            expect(trends.successes).toBe(2);
+            expect(trends.successRate).toBe(67); // 2/3 * 100 = 66.67 → rounds to 67
+
+            expect(trends.presets).toHaveLength(2);
+
+            const simpleTrend = trends.presets.find((p) => p.preset === 'simple');
+            expect(simpleTrend?.totalRuns).toBe(2);
+            expect(simpleTrend?.successes).toBe(1);
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('getTrends with no data returns zeros', async () => {
+        const { queries, mgr, cleanup } = makeQueries();
+        try {
+            await mgr.init();
+
+            const trends = await queries.getTrends(30);
+            expect(trends.totalRuns).toBe(0);
+            expect(trends.successes).toBe(0);
+            expect(trends.successRate).toBe(0);
+            expect(trends.presets).toHaveLength(0);
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('getAveragePhaseDuration aggregates phase times', async () => {
+        const { queries, mgr, cleanup } = makeQueries();
+        try {
+            await mgr.init();
+
+            await mgr.createRun({
+                id: 'run-avg',
+                task_ref: '080',
+                preset: 'standard',
+                phases_requested: 'implement,test',
+                status: 'COMPLETED',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+
+            // Create phases with explicit started_at / completed_at
+            await mgr.createPhase({
+                run_id: 'run-avg',
+                name: 'implement',
+                status: 'completed',
+                skill: 'rd3:code-implement',
+                rework_iteration: 0,
+            });
+            // Manually update to set timestamps
+            const db = (mgr as unknown as { db: Database }).db;
+            db.prepare(
+                "UPDATE phases SET started_at = '2024-01-15T10:00:00', completed_at = '2024-01-15T11:00:00' WHERE run_id = ? AND name = ?",
+            ).run('run-avg', 'implement');
+
+            await mgr.createPhase({
+                run_id: 'run-avg',
+                name: 'test',
+                status: 'completed',
+                skill: 'rd3:sys-testing',
+                rework_iteration: 0,
+            });
+            db.prepare(
+                "UPDATE phases SET started_at = '2024-01-15T11:00:00', completed_at = '2024-01-15T11:30:00' WHERE run_id = ? AND name = ?",
+            ).run('run-avg', 'test');
+
+            await mgr.saveResourceUsage({
+                run_id: 'run-avg',
+                phase_name: 'implement',
+                model_id: 'gpt-4',
+                model_provider: 'openai',
+                input_tokens: 2000,
+                output_tokens: 1000,
+                cache_read_tokens: 0,
+                cache_creation_tokens: 0,
+                wall_clock_ms: 3600000,
+                execution_ms: 3500000,
+            });
+
+            const durations = await queries.getAveragePhaseDuration();
+            expect(durations.length).toBeGreaterThan(0);
+
+            const impl = durations.find((d) => d.phase_name === 'implement');
+            expect(impl).toBeDefined();
+            expect(impl?.preset).toBe('standard');
+            expect(impl?.avg_ms).toBeGreaterThan(0);
         } finally {
             cleanup();
         }
