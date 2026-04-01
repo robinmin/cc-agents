@@ -23,7 +23,7 @@ Run a pipeline for a task.
 |------|------|---------|-------------|
 | `--preset` | string | none | Named preset from pipeline YAML |
 | `--phases` | string | all | Comma-separated phase names; DAG resolves order. Overrides `--preset`. |
-| `--pipeline` | path | `.rd3/pipeline.yaml` | Path to pipeline definition file |
+| `--pipeline` | path | `docs/.workflows/pipeline.yaml` | Path to pipeline definition file |
 | `--auto` | boolean | false | Auto-approve all human gates |
 | `--channel` | string | `current` | Execution channel for worker phases |
 | `--dry-run` | boolean | false | Show execution plan without running |
@@ -51,7 +51,7 @@ orchestrator run 0266 --phases implement,test
 orchestrator run 0266 --phases test
 
 # Custom pipeline
-orchestrator run 0266 --pipeline .rd3/custom.yaml
+orchestrator run 0266 --pipeline docs/.workflows/custom.yaml
 
 # Dry run (plan only)
 orchestrator run 0266 --dry-run
@@ -210,7 +210,7 @@ orchestrator validate --schema
 ### Output (valid)
 
 ```
-✅ .rd3/pipeline.yaml is valid
+✅ docs/.workflows/pipeline.yaml is valid
    9 phases defined, 1 extends resolved
    DAG has no cycles
    All skills found in plugins/
@@ -220,7 +220,7 @@ orchestrator validate --schema
 ### Output (invalid)
 
 ```
-❌ .rd3/pipeline.yaml has 3 errors:
+❌ docs/.workflows/pipeline.yaml has 3 errors:
 
    Line 24: Phase "review" has circular dependency via "after: [test]"
    Line 31: Unknown skill "rd3:nonexistent-skill" in phase "security"
@@ -239,8 +239,8 @@ List available pipelines.
 ┌──────────────────┬───────────┬──────────┬──────────┬──────────────┐
 │ Pipeline         │ Location  │ Phases   │ Presets  │ Last Used    │
 ├──────────────────┼───────────┼──────────┼──────────┼──────────────┤
-│ default ★        │ .rd3/     │ 9        │ 4        │ 2 hours ago  │
-│ quick-fix        │ .rd3/     │ 2        │ 1        │ 5 days ago   │
+ docs/.workflows/     │ docs/.workflows/     │ 9        │ 4        │ 2 hours ago  │
+│ quick-fix        │ docs/.workflows/     │ 2        │ 1        │ 5 days ago   │
 │ rd3:base         │ built-in  │ 9        │ 4        │ —            │
 └──────────────────┴───────────┴──────────┴──────────┴──────────────┘
 ```
