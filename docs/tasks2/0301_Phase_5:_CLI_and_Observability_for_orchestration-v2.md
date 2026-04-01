@@ -35,21 +35,33 @@ Wire the engine to the CLI. Implement resource metrics collection, report genera
 
 ### Design
 
-
+CLI wired to engine via run.ts entry point. Commands parse args, initialize StateManager, delegate to PipelineRunner or Queries. Reporter supports 4 formats (table, markdown, JSON, summary) plus trend reports. Metrics aggregation from ResourceMetrics.
 
 ### Solution
 
-
+- observability/metrics.ts: aggregateMetrics(), metricsToRecord(), formatTokenCount(), formatDuration()
+- observability/reporter.ts: Reporter with formatStatusTable(), formatMarkdownReport(), formatJsonReport(), formatSummary(), formatTrendReport()
+- cli/commands.ts: parseArgs() with all flags, validateCommand() with 11 valid commands
+- cli/status.ts: formatStatusOutput() and formatStatusJson()
+- cli/report.ts: outputReport() with file writing
+- run.ts: full CLI entry point wiring all 11 commands (run, resume, status, report, validate, list, history, undo, inspect, prune, migrate) with proper exit codes
 
 ### Plan
 
-
+1. Implement metrics aggregation and formatting helpers
+2. Implement Reporter with all 4 formats + trend report
+3. Implement CLI arg parser with all flags
+4. Implement status display and report output
+5. Wire everything in run.ts CLI entry point
+6. Write integration tests
 
 ### Review
 
-
+All 8 requirements verified. CLI handles all 11 commands. Exit codes match blueprint (0,1,2,10-13,20). Reporter supports table/markdown/JSON/summary. Integration tests cover pipeline run, pause/resume.
 
 ### Testing
+
+`bun run check` passes. Integration tests in integration.test.ts, run-cli-integration.test.ts, cli-commands.test.ts, cli-metrics.test.ts. 91.26% line coverage.
 
 
 
