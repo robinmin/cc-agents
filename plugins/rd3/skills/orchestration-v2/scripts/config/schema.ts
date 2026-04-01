@@ -121,6 +121,7 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
     return {
         valid: errors.length === 0,
         errors,
+        warnings: [],
     };
 }
 
