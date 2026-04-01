@@ -86,10 +86,10 @@ phases:
 
 presets:
   simple:
-    phases: [implement, test]
+    phases: [intake, arch, design, decompose, implement, test]
     defaults: { coverage_threshold: 60 }
   standard:
-    phases: [intake, implement, test, review, docs]
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
     defaults: { coverage_threshold: 80 }
   complex:
     phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
