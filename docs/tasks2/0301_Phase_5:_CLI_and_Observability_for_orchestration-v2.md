@@ -1,9 +1,9 @@
 ---
 name: Phase 5: CLI and Observability for orchestration-v2
 description: Phase 5: CLI and Observability for orchestration-v2
-status: Backlog
+status: Done
 created_at: 2026-03-31T23:38:08.161Z
-updated_at: 2026-03-31T23:38:08.161Z
+updated_at: 2026-04-01T21:49:14.848Z
 folder: docs/tasks2
 type: task
 priority: "high"
