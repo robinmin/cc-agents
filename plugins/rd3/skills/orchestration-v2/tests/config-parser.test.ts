@@ -266,10 +266,7 @@ items:
 `;
         const result = parseYamlString(yaml);
         const items = result.items as unknown[];
-        expect(items).toEqual([
-            { name: 'first', extra: 'data' },
-            { name: 'second' },
-        ]);
+        expect(items).toEqual([{ name: 'first', extra: 'data' }, { name: 'second' }]);
     });
 
     test('handles array item with continuation hitting next dash at same indent', () => {
@@ -281,10 +278,7 @@ items:
 `;
         const result = parseYamlString(yaml);
         const items = result.items as unknown[];
-        expect(items).toEqual([
-            { key: 'a', x: 1 },
-            { key: 'b' },
-        ]);
+        expect(items).toEqual([{ key: 'a', x: 1 }, { key: 'b' }]);
     });
 
     test('handles nested key with no next line (assigns null)', () => {
