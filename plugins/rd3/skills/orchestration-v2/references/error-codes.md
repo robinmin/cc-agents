@@ -38,7 +38,7 @@ Errors with the SQLite database.
 
 | Code | Severity | Exit Code | Recovery |
 |------|----------|-----------|----------|
-| `STATE_CORRUPT` | critical | 13 | Delete `.rdinstate/orchestrator.db` and re-run |
+| `STATE_CORRUPT` | critical | 13 | Delete `docs/.workflow-runs/state.db` and re-run |
 | `STATE_LOCKED` | warning | 13 | Wait for lock release or kill stale process |
 | `STATE_MIGRATION_NEEDED` | warning | 13 | Run `orchestrator migrate --from-v1` |
 | `UNDO_UNCOMMITTED_CHANGES` | warning | 1 | Use `--force` or commit/stash changes first |
@@ -101,8 +101,8 @@ orchestrator validate
 
 ### State Corruption
 
-1. Backup: `cp .rdinstate/orchestrator.db .rdinstate/orchestrator.db.bak`
-2. Reset: `rm .rdinstate/orchestrator.db`
+1. Backup: `cp docs/.workflow-runs/state.db docs/.workflow-runs/state.db.bak`
+2. Reset: `rm docs/.workflow-runs/state.db`
 3. Re-run: `orchestrator run <task>`
 
 ### Executor Unavailable
