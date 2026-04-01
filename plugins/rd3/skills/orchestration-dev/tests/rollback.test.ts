@@ -279,6 +279,8 @@ describe('rollback', () => {
             };
 
             const state = {
+                status: 'completed' as string,
+                updated_at: new Date().toISOString(),
                 phases: [
                     {
                         number: 5,
@@ -300,6 +302,7 @@ describe('rollback', () => {
             // With force, should succeed
             const resultWithForce = executeUndo({ task_ref: '0292', phase: 5, dry_run: false, force: true }, dir);
             expect(resultWithForce.errors.filter((e) => e.includes('Cannot restore snapshot'))).toHaveLength(0);
+            expect(resultWithForce.state_cleared).toBe(true);
         });
     });
 
@@ -402,6 +405,8 @@ describe('rollback', () => {
             };
 
             const state = {
+                status: 'completed' as string,
+                updated_at: new Date().toISOString(),
                 phases: [
                     {
                         number: 5,
@@ -423,6 +428,7 @@ describe('rollback', () => {
 
             // Verify state was cleared
             const updatedState = JSON.parse(readFileSync(statePath, 'utf-8'));
+            expect(updatedState.status).toBe('paused');
             expect(updatedState.phases[0].status).toBe('pending');
             expect(updatedState.phases[0].completed_at).toBeUndefined();
             expect(updatedState.phases[0].result).toBeUndefined();
@@ -442,6 +448,8 @@ describe('rollback', () => {
             };
 
             const state = {
+                status: 'completed' as string,
+                updated_at: new Date().toISOString(),
                 phases: [
                     {
                         number: 5,
@@ -459,6 +467,7 @@ describe('rollback', () => {
 
             expect(result.state_cleared).toBe(true);
             const updatedState = JSON.parse(readFileSync(statePath, 'utf-8'));
+            expect(updatedState.status).toBe('paused');
             expect(updatedState.phases[0].error).toBeUndefined();
         });
 
@@ -475,6 +484,8 @@ describe('rollback', () => {
             };
 
             const state = {
+                status: 'completed' as string,
+                updated_at: new Date().toISOString(),
                 phases: [
                     {
                         number: 5,
@@ -509,6 +520,7 @@ describe('rollback', () => {
             expect(result.state_cleared).toBe(true);
             expect(result.phases_cleared).toEqual([5, 6, 7]);
             const updatedState = JSON.parse(readFileSync(statePath, 'utf-8'));
+            expect(updatedState.status).toBe('paused');
             expect(updatedState.phases[0].status).toBe('pending');
             expect(updatedState.phases[1].status).toBe('pending');
             expect(updatedState.phases[2].status).toBe('pending');
