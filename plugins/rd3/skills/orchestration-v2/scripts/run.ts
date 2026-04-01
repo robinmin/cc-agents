@@ -29,6 +29,7 @@ import {
     EXIT_STATE_ERROR,
 } from './model';
 import { migrateFromV1 } from './state/migrate-v1';
+import { Pruner } from './state/prune';
 import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, ValidationResult } from './model';
 
 const DEFAULT_STATE_DIR = 'docs/.workflow-runs';
@@ -159,7 +160,7 @@ async function main(): Promise<void> {
             }
             case 'prune': {
                 const ctx = await getStateContext();
-                await handlePrune(ctx.state);
+                await handlePrune(parsed.options, ctx.state);
                 break;
             }
             case 'migrate': {
@@ -328,6 +329,9 @@ async function handleValidate(options: Record<string, unknown>): Promise<void> {
             for (const phaseName of Object.keys(def.phases)) {
                 process.stdout.write(`  \u2713 ${phaseName}\n`);
             }
+            for (const warn of validation.warnings) {
+                process.stderr.write(`  \u26A0 ${warn.message}\n`);
+            }
             process.exit(EXIT_SUCCESS);
         } else {
             process.stderr.write(`\u2717 Pipeline invalid: ${file}\n`);
@@ -359,7 +363,12 @@ async function handleList(): Promise<void> {
 
 async function handleHistory(options: Record<string, unknown>, queries: Queries): Promise<void> {
     const limit = (options.limit as number | undefined) ?? 10;
-    const history = await queries.getHistory(limit);
+    const filters: import('./state/queries').HistoryFilters = {};
+    if (options.preset) filters.preset = options.preset as string;
+    if (options.since) filters.since = options.since as string;
+    if (options.failed) filters.failed = true;
+
+    const history = await queries.getHistory(limit, Object.keys(filters).length > 0 ? filters : undefined);
     if (history.length === 0) {
         process.stdout.write('No run history.\n');
         process.exit(EXIT_SUCCESS);
@@ -480,9 +489,32 @@ async function handleInspect(options: Record<string, unknown>, state: StateManag
     process.exit(EXIT_SUCCESS);
 }
 
-async function handlePrune(_state: StateManager): Promise<void> {
-    logger.error('Prune not yet implemented (Phase 6 compact support)');
-    process.exit(EXIT_STATE_ERROR);
+async function handlePrune(options: Record<string, unknown>, state: StateManager): Promise<void> {
+    const pruner = new Pruner(state.getDb());
+    const pruneOptions = {
+        ...(options.olderThan != null && { olderThan: options.olderThan as string }),
+        ...(options.keepLast != null && { keepLast: options.keepLast as number }),
+        ...(options.dryRun === true && { dryRun: true }),
+    };
+
+    const result = pruner.prune(pruneOptions);
+
+    if (options.dryRun) {
+        process.stdout.write('[dry-run] Would prune:\n');
+        process.stdout.write(`  Runs affected: ${result.runsAffected}\n`);
+        process.stdout.write(`  Events: ${result.eventsDeleted}\n`);
+        process.stdout.write(`  Gate results: ${result.gateResultsDeleted}\n`);
+        process.stdout.write(`  Resource usage: ${result.resourceUsageDeleted}\n`);
+        process.stdout.write(`  Rollback snapshots: ${result.rollbackSnapshotsDeleted}\n`);
+        process.exit(EXIT_SUCCESS);
+    }
+
+    process.stdout.write(`Pruned ${result.runsAffected} run(s):\n`);
+    process.stdout.write(`  Events deleted: ${result.eventsDeleted}\n`);
+    process.stdout.write(`  Gate results deleted: ${result.gateResultsDeleted}\n`);
+    process.stdout.write(`  Resource usage deleted: ${result.resourceUsageDeleted}\n`);
+    process.stdout.write(`  Rollback snapshots deleted: ${result.rollbackSnapshotsDeleted}\n`);
+    process.exit(EXIT_SUCCESS);
 }
 
 async function handleMigrate(options: Record<string, unknown>, state: StateManager): Promise<void> {
