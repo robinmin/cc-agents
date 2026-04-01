@@ -16,6 +16,8 @@ import type {
 import { logger } from '../../../../scripts/logger';
 
 export class LocalBunExecutor implements Executor {
+    // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
+    constructor() {}
     readonly id = 'local';
     readonly capabilities: ExecutorCapabilities = {
         parallel: false,
