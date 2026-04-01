@@ -65,13 +65,8 @@ export class PipelineRunner {
             throw new Error('Pipeline definition required');
         }
 
-        // Initialize
-        this.dag.buildFromPhases(pipeline.phases);
-        this.hooks.loadFromPipeline(pipeline.hooks);
-
-        // Filter phases if specific phases requested
-        const presetPhases = options.preset ? pipeline.presets?.[options.preset]?.phases : undefined;
-        const requestedPhases = options.phases ? new Set(options.phases) : presetPhases ? new Set(presetPhases) : null;
+        this.initializePipeline(pipeline);
+        const requestedPhases = this.getRequestedPhases(options, pipeline);
 
         if (options.dryRun) {
             return {
@@ -117,7 +112,80 @@ export class PipelineRunner {
             pipeline: pipeline.name,
         });
 
-        // Main execution loop
+        return this.executeRunLoop(runId, pipeline, options, requestedPhases, startTime);
+    }
+
+    async resume(options: ResumeOptions): Promise<PipelineRunResult> {
+        const startTime = Date.now();
+
+        // Find the run for this task ref
+        const run = await this.state.getRunByTaskRef(options.taskRef);
+        if (!run) {
+            throw new Error(`No run found for task ref: ${options.taskRef}`);
+        }
+
+        if (run.status !== 'PAUSED') {
+            throw new Error(`Run ${run.id} is not paused (status: ${run.status})`);
+        }
+
+        const pipeline = run.config_snapshot as unknown as PipelineDefinition;
+        this.initializePipeline(pipeline);
+
+        const requestedPhases = this.getRequestedPhasesFromRun(run);
+        await this.rehydrateDag(run.id, requestedPhases);
+
+        if (options.reject) {
+            this.fsm.transition('resume-reject');
+            await this.rejectPausedPhases(run.id);
+            await this.failPausedRun(run.id, 'Resume rejected at human gate', startTime);
+            return {
+                runId: run.id,
+                status: 'FAILED',
+                exitCode: 1,
+                durationMs: Date.now() - startTime,
+            };
+        }
+
+        this.fsm.transition('resume-approve');
+        await this.approvePausedPhases(run.id);
+        await this.state.updateRunStatus(run.id, 'RUNNING');
+        await this.hooks.execute('on-resume', {
+            task_ref: options.taskRef,
+            run_id: run.id,
+        });
+        await this.emitEvent(run.id, 'run.resumed', {});
+
+        return this.executeRunLoop(
+            run.id,
+            pipeline,
+            {
+                taskRef: options.taskRef,
+                ...(options.auto && { auto: true }),
+            },
+            requestedPhases,
+            startTime,
+        );
+    }
+
+    async undo(_taskRef: string, _phase: string, _force?: boolean): Promise<void> {
+        // Undo is complex — requires git revert and state rollback
+        // Will be implemented in Phase 6 (Migration)
+        logger.warn('[runner] Undo not yet implemented');
+    }
+
+    async getStatus(runId: string): Promise<RunRecord | null> {
+        return this.state.getRun(runId);
+    }
+
+    // ─── Private Helpers ──────────────────────────────────────────────────────
+
+    private async executeRunLoop(
+        runId: string,
+        pipeline: PipelineDefinition,
+        options: RunOptions,
+        requestedPhases: Set<string> | null,
+        startTime: number,
+    ): Promise<PipelineRunResult> {
         try {
             let maxIterations = 100; // Safety valve
             while (maxIterations-- > 0) {
@@ -145,12 +213,11 @@ export class PipelineRunner {
                         };
                     }
 
-                    // Something is stuck
-                    this.fsm.transition('phase-fail-exhausted');
-                    await this.state.updateRunStatus(runId, 'FAILED');
-                    await this.emitEvent(runId, 'run.failed', {
-                        error: 'Pipeline made no progress; dependency graph is blocked or circular',
-                    });
+                    await this.failPausedRun(
+                        runId,
+                        'Pipeline made no progress; dependency graph is blocked or circular',
+                        startTime,
+                    );
                     return {
                         runId,
                         status: 'FAILED',
@@ -205,12 +272,14 @@ export class PipelineRunner {
                             phaseResult.errorCode,
                             phaseResult.errorMessage,
                         );
-                        this.fsm.transition('phase-fail-exhausted');
-                        await this.state.updateRunStatus(runId, 'FAILED');
-                        await this.emitEvent(runId, 'run.failed', {
-                            phase: phaseName,
-                            error: phaseResult.errorMessage,
-                        });
+                        await this.failPausedRun(
+                            runId,
+                            phaseResult.errorMessage ?? `Phase ${phaseName} failed`,
+                            startTime,
+                            {
+                                phase: phaseName,
+                            },
+                        );
 
                         return {
                             runId,
@@ -264,8 +333,10 @@ export class PipelineRunner {
 
                             // Auto gate failure = phase failure
                             this.dag.markFailed(phaseName);
-                            this.fsm.transition('phase-fail-exhausted');
-                            await this.state.updateRunStatus(runId, 'FAILED');
+                            await this.state.updatePhaseStatus(runId, phaseName, 'failed');
+                            await this.failPausedRun(runId, `Gate failed for phase ${phaseName}`, startTime, {
+                                phase: phaseName,
+                            });
                             return {
                                 runId,
                                 status: 'FAILED',
@@ -306,9 +377,7 @@ export class PipelineRunner {
             const msg = err instanceof Error ? err.message : String(err);
             logger.error(`[runner] Pipeline failed: ${msg}`);
 
-            this.fsm.transition('phase-fail-exhausted');
-            await this.state.updateRunStatus(runId, 'FAILED');
-            await this.emitEvent(runId, 'run.failed', { error: msg });
+            await this.failPausedRun(runId, msg, startTime);
 
             return {
                 runId,
@@ -319,60 +388,95 @@ export class PipelineRunner {
         }
     }
 
-    async resume(options: ResumeOptions): Promise<PipelineRunResult> {
-        const startTime = Date.now();
+    private initializePipeline(pipeline: PipelineDefinition): void {
+        this.dag.buildFromPhases(pipeline.phases);
+        this.hooks.loadFromPipeline(pipeline.hooks);
+    }
 
-        // Find the run for this task ref
-        const run = await this.state.getRunByTaskRef(options.taskRef);
-        if (!run) {
-            throw new Error(`No run found for task ref: ${options.taskRef}`);
+    private getRequestedPhases(
+        options: Pick<RunOptions, 'phases' | 'preset'>,
+        pipeline: PipelineDefinition,
+    ): Set<string> | null {
+        const presetPhases = options.preset ? pipeline.presets?.[options.preset]?.phases : undefined;
+        return options.phases ? new Set(options.phases) : presetPhases ? new Set(presetPhases) : null;
+    }
+
+    private getRequestedPhasesFromRun(run: RunRecord): Set<string> | null {
+        if (!run.phases_requested) {
+            return null;
         }
 
-        if (run.status !== 'PAUSED') {
-            throw new Error(`Run ${run.id} is not paused (status: ${run.status})`);
-        }
+        const phases = run.phases_requested
+            .split(',')
+            .map((phase) => phase.trim())
+            .filter((phase) => phase.length > 0);
 
-        // Resume FSM
-        if (options.approve) {
-            this.fsm.transition('resume-approve');
-        } else {
-            this.fsm.transition('resume-reject');
-        }
-        await this.state.updateRunStatus(run.id, 'RUNNING');
+        return phases.length > 0 ? new Set(phases) : null;
+    }
 
-        // Handle approve/reject for paused phases
-        if (options.approve || options.reject) {
-            const pausedPhases = await this.state.getPhasesByStatus(run.id, 'paused');
-            for (const phase of pausedPhases) {
-                if (options.approve) {
-                    this.dag.markCompleted(phase.name);
-                    await this.state.updatePhaseStatus(run.id, phase.name, 'completed');
-                } else {
-                    this.dag.markFailed(phase.name);
-                    await this.state.updatePhaseStatus(run.id, phase.name, 'failed');
-                }
+    private async rehydrateDag(runId: string, requestedPhases: Set<string> | null): Promise<void> {
+        const phases = await this.state.getPhases(runId);
+        const phaseMap = new Map(phases.map((phase) => [phase.name, phase]));
+
+        for (const [name] of this.dag.getNodes()) {
+            if (requestedPhases && !requestedPhases.has(name)) {
+                this.dag.markCompleted(name);
+                continue;
+            }
+
+            const phase = phaseMap.get(name);
+            switch (phase?.status) {
+                case 'completed':
+                    this.dag.markCompleted(name);
+                    break;
+                case 'failed':
+                    this.dag.markFailed(name);
+                    break;
+                case 'paused':
+                    this.dag.markPaused(name);
+                    break;
+                case 'running':
+                    await this.state.updatePhaseStatus(runId, name, 'pending');
+                    break;
+                default:
+                    break;
             }
         }
-
-        return {
-            runId: run.id,
-            status: 'COMPLETED',
-            exitCode: 0,
-            durationMs: Date.now() - startTime,
-        };
     }
 
-    async undo(_taskRef: string, _phase: string, _force?: boolean): Promise<void> {
-        // Undo is complex — requires git revert and state rollback
-        // Will be implemented in Phase 6 (Migration)
-        logger.warn('[runner] Undo not yet implemented');
+    private async failPausedRun(
+        runId: string,
+        error: string,
+        _startTime: number,
+        payload?: Record<string, unknown>,
+    ): Promise<void> {
+        this.fsm.transition('phase-fail-exhausted');
+        await this.state.updateRunStatus(runId, 'FAILED');
+        await this.emitEvent(runId, 'run.failed', {
+            error,
+            ...(payload ?? {}),
+        });
     }
 
-    async getStatus(runId: string): Promise<RunRecord | null> {
-        return this.state.getRun(runId);
+    private async approvePausedPhases(runId: string): Promise<void> {
+        const pausedPhases = await this.state.getPhasesByStatus(runId, 'paused');
+        for (const phase of pausedPhases) {
+            this.dag.markCompleted(phase.name);
+            await this.state.updatePhaseStatus(runId, phase.name, 'completed');
+            await this.emitEvent(runId, 'phase.completed', {
+                phase: phase.name,
+                resumed: true,
+            });
+        }
     }
 
-    // ─── Private Helpers ──────────────────────────────────────────────────────
+    private async rejectPausedPhases(runId: string): Promise<void> {
+        const pausedPhases = await this.state.getPhasesByStatus(runId, 'paused');
+        for (const phase of pausedPhases) {
+            this.dag.markFailed(phase.name);
+            await this.state.updatePhaseStatus(runId, phase.name, 'failed');
+        }
+    }
 
     private async executePhaseWithRework(
         runId: string,
