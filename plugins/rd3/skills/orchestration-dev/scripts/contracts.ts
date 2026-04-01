@@ -206,7 +206,9 @@ export function resolveDomain(taskPath?: string): 'backend' | 'frontend' | 'full
                 return domainMatch[1] as 'backend' | 'frontend' | 'fullstack';
             }
         }
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
     return 'backend';
 }
 
