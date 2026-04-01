@@ -221,7 +221,7 @@ describe('config/parser — validatePipeline', () => {
 name: parent
 phases:
   implement:
-    skill: rd3:code-implement
+    skill: rd3:code-implement-common
 `,
         );
         writeFileSync(
@@ -231,7 +231,7 @@ name: child
 extends: default.yaml
 phases:
   review:
-    skill: rd3:code-review
+    skill: rd3:code-review-common
     after: [implement]
 `,
         );
@@ -378,7 +378,7 @@ describe('config/resolver — resolveExtends', () => {
 name: parent
 phases:
   implement:
-    skill: rd3:code-implement
+    skill: rd3:code-implement-common
     timeout: 2h
     payload:
       language: typescript
@@ -392,11 +392,11 @@ name: child
 extends: parent.yaml
 phases:
   implement:
-    skill: rd3:code-implement-v2
+    skill: rd3:code-implement-common-v2
     payload:
       coverage: 95
   review:
-    skill: rd3:code-review
+    skill: rd3:code-review-common
 `,
         );
 
@@ -406,14 +406,14 @@ phases:
 
             expect(resolved.name).toBe('child');
             // Child overrides parent skill
-            expect(resolved.phases.implement.skill).toBe('rd3:code-implement-v2');
+            expect(resolved.phases.implement.skill).toBe('rd3:code-implement-common-v2');
             // Parent timeout preserved (child doesn't override)
             expect(resolved.phases.implement.timeout).toBe('2h');
             // Payload deep-merged: language from parent, coverage overridden by child
             expect(resolved.phases.implement.payload?.language).toBe('typescript');
             expect(resolved.phases.implement.payload?.coverage).toBe(95);
             // New child-only phase
-            expect(resolved.phases.review.skill).toBe('rd3:code-review');
+            expect(resolved.phases.review.skill).toBe('rd3:code-review-common');
         } finally {
             rmSync(tmpDir, { recursive: true, force: true });
         }
