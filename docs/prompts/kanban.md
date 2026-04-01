@@ -6,27 +6,43 @@ kanban-plugin: board
 
 ## 🔴 Backlog
 
+- [ ] 0147_0147_rd2-tasks-upgrade
 - [ ] 0178_test_all_publish-to-_agent_skills_one_by_one
+- [ ] 0080_Research_additional_TypeScript_patterns_for_web_using_rd:super-researcher
 - [ ] .kanban.md_.kanban
 - [ ] 0155_"Error_Handling_Layer"
 - [ ] .template.md_{{_PROMPT_NAME_}}
+- [ ] 0084_Create_example_files_for_TypeScript_code_samples
 - [ ] 0158_"Integration_Tests"
+- [ ] 0079_Extract_TypeScript_knowledge_from_existing_reference_files_using_rd2:knowledge-seeker
+- [ ] 0082_Create_comprehensive_SKILL.md_for_pl-typescript
+- [ ] 0171_Fix_WT_Critical_-_CDP_Code_Duplication
+- [ ] 0172_Fix_WT_Critical_-_MathJax_Type_Safety
 - [ ] 0161_"Edge_Case_Testing"
 - [ ] 0154_"Command_Router_Update"
 - [ ] 0160_"Performance_Testing"
 - [ ] 0159_"Documentation_Update"
 - [ ] kanban.md_kanban
+- [ ] 0173_Fix_WT_Critical_-_Package_Dependency_Path
 - [ ] 0151_0151_taskget-adapter
+- [ ] 0081_Consolidate_and_cross-verify_TypeScript_findings
 - [ ] 0152_0152_taskupdate-adapter
+- [ ] 0078_Create_base_pl-typescript_skill_structure_using_/rd2:skill-add
+- [ ] 0085_Evaluate_and_refine_pl-typescript_skill_using_/rd2:skill-evaluate_and_/rd2:skill-refine
 - [ ] 0153_"WBS_Dependency_Support"
 - [ ] 0157_"Unit_Tests_-_Adapters"
 - [ ] 0177_Enhance_unit_tests_for_WT_publish-to-*_skills_to_85%+_coverage_and_100%_pass
+- [ ] 0083_Create_reference_files_for_TypeScript_patterns
 - [ ] 0162_"Final_Review"
+- [ ] 0175_Fix_WT_Code_Quality_Improvements
 - [ ] 0149_0149_tool-abstraction-layer
 - [ ] 0156_"Backward_Compatibility_Implementation"
+- [ ] 0162_Fix_X_Publishing_-_Quote_&_Utils_Bugs
+- [ ] 0086_refactor_code-generate_and_tasks-plan_and_its_related_components
 - [ ] 0148_0148_compatibility-checker
 - [ ] 0159_upgrade_Agent_Skills_to_add_unit_tests_for_evaluation
 - [ ] 0150_0150_tasklist-adapter
+- [ ] 0174_Fix_WT_High_Priority_Issues
 
 ## 🔵 Todo
 
@@ -73,6 +89,7 @@ kanban-plugin: board
 - [x] 0097_enhance_wt-info-research_command
 - [x] 0115_Fix_Missing_CLI_Command_Wrapper
 - [x] 0129_rename-doc-publish-to-wt-topic-publish
+- [x] 0087_refine_Agents_Skills_article-extractor_into_knowledge-extraction
 - [x] 0142_brainstorm-structured-output
 - [x] 0182_demote-todowrite-to-notification-layer
 - [x] 0002_fine_tune_the_project_structure
@@ -91,6 +108,7 @@ kanban-plugin: board
 - [x] 0105_Image_Prompt_Template_System
 - [x] 0018_0018_ast_grep_integration
 - [x] 0069_fine_tune_Agent_Skills_cc-agents
+- [x] 0076_enhance_new_Agent_Skills_pl-typescript
 - [x] 0096_enhance_wt-info-seek_command
 - [x] 0092_create_wt-outline_command
 - [x] 0014_0014_markdown_context_analyzer
@@ -113,6 +131,7 @@ kanban-plugin: board
 - [x] 0110_Remove_Duplicate_Import_in_Tests
 - [x] 0032_0032_update_evaluation_md
 - [x] 0036_0036_create_changelog
+- [x] 0170_Adapt_publish-to-wechatmp_with_Playwright
 - [x] 0053_Review_on_super-code-reviewer
 - [x] 0181_enhance-tasks-create-with-rich-content-and-validation
 - [x] 0133_create-comprehensive-unit-tests-for-tcc-scripts
@@ -166,6 +185,7 @@ kanban-plugin: board
 - [x] 0029_0029_extract_modules
 - [x] 0141_brainstorm-research-ideation
 - [x] 0043_Source_Validation_Report_-_Anti-Hallucination_Research
+- [x] 0176_Fix_WT_Security_-_Command_Injection
 - [x] 0015_0015_refactor_evaluate_security
 - [x] 0017_0017_phase1_verification
 - [x] 0113_Fix_Hardcoded_Style_Modifiers
