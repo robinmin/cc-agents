@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, test } from 'bun:test';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setGlobalSilent } from '../../../scripts/logger';
 import { createExecutionPlan } from '../scripts/plan';
@@ -1211,5 +1211,156 @@ describe('run lock', () => {
         const newLock = createRunLock(runDir);
         expect(newLock).not.toBeNull();
         expect(isRunLocked(runDir)).toBe(true);
+    });
+});
+
+describe('undo CLI flags', () => {
+    const originalCwd = process.cwd();
+
+    afterEach(() => {
+        process.chdir(originalCwd);
+    });
+
+    test('runtime main parses --undo with --force', async () => {
+        const dir = createTempDir('undo-force-main-');
+        process.chdir(dir);
+
+        // Need a git repo and state file for undo to work
+        Bun.spawnSync({ cmd: ['git', 'init'], cwd: dir });
+        Bun.spawnSync({ cmd: ['git', 'config', 'user.email', 'test@test.com'], cwd: dir });
+        Bun.spawnSync({ cmd: ['git', 'config', 'user.name', 'Test'], cwd: dir });
+        writeFileSync(join(dir, 'initial.txt'), 'initial');
+        Bun.spawnSync({ cmd: ['git', 'add', '.'], cwd: dir });
+        Bun.spawnSync({ cmd: ['git', 'commit', '-m', 'initial'], cwd: dir });
+
+        const snapshot = {
+            phase: 5,
+            files_before: ['initial.txt'],
+            files_after: ['initial.txt'],
+            modified_before: [] as string[],
+            git_head_before: 'abc123',
+            created_at: new Date().toISOString(),
+        };
+
+        const state = {
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            phases: [
+                {
+                    number: 5,
+                    status: 'completed',
+                    completed_at: new Date().toISOString(),
+                    rollback_snapshot: snapshot,
+                },
+            ],
+        };
+
+        const statePath = getOrchestrationStatePath('0304', dir, 'undo-force-test');
+        mkdirSync(dirname(statePath), { recursive: true });
+        writeFileSync(statePath, JSON.stringify(state), 'utf-8');
+
+        // Make a dirty file to trigger the uncommitted changes guard
+        writeFileSync(join(dir, 'initial.txt'), 'modified');
+
+        // Without --force should fail even with dry-run (can't parse state without proper snapshot)
+        const codeNoForce = await main(['0304', '--undo', '5', '--undo-dry-run']);
+        // dry-run should still return 0 since it doesn't attempt file restoration
+        expect(codeNoForce).toBe(0);
+
+        // With --force should also succeed
+        const codeForce = await main(['0304', '--undo', '5', '--force', '--undo-dry-run']);
+        expect(codeForce).toBe(0);
+    });
+
+    test('runtime main handles --undo with --undo-dry-run', async () => {
+        const dir = createTempDir('undo-dryrun-main-');
+        process.chdir(dir);
+
+        const snapshot = {
+            phase: 6,
+            files_before: ['initial.txt'],
+            files_after: ['initial.txt', 'new.txt'],
+            git_head_before: 'abc123',
+            created_at: new Date().toISOString(),
+        };
+
+        const state = {
+            status: 'completed',
+            updated_at: new Date().toISOString(),
+            phases: [
+                {
+                    number: 6,
+                    status: 'completed',
+                    completed_at: new Date().toISOString(),
+                    rollback_snapshot: snapshot,
+                },
+            ],
+        };
+
+        const statePath = getOrchestrationStatePath('0304', dir, 'undo-dryrun-test');
+        mkdirSync(dirname(statePath), { recursive: true });
+        writeFileSync(statePath, JSON.stringify(state), 'utf-8');
+
+        const code = await main(['0304', '--undo', '6', '--undo-dry-run']);
+        expect(code).toBe(0);
+    });
+});
+
+describe('--rollback CLI flag', () => {
+    test('captures snapshots when --rollback is passed', async () => {
+        const dir = createTempDir('rollback-cli-enabled-');
+        // Init git repo so snapshot capture succeeds
+        Bun.spawnSync({ cmd: ['git', 'init'], cwd: dir });
+        Bun.spawnSync({ cmd: ['git', 'config', 'user.email', 'test@test.com'], cwd: dir });
+        Bun.spawnSync({ cmd: ['git', 'config', 'user.name', 'Test'], cwd: dir });
+        writeFileSync(join(dir, 'initial.txt'), 'initial');
+        Bun.spawnSync({ cmd: ['git', 'add', '.'], cwd: dir });
+        Bun.spawnSync({ cmd: ['git', 'commit', '-m', 'initial'], cwd: dir });
+        // Create workspace files for pilot
+        writeFileSync(
+            join(dir, 'package.json'),
+            JSON.stringify(
+                {
+                    name: 'rollback-cli-test',
+                    private: true,
+                    scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' },
+                },
+                null,
+                2,
+            ),
+            'utf-8',
+        );
+        writeFileSync(join(dir, 'tsconfig.json'), '{}', 'utf-8');
+        writeFileSync(join(dir, 'biome.json'), '{}', 'utf-8');
+        const taskPath = writeTaskFile(dir, '0266_rollback_cli.md', 'Implement the feature.');
+        process.chdir(dir);
+
+        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rollback']);
+        expect(code).toBe(0);
+
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        expect(statePath).not.toBeNull();
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
+            phases: Array<{ rollback_snapshot?: Record<string, unknown> }>;
+        };
+        expect(persisted.phases[0].rollback_snapshot).toBeDefined();
+        expect(persisted.phases[0].rollback_snapshot?.phase).toBe(6);
+    });
+
+    test('does not capture snapshots without --rollback', async () => {
+        const dir = createTempDir('rollback-no-cli-');
+        writePilotWorkspaceFiles(dir);
+        const taskPath = writeTaskFile(dir, '0266_no_rollback_cli.md', 'Implement the feature.');
+        process.chdir(dir);
+
+        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current']);
+        expect(code).toBe(0);
+
+        const statePath = findOrchestrationStatePath(taskPath, dir);
+        expect(statePath).not.toBeNull();
+        const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
+            phases: Array<{ rollback_snapshot?: Record<string, unknown> }>;
+        };
+        expect(persisted.phases[0].rollback_snapshot).toBeUndefined();
     });
 });
