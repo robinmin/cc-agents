@@ -6,6 +6,8 @@
  */
 
 import { Database } from 'bun:sqlite';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import type {
     RunRecord,
     PhaseRecord,
@@ -26,6 +28,9 @@ export class StateManager {
     private db: Database;
 
     constructor(options: StateManagerOptions) {
+        if (options.dbPath !== ':memory:') {
+            mkdirSync(dirname(options.dbPath), { recursive: true });
+        }
         this.db = new Database(options.dbPath, { create: true });
         const timeout = options.busyTimeout ?? 5000;
         this.db.exec(`PRAGMA busy_timeout = ${timeout}`);
