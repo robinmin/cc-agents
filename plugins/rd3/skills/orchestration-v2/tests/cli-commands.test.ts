@@ -57,6 +57,14 @@ describe('cli/commands — parseArgs', () => {
         expect(result.command).toBe('migrate');
     });
 
+    test('parses resume approval and rejection flags', () => {
+        const approved = parseArgs(['resume', '0300', '--approve']);
+        const rejected = parseArgs(['resume', '0300', '--reject']);
+
+        expect(approved.options.approve).toBe(true);
+        expect(rejected.options.reject).toBe(true);
+    });
+
     test('parses --preset flag', () => {
         const result = parseArgs(['run', '0300', '--preset', 'security-first']);
         expect(result.options.preset).toBe('security-first');
@@ -97,6 +105,11 @@ describe('cli/commands — parseArgs', () => {
         expect(result.options.json).toBe(true);
     });
 
+    test('parses --evidence flag', () => {
+        const result = parseArgs(['inspect', '0300', 'implement', '--evidence']);
+        expect(result.options.evidence).toBe(true);
+    });
+
     test('parses --output flag', () => {
         const result = parseArgs(['report', '0300', '--output', './report.md']);
         expect(result.options.output).toBe('./report.md');
@@ -125,6 +138,15 @@ describe('cli/commands — parseArgs', () => {
     test('parses --file flag', () => {
         const result = parseArgs(['run', '0300', '--file', './pipeline.yaml']);
         expect(result.options.file).toBe('./pipeline.yaml');
+    });
+
+    test('parses migration source directory flags', () => {
+        const dirResult = parseArgs(['migrate', '--dir', './legacy']);
+        const fromV1Result = parseArgs(['migrate', '--from-v1', './legacy']);
+
+        expect(dirResult.options.dir).toBe('./legacy');
+        expect(fromV1Result.options.fromV1).toBe(true);
+        expect(fromV1Result.options.dir).toBe('./legacy');
     });
 
     test('parses multiple flags together', () => {
