@@ -123,6 +123,8 @@ export interface ParsedOrchestrationArgs {
     resume: boolean;
     undo?: PhaseNumber;
     undoDryRun: boolean;
+    undoForce: boolean;
+    rollback: boolean;
     reworkMaxIterations?: number;
 }
 
@@ -144,6 +146,8 @@ export function parseOrchestrationArgs(
         stackProfile: 'typescript-bun-biome',
         resume: false,
         undoDryRun: false,
+        undoForce: false,
+        rollback: false,
     };
 
     for (let i = 1; i < args.length; i++) {
@@ -191,6 +195,10 @@ export function parseOrchestrationArgs(
             result.undo = parsed as PhaseNumber;
         } else if (args[i] === '--undo-dry-run') {
             result.undoDryRun = true;
+        } else if (args[i] === '--force') {
+            result.undoForce = true;
+        } else if (args[i] === '--rollback') {
+            result.rollback = true;
         } else if (args[i] === '--rework-max-iterations' && i + 1 < args.length) {
             const parsed = Number.parseInt(args[++i], 10);
             if (!Number.isFinite(parsed) || parsed < 1) {
