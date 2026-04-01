@@ -34,7 +34,7 @@ import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, Valid
 const DEFAULT_STATE_DIR = 'docs/.workflow-runs';
 const DB_FILENAME = 'state.db';
 const PRESETS_DIR = resolve(import.meta.dir, '../references/examples');
-const PROJECT_PIPELINE = '.rd3/pipeline.yaml';
+const PROJECT_PIPELINE = 'docs/.workflows/pipeline.yaml';
 
 function printHelp(): void {
     process.stdout.write(`Usage:
@@ -59,7 +59,7 @@ Commands:
 
 Global options:
   --state-dir <path>       State directory (default: docs/.workflow-runs)
-  --pipeline <path>        Pipeline YAML (default: .rd3/pipeline.yaml)
+  --pipeline <path>        Pipeline YAML (default: docs/.workflows/pipeline.yaml)
   --verbose                Verbose output
   --quiet                  Suppress non-essential output
   --json                   Output as JSON where supported
