@@ -30,7 +30,7 @@ import {
 import { migrateFromV1 } from './state/migrate-v1';
 import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, ValidationResult } from './model';
 
-const DB_PATH = '.orchestrator/state.db';
+const DB_PATH = 'docs/.workflow-runs/state.db';
 const PRESETS_DIR = resolve(import.meta.dir, '../references/examples');
 
 function printHelp(): void {
