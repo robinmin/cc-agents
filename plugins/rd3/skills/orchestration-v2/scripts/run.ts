@@ -7,6 +7,7 @@
  * Commands: run, resume, status, report, validate, list, history, undo, inspect, prune, migrate
  */
 
+import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs, validateCommand } from './cli/commands';
 import { formatStatusOutput, formatStatusJson } from './cli/status';
@@ -17,7 +18,7 @@ import { resolveExtends } from './config/resolver';
 import { StateManager } from './state/manager';
 import { Queries } from './state/queries';
 import { Reporter } from './observability/reporter';
-import { logger } from '../../../scripts/logger';
+import { logger, setGlobalSilent } from '../../../scripts/logger';
 import {
     EXIT_SUCCESS,
     EXIT_PIPELINE_FAILED,
@@ -30,14 +31,18 @@ import {
 import { migrateFromV1 } from './state/migrate-v1';
 import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, ValidationResult } from './model';
 
-const DB_PATH = 'docs/.workflow-runs/state.db';
+const DEFAULT_STATE_DIR = 'docs/.workflow-runs';
+const DB_FILENAME = 'state.db';
 const PRESETS_DIR = resolve(import.meta.dir, '../references/examples');
+const PROJECT_PIPELINE = '.rd3/pipeline.yaml';
 
 function printHelp(): void {
-    logger.info(`orchestrator — DAG-based pipeline orchestration engine
-
-Usage:
+    process.stdout.write(`Usage:
   orchestrator <command> [options]
+  orchestrator <command> --help
+
+DAG-based pipeline orchestration engine for AI agent workflows.
+State is stored in docs/.workflow-runs/ relative to CWD.
 
 Commands:
   run <task-ref>           Run a pipeline
@@ -52,13 +57,17 @@ Commands:
   prune                    Compact event store
   migrate                  Migrate v1 state to v2
 
-Options:
-  --help, -h               Show this help
-  --version                Show version
+Global options:
+  --state-dir <path>       State directory (default: docs/.workflow-runs)
+  --pipeline <path>        Pipeline YAML (default: .rd3/pipeline.yaml)
   --verbose                Verbose output
   --quiet                  Suppress non-essential output
+  --json                   Output as JSON where supported
+  --help, -h               Show this help
+  --version                Show version
 
-Run 'orchestrator <command> --help' for command-specific options.`);
+Run 'orchestrator <command> --help' for command-specific options.
+`);
 }
 
 async function main(): Promise<void> {
@@ -70,7 +79,7 @@ async function main(): Promise<void> {
     }
 
     if (argv.includes('--version')) {
-        logger.info('orchestrator v0.1.0');
+        process.stdout.write('orchestrator v0.1.0\n');
         process.exit(EXIT_SUCCESS);
     }
 
@@ -82,12 +91,22 @@ async function main(): Promise<void> {
         process.exit(EXIT_INVALID_ARGS);
     }
 
+    // Resolve state directory: --state-dir > env var > default
+    const stateDir =
+        (parsed.options.stateDir as string | undefined) ?? process.env.ORCHESTRATOR_STATE_DIR ?? DEFAULT_STATE_DIR;
+    const dbPath = resolve(stateDir, DB_FILENAME);
+
+    // Resolve verbose/quiet flags to adjust logging
+    if (parsed.options.quiet) {
+        setGlobalSilent(true);
+    }
+
     let state: StateManager | null = null;
     let queries: Queries | null = null;
 
     const getStateContext = async (): Promise<{ state: StateManager; queries: Queries }> => {
         if (!state) {
-            state = new StateManager({ dbPath: DB_PATH });
+            state = new StateManager({ dbPath });
             await state.init();
             queries = new Queries(state.getDb());
         }
@@ -305,15 +324,15 @@ async function handleValidate(options: Record<string, unknown>): Promise<void> {
     try {
         const [def, validation] = await loadValidatedPipeline(file);
         if (validation.valid) {
-            logger.info(`✓ Pipeline valid: ${file}`);
+            process.stdout.write(`\u2713 Pipeline valid: ${file}\n`);
             for (const phaseName of Object.keys(def.phases)) {
-                logger.info(`  ✓ ${phaseName}`);
+                process.stdout.write(`  \u2713 ${phaseName}\n`);
             }
             process.exit(EXIT_SUCCESS);
         } else {
-            logger.error(`✗ Pipeline invalid: ${file}`);
+            process.stderr.write(`\u2717 Pipeline invalid: ${file}\n`);
             for (const err of validation.errors) {
-                logger.error(`  ✗ ${err.message}`);
+                process.stderr.write(`  \u2717 ${err.message}\n`);
             }
             process.exit(EXIT_VALIDATION_FAILED);
         }
@@ -328,12 +347,12 @@ async function handleList(): Promise<void> {
     const glob = new Bun.Glob('*.yaml');
     const files = [...glob.scanSync({ cwd: PRESETS_DIR })].sort();
     if (files.length === 0) {
-        logger.info('No pipeline presets found.');
+        process.stdout.write('No pipeline presets found.\n');
         process.exit(EXIT_SUCCESS);
     }
-    logger.info('Available pipelines:');
+    process.stdout.write('Available pipelines:\n');
     for (const f of files) {
-        logger.info(`  ${f.replace('.yaml', '')}`);
+        process.stdout.write(`  ${f.replace('.yaml', '')}\n`);
     }
     process.exit(EXIT_SUCCESS);
 }
@@ -342,7 +361,7 @@ async function handleHistory(options: Record<string, unknown>, queries: Queries)
     const limit = (options.limit as number | undefined) ?? 10;
     const history = await queries.getHistory(limit);
     if (history.length === 0) {
-        logger.info('No run history.');
+        process.stdout.write('No run history.\n');
         process.exit(EXIT_SUCCESS);
     }
     const reporter = new Reporter();
@@ -479,12 +498,18 @@ async function handleMigrate(options: Record<string, unknown>, state: StateManag
         }
         process.exit(EXIT_VALIDATION_FAILED);
     }
-    logger.info(`Successfully migrated ${result.migrated} run(s)`);
+    process.stdout.write(`Successfully migrated ${result.migrated} run(s)\n`);
     process.exit(EXIT_SUCCESS);
 }
 
 function resolvePipelineFile(file: string | undefined, preset: string): string {
-    return file ?? resolve(PRESETS_DIR, `${preset}.yaml`);
+    if (file) return resolve(file);
+
+    // Check for project-local pipeline first
+    const projectPipeline = resolve(PROJECT_PIPELINE);
+    if (existsSync(projectPipeline) && statSync(projectPipeline).size > 0) return projectPipeline;
+
+    return resolve(PRESETS_DIR, `${preset}.yaml`);
 }
 
 async function loadValidatedPipeline(file: string): Promise<[PipelineDefinition, ValidationResult]> {
