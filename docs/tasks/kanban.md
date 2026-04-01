@@ -26,10 +26,13 @@ kanban-plugin: board
 
 ## 🟢 Done
 
+- [x] 0193_Add_Value-Add_Assessment_evaluator_plugin
 - [x] 0215_Integrate_adapt.ts_and_unify_types_H5_M6_M7_M9
+- [x] 0194_Add_Behavioral_Readiness_evaluator_plugin
 - [x] 0206_Reduce_SKILL.md_token_count_from_~3273_to_under_3000
 - [x] 0195_Refactor_scoring_from_point-deductions_to_rubric-based
 - [x] 0247_0241:_cc-magents_Foundation_-_validate.ts
+- [x] 0191_Add_Trigger_Design_evaluator_plugin
 - [x] 0224_rd3-cc-agents-phase4-platform-adapters
 - [x] 0260_0253.7:_Run_full_verification_-_tsc,_biome,_bun_test
 - [x] 0227_Align_reference_docs_with_spec:_evaluation-framework_rename_and_weight/grade_corrections_(H1,_H4,_L1)
@@ -42,12 +45,15 @@ kanban-plugin: board
 - [x] 0201_Add_troubleshooting_reference
 - [x] 0256_0253.3:_Create_ah_guard.test.ts_unit_tests
 - [x] 0187_Rewrite_super-planner_as_thin_orchestrator_wrapper
+- [x] 0192_Add_Instruction_Clarity_evaluator_plugin
 - [x] 0220_upgrade_cc-agents_for_plugin_rd3
 - [x] 0212_Unify_adapter_interface_H1-H2_and_remove_dead_code_L8
 - [x] 0189_Add_integration_tests_for_workflow_orchestration
+- [x] 0198_Update_cc-skills_SKILL.md_and_references_for_new_dimensions
 - [x] 0222_rd3-cc-agents-phase2-scaffold-validate-templates
 - [x] 0199_simplify_the_output_of_command_tasks_list
 - [x] 0239_Phase_5:_cc-magents_Evolution_-_evolve.ts,_safety_protocols,_version_history
+- [x] 0261_enhance_cc-magents_in_plugin_rd3
 - [x] 0216_Fix_logic_issues_M3_M4_M5_M8:_placeholders,_weights,_ValidationReport,_unused_var
 - [x] 0255_0253.2:_Convert_ah_guard.py_to_ah_guard.ts_TypeScript
 - [x] 0211_Fix_critical_bugs_C1-C4:_platform_validation,_empty_frontmatter,_exit_code,_adapter_validate
@@ -56,6 +62,7 @@ kanban-plugin: board
 - [x] 0246_0240:_cc-magents_Foundation_-_adapter_registry
 - [x] 0235_Phase_1:_cc-magents_Foundation_-_types,_utils,_Tier_1_adapters,_validate,_SKILL.md_skeleton
 - [x] 0240_Phase_6:_cc-magents_Commands,_Agent,_Tests,_SKILL.md_completion
+- [x] 0197_Add_behavioral_test_scenario_format_and_runner
 - [x] 0238_Phase_4:_cc-magents_Adaptation_-_Tier_2/3_adapters,_adapt.ts
 - [x] 0229_Add_OpenCode_adapter_dual-format_output:_Markdown_plus_JSON_config_snippet_(H6)
 - [x] 0226_Fix_critical_evaluation_scoring:_grade_boundaries,_pass_threshold,_weight_profiles,_main_guard_(C1-C5)
@@ -73,6 +80,7 @@ kanban-plugin: board
 - [x] 0228_Extend_validate.ts_with_OpenCode,_Codex,_OpenClaw_platform-specific_field_validation_(H5)
 - [x] 0188_Update_tasks-plan_command_for_workflow-aware_orchestration
 - [x] 0210_upgrade_cc-skills
+- [x] 0196_Add_LLM-as-Judge_evaluation_with_--deep_flag
 - [x] 0253_migrate_anti-hallucination
 - [x] 0186_Create_rd2:workflow-orchestration_skill
 - [x] 0221_rd3-cc-agents-phase1-foundation-types-utils-adapters
