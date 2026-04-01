@@ -4,6 +4,7 @@ import { StateManager } from '../scripts/state/manager';
 import { ExecutorPool } from '../scripts/executors/pool';
 import { MockExecutor } from '../scripts/executors/mock';
 import { EventBus } from '../scripts/observability/event-bus';
+import { HookRegistry } from '../scripts/engine/hooks';
 import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent } from '../scripts/model';
 import { setGlobalSilent } from '../../../scripts/logger';
 
@@ -462,4 +463,146 @@ describe('engine/runner — PipelineRunner', () => {
         expect(result.exitCode).toBe(1); // Should fail after max iterations
         expect(mockExecutor.getCallLog()).toHaveLength(3); // Initial + 2 rework attempts
     }, 15000);
+});
+
+describe('engine/runner — hook execution', () => {
+    let stateManager: StateManager;
+    let pool: ExecutorPool;
+    let mockExecutor: MockExecutor;
+
+    beforeEach(async () => {
+        stateManager = new StateManager({ dbPath: ':memory:' });
+        await stateManager.init();
+        pool = new ExecutorPool();
+        mockExecutor = new MockExecutor({ channels: ['current'] });
+        pool.register(mockExecutor);
+    });
+
+    test('on-phase-start hook fires before phase execution', async () => {
+        const hookRegistry = new HookRegistry();
+        const firedHooks: string[] = [];
+        hookRegistry.register('on-phase-start', {
+            run: 'echo "phase-start-hook"',
+        });
+
+        // Use a spy by wrapping execute
+        const originalExecute = hookRegistry.execute.bind(hookRegistry);
+        hookRegistry.execute = async (name: string, ctx: import('../scripts/engine/hooks').HookContext) => {
+            firedHooks.push(name);
+            await originalExecute(name, ctx);
+        };
+
+        const runner = new PipelineRunner(stateManager, pool, hookRegistry);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'hook-test',
+            phases: {
+                implement: {
+                    skill: 'test-skill',
+                    gate: { type: 'auto' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } }]);
+
+        await runner.run({ taskRef: 'hook-test-001' }, pipeline);
+
+        expect(firedHooks).toContain('on-phase-start');
+        expect(firedHooks).toContain('on-phase-complete');
+    }, 10000);
+
+    test('on-phase-failure hook fires when phase fails', async () => {
+        const hookRegistry = new HookRegistry();
+        const firedHooks: string[] = [];
+        const originalExecute = hookRegistry.execute.bind(hookRegistry);
+        hookRegistry.execute = async (name: string, ctx: import('../scripts/engine/hooks').HookContext) => {
+            firedHooks.push(name);
+            await originalExecute(name, ctx);
+        };
+
+        const runner = new PipelineRunner(stateManager, pool, hookRegistry);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'failure-hook-test',
+            phases: {
+                implement: {
+                    skill: 'test-skill',
+                    gate: { type: 'auto' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: false, exitCode: 1, durationMs: 1000, timedOut: false } }]);
+
+        await runner.run({ taskRef: 'hook-test-002' }, pipeline);
+
+        expect(firedHooks).toContain('on-phase-failure');
+    }, 10000);
+
+    test('on-pause hook fires when pipeline pauses for human gate', async () => {
+        const hookRegistry = new HookRegistry();
+        const firedHooks: string[] = [];
+        const originalExecute = hookRegistry.execute.bind(hookRegistry);
+        hookRegistry.execute = async (name: string, ctx: import('../scripts/engine/hooks').HookContext) => {
+            firedHooks.push(name);
+            await originalExecute(name, ctx);
+        };
+
+        const runner = new PipelineRunner(stateManager, pool, hookRegistry);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'pause-hook-test',
+            phases: {
+                implement: {
+                    skill: 'test-skill',
+                    gate: { type: 'human' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } }]);
+
+        const result = await runner.run({ taskRef: 'hook-test-003' }, pipeline);
+
+        expect(result.status).toBe('PAUSED');
+        expect(firedHooks).toContain('on-phase-start');
+        expect(firedHooks).toContain('on-pause');
+    }, 10000);
+
+    test('on-pause hook fires on execution failure with pause escalation', async () => {
+        const hookRegistry = new HookRegistry();
+        const firedHooks: string[] = [];
+        const originalExecute = hookRegistry.execute.bind(hookRegistry);
+        hookRegistry.execute = async (name: string, ctx: import('../scripts/engine/hooks').HookContext) => {
+            firedHooks.push(name);
+            await originalExecute(name, ctx);
+        };
+
+        const runner = new PipelineRunner(stateManager, pool, hookRegistry);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'pause-escalation-test',
+            phases: {
+                implement: {
+                    skill: 'test-skill',
+                    gate: {
+                        type: 'human',
+                        rework: {
+                            max_iterations: 0,
+                            escalation: 'pause',
+                        },
+                    },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: false, exitCode: 1, durationMs: 1000, timedOut: false } }]);
+
+        const result = await runner.run({ taskRef: 'hook-test-004' }, pipeline);
+
+        expect(result.status).toBe('PAUSED');
+        expect(firedHooks).toContain('on-phase-failure');
+        expect(firedHooks).toContain('on-pause');
+    }, 10000);
 });
