@@ -213,10 +213,10 @@ Preset validation: the phase list must form a valid subgraph of the DAG (all dep
 Inherit from another pipeline and override phases:
 
 ```yaml
-# .rd3/pipeline.yaml
+# docs/.workflows/pipeline.yaml
 schema_version: 1
 name: my-project
-extends: .rd3/base-pipeline.yaml
+extends: docs/.workflows/base-pipeline.yaml
 
 phases:
   security-scan:          # Add new phase
@@ -279,10 +279,10 @@ Template variables available in hooks:
 
 ## File Location
 
-Default: `.rd3/pipeline.yaml` in the project root.
+Default: `docs/.workflows/pipeline.yaml` in the project root.
 
 Override with `--pipeline` flag:
 
 ```bash
-orchestrator run 0266 --pipeline .rd3/custom.yaml
+orchestrator run 0266 --pipeline docs/.workflows/custom.yaml
 ```
