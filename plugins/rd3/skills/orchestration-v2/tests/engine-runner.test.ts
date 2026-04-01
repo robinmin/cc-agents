@@ -214,23 +214,49 @@ describe('engine/runner — PipelineRunner', () => {
     });
 
     test('resume continues paused pipeline', async () => {
+        const pipeline: PipelineDefinition = {
+            ...createTestPipeline(),
+            phases: {
+                ...createTestPipeline().phases,
+                deploy: {
+                    skill: 'rd3:deploy',
+                    gate: { type: 'auto' },
+                    timeout: '15m',
+                    after: ['test'],
+                },
+            },
+        };
+
         // Create a paused run by inserting directly into database
         const runId = 'paused-run-123';
         await stateManager.createRun({
             id: runId,
             task_ref: 'test-008',
-            phases_requested: 'implement,test',
+            phases_requested: 'implement,test,deploy',
             status: 'PAUSED',
-            config_snapshot: {},
+            config_snapshot: pipeline as unknown as Record<string, unknown>,
             pipeline_name: 'test-pipeline',
         });
 
-        // Add a phase that needs to continue
+        await stateManager.createPhase({
+            run_id: runId,
+            name: 'implement',
+            status: 'completed',
+            skill: 'rd3:code-implement',
+            rework_iteration: 0,
+        });
         await stateManager.createPhase({
             run_id: runId,
             name: 'test',
             status: 'paused',
             skill: 'rd3:sys-testing',
+            rework_iteration: 0,
+        });
+        await stateManager.createPhase({
+            run_id: runId,
+            name: 'deploy',
+            status: 'pending',
+            skill: 'rd3:deploy',
             rework_iteration: 0,
         });
 
@@ -242,12 +268,22 @@ describe('engine/runner — PipelineRunner', () => {
         mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 800, timedOut: false } }]);
 
         const result = await runner.resume(options);
+        const resumedRun = await stateManager.getRun(runId);
+        const deploy = await stateManager.getPhase(runId, 'deploy');
+        const testPhase = await stateManager.getPhase(runId, 'test');
 
         expect(result.exitCode).toBe(0);
+        expect(result.status).toBe('COMPLETED');
         expect(result.runId).toBe(runId);
+        expect(resumedRun?.status).toBe('COMPLETED');
+        expect(testPhase?.status).toBe('completed');
+        expect(deploy?.status).toBe('completed');
+        expect(mockExecutor.getCallLog()).toHaveLength(1);
     }, 10000);
 
     test('resume rejects pipeline when approve is false', async () => {
+        const pipeline = createTestPipeline();
+
         // Create a paused run
         const runId = 'paused-run-124';
         await stateManager.createRun({
@@ -255,8 +291,23 @@ describe('engine/runner — PipelineRunner', () => {
             task_ref: 'test-009',
             phases_requested: 'implement,test',
             status: 'PAUSED',
-            config_snapshot: {},
+            config_snapshot: pipeline as unknown as Record<string, unknown>,
             pipeline_name: 'test-pipeline',
+        });
+
+        await stateManager.createPhase({
+            run_id: runId,
+            name: 'implement',
+            status: 'completed',
+            skill: 'rd3:code-implement',
+            rework_iteration: 0,
+        });
+        await stateManager.createPhase({
+            run_id: runId,
+            name: 'test',
+            status: 'paused',
+            skill: 'rd3:sys-testing',
+            rework_iteration: 0,
         });
 
         const options: ResumeOptions = {
@@ -265,8 +316,13 @@ describe('engine/runner — PipelineRunner', () => {
         };
 
         const result = await runner.resume(options);
+        const resumedRun = await stateManager.getRun(runId);
+        const pausedPhase = await stateManager.getPhase(runId, 'test');
 
-        expect(result.exitCode).toBe(0);
+        expect(result.exitCode).toBe(1);
+        expect(result.status).toBe('FAILED');
+        expect(resumedRun?.status).toBe('FAILED');
+        expect(pausedPhase?.status).toBe('failed');
     }, 10000);
 
     test('resume handles nonexistent task', async () => {
