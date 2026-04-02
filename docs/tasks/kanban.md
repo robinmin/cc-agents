@@ -105,3 +105,7 @@ kanban-plugin: board
 - [x] 0236_Phase_2:_cc-magents_Evaluation_-_evaluation_config,_evaluate.ts,_evaluation-framework_reference
 - [x] 0230_Optimize_adapt.ts_to_reuse_parsed_content_instead_of_re-running_pipeline_per_platform_(H2)
 - [x] 0185_enhance_super-planner
+
+## ⚫ Canceled
+
+<!-- No tasks in Canceled -->
