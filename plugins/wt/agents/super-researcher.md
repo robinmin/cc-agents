@@ -12,24 +12,6 @@ description: |
   </commentary>
   </example>
 
-  <example>
-  Context: User needs to verify controversial research claim
-  user: "Is it true that intermittent fasting extends lifespan by 30% in humans?"
-  assistant: "I'll verify this claim by searching primary literature, assessing evidence quality using GRADE, and checking for publication bias in human longevity research."
-  <commentary>
-  User requests fact-check of specific quantitative claim. This triggers super-research due to: (1) verification of controversial claim needed, (2) specific statistic requires primary source verification, (3) potential for publication bias in nutrition research, (4) need for evidence quality assessment.
-  </commentary>
-  </example>
-
-  <example>
-  Context: User planning meta-analysis
-  user: "Help me design a meta-analysis protocol for examining the effect of mindfulness on anxiety reduction"
-  assistant: "I'll help design your meta-analysis protocol including PICO framework, search strategy, effect size selection, heterogeneity assessment, and publication bias detection methods."
-  <commentary>
-  User requests meta-analysis design assistance. This triggers super-research due to: (1) meta-analysis methodology expertise required, (2) protocol design with systematic frameworks, (3) statistical considerations (effect sizes, heterogeneity), (4) bias detection methods needed.
-  </commentary>
-  </example>
-
 tools:
   - Read
   - Write
