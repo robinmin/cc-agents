@@ -1,6 +1,6 @@
 // Core types for rd3:tasks CLI
 
-export type TaskStatus = 'Backlog' | 'Todo' | 'WIP' | 'Testing' | 'Blocked' | 'Done';
+export type TaskStatus = 'Backlog' | 'Todo' | 'WIP' | 'Testing' | 'Blocked' | 'Done' | 'Canceled';
 
 export type ImplPhase = 'planning' | 'design' | 'implementation' | 'review' | 'testing';
 
@@ -136,7 +136,7 @@ export interface GetResult {
     paths: string[];
 }
 
-export const VALID_STATUSES: TaskStatus[] = ['Backlog', 'Todo', 'WIP', 'Testing', 'Blocked', 'Done'];
+export const VALID_STATUSES: TaskStatus[] = ['Backlog', 'Todo', 'WIP', 'Testing', 'Blocked', 'Done', 'Canceled'];
 
 export const VALID_PHASES: ImplPhase[] = ['planning', 'design', 'implementation', 'review', 'testing'];
 
@@ -158,6 +158,12 @@ export const STATUS_ALIASES: Record<string, TaskStatus> = {
     'on-hold': 'Blocked',
     onhold: 'Blocked',
     waiting: 'Blocked',
+    cancelled: 'Canceled',
+    abandoned: 'Canceled',
+    dropped: 'Canceled',
+    aborted: 'Canceled',
+    removed: 'Canceled',
+    nope: 'Canceled',
 };
 
 export interface NormalizedStatus {
@@ -193,4 +199,5 @@ export const STATUS_EMOJI: Record<TaskStatus, string> = {
     Testing: '🟠',
     Blocked: '⛔',
     Done: '🟢',
+    Canceled: '⚫',
 };
