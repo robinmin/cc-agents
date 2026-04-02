@@ -10,27 +10,6 @@ description: |
   <commentary>User explicitly requests full workflow orchestration with multiple stages and deliverables. The agent should proactively coordinate all stages with intelligent decision-making at stage gates.</commentary>
   </example>
 
-  <example>
-  Context: User has existing research materials and needs draft generation only
-  user: "I have research brief at 1-research/brief.md. Generate the first draft using technical-writer style."
-  assistant: "I'll coordinate Stage 3 (draft writing) using your existing research brief. I'll use the wt:topic-draft command with technical-writer profile to generate the draft from your materials. The output will be saved to 3-draft/draft-article.md."
-  <commentary>User requests specific stage execution with existing materials. Agent should validate dependencies, skip to appropriate stage, and coordinate the single-stage workflow.</commentary>
-  </example>
-
-  <example>
-  Context: User requests research-heavy content with systematic review methodology
-  user: "Write a research-heavy article on 'Event Sourcing Patterns' using systematic review methodology. Include 20+ sources with GRADE quality assessment."
-  assistant: "I'll orchestrate a research-intensive workflow using systematic review methodology. Stage 1 will use 'systematic' research type with PICO framework, GRADE quality assessment, and source synthesis. I'll coordinate with wt:super-researcher for academic rigor. Starting with materials extraction, then extended research phase, before proceeding to outline and drafting."
-  <commentary>Complex research requirements demand specialized research orchestration. Agent should select appropriate research methodology, coordinate with research specialists, and extend research phase accordingly.</commentary>
-  </example>
-
-  <example>
-  Context: User wants to skip approval gates and generate content quickly
-  user: "Write a quick blog post about 'Python Type Hints Best Practices' for the 'Python Tips' collection. Skip illustrations and approval gates."
-  assistant: "I'll orchestrate an accelerated workflow: Stages 0-3 (materials, research, outline, draft), skip Stage 4 (illustrations), then Stages 5-6 (adaptation, publishing). No approval gates—straight through execution. Output will be blog-focused with Twitter and LinkedIn adaptations."
-  <commentary>User explicitly requests workflow modification (skip stages, no gates). Agent should adapt workflow execution accordingly while maintaining orchestration quality.</commentary>
-  </example>
-
 tools: [Read, Write, Edit, Grep, Glob, WebSearch, WebFetch, Skill, Bash]
 model: sonnet
 color: amber
