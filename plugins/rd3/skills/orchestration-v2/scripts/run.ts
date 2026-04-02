@@ -10,7 +10,7 @@
 import { existsSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs, validateCommand } from './cli/commands';
-import { formatStatusOutput, formatStatusJson } from './cli/status';
+import { formatStatusOutput, formatStatusJson, formatStatusListOutput, formatStatusListJson } from './cli/status';
 import { outputReport } from './cli/report';
 import { PipelineRunner } from './engine/runner';
 import { parsePipelineYaml, validatePipeline } from './config/parser';
@@ -60,12 +60,65 @@ Commands:
 
 Global options:
   --state-dir <path>       State directory (default: docs/.workflow-runs)
+                           Env: ORCHESTRATOR_STATE_DIR
   --pipeline <path>        Pipeline YAML (default: docs/.workflows/pipeline.yaml)
+                           Alias: --file
   --verbose                Verbose output
   --quiet                  Suppress non-essential output
   --json                   Output as JSON where supported
   --help, -h               Show this help
   --version                Show version
+
+Command-specific options:
+  run:
+    --preset <name>         Named preset from pipeline YAML
+    --phases <a,b>          Comma-separated phase names (DAG resolves order)
+    --channel <name>        Execution channel (default: current)
+    --coverage <n>          Override coverage threshold (1-100)
+    --auto                  Auto-approve all human gates
+    --dry-run               Show execution plan without running
+
+  resume:
+    --approve               Approve pending human gate (default)
+    --reject                Reject pending human gate
+    --auto                  Continue with auto gates after resume
+
+  status:
+    --run <id>              Show specific run by ID
+    --all                   Show all runs
+    --json                  JSON output
+
+  report:
+    --format <fmt>          Output format: markdown, json, summary, table (default: table)
+    --output <path>         Write to file
+
+  validate:
+    --schema                Output pipeline YAML JSON Schema and exit
+
+  history:
+    --limit <n>             Number of runs (default: 10)
+    --last <n>              Alias for --limit
+    --preset <name>         Filter by preset
+    --since <date>          Filter since date
+    --failed                Only failed runs
+    --json                  JSON output
+
+  undo:
+    --dry-run               Preview without changes
+    --force                 Force even with uncommitted changes
+
+  inspect:
+    --evidence              Show gate evidence
+    --json                  JSON output
+
+  prune:
+    --older-than <dur>      Delete events older than duration (e.g., 30d)
+    --keep-last <n>         Keep only last N runs
+    --dry-run               Preview without changes
+
+  migrate:
+    --from-v1 [dir]         Migrate from v1 state (default dir: docs/.workflow-runs/rd3-orchestration-dev)
+    --dir <path>            Source directory for v1 state
 
 Run 'orchestrator <command> --help' for command-specific options.
 `);
@@ -257,19 +310,16 @@ async function handleResume(options: Record<string, unknown>, state: StateManage
 }
 
 async function handleStatus(options: Record<string, unknown>, queries: Queries): Promise<void> {
-    // For status without taskRef, show latest run
+    const runId = options.run as string | undefined;
+    const showAll = options.all === true;
     const taskRef = options.taskRef as string | undefined;
-    if (!taskRef) {
-        const history = await queries.getHistory(1);
-        if (history.length === 0) {
-            logger.info('No runs found.');
-            process.exit(EXIT_SUCCESS);
-        }
-        const latest = history[0];
-        const summary = latest.runId ? await queries.getRunSummary(latest.runId) : null;
+
+    // --run <run-id>: show a specific run by ID
+    if (runId) {
+        const summary = await queries.getRunSummary(runId);
         if (!summary) {
-            logger.info('No run data available.');
-            process.exit(EXIT_SUCCESS);
+            logger.error(`No run found with ID: ${runId}`);
+            process.exit(EXIT_TASK_NOT_FOUND);
         }
         if (options.json) {
             process.stdout.write(`${formatStatusJson(summary)}\n`);
@@ -279,17 +329,60 @@ async function handleStatus(options: Record<string, unknown>, queries: Queries):
         process.exit(EXIT_SUCCESS);
     }
 
-    // With taskRef — find run by task ref
-    const history = await queries.getHistory(100);
-    const match = history.find((h) => h.taskRef === taskRef);
-    if (!match) {
-        logger.error(`No run found for task ref: ${taskRef}`);
-        process.exit(EXIT_TASK_NOT_FOUND);
+    // --all: list all runs
+    if (showAll) {
+        const history = await queries.getHistory(1000);
+        if (history.length === 0) {
+            logger.info('No runs found.');
+            process.exit(EXIT_SUCCESS);
+        }
+        const summaries: import('./state/queries').RunSummary[] = [];
+        for (const entry of history) {
+            if (entry.runId) {
+                const s = await queries.getRunSummary(entry.runId);
+                if (s) summaries.push(s);
+            }
+        }
+        if (options.json) {
+            process.stdout.write(`${formatStatusListJson(summaries)}\n`);
+        } else {
+            process.stdout.write(`${formatStatusListOutput(summaries)}\n`);
+        }
+        process.exit(EXIT_SUCCESS);
     }
-    const summary = match.runId ? await queries.getRunSummary(match.runId) : null;
+
+    // With taskRef — find run by task ref
+    if (taskRef) {
+        const history = await queries.getHistory(100);
+        const match = history.find((h) => h.taskRef === taskRef);
+        if (!match) {
+            logger.error(`No run found for task ref: ${taskRef}`);
+            process.exit(EXIT_TASK_NOT_FOUND);
+        }
+        const summary = match.runId ? await queries.getRunSummary(match.runId) : null;
+        if (!summary) {
+            logger.error('Could not load run summary.');
+            process.exit(EXIT_STATE_ERROR);
+        }
+        if (options.json) {
+            process.stdout.write(`${formatStatusJson(summary)}\n`);
+        } else {
+            process.stdout.write(`${formatStatusOutput(summary)}\n`);
+        }
+        process.exit(EXIT_SUCCESS);
+    }
+
+    // Default: show latest run
+    const history = await queries.getHistory(1);
+    if (history.length === 0) {
+        logger.info('No runs found.');
+        process.exit(EXIT_SUCCESS);
+    }
+    const latest = history[0];
+    const summary = latest.runId ? await queries.getRunSummary(latest.runId) : null;
     if (!summary) {
-        logger.error('Could not load run summary.');
-        process.exit(EXIT_STATE_ERROR);
+        logger.info('No run data available.');
+        process.exit(EXIT_SUCCESS);
     }
     if (options.json) {
         process.stdout.write(`${formatStatusJson(summary)}\n`);
@@ -321,6 +414,14 @@ async function handleReport(options: Record<string, unknown>, queries: Queries):
 }
 
 async function handleValidate(options: Record<string, unknown>): Promise<void> {
+    if (options.schema) {
+        const { getPipelineJsonSchema } = await import('./config/schema');
+        const schema = getPipelineJsonSchema();
+        process.stdout.write(JSON.stringify(schema, null, 2));
+        process.stdout.write('\n');
+        process.exit(EXIT_SUCCESS);
+    }
+
     const file = resolvePipelineFile(options.file as string | undefined, 'default');
     try {
         const [def, validation] = await loadValidatedPipeline(file);
@@ -370,9 +471,31 @@ async function handleHistory(options: Record<string, unknown>, queries: Queries)
 
     const history = await queries.getHistory(limit, Object.keys(filters).length > 0 ? filters : undefined);
     if (history.length === 0) {
-        process.stdout.write('No run history.\n');
+        if (options.json) {
+            process.stdout.write('[]\n');
+        } else {
+            process.stdout.write('No run history.\n');
+        }
         process.exit(EXIT_SUCCESS);
     }
+
+    // --json mode: output history as JSON array
+    if (options.json) {
+        const entries = history.map((entry) => ({
+            runId: entry.runId,
+            taskRef: entry.taskRef,
+            preset: entry.preset ?? null,
+            status: entry.status,
+            durationMs: entry.durationMs,
+            totalTokens: entry.totalTokens,
+            createdAt: entry.createdAt?.toISOString() ?? null,
+        }));
+        process.stdout.write(JSON.stringify(entries, null, 2));
+        process.stdout.write('\n');
+        process.exit(EXIT_SUCCESS);
+    }
+
+    // Text mode: display run list
     const reporter = new Reporter();
     for (const entry of history) {
         const summary = entry.runId ? await queries.getRunSummary(entry.runId) : null;
@@ -384,12 +507,41 @@ async function handleHistory(options: Record<string, unknown>, queries: Queries)
             logger.info(`${entry.taskRef}  ${status}  ${date}`);
         }
     }
+
+    // Trends section (skip if fewer than 2 runs — aggregation is meaningless)
+    if (history.length >= 2) {
+        const trends = await queries.getTrends();
+        if (trends.totalRuns > 0) {
+            process.stdout.write(reporter.formatTrendReport(trends));
+            process.stdout.write('\n');
+        }
+    }
+
     process.exit(EXIT_SUCCESS);
 }
 
-async function handleUndo(_options: Record<string, unknown>, _state: StateManager): Promise<void> {
-    logger.error('Undo not yet implemented (requires Phase 6 rollback support)');
-    process.exit(EXIT_STATE_ERROR);
+async function handleUndo(options: Record<string, unknown>, state: StateManager): Promise<void> {
+    const taskRef = options.taskRef as string;
+    const phaseName = options.phaseName as string;
+
+    const run = await state.getRunByTaskRef(taskRef);
+    if (!run) {
+        logger.error(`No run found for task ref: ${taskRef}`);
+        process.exit(EXIT_TASK_NOT_FOUND);
+    }
+
+    const runner = new PipelineRunner(state);
+    const result = await runner.undo(run.id, phaseName, {
+        force: options.force === true,
+        dryRun: options.dryRun === true,
+    });
+
+    if (!result.success) {
+        logger.error(result.error ?? 'Undo failed');
+        process.exit(result.exitCode);
+    }
+
+    process.exit(EXIT_SUCCESS);
 }
 
 async function handleInspect(options: Record<string, unknown>, state: StateManager, queries: Queries): Promise<void> {
