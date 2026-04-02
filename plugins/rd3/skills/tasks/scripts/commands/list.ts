@@ -15,6 +15,7 @@ const STATUS_SUMMARY: Record<TaskStatus, string> = {
     Testing: 'Under verification before completion.',
     Blocked: 'Waiting on an external dependency or decision.',
     Done: 'Completed work.',
+    Canceled: 'Deliberately abandoned, will not be completed.',
 };
 
 function getCheckbox(status: TaskStatus): string {
@@ -24,6 +25,10 @@ function getCheckbox(status: TaskStatus): string {
 
     if (status === 'Done') {
         return '[✓]';
+    }
+
+    if (status === 'Canceled') {
+        return '[-]';
     }
 
     return '[ ]';
@@ -83,6 +88,7 @@ function renderKanbanFromTemplate(template: string, tasks: TaskListItem[], phase
         Testing: 'TESTING_TASKS',
         Blocked: 'BLOCKED_TASKS',
         Done: 'DONE_TASKS',
+        Canceled: 'CANCELED_TASKS',
     };
 
     for (const [status, placeholder] of Object.entries(statusPlaceholders)) {
