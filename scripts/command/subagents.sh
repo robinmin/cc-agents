@@ -47,7 +47,7 @@ usage() {
     printf "    plugin      Plugin name (e.g., rd3, wt)\n"
     printf "    targets     Target agents: all, codexcli, geminicli, opencode, openclaw, antigravity, pi\n\n"
     printf "${GREEN}OPTIONS:${NC}\n"
-    printf "    --global    Install to user-level global directories (e.g., ~/.codex/skills/)\n"
+    printf "    --global    Install to user-level global directories (e.g., ~/.agents/skills/)\n"
     printf "    --dry-run   Preview changes without executing\n"
     printf "    --verbose   Enable verbose output\n"
     printf "    --help      Show this help message\n\n"
@@ -202,12 +202,12 @@ get_target_skills_dir() {
 
     if [ "$GLOBAL" = "true" ]; then
         case "$target" in
-            codexcli)    echo "$HOME/.codex/skills" ;;
-            geminicli)   echo "$HOME/.gemini/skills" ;;
-            opencode)    echo "$HOME/.opencode/skills" ;;
-            openclaw)    echo "$HOME/.openclaw/skills" ;;
+            codexcli)    echo "$HOME/.agents/skills" ;;
+            geminicli)   echo "$HOME/.agents/skills" ;;
+            opencode)    echo "$HOME/.agents/skills" ;;
+            openclaw)    echo "$HOME/.agents/skills" ;;
             antigravity) echo "$HOME/.gemini/antigravity/skills" ;;
-            pi)          echo "$HOME/.pi/agent/skills" ;;
+            pi)          echo "$HOME/.agents/skills" ;;
         esac
     else
         case "$target" in
@@ -245,16 +245,13 @@ get_all_target_dirs() {
         primary=$(get_target_skills_dir "$target")
         [ -n "$primary" ] && add_unique_dir "$primary"
 
-        # Cross-client convention for multi-agent platforms
-        case "$target" in
-            geminicli|opencode|antigravity)
-                if [ "$GLOBAL" = "true" ]; then
-                    add_unique_dir "$HOME/.agents/skills"
-                else
+        if [ "$GLOBAL" = "false" ]; then
+            case "$target" in
+                geminicli|opencode|antigravity)
                     add_unique_dir ".agents/skills"
-                fi
-                ;;
-        esac
+                    ;;
+            esac
+        fi
     done
 
     printf '%s\n' "${dirs[@]}"
