@@ -118,8 +118,13 @@ adapterRegistry.register(new MyPlatformAdapter());
 
 ### OpenClaw (`openclaw`)
 - **Extensions**: `metadata.openclaw` JSON in frontmatter
-- **Discovery**: `<workspace>/skills/`, `~/.openclaw/skills/`
+- **Discovery**: `~/.agents/skills/`, `<workspace>/.agents/skills/`, `<workspace>/skills/`, `~/.openclaw/skills/`
 - **Companion**: Extracts from `metadata.openclaw` in SKILL.md
+
+### Pi (`pi`)
+- **Extensions**: Pi-native compatible
+- **Discovery**: `.pi/agent/skills/`, `.agents/skills/`
+- **Companion**: None (native support)
 
 ## Validation Rules by Platform
 
