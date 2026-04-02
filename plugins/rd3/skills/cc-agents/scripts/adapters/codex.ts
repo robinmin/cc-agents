@@ -21,6 +21,7 @@
  */
 
 import { join } from 'node:path';
+import { CODEX_AGENT_DESCRIPTION_MAX_LENGTH, truncateAgentDescriptionForCodex } from '../description-constraints';
 import type {
     AgentAdapterContext,
     AgentAdapterResult,
@@ -291,6 +292,12 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
         const warnings: string[] = [];
         const messages: string[] = [];
 
+        if (agent.description.length > CODEX_AGENT_DESCRIPTION_MAX_LENGTH) {
+            errors.push(
+                `Agent description exceeds Codex maximum length of ${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} characters`,
+            );
+        }
+
         // Validate sandbox_mode
         if (this.options.validateSandboxMode && agent.sandboxMode) {
             if (!VALID_SANDBOX_MODES.includes(agent.sandboxMode)) {
@@ -366,13 +373,14 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
     protected async generatePlatform(agent: UniversalAgent, context: AgentAdapterContext): Promise<AgentAdapterResult> {
         const warnings: string[] = [];
         const messages: string[] = [];
+        const constrainedDescription = truncateAgentDescriptionForCodex(agent.description);
 
         // Generate TOML output with root-level fields (official format)
         const tomlLines: string[] = [];
 
         // Required fields
         tomlLines.push(`name = "${escapeToml(agent.name)}"`);
-        tomlLines.push(`description = "${escapeToml(agent.description)}"`);
+        tomlLines.push(`description = "${escapeToml(constrainedDescription.value)}"`);
 
         // Optional fields
         if (agent.model) {
@@ -448,6 +456,12 @@ export class CodexAgentAdapter extends BaseAgentAdapter {
 
         if (droppedFields.length > 0) {
             warnings.push(`Fields not supported by Codex (dropped): ${droppedFields.join(', ')}`);
+        }
+
+        if (constrainedDescription.truncated) {
+            warnings.push(
+                `Description truncated to ${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} characters for Codex compatibility`,
+            );
         }
 
         messages.push(`Generated Codex agent: ${filePath}`);
