@@ -161,7 +161,8 @@ export type EventType =
     | 'phase.rework'
     | 'gate.evaluated'
     | 'executor.invoked'
-    | 'executor.completed';
+    | 'executor.completed'
+    | 'phase.undo';
 
 export interface OrchestratorEvent {
     readonly sequence?: number;
