@@ -121,6 +121,11 @@ describe('cli/commands — parseArgs', () => {
         expect(result.options.quiet).toBe(true);
     });
 
+    test('parses --run flag', () => {
+        const result = parseArgs(['status', '--run', 'run-abc-123']);
+        expect(result.options.run).toBe('run-abc-123');
+    });
+
     test('parses --all flag', () => {
         const result = parseArgs(['status', '--all']);
         expect(result.options.all).toBe(true);
@@ -159,6 +164,17 @@ describe('cli/commands — parseArgs', () => {
     test('parses --coverage flag as number', () => {
         const result = parseArgs(['run', '0300', '--coverage', '90']);
         expect(result.options.coverage).toBe(90);
+    });
+
+    test('parses --schema flag as boolean', () => {
+        const result = parseArgs(['validate', '--schema']);
+        expect(result.command).toBe('validate');
+        expect(result.options.schema).toBe(true);
+    });
+
+    test('does not set schema when --schema is absent', () => {
+        const result = parseArgs(['validate']);
+        expect(result.options.schema).toBeUndefined();
     });
 
     test('parses --file flag', () => {
