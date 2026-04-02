@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { describe, expect, it } from 'bun:test';
 import { createAgentAdapterContext } from '../scripts/adapters';
+import { CODEX_AGENT_DESCRIPTION_MAX_LENGTH } from '../scripts/description-constraints';
 import { CodexAgentAdapter } from '../scripts/adapters/codex';
 import type { UniversalAgent } from '../scripts/types';
 
@@ -321,6 +322,20 @@ sandbox_mode = "read-only"`;
             expect(result.warnings.some((w) => w.includes('Fields not supported by Codex'))).toBe(true);
         });
 
+        it('should reject descriptions that exceed the Codex hard limit', async () => {
+            const agent: UniversalAgent = {
+                ...sampleAgent,
+                description: 'x'.repeat(CODEX_AGENT_DESCRIPTION_MAX_LENGTH + 10),
+            };
+
+            const result = await adapter.validate(agent);
+
+            expect(result.success).toBe(false);
+            expect(result.errors).toContain(
+                `Agent description exceeds Codex maximum length of ${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} characters`,
+            );
+        });
+
         it('should NOT warn about mcpServers (now supported)', async () => {
             const agent: UniversalAgent = {
                 ...sampleAgent,
@@ -404,6 +419,28 @@ sandbox_mode = "read-only"`;
             const context = createAgentAdapterContext(agent, '/tmp', 'codex');
             const result = await adapter.generate(agent, context);
             expect(result.warnings.some((w) => w.includes('Fields not supported by Codex (dropped)'))).toBe(true);
+        });
+
+        it('should truncate generated descriptions to the Codex hard limit', async () => {
+            const agent: UniversalAgent = {
+                ...sampleAgent,
+                description: `Use PROACTIVELY for ${'x'.repeat(1200)}
+
+<example>
+user: "Create a new subagent"
+assistant: "Route to scaffold and explain the next validation steps."
+</example>`,
+            };
+            const context = createAgentAdapterContext(agent, '/tmp', 'codex');
+            const result = await adapter.generate(agent, context);
+
+            expect(result.success).toBe(true);
+            expect(result.warnings).toContain(
+                `Description truncated to ${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} characters for Codex compatibility`,
+            );
+            const parsed = await adapter.parse(result.output || '', '/tmp/truncated-agent.toml');
+            expect(parsed.success).toBe(true);
+            expect(parsed.agent?.description.length).toBeLessThanOrEqual(CODEX_AGENT_DESCRIPTION_MAX_LENGTH);
         });
 
         it('should output file with agent name', async () => {
