@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeAll, beforeEach } from 'bun:test';
 import { PipelineRunner } from '../scripts/engine/runner';
 import { StateManager } from '../scripts/state/manager';
+import { EventStore } from '../scripts/state/events';
 import { ExecutorPool } from '../scripts/executors/pool';
 import { MockExecutor } from '../scripts/executors/mock';
 import { EventBus } from '../scripts/observability/event-bus';
@@ -366,12 +367,136 @@ describe('engine/runner — PipelineRunner', () => {
         await stateManager.updatePhaseStatus(runId, 'test', 'completed');
         await stateManager.updateRunStatus(runId, 'COMPLETED');
 
-        // Test undo
-        await expect(runner.undo('test-010', 'test', false)).resolves.toBeUndefined();
+        // Test undo — should return error when no snapshot exists
+        const undoResult = await runner.undo(runId, 'test');
+        expect(undoResult.success).toBe(false);
+        expect(undoResult.exitCode).toBe(13);
     });
 
-    test('undo with force flag bypasses checks', async () => {
-        await expect(runner.undo('any-task', 'any-phase', true)).resolves.toBeUndefined();
+    test('undo with force flag', async () => {
+        const undoResult = await runner.undo('any-run', 'any-phase', { force: true });
+        expect(undoResult.success).toBe(false);
+    });
+
+    test('undo with existing snapshot restores files and resets phases', async () => {
+        // Create a run with phases that have a DAG relationship
+        const runId = 'undo-test-run';
+        await stateManager.createRun({
+            id: runId,
+            task_ref: 'undo-task',
+            phases_requested: 'implement,test,review',
+            status: 'COMPLETED',
+            config_snapshot: {
+                phases: {
+                    implement: { skill: 'a' },
+                    test: { skill: 'b', after: ['implement'] },
+                    review: { skill: 'c', after: ['test'] },
+                },
+            },
+            pipeline_name: 'test-pipeline',
+        });
+        await stateManager.createPhase({
+            run_id: runId,
+            name: 'implement',
+            status: 'completed',
+            skill: 'a',
+            rework_iteration: 0,
+        });
+        await stateManager.createPhase({
+            run_id: runId,
+            name: 'test',
+            status: 'completed',
+            skill: 'b',
+            rework_iteration: 0,
+        });
+        await stateManager.createPhase({
+            run_id: runId,
+            name: 'review',
+            status: 'completed',
+            skill: 'c',
+            rework_iteration: 0,
+        });
+
+        // Save a rollback snapshot for 'implement'
+        await stateManager.saveRollbackSnapshot({
+            run_id: runId,
+            phase_name: 'implement',
+            git_head: 'abc123',
+            files_before: { 'src/main.ts': 'abc123' },
+            files_after: { 'src/main.ts': 'abc123', 'src/new-file.ts': 'def456' },
+        });
+
+        // Build DAG so findDownstreamPhases can traverse it
+        const pipelineDef: PipelineDefinition = {
+            schema_version: 1 as const,
+            name: 'test-pipeline',
+            phases: {
+                implement: { skill: 'a' },
+                test: { skill: 'b', after: ['implement'] },
+                review: { skill: 'c', after: ['test'] },
+            },
+        };
+
+        // Need a runner that has initialized the DAG
+        const undoRunner = new PipelineRunner(stateManager, pool);
+        // Access private method via initializePipeline (called in run)
+        // We'll use a small trick: run with dry-run to init the DAG
+        await undoRunner.run({ taskRef: 'undo-task-dry', dryRun: true } as RunOptions, pipelineDef);
+
+        // Now test undo with force (bypasses uncommitted check since we're not in a git repo)
+        const result = await undoRunner.undo(runId, 'implement', { force: true });
+        expect(result.success).toBe(true);
+        expect(result.exitCode).toBe(0);
+
+        // Verify phase status was reset
+        const implementPhase = await stateManager.getPhase(runId, 'implement');
+        expect(implementPhase?.status).toBe('pending');
+
+        // Verify downstream phases were reset
+        const testPhase = await stateManager.getPhase(runId, 'test');
+        expect(testPhase?.status).toBe('pending');
+
+        const reviewPhase = await stateManager.getPhase(runId, 'review');
+        expect(reviewPhase?.status).toBe('pending');
+
+        // Verify run status is PAUSED
+        const run = await stateManager.getRun(runId);
+        expect(run?.status).toBe('PAUSED');
+    });
+
+    test('undo dry-run shows plan without side effects', async () => {
+        const runId = 'undo-dryrun-run';
+        await stateManager.createRun({
+            id: runId,
+            task_ref: 'undo-dry-task',
+            phases_requested: 'implement',
+            status: 'COMPLETED',
+            config_snapshot: {},
+            pipeline_name: 'test-pipeline',
+        });
+        await stateManager.saveRollbackSnapshot({
+            run_id: runId,
+            phase_name: 'implement',
+            git_head: 'abc123',
+            files_before: { 'src/main.ts': 'abc123' },
+            files_after: { 'src/main.ts': 'def456', 'src/new.ts': 'ghi789' },
+        });
+
+        const result = await runner.undo(runId, 'implement', { force: true, dryRun: true });
+        expect(result.success).toBe(true);
+        expect(result.exitCode).toBe(0);
+
+        // Verify no state was changed
+        const run = await stateManager.getRun(runId);
+        expect(run?.status).toBe('COMPLETED');
+    });
+
+    test('undo without snapshot returns STATE_CORRUPT error', async () => {
+        const runId = 'undo-no-snapshot';
+        const result = await runner.undo(runId, 'nonexistent-phase');
+        expect(result.success).toBe(false);
+        expect(result.exitCode).toBe(13);
+        expect(result.error).toContain('STATE_CORRUPT');
     });
 
     test('handles event bus integration', async () => {
@@ -399,6 +524,45 @@ describe('engine/runner — PipelineRunner', () => {
 
         expect(events.length).toBeGreaterThan(0);
         expect(events.some((e) => e.event_type === 'run.created')).toBe(true);
+    }, 10000);
+
+    test('events are persisted to EventStore via EventBus wiring', async () => {
+        const pipeline = createTestPipeline();
+        const eventStore = new EventStore(stateManager.getDb());
+
+        mockExecutor.setResponses([
+            { result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } },
+            { result: { success: true, exitCode: 0, durationMs: 800, timedOut: false } },
+        ]);
+
+        const options: RunOptions = {
+            taskRef: 'test-persist-events',
+            dryRun: false,
+        };
+
+        const result = await runner.run(options, pipeline);
+        expect(result.exitCode).toBe(0);
+
+        // Allow async .catch() handlers to flush
+        await new Promise((r) => setTimeout(r, 50));
+
+        const events = await eventStore.getEventsForRun(result.runId);
+
+        // Expect the full event sequence for a 2-phase pipeline
+        const eventTypes = events.map((e) => e.event_type);
+        expect(eventTypes).toContain('run.created');
+        expect(eventTypes).toContain('phase.started');
+        expect(eventTypes).toContain('phase.completed');
+        expect(eventTypes).toContain('run.completed');
+
+        // Verify ordering: run.created first, run.completed last
+        expect(eventTypes[0]).toBe('run.created');
+        expect(eventTypes[eventTypes.length - 1]).toBe('run.completed');
+
+        // All events should reference the same run_id
+        for (const event of events) {
+            expect(event.run_id).toBe(result.runId);
+        }
     }, 10000);
 
     test('handles pipeline with human gate', async () => {
