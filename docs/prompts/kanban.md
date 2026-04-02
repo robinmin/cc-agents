@@ -209,3 +209,7 @@ kanban-plugin: board
 - [x] 0114_Add_Output_Path_Validation
 - [x] 0019_0019_type_hint_detection
 - [x] 0065_enhance_super-designer
+
+## ⚫ Canceled
+
+<!-- No tasks in Canceled -->
