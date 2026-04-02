@@ -12,20 +12,6 @@ description: |
   <commentary>The agent delegates to the skill for template selection, prompt engineering, and generation.</commentary>
   </example>
 
-  <example>
-  Context: User wants an XHS cover image
-  user: "I need a cute cover image for my XHS post about spring recipes"
-  assistant: "I'll use the wt:image-generate skill with the cover-xhs template and cute style."
-  <commentary>The agent matches the platform to the correct template, then delegates everything to the skill.</commentary>
-  </example>
-
-  <example>
-  Context: User asks for something outside scope
-  user: "Can you edit my image to remove the background?"
-  assistant: "Image editing is outside my scope. I generate new images from text prompts. For editing, use a dedicated image editor."
-  <commentary>The agent identifies a scope boundary and declines gracefully.</commentary>
-  </example>
-
 model: inherit
 color: orange
 tools: [Bash, Skill]
