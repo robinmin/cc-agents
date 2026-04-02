@@ -18,11 +18,13 @@ import type {
     ChainState,
     OrchestratorEvent,
 } from '../model';
+import { EXIT_INVALID_ARGS } from '../model';
 import { FSMEngine } from './fsm';
-import { DAGScheduler } from './dag';
+import { DAGScheduler, validatePhaseSubset } from './dag';
 import { HookRegistry } from './hooks';
 import { ExecutorPool } from '../executors/pool';
 import type { StateManager } from '../state/manager';
+import { EventStore } from '../state/events';
 import { DefaultCoVDriver } from '../verification/cov-driver';
 import { EventBus } from '../observability/event-bus';
 import { logger } from '../../../../scripts/logger';
@@ -56,6 +58,14 @@ export class PipelineRunner {
         this.state = stateManager;
         this.covDriver = new DefaultCoVDriver();
         this.eventBus = eventBus ?? new EventBus();
+
+        // Wire EventBus → EventStore for event persistence (§8.2)
+        const eventStore = new EventStore(stateManager.getDb());
+        this.eventBus.subscribeAll((event) => {
+            eventStore.append(event).catch((err) => {
+                logger.warn('[runner] Event persistence failed', err);
+            });
+        });
     }
 
     async run(options: RunOptions, pipeline?: PipelineDefinition): Promise<PipelineRunResult> {
@@ -67,6 +77,27 @@ export class PipelineRunner {
 
         this.initializePipeline(pipeline);
         const requestedPhases = this.getRequestedPhases(options, pipeline);
+
+        // Validate that requested phases form a valid subgraph (ss3.2)
+        if (requestedPhases) {
+            const completedPhases = await this.getCompletedPhasesForTask(options.taskRef);
+            const validation = validatePhaseSubset(requestedPhases, pipeline.phases, completedPhases);
+            if (!validation.valid) {
+                const details = validation.missingDeps
+                    .map(
+                        (d) =>
+                            `Phase '${d.phase}' requires '${d.missingDependency}' which is not in the requested phases and has no completed run.`,
+                    )
+                    .join('\n');
+                logger.error(`Invalid phase subset:\n${details}`);
+                return {
+                    runId: '',
+                    status: 'FAILED',
+                    exitCode: EXIT_INVALID_ARGS,
+                    durationMs: Date.now() - startTime,
+                };
+            }
+        }
 
         if (options.dryRun) {
             return {
@@ -167,10 +198,97 @@ export class PipelineRunner {
         );
     }
 
-    async undo(_taskRef: string, _phase: string, _force?: boolean): Promise<void> {
-        // Undo is complex — requires git revert and state rollback
-        // Will be implemented in Phase 6 (Migration)
-        logger.warn('[runner] Undo not yet implemented');
+    async undo(
+        runId: string,
+        phaseName: string,
+        options: { force?: boolean; dryRun?: boolean } = {},
+    ): Promise<{ success: boolean; error?: string; exitCode: number }> {
+        // Load the rollback snapshot for the given phase
+        const snapshot = await this.state.getRollbackSnapshot(runId, phaseName);
+        if (!snapshot || !snapshot.files_before) {
+            return {
+                success: false,
+                error: `STATE_CORRUPT: No rollback snapshot found for phase "${phaseName}"`,
+                exitCode: 13,
+            };
+        }
+
+        // Check for uncommitted changes unless --force
+        if (!options.force) {
+            const hasUncommitted = await this.hasUncommittedChanges();
+            if (hasUncommitted) {
+                return {
+                    success: false,
+                    error: 'UNDO_UNCOMMITTED_CHANGES: Working tree has uncommitted changes. Use --force to bypass.',
+                    exitCode: 1,
+                };
+            }
+        }
+
+        // Find downstream phases (phases that depend on this phase or its descendants)
+        const downstreamPhases = this.findDownstreamPhases(phaseName);
+
+        if (options.dryRun) {
+            const filesBefore = snapshot.files_before as Record<string, string>;
+            const filesAfter = (snapshot.files_after as Record<string, string> | undefined) ?? {};
+            const createdFiles = Object.keys(filesAfter).filter((f) => !filesBefore[f]);
+            const modifiedFiles = Object.keys(filesBefore);
+
+            logger.info('[dry-run] Undo plan:');
+            logger.info(`  Files to restore: ${modifiedFiles.join(', ') || 'none'}`);
+            logger.info(`  Files to delete (created by phase): ${createdFiles.join(', ') || 'none'}`);
+            logger.info(`  Downstream phases to clear: ${downstreamPhases.join(', ') || 'none'}`);
+            return { success: true, exitCode: 0 };
+        }
+
+        // Restore files via git checkout
+        const filesBefore = snapshot.files_before as Record<string, string>;
+        for (const [file, hash] of Object.entries(filesBefore)) {
+            try {
+                const proc = Bun.spawnSync(['git', 'checkout', String(hash), '--', file], {
+                    cwd: process.cwd(),
+                    stderr: 'pipe',
+                });
+                if (proc.exitCode !== 0) {
+                    logger.warn(`[undo] Could not restore ${file}: ${new TextDecoder().decode(proc.stderr).trim()}`);
+                }
+            } catch {
+                logger.warn(`[undo] Could not restore ${file}`);
+            }
+        }
+
+        // Delete files created during the phase
+        const filesAfter = (snapshot.files_after as Record<string, string> | undefined) ?? {};
+        const createdFiles = Object.keys(filesAfter).filter((f) => !filesBefore[f]);
+        for (const file of createdFiles) {
+            try {
+                const proc = Bun.spawnSync(['git', 'rm', '-f', '--', file], {
+                    cwd: process.cwd(),
+                    stderr: 'pipe',
+                });
+                if (proc.exitCode !== 0) {
+                    logger.warn(`[undo] Could not delete ${file}`);
+                }
+            } catch {
+                logger.warn(`[undo] Could not delete ${file}`);
+            }
+        }
+
+        // Clear downstream phase records (reset to pending)
+        for (const dp of downstreamPhases) {
+            await this.state.updatePhase(runId, dp, 'pending');
+        }
+
+        // Reset the undone phase back to pending
+        await this.state.updatePhase(runId, phaseName, 'pending');
+
+        // Set run status to PAUSED
+        await this.state.updateRunStatus(runId, 'PAUSED');
+
+        await this.emitEvent(runId, 'phase.undo', { phase: phaseName, downstream: downstreamPhases });
+
+        logger.info(`[undo] Phase "${phaseName}" undone. ${downstreamPhases.length} downstream phase(s) reset.`);
+        return { success: true, exitCode: 0 };
     }
 
     async getStatus(runId: string): Promise<RunRecord | null> {
@@ -239,6 +357,9 @@ export class PipelineRunner {
                     // Mark as running
                     this.dag.markRunning(phaseName);
                     await this.state.updatePhaseStatus(runId, phaseName, 'running');
+
+                    // Capture snapshot before phase execution
+                    await this.captureSnapshot(runId, phaseName);
 
                     await this.emitEvent(runId, 'phase.started', { phase: phaseName });
 
@@ -382,6 +503,9 @@ export class PipelineRunner {
                         this.dag.markCompleted(phaseName);
                         await this.state.updatePhaseStatus(runId, phaseName, 'completed');
 
+                        // Finalize snapshot after phase completion
+                        await this.finalizeSnapshot(runId, phaseName);
+
                         await this.hooks.execute('on-phase-complete', {
                             phase: phaseName,
                             task_ref: options.taskRef,
@@ -432,6 +556,23 @@ export class PipelineRunner {
     ): Set<string> | null {
         const presetPhases = options.preset ? pipeline.presets?.[options.preset]?.phases : undefined;
         return options.phases ? new Set(options.phases) : presetPhases ? new Set(presetPhases) : null;
+    }
+
+    private async getCompletedPhasesForTask(taskRef: string): Promise<Set<string>> {
+        const completed = new Set<string>();
+        try {
+            const run = await this.state.getRunByTaskRef(taskRef);
+            if (!run) return completed;
+            const phases = await this.state.getPhases(run.id);
+            for (const phase of phases) {
+                if (phase.status === 'completed') {
+                    completed.add(phase.name);
+                }
+            }
+        } catch {
+            // No previous runs or state not initialized — treat as empty
+        }
+        return completed;
     }
 
     private getRequestedPhasesFromRun(run: RunRecord): Set<string> | null {
@@ -675,5 +816,95 @@ export class PipelineRunner {
 
     private generateRunId(): string {
         return `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    private async hasUncommittedChanges(): Promise<boolean> {
+        try {
+            const proc = Bun.spawnSync(['git', 'status', '--porcelain'], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+            });
+            const output = new TextDecoder().decode(proc.stdout).trim();
+            return output.length > 0;
+        } catch {
+            return false;
+        }
+    }
+
+    private findDownstreamPhases(phaseName: string): string[] {
+        // BFS to find all phases that transitively depend on phaseName
+        const downstream: string[] = [];
+        const visited = new Set<string>();
+        const queue = [phaseName];
+        visited.add(phaseName);
+
+        while (queue.length > 0) {
+            const current = queue.shift();
+            if (current === undefined) break;
+            for (const [name, node] of this.dag.getNodes()) {
+                if (visited.has(name)) continue;
+                if (node.dependencies.includes(current)) {
+                    downstream.push(name);
+                    visited.add(name);
+                    queue.push(name);
+                }
+            }
+        }
+
+        return downstream;
+    }
+
+    private async captureSnapshot(runId: string, phaseName: string): Promise<void> {
+        const gitHead = await this.getGitHead();
+        const files = await this.getChangedFiles();
+        await this.state.saveRollbackSnapshot({
+            run_id: runId,
+            phase_name: phaseName,
+            git_head: gitHead,
+            files_before: files,
+        });
+    }
+
+    private async finalizeSnapshot(runId: string, phaseName: string): Promise<void> {
+        const existing = await this.state.getRollbackSnapshot(runId, phaseName);
+        const files = await this.getChangedFiles();
+        await this.state.saveRollbackSnapshot({
+            run_id: runId,
+            phase_name: phaseName,
+            ...(existing?.git_head && { git_head: existing.git_head }),
+            ...(existing?.files_before && { files_before: existing.files_before }),
+            files_after: files,
+        });
+    }
+
+    private async getGitHead(): Promise<string> {
+        try {
+            const proc = Bun.spawnSync(['git', 'rev-parse', 'HEAD'], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+            });
+            return new TextDecoder().decode(proc.stdout).trim();
+        } catch {
+            return '';
+        }
+    }
+
+    private async getChangedFiles(): Promise<Record<string, string>> {
+        try {
+            const proc = Bun.spawnSync(['git', 'diff', '--name-only', 'HEAD'], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+            });
+            const output = new TextDecoder().decode(proc.stdout).trim();
+            if (!output) return {};
+            const files: Record<string, string> = {};
+            for (const line of output.split('\n')) {
+                const trimmed = line.trim();
+                if (trimmed) files[trimmed] = 'modified';
+            }
+            return files;
+        } catch {
+            return {};
+        }
     }
 }
