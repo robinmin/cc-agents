@@ -1,242 +1,273 @@
-# RD2 Plugin Sync Scripts
+# Script Installer Guide
 
-Unified scripts to sync rd2 plugins (rules, commands, subagents, skills) to all vibe coding tools.
+Installer scripts for syncing `cc-agents` assets to the supported AI coding platforms.
+
+The current entrypoint is `scripts/setup-all.sh`. It installs:
+
+- main agent configs via `scripts/command/magents.sh`
+- plugin skills via `scripts/command/skills.sh`
+- subagents via `scripts/command/subagents.sh`
+- slash-command wrappers via `scripts/command/commands.sh`
+
+Claude Code is handled differently from the other platforms:
+
+- `claude-code` uses the Claude plugin marketplace update flow
+- all other targets use the command installers under `scripts/command/`
 
 ## Quick Start
 
 ```bash
-# Sync all tools
+# Install defaults (rd3 + wt) to all supported targets
 ./scripts/setup-all.sh
 
-# Sync specific tools
-./scripts/setup-all.sh --tools=claude,antigravity,gemini-cli
+# Dry run a subset of targets
+./scripts/setup-all.sh --targets=codex,gemini-cli,openclaw --dry-run
 
-# Preview without changes
-./scripts/setup-all.sh --dry-run
+# Install only rd3
+./scripts/setup-all.sh --plugins=rd3
+
+# Skip main-agent config installation
+./scripts/setup-all.sh --skip-magents
 ```
 
-## Supported Tools
+## Supported Targets
 
-| Tool | Description | Sync Method |
-|------|-------------|-------------|
-| **Claude Code** | Anthropic's official Claude Code CLI | Direct plugin install |
-| **Antigravity** | Google Gemini Code Assist CLI | rulesync |
-| **Gemini CLI** | Google Gemini CLI | rulesync |
-| **Auggie** | Augment Code (semantic understanding) | rulesync |
-| **OpenCode** | Multi-model code generation CLI | rulesync |
+| Target | Install Mode | Global skill location used by this repo |
+|---|---|---|
+| `claude-code` | Claude marketplace update | N/A |
+| `codex` | command installers | `~/.agents/skills/` |
+| `gemini-cli` | command installers | `~/.agents/skills/` |
+| `antigravity` | command installers | `~/.gemini/antigravity/skills/` |
+| `opencode` | command installers | `~/.agents/skills/` |
+| `openclaw` | command installers | `~/.agents/skills/` |
+| `pi` | command installers | `~/.agents/skills/` |
+
+### Global Skill Policy
+
+For global installs, this codebase uses a shared personal skill pool at `~/.agents/skills/` for:
+
+- Codex
+- Gemini CLI
+- OpenCode
+- OpenClaw
+- Pi
+
+This avoids duplicating the same skill set into several tool-specific folders.
+
+`antigravity` is still installed to its native path:
+
+- `~/.gemini/antigravity/skills/`
+
+Tool-native locations may still exist and may still be discovered by the tool, but the installer default is the shared personal pool above.
 
 ## Usage
 
 ```bash
-./scripts/setup-all.sh [OPTIONS]
-
-Options:
-  --tools=LIST      Comma-separated tools (default: all)
-  --features=LIST   Comma-separated features (default: all)
-  --dry-run         Preview changes without executing
-  --verbose         Enable detailed output
-  --help, -h        Show help message
+./scripts/setup-all.sh [options]
 ```
+
+### Options
+
+| Option | Meaning |
+|---|---|
+| `--targets=LIST` | Comma-separated targets. Default: `all` |
+| `--agent=NAME` | Main agent config name for `magents.sh`. Default: `team-stark-children` |
+| `--plugins=LIST` | Plugins to install. Default: `rd3,wt` |
+| `--skip-magents` | Skip main agent config installation |
+| `--skip-skills` | Skip plugin skill installation |
+| `--skip-subagents` | Skip subagent installation |
+| `--skip-commands` | Skip slash-command wrapper installation |
+| `--dry-run` | Print planned actions without writing files |
+| `--verbose` | Enable more installer output |
+| `--help` | Show CLI help |
 
 ### Examples
 
 ```bash
-# Sync Claude Code only
-./scripts/setup-all.sh --tools=claude
-
-# Sync Claude + Antigravity
-./scripts/setup-all.sh --tools=claude,antigravity
-
-# Sync all tools
+# Install everything everywhere
 ./scripts/setup-all.sh
 
-# Dry run preview
-./scripts/setup-all.sh --tools=gemini-cli --dry-run
+# Install rd3 only to Codex and Pi
+./scripts/setup-all.sh --targets=codex,pi --plugins=rd3
 
-# Sync specific features only
-./scripts/setup-all.sh --features=rules,commands
+# Preview non-Claude installs
+./scripts/setup-all.sh --targets=codex,gemini-cli,opencode,openclaw,pi --dry-run
+
+# Install only skills and commands
+./scripts/setup-all.sh --skip-magents --skip-subagents
 ```
 
-## Tool Details
+## What `setup-all.sh` Does
 
 ### Claude Code
 
-**Installation Method:** Direct plugin installation (no rulesync)
+For `claude-code`, the script:
+
+- clears the local Claude plugin cache
+- updates the `cc-agents` marketplace entry
+- updates the selected plugins such as `rd3@cc-agents` and `wt@cc-agents`
+- installs the selected main agent config into `~/.claude/CLAUDE.md` unless `--skip-magents` is set
+
+### Non-Claude Targets
+
+For non-Claude targets, the script orchestrates:
+
+1. `magents.sh`
+2. `skills.sh`
+3. `subagents.sh`
+4. `commands.sh`
+
+These command installers resolve target-specific output directories and copy adapted assets into the correct places.
+
+## Direct Command Installers
+
+These are useful when you want a narrower workflow than `setup-all.sh`.
+
+### `skills.sh`
+
+Installs plugin skills and command wrappers.
 
 ```bash
-# Sync Claude Code plugins
-./scripts/setup-all.sh --tools=claude
+./scripts/command/skills.sh rd3 codexcli,geminicli,opencode --global
 ```
 
-**What it does:**
-- Removes plugin cache
-- Pulls latest from marketplace
-- Reinstalls `wt@cc-agents` and `rd2@cc-agents` plugins
+Notes:
 
-**Plugins installed:**
-- `wt@cc-agents` - Web browsing, document conversion
-- `rd2@cc-agents` - RD2 workflow management
+- uses an isolated rulesync workspace for validation/generation
+- for global installs, routes compatible targets to `~/.agents/skills/`
+- for project installs, uses platform-specific project paths such as `.codex/skills/`, `.gemini/skills/`, `.agents/skills/`, or `skills/`
 
-**Output location:** `~/.claude/plugins/`
+### `subagents.sh`
 
-**Requirements:** `claude` CLI installed
-
-### Google Antigravity
-
-**Installation Method:** rulesync
+Installs subagent definitions from `plugins/<plugin>/agents/*.md` as skill directories.
 
 ```bash
-# Sync to Antigravity
-./scripts/setup-all.sh --tools=antigravity
+./scripts/command/subagents.sh rd3 codexcli,openclaw,pi --global
 ```
 
-**Features:** rules, commands, skills
+### `commands.sh`
 
-**Output location:** `.agent/`
-
-**Requirements:** `rulesync` CLI (or `npx rulesync`)
-
-### Gemini CLI
-
-**Installation Method:** rulesync
+Installs slash-command definitions from `plugins/<plugin>/commands/*.md` as skill directories.
 
 ```bash
-# Sync to Gemini CLI
-./scripts/setup-all.sh --tools=gemini-cli
+./scripts/command/commands.sh rd3 codexcli,geminicli,pi --global
 ```
 
-**Features:** rules, ignore, mcp, commands, skills
+### `magents.sh`
 
-**Output location:** `.gemini/`
-
-**Requirements:** `rulesync` CLI (or `npx rulesync`)
-
-### Auggie (Augment Code)
-
-**Installation Method:** rulesync
+Installs or adapts the main agent config for the target platform.
 
 ```bash
-# Sync to Auggie
-./scripts/setup-all.sh --tools=auggie
+./scripts/command/magents.sh team-stark-children codexcli
 ```
 
-**Features:** rules, ignore only (skills/commands not supported)
+## Output Paths
 
-**Output location:** `.augment/`, `.augmentignore`
+### Global installs
 
-**Limitations:** Auggie's rulesync target only supports rules & ignore
+| Target | Path |
+|---|---|
+| `codex` | `~/.agents/skills/` |
+| `gemini-cli` | `~/.agents/skills/` |
+| `antigravity` | `~/.gemini/antigravity/skills/` |
+| `opencode` | `~/.agents/skills/` |
+| `openclaw` | `~/.agents/skills/` |
+| `pi` | `~/.agents/skills/` |
 
-**Requirements:** `rulesync` CLI (or `npx rulesync`)
+### Project installs
 
-### OpenCode
+| Target | Path |
+|---|---|
+| `codex` | `.codex/skills/` |
+| `gemini-cli` | `.gemini/skills/` and `.agents/skills/` |
+| `antigravity` | `.gemini/antigravity/skills/` |
+| `opencode` | `.opencode/skills/` and `.agents/skills/` |
+| `openclaw` | `skills/` |
+| `pi` | `.pi/agent/skills/` |
 
-**Installation Method:** rulesync
+## Requirements
 
-```bash
-# Sync to OpenCode
-./scripts/setup-all.sh --tools=opencode
-```
+### Common
 
-**Features:** rules, mcp, commands, subagents, skills
+- Bash
+- a checked-out `cc-agents` repo
 
-**Output location:** `opencode.json`, `opencode.md`, `opencode.*`
+### Claude Code
 
-**Requirements:** `rulesync` CLI (or `npx rulesync`)
+- `claude` CLI installed and authenticated
 
-## Features
+### Non-Claude targets
 
-| Feature | Description |
-|---------|-------------|
-| `rules` | AI coding rules and guidelines |
-| `ignore` | Ignore patterns (.gitignore-style) |
-| `mcp` | Model Context Protocol configurations |
-| `commands` | Slash commands for AI tools |
-| `subagents` | Sub-agent definitions |
-| `skills` | Agent skill definitions |
+- `rulesync` available directly or through `npx`
 
-## Architecture
-
-```
-scripts/
-├── setup-all.sh              # Main orchestrator
-├── lib/                      # Shared functions
-│   ├── validation.sh         # Input validation
-│   └── rulesync-wrapper.sh   # Rulesync CLI wrapper
-├── tools/                    # Tool-specific modules
-│   ├── claude.sh             # Claude Code (direct install)
-│   ├── antigravity.sh        # Antigravity
-│   ├── gemini-cli.sh         # Gemini CLI
-│   ├── auggie.sh             # Auggie
-│   └── opencode.sh           # OpenCode
-├── README.md                 # This file
-└── TOOL_NOTES.md             # Tool-specific reference
-```
+The command installers already handle the rulesync invocation. You generally do not need to run rulesync manually.
 
 ## Troubleshooting
 
-### "rulesync not found"
+### `claude CLI not found`
+
+Install Claude Code from:
+
+- https://code.claude.com
+
+### `rulesync not found`
+
+Install it globally:
 
 ```bash
-# Install rulesync globally
 npm install -g rulesync
-
-# OR use npx (no installation needed)
-# The script will automatically fall back to npx
 ```
 
-### "claude CLI not found" (Claude Code only)
+Or rely on `npx` if your environment supports it.
+
+### `Invalid target`
+
+Check the supported names:
 
 ```bash
-# Install Claude Code from:
-# https://code.claude.com
-```
-
-### ".rulesync directory not found"
-
-```bash
-# Initialize rulesync
-npx rulesync init
-
-# Then run the sync script again
-./scripts/setup-all.sh
-```
-
-### "Invalid tool: xyz"
-
-```bash
-# Check available tools
 ./scripts/setup-all.sh --help
-
-# Valid tools: claude, antigravity, gemini-cli, auggie, opencode
 ```
+
+Current valid targets:
+
+- `claude-code`
+- `codex`
+- `gemini-cli`
+- `antigravity`
+- `opencode`
+- `openclaw`
+- `pi`
 
 ### Permission denied
 
+Ensure the scripts are executable:
+
 ```bash
-# Make scripts executable
 chmod +x scripts/setup-all.sh
+chmod +x scripts/command/*.sh
 chmod +x scripts/lib/*.sh
-chmod +x scripts/tools/*.sh
 ```
 
-## CI/CD Integration
+## Architecture
 
-```yaml
-# Example: GitHub Actions
-- name: Setup Node.js
-  uses: actions/setup-node@v3
-  with:
-    node-version: '18'
-
-- name: Install rulesync
-  run: npm install -g rulesync
-
-- name: Sync plugins to vibe tools
-  run: ./scripts/setup-all.sh --tools=antigravity,gemini-cli,opencode
+```text
+scripts/
+├── setup-all.sh
+├── README.md
+├── TOOL_NOTES.md
+├── lib/
+│   └── common.sh
+└── command/
+    ├── magents.sh
+    ├── skills.sh
+    ├── subagents.sh
+    └── commands.sh
 ```
 
 ## See Also
 
-- [TOOL_NOTES.md](TOOL_NOTES.md) - Detailed tool-specific notes
-- [rulesync Documentation](https://github.com/dyoshikawa/rulesync)
-- [Task 0089: Customize rulesync](../docs/prompts/0089_customize_rulesync_to_sync_plugins_to_all_vibe_coding_tools.md)
+- [TOOL_NOTES.md](./TOOL_NOTES.md)
+- [setup-all.sh](/Users/robin/projects/cc-agents/scripts/setup-all.sh)
+- [skills.sh](/Users/robin/projects/cc-agents/scripts/command/skills.sh)
+- [subagents.sh](/Users/robin/projects/cc-agents/scripts/command/subagents.sh)
+- [commands.sh](/Users/robin/projects/cc-agents/scripts/command/commands.sh)
