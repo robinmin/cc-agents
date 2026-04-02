@@ -9,9 +9,14 @@ import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { applyBestPracticeFixes } from '../../../scripts/best-practice-fixes';
 import { logger } from '../../../scripts/logger';
+import {
+    CODEX_AGENT_DESCRIPTION_MAX_LENGTH,
+    replaceDescriptionInMarkdownFrontmatter,
+    truncateAgentDescriptionForCodex,
+} from './description-constraints';
 import { evaluateAgent } from './evaluate';
 import type { AgentRefineOptions, AgentRefineResult } from './types';
-import { readAgent } from './utils';
+import { parseFrontmatter, readAgent } from './utils';
 
 // ============================================================================
 // Migration Functions
@@ -24,7 +29,16 @@ interface MigrationResult {
     content?: string;
 }
 
-function migrateFromRd2(content: string): MigrationResult {
+interface RefineDependencies {
+    readAgent: typeof readAgent;
+    evaluateAgent: typeof evaluateAgent;
+    migrateFromRd2: typeof migrateFromRd2;
+    applyBestPracticeFixes: typeof applyBestPracticeFixes;
+    parseFrontmatter: typeof parseFrontmatter;
+    writeFile: typeof Bun.write;
+}
+
+export function migrateFromRd2(content: string): MigrationResult {
     const actions: string[] = [];
     const errors: string[] = [];
     let updated = content;
@@ -61,13 +75,26 @@ function migrateFromRd2(content: string): MigrationResult {
     };
 }
 
+const defaultRefineDependencies: RefineDependencies = {
+    readAgent,
+    evaluateAgent,
+    migrateFromRd2,
+    applyBestPracticeFixes,
+    parseFrontmatter,
+    writeFile: Bun.write.bind(Bun),
+};
+
 // ============================================================================
 // Refinement Functions
 // ============================================================================
 
-async function refineAgent(agentPath: string, options: AgentRefineOptions): Promise<AgentRefineResult> {
+export async function refineAgentWithDeps(
+    agentPath: string,
+    options: AgentRefineOptions,
+    deps: RefineDependencies = defaultRefineDependencies,
+): Promise<AgentRefineResult> {
     const resolvedPath = resolve(agentPath);
-    const agent = await readAgent(resolvedPath);
+    const agent = await deps.readAgent(resolvedPath);
 
     if (!agent) {
         return {
@@ -91,7 +118,7 @@ async function refineAgent(agentPath: string, options: AgentRefineOptions): Prom
     // Run evaluation first if requested
     if (options.fromEval) {
         try {
-            const evalResult = await evaluateAgent(resolvedPath, 'full');
+            const evalResult = await deps.evaluateAgent(resolvedPath, 'full');
             if (!evalResult.passed) {
                 warnings.push(`Agent scored ${evalResult.percentage}% - below pass threshold`);
                 // Add dimension-specific improvement suggestions
@@ -110,7 +137,7 @@ async function refineAgent(agentPath: string, options: AgentRefineOptions): Prom
 
     // Run migration if requested
     if (options.migrate) {
-        const migration = migrateFromRd2(content);
+        const migration = deps.migrateFromRd2(content);
         if (migration.actions.length > 0) {
             changes.push(...migration.actions);
             if (migration.content) {
@@ -125,7 +152,7 @@ async function refineAgent(agentPath: string, options: AgentRefineOptions): Prom
 
     // Run best practices auto-fix
     if (options.migrate || options.fromEval) {
-        const bpResult = applyBestPracticeFixes(content, { entityLabel: 'This agent helps' });
+        const bpResult = deps.applyBestPracticeFixes(content, { entityLabel: 'This agent helps' });
         if (bpResult.actions.length > 0) {
             changes.push(...bpResult.actions);
             if (bpResult.content !== content) {
@@ -135,11 +162,31 @@ async function refineAgent(agentPath: string, options: AgentRefineOptions): Prom
         }
     }
 
+    const reparsed = deps.parseFrontmatter(content);
+    const frontmatter = reparsed.frontmatter;
+    if (frontmatter?.description && typeof frontmatter.description === 'string') {
+        const constrained = truncateAgentDescriptionForCodex(frontmatter.description);
+        if (constrained.truncated) {
+            content = replaceDescriptionInMarkdownFrontmatter(content, constrained.value);
+            updated = true;
+            changes.push(
+                `Truncated description from ${constrained.originalLength} to ${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} characters for Codex compatibility`,
+            );
+            if (constrained.preservedExample) {
+                changes.push('Preserved at least one <example> block while trimming the description');
+            } else {
+                warnings.push(
+                    'Description exceeded the hard limit so severely that example preservation was not possible',
+                );
+            }
+        }
+    }
+
     // Write updated content
     if (updated && !options.output) {
-        await Bun.write(resolvedPath, content);
+        await deps.writeFile(resolvedPath, content);
     } else if (updated && options.output) {
-        await Bun.write(options.output, content);
+        await deps.writeFile(options.output, content);
     }
 
     return {
@@ -152,11 +199,15 @@ async function refineAgent(agentPath: string, options: AgentRefineOptions): Prom
     };
 }
 
+export async function refineAgent(agentPath: string, options: AgentRefineOptions): Promise<AgentRefineResult> {
+    return refineAgentWithDeps(agentPath, options);
+}
+
 // ============================================================================
 // CLI
 // ============================================================================
 
-function printUsage(): void {
+export function printUsage(): void {
     logger.log('Usage: refine.ts <agent-path> [options]');
     logger.log('');
     logger.log('Arguments:');
@@ -172,14 +223,14 @@ function printUsage(): void {
     logger.log('  --help, -h          Show this help message');
 }
 
-function parseCliArgs(): {
+export function parseCliArgs(argv: string[] = process.argv.slice(2)): {
     path: string;
     options: AgentRefineOptions;
     dryRun: boolean;
     verbose: boolean;
 } {
     const args = parseArgs({
-        args: process.argv.slice(2),
+        args: argv,
         allowPositionals: true,
         options: {
             eval: { type: 'boolean', short: 'e', default: false },
@@ -228,7 +279,7 @@ function parseCliArgs(): {
     };
 }
 
-async function main() {
+export async function main() {
     const { path: agentPath, options, dryRun, verbose: _verbose } = parseCliArgs();
 
     logger.info(`Refining agent at: ${agentPath}`);
@@ -274,11 +325,13 @@ async function main() {
     process.exit(result.success ? 0 : 1);
 }
 
-if (import.meta.main) {
-    main().catch((e) => {
-        logger.error(`Fatal error: ${e}`);
-        process.exit(1);
-    });
+export function handleFatalRefineError(error: unknown): never {
+    logger.error(`Fatal error: ${error}`);
+    process.exit(1);
 }
 
-export { refineAgent, type AgentRefineOptions, type AgentRefineResult };
+if (import.meta.main) {
+    main().catch(handleFatalRefineError);
+}
+
+export type { AgentRefineOptions, AgentRefineResult };
