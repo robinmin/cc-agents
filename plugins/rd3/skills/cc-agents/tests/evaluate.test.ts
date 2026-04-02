@@ -1221,11 +1221,11 @@ This is a verification and error handling agent with fallback recovery.
         }
     });
 
-    it('should score description with long description (>500 chars)', async () => {
-        const agentPath = resolve(FIXTURES_DIR, 'long-desc-agent.md');
-        const longDesc = `Use PROACTIVELY for ${'a'.repeat(500)}`;
+    it('should warn when description is near the Codex hard limit', async () => {
+        const agentPath = resolve(FIXTURES_DIR, 'near-limit-desc-agent.md');
+        const longDesc = `Use PROACTIVELY for ${'a'.repeat(990)}`;
         const content = `---
-name: long-desc-agent
+name: near-limit-desc-agent
 description: "${longDesc}"
 model: inherit
 ---
@@ -1238,7 +1238,31 @@ Content here.
         try {
             const result = await evaluateAgent(agentPath, 'full');
             const descDim = result.dimensions.find((d) => d.name === 'description-effectiveness');
-            expect(descDim?.findings.join(' ')).toContain('too long');
+            expect(descDim?.findings.join(' ')).toContain('close to Codex hard limit');
+        } finally {
+            rmSync(agentPath);
+        }
+    });
+
+    it('should warn when description exceeds the Codex hard limit', async () => {
+        const agentPath = resolve(FIXTURES_DIR, 'over-limit-desc-agent.md');
+        const longDesc = `Use PROACTIVELY for ${'a'.repeat(1040)}`;
+        const content = `---
+name: over-limit-desc-agent
+description: "${longDesc}"
+model: inherit
+---
+
+# Agent Body
+
+Content here.
+`;
+        writeFileSync(agentPath, content);
+        try {
+            const result = await evaluateAgent(agentPath, 'full');
+            const descDim = result.dimensions.find((d) => d.name === 'description-effectiveness');
+            expect(descDim?.findings.join(' ')).toContain('exceeds Codex hard limit');
+            expect(descDim?.recommendations.join(' ')).toContain('keeping at least one compact <example> block');
         } finally {
             rmSync(agentPath);
         }
