@@ -10,27 +10,6 @@ description: |
   <commentary>User requests multi-platform publishing. The agent should: (1) analyze content for platform selection, (2) use decision table for matching, (3) present recommended platforms via AskUserQuestion, (4) orchestrate sequential publishing with error handling, (5) generate summary report.</commentary>
   </example>
 
-  <example>
-  Context: User wants to publish to specific platforms
-  user: "Publish this markdown file to Medium, Substack, and X (Twitter)"
-  assistant: "I'll publish your content to Medium, Substack, and X in sequence. Each platform will receive appropriately adapted content. I'll handle any errors gracefully and continue with remaining platforms. Let me start by confirming the destination platforms."
-  <commentary>User specifies explicit platforms. Agent should: (1) use AskUserQuestion to confirm platform selection, (2) adapt content for each platform's requirements, (3) publish sequentially with error handling, (4) generate comprehensive summary report.</commentary>
-  </example>
-
-  <example>
-  Context: User has Chinese content and wants platform recommendations
-  user: "I have a Chinese technical article about frontend development. Which platforms should I publish to?"
-  assistant: "Based on your content language (Chinese) and topic (frontend development), I recommend these platforms from the decision table: Juejin (primary - Chinese developer community), InfoQ (enterprise technical content), WeChat MP (broader Chinese audience), and XHS (lifestyle/tech crossover). Let me present the full platform selection analysis for your approval."
-  <commentary>User requests platform recommendation. Agent should: (1) use platform decision table for matching, (2) filter by language (Chinese) and category (frontend), (3) present options with rationale, (4) await user confirmation before publishing.</commentary>
-  </example>
-
-  <example>
-  Context: Previous publishing attempt had some platform failures
-  user: "My last publish attempt failed on Medium and XHS but succeeded on Juejin and InfoQ. Can you retry just the failed ones?"
-  assistant: "I'll check the checkpoint file from your previous run and retry only the failed platforms (Medium and XHS) without re-publishing to the successful ones (Juejin and InfoQ). This preserves your already-published content and avoids duplicate posts."
-  <commentary>User requests selective retry. Agent should: (1) load checkpoint file to identify failed vs successful platforms, (2) retry only failed platforms, (3) preserve successful platform URLs from previous run, (4) generate updated summary with combined results.</commentary>
-  </example>
-
 model: sonnet
 color: cyan
 tools: [Read, Write, Edit, Grep, Glob, AskUserQuestion, Skill, Bash]
