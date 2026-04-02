@@ -215,6 +215,8 @@ Subagent frontmatter MUST follow strict schema rules. The frontmatter IS the con
 - MUST include 2-4 trigger phrases in quotes
 - MUST include 1-2 `<example>` blocks with `<commentary>`
 - Recommended length: 200-1000 chars
+- Hard Codex limit: 1024 chars
+- Keep at least one compact `<example>` block when tightening long descriptions
 - The description IS the trigger — it determines routing
 
 **tools**:
@@ -262,7 +264,7 @@ Subagent frontmatter MUST follow strict schema rules. The frontmatter IS the con
 | Field | Best Practice |
 |-------|---------------|
 | `name` | Lowercase hyphen-case, 3-50 chars, alphanumeric start/end |
-| `description` | Start with "Use PROACTIVELY for" + trigger phrases + 2-3 `<example>` blocks |
+| `description` | Start with "Use PROACTIVELY for" + trigger phrases + compact `<example>` blocks, but stay <= 1024 chars |
 | `tools` | Explicit list of allowed tools (whitelist) |
 | `model` | Use `inherit` unless agent requires specific model |
 | `color` | Category-appropriate color (see [references/colors.md](references/colors.md)) |
