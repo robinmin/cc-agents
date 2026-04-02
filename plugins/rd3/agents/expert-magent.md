@@ -15,12 +15,6 @@ description: |
   assistant: "Routing to evaluate operation. Analyzing quality across 5 MECE dimensions... Grade: B (78%). Validation passed. Main gaps: weak operability and missing workflow guidance. Suggest running /rd3:magent-refine to improve structural and quality issues."
   </example>
 
-  <example>
-  Context: User wants to switch platforms
-  user: "I have a CLAUDE.md but want to use Cursor"
-  assistant: "Routing to adapt operation. Converting CLAUDE.md to .cursorrules... Conversion complete. Warning: Claude hooks are not portable to .cursorrules. Run /rd3:magent-evaluate .cursorrules to verify."
-  </example>
-
 tools:
   - Bash
   - Glob
