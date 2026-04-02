@@ -509,6 +509,23 @@ Some content.
         expect(report.findings.some((f) => f.severity === 'info' && f.message.includes('example blocks'))).toBe(true);
     });
 
+    it('warns when description exceeds the Codex hard limit', async () => {
+        const filePath = makeTempFile(
+            'temp-overlimit-description.md',
+            `---
+name: test-agent
+description: "${`Use PROACTIVELY for ${'a'.repeat(1040)}`}"
+---
+
+# Body
+Some content.
+`,
+        );
+
+        const report = await validateAgent(filePath);
+        expect(report.warnings.some((w) => w.includes('exceeds Codex hard limit'))).toBe(true);
+    });
+
     it('reports no BLOCK errors for a fully valid agent', async () => {
         // Filename must match name to avoid name mismatch warning
         const filePath = makeTempFile(
