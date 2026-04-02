@@ -12,20 +12,6 @@ description: |
   <commentary>This agent delegates to wt:markitdown-browser for the actual browser automation workflow.</commentary>
   </example>
 
-  <example>
-  Context: User wants to convert a document to markdown
-  user: "Convert this PDF to markdown"
-  assistant: "Using wt:markitdown-browser skill for document conversion. This will produce clean markdown with ~50% token reduction."
-  <commentary>Document conversion is delegated to the skill's MarkItDown workflow.</commentary>
-  </example>
-
-  <example>
-  Context: User needs to scrape JavaScript-rendered content
-  user: "Extract the data from https://dashboard.example.com - it's a React SPA with dynamic tables"
-  assistant: "Using wt:markitdown-browser skill for JavaScript-rendered content. I'll navigate, wait for dynamic content to load, snapshot the table elements, and extract the data."
-  <commentary>JavaScript-rendered content requires browser automation - WebFetch can't handle SPAs.</commentary>
-  </example>
-
 model: inherit
 color: salmon
 tools: [Bash, Skill]
