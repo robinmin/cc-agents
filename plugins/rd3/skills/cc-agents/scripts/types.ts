@@ -60,7 +60,7 @@ export interface UniversalAgent {
 
     /** Agent identifier (lowercase hyphen-case) */
     name: string;
-    /** Agent purpose / delegation trigger description */
+    /** Agent purpose / delegation trigger description (Codex hard limit: 1024 chars) */
     description: string;
     /** System prompt content (markdown body) */
     body: string;
