@@ -24,6 +24,10 @@ import { getValidationDecisionState } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
 import { pathExists } from '../../../scripts/utils';
 import { type ValidationFindingAccumulator, addValidationFinding } from '../../../scripts/validation-findings';
+import {
+    AGENT_DESCRIPTION_RECOMMENDED_MAX_LENGTH,
+    CODEX_AGENT_DESCRIPTION_MAX_LENGTH,
+} from './description-constraints';
 import type {
     AgentBodyAnalysis,
     AgentPlatform,
@@ -314,6 +318,24 @@ function validateDescriptionQuality(ctx: ValidationContext, report: MutableRepor
             'Description does not include <example> blocks',
             'description',
             'Add <example> blocks for better auto-routing delegation',
+        );
+    }
+
+    if (desc.length > CODEX_AGENT_DESCRIPTION_MAX_LENGTH) {
+        addFinding(
+            report,
+            'warning',
+            `Description exceeds Codex hard limit (${desc.length}/${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} chars)`,
+            'description',
+            `Trim to ${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} chars or fewer while keeping one compact <example> block`,
+        );
+    } else if (desc.length > AGENT_DESCRIPTION_RECOMMENDED_MAX_LENGTH) {
+        addFinding(
+            report,
+            'info',
+            `Description is near the Codex hard limit (${desc.length}/${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} chars)`,
+            'description',
+            `Tighten wording toward ${AGENT_DESCRIPTION_RECOMMENDED_MAX_LENGTH} chars or fewer, but keep the strongest example block`,
         );
     }
 }
