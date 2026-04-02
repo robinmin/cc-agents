@@ -22,6 +22,11 @@ import { parseArgs } from 'node:util';
 
 import { calculateLetterGrade, getEvaluationDecisionState } from '../../../scripts/grading';
 import { COLORS, logger } from '../../../scripts/logger';
+import {
+    AGENT_DESCRIPTION_MIN_LENGTH,
+    AGENT_DESCRIPTION_RECOMMENDED_MAX_LENGTH,
+    CODEX_AGENT_DESCRIPTION_MAX_LENGTH,
+} from './description-constraints';
 import { AGENT_DIMENSION_DISPLAY_NAMES, AGENT_EVALUATION_CONFIG, getWeightsForProfile } from './evaluation.config';
 import type { AgentEvaluationDimension, AgentEvaluationReport, AgentWeightProfile, EvaluationScope } from './types';
 import { analyzeBody, detectWeightProfile, isValidAgentName, parseFrontmatter } from './utils';
@@ -167,13 +172,27 @@ function scoreDescriptionEffectiveness(
     const desc = frontmatter.description as string;
 
     // Length check
-    if (desc.length < 20) {
+    if (desc.length < AGENT_DESCRIPTION_MIN_LENGTH) {
         findings.push(`Description too short (${desc.length} chars)`);
-        recommendations.push('Expand description to at least 20 characters with trigger keywords');
+        recommendations.push(
+            `Expand description to at least ${AGENT_DESCRIPTION_MIN_LENGTH} characters with trigger keywords`,
+        );
         raw -= 3;
-    } else if (desc.length > 500) {
-        findings.push(`Description too long (${desc.length} chars)`);
-        recommendations.push('Keep description under 500 characters');
+    } else if (desc.length > CODEX_AGENT_DESCRIPTION_MAX_LENGTH) {
+        findings.push(
+            `Description exceeds Codex hard limit (${desc.length}/${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} chars)`,
+        );
+        recommendations.push(
+            `Truncate description to ${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} characters or fewer while keeping at least one compact <example> block`,
+        );
+        raw -= 3;
+    } else if (desc.length > AGENT_DESCRIPTION_RECOMMENDED_MAX_LENGTH) {
+        findings.push(
+            `Description is close to Codex hard limit (${desc.length}/${CODEX_AGENT_DESCRIPTION_MAX_LENGTH} chars)`,
+        );
+        recommendations.push(
+            `Tighten wording toward ${AGENT_DESCRIPTION_RECOMMENDED_MAX_LENGTH} characters or fewer, but keep at least one useful <example> block`,
+        );
         raw -= 1;
     }
 
