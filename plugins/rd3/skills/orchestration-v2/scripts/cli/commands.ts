@@ -80,6 +80,9 @@ export function parseArgs(argv: string[]): ParsedCommand {
         } else if (arg === '--coverage' && argv[i + 1]) {
             options.coverage = Number(argv[i + 1]);
             i++;
+        } else if (arg === '--run' && argv[i + 1]) {
+            options.run = argv[i + 1];
+            i++;
         } else if (arg === '--all') {
             options.all = true;
         } else if (arg === '--json') {
@@ -101,6 +104,10 @@ export function parseArgs(argv: string[]): ParsedCommand {
             i++;
         } else if (arg === '--failed') {
             options.failed = true;
+        } else if (arg === '--force') {
+            options.force = true;
+        } else if (arg === '--schema') {
+            options.schema = true;
         } else if (arg.startsWith('-')) {
             // Unknown flag — skip
         } else {
