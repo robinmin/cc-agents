@@ -4,7 +4,7 @@ description: "Next-generation pipeline orchestration engine with DAG-based paral
 license: Apache-2.0
 version: 0.1.0
 created_at: 2026-03-31
-updated_at: 2026-03-31
+updated_at: 2026-04-02
 platform: rd3
 type: orchestration
 tags: [orchestration, pipeline, cli, dag, fsm, verification, event-sourced]
@@ -50,11 +50,20 @@ orchestrator run 0266 --preset complex
 # Run specific phases (DAG resolves order)
 orchestrator run 0266 --phases implement,test
 
+# Override coverage threshold
+orchestrator run 0266 --coverage 95
+
 # Resume a paused pipeline
 orchestrator resume 0266 --approve
 
 # Check status
 orchestrator status 0266
+
+# Validate pipeline YAML
+orchestrator validate
+
+# Show pipeline JSON Schema
+orchestrator validate --schema
 ```
 
 ## Core Concepts
