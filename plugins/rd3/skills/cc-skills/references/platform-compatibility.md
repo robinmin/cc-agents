@@ -10,7 +10,8 @@ This document describes platform-specific features and compatibility requirement
 | **Codex** | agentskills.io | `agents/openai.yaml` | agents/openai.yaml | `.codex/skills/`, `.agents/skills/` |
 | **Antigravity** | agentskills.io | Gemini CLI compatible | None | `.gemini/skills/`, `.agents/skills/` |
 | **OpenCode** | agentskills.io | Config-level `permission.skill` | None | `.opencode/skills/`, `.agents/skills/` |
-| **OpenClaw** | agentskills.io | `metadata.openclaw` JSON | None | `<workspace>/skills/`, `~/.openclaw/skills/` |
+| **OpenClaw** | agentskills.io | `metadata.openclaw` JSON | None | `~/.agents/skills/`, `<workspace>/.agents/skills/`, `<workspace>/skills/`, `~/.openclaw/skills/` |
+| **Pi** | agentskills.io | Pi-native compatible | None | `.pi/agent/skills/`, `.agents/skills/` |
 
 ## Format Compatibility
 
