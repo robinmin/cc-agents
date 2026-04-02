@@ -15,7 +15,7 @@
 #
 # Options:
 #   --features  Features to install: skills,commands (default: skills,commands)
-#   --global    Install to user-level global directories (e.g., ~/.codex/skills/)
+#   --global    Install to user-level global directories (e.g., ~/.agents/skills/)
 #   --dry-run   Preview changes without executing
 #   --verbose   Enable verbose output
 #   --help      Show this help message
@@ -56,7 +56,7 @@ usage() {
     printf "${GREEN}OPTIONS:${NC}\n"
     printf "    --features      Features to install: skills,commands (default: skills,commands)\n"
     printf "    --project-dir   Target project directory (default: current directory)\n"
-    printf "    --global        Install to user-level directories (e.g., ~/.codex/skills/)\n"
+    printf "    --global        Install to user-level directories (e.g., ~/.agents/skills/)\n"
     printf "    --dry-run       Preview changes without executing\n"
     printf "    --verbose       Enable verbose output\n"
     printf "    --help          Show this help message\n\n"
@@ -392,7 +392,7 @@ run_rulesync() {
         print_warning "DRY RUN - Would execute:"
         echo "   (cd <temp-rulesync-workdir> && $rulesync_cmd generate --targets $rulesync_targets --features $FEATURES)"
         if [ "$GLOBAL" = "true" ]; then
-            echo "   Copy to global directories: $HOME/.codex/skills/, etc."
+            echo "   Copy to global directories: $HOME/.agents/skills/, plus native paths where needed."
         fi
         return 0
     fi
@@ -451,34 +451,54 @@ copy_to_targets() {
         fi
     }
 
-    # Codex: ~/.codex/skills/
+    # Shared personal skills root for globally installed agent-skills-compatible platforms.
+    # Codex still keeps bundled/system skills under ~/.codex/skills, but user-installed
+    # shared skills default to ~/.agents/skills to avoid duplication across tools.
     if [[ "$targets" == *"codexcli"* ]] || [[ "$targets" == *"codex"* ]]; then
-        local codex_path; codex_path=$(get_path ".codex/skills" "$HOME/.codex/skills")
-        add_target_dir "$codex_path"
-        print_info "Codex skills directory: $codex_path"
+        if [ "$GLOBAL" = "true" ]; then
+            local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+            add_target_dir "$agents_path"
+            print_info "Codex personal skills directory: $agents_path"
+        else
+            local codex_path; codex_path=$(get_path ".codex/skills" "$HOME/.codex/skills")
+            add_target_dir "$codex_path"
+            print_info "Codex skills directory: $codex_path"
+        fi
     fi
 
-    # Gemini CLI: ~/.gemini/skills/ + ~/.agents/skills/
+    # Gemini CLI: use shared personal skills root for global installs.
     if [[ "$targets" == *"geminicli"* ]] || [[ "$targets" == *"gemini"* ]]; then
-        local gemini_path; gemini_path=$(get_path ".gemini/skills" "$HOME/.gemini/skills")
-        local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
-        add_target_dir "$gemini_path"; print_info "Gemini CLI skills directory: $gemini_path"
-        add_target_dir "$agents_path"; print_info "Cross-client skills directory: $agents_path"
+        if [ "$GLOBAL" = "true" ]; then
+            local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+            add_target_dir "$agents_path"
+            print_info "Gemini CLI personal skills directory: $agents_path"
+        else
+            local gemini_path; gemini_path=$(get_path ".gemini/skills" "$HOME/.gemini/skills")
+            local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+            add_target_dir "$gemini_path"; print_info "Gemini CLI skills directory: $gemini_path"
+            add_target_dir "$agents_path"; print_info "Project agent skills directory: $agents_path"
+        fi
     fi
 
-    # OpenCode: ~/.opencode/skills/ + ~/.agents/skills/
+    # OpenCode: use shared personal skills root for global installs.
     if [[ "$targets" == *"opencode"* ]]; then
-        local opencode_path; opencode_path=$(get_path ".opencode/skills" "$HOME/.opencode/skills")
-        local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
-        add_target_dir "$opencode_path"; print_info "OpenCode skills directory: $opencode_path"
-        add_target_dir "$agents_path"; print_info "Cross-client skills directory: $agents_path"
+        if [ "$GLOBAL" = "true" ]; then
+            local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+            add_target_dir "$agents_path"
+            print_info "OpenCode personal skills directory: $agents_path"
+        else
+            local opencode_path; opencode_path=$(get_path ".opencode/skills" "$HOME/.opencode/skills")
+            local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+            add_target_dir "$opencode_path"; print_info "OpenCode skills directory: $opencode_path"
+            add_target_dir "$agents_path"; print_info "Project agent skills directory: $agents_path"
+        fi
     fi
 
-    # OpenClaw: ~/.openclaw/skills/ (global) or skills/ (project)
+    # OpenClaw: use personal agent skills for global installs; workspace skills for project installs.
     if [[ "$targets" == *"openclaw"* ]]; then
         if [ "$GLOBAL" = "true" ]; then
-            local openclaw_path="$HOME/.openclaw/skills"
-            add_target_dir "$openclaw_path"; print_info "OpenClaw skills directory: $openclaw_path"
+            local agents_path="$HOME/.agents/skills"
+            add_target_dir "$agents_path"; print_info "OpenClaw personal skills directory: $agents_path"
         else
             local openclaw_path="skills"
             [ -n "$PROJECT_DIR" ] && openclaw_path="${PROJECT_DIR}/skills"
@@ -486,18 +506,22 @@ copy_to_targets() {
         fi
     fi
 
-    # Antigravity: ~/.gemini/antigravity/skills/ + ~/.agents/skills/
+    # Antigravity: keep native path until shared personal skills support is verified.
     if [[ "$targets" == *"antigravity"* ]]; then
         local antigravity_path; antigravity_path=$(get_path ".gemini/antigravity/skills" "$HOME/.gemini/antigravity/skills")
-        local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
         add_target_dir "$antigravity_path"; print_info "Antigravity skills directory: $antigravity_path"
-        add_target_dir "$agents_path"; print_info "Cross-client skills directory: $agents_path"
     fi
 
-    # Pi: ~/.pi/agent/skills/
+    # Pi: use shared personal skills root for global installs.
     if [[ "$targets" == *"pi"* ]]; then
-        local pi_path; pi_path=$(get_path ".pi/agent/skills" "$HOME/.pi/agent/skills")
-        add_target_dir "$pi_path"; print_info "Pi skills directory: $pi_path"
+        if [ "$GLOBAL" = "true" ]; then
+            local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+            add_target_dir "$agents_path"
+            print_info "Pi personal skills directory: $agents_path"
+        else
+            local pi_path; pi_path=$(get_path ".pi/agent/skills" "$HOME/.pi/agent/skills")
+            add_target_dir "$pi_path"; print_info "Pi skills directory: $pi_path"
+        fi
     fi
 
     # Augment Code: Not yet implemented
