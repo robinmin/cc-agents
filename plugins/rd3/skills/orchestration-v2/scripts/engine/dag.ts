@@ -6,6 +6,16 @@
 
 import type { DAGPhaseState, PhaseDefinition } from '../model';
 
+export interface MissingDep {
+    readonly phase: string;
+    readonly missingDependency: string;
+}
+
+export interface SubsetValidationResult {
+    readonly valid: boolean;
+    readonly missingDeps: readonly MissingDep[];
+}
+
 export interface DAGNode {
     readonly name: string;
     readonly definition: PhaseDefinition;
@@ -19,6 +29,33 @@ export interface DAGEvaluation {
     readonly completed: readonly string[];
     readonly failed: readonly string[];
     readonly paused: readonly string[];
+}
+
+/**
+ * Validate that a requested subset of phases forms a valid subgraph.
+ * For each requested phase, check that all `after:` dependencies are either
+ * present in the requested set or have a completed status in the state store.
+ */
+export function validatePhaseSubset(
+    requestedPhases: ReadonlySet<string>,
+    phases: Readonly<Record<string, PhaseDefinition>>,
+    completedPhases?: ReadonlySet<string>,
+): SubsetValidationResult {
+    const missingDeps: MissingDep[] = [];
+    const completed = completedPhases ?? new Set<string>();
+
+    for (const phaseName of requestedPhases) {
+        const phaseDef = phases[phaseName];
+        if (!phaseDef?.after) continue;
+
+        for (const dep of phaseDef.after) {
+            if (!requestedPhases.has(dep) && !completed.has(dep)) {
+                missingDeps.push({ phase: phaseName, missingDependency: dep });
+            }
+        }
+    }
+
+    return { valid: missingDeps.length === 0, missingDeps };
 }
 
 export class DAGScheduler {
