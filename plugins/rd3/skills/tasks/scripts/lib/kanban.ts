@@ -21,7 +21,7 @@ export interface KanbanTaskLine {
     progressNote?: string;
 }
 
-const KANBAN_STATUS_ORDER: TaskStatus[] = ['Backlog', 'Todo', 'WIP', 'Testing', 'Blocked', 'Done'];
+const KANBAN_STATUS_ORDER: TaskStatus[] = ['Backlog', 'Todo', 'WIP', 'Testing', 'Blocked', 'Done', 'Canceled'];
 
 function buildProgressNote(status: TaskStatus, progress: ImplProgress): string | undefined {
     if (status !== 'WIP' && status !== 'Testing') {
@@ -61,7 +61,7 @@ export function buildKanbanFromFolder(folder: string, projectRoot: string): Kanb
         const idx = KANBAN_STATUS_ORDER.indexOf(status);
         if (idx === -1) continue;
 
-        const checkbox = status === 'Done' ? '[x]' : status === 'WIP' || status === 'Testing' ? '[.]' : '[ ]';
+        const checkbox = status === 'Done' ? '[x]' : status === 'Canceled' ? '[-]' : status === 'WIP' || status === 'Testing' ? '[.]' : '[ ]';
 
         const progressNote = buildProgressNote(status, fm.impl_progress);
 
