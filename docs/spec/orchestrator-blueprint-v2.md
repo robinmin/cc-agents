@@ -822,7 +822,7 @@ CREATE INDEX idx_runs_status ON runs(status);
 CREATE TABLE phases (
     run_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('pending', 'running', 'paused', 'completed', 'failed', 'skipped')),
+    status TEXT NOT NULL CHECK (status IN ('pending', 'ready', 'running', 'paused', 'completed', 'failed', 'skipped')),
     skill TEXT NOT NULL,
     payload JSON,
     started_at DATETIME,
