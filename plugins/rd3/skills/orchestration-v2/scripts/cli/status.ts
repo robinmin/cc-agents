@@ -20,6 +20,22 @@ export function formatStatusOutput(summary: RunSummary): string {
     return lines.join('\n');
 }
 
+export function formatStatusListOutput(summaries: RunSummary[]): string {
+    const lines: string[] = [];
+    lines.push(`${'RUN ID'.padEnd(20)} ${'TASK'.padEnd(16)} ${'STATUS'.padEnd(12)} ${'PRESET'.padEnd(16)} DURATION`);
+    lines.push('-'.repeat(80));
+    for (const s of summaries) {
+        lines.push(
+            `${s.run.id.padEnd(20)} ${s.run.task_ref.padEnd(16)} ${s.run.status.padEnd(12)} ${(s.run.preset ?? 'default').padEnd(16)} ${formatDuration(s.totalWallMs)}`,
+        );
+    }
+    return lines.join('\n');
+}
+
 export function formatStatusJson(summary: RunSummary): string {
     return JSON.stringify(summary, null, 2);
+}
+
+export function formatStatusListJson(summaries: RunSummary[]): string {
+    return JSON.stringify(summaries, null, 2);
 }
