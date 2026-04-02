@@ -14,7 +14,6 @@ metadata:
   category: orchestration
   interactions:
     - pipeline
-    - cli
 see_also:
   - rd3:run-acp
   - rd3:request-intake
@@ -37,6 +36,19 @@ see_also:
 # rd3:orchestration-v2 — DAG-Based Pipeline Engine
 
 FSM-supervised DAG scheduler with event-sourced SQLite state, pluggable executors, and CLI-first interface. Replaces the hardcoded sequential loop of orchestration-dev with a declarative YAML pipeline definition and parallel phase execution.
+
+## When to Use
+
+- Run a multi-phase development pipeline (implement → test → review → docs)
+- Resume a paused or failed pipeline from the last successful phase
+- Execute pipeline phases in parallel where dependencies allow
+- Customize pipeline definitions per-project via YAML
+- Generate pipeline reports with timing and coverage metrics
+- Migrate from v1 orchestration-dev state to v2
+
+## Overview
+
+The orchestration-v2 engine is a micro-kernel with six pluggable subsystems: FSM lifecycle, DAG scheduler, event bus, state manager, executor pool, and verification driver. Pipelines are declared in YAML and executed as a directed acyclic graph with automatic dependency resolution.
 
 ## Quick Start
 
@@ -108,6 +120,28 @@ Phase dependencies are declared via `after:` edges. The scheduler resolves execu
 
 All events (phase starts, completions, failures, gate checks) are persisted to SQLite. This enables resume, undo, history, and detailed reporting without external state files.
 
+## Workflows
+
+### Step 1: Define Pipeline
+
+Create or customize `docs/.workflows/pipeline.yaml` with phases, skills, dependencies, and gates. Use `orchestrator validate` to verify the YAML.
+
+### Step 2: Run Pipeline
+
+Execute `orchestrator run <task-id>` to start the DAG. The engine resolves phase order, runs independent phases in parallel, and persists events to SQLite.
+
+### Step 3: Handle Gates
+
+When a phase gate requires approval (type: manual), the pipeline enters PAUSED state. Use `orchestrator resume <task-id> --approve` to continue.
+
+### Step 4: Review and Report
+
+After completion, use `orchestrator status` for a summary or `orchestrator report` for detailed timing, coverage, and phase results.
+
+### Step 5: Recovery
+
+If a phase fails, use `orchestrator undo <task-id> --phase <name>` to rollback, then re-run or adjust and resume.
+
 ## CLI Reference
 
 Full CLI documentation: → `references/cli-reference.md`
@@ -166,3 +200,12 @@ During migration, both systems coexist:
 - `orchestration-v2/` — New system (active development)
 - `orchestrator` command always points to v2
 - No shared state — v1 uses JSON, v2 uses SQLite
+
+## Additional Resources
+
+- **CLI Reference**: `references/cli-reference.md` — Full command documentation
+- **Pipeline YAML Guide**: `references/pipeline-yaml-guide.md` — How to write pipeline definitions
+- **Agent Cooperation**: `references/agent-cooperation.md` — How agents interact with pipelines
+- **Error Recovery**: `references/error-codes.md` — Error taxonomy and recovery strategies
+- **Example Pipelines**: `references/examples/` — Default, quick-fix, security-first, and more
+- **Blueprint**: `docs/orchestration-v2-blueprint.md` — Design document
