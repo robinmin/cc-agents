@@ -61,6 +61,12 @@ describe('normalizeStatus', () => {
         expect(normalizeStatus('review').status).toBe('Testing');
     });
 
+    test('normalizes common aliases to Canceled', () => {
+        for (const alias of ['cancelled', 'abandoned', 'dropped', 'aborted']) {
+            expect(normalizeStatus(alias).status).toBe('Canceled');
+        }
+    });
+
     test('defaults unknown values to Backlog with recognized=false', () => {
         const result = normalizeStatus('GarbageStatus');
         expect(result.status).toBe('Backlog');
