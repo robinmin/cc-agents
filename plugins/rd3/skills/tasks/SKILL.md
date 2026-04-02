@@ -351,6 +351,7 @@ Links to related docs, PRs, issues.
 | Blocked | ⛔ | Blocked |
 | Testing | 🟠 | Testing |
 | Done | 🟢 | Done |
+| Canceled | ⚫ | Canceled |
 
 WIP and Testing lines can include inline progress markers, for example:
 
