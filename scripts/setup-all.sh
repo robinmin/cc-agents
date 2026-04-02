@@ -86,12 +86,12 @@ usage() {
     printf "    --help               Show this help message\n\n"
     printf "${GREEN}TARGETS:${NC}\n"
     printf "    claude-code   Claude Code (plugin marketplace update)\n"
-    printf "    codex         Codex CLI (~/.codex/skills/)\n"
-    printf "    gemini-cli    Google Gemini CLI (~/.gemini/skills/)\n"
+    printf "    codex         Codex CLI (~/.agents/skills/ for global shared installs)\n"
+    printf "    gemini-cli    Google Gemini CLI (~/.agents/skills/ for global shared installs)\n"
     printf "    antigravity   Google Antigravity CLI (~/.gemini/antigravity/skills/)\n"
-    printf "    opencode      OpenCode CLI (~/.opencode/skills/)\n"
-    printf "    openclaw      OpenClaw (~/.openclaw/skills/)\n"
-    printf "    pi            Pi CLI (~/.pi/agent/skills/)\n"
+    printf "    opencode      OpenCode CLI (~/.agents/skills/ for global shared installs)\n"
+    printf "    openclaw      OpenClaw (~/.agents/skills/ for global shared installs)\n"
+    printf "    pi            Pi CLI (~/.agents/skills/ for global shared installs)\n"
     printf "    all           All supported platforms (default)\n\n"
     printf "${GREEN}EXAMPLES:${NC}\n"
     printf "    ./scripts/setup-all.sh\n"
@@ -365,12 +365,12 @@ main() {
         for target in $(echo "$non_claude_targets" | tr ',' ' '); do
             local target_display=""
             case "$target" in
-                codex)       target_display="~/.codex/skills/" ;;
-                gemini-cli)  target_display="~/.gemini/skills/" ;;
+                codex)       target_display="~/.agents/skills/" ;;
+                gemini-cli)  target_display="~/.agents/skills/" ;;
                 antigravity) target_display="~/.gemini/antigravity/skills/" ;;
-                opencode)    target_display="~/.opencode/skills/" ;;
-                openclaw)    target_display="~/.openclaw/skills/" ;;
-                pi)          target_display="~/.pi/agent/skills/" ;;
+                opencode)    target_display="~/.agents/skills/" ;;
+                openclaw)    target_display="~/.agents/skills/" ;;
+                pi)          target_display="~/.agents/skills/" ;;
             esac
             echo "   ${target}: ${target_display}"
         done
