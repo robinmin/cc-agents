@@ -67,7 +67,7 @@ Commands:
   create <name> --profile <profile>
                                  Persist orchestration profile in task frontmatter
   list [stage]                  List all tasks, optionally filtered by stage
-  update <WBS> <stage>          Update task status (Backlog|Todo|WIP|Testing|Blocked|Done)
+  update <WBS> <stage>          Update task status (Backlog|Todo|WIP|Testing|Blocked|Done|Canceled)
   update <WBS> --section <name> --from-file <path>
                                  Update a task section from a file
   update <WBS> --phase <phase> --phase-status <status>
