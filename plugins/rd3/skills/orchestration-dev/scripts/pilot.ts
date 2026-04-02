@@ -72,7 +72,7 @@ function buildDelegatedPrompt(skill: string, prompt: string, args?: Record<strin
     return args?.expect_worker_envelope === true ? buildDelegatedWorkerPrompt(skill, prompt, args) : prompt;
 }
 
-function buildPhase6Manifest(phase: Phase, taskRef: string, profileId: string): ChainManifest {
+function buildPhase6Manifest(phase: Phase, taskRef: string, profileId: string, coverageThreshold: number): ChainManifest {
     const profile = loadVerificationProfile(profileId);
 
     return {
@@ -105,6 +105,7 @@ function buildPhase6Manifest(phase: Phase, taskRef: string, profileId: string): 
                         prompt: step.prompt,
                         step: step.name,
                         downstream_skill: step.skill,
+                        coverage_threshold: coverageThreshold,
                     },
                     timeout: step.timeout_seconds ?? 3600,
                 },
@@ -473,7 +474,7 @@ export function createPilotPhaseRunner(
         const runtimeArtifactsRoot = resolveRuntimeArtifactsRoot(context);
         const manifest =
             phase.number === 6
-                ? buildPhase6Manifest(phase, context.plan.task_ref, context.stackProfile ?? 'typescript-bun-biome')
+                ? buildPhase6Manifest(phase, context.plan.task_ref, context.stackProfile ?? 'typescript-bun-biome', context.plan.coverage_threshold)
                 : buildPhaseManifest(
                       phase,
                       context.plan.task_ref,
