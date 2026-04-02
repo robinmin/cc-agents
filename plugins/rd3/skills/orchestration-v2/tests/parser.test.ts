@@ -597,11 +597,11 @@ describe('parser — validatePipeline', () => {
             };
 
             const result = validatePipeline(pipeline);
-            expect(result.valid).toBe(false);
-            const subgraphErrors = result.errors.filter((e) => e.rule === 'preset_subgraph');
-            expect(subgraphErrors.length).toBe(2);
-            expect(subgraphErrors.some((e) => e.message.includes('broken_subgraph'))).toBe(true);
-            expect(subgraphErrors.some((e) => e.message.includes('depends on "c"'))).toBe(true);
+            expect(result.valid).toBe(true); // preset_subgraph is now a warning
+            const subgraphWarnings = result.warnings.filter((e) => e.rule === 'preset_subgraph');
+            expect(subgraphWarnings.length).toBe(2);
+            expect(subgraphWarnings.some((e) => e.message.includes('broken_subgraph'))).toBe(true);
+            expect(subgraphWarnings.some((e) => e.message.includes('depends on "c"'))).toBe(true);
         });
     });
 
