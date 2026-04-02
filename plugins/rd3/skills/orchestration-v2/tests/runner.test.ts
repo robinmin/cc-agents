@@ -836,18 +836,15 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
     // ─── Undo Functionality ─────────────────────────────────────────────────────
 
     describe('Undo Functionality', () => {
-        test('should log warning for undo operation (not implemented)', async () => {
-            await runner.undo('test-task', 'test-phase', false);
-            // Note: The actual logger implementation is used since it's imported directly
-            // so we can't easily mock it. Instead we just verify the operation completes.
-            expect(true).toBe(true);
+        test('should return error when no snapshot exists', async () => {
+            const result = await runner.undo('test-task', 'test-phase');
+            expect(result.success).toBe(false);
+            expect(result.exitCode).toBe(13);
         });
 
         test('should handle undo with force flag', async () => {
-            await runner.undo('test-task', 'test-phase', true);
-            // Note: The actual logger implementation is used since it's imported directly
-            // so we can't easily mock it. Instead we just verify the operation completes.
-            expect(true).toBe(true);
+            const result = await runner.undo('test-task', 'test-phase', { force: true });
+            expect(result.success).toBe(false);
         });
     });
 
@@ -1059,6 +1056,114 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             await runner.run(options, pipeline);
 
             expect(mockExecutor.getCallLog()).toHaveLength(0);
+        });
+    });
+
+    // ─── Phase Subset Validation (ss3.2) ─────────────────────────────────────────
+
+    describe('Phase Subset Validation', () => {
+        test('should reject --phases with missing dependencies', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'validation-pipeline',
+                phases: {
+                    intake: { skill: 'rd3:request-intake', gate: { type: 'auto' } },
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                        after: ['intake'],
+                    },
+                    test: {
+                        skill: 'rd3:sys-testing',
+                        gate: { type: 'auto' },
+                        after: ['implement'],
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'invalid-phases-001',
+                phases: ['implement', 'test'],
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('FAILED');
+            expect(result.exitCode).toBe(10); // EXIT_INVALID_ARGS
+        });
+
+        test('should accept --phases when all deps are present', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'valid-subset-pipeline',
+                phases: {
+                    intake: { skill: 'rd3:request-intake', gate: { type: 'auto' } },
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                        after: ['intake'],
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'valid-phases-001',
+                phases: ['intake', 'implement'],
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+            expect(result.exitCode).toBe(0);
+        });
+
+        test('should accept --phases when missing deps have prior completed runs', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'completed-dep-pipeline',
+                phases: {
+                    intake: { skill: 'rd3:request-intake', gate: { type: 'auto' } },
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                        after: ['intake'],
+                    },
+                },
+            };
+
+            // Create a prior run with intake completed
+            const priorRunId = await stateManager.createRun({
+                id: 'prior-run-001',
+                task_ref: 'completed-dep-001',
+                phases_requested: 'intake,implement',
+                status: 'COMPLETED',
+                config_snapshot: pipeline as unknown as Record<string, unknown>,
+                pipeline_name: 'completed-dep-pipeline',
+            });
+            await stateManager.createPhase({
+                run_id: priorRunId,
+                name: 'intake',
+                status: 'completed',
+                skill: 'rd3:request-intake',
+                rework_iteration: 0,
+            });
+            await stateManager.createPhase({
+                run_id: priorRunId,
+                name: 'implement',
+                status: 'completed',
+                skill: 'rd3:code-implement',
+                rework_iteration: 0,
+            });
+
+            const options: RunOptions = {
+                taskRef: 'completed-dep-001',
+                phases: ['implement'],
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+            expect(result.exitCode).toBe(0);
         });
     });
 
