@@ -10,19 +10,6 @@ description: |
   <commentary>Delegates to cc-skills for scaffolding via platform's skill invocation</commentary>
   </example>
 
-  <example>
-  Context: Evaluate and fix skill quality issues
-  user: "Evaluate my-skill and fix all issues"
-  assistant: "Delegating to rd3:cc-skills for evaluate + refine..."
-  <commentary>Delegates to cc-skills evaluate + refine operations</commentary>
-  </example>
-
-  <example>
-  Context: Migrate skills from rd2 to rd3
-  user: "Migrate the tasks skill from rd2 to rd3"
-  assistant: "Delegating to rd3:cc-skills with migrate operation..."
-  <commentary>Delegates to cc-skills for multi-source migration with LLM refinement</commentary>
-  </example>
 tools: [Read, Glob]
 model: inherit
 color: teal
