@@ -28,3 +28,6 @@ kanban-plugin: board
 
 {{ DONE_TASKS }}
 
+## ⚫ Canceled
+
+{{ CANCELED_TASKS }}
