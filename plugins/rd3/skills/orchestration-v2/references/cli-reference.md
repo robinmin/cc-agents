@@ -10,6 +10,8 @@ Full command reference for the `orchestrator` CLI.
 | `--version` | Show version |
 | `--verbose` | Verbose output (debug logging) |
 | `--quiet` | Suppress non-essential output |
+| `--state-dir <path>` | State directory (default: `docs/.workflow-runs`). Env: `ORCHESTRATOR_STATE_DIR` |
+| `--pipeline <path>` | Pipeline YAML file (default: `docs/.workflows/pipeline.yaml`). Alias: `--file` |
 
 ---
 
@@ -364,14 +366,18 @@ Migrate v1 JSON state to v2 SQLite.
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--from-v1` | boolean | false | Migrate from v1 state files |
+| `--dir` | path | `docs/.workflow-runs/rd3-orchestration-dev` | Source directory for v1 state |
 | `--dry-run` | boolean | false | Preview without changes |
 
 ### Examples
 
 ```bash
-# Migrate v1 state
+# Migrate v1 state from default location
 orchestrator migrate --from-v1
 
-# Preview migration
-orchestrator migrate --from-v1 --dry-run
+# Migrate from custom directory
+orchestrator migrate --from-v1 /path/to/v1-state
+
+# Specify source via --dir
+orchestrator migrate --from-v1 --dir ./legacy-runs
 ```
