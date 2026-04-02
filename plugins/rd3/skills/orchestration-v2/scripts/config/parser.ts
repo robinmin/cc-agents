@@ -65,7 +65,7 @@ export function validatePipeline(def: PipelineDefinition): ValidationResult {
         }
     }
 
-    // Check preset subgraphs
+    // Check preset subgraphs (warning only — runtime validates with completed-phase context)
     if (def.presets) {
         for (const [presetName, preset] of Object.entries(def.presets)) {
             const presetPhases = new Set(preset.phases);
@@ -74,9 +74,9 @@ export function validatePipeline(def: PipelineDefinition): ValidationResult {
                 if (phase?.after) {
                     for (const dep of phase.after) {
                         if (!presetPhases.has(dep)) {
-                            errors.push({
+                            warnings.push({
                                 rule: 'preset_subgraph',
-                                message: `Preset "${presetName}" phase "${phaseName}" depends on "${dep}" which is not in the preset`,
+                                message: `Preset "${presetName}" phase "${phaseName}" depends on "${dep}" which is not in the preset — ensure dependencies are completed in a prior run`,
                             });
                         }
                     }
