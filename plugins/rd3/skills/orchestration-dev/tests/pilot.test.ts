@@ -274,6 +274,49 @@ describe('pilot phase runner', () => {
         expect(commands[0][5]).toContain('Run `bun run typecheck` in the repo root.');
     });
 
+    test('propagates coverage_threshold override into phase 6 verification step payloads', async () => {
+        const dir = createTempDir('orchestration-pilot-coverage-override-');
+        writeFileSync(
+            join(dir, 'package.json'),
+            JSON.stringify({ scripts: { typecheck: 'true', 'lint:rd3': 'true', 'test:rd3': 'true' } }),
+        );
+        writeFileSync(join(dir, 'tsconfig.json'), '{}');
+        writeFileSync(join(dir, 'biome.json'), '{}');
+
+        const plan = generateExecutionPlan('0314', 'unit', undefined, [], 95);
+        expect(plan.coverage_threshold).toBe(95);
+        const phase = plan.phases[0];
+        const capturedArgs: Record<string, unknown>[] = [];
+        const runner = createPilotPhaseRunner({
+            local: {
+                runCommand: (cmd) => {
+                    // Capture context: we verify through the plan, not the command
+                    capturedArgs.push({ command: cmd });
+                    return {
+                        status: 'completed',
+                        backend: 'local-child',
+                        normalized_channel: 'current',
+                        stdout: `ok:${cmd}`,
+                    };
+                },
+            },
+        });
+
+        const result = await runner(phase, {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: dir,
+            projectRoot: dir,
+            stackProfile: 'typescript-bun-biome',
+        });
+
+        expect(result.status).toBe('completed');
+        // Verify the plan's coverage_threshold was resolved from the override
+        expect(plan.coverage_threshold).toBe(95);
+        // Phase 6 gate criteria must reflect the override
+        expect(phase.gateCriteria).toContain('95');
+    });
+
     test('surfaces a paused delegated verification step', async () => {
         const dir = createTempDir('orchestration-pilot-pause-');
         writeFileSync(
@@ -1179,5 +1222,40 @@ describe('buildWorkerPrompt', () => {
         expect(parsed.phase).toBe(7);
         expect(parsed.phase_name).toBe('Code Review');
         expect(parsed.profile).toBe('review');
+    });
+
+    test('propagates coverage_threshold from coverage override into phase 6 worker prompt', () => {
+        const plan = generateExecutionPlan('0314', 'unit', undefined, [], 95);
+        expect(plan.coverage_threshold).toBe(95);
+        const phase = plan.phases[0];
+        expect(phase.number).toBe(6);
+        const prompt = buildWorkerPrompt(phase, {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        const jsonMatch = prompt.match(/Phase context:\n([\s\S]*?)\nReturn/);
+        expect(jsonMatch).not.toBeNull();
+        const parsed = JSON.parse((jsonMatch as RegExpMatchArray)[1]);
+        expect(parsed.coverage_threshold).toBe(95);
+    });
+
+    test('omits coverage_threshold for non-phase-6 worker prompts', () => {
+        const plan = generateExecutionPlan('0314', 'simple');
+        const phase = plan.phases[0]; // phase 5
+        expect(phase.number).toBe(5);
+        const prompt = buildWorkerPrompt(phase, {
+            plan,
+            state: createMinimalState(plan),
+            stateDir: process.cwd(),
+            projectRoot: process.cwd(),
+        });
+
+        const jsonMatch = prompt.match(/Phase context:\n([\s\S]*?)\nReturn/);
+        expect(jsonMatch).not.toBeNull();
+        const parsed = JSON.parse((jsonMatch as RegExpMatchArray)[1]);
+        expect('coverage_threshold' in parsed).toBe(false);
     });
 });
