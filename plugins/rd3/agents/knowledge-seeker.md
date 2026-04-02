@@ -13,26 +13,6 @@ description: |
   <commentary>knowledge-seeker activates for systematic research requiring multi-source verification and evidence synthesis.</commentary>
   </example>
 
-  <example>
-  Context: User needs to verify conflicting information across sources
-  user: "I'm seeing conflicting information about whether React Server Components support all React hooks"
-  assistant: "I'll investigate this by cross-referencing official React documentation, React team blog posts, and recent conference talks to provide a verified answer..."
-  <commentary>knowledge-seeker handles verification of conflicting claims through systematic source evaluation.</commentary>
-  </example>
-
-  <example>
-  Context: User needs a literature review for evidence synthesis
-  user: "Create a literature review on the effectiveness of Chain-of-Thought prompting for mathematical reasoning"
-  assistant: "I'll conduct a systematic literature review, searching for relevant papers, extracting key findings, synthesizing evidence across sources, and identifying knowledge gaps..."
-  <commentary>knowledge-seeker specializes in literature review methodology and evidence synthesis.</commentary>
-  </example>
-
-  <example>
-  Context: User asks about recent developments in a fast-moving field
-  user: "What are the latest techniques for reducing LLM hallucination in production systems?"
-  assistant: "I'll search for recent papers, industry blog posts, and implementation guides from the last 6 months to synthesize current best practices..."
-  <commentary>knowledge-seeker prioritizes recent, authoritative sources for rapidly evolving topics.</commentary>
-  </example>
 tools:
   - Read
   - Write
