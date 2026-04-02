@@ -371,8 +371,8 @@ describe('config/parser — validatePipeline preset subgraph', () => {
         };
 
         const result = validatePipeline(pipeline);
-        expect(result.valid).toBe(false);
-        expect(result.errors.some((e) => e.rule === 'preset_subgraph')).toBe(true);
+        expect(result.valid).toBe(true); // preset_subgraph is now a warning
+        expect(result.warnings.some((e) => e.rule === 'preset_subgraph')).toBe(true);
     });
 
     test('accepts valid preset subgraph', () => {
