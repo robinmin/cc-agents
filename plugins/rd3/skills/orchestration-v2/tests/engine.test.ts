@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll } from 'bun:test';
-import { DAGScheduler } from '../scripts/engine/dag';
+import { DAGScheduler, validatePhaseSubset } from '../scripts/engine/dag';
 import type { PhaseDefinition } from '../scripts/model';
 
 const DEFAULT_PHASES: Record<string, PhaseDefinition> = {
@@ -163,5 +163,72 @@ describe('DAGScheduler', () => {
 
         dag.markCompleted('a');
         expect(node?.state).toBe('completed');
+    });
+});
+
+describe('validatePhaseSubset', () => {
+    const phases: Record<string, PhaseDefinition> = {
+        intake: { skill: 'rd3:request-intake', gate: { type: 'auto' } },
+        plan: { skill: 'rd3:dev-plan', gate: { type: 'auto' }, after: ['intake'] },
+        implement: { skill: 'rd3:code-implement-common', gate: { type: 'auto' }, after: ['plan'] },
+        test: { skill: 'rd3:sys-testing', gate: { type: 'auto' }, after: ['implement'] },
+        review: { skill: 'rd3:code-review-common', gate: { type: 'human' }, after: ['test'] },
+    };
+
+    test('valid subgraph — all deps present in requested set', () => {
+        const requested = new Set(['implement', 'test', 'review']);
+        // implement depends on plan, which is NOT in the set — invalid
+        const result = validatePhaseSubset(requested, phases);
+        expect(result.valid).toBe(false);
+        expect(result.missingDeps).toHaveLength(1);
+        expect(result.missingDeps[0]).toEqual({ phase: 'implement', missingDependency: 'plan' });
+    });
+
+    test('valid subgraph — all deps satisfied', () => {
+        const requested = new Set(['intake', 'plan', 'implement', 'test']);
+        const result = validatePhaseSubset(requested, phases);
+        expect(result.valid).toBe(true);
+        expect(result.missingDeps).toHaveLength(0);
+    });
+
+    test('valid subgraph with pre-completed deps', () => {
+        // implement needs plan — plan is not in requested set but is completed
+        const requested = new Set(['implement', 'test']);
+        const completed = new Set(['plan']);
+        const result = validatePhaseSubset(requested, phases, completed);
+        expect(result.valid).toBe(true);
+        expect(result.missingDeps).toHaveLength(0);
+    });
+
+    test('invalid subgraph — missing deps', () => {
+        const requested = new Set(['review']);
+        const result = validatePhaseSubset(requested, phases);
+        expect(result.valid).toBe(false);
+        // review depends on test, which depends on implement, which depends on plan, which depends on intake
+        // Only the immediate dependency is reported (test)
+        expect(result.missingDeps).toHaveLength(1);
+        expect(result.missingDeps[0]).toEqual({ phase: 'review', missingDependency: 'test' });
+    });
+
+    test('empty phase list edge case', () => {
+        const requested = new Set<string>();
+        const result = validatePhaseSubset(requested, phases);
+        expect(result.valid).toBe(true);
+        expect(result.missingDeps).toHaveLength(0);
+    });
+
+    test('single phase with no deps is valid', () => {
+        const requested = new Set(['intake']);
+        const result = validatePhaseSubset(requested, phases);
+        expect(result.valid).toBe(true);
+    });
+
+    test('multiple missing deps reported', () => {
+        const requested = new Set(['test', 'review']);
+        const result = validatePhaseSubset(requested, phases);
+        expect(result.valid).toBe(false);
+        // test needs implement, review needs test (but test is in set)
+        expect(result.missingDeps).toHaveLength(1);
+        expect(result.missingDeps[0]).toEqual({ phase: 'test', missingDependency: 'implement' });
     });
 });
