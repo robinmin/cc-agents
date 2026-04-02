@@ -17,7 +17,7 @@ describe('buildKanbanFromFolder', () => {
 
     test('returns empty columns for non-existent folder', () => {
         const columns = buildKanbanFromFolder('nonexistent', tempDir);
-        expect(columns).toHaveLength(6);
+        expect(columns).toHaveLength(7);
         for (const col of columns) {
             expect(col.tasks).toHaveLength(0);
         }
