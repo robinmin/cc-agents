@@ -29,9 +29,19 @@ phases:
   <phase-name>:
     skill: string           # Skill to invoke (e.g., "rd3:request-intake")
     gate:
-      type: auto | human
+      type: command | auto | human
+      # ── command-specific ───────────
+      command: string           # Required when type is "command"
+      # ── auto-specific ─────────────
+      checklist:                # Required for auto (unless skill provides defaults)
+        - "description to evaluate"
+      prompt_template: string   # Optional, overrides default prompt
+      severity: blocking | advisory  # Default: blocking
+      # ── human-specific ────────────
+      prompt: string            # Optional description shown at pause
+      # ── shared ───────────────────
       rework:
-        max_iterations: number   # Default: 2
+        max_iterations: number   # Default: 0
         escalation: pause | fail # Default: pause
     timeout: string         # Duration: "30m", "1h", "2h30m"
     after: [string]         # DAG edges — phase names this depends on
@@ -63,23 +73,64 @@ hooks:
 
 ### Gate Types
 
-**Auto gate:** Phase completes when skill returns success. Gate checks run automatically.
+**Command gate:** Runs a shell command — exit code 0 means pass, non-zero means fail. Deterministic and fast.
 
 ```yaml
-implement:
-  skill: rd3:code-implement-common
-  gate: { type: auto }
-  timeout: 2h
+test:
+  skill: rd3:sys-testing
+  gate:
+    type: command
+    command: "bun test --coverage"
+  after: [implement]
 ```
+
+**Auto gate:** LLM-based verification using a checklist. Non-deterministic, each item must pass. Can be blocking (default) or advisory.
+
+```yaml
+intake:
+  skill: rd3:request-intake
+  gate:
+    type: auto
+    checklist:
+      - "Task requirements are clearly captured"
+      - "Scope and boundaries are defined"
+      - "No ambiguous or missing acceptance criteria"
+  timeout: 30m
+```
+
+Auto gates can also run in advisory mode (warn but don't block):
+
+```yaml
+arch:
+  skill: rd3:backend-architect
+  gate:
+    type: auto
+    checklist:
+      - "Architecture addresses all requirements"
+    severity: advisory       # Warns on failure, phase still completes
+  timeout: 1h
+```
+
+If no `checklist` is specified, the skill or engine provides defaults. See the [Gate Architecture](gate-architecture.md) for full details on checklist resolution.
 
 **Human gate:** Pipeline pauses after phase completes, awaiting human approval.
 
 ```yaml
 review:
   skill: rd3:code-review-common
-  gate: { type: human }
+  gate:
+    type: human
+    prompt: "Review the implementation for security and performance"
   after: [test]
 ```
+
+Template variables available in command strings:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{task_ref}}` | Task WBS reference | `0266` |
+| `{{phase}}` | Phase name | `test` |
+| `{{run_id}}` | Pipeline run ID | `run_m3x8k_ab12cd` |
 
 ### Rework Configuration
 
@@ -90,6 +141,9 @@ test:
   skill: rd3:sys-testing
   gate:
     type: auto
+    checklist:
+      - "All tests pass"
+      - "Coverage meets threshold"
     rework:
       max_iterations: 3      # Retry up to 3 times
       escalation: pause      # Pause pipeline when exhausted
@@ -275,7 +329,13 @@ Template variables available in hooks:
 | Skill existence | Referenced skills must exist in `plugins/` |
 | Preset subgraphs | Must form valid subgraph of DAG |
 | Timeout format | Must be parseable duration string |
-| Gate type | Must be `auto` or `human` |
+| Gate type | Must be `command`, `auto`, or `human` |
+| Command gate | `command` type requires non-empty `command` string |
+| Auto gate | `auto` type requires `checklist` (at least 1 item) unless skill provides defaults |
+| Auto gate | `severity` must be `blocking` or `advisory` (default: `blocking`) |
+| Auto/human gate | Must not have a `command` field |
+| Human gate | Optional `prompt` field for pause description |
+| Cross-type exclusivity | `checklist`, `prompt_template`, `severity` only valid for `auto`; `prompt` only valid for `human` |
 
 ## File Location
 
