@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { err, ok, type Result } from '../lib/result';
-import { createTask } from './create';
+import { createTask as defaultCreateTask } from './create';
 import { logger } from '../../../../scripts/logger';
 import type { BatchCreateItem } from '../types';
 
@@ -12,6 +12,7 @@ export function batchCreate(
     cliFolder?: string,
     quiet = false,
     mode: 'json' | 'agent-output' = 'json',
+    createFn: typeof defaultCreateTask = defaultCreateTask,
 ): Result<{ created: string[]; errors: string[] }> {
     if (!existsSync(inputPath)) {
         return err(`${mode === 'json' ? 'JSON' : 'Agent output'} file not found: ${inputPath}`);
@@ -45,7 +46,7 @@ export function batchCreate(
             continue;
         }
 
-        const result = createTask(projectRoot, item.name, cliFolder || item.folder, {
+        const result = createFn(projectRoot, item.name, cliFolder || item.folder, {
             ...(item.background ? { background: item.background } : {}),
             ...(item.requirements ? { requirements: item.requirements } : {}),
             ...(item.solution ? { solution: item.solution } : {}),
