@@ -14,9 +14,10 @@ import type {
     PhaseDefinition,
     ExecutionRequest,
     GateConfig,
-    ChainManifest,
+    GateResult,
     ChainState,
     OrchestratorEvent,
+    PhaseEvidence,
 } from '../model';
 import { EXIT_INVALID_ARGS } from '../model';
 import { FSMEngine } from './fsm';
@@ -25,9 +26,21 @@ import { HookRegistry } from './hooks';
 import { ExecutorPool } from '../executors/pool';
 import type { StateManager } from '../state/manager';
 import { EventStore } from '../state/events';
-import { DefaultCoVDriver } from '../verification/cov-driver';
 import { EventBus } from '../observability/event-bus';
+import { runLlmCheck } from '../../../verification-chain/scripts/methods/llm';
+import type { LlmCheckerConfig } from '../../../verification-chain/scripts/types';
 import { logger } from '../../../../scripts/logger';
+
+const DEFAULT_AUTO_GATE_PROMPT_TEMPLATE = `You are a verification checker. For each item in the checklist, determine if it PASSES or FAILS.
+
+Checklist:
+{items}
+
+For each item, output exactly one line in this format:
+[PASS] criterion: reason
+[FAIL] criterion: reason
+
+Be strict in your evaluation.`;
 
 export interface PipelineRunResult {
     readonly runId: string;
@@ -42,7 +55,6 @@ export class PipelineRunner {
     private readonly hooks: HookRegistry;
     private readonly pool: ExecutorPool;
     private readonly state: StateManager;
-    private readonly covDriver: DefaultCoVDriver;
     private readonly eventBus: EventBus;
 
     constructor(
@@ -56,7 +68,6 @@ export class PipelineRunner {
         this.hooks = hookRegistry ?? new HookRegistry();
         this.pool = executorPool ?? new ExecutorPool();
         this.state = stateManager;
-        this.covDriver = new DefaultCoVDriver();
         this.eventBus = eventBus ?? new EventBus();
 
         // Wire EventBus → EventStore for event persistence (§8.2)
@@ -434,88 +445,67 @@ export class PipelineRunner {
                     }
 
                     // Phase succeeded — run gate check
-                    const gateResult = await this.checkGate(runId, phaseName, phaseDef.gate);
+                    let gateResult = await this.checkGate(
+                        runId,
+                        phaseName,
+                        phaseDef.gate,
+                        options.taskRef,
+                        phaseResult.evidence,
+                    );
 
-                    if (gateResult.status === 'pending') {
-                        this.dag.markPaused(phaseName);
-                        await this.state.updatePhaseStatus(runId, phaseName, 'paused');
-                        await this.hooks.execute('on-pause', {
-                            phase: phaseName,
-                            task_ref: options.taskRef,
-                            run_id: runId,
-                        });
-                        this.fsm.transition('human-gate');
-                        await this.state.updateRunStatus(runId, 'PAUSED');
-                        await this.emitEvent(runId, 'run.paused', {
+                    while (gateResult.status === 'fail') {
+                        const reworkResult = await this.handleRework(runId, phaseName, phaseDef, gateResult, options);
+
+                        if (reworkResult.status === 'reworked') {
+                            gateResult = await this.checkGate(
+                                runId,
+                                phaseName,
+                                phaseDef.gate,
+                                options.taskRef,
+                                reworkResult.evidence,
+                            );
+                            continue;
+                        }
+
+                        if (reworkResult.status === 'pause') {
+                            return this.pauseRunAtPhase(runId, phaseName, options.taskRef, startTime, true, {
+                                error: this.getGateFailureMessage(phaseName, gateResult),
+                            });
+                        }
+
+                        this.dag.markFailed(phaseName);
+                        await this.state.updatePhaseStatus(runId, phaseName, 'failed');
+                        await this.failPausedRun(runId, this.getGateFailureMessage(phaseName, gateResult), startTime, {
                             phase: phaseName,
                         });
                         return {
                             runId,
-                            status: 'PAUSED',
-                            exitCode: 0,
+                            status: 'FAILED',
+                            exitCode: 1,
                             durationMs: Date.now() - startTime,
                         };
                     }
 
-                    if (gateResult.status === 'fail') {
-                        // Gate failed — try rework if configured
-                        const reworked = await this.handleRework(runId, phaseName, phaseDef, gateResult, options);
-
-                        if (!reworked) {
-                            // Rework exhausted or not configured
-                            if (phaseDef.gate?.type === 'human') {
-                                // Pause for human review
-                                this.dag.markPaused(phaseName);
-                                await this.state.updatePhaseStatus(runId, phaseName, 'paused');
-                                await this.hooks.execute('on-pause', {
-                                    phase: phaseName,
-                                    task_ref: options.taskRef,
-                                    run_id: runId,
-                                });
-                                this.fsm.transition('human-gate');
-                                await this.state.updateRunStatus(runId, 'PAUSED');
-                                await this.emitEvent(runId, 'run.paused', {
-                                    phase: phaseName,
-                                });
-                                return {
-                                    runId,
-                                    status: 'PAUSED',
-                                    exitCode: 0,
-                                    durationMs: Date.now() - startTime,
-                                };
-                            }
-
-                            // Auto gate failure = phase failure
-                            this.dag.markFailed(phaseName);
-                            await this.state.updatePhaseStatus(runId, phaseName, 'failed');
-                            await this.failPausedRun(runId, `Gate failed for phase ${phaseName}`, startTime, {
-                                phase: phaseName,
-                            });
-                            return {
-                                runId,
-                                status: 'FAILED',
-                                exitCode: 1,
-                                durationMs: Date.now() - startTime,
-                            };
-                        }
-                    } else {
-                        // Gate passed — mark completed
-                        this.dag.markCompleted(phaseName);
-                        await this.state.updatePhaseStatus(runId, phaseName, 'completed');
-
-                        // Finalize snapshot after phase completion
-                        await this.finalizeSnapshot(runId, phaseName);
-
-                        await this.hooks.execute('on-phase-complete', {
-                            phase: phaseName,
-                            task_ref: options.taskRef,
-                            run_id: runId,
-                        });
-
-                        await this.emitEvent(runId, 'phase.completed', {
-                            phase: phaseName,
-                        });
+                    if (gateResult.status === 'pending') {
+                        return this.pauseRunAtPhase(runId, phaseName, options.taskRef, startTime);
                     }
+
+                    // Gate passed — mark completed
+                    this.dag.markCompleted(phaseName);
+                    await this.state.updatePhaseStatus(runId, phaseName, 'completed');
+
+                    // Finalize snapshot after phase completion
+                    await this.finalizeSnapshot(runId, phaseName);
+
+                    await this.hooks.execute('on-phase-complete', {
+                        phase: phaseName,
+                        task_ref: options.taskRef,
+                        run_id: runId,
+                    });
+
+                    await this.emitEvent(runId, 'phase.completed', {
+                        phase: phaseName,
+                    });
                 }
             }
 
@@ -652,12 +642,54 @@ export class PipelineRunner {
         }
     }
 
+    private async pauseRunAtPhase(
+        runId: string,
+        phaseName: string,
+        taskRef: string,
+        startTime: number,
+        notifyFailure = false,
+        payload?: Record<string, unknown>,
+    ): Promise<PipelineRunResult> {
+        this.dag.markPaused(phaseName);
+        await this.state.updatePhaseStatus(runId, phaseName, 'paused');
+
+        if (notifyFailure) {
+            await this.hooks.execute('on-phase-failure', {
+                phase: phaseName,
+                task_ref: taskRef,
+                run_id: runId,
+                ...(typeof payload?.error === 'string' && { error: payload.error }),
+            });
+        }
+
+        await this.hooks.execute('on-pause', {
+            phase: phaseName,
+            task_ref: taskRef,
+            run_id: runId,
+        });
+        this.fsm.transition('human-gate');
+        await this.state.updateRunStatus(runId, 'PAUSED');
+        await this.emitEvent(runId, 'run.paused', {
+            phase: phaseName,
+            ...(payload ?? {}),
+        });
+        return {
+            runId,
+            status: 'PAUSED',
+            exitCode: 0,
+            durationMs: Date.now() - startTime,
+        };
+    }
+
     private async executePhaseWithRework(
         runId: string,
         phaseName: string,
         phaseDef: PhaseDefinition,
         options: RunOptions,
-    ): Promise<{ success: boolean; errorCode?: string; errorMessage?: string }> {
+    ): Promise<
+        | { success: true; evidence: PhaseEvidence }
+        | { success: false; errorCode?: string; errorMessage?: string }
+    > {
         const maxRework = phaseDef.gate?.rework?.max_iterations ?? 0;
         let iteration = 0;
         let feedback: string | undefined;
@@ -686,7 +718,10 @@ export class PipelineRunner {
             const result = await this.pool.execute(req);
 
             if (result.success) {
-                return { success: true };
+                return {
+                    success: true,
+                    evidence: await this.buildPhaseEvidence(runId, phaseName, options.taskRef, iteration, result, feedback),
+                };
             }
 
             iteration++;
@@ -712,53 +747,232 @@ export class PipelineRunner {
         return { success: false, errorCode: 'MAX_REWORK_EXCEEDED' };
     }
 
-    private async checkGate(runId: string, phaseName: string, gate?: GateConfig): Promise<ChainState> {
+    private async checkGate(
+        runId: string,
+        phaseName: string,
+        gate?: GateConfig,
+        taskRef?: string,
+        phaseEvidence?: PhaseEvidence,
+    ): Promise<ChainState> {
         if (!gate) {
             return { status: 'pass', results: [] };
         }
 
-        if (gate.type === 'auto') {
-            // Run automated verification via CoV driver
-            // Default auto-gate checks: verify output exists
-            const manifest: ChainManifest = {
-                run_id: runId,
-                phase_name: phaseName,
-                checks: [
+        let result: ChainState;
+        if (gate.type === 'command') {
+            result = await this.checkCommandGate(runId, phaseName, gate, taskRef);
+        } else if (gate.type === 'auto') {
+            result = await this.checkAutoGate(runId, phaseName, gate, phaseEvidence);
+        } else if (gate.type === 'human') {
+            // Human gates require pause
+            return { status: 'pending', results: [] };
+        } else {
+            return { status: 'pass', results: [] };
+        }
+
+        for (const gateResult of result.results) {
+            await this.state.saveGateResult(gateResult);
+        }
+
+        if (result.results.length > 0) {
+            await this.emitEvent(runId, 'gate.evaluated', {
+                phase: phaseName,
+                gate_type: gate.type,
+                passed: result.status === 'pass',
+                duration_ms: result.results.reduce((total, item) => total + (item.duration_ms ?? 0), 0),
+            });
+        }
+
+        return result;
+    }
+
+    /**
+     * Resolve checklist for auto gate using precedence:
+     * 1. Pipeline YAML explicit checklist
+     * 2. Engine defaults
+     */
+    private resolveAutoChecklist(gate: GateConfig): string[] {
+        if (gate.checklist && gate.checklist.length > 0) {
+            return [...gate.checklist];
+        }
+        // Engine defaults (fallback when no YAML or no skill defaults)
+        return ['Phase completed successfully without errors', 'Output is consistent with task requirements'];
+    }
+
+    /**
+     * Real auto gate: uses verification-chain llm checker.
+     * Builds LlmCheckerConfig from gate config + evidence, runs LLM check,
+     * normalizes results into orchestration-v2 ChainState.
+     */
+    private async checkAutoGate(
+        runId: string,
+        phaseName: string,
+        gate: GateConfig,
+        phaseEvidence?: PhaseEvidence,
+    ): Promise<ChainState> {
+        const startTime = Date.now();
+        const checklist = this.resolveAutoChecklist(gate);
+
+        const severity = gate.severity ?? 'blocking';
+        const promptTemplate = this.buildAutoGatePromptTemplate(gate.prompt_template, phaseEvidence);
+
+        const config: LlmCheckerConfig = {
+            checklist,
+            ...(promptTemplate && { prompt_template: promptTemplate }),
+        };
+
+        const result = await runLlmCheck(config);
+
+        const durationMs = Date.now() - startTime;
+
+        // Normalize LLM evidence into gate evidence
+        const gateEvidence: Record<string, unknown> = {
+            checklist: result.evidence.llm_results ?? [],
+            llm_raw_output: result.evidence,
+            severity,
+            source: gate.checklist ? 'yaml' : 'engine',
+            ...(phaseEvidence && {
+                phase_evidence: { success: phaseEvidence.success, files_changed: phaseEvidence.files_changed },
+            }),
+        };
+
+        const passed = result.result === 'pass';
+        const isAdvisory = !passed && severity === 'advisory';
+
+        const gateResult: GateResult = {
+            run_id: runId,
+            phase_name: phaseName,
+            step_name: 'auto-gate',
+            checker_method: 'llm',
+            passed,
+            ...(isAdvisory && { advisory: true }),
+            evidence: gateEvidence,
+            duration_ms: durationMs,
+            created_at: new Date(),
+        };
+
+        // Advisory failure: warn but don't block
+        if (isAdvisory) {
+            logger.warn(`[gate] Advisory failure for phase ${phaseName}: ${result.error ?? 'checklist items failed'}`);
+            await this.emitEvent(runId, 'gate.advisory_fail', {
+                phase: phaseName,
+                checklist_failures: (result.evidence.llm_results ?? [])
+                    .filter((r: { passed: boolean }) => !r.passed)
+                    .map((r) => r.item),
+            });
+            // Advisory failure still counts as pass for pipeline flow
+            return { status: 'pass', results: [gateResult] };
+        }
+
+        return {
+            status: passed ? 'pass' : 'fail',
+            results: [gateResult],
+        };
+    }
+
+    private async checkCommandGate(
+        runId: string,
+        phaseName: string,
+        gate: GateConfig,
+        taskRef?: string,
+    ): Promise<ChainState> {
+        const rawCommand = gate.command ?? '';
+        if (!rawCommand) {
+            return {
+                status: 'fail',
+                results: [
                     {
-                        name: 'execution-success',
-                        method: 'cli',
-                        params: { command: `echo "auto-gate-check: ${phaseName} passed"` },
+                        run_id: runId,
+                        phase_name: phaseName,
+                        step_name: 'command-gate',
+                        checker_method: 'command',
+                        passed: false,
+                        evidence: { error: 'No command specified for command gate' },
+                        duration_ms: 0,
+                        created_at: new Date(),
                     },
                 ],
             };
-            return this.covDriver.runChain(manifest);
         }
 
-        if (gate.type === 'human') {
-            // Human gates require pause
-            return { status: 'pending', results: [] };
-        }
+        const command = this.substituteTemplate(rawCommand, {
+            task_ref: taskRef ?? '',
+            phase: phaseName,
+            run_id: runId,
+        });
 
-        return { status: 'pass', results: [] };
+        const startTime = Date.now();
+        try {
+            const proc = Bun.spawn(['sh', '-c', command], {
+                stdout: 'pipe',
+                stderr: 'pipe',
+            });
+            const exitCode = await proc.exited;
+            const stdout = await new Response(proc.stdout).text();
+            const stderr = await new Response(proc.stderr).text();
+            const durationMs = Date.now() - startTime;
+
+            const result: GateResult = {
+                run_id: runId,
+                phase_name: phaseName,
+                step_name: 'command-gate',
+                checker_method: 'command',
+                passed: exitCode === 0,
+                evidence: {
+                    command,
+                    exitCode,
+                    ...(stdout.trim().length > 0 && { stdout: stdout.slice(0, 1000) }),
+                    ...(stderr.trim().length > 0 && { stderr: stderr.slice(0, 1000) }),
+                },
+                duration_ms: durationMs,
+                created_at: new Date(),
+            };
+
+            return {
+                status: exitCode === 0 ? 'pass' : 'fail',
+                results: [result],
+            };
+        } catch (err) {
+            return {
+                status: 'fail',
+                results: [
+                    {
+                        run_id: runId,
+                        phase_name: phaseName,
+                        step_name: 'command-gate',
+                        checker_method: 'command',
+                        passed: false,
+                        evidence: {
+                            command,
+                            error: err instanceof Error ? err.message : String(err),
+                        },
+                        duration_ms: Date.now() - startTime,
+                        created_at: new Date(),
+                    },
+                ],
+            };
+        }
+    }
+
+    private substituteTemplate(template: string, vars: Record<string, string>): string {
+        let result = template;
+        for (const [key, value] of Object.entries(vars)) {
+            result = result.replaceAll(`{{${key}}}`, value);
+        }
+        return result;
     }
 
     private async handleRework(
         runId: string,
         phaseName: string,
         phaseDef: PhaseDefinition,
-        gateResult: ChainState,
+        _gateResult: ChainState,
         options: RunOptions,
-    ): Promise<boolean> {
+    ): Promise<{ status: 'reworked'; evidence: PhaseEvidence } | { status: 'pause' } | { status: 'failed' }> {
         const maxRework = phaseDef.gate?.rework?.max_iterations ?? 0;
-        if (maxRework === 0) return false;
-
-        const failedChecks = gateResult.results.filter((r) => !r.passed);
-        const _feedback = failedChecks
-            .map(
-                (r) =>
-                    `- ${r.step_name} (${r.checker_method}): failed${r.evidence ? ` — ${JSON.stringify(r.evidence)}` : ''}`,
-            )
-            .join('\n');
+        if (maxRework === 0) {
+            return phaseDef.gate?.rework?.escalation === 'pause' ? { status: 'pause' } : { status: 'failed' };
+        }
 
         // Get current rework iteration
         const phase = await this.state.getPhase(runId, phaseName);
@@ -767,9 +981,9 @@ export class PipelineRunner {
         if (currentIteration >= maxRework) {
             const escalation = phaseDef.gate?.rework?.escalation ?? 'fail';
             if (escalation === 'pause') {
-                return false; // Will be handled as pause in caller
+                return { status: 'pause' };
             }
-            return false;
+            return { status: 'failed' };
         }
 
         // Update rework iteration
@@ -780,7 +994,68 @@ export class PipelineRunner {
         // Re-execute with feedback
         const result = await this.executePhaseWithRework(runId, phaseName, phaseDef, options);
 
-        return result.success;
+        if (result.success) {
+            return { status: 'reworked', evidence: result.evidence };
+        }
+
+        return { status: 'failed' };
+    }
+
+    private buildAutoGatePromptTemplate(promptTemplate: string | undefined, phaseEvidence?: PhaseEvidence): string | undefined {
+        if (!phaseEvidence) {
+            return promptTemplate;
+        }
+
+        const baseTemplate = promptTemplate ?? DEFAULT_AUTO_GATE_PROMPT_TEMPLATE;
+        const evidenceJson = JSON.stringify(phaseEvidence, null, 2);
+
+        if (baseTemplate.includes('{evidence}')) {
+            return baseTemplate.replaceAll('{evidence}', evidenceJson);
+        }
+
+        return `${baseTemplate}
+
+Phase execution evidence:
+${evidenceJson}
+
+Evaluate each checklist item against the evidence above.`;
+    }
+
+    private async buildPhaseEvidence(
+        runId: string,
+        phaseName: string,
+        taskRef: string,
+        reworkIteration: number,
+        result: { exitCode: number; stdout?: string; stderr?: string; structured?: Record<string, unknown>; durationMs: number },
+        reworkFeedback?: string,
+    ): Promise<PhaseEvidence> {
+        const changedFiles = await this.getChangedFiles();
+        return {
+            success: true,
+            exitCode: result.exitCode,
+            ...(result.stdout && { stdout: result.stdout.slice(0, 4096) }),
+            ...(result.stderr && { stderr: result.stderr.slice(0, 4096) }),
+            ...(result.structured && { structured: result.structured }),
+            duration_ms: result.durationMs,
+            files_changed: Object.keys(changedFiles).slice(0, 100),
+            files_added: [],
+            task_ref: taskRef,
+            phase_name: phaseName,
+            run_id: runId,
+            rework_iteration: reworkIteration,
+            ...(reworkFeedback && { rework_feedback: reworkFeedback }),
+        };
+    }
+
+    private getGateFailureMessage(phaseName: string, gateResult: ChainState): string {
+        const firstResult = gateResult.results[0];
+        const error =
+            typeof firstResult?.evidence?.error === 'string'
+                ? firstResult.evidence.error
+                : typeof firstResult?.evidence?.stderr === 'string'
+                  ? firstResult.evidence.stderr
+                  : undefined;
+        return error ? `Gate failed for phase ${phaseName}: ${error}` : `Gate failed for phase ${phaseName}`;
     }
 
     private async emitEvent(
