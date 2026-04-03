@@ -12,5 +12,5 @@ stack:
 phases:
   docs:
     skill: rd3:code-docs
-    gate: { type: auto }
+    gate: { type: command, command: "bun run typecheck" }
     timeout: 30m
