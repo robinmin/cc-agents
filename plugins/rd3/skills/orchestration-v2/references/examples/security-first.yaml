@@ -12,7 +12,7 @@ stack:
 phases:
   intake:
     skill: rd3:request-intake
-    gate: { type: auto }
+    gate: { type: command, command: "echo 'intake complete'" }
     timeout: 30m
 
   arch:
@@ -29,14 +29,15 @@ phases:
 
   decompose:
     skill: rd3:task-decomposition
-    gate: { type: auto }
+    gate: { type: command, command: "echo 'decompose complete'" }
     timeout: 30m
-    after: [design]
+    after: [intake]
 
   implement:
     skill: rd3:code-implement-common
     gate:
-      type: auto
+      type: command
+      command: "bun run check"
       rework: { max_iterations: 2, escalation: pause }
     timeout: 2h
     after: [decompose]
@@ -47,7 +48,8 @@ phases:
   test:
     skill: rd3:sys-testing
     gate:
-      type: auto
+      type: command
+      command: "bun test --coverage"
       rework: { max_iterations: 3, escalation: pause }
     timeout: 1h
     after: [implement]
@@ -57,7 +59,8 @@ phases:
   security-scan:
     skill: rd3:code-review-common
     gate:
-      type: auto
+      type: command
+      command: "bun run lint"
       rework: { max_iterations: 2, escalation: pause }
     timeout: 30m
     after: [implement]
@@ -92,7 +95,7 @@ phases:
 
   docs:
     skill: rd3:code-docs
-    gate: { type: auto }
+    gate: { type: command, command: "bun run typecheck" }
     timeout: 30m
     after: [verify-bdd, verify-func]
 
