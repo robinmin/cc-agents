@@ -7,6 +7,7 @@
       "Read(//tmp/**)",
       "Write(//tmp/**)",
       "Edit(//tmp/**)",
+
       "Skill(rd2:anti-hallucination)",
       "Skill(rd2:cc-skills)",
       "Skill(rd2:cc-agents)",
@@ -17,6 +18,7 @@
       "Skill(rd3:agent-evaluate)",
       "Skill(rd3:quick-grep)",
       "Skill(migrate-to-rd3)",
+
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -29,6 +31,11 @@
       "mcp__huggingface__gr1_z_image_turbo_generate",
       "mcp__brave-search__brave_web_search",
       "mcp__plugin_claude-mem_mcp-search__search",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
@@ -41,6 +48,7 @@
       "WebFetch(domain:developers.openai.com)",
       "WebFetch(domain:ast-grep.github.io)",
       "WebFetch(domain:biomejs.dev)",
+
       "Bash(ast-grep:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
@@ -57,10 +65,12 @@
       "Bash(echo:*)",
       "Bash(ls:*)",
       "Bash(bats:*)",
+
       "Bash(rtk find:*)",
       "Bash(rtk tasks:*)",
       "Bash(rtk bun:*)",
-      "Bash(rtkt tasks:*)"
+      "Bash(rtkt tasks:*)",
+      "Bash(rtk biome:*)"
     ],
     "deny": [],
     "ask": []
