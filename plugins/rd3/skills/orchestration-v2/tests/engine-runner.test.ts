@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, beforeEach } from 'bun:test';
+import { describe, test, expect, beforeAll, beforeEach, afterAll, spyOn } from 'bun:test';
 import { PipelineRunner } from '../scripts/engine/runner';
 import { StateManager } from '../scripts/state/manager';
 import { EventStore } from '../scripts/state/events';
@@ -8,9 +8,27 @@ import { EventBus } from '../scripts/observability/event-bus';
 import { HookRegistry } from '../scripts/engine/hooks';
 import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent } from '../scripts/model';
 import { setGlobalSilent } from '../../../scripts/logger';
+import * as llmModule from '../../verification-chain/scripts/methods/llm';
+import type { LlmCheckerConfig } from '../../verification-chain/scripts/types';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+let llmSpy: ReturnType<typeof spyOn>;
 
 beforeAll(() => {
     setGlobalSilent(true);
+
+    // Mock runLlmCheck to always pass — auto gates use LLM verification
+    // which requires external LLM access not available in test
+    llmSpy = spyOn(llmModule, 'runLlmCheck').mockResolvedValue({
+        result: 'pass',
+        evidence: { method: 'llm', result: 'pass', timestamp: new Date().toISOString(), llm_results: [] },
+    });
+});
+
+afterAll(() => {
+    llmSpy?.mockRestore();
 });
 
 function createTestPipeline(): PipelineDefinition {
@@ -627,6 +645,251 @@ describe('engine/runner — PipelineRunner', () => {
         expect(result.exitCode).toBe(1); // Should fail after max iterations
         expect(mockExecutor.getCallLog()).toHaveLength(3); // Initial + 2 rework attempts
     }, 15000);
+});
+
+describe('engine/runner — command gate', () => {
+    let stateManager: StateManager;
+    let pool: ExecutorPool;
+    let mockExecutor: MockExecutor;
+
+    beforeEach(async () => {
+        stateManager = new StateManager({ dbPath: ':memory:' });
+        await stateManager.init();
+        pool = new ExecutorPool();
+        mockExecutor = new MockExecutor({ channels: ['current'] });
+        pool.register(mockExecutor);
+    });
+
+    test('command gate passes when command exits 0', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'command-gate-pass',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement',
+                    gate: { type: 'command', command: 'true' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } }]);
+
+        const result = await runner.run({ taskRef: 'cmd-test-001' }, pipeline);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.status).toBe('COMPLETED');
+    }, 10000);
+
+    test('command gate fails when command exits non-zero', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'command-gate-fail',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement',
+                    gate: { type: 'command', command: 'false' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } }]);
+
+        const result = await runner.run({ taskRef: 'cmd-test-002' }, pipeline);
+
+        expect(result.exitCode).toBe(1);
+        expect(result.status).toBe('FAILED');
+    }, 10000);
+
+    test('command gate substitutes template variables', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'command-gate-template',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement',
+                    gate: { type: 'command', command: 'echo "{{task_ref}} {{phase}} {{run_id}}"' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } }]);
+
+        const result = await runner.run({ taskRef: '0316' }, pipeline);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.status).toBe('COMPLETED');
+    }, 10000);
+
+    test('command gate with rework retries on failure then succeeds', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        const tempDir = mkdtempSync(join(tmpdir(), 'orch-v2-gate-rework-'));
+        const gateFlag = join(tempDir, 'gate-fixed');
+
+        try {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'command-gate-rework',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'command',
+                            command: `[ -f '${gateFlag}' ] && exit 0; touch '${gateFlag}'; exit 1`,
+                            rework: { max_iterations: 2, escalation: 'fail' },
+                        },
+                    },
+                },
+            };
+
+            mockExecutor.setResponses([
+                { result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } },
+                { result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } },
+            ]);
+
+            const result = await runner.run({ taskRef: 'cmd-test-003' }, pipeline);
+
+            expect(result.exitCode).toBe(0);
+            expect(result.status).toBe('COMPLETED');
+            expect(mockExecutor.getCallLog()).toHaveLength(2);
+        } finally {
+            rmSync(tempDir, { recursive: true, force: true });
+        }
+    }, 10000);
+
+    test('command gate pause escalation pauses the run after retries are exhausted', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'command-gate-pause',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement',
+                    gate: {
+                        type: 'command',
+                        command: 'false',
+                        rework: { max_iterations: 1, escalation: 'pause' },
+                    },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([
+            { result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } },
+            { result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } },
+        ]);
+
+        const result = await runner.run({ taskRef: 'cmd-test-004' }, pipeline);
+        const phase = await stateManager.getPhase(result.runId, 'implement');
+
+        expect(result.exitCode).toBe(0);
+        expect(result.status).toBe('PAUSED');
+        expect(phase?.status).toBe('paused');
+    }, 10000);
+
+    test('command gate results are persisted for inspection', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'command-gate-persist',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement',
+                    gate: { type: 'command', command: 'printf "gate-ok"' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } }]);
+
+        const result = await runner.run({ taskRef: 'cmd-test-005' }, pipeline);
+        const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+
+        expect(result.status).toBe('COMPLETED');
+        expect(gateResults).toHaveLength(1);
+        expect(gateResults[0]?.checker_method).toBe('command');
+        expect(gateResults[0]?.evidence).toMatchObject({
+            command: 'printf "gate-ok"',
+            exitCode: 0,
+            stdout: 'gate-ok',
+        });
+    }, 10000);
+});
+
+describe('engine/runner — auto gate evidence', () => {
+    let stateManager: StateManager;
+    let pool: ExecutorPool;
+    let mockExecutor: MockExecutor;
+
+    beforeEach(async () => {
+        llmSpy.mockClear();
+        stateManager = new StateManager({ dbPath: ':memory:' });
+        await stateManager.init();
+        pool = new ExecutorPool();
+        mockExecutor = new MockExecutor({ channels: ['current'] });
+        pool.register(mockExecutor);
+    });
+
+    test('auto gate receives phase evidence and persists gate results', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        llmSpy.mockImplementationOnce(async (config: LlmCheckerConfig) => {
+            expect(config.prompt_template).toContain('stdout from phase');
+            expect(config.prompt_template).toContain('stderr from phase');
+            expect(config.prompt_template).toContain('"summary": "structured-output"');
+            expect(config.prompt_template).toContain('"files_changed"');
+            return {
+                result: 'pass',
+                evidence: {
+                    method: 'llm',
+                    result: 'pass',
+                    timestamp: new Date().toISOString(),
+                    llm_results: [{ item: 'Phase completed successfully without errors', passed: true }],
+                },
+            };
+        });
+
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'auto-gate-evidence',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement',
+                    gate: { type: 'auto' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([
+            {
+                result: {
+                    success: true,
+                    exitCode: 0,
+                    stdout: 'stdout from phase',
+                    stderr: 'stderr from phase',
+                    structured: { summary: 'structured-output' },
+                    durationMs: 250,
+                    timedOut: false,
+                },
+            },
+        ]);
+
+        const result = await runner.run({ taskRef: 'auto-test-001' }, pipeline);
+        const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+
+        expect(result.status).toBe('COMPLETED');
+        expect(gateResults).toHaveLength(1);
+        expect(gateResults[0]?.checker_method).toBe('llm');
+        expect(gateResults[0]?.evidence).toMatchObject({
+            severity: 'blocking',
+            source: 'engine',
+            phase_evidence: {
+                success: true,
+                files_changed: expect.any(Array),
+            },
+        });
+    }, 10000);
 });
 
 describe('engine/runner — hook execution', () => {
