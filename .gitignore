@@ -178,3 +178,6 @@ dist-*/
 test-output-*.md
 .ant-colony/
 /docs/.workflow-runs
+
+/.claude/skills/ui-ux-pro-max
+/.playwright-mcp
