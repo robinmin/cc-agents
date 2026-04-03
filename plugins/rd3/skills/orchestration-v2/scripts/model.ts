@@ -15,8 +15,31 @@ export type DAGPhaseState = 'pending' | 'ready' | 'running' | 'completed' | 'fai
 // ─── Pipeline Definition ───────────────────────────────────────────────────────
 
 export interface GateConfig {
-    readonly type: 'auto' | 'human';
+    readonly type: 'command' | 'auto' | 'human';
+    readonly command?: string;
     readonly rework?: ReworkConfig;
+    // ─── auto-specific ─────────────────────
+    readonly checklist?: readonly string[];
+    readonly prompt_template?: string;
+    readonly severity?: 'blocking' | 'advisory';
+    // ─── human-specific ─────────────────────
+    readonly prompt?: string;
+}
+
+export interface PhaseEvidence {
+    readonly success: boolean;
+    readonly exitCode: number;
+    readonly stdout?: string;
+    readonly stderr?: string;
+    readonly structured?: Record<string, unknown>;
+    readonly duration_ms: number;
+    readonly files_changed: readonly string[];
+    readonly files_added: readonly string[];
+    readonly task_ref: string;
+    readonly phase_name: string;
+    readonly run_id: string;
+    readonly rework_iteration: number;
+    readonly rework_feedback?: string;
 }
 
 export interface ReworkConfig {
@@ -160,6 +183,9 @@ export type EventType =
     | 'phase.failed'
     | 'phase.rework'
     | 'gate.evaluated'
+    | 'gate.advisory_fail'
+    | 'gate.rework'
+    | 'gate.escalation'
     | 'executor.invoked'
     | 'executor.completed'
     | 'phase.undo';
@@ -205,6 +231,7 @@ export interface GateResult {
     readonly step_name: string;
     readonly checker_method: string;
     readonly passed: boolean;
+    readonly advisory?: boolean;
     readonly evidence?: Record<string, unknown>;
     readonly duration_ms?: number;
     readonly created_at?: Date;
