@@ -687,8 +687,7 @@ export class PipelineRunner {
         phaseDef: PhaseDefinition,
         options: RunOptions,
     ): Promise<
-        | { success: true; evidence: PhaseEvidence }
-        | { success: false; errorCode?: string; errorMessage?: string }
+        { success: true; evidence: PhaseEvidence } | { success: false; errorCode?: string; errorMessage?: string }
     > {
         const maxRework = phaseDef.gate?.rework?.max_iterations ?? 0;
         let iteration = 0;
@@ -720,7 +719,14 @@ export class PipelineRunner {
             if (result.success) {
                 return {
                     success: true,
-                    evidence: await this.buildPhaseEvidence(runId, phaseName, options.taskRef, iteration, result, feedback),
+                    evidence: await this.buildPhaseEvidence(
+                        runId,
+                        phaseName,
+                        options.taskRef,
+                        iteration,
+                        result,
+                        feedback,
+                    ),
                 };
             }
 
@@ -1001,7 +1007,10 @@ export class PipelineRunner {
         return { status: 'failed' };
     }
 
-    private buildAutoGatePromptTemplate(promptTemplate: string | undefined, phaseEvidence?: PhaseEvidence): string | undefined {
+    private buildAutoGatePromptTemplate(
+        promptTemplate: string | undefined,
+        phaseEvidence?: PhaseEvidence,
+    ): string | undefined {
         if (!phaseEvidence) {
             return promptTemplate;
         }
@@ -1026,7 +1035,13 @@ Evaluate each checklist item against the evidence above.`;
         phaseName: string,
         taskRef: string,
         reworkIteration: number,
-        result: { exitCode: number; stdout?: string; stderr?: string; structured?: Record<string, unknown>; durationMs: number },
+        result: {
+            exitCode: number;
+            stdout?: string;
+            stderr?: string;
+            structured?: Record<string, unknown>;
+            durationMs: number;
+        },
         reworkFeedback?: string,
     ): Promise<PhaseEvidence> {
         const changedFiles = await this.getChangedFiles();
