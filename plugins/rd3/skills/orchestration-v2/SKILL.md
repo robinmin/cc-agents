@@ -132,7 +132,7 @@ Execute `orchestrator run <task-id>` to start the DAG. The engine resolves phase
 
 ### Step 3: Handle Gates
 
-When a phase gate requires approval (type: manual), the pipeline enters PAUSED state. Use `orchestrator resume <task-id> --approve` to continue.
+When a phase gate requires approval (type: human), the pipeline enters PAUSED state. Use `orchestrator resume <task-id> --approve` to continue.
 
 ### Step 4: Review and Report
 
@@ -205,6 +205,7 @@ During migration, both systems coexist:
 
 - **CLI Reference**: `references/cli-reference.md` — Full command documentation
 - **Pipeline YAML Guide**: `references/pipeline-yaml-guide.md` — How to write pipeline definitions
+- **Gate Architecture**: `references/gate-architecture.md` — Gate model, evidence contract, and policy design
 - **Agent Cooperation**: `references/agent-cooperation.md` — How agents interact with pipelines
 - **Error Recovery**: `references/error-codes.md` — Error taxonomy and recovery strategies
 - **Example Pipelines**: `references/examples/` — Default, quick-fix, security-first, and more
