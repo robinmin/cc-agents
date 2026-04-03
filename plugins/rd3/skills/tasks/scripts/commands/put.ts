@@ -34,6 +34,20 @@ function inferArtifactType(fileName: string): string {
     }
 }
 
+export function validateArtifactDisplayName(displayName: string): Result<string> {
+    const trimmed = displayName.trim();
+
+    if (trimmed.length === 0) {
+        return err('Artifact name must not be empty');
+    }
+
+    if (trimmed === '.' || trimmed === '..' || trimmed.includes('/') || trimmed.includes('\\')) {
+        return err('Artifact name must be a file name, not a path');
+    }
+
+    return ok(trimmed);
+}
+
 export function putArtifact(
     projectRoot: string,
     wbs: string,
@@ -53,7 +67,13 @@ export function putArtifact(
 
     // Determine target directory and filename
     const targetDir = resolve(projectRoot, 'docs/tasks', wbs);
-    const displayName = options.name || sourcePath.split('/').pop() || 'artifact';
+    const rawDisplayName = options.name || sourcePath.split('/').pop() || 'artifact';
+    const displayNameResult = validateArtifactDisplayName(rawDisplayName);
+    if (!displayNameResult.ok) {
+        return err(displayNameResult.error);
+    }
+
+    const displayName = displayNameResult.value;
     const targetPath = resolve(targetDir, displayName);
 
     // Lazily create directory
