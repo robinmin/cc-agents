@@ -256,7 +256,7 @@ export function getPipelineJsonSchema(): Record<string, unknown> {
                                 type: 'object',
                                 properties: {
                                     type: { enum: ['command', 'auto', 'human'] },
-                                    command: { type: 'string' },
+                                    command: { type: 'string', minLength: 1 },
                                     checklist: {
                                         type: 'array',
                                         items: { type: 'string' },
