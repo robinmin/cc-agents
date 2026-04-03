@@ -39,6 +39,85 @@ beforeAll(() => {
 });
 
 describe('config/schema — validateSchema', () => {
+    test('command gate requires command string', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'command' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_command')).toBe(true);
+    });
+
+    test('command gate with valid command string passes', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'command', command: 'bun test' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(true);
+    });
+
+    test('command gate rejects empty command string', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'command', command: '  ' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_command')).toBe(true);
+    });
+
+    test('non-command gate rejects command field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'auto', command: 'bun test' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_command')).toBe(true);
+    });
+
+    test('human gate rejects command field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'human', command: 'bun test' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_command')).toBe(true);
+    });
+
+    test('command gate with template variables passes', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: {
+                    skill: 'rd3:sys-testing',
+                    gate: { type: 'command', command: 'bun test --filter {{task_ref}} --phase {{phase}}' },
+                },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(true);
+    });
+
     test('valid pipeline passes', () => {
         const result = validateSchema(VALID_PIPELINE);
         expect(result.valid).toBe(true);
@@ -133,6 +212,298 @@ describe('config/schema — validateSchema', () => {
         const result = validateSchema(pipeline);
         expect(result.valid).toBe(false);
         expect(result.errors.some((e) => e.rule === 'preset_phase_ref')).toBe(true);
+    });
+
+    test('command gate rejects checklist field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'command', command: 'bun test', checklist: ['a'] } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_checklist')).toBe(true);
+    });
+
+    test('command gate rejects severity field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: {
+                    skill: 'rd3:sys-testing',
+                    gate: { type: 'command', command: 'bun test', severity: 'blocking' },
+                },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_severity')).toBe(true);
+    });
+
+    test('command gate rejects prompt field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'command', command: 'bun test', prompt: 'approve?' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_prompt')).toBe(true);
+    });
+
+    test('auto gate rejects prompt field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'auto', prompt: 'approve?' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_prompt')).toBe(true);
+    });
+
+    test('auto gate rejects empty checklist', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'auto', checklist: [] } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_checklist')).toBe(true);
+    });
+
+    test('auto gate rejects checklist with non-string items', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'auto', checklist: ['ok', 42] } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_checklist')).toBe(true);
+    });
+
+    test('auto gate rejects checklist with empty string items', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'auto', checklist: ['ok', '  '] } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_checklist')).toBe(true);
+    });
+
+    test('auto gate with valid checklist passes', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'auto', checklist: ['check A', 'check B'] } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(true);
+    });
+
+    test('auto gate rejects invalid severity', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'auto', severity: 'critical' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_severity')).toBe(true);
+    });
+
+    test('auto gate with valid severity passes', () => {
+        for (const severity of ['blocking', 'advisory'] as const) {
+            const pipeline = {
+                ...VALID_PIPELINE,
+                phases: {
+                    test: { skill: 'rd3:sys-testing', gate: { type: 'auto', severity } },
+                },
+                presets: {},
+            };
+            const result = validateSchema(pipeline);
+            expect(result.valid).toBe(true);
+        }
+    });
+
+    test('human gate rejects checklist field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'human', checklist: ['a'] } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_checklist')).toBe(true);
+    });
+
+    test('human gate rejects prompt_template field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'human', prompt_template: 'tpl' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_prompt_template')).toBe(true);
+    });
+
+    test('human gate rejects severity field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'human', severity: 'blocking' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_severity')).toBe(true);
+    });
+
+    test('human gate with valid prompt passes', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'human', prompt: 'Approve this phase?' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(true);
+    });
+
+    test('rework with invalid escalation', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: {
+                    skill: 'rd3:sys-testing',
+                    gate: { type: 'auto', rework: { max_iterations: 3, escalation: 'explode' } },
+                },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'escalation')).toBe(true);
+    });
+
+    test('rework with valid escalation passes', () => {
+        for (const escalation of ['pause', 'fail'] as const) {
+            const pipeline = {
+                ...VALID_PIPELINE,
+                phases: {
+                    test: {
+                        skill: 'rd3:sys-testing',
+                        gate: { type: 'auto', rework: { max_iterations: 3, escalation } },
+                    },
+                },
+                presets: {},
+            };
+            const result = validateSchema(pipeline);
+            expect(result.valid).toBe(true);
+        }
+    });
+
+    test('phase after must be an array', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', after: 'implement' },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'after')).toBe(true);
+    });
+
+    test('preset without phases array', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            presets: {
+                broken: { defaults: { foo: 'bar' } } as unknown as Record<string, unknown>,
+            },
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'preset_phases')).toBe(true);
+    });
+
+    test('phases as array is rejected', () => {
+        const result = validateSchema({ schema_version: 1, name: 'test', phases: ['a', 'b'] });
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'phases')).toBe(true);
+    });
+
+    test('name as non-string is rejected', () => {
+        const result = validateSchema({ schema_version: 1, name: 42, phases: {} });
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'name')).toBe(true);
+    });
+
+    test('gate without type is accepted (optional)', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: {} },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(true);
+    });
+
+    test('phase with null value skips inner validation', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: null,
+            },
+            presets: {},
+        } as unknown as Record<string, unknown>;
+        const result = validateSchema(pipeline);
+        // null is typeof 'object' but !== null fails, so inner block is skipped — no skill error
+        expect(result.valid).toBe(true);
+    });
+
+    test('auto gate with non-array checklist is rejected', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: { skill: 'rd3:sys-testing', gate: { type: 'auto', checklist: 'not-array' } },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_checklist')).toBe(true);
     });
 });
 
