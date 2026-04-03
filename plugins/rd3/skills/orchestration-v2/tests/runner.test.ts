@@ -356,6 +356,46 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             expect(result.exitCode).toBe(0);
         });
 
+        test('should propagate auto gate configuration errors', async () => {
+            // Mock runLlmCheck to return a configuration error
+            llmSpy.mockResolvedValueOnce({
+                result: 'fail',
+                error: 'LLM_CLI_COMMAND environment variable is not set',
+                evidence: {
+                    method: 'llm',
+                    result: 'fail',
+                    timestamp: new Date().toISOString(),
+                },
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'auto-gate-error-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'auto-gate-error-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('FAILED');
+            // Verify that the error message is propagated in the phase record or logs
+            const phase = await stateManager.getPhase(result.runId, 'implement');
+            // The runner sets error_message on phase failure
+            expect(phase?.status).toBe('failed');
+
+            // Verify gate result has the error
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].evidence?.error).toBe('LLM_CLI_COMMAND environment variable is not set');
+        });
+
         test('should pause pipeline for human gate', async () => {
             const pipeline: PipelineDefinition = {
                 schema_version: 1,
