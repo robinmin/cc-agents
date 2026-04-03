@@ -18,6 +18,8 @@ import type {
     ChainState,
     OrchestratorEvent,
     PhaseEvidence,
+    VerificationDriver,
+    ChainManifest,
 } from '../model';
 import { EXIT_INVALID_ARGS } from '../model';
 import { FSMEngine } from './fsm';
@@ -27,8 +29,7 @@ import { ExecutorPool } from '../executors/pool';
 import type { StateManager } from '../state/manager';
 import { EventStore } from '../state/events';
 import { EventBus } from '../observability/event-bus';
-import { runLlmCheck } from '../../../verification-chain/scripts/methods/llm';
-import type { LlmCheckerConfig } from '../../../verification-chain/scripts/types';
+import { DefaultCoVDriver } from '../verification/cov-driver';
 import { logger } from '../../../../scripts/logger';
 
 const DEFAULT_AUTO_GATE_PROMPT_TEMPLATE = `You are a verification checker. For each item in the checklist, determine if it PASSES or FAILS.
@@ -56,12 +57,14 @@ export class PipelineRunner {
     private readonly pool: ExecutorPool;
     private readonly state: StateManager;
     private readonly eventBus: EventBus;
+    private readonly verificationDriver: VerificationDriver;
 
     constructor(
         stateManager: StateManager,
         executorPool?: ExecutorPool,
         hookRegistry?: HookRegistry,
         eventBus?: EventBus,
+        verificationDriver?: VerificationDriver,
     ) {
         this.fsm = new FSMEngine();
         this.dag = new DAGScheduler();
@@ -69,6 +72,7 @@ export class PipelineRunner {
         this.pool = executorPool ?? new ExecutorPool();
         this.state = stateManager;
         this.eventBus = eventBus ?? new EventBus();
+        this.verificationDriver = verificationDriver ?? new DefaultCoVDriver();
 
         // Wire EventBus → EventStore for event persistence (§8.2)
         const eventStore = new EventStore(stateManager.getDb());
@@ -816,62 +820,68 @@ export class PipelineRunner {
         gate: GateConfig,
         phaseEvidence?: PhaseEvidence,
     ): Promise<ChainState> {
-        const startTime = Date.now();
         const checklist = this.resolveAutoChecklist(gate);
 
         const severity = gate.severity ?? 'blocking';
         const promptTemplate = this.buildAutoGatePromptTemplate(gate.prompt_template, phaseEvidence);
 
-        const config: LlmCheckerConfig = {
-            checklist,
-            ...(promptTemplate && { prompt_template: promptTemplate }),
+        const manifest: ChainManifest = {
+            run_id: runId,
+            phase_name: phaseName,
+            checks: [
+                {
+                    name: 'auto-gate',
+                    method: 'llm',
+                    params: {
+                        checklist,
+                        ...(promptTemplate && { prompt_template: promptTemplate }),
+                    },
+                },
+            ],
         };
 
-        const result = await runLlmCheck(config);
+        const chainState = await this.verificationDriver.runChain(manifest);
+        const driverResult = chainState.results[0];
 
-        const durationMs = Date.now() - startTime;
-
-        // Normalize LLM evidence into gate evidence
+        // Construct new gate evidence with runner-specific context
         const gateEvidence: Record<string, unknown> = {
-            checklist: result.evidence.llm_results ?? [],
-            llm_raw_output: result.evidence,
+            ...(driverResult.evidence ?? {}),
             severity,
             source: gate.checklist ? 'yaml' : 'engine',
-            ...(phaseEvidence && {
-                phase_evidence: { success: phaseEvidence.success, files_changed: phaseEvidence.files_changed },
-            }),
         };
+        if (phaseEvidence) {
+            gateEvidence.phase_evidence = {
+                success: phaseEvidence.success,
+                files_changed: phaseEvidence.files_changed,
+            };
+        }
 
-        const passed = result.result === 'pass';
+        const passed = driverResult.passed;
         const isAdvisory = !passed && severity === 'advisory';
 
         const gateResult: GateResult = {
-            run_id: runId,
-            phase_name: phaseName,
-            step_name: 'auto-gate',
-            checker_method: 'llm',
-            passed,
-            ...(isAdvisory && { advisory: true }),
+            ...driverResult,
             evidence: gateEvidence,
-            duration_ms: durationMs,
-            created_at: new Date(),
+            ...(isAdvisory && { advisory: true }),
         };
 
-        // Advisory failure: warn but don't block
+        let status = chainState.status;
         if (isAdvisory) {
-            logger.warn(`[gate] Advisory failure for phase ${phaseName}: ${result.error ?? 'checklist items failed'}`);
+            logger.warn(
+                `[gate] Advisory failure for phase ${phaseName}: ${driverResult.evidence?.error ?? 'checklist items failed'}`,
+            );
             await this.emitEvent(runId, 'gate.advisory_fail', {
                 phase: phaseName,
-                checklist_failures: (result.evidence.llm_results ?? [])
-                    .filter((r: { passed: boolean }) => !r.passed)
+                checklist_failures: ((driverResult.evidence?.checklist as { item: string; passed: boolean }[]) ?? [])
+                    .filter((r) => !r.passed)
                     .map((r) => r.item),
             });
             // Advisory failure still counts as pass for pipeline flow
-            return { status: 'pass', results: [gateResult] };
+            status = 'pass';
         }
 
         return {
-            status: passed ? 'pass' : 'fail',
+            status,
             results: [gateResult],
         };
     }
