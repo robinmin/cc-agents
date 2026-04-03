@@ -12,7 +12,7 @@
  * - Error conditions, timeouts, and edge cases
  */
 
-import { describe, test, expect, beforeAll, beforeEach, afterEach, spyOn } from 'bun:test';
+import { describe, test, expect, beforeAll, beforeEach, afterEach, afterAll, spyOn } from 'bun:test';
 import { PipelineRunner } from '../scripts/engine/runner';
 import { StateManager } from '../scripts/state/manager';
 import { ExecutorPool } from '../scripts/executors/pool';
@@ -22,10 +22,24 @@ import { EventBus } from '../scripts/observability/event-bus';
 import { runMigrations } from '../scripts/state/migrations';
 import { setGlobalSilent } from '../../../scripts/logger';
 import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent } from '../scripts/model';
+import * as llmModule from '../../verification-chain/scripts/methods/llm';
 
 // Setup global test environment
+let llmSpy: ReturnType<typeof spyOn>;
+
 beforeAll(() => {
     setGlobalSilent(true);
+
+    // Mock runLlmCheck to always pass — auto gates use LLM verification
+    // which requires external LLM access not available in test
+    llmSpy = spyOn(llmModule, 'runLlmCheck').mockResolvedValue({
+        result: 'pass',
+        evidence: { method: 'llm', result: 'pass', timestamp: new Date().toISOString(), llm_results: [] },
+    });
+});
+
+afterAll(() => {
+    llmSpy?.mockRestore();
 });
 
 /**
