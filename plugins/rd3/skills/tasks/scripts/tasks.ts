@@ -45,6 +45,7 @@ import { putArtifact } from './commands/put';
 import { getArtifacts } from './commands/get';
 import { showTree } from './commands/tree';
 import { runWriteGuardStdin } from './commands/writeGuard';
+import { runServer } from './commands/server';
 import { isErr } from './lib/result';
 import { VALID_STATUSES, VALID_PHASES, normalizeStatus, type TaskStatus } from './types';
 import { logger } from '../../../scripts/logger';
@@ -90,6 +91,8 @@ Commands:
   get <WBS> [--artifact-type <type>]
                                  List stored artifacts for a task
   tree <WBS>                    Show directory tree for a task's artifacts
+  server [--port <port>] [--host <addr>]
+                                Start HTTP server for task operations
   write-guard --stdin           PreToolUse hook integration (internal)
 
 Global Flags:
@@ -734,6 +737,11 @@ async function main() {
                 emitJsonSuccess(result.value.paths);
             }
             break;
+        }
+
+        case 'server': {
+            runServer(cmdArgs);
+            return; // runServer handles its own lifecycle
         }
 
         case 'tree': {
