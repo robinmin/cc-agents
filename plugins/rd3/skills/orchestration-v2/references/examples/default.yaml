@@ -1,4 +1,16 @@
 # Default 9-phase pipeline for rd3
+#
+# Faithfully maps the v1 orchestration-dev 9-phase workflow into v2 DAG format.
+# See: plugins/rd3/skills/orchestration-dev/references/phase-matrix.md
+#
+# DAG structure:
+#   intake ──> arch ──> design ──┐
+#        └──────────────────────> decompose ──> implement ──> test ──> review ──┬─> verify-bdd ─┬─> docs
+#                                                                                └─> verify-func ┘
+#
+# Key: decompose depends on intake directly so the standard preset (which skips
+# arch+design) remains a valid subgraph.
+
 schema_version: 1
 name: default
 
@@ -31,12 +43,13 @@ phases:
     skill: rd3:task-decomposition
     gate: { type: auto }
     timeout: 30m
-    after: [design]
+    after: [intake]
 
   implement:
     skill: rd3:code-implement-common
     gate:
-      type: auto
+      type: command
+      command: "bun run check"
       rework: { max_iterations: 2, escalation: pause }
     timeout: 2h
     after: [decompose]
@@ -47,7 +60,8 @@ phases:
   test:
     skill: rd3:sys-testing
     gate:
-      type: auto
+      type: command
+      command: "bun test --coverage"
       rework: { max_iterations: 3, escalation: pause }
     timeout: 1h
     after: [implement]
@@ -80,20 +94,52 @@ phases:
 
   docs:
     skill: rd3:code-docs
-    gate: { type: auto }
+    gate:
+      type: command
+      command: "bun run typecheck"
     timeout: 30m
     after: [verify-bdd, verify-func]
+
+# ── Task profiles (match v1 phase-matrix.md) ──────────────────────────────────
+#
+# | Profile   | v1 phases        | v2 preset phases                                        |
+# |-----------|------------------|---------------------------------------------------------|
+# | simple    | 5, 6             | implement, test                                         |
+# | standard  | 1,4,5,6,7,8a,9  | intake, decompose, implement, test, review, verify-bdd, docs |
+# | complex   | 1-9 (all)        | all 10 phases                                           |
+# | research  | 1-9 (all, 60%)   | all 10 phases, lower coverage                           |
 
 presets:
   simple:
     phases: [implement, test]
     defaults: { coverage_threshold: 60 }
+
   standard:
-    phases: [intake, implement, test, review, docs]
+    phases: [intake, decompose, implement, test, review, verify-bdd, docs]
     defaults: { coverage_threshold: 80 }
+
   complex:
     phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
     defaults: { coverage_threshold: 80 }
+
   research:
     phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
     defaults: { coverage_threshold: 60 }
+
+  # ── Phase profiles (match v1 convenience commands) ────────────────────────────
+
+  refine:
+    phases: [intake]
+
+  plan:
+    phases: [arch, design, decompose]
+
+  unit:
+    phases: [test]
+    defaults: { coverage_threshold: 90 }
+
+  review-only:
+    phases: [review]
+
+  docs-only:
+    phases: [docs]
