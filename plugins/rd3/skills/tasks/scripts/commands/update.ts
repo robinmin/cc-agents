@@ -39,7 +39,7 @@ export interface UpdateResult {
     warnings?: string[];
 }
 
-const VALID_PROFILES = ['simple', 'standard', 'complex', 'research'] as const;
+const VALID_PROFILES = new Set(['simple', 'standard', 'complex', 'research']);
 
 export function updateTask(projectRoot: string, wbs: string, options: UpdateOptions): Result<UpdateResult> {
     const config = loadConfig(projectRoot);
@@ -162,8 +162,8 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
     }
 
     if (options.field && options.value) {
-        if (options.field === 'profile' && !VALID_PROFILES.includes(options.value as (typeof VALID_PROFILES)[number])) {
-            return err(`Invalid profile: ${options.value}. Valid: ${VALID_PROFILES.join(', ')}`);
+        if (options.field === 'profile' && !VALID_PROFILES.has(options.value)) {
+            return err(`Invalid profile: ${options.value}. Valid: ${[...VALID_PROFILES].join(', ')}`);
         }
 
         if (options.dryRun) {
