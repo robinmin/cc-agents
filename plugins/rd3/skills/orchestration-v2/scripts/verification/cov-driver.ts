@@ -7,6 +7,8 @@
 
 import type { VerificationDriver, ChainManifest, ChainState, ChainCheck, GateResult } from '../model';
 import { logger } from '../../../../scripts/logger';
+import { runLlmCheck } from '../../../verification-chain/scripts/methods/llm';
+import type { LlmCheckerConfig } from '../../../verification-chain/scripts/types';
 
 export class DefaultCoVDriver implements VerificationDriver {
     async runChain(manifest: ChainManifest): Promise<ChainState> {
@@ -102,6 +104,8 @@ export class DefaultCoVDriver implements VerificationDriver {
                     return await this.runCliCheck(runId, phaseName, check, startTime);
                 case 'content_match':
                     return await this.runContentMatchCheck(runId, phaseName, check, startTime);
+                case 'llm':
+                    return await this.runLlmCheckDriver(runId, phaseName, check, startTime);
                 case 'human':
                     return {
                         run_id: runId,
@@ -235,5 +239,53 @@ export class DefaultCoVDriver implements VerificationDriver {
                 created_at: new Date(),
             };
         }
+    }
+
+    private async runLlmCheckDriver(
+        runId: string,
+        phaseName: string,
+        check: ChainCheck,
+        startTime: number,
+    ): Promise<GateResult> {
+        const checklist = (check.params?.checklist as string[]) ?? [];
+        if (!checklist || checklist.length === 0) {
+            return {
+                run_id: runId,
+                phase_name: phaseName,
+                step_name: check.name,
+                checker_method: check.method,
+                passed: false,
+                evidence: { error: 'No checklist specified for LLM check' },
+                duration_ms: Date.now() - startTime,
+                created_at: new Date(),
+            };
+        }
+
+        const config: LlmCheckerConfig = {
+            checklist,
+        };
+        if (check.params?.prompt_template) {
+            config.prompt_template = check.params.prompt_template as string;
+        }
+
+        const result = await runLlmCheck(config);
+        const durationMs = Date.now() - startTime;
+
+        const gateEvidence: Record<string, unknown> = {
+            checklist: result.evidence.llm_results ?? [],
+            llm_raw_output: result.evidence,
+            ...(result.error && { error: result.error }),
+        };
+
+        return {
+            run_id: runId,
+            phase_name: phaseName,
+            step_name: check.name,
+            checker_method: check.method,
+            passed: result.result === 'pass',
+            evidence: gateEvidence,
+            duration_ms: durationMs,
+            created_at: new Date(),
+        };
     }
 }
