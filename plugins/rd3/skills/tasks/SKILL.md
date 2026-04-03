@@ -4,7 +4,7 @@ description: "Markdown-based task management with WBS numbering and kanban board
 license: Apache-2.0
 version: 1.0.0
 created_at: 2026-03-21
-updated_at: 2026-03-22
+updated_at: 2026-04-02
 platform: rd3
 tags: [tasks, kanban, wbs, task-management, markdown]
 metadata:
@@ -107,7 +107,54 @@ tasks check 0047
 tasks config                              # show current config
 tasks config set-active docs/tasks        # switch active folder
 tasks config add-folder docs/prompts --base-counter 100 --label legacy
+tasks server
+TASKS_PORT=4567 tasks server --host 127.0.0.1
 ```
+
+### Server Mode
+
+`tasks server` starts a local HTTP server for multi-agent and tool-driven task access.
+
+```bash
+tasks server
+tasks server --port 4567 --host 127.0.0.1
+TASKS_PORT=4567 tasks server
+```
+
+Defaults and behavior:
+
+- Default bind: `127.0.0.1`
+- Default port: `3456`
+- Environment override: `TASKS_PORT`
+- Mutating requests are serialized per-WBS to avoid concurrent task-file corruption
+- All responses use the standard JSON envelope: `{ ok, data }` or `{ ok, error }`
+
+Endpoints:
+
+```text
+GET    /health
+GET    /tasks
+POST   /tasks
+GET    /tasks/:wbs
+PATCH  /tasks/:wbs
+DELETE /tasks/:wbs
+POST   /tasks/:wbs/artifacts
+GET    /tasks/:wbs/artifacts
+GET    /tasks/:wbs/tree
+GET    /tasks/:wbs/check
+POST   /tasks/batch-create
+POST   /tasks/refresh
+GET    /config
+PATCH  /config
+GET    /events
+```
+
+Notes:
+
+- `GET /events` is a Server-Sent Events stream for task mutations.
+- `GET /events?status=WIP` filters streamed events by resulting task status.
+- `POST /tasks/:wbs/artifacts` requires `multipart/form-data` with a `file` field.
+- Folder inputs must stay inside the project root; artifact names must be plain file names, not paths.
 
 These commands are low-level primitives. For lifecycle mutations, do not invent ad-hoc sequences.
 Use the canonical operation bundles in [references/workflows.md](references/workflows.md) so
