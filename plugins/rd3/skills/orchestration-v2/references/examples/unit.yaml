@@ -13,7 +13,8 @@ phases:
   test:
     skill: rd3:sys-testing
     gate:
-      type: auto
+      type: command
+      command: "bun test --coverage"
       rework: { max_iterations: 3, escalation: fail }
     timeout: 1h
     payload:
