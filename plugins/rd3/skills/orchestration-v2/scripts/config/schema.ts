@@ -6,7 +6,7 @@
 
 import type { ValidationError, ValidationResult } from '../model';
 
-const VALID_GATE_TYPES = new Set(['auto', 'human']);
+const VALID_GATE_TYPES = new Set(['command', 'auto', 'human']);
 const VALID_ESCALATIONS = new Set(['pause', 'fail']);
 const TIMEOUT_REGEX = /^(\d+h)?(\d+m)?(\d+s)?$/;
 
@@ -61,8 +61,104 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
                     if (gate.type && !VALID_GATE_TYPES.has(gate.type as string)) {
                         errors.push({
                             rule: 'gate_type',
-                            message: `Phase "${name}" gate type must be "auto" or "human", got "${gate.type}"`,
+                            message: `Phase "${name}" gate type must be "command", "auto", or "human", got "${gate.type}"`,
                         });
+                    }
+                    if (gate.type === 'command') {
+                        if (
+                            !gate.command ||
+                            typeof gate.command !== 'string' ||
+                            (gate.command as string).trim() === ''
+                        ) {
+                            errors.push({
+                                rule: 'gate_command',
+                                message: `Phase "${name}" gate type "command" requires a non-empty "command" string`,
+                            });
+                        }
+                        // command gate must not have auto/human-specific fields
+                        if (gate.checklist != null) {
+                            errors.push({
+                                rule: 'gate_checklist',
+                                message: `Phase "${name}" gate type "command" must not have a "checklist" field`,
+                            });
+                        }
+                        if (gate.severity != null) {
+                            errors.push({
+                                rule: 'gate_severity',
+                                message: `Phase "${name}" gate type "command" must not have a "severity" field`,
+                            });
+                        }
+                        if (gate.prompt != null) {
+                            errors.push({
+                                rule: 'gate_prompt',
+                                message: `Phase "${name}" gate type "command" must not have a "prompt" field`,
+                            });
+                        }
+                    } else if (gate.type === 'auto') {
+                        // auto gate must not have command or prompt
+                        if (gate.command != null) {
+                            errors.push({
+                                rule: 'gate_command',
+                                message: `Phase "${name}" gate type "auto" must not have a "command" field`,
+                            });
+                        }
+                        if (gate.prompt != null) {
+                            errors.push({
+                                rule: 'gate_prompt',
+                                message: `Phase "${name}" gate type "auto" must not have a "prompt" field`,
+                            });
+                        }
+                        // checklist must be array of strings if provided
+                        if (gate.checklist != null) {
+                            if (!Array.isArray(gate.checklist) || gate.checklist.length === 0) {
+                                errors.push({
+                                    rule: 'gate_checklist',
+                                    message: `Phase "${name}" auto gate "checklist" must be a non-empty array`,
+                                });
+                            } else if (
+                                !gate.checklist.every(
+                                    (item: unknown) => typeof item === 'string' && item.trim().length > 0,
+                                )
+                            ) {
+                                errors.push({
+                                    rule: 'gate_checklist',
+                                    message: `Phase "${name}" auto gate "checklist" items must be non-empty strings`,
+                                });
+                            }
+                        }
+                        // severity must be blocking or advisory if provided
+                        if (gate.severity != null && gate.severity !== 'blocking' && gate.severity !== 'advisory') {
+                            errors.push({
+                                rule: 'gate_severity',
+                                message: `Phase "${name}" auto gate "severity" must be "blocking" or "advisory", got "${gate.severity}"`,
+                            });
+                        }
+                    } else if (gate.type === 'human') {
+                        // human gate must not have command, checklist, prompt_template, or severity
+                        if (gate.command != null) {
+                            errors.push({
+                                rule: 'gate_command',
+                                message: `Phase "${name}" gate type "human" must not have a "command" field`,
+                            });
+                        }
+                        if (gate.checklist != null) {
+                            errors.push({
+                                rule: 'gate_checklist',
+                                message: `Phase "${name}" gate type "human" must not have a "checklist" field`,
+                            });
+                        }
+                        if (gate.prompt_template != null) {
+                            errors.push({
+                                rule: 'gate_prompt_template',
+                                message: `Phase "${name}" gate type "human" must not have a "prompt_template" field`,
+                            });
+                        }
+                        if (gate.severity != null) {
+                            errors.push({
+                                rule: 'gate_severity',
+                                message: `Phase "${name}" gate type "human" must not have a "severity" field`,
+                            });
+                        }
                     }
                     if (gate.rework && typeof gate.rework === 'object') {
                         const rework = gate.rework as Record<string, unknown>;
@@ -159,7 +255,16 @@ export function getPipelineJsonSchema(): Record<string, unknown> {
                             gate: {
                                 type: 'object',
                                 properties: {
-                                    type: { enum: ['auto', 'human'] },
+                                    type: { enum: ['command', 'auto', 'human'] },
+                                    command: { type: 'string' },
+                                    checklist: {
+                                        type: 'array',
+                                        items: { type: 'string' },
+                                        minItems: 1,
+                                    },
+                                    prompt_template: { type: 'string' },
+                                    severity: { enum: ['blocking', 'advisory'] },
+                                    prompt: { type: 'string' },
                                     rework: {
                                         type: 'object',
                                         properties: {
