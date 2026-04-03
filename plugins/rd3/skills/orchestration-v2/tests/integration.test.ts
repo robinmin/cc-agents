@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, beforeAll } from 'bun:test';
+import { describe, test, expect, beforeEach, afterEach, beforeAll, spyOn } from 'bun:test';
 import { StateManager } from '../scripts/state/manager';
 import { Queries } from '../scripts/state/queries';
 import type { RunSummary } from '../scripts/state/queries';
@@ -57,9 +57,17 @@ const PARALLEL_PIPELINE: PipelineDefinition = {
 };
 
 import { setGlobalSilent } from '../../../scripts/logger';
+import * as llmModule from '../../verification-chain/scripts/methods/llm';
 
 beforeAll(() => {
     setGlobalSilent(true);
+
+    // Mock runLlmCheck to always pass — auto gates use LLM verification
+    // which requires external LLM access not available in test
+    spyOn(llmModule, 'runLlmCheck').mockResolvedValue({
+        result: 'pass',
+        evidence: { method: 'llm', result: 'pass', timestamp: new Date().toISOString(), llm_results: [] },
+    });
 });
 
 describe('Integration: full pipeline run', () => {
