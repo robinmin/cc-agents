@@ -61,7 +61,14 @@ export function buildKanbanFromFolder(folder: string, projectRoot: string): Kanb
         const idx = KANBAN_STATUS_ORDER.indexOf(status);
         if (idx === -1) continue;
 
-        const checkbox = status === 'Done' ? '[x]' : status === 'Canceled' ? '[-]' : status === 'WIP' || status === 'Testing' ? '[.]' : '[ ]';
+        const checkbox =
+            status === 'Done'
+                ? '[x]'
+                : status === 'Canceled'
+                  ? '[-]'
+                  : status === 'WIP' || status === 'Testing'
+                    ? '[.]'
+                    : '[ ]';
 
         const progressNote = buildProgressNote(status, fm.impl_progress);
 
