@@ -217,6 +217,34 @@ describe('observability/reporter — Reporter', () => {
         expect(result).toContain('8.0K'); // Total tokens in compact notation
     });
 
+    test('formatMarkdownReport includes advisory gate failures separately', () => {
+        const reporter = new Reporter();
+        const summary = createMockSummary({
+            gateResults: [
+                {
+                    run_id: 'run-test-123',
+                    phase_name: 'review',
+                    step_name: 'auto-gate',
+                    checker_method: 'llm',
+                    passed: false,
+                    advisory: true,
+                    evidence: {
+                        severity: 'advisory',
+                        checklist: [{ item: 'Architecture addresses all requirements', passed: false }],
+                    },
+                    duration_ms: 42,
+                    created_at: new Date('2024-01-15T11:20:00Z'),
+                },
+            ],
+        });
+
+        const result = reporter.formatMarkdownReport(summary);
+
+        expect(result).toContain('## Advisory Gate Failures');
+        expect(result).toContain('review');
+        expect(result).toContain('Architecture addresses all requirements');
+    });
+
     test('formatMarkdownReport handles empty phases', () => {
         const reporter = new Reporter();
         const summary = createMockSummary({
@@ -282,6 +310,30 @@ describe('observability/reporter — Reporter', () => {
 
         expect(result).toContain('implement');
         expect(result).not.toContain('test');
+    });
+
+    test('formatStatusTable and formatSummary surface advisory gate counts', () => {
+        const reporter = new Reporter();
+        const summary = createMockSummary({
+            gateResults: [
+                {
+                    run_id: 'run-test-123',
+                    phase_name: 'review',
+                    step_name: 'auto-gate',
+                    checker_method: 'llm',
+                    passed: false,
+                    advisory: true,
+                    evidence: {
+                        checklist: [{ item: 'Architecture addresses all requirements', passed: false }],
+                    },
+                    duration_ms: 42,
+                    created_at: new Date('2024-01-15T11:20:00Z'),
+                },
+            ],
+        });
+
+        expect(reporter.formatStatusTable(summary)).toContain('Advisories: 1');
+        expect(reporter.formatSummary(summary)).toContain('Advisory gates: 1');
     });
 
     test('formatTrendReport produces readable trend analysis', () => {
