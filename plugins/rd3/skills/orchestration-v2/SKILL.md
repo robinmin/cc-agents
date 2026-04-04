@@ -200,7 +200,7 @@ Blueprint document: `docs/orchestration-v2-blueprint.md`
 
 During migration, both systems coexist:
 
-- `orchestration-dev/` — Current system (frozen, Track 1 fixes only)
+- `orchestration-v1/` — Legacy system (frozen, use v2 instead)
 - `orchestration-v2/` — New system (active development)
 - `orchestrator` command always points to v2
 - No shared state — v1 uses JSON, v2 uses SQLite
