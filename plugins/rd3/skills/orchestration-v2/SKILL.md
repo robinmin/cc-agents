@@ -90,11 +90,15 @@ name: default
 phases:
   implement:
     skill: rd3:code-implement-common
-    gate: { type: auto }
+    gate:
+      type: command
+      command: "bun run check"
     timeout: 2h
   test:
     skill: rd3:sys-testing
-    gate: { type: auto }
+    gate:
+      type: command
+      command: "bun test --coverage"
     timeout: 1h
     after: [implement]
 ```
@@ -132,7 +136,7 @@ Execute `orchestrator run <task-id>` to start the DAG. The engine resolves phase
 
 ### Step 3: Handle Gates
 
-When a phase gate requires approval (type: human), the pipeline enters PAUSED state. Use `orchestrator resume <task-id> --approve` to continue.
+Command gates enforce deterministic checks, auto gates run checklist-based verification, and human gates pause the run for approval. Use `orchestrator resume <task-id> --approve` to continue a paused run.
 
 ### Step 4: Review and Report
 
