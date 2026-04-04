@@ -16,7 +16,7 @@ metadata:
     - knowledge-only
     - generative
 see_also:
-  - rd3:orchestration-dev
+  - rd3:orchestration-v2
   - rd3:task-decomposition
   - rd3:functional-review
 ---
@@ -68,7 +68,7 @@ interface RequestIntakeInput {
 }
 ```
 
-`execution_channel` is normally injected by `rd3:orchestration-dev`. Use `current` for local execution, or an ACP agent name when orchestration routes delegated work through `rd3:run-acp`.
+`execution_channel` is normally injected by `rd3:orchestration-v2`. Use `current` for local execution, or an ACP agent name when orchestration routes delegated work through `rd3:run-acp`.
 
 ### Modes
 
