@@ -19,7 +19,9 @@
             "!**/demo/**",
             "!**/wt/**",
             "!**/templates/**",
-            "!**/tests/test_hooks/invalid-json.json"
+            "!**/tests/test_hooks/invalid-json.json",
+            "!**/ui/node_modules/**",
+            "!**/scripts/static/**"
         ]
     },
     "assist": {
