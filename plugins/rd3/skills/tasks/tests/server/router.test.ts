@@ -1,10 +1,41 @@
-import { describe, expect, it } from 'bun:test';
+import { beforeEach, afterEach, describe, expect, it } from 'bun:test';
 import { createRequestHandler } from '../../scripts/server/router';
 import { EventBroadcaster } from '../../scripts/server/sse';
+import { resetConfigCache } from '../../scripts/lib/config';
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { resolve, join } from 'node:path';
 
 describe('router', () => {
+    const tempDir = resolve(import.meta.dir, 'temp-router-test');
     const broadcaster = new EventBroadcaster();
-    const handler = createRequestHandler(broadcaster);
+    let handler: (req: Request) => Promise<Response>;
+
+    beforeEach(() => {
+        rmSync(tempDir, { recursive: true, force: true });
+        mkdirSync(join(tempDir, 'docs/tasks'), { recursive: true });
+        mkdirSync(join(tempDir, 'docs/.tasks'), { recursive: true });
+
+        writeFileSync(
+            join(tempDir, 'docs/.tasks/config.jsonc'),
+            JSON.stringify({
+                $schema_version: 1,
+                active_folder: 'docs/tasks',
+                folders: { 'docs/tasks': { base_counter: 0 } },
+            }),
+        );
+
+        writeFileSync(
+            join(tempDir, 'docs/tasks/0001_test_task.md'),
+            '---\nid: "task-0001"\nstatus: "todo"\ncreated_at: "2026-04-03T16:32:48Z"\n---\n# [ ] Test Task\nState: [ ]',
+        );
+
+        resetConfigCache();
+        handler = createRequestHandler(broadcaster, tempDir);
+    });
+
+    afterEach(() => {
+        rmSync(tempDir, { recursive: true, force: true });
+    });
 
     async function fetch(method: string, path: string, body?: unknown): Promise<Response> {
         const url = `http://127.0.0.1${path}`;
@@ -54,11 +85,11 @@ describe('router', () => {
     });
 
     it('shows a task by WBS', async () => {
-        const res = await fetch('GET', '/tasks/0317');
+        const res = await fetch('GET', '/tasks/0001');
         expect(res.status).toBe(200);
         const data = (await res.json()) as Record<string, unknown>;
         expect(data.ok).toBe(true);
-        expect((data.data as Record<string, unknown>).wbs).toBe('0317');
+        expect((data.data as Record<string, unknown>).wbs).toBe('0001');
     });
 
     it('returns 404 for nonexistent WBS', async () => {
@@ -77,7 +108,7 @@ describe('router', () => {
     });
 
     it('checks a task', async () => {
-        const res = await fetch('GET', '/tasks/0317/check');
+        const res = await fetch('GET', '/tasks/0001/check');
         expect(res.status).toBe(200);
         const data = (await res.json()) as Record<string, unknown>;
         expect(data.ok).toBe(true);
