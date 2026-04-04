@@ -4,6 +4,7 @@ import type { TaskStatus } from '../types';
 export interface ServerConfig {
     host: string;
     port: number;
+    build?: boolean;
 }
 
 /** Standard JSON envelope matching CLI --json output */
