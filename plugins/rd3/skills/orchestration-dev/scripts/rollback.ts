@@ -16,7 +16,7 @@ import { findOrchestrationStatePath, getOrchestrationRunDir } from './state-path
 
 function gitCommand(cwd: string, args: string): string {
     try {
-        return execSync(`git ${args}`, { cwd, encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+        return execSync(`git ${args}`, { cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
     } catch (error) {
         throw new Error(`Git command failed: git ${args}\n${error instanceof Error ? error.message : String(error)}`);
     }
