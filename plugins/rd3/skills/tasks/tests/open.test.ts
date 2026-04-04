@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, mock } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { openTask } from '../scripts/commands/open';
+import { getOpenCommandForPlatform, openTask } from '../scripts/commands/open';
 import { setGlobalSilent } from '../../../scripts/logger';
 
 // Helper: write a minimal config.jsonc into tempDir/docs/.tasks/
@@ -198,5 +198,50 @@ name: Test Task
         if (!result.ok) {
             expect(result.error).toContain('Failed to open task');
         }
+    });
+
+    test('handles spawnSync result errors gracefully', () => {
+        const taskPath = join(tempDir, 'docs', 'tasks', '0001_Test_Task.md');
+        writeFileSync(taskPath, '---\nname: Test Task\n---\n');
+
+        const mockSpawnSync = mock(() => ({
+            pid: 123,
+            output: [],
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+            status: null,
+            signal: null,
+            error: new Error('Mocked spawn result error'),
+        }));
+
+        const result = openTask(tempDir, '0001', false, { spawnSync: mockSpawnSync });
+
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+            expect(result.error).toContain('Mocked spawn result error');
+        }
+    });
+});
+
+describe('getOpenCommandForPlatform', () => {
+    test('returns macOS open command', () => {
+        expect(getOpenCommandForPlatform('darwin', '/tmp/task.md')).toEqual({
+            command: 'open',
+            args: ['/tmp/task.md'],
+        });
+    });
+
+    test('returns Linux xdg-open command', () => {
+        expect(getOpenCommandForPlatform('linux', '/tmp/task.md')).toEqual({
+            command: 'xdg-open',
+            args: ['/tmp/task.md'],
+        });
+    });
+
+    test('returns Windows cmd start command', () => {
+        expect(getOpenCommandForPlatform('win32', 'C:\\temp\\task.md')).toEqual({
+            command: 'cmd',
+            args: ['/c', 'start', '', 'C:\\temp\\task.md'],
+        });
     });
 });
