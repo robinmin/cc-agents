@@ -10,7 +10,7 @@ import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent }
 import { setGlobalSilent } from '../../../scripts/logger';
 import * as llmModule from '../../verification-chain/scripts/methods/llm';
 import type { LlmCheckerConfig } from '../../verification-chain/scripts/types';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -888,6 +888,102 @@ describe('engine/runner — auto gate evidence', () => {
                 success: true,
                 files_changed: expect.any(Array),
             },
+        });
+    }, 10000);
+
+    test('auto gate resolves checklist defaults from skill metadata before engine defaults', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        const skillDir = join(process.cwd(), 'plugins', 'rd3', 'skills', 'tmp-auto-default-skill');
+
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(
+            join(skillDir, 'SKILL.md'),
+            `---
+name: tmp-auto-default-skill
+metadata:
+  gate_defaults:
+    auto:
+      checklist:
+        - "Skill default checklist item"
+---
+`,
+            'utf-8',
+        );
+
+        try {
+            llmSpy.mockImplementationOnce(async (config: LlmCheckerConfig) => {
+                expect(config.checklist).toEqual(['Skill default checklist item']);
+                return {
+                    result: 'pass',
+                    evidence: {
+                        method: 'llm',
+                        result: 'pass',
+                        timestamp: new Date().toISOString(),
+                        llm_results: [{ item: 'Skill default checklist item', passed: true }],
+                    },
+                };
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'auto-gate-skill-defaults',
+                phases: {
+                    implement: {
+                        skill: 'rd3:tmp-auto-default-skill',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 100, timedOut: false } }]);
+
+            const result = await runner.run({ taskRef: 'auto-test-002' }, pipeline);
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+
+            expect(result.status).toBe('COMPLETED');
+            expect(gateResults[0]?.evidence).toMatchObject({ source: 'skill' });
+        } finally {
+            rmSync(skillDir, { recursive: true, force: true });
+        }
+    }, 10000);
+});
+
+describe('engine/runner — human gate evidence', () => {
+    let stateManager: StateManager;
+    let pool: ExecutorPool;
+    let mockExecutor: MockExecutor;
+
+    beforeEach(async () => {
+        stateManager = new StateManager({ dbPath: ':memory:' });
+        await stateManager.init();
+        pool = new ExecutorPool();
+        mockExecutor = new MockExecutor({ channels: ['current'] });
+        pool.register(mockExecutor);
+    });
+
+    test('human gate persists prompt evidence for inspect and approval flows', async () => {
+        const runner = new PipelineRunner(stateManager, pool);
+        const pipeline: PipelineDefinition = {
+            schema_version: 1,
+            name: 'human-gate-prompt',
+            phases: {
+                review: {
+                    skill: 'rd3:code-review-common',
+                    gate: { type: 'human', prompt: 'Review the implementation for missing tests' },
+                },
+            },
+        };
+
+        mockExecutor.setResponses([{ result: { success: true, exitCode: 0, durationMs: 100, timedOut: false } }]);
+
+        const result = await runner.run({ taskRef: 'human-test-001' }, pipeline);
+        const gateResults = await stateManager.getGateResults(result.runId, 'review');
+
+        expect(result.status).toBe('PAUSED');
+        expect(gateResults).toHaveLength(1);
+        expect(gateResults[0]?.checker_method).toBe('human');
+        expect(gateResults[0]?.evidence).toMatchObject({
+            prompt: 'Review the implementation for missing tests',
         });
     }, 10000);
 });
