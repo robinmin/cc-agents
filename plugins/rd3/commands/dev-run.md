@@ -6,7 +6,7 @@ allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 
 # Dev Run
 
-Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:orchestration-dev** skill.
+Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:orchestration-v2** skill.
 
 ## When to Use
 
@@ -52,16 +52,16 @@ Default: read from task frontmatter, fall back to `standard`.
 
 ## Workflow
 
-Forward `--channel` (default: `current`) to **rd3:orchestration-dev**. All 9 phases are executable. Phases 5-7 use worker-agent envelopes; Phase 6 runs through verification-chain. Phases 1-4 and 8-9 execute as direct-skill phases on the `current` channel. Review runs pause at the Phase 7 human gate unless `--auto` is set. Worker phases (5, 7) require `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT` for local prompt execution.
+Forward `--channel` (default: `current`) to **rd3:orchestration-v2**. All 9 phases are executable. Phases 5-7 use worker-agent envelopes; Phase 6 runs through verification-chain. Phases 1-4 and 8-9 execute as direct-skill phases on the `current` channel. Review runs pause at the Phase 7 human gate unless `--auto` is set. Worker phases (5, 7) require `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT` for local prompt execution.
 
 ```
-Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS")
-Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --profile complex")
-Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --profile unit")
-Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --auto")
-Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --dry-run")
-Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --refine --coverage 90 --auto")
-Skill(skill="rd3:orchestration-dev", args="$ARGUMENTS --channel opencode")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --profile complex")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --profile unit")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --auto")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --dry-run")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --refine --coverage 90 --auto")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --channel opencode")
 ```
 
 ## Examples
@@ -110,7 +110,7 @@ Preview the execution plan without running anything
 
 ## See Also
 
-- **rd3:orchestration-dev**: Full 9-phase pipeline orchestrator skill
+- **rd3:orchestration-v2**: Full 9-phase pipeline orchestrator skill
 - **rd3:run-acp**: ACP executor used by orchestration for delegated remote work
 - Phase shortcut commands: use `--profile <phase-name>` with this command to run individual phases
 
@@ -125,4 +125,4 @@ Native `Skill()` and `!`cmd`` support. Pass arguments directly: `/rd3:dev-run 02
 ```bash
 bun plugins/rd3/skills/orchestration-dev/scripts/run.ts <task-ref> --profile <name> [options]
 ```
-See **rd3:orchestration-dev** for available arguments.
+See **rd3:orchestration-v2** for available arguments.
