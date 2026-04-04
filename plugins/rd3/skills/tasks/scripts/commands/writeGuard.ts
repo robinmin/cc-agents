@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { logger } from '../../../../scripts/logger';
 import type { ToolInput } from '../types';
+import { getProjectRoot } from '../lib/config';
 
 const LEGACY_CONFIG_FILE = 'docs/.tasks/config.jsonc';
 
@@ -20,7 +21,7 @@ let cachedPatterns: { protected: RegExp[]; exempt: RegExp[] } | null = null;
 export function buildPatterns(folders: string[]): { protected: RegExp[]; exempt: RegExp[] } {
     const protectedPatterns: RegExp[] = folders.map((folder) => {
         const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return new RegExp(`^${escaped}/.+.md$`);
+        return new RegExp(`^${escaped}/.+\\.md$`);
     });
 
     const exemptPatterns: RegExp[] = folders.map((folder) => {
@@ -33,22 +34,15 @@ export function buildPatterns(folders: string[]): { protected: RegExp[]; exempt:
 
 /**
  * Load protected and exempt patterns from config.jsonc.
- * Always resolves the project root from the script's own location (process.argv[1]),
- * then walks up until it finds docs/.tasks/config.jsonc.
  * Falls back to hardcoded patterns only if config cannot be loaded.
  */
-export function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
-    if (cachedPatterns) {
+export function loadPatterns(projectRoot?: string): { protected: RegExp[]; exempt: RegExp[] } {
+    if (cachedPatterns && !projectRoot) {
         return cachedPatterns;
     }
 
-    // Derive plugin root from the script's own path: tasks.ts lives at
-    // <plugin-root>/skills/tasks/scripts/tasks.ts
-    const scriptPath = process.argv[1] ?? '';
-    const pluginRoot = resolve(scriptPath, '../../../../..');
-
-    // Find project root by walking up from plugin root until we find docs/.tasks/config.jsonc
-    const configPath = resolve(pluginRoot, LEGACY_CONFIG_FILE);
+    const effectiveRoot = projectRoot || getProjectRoot();
+    const configPath = resolve(effectiveRoot, LEGACY_CONFIG_FILE);
     let folders: string[] = [];
     let configLoaded = false;
 
@@ -92,13 +86,14 @@ export function resetCachedPatterns(): void {
 export function checkWriteGuard(
     toolName: string,
     filePath: string,
+    projectRoot?: string,
 ): { allowed: boolean; code: number; reason?: string } {
     // Only protect Edit and Write tool operations
     if (toolName !== 'Edit' && toolName !== 'Write') {
         return { allowed: true, code: 0 };
     }
 
-    const { protected: protectedPatterns, exempt: exemptPatterns } = loadPatterns();
+    const { protected: protectedPatterns, exempt: exemptPatterns } = loadPatterns(projectRoot);
 
     // Check exempt patterns first (subdirectories of docs/tasks/<wbs>/)
     for (const pattern of exemptPatterns) {
