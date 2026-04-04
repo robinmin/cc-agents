@@ -1,25 +1,40 @@
 {
-    "compilerOptions": {
-        "target": "ES2022",
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "lib": ["ES2022", "DOM", "DOM.Iterable"],
-        "jsx": "react-jsx",
-        "types": ["bun"],
-        "strict": true,
-        "skipLibCheck": true,
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "resolveJsonModule": true,
-        "isolatedModules": true,
-        "noEmit": true,
-        "downlevelIteration": true,
-        "noImplicitAny": true,
-        "moduleDetection": "force",
-        "forceConsistentCasingInFileNames": true,
-        "verbatimModuleSyntax": true,
-        "exactOptionalPropertyTypes": true
-    },
-    "include": ["plugins/rd3/**/*"],
-    "exclude": ["node_modules", "**/node_modules", "**/dist", "**/build", "**/vendors/**"]
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"lib": [
+			"ES2022",
+			"DOM",
+			"DOM.Iterable"
+		],
+		"jsx": "react-jsx",
+		"types": [
+			"bun"
+		],
+		"strict": true,
+		"skipLibCheck": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"noEmit": true,
+		"downlevelIteration": true,
+		"noImplicitAny": true,
+		"moduleDetection": "force",
+		"forceConsistentCasingInFileNames": true,
+		"verbatimModuleSyntax": true,
+		"exactOptionalPropertyTypes": true
+	},
+	"include": [
+		"plugins/rd3/**/*"
+	],
+	"exclude": [
+		"node_modules",
+		"**/node_modules",
+		"**/dist",
+		"**/build",
+		"**/static",
+		"**/vendors/**"
+	]
 }
