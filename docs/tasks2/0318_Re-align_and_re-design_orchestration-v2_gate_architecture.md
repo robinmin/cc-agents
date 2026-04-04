@@ -1,7 +1,7 @@
 ---
 name: Re-align and re-design orchestration-v2 gate architecture
 description: Re-align and re-design orchestration-v2 gate architecture
-status: In Progress
+status: Done
 created_at: 2026-04-02T19:18:12.822Z
 updated_at: 2026-04-02T20:00:00.000Z
 folder: docs/tasks2
