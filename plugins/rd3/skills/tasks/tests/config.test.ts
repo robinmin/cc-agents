@@ -184,3 +184,42 @@ describe('saveConfig', () => {
         expect(result.ok).toBe(false);
     });
 });
+
+describe('getProjectRoot - edge cases', () => {
+    const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `root-test-${Date.now()}`);
+
+    beforeEach(() => {
+        mkdirSync(tempDir, { recursive: true });
+    });
+
+    afterEach(() => {
+        rmSync(tempDir, { recursive: true, force: true });
+    });
+
+    test('returns cwd when in temp directory with no markers', () => {
+        const originalCwd = process.cwd;
+        process.cwd = () => join(tempDir, 'some-temp-project');
+        try {
+            const root = getProjectRoot();
+            expect(root).toBe(join(tempDir, 'some-temp-project'));
+        } finally {
+            process.cwd = originalCwd;
+        }
+    });
+
+    test('falls back to generic repo markers when docs/.tasks not found', () => {
+        // Create a temp directory with package.json but no docs/.tasks
+        const projectDir = join(tempDir, 'orphan-project');
+        mkdirSync(projectDir, { recursive: true });
+        writeFileSync(join(projectDir, 'package.json'), '{}');
+
+        const originalCwd = process.cwd;
+        process.cwd = () => projectDir;
+        try {
+            const root = getProjectRoot();
+            expect(root).toBe(projectDir);
+        } finally {
+            process.cwd = originalCwd;
+        }
+    });
+});
