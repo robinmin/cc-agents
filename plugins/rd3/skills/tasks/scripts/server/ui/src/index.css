@@ -1,73 +1,76 @@
 @import "tailwindcss";
 
 :root {
-  --kanban-bg: #f8fafc;
-  --kanban-card: #ffffff;
-  --kanban-border: #e2e8f0;
-  --kanban-text: #1e293b;
-  --kanban-text-secondary: #64748b;
-  --kanban-accent: #3b82f6;
-  --kanban-danger: #ef4444;
+    --kanban-bg: #f8fafc;
+    --kanban-card: #ffffff;
+    --kanban-border: #e2e8f0;
+    --kanban-text: #1e293b;
+    --kanban-text-secondary: #64748b;
+    --kanban-accent: #3b82f6;
+    --kanban-danger: #ef4444;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --kanban-bg: #0f172a;
-    --kanban-card: #1e293b;
-    --kanban-border: #334155;
-    --kanban-text: #f1f5f9;
-    --kanban-text-secondary: #94a3b8;
-    --kanban-accent: #60a5fa;
-    --kanban-danger: #f87171;
-  }
+    :root {
+        --kanban-bg: #0f172a;
+        --kanban-card: #1e293b;
+        --kanban-border: #334155;
+        --kanban-text: #f1f5f9;
+        --kanban-text-secondary: #94a3b8;
+        --kanban-accent: #60a5fa;
+        --kanban-danger: #f87171;
+    }
 }
 
 body {
-  margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  background-color: var(--kanban-bg);
-  color: var(--kanban-text);
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+    background-color: var(--kanban-bg);
+    color: var(--kanban-text);
 }
 
 /* Force dark-mode for code blocks in MdEditor preview */
-.w-md-editor-preview pre[class*="language-"] {
-  background: #1e1e1e !important;
-  color: #d4d4d4 !important;
-  padding: 1rem !important;
-  border-radius: 8px !important;
-  margin: 1.5rem 0 !important;
-  font-family: 'Fira Code', 'Cascadia Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-  font-size: 13px !important;
-  line-height: 1.6 !important;
-  overflow: auto;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+/* Using increased specificity via :where() to override third-party library styles */
+:where(.w-md-editor-preview) pre[class*="language-"] {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    font-family: "Fira Code", "Cascadia Code", Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow: auto;
+    box-shadow:
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.w-md-editor-preview code[class*="language-"] {
-  background: transparent !important;
-  color: inherit !important;
-  padding: 0 !important;
-  font-family: inherit !important;
+:where(.w-md-editor-preview) code[class*="language-"] {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font-family: inherit;
 }
 
 /* Inline code styling */
-.w-md-editor-preview :not(pre) > code {
-  background: rgba(148, 163, 184, 0.1) !important;
-  color: #ef4444 !important;
-  padding: 0.2rem 0.4rem !important;
-  border-radius: 4px !important;
-  font-size: 85% !important;
+:where(.w-md-editor-preview) :not(pre) > code {
+    background: rgba(148, 163, 184, 0.1);
+    color: #ef4444;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 85%;
 }
 
 .w-md-editor-preview .token.comment,
 .w-md-editor-preview .token.prolog,
 .w-md-editor-preview .token.doctype,
 .w-md-editor-preview .token.cdata {
-  color: #6a9955;
+    color: #6a9955;
 }
 
 .w-md-editor-preview .token.punctuation {
-  color: #d4d4d4;
+    color: #d4d4d4;
 }
 
 .w-md-editor-preview .token.property,
@@ -77,7 +80,7 @@ body {
 .w-md-editor-preview .token.constant,
 .w-md-editor-preview .token.symbol,
 .w-md-editor-preview .token.deleted {
-  color: #b5cea8;
+    color: #b5cea8;
 }
 
 .w-md-editor-preview .token.selector,
@@ -86,7 +89,7 @@ body {
 .w-md-editor-preview .token.char,
 .w-md-editor-preview .token.builtin,
 .w-md-editor-preview .token.inserted {
-  color: #ce9178;
+    color: #ce9178;
 }
 
 .w-md-editor-preview .token.operator,
@@ -94,22 +97,22 @@ body {
 .w-md-editor-preview .token.url,
 .w-md-editor-preview .language-css .token.string,
 .w-md-editor-preview .style .token.string {
-  color: #d4d4d4;
+    color: #d4d4d4;
 }
 
 .w-md-editor-preview .token.atrule,
 .w-md-editor-preview .token.attr-value,
 .w-md-editor-preview .token.keyword {
-  color: #569cd6;
+    color: #569cd6;
 }
 
 .w-md-editor-preview .token.function,
 .w-md-editor-preview .token.class-name {
-  color: #dcdcaa;
+    color: #dcdcaa;
 }
 
 .w-md-editor-preview .token.regex,
 .w-md-editor-preview .token.important,
 .w-md-editor-preview .token.variable {
-  color: #d16969;
+    color: #d16969;
 }
