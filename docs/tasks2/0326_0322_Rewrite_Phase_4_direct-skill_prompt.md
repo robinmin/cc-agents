@@ -1,7 +1,7 @@
 ---
 name: 0322 Rewrite Phase 4 direct-skill prompt
 description: 0322 Rewrite Phase 4 direct-skill prompt
-status: Backlog
+status: Done
 created_at: 2026-04-04T06:20:13.464Z
 updated_at: 2026-04-04T06:20:13.464Z
 folder: docs/tasks2
