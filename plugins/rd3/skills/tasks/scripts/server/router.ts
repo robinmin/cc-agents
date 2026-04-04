@@ -6,7 +6,7 @@
  */
 import { existsSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
-import { getProjectRoot } from '../lib/config';
+import { getProjectRoot, getStaticDir } from '../lib/config';
 import type { EventBroadcaster } from './sse';
 import type { RouteHandler } from './types';
 
@@ -28,12 +28,52 @@ const MIME_TYPES: Record<string, string> = {
     '.otf': 'font/otf',
 };
 
-function serveStaticFile(pathname: string, isFallback = false): Response | null {
-    const staticDir = join(import.meta.dir, '..', 'static');
-    if (!existsSync(staticDir)) return null;
+function serveStaticFile(request: Request, pathname: string, isFallback = false): Response | null {
+    const staticDir = getStaticDir();
+    const hasStatic = existsSync(staticDir);
+    const isHtml = request.headers.get('Accept')?.includes('text/html');
 
     // SPA entry point or fallback: serve index.html
     if (pathname === '/' || isFallback) {
+        if (isFallback && !isHtml) return null;
+
+        if (!hasStatic) {
+            // ONLY provide the helpful instruction page if the user wants HTML (browser)
+            if (!isHtml) return null;
+
+            // Return a helpful 404 page if the UI hasn't been built yet
+            return new Response(
+                `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Kanban UI Not Built</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 40px auto; padding: 20px; background: #f9f9f9; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #eaeaea; }
+        h1 { color: #d32f2f; margin-top: 0; }
+        code { background: #fee; padding: 2px 6px; border-radius: 4px; color: #b71c1c; font-weight: bold; }
+        .cmd { display: block; background: #212121; color: #fff; padding: 15px; border-radius: 8px; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; margin: 20px 0; overflow-x: auto; }
+        p { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Kanban UI Not Built</h1>
+        <p>The Task Kanban board UI build artifacts were not found in <code>plugins/rd3/skills/tasks/scripts/static/</code>.</p>
+        <p>To view the Kanban board, you need to build the UI first by running this command in your terminal:</p>
+        <div class="cmd">bun run build:ui</div>
+        <p>Once the build completes, refresh this page.</p>
+    </div>
+</body>
+</html>
+            `.trim(),
+                { status: 404, headers: { 'Content-Type': 'text/html' } },
+            );
+        }
+
         const indexPath = join(staticDir, 'index.html');
         if (existsSync(indexPath)) {
             return new Response(Bun.file(indexPath), {
@@ -42,6 +82,8 @@ function serveStaticFile(pathname: string, isFallback = false): Response | null 
         }
         return null;
     }
+
+    if (!hasStatic) return null;
 
     // Only serve static files (must have extension to prevent directory traversal)
     const ext = extname(pathname);
@@ -172,12 +214,12 @@ export function createRequestHandler(broadcaster: EventBroadcaster, projectRootO
 
             if (isGetOrHead) {
                 // Try static file serving (UI assets like /assets/index.js)
-                const staticResponse = serveStaticFile(pathname);
+                const staticResponse = serveStaticFile(request, pathname);
                 if (staticResponse) return staticResponse;
 
                 // SPA Fallback: if it's a GET request and not an API route/asset, serve index.html.
                 // This allows deep-linking and browser refreshes on routes like /0001
-                const fallbackResponse = serveStaticFile('/', true);
+                const fallbackResponse = serveStaticFile(request, '/', true);
                 if (fallbackResponse) return fallbackResponse;
             }
 
@@ -196,7 +238,8 @@ export function createRequestHandler(broadcaster: EventBroadcaster, projectRootO
             return await match.route.handler(projectRoot, request, match.params, broadcaster);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            return Response.json({ ok: false, error: `Internal server error: ${message}` }, { status: 500 });
+            const stack = error instanceof Error ? error.stack : undefined;
+            return Response.json({ ok: false, error: `Internal server error: ${message}`, stack }, { status: 500 });
         }
     };
 }
