@@ -621,42 +621,42 @@ export const eventsHandler: RouteHandler = async (_projectRoot, request, _params
 
 export const taskActionHandler: RouteHandler = async (projectRoot, request, params, broadcaster) => {
     const wbs = params.wbs;
-    if (!wbs) return jsonErr("Missing WBS parameter");
+    if (!wbs) return jsonErr('Missing WBS parameter');
 
     const body = (await request.json().catch(() => ({}))) as { action?: string; channel?: string };
     const { action, channel } = body;
-    if (!action || !channel) return jsonErr("Missing action or channel field");
+    if (!action || !channel) return jsonErr('Missing action or channel field');
 
     // Mapping logic for orchestrator-v2
     const actionArgs: string[] = [];
-    if (action === "refine") {
-        actionArgs.push("--preset", "refine");
-    } else if (action === "plan") {
-        actionArgs.push("--preset", "plan");
-    } else if (action === "run") {
-        actionArgs.push("--phases", "implement");
-    } else if (action === "verify") {
-        actionArgs.push("--phases", "test");
-    } else if (action === "decompose") {
-        actionArgs.push("--phases", "decompose");
-    } else if (action === "evaluate") {
-        actionArgs.push("--phases", "review");
+    if (action === 'refine') {
+        actionArgs.push('--preset', 'refine');
+    } else if (action === 'plan') {
+        actionArgs.push('--preset', 'plan');
+    } else if (action === 'run') {
+        actionArgs.push('--phases', 'implement');
+    } else if (action === 'verify') {
+        actionArgs.push('--phases', 'test');
+    } else if (action === 'decompose') {
+        actionArgs.push('--phases', 'decompose');
+    } else if (action === 'evaluate') {
+        actionArgs.push('--phases', 'review');
     } else {
         return jsonErr(`Unknown action: ${action}`);
     }
 
-    logger.info(`Delegating task action: orchestrator run ${wbs} ${actionArgs.join(" ")} --channel ${channel}`);
+    logger.info(`Delegating task action: orchestrator run ${wbs} ${actionArgs.join(' ')} --channel ${channel}`);
 
     try {
         // Trigger execution via orchestrator CLI
-        Bun.spawn(["orchestrator", "run", wbs, ...actionArgs, "--channel", channel], {
-            stdout: "inherit",
-            stderr: "inherit",
+        Bun.spawn(['orchestrator', 'run', wbs, ...actionArgs, '--channel', channel], {
+            stdout: 'inherit',
+            stderr: 'inherit',
         });
 
         const status = getTaskStatus(projectRoot, wbs);
         emitEvent(broadcaster, {
-            type: "updated",
+            type: 'updated',
             wbs,
             ...(status ? { status } : {}),
             timestamp: new Date().toISOString(),
@@ -667,7 +667,7 @@ export const taskActionHandler: RouteHandler = async (projectRoot, request, para
             action,
             channel,
             wbs,
-            command: `orchestrator run ${wbs} ${actionArgs.join(" ")} --channel ${channel}`,
+            command: `orchestrator run ${wbs} ${actionArgs.join(' ')} --channel ${channel}`,
         });
     } catch (err) {
         logger.error(`Failed to delegate action: ${err}`);
