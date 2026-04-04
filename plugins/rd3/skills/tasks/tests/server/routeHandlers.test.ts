@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, spyOn } from 'bun:test';
-import { mkdirSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { EventBroadcaster } from '../../scripts/server/sse';
 import type { Broadcaster } from '../../scripts/server/types';
@@ -164,6 +164,18 @@ describe('routeHandlers tests', () => {
             const body = await getJson(res);
             expect(body.ok).toBe(true);
             expect(events).toBe(1);
+        });
+
+        it('sanitizes traversal-like task names instead of escaping the folder', async () => {
+            const req = new Request('http://localhost/tasks', {
+                method: 'POST',
+                body: JSON.stringify({ name: '../../../notes' }),
+            });
+            const res = await createTaskHandler(tempDir, req, {}, noopBroadcaster);
+            const body = await getJson(res);
+            expect(body.ok).toBe(true);
+            expect(existsSync(join(tempDir, 'notes.md'))).toBe(false);
+            expect(existsSync(join(tempDir, folder, '0001_.._.._.._notes.md'))).toBe(true);
         });
 
         it('rejects invalid json', async () => {
@@ -369,7 +381,7 @@ impl_progress:
             expect((await getJson(res)).ok).toBe(true);
         });
 
-        it('updates section with fromFile', async () => {
+        it('rejects section updates with fromFile over HTTP', async () => {
             const file = join(tempDir, 'file.md');
             writeFileSync(file, 'test2');
             const req = new Request('http://loc', {
@@ -377,7 +389,8 @@ impl_progress:
                 body: JSON.stringify({ section: 'Q&A', fromFile: file }),
             });
             const res = await updateTaskHandler(tempDir, req, { wbs: '0001' }, noopBroadcaster);
-            expect((await getJson(res)).ok).toBe(true);
+            expect(res.status).toBe(400);
+            expect((await getJson(res)).ok).toBe(false);
         });
 
         it('updates phase', async () => {
@@ -518,6 +531,23 @@ impl_progress:
         it('refreshes', async () => {
             const res = await refreshHandler(tempDir, new Request('http://loc'), {}, noopBroadcaster);
             expect((await getJson(res)).ok).toBe(true);
+        });
+
+        it('surfaces refresh failures with a failing HTTP envelope', async () => {
+            writeFileSync(
+                join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+                JSON.stringify({
+                    $schema_version: 1,
+                    active_folder: 'missing/folder',
+                    folders: { 'missing/folder': { base_counter: 0 } },
+                }),
+            );
+
+            const res = await refreshHandler(tempDir, new Request('http://loc'), {}, noopBroadcaster);
+            expect(res.status).toBe(500);
+
+            const body = await getJson(res);
+            expect(body.ok).toBe(false);
         });
     });
 
