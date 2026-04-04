@@ -1,7 +1,7 @@
 ---
 name: 0322 Add decomposition decision rules to SKILL.md
 description: 0322 Add decomposition decision rules to SKILL.md
-status: Backlog
+status: Done
 created_at: 2026-04-04T06:19:54.232Z
 updated_at: 2026-04-04T06:19:54.232Z
 folder: docs/tasks2
