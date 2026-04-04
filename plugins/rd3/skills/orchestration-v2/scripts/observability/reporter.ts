@@ -15,6 +15,7 @@ export class Reporter {
     formatStatusTable(summary: RunSummary): string {
         const lines: string[] = [];
         const { run } = summary;
+        const advisoryFailures = (summary.gateResults ?? []).filter((gate) => gate.advisory);
 
         lines.push(`Run: ${run.task_ref}  Status: ${run.status}`);
         lines.push(`Pipeline: ${run.pipeline_name}  Preset: ${run.preset ?? 'default'}`);
@@ -34,6 +35,9 @@ export class Reporter {
 
         if (summary.modelsUsed.length > 0) {
             lines.push(`Models: ${summary.modelsUsed.join(', ')}`);
+        }
+        if (advisoryFailures.length > 0) {
+            lines.push(`Advisories: ${advisoryFailures.length}`);
         }
 
         return lines.join('\n');
@@ -70,6 +74,25 @@ export class Reporter {
             }
         }
 
+        const advisoryFailures = (summary.gateResults ?? []).filter((gate) => gate.advisory);
+        if (advisoryFailures.length > 0) {
+            lines.push('');
+            lines.push('## Advisory Gate Failures');
+            lines.push('');
+            for (const gate of advisoryFailures) {
+                const checklist = Array.isArray(gate.evidence?.checklist)
+                    ? (gate.evidence?.checklist as Array<{ item?: string; passed?: boolean }>)
+                    : [];
+                const failedItems = checklist
+                    .filter((item) => item.passed === false)
+                    .map((item) => item.item ?? 'unknown');
+                lines.push(`- **${gate.phase_name}** (${gate.step_name})`);
+                if (failedItems.length > 0) {
+                    lines.push(`  Failed items: ${failedItems.join(', ')}`);
+                }
+            }
+        }
+
         return lines.join('\n');
     }
 
@@ -88,6 +111,9 @@ export class Reporter {
             `  Pipeline: ${run.pipeline_name}  Preset: ${run.preset ?? 'default'}`,
             `  Duration: ${formatDuration(summary.totalWallMs)}  Tokens: ${formatTokenCount(totalTokens)}`,
             `  Phases: ${summary.phases.length} (${summary.phases.filter((p) => p.status === 'completed').length} completed)`,
+            ...((summary.gateResults ?? []).filter((gate) => gate.advisory).length > 0
+                ? [`  Advisory gates: ${(summary.gateResults ?? []).filter((gate) => gate.advisory).length}`]
+                : []),
             ...phaseLines,
             ...(summary.modelsUsed.length > 0 ? [`  Models: ${summary.modelsUsed.join(', ')}`] : []),
         ].join('\n');
