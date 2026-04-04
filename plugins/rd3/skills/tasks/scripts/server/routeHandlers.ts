@@ -305,27 +305,10 @@ export const updateTaskHandler: RouteHandler = async (projectRoot, request, para
             return jsonOk(result.value);
         }
 
-        // Section update via fromFile (caller manages the file)
+        // Section update via fromFile is intentionally unsupported over HTTP.
+        // Raw filesystem paths let local clients copy arbitrary host files into tasks.
         if (body.section && body.fromFile) {
-            const result = updateTask(projectRoot, wbs, {
-                section: body.section,
-                fromFile: body.fromFile,
-                quiet: true,
-            });
-            if (isErr(result)) {
-                return jsonErr(result.error);
-            }
-
-            const status = getTaskStatus(projectRoot, wbs);
-
-            emitEvent(broadcaster, {
-                type: 'updated',
-                wbs,
-                ...(status ? { status } : {}),
-                timestamp: new Date().toISOString(),
-            });
-
-            return jsonOk(result.value);
+            return jsonErr("The HTTP API does not accept 'fromFile'. Use 'section' + 'content' instead.");
         }
 
         // Phase update
@@ -553,6 +536,12 @@ export const batchCreateHandler: RouteHandler = async (projectRoot, request, _pa
 
 export const refreshHandler: RouteHandler = async (projectRoot) => {
     const result = refreshKanbanBoards(projectRoot, true);
+    if (!result.ok) {
+        return Response.json(
+            { ok: false, error: result.errors[0] ?? 'Failed to refresh kanban boards', data: result },
+            { status: 500 },
+        );
+    }
     return jsonOk(result);
 };
 
