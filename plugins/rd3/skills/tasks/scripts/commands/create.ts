@@ -18,6 +18,16 @@ interface CreateLockOptions {
     staleMs?: number;
 }
 
+export function sanitizeTaskFileNameSegment(name: string): string {
+    return name
+        .trim()
+        .replace(/[\\/]+/g, '_')
+        .replace(/\s+/g, '_')
+        .replace(/[^A-Za-z0-9._-]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
 export function createTask(
     projectRoot: string,
     name: string,
@@ -102,17 +112,22 @@ export function createTask(
             content = upsertFrontmatterField(content, 'profile', options.profile);
         }
 
-        const fileName = `${wbs}_${name.replace(/\s+/g, '_')}.md`;
-        const filePath = resolve(folderPath, fileName);
-
-        if (existsSync(filePath)) {
-            created = err(`Task already exists: ${fileName}`);
+        const safeName = sanitizeTaskFileNameSegment(name);
+        if (safeName.length === 0) {
+            created = err('Task name must contain at least one filename-safe character');
         } else {
-            try {
-                writeFileSync(filePath, content, 'utf-8');
-                created = ok({ wbs, path: filePath });
-            } catch (e) {
-                created = err(`Failed to write task file: ${e}`);
+            const fileName = `${wbs}_${safeName}.md`;
+            const filePath = resolve(folderPath, fileName);
+
+            if (existsSync(filePath)) {
+                created = err(`Task already exists: ${fileName}`);
+            } else {
+                try {
+                    writeFileSync(filePath, content, 'utf-8');
+                    created = ok({ wbs, path: filePath });
+                } catch (e) {
+                    created = err(`Failed to write task file: ${e}`);
+                }
             }
         }
     } finally {
