@@ -15,12 +15,28 @@ For each item, output exactly one line in this format:
 
 Be strict in your evaluation.`;
 
+interface FileOps {
+    mkdtempSync: typeof mkdtempSync;
+    writeFileSync: typeof writeFileSync;
+    rmSync: typeof rmSync;
+}
+
+const defaultFileOps: FileOps = {
+    mkdtempSync,
+    writeFileSync,
+    rmSync,
+};
+
 /**
  * Run an LLM check using a CLI command that accepts a prompt on stdin.
  * Parses stdout for [PASS]/[FAIL] markers for each checklist item.
  * Result is 'pass' only if ALL checklist items have PASS.
  */
-export async function runLlmCheck(config: LlmCheckerConfig, _spawnFn: typeof spawn = spawn): Promise<MethodResult> {
+export async function runLlmCheck(
+    config: LlmCheckerConfig,
+    _spawnFn: typeof spawn = spawn,
+    fileOps: FileOps = defaultFileOps,
+): Promise<MethodResult> {
     const evidence: CheckerEvidence = {
         method: 'llm',
         result: 'fail',
@@ -47,9 +63,9 @@ export async function runLlmCheck(config: LlmCheckerConfig, _spawnFn: typeof spa
     let tempDir: string;
     let tempFile: string;
     try {
-        tempDir = mkdtempSync('llm-check-');
+        tempDir = fileOps.mkdtempSync('llm-check-');
         tempFile = join(tempDir, 'prompt.txt');
-        writeFileSync(tempFile, prompt, 'utf-8');
+        fileOps.writeFileSync(tempFile, prompt, 'utf-8');
         logger.debug(`Written prompt to temp file: ${tempFile}`);
     } catch (err) {
         const errorMsg = `Failed to write prompt to temp file: ${err}`;
@@ -83,7 +99,7 @@ export async function runLlmCheck(config: LlmCheckerConfig, _spawnFn: typeof spa
             const errorMsg = `Spawn error: ${err.message}`;
             evidence.error = errorMsg;
             try {
-                rmSync(tempDir, { recursive: true, force: true });
+                fileOps.rmSync(tempDir, { recursive: true, force: true });
             } catch {
                 /* ignore cleanup error */
             }
@@ -97,7 +113,7 @@ export async function runLlmCheck(config: LlmCheckerConfig, _spawnFn: typeof spa
         child.on('close', (code: number | null) => {
             // Clean up temp file
             try {
-                rmSync(tempDir, { recursive: true, force: true });
+                fileOps.rmSync(tempDir, { recursive: true, force: true });
             } catch {
                 /* ignore cleanup error */
             }
