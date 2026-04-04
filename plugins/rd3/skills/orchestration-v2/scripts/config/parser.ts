@@ -5,7 +5,7 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import type { PipelineDefinition, ValidationResult, PhaseDefinition } from '../model';
 import { validateSchema } from './schema';
 import { OrchestratorError } from '../model';
@@ -550,27 +550,23 @@ function resolveSkillPluginPath(skillRef: string): string | null {
     const skillName = skillRef.slice(colonIdx + 1);
     if (!plugin || !skillName) return null;
 
-    // Resolve relative to project root: plugins/<plugin>/skills/<skillName>/
-    // Walk up from this file to find project root (where plugins/ dir exists)
-    const projectRoot = findProjectRoot();
-    if (!projectRoot) return null;
-
-    return resolve(projectRoot, 'plugins', plugin, 'skills', skillName);
-}
-
-/**
- * Find project root by walking up from this file looking for a plugins/ directory.
- */
-function findProjectRoot(): string | null {
     let dir = resolve(import.meta.dir);
     for (let i = 0; i < 10; i++) {
-        if (existsSync(resolve(dir, 'plugins'))) {
-            return dir;
+        const pluginRootCandidate = basename(dir) === plugin && existsSync(resolve(dir, 'skills'));
+        if (pluginRootCandidate) {
+            return resolve(dir, 'skills', skillName);
         }
+
+        const workspacePluginsDir = resolve(dir, 'plugins', plugin, 'skills');
+        if (existsSync(workspacePluginsDir)) {
+            return resolve(workspacePluginsDir, skillName);
+        }
+
         const parent = resolve(dir, '..');
         if (parent === dir) break;
         dir = parent;
     }
+
     return null;
 }
 
