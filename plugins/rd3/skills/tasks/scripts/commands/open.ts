@@ -8,11 +8,7 @@ import { findTaskByWbs } from '../lib/wbs';
 import { logger } from '../../../../scripts/logger';
 import { platform } from 'node:os';
 
-type SpawnSyncFn = (
-    command: string,
-    args?: readonly string[],
-    options?: SpawnSyncOptions,
-) => SpawnSyncReturns<Buffer>;
+type SpawnSyncFn = (command: string, args?: readonly string[], options?: SpawnSyncOptions) => SpawnSyncReturns<Buffer>;
 
 /**
  * Options for openTask function.
