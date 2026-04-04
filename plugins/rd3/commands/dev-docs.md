@@ -33,14 +33,14 @@ Execute phase 9 (Documentation) of the 9-phase pipeline. Refreshes the canonical
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
 
 ```
 # Default: current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile docs --channel current")
 
 # Execute on another channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile docs --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile docs --channel codex")
 ```
 
 ## Canonical Docs Refreshed
