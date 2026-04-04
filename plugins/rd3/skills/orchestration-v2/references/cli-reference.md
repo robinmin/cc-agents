@@ -366,7 +366,7 @@ Migrate v1 JSON state to v2 SQLite.
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--from-v1` | boolean | false | Migrate from v1 state files |
-| `--dir` | path | `docs/.workflow-runs/rd3-orchestration-dev` | Source directory for v1 state |
+| `--dir` | path | `docs/.workflow-runs/rd3-orchestration-v1` | Source directory for v1 state |
 | `--dry-run` | boolean | false | Preview without changes |
 
 ### Examples
