@@ -5,11 +5,12 @@
  */
 
 import type { Database } from 'bun:sqlite';
-import type { RunRecord, PhaseRecord, ResourceUsageRecord, FSMState } from '../model';
+import type { RunRecord, PhaseRecord, ResourceUsageRecord, FSMState, GateResult } from '../model';
 
 export interface RunSummary {
     readonly run: RunRecord;
     readonly phases: PhaseRecord[];
+    readonly gateResults?: GateResult[];
     readonly totalInputTokens: number;
     readonly totalOutputTokens: number;
     readonly totalWallMs: number;
@@ -69,8 +70,12 @@ export class Queries {
         const usageRows = this.db.prepare('SELECT * FROM resource_usage WHERE run_id = ?').all(runId) as Array<
             Record<string, unknown>
         >;
+        const gateRows = this.db
+            .prepare('SELECT * FROM gate_results WHERE run_id = ? ORDER BY created_at')
+            .all(runId) as Array<Record<string, unknown>>;
 
         const phases = phaseRows.map(rowToPhaseRecord);
+        const gateResults = gateRows.map(rowToGateResult);
         const totalInputTokens = usageRows.reduce((sum, r) => sum + (r.input_tokens as number), 0);
         const totalOutputTokens = usageRows.reduce((sum, r) => sum + (r.output_tokens as number), 0);
         const totalWallMs = usageRows.reduce((sum, r) => sum + (r.wall_clock_ms as number), 0);
@@ -79,6 +84,7 @@ export class Queries {
         return {
             run: rowToRunRecord(runRow),
             phases,
+            gateResults,
             totalInputTokens,
             totalOutputTokens,
             totalWallMs,
@@ -309,5 +315,19 @@ function rowToResourceUsage(row: Record<string, unknown>): ResourceUsageRecord {
         execution_ms: row.execution_ms as number,
         ...(row.first_token_ms != null && { first_token_ms: row.first_token_ms as number }),
         ...(row.recorded_at != null && { recorded_at: new Date(row.recorded_at as string) }),
+    };
+}
+
+function rowToGateResult(row: Record<string, unknown>): GateResult {
+    return {
+        run_id: row.run_id as string,
+        phase_name: row.phase_name as string,
+        step_name: row.step_name as string,
+        checker_method: row.checker_method as string,
+        passed: (row.passed as number) === 1,
+        ...(row.advisory != null && (row.advisory as number) === 1 ? { advisory: true } : {}),
+        ...(row.evidence != null && { evidence: JSON.parse(row.evidence as string) as Record<string, unknown> }),
+        ...(row.duration_ms != null && { duration_ms: row.duration_ms as number }),
+        ...(row.created_at != null && { created_at: new Date(row.created_at as string) }),
     };
 }
