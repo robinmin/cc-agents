@@ -1,7 +1,7 @@
 ---
 name: 0322 Simplify task-decomposition output format
 description: 0322 Simplify task-decomposition output format
-status: Backlog
+status: Done
 created_at: 2026-04-04T06:20:01.071Z
 updated_at: 2026-04-04T06:20:01.071Z
 folder: docs/tasks2
