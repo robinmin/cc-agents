@@ -4,9 +4,57 @@
  * Simple hand-rolled router. No external dependencies.
  * Matches URL patterns like /tasks/:wbs/artifacts to the correct handler.
  */
+import { existsSync, statSync } from 'node:fs';
+import { join, extname } from 'node:path';
 import { getProjectRoot } from '../lib/config';
 import type { EventBroadcaster } from './sse';
 import type { RouteHandler } from './types';
+
+const MIME_TYPES: Record<string, string> = {
+    '.html': 'text/html',
+    '.js': 'application/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.otf': 'font/otf',
+};
+
+function serveStaticFile(pathname: string, isFallback = false): Response | null {
+    const staticDir = join(import.meta.dir, '..', 'static');
+    if (!existsSync(staticDir)) return null;
+
+    // SPA entry point or fallback: serve index.html
+    if (pathname === '/' || isFallback) {
+        const indexPath = join(staticDir, 'index.html');
+        if (existsSync(indexPath)) {
+            return new Response(Bun.file(indexPath), {
+                headers: { 'Content-Type': 'text/html' },
+            });
+        }
+        return null;
+    }
+
+    // Only serve static files (must have extension to prevent directory traversal)
+    const ext = extname(pathname);
+    if (!ext || pathname.includes('..')) return null;
+
+    const filePath = join(staticDir, pathname);
+    if (!existsSync(filePath) || !statSync(filePath).isFile()) return null;
+
+    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    return new Response(Bun.file(filePath), {
+        headers: { 'Content-Type': contentType },
+    });
+}
 import {
     batchCreateHandler,
     checkHandler,
@@ -20,9 +68,11 @@ import {
     putArtifactHandler,
     refreshHandler,
     showTaskHandler,
+    taskActionHandler,
     treeHandler,
     updateConfigHandler,
     updateTaskHandler,
+    getTemplateHandler,
 } from './routeHandlers';
 
 interface Route {
@@ -64,14 +114,19 @@ const routes: Route[] = [
     // Check
     { method: 'GET', pattern: /^\/tasks\/([^/]+)\/check$/, paramNames: ['wbs'], handler: checkHandler },
 
+    // Actions (AI/Workflow)
+    { method: 'POST', pattern: /^\/tasks\/([^/]+)\/actions$/, paramNames: ['wbs'], handler: taskActionHandler },
+
     // Config
     { method: 'GET', pattern: /^\/config$/, paramNames: [], handler: getConfigHandler },
     { method: 'PATCH', pattern: /^\/config$/, paramNames: [], handler: updateConfigHandler },
+    { method: 'GET', pattern: /^\/config\/template$/, paramNames: [], handler: getTemplateHandler },
 ];
 
 function matchRoute(method: string, pathname: string): { route: Route; params: Record<string, string> } | null {
+    const normalizedMethod = method === 'HEAD' ? 'GET' : method;
     for (const route of routes) {
-        if (route.method !== method) continue;
+        if (route.method !== normalizedMethod) continue;
 
         const match = pathname.match(route.pattern);
         if (!match) continue;
@@ -113,6 +168,19 @@ export function createRequestHandler(broadcaster: EventBroadcaster, projectRootO
         const match = matchRoute(method, pathname);
 
         if (!match) {
+            const isGetOrHead = method === 'GET' || method === 'HEAD';
+
+            if (isGetOrHead) {
+                // Try static file serving (UI assets like /assets/index.js)
+                const staticResponse = serveStaticFile(pathname);
+                if (staticResponse) return staticResponse;
+
+                // SPA Fallback: if it's a GET request and not an API route/asset, serve index.html.
+                // This allows deep-linking and browser refreshes on routes like /0001
+                const fallbackResponse = serveStaticFile('/', true);
+                if (fallbackResponse) return fallbackResponse;
+            }
+
             // Check if path matches but method doesn't
             const pathExists = routes.some((r) => r.pattern.test(pathname));
             if (pathExists) {
