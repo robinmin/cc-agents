@@ -13,12 +13,31 @@ const LEGACY_CONFIG_FILE = 'docs/.tasks/config.jsonc';
 let cachedPatterns: { protected: RegExp[]; exempt: RegExp[] } | null = null;
 
 /**
+ * Build regex patterns from folder names.
+ * Protected: blocks direct .md writes directly under each folder
+ * Exempt: allows subdirectory paths (docs/tasks/<wbs>/<files>) managed by tasks put
+ */
+export function buildPatterns(folders: string[]): { protected: RegExp[]; exempt: RegExp[] } {
+    const protectedPatterns: RegExp[] = folders.map((folder) => {
+        const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`^${escaped}/.+.md$`);
+    });
+
+    const exemptPatterns: RegExp[] = folders.map((folder) => {
+        const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(`^${escaped}/\\d{4}/.+$`);
+    });
+
+    return { protected: protectedPatterns, exempt: exemptPatterns };
+}
+
+/**
  * Load protected and exempt patterns from config.jsonc.
  * Always resolves the project root from the script's own location (process.argv[1]),
  * then walks up until it finds docs/.tasks/config.jsonc.
  * Falls back to hardcoded patterns only if config cannot be loaded.
  */
-function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
+export function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
     if (cachedPatterns) {
         return cachedPatterns;
     }
@@ -59,25 +78,15 @@ function loadPatterns(): { protected: RegExp[]; exempt: RegExp[] } {
         logger.warn('[GUARD] Could not load config.jsonc — using folder-based fallback');
     }
 
-    // Build protected patterns from configured folders
-    // Protected: blocks direct .md writes directly under each folder
-    const protectedPatterns: RegExp[] = folders.map((folder) => {
-        const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return new RegExp(`^${escaped}/.+.md$`);
-    });
-
-    // Exempt: allows subdirectory paths (docs/tasks/<wbs>/<files>) managed by tasks put
-    const exemptPatterns: RegExp[] = folders.map((folder) => {
-        const escaped = folder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return new RegExp(`^${escaped}/\\d{4}/.+$`);
-    });
-
-    cachedPatterns = {
-        protected: protectedPatterns,
-        exempt: exemptPatterns,
-    };
-
+    cachedPatterns = buildPatterns(folders);
     return cachedPatterns;
+}
+
+/**
+ * Reset cached patterns. Used for testing.
+ */
+export function resetCachedPatterns(): void {
+    cachedPatterns = null;
 }
 
 export function checkWriteGuard(
@@ -112,10 +121,9 @@ export function checkWriteGuard(
     return { allowed: true, code: 0 };
 }
 
-export function runWriteGuardStdin(): number {
+export function runWriteGuardStdin(stdin: string): number {
     try {
-        const input = readFileSync('/dev/stdin', 'utf-8');
-        const toolInput: ToolInput = JSON.parse(input);
+        const toolInput: ToolInput = JSON.parse(stdin);
         const filePath = (toolInput.tool_input?.file_path as string) || '';
         const toolName = toolInput.tool_name || 'Unknown';
 
@@ -132,3 +140,13 @@ export function runWriteGuardStdin(): number {
         return 0;
     }
 }
+
+// Main entry point for CLI execution
+export function runMain(): void {
+    const input = readFileSync('/dev/stdin', 'utf-8');
+    const exitCode = runWriteGuardStdin(input);
+    process.exit(exitCode);
+}
+
+// Only run main when executed directly, not when imported as a module
+import.meta.main ? runMain() : undefined;
