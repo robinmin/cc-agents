@@ -34,17 +34,17 @@ Refine task requirements by analyzing existing content for quality issues and im
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
 
 ```
 # Default: execute on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile refine --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile refine --channel current")
 
 # Optional: bypass any future human gates on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile refine --auto --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile refine --auto --channel current")
 
 # Execute the same workflow on another channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile refine --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile refine --channel codex")
 ```
 
 ## Examples
