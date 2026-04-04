@@ -11,7 +11,7 @@ Systematically resolve all validation errors (lint, typecheck, tests) using a de
 
 **Core Principle:** NO FIXES WITHOUT ROOT CAUSE FIRST.
 
-**Pipeline Integration:** This is a **standalone utility**, not a pipeline phase shortcut. It does not delegate to `rd3:orchestration-dev`. Use it independently to fix validation errors, or after any pipeline phase that fails checks.
+**Pipeline Integration:** This is a **standalone utility**, not a pipeline phase shortcut. It does not delegate to `rd3:orchestration-v2`. Use it independently to fix validation errors, or after any pipeline phase that fails checks.
 
 ## Quick Start
 
@@ -130,5 +130,5 @@ constructor() {}
 ## See Also
 
 - **rd3:sys-debugging**: Four-phase debugging framework
-- **rd3:orchestration-dev**: Full 9-phase pipeline orchestrator
+- **rd3:orchestration-v2**: Full 9-phase pipeline orchestrator
 - **/rd3:dev-run**: End-to-end execution (phases 1-9)
