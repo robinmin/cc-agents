@@ -27,6 +27,7 @@ export interface GateConfig {
 }
 
 export interface PhaseEvidence {
+    readonly [key: string]: unknown;
     readonly success: boolean;
     readonly exitCode: number;
     readonly stdout?: string;
@@ -40,6 +41,14 @@ export interface PhaseEvidence {
     readonly run_id: string;
     readonly rework_iteration: number;
     readonly rework_feedback?: string;
+}
+
+export interface PhaseEvidenceRecord {
+    readonly run_id: string;
+    readonly phase_name: string;
+    readonly rework_iteration: number;
+    readonly evidence: Record<string, unknown>;
+    readonly created_at?: Date;
 }
 
 export interface ReworkConfig {
