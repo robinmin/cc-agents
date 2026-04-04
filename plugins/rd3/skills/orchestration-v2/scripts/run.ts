@@ -117,7 +117,7 @@ Command-specific options:
     --dry-run               Preview without changes
 
   migrate:
-    --from-v1 [dir]         Migrate from v1 state (default dir: docs/.workflow-runs/rd3-orchestration-dev)
+    --from-v1 [dir]         Migrate from v1 state (default dir: docs/.workflow-runs/rd3-orchestration-v1)
     --dir <path>            Source directory for v1 state
 
 Run 'orchestrator <command> --help' for command-specific options.
@@ -687,7 +687,7 @@ async function handleMigrate(options: Record<string, unknown>, state: StateManag
     const v1Dir =
         (options.dir as string | undefined) ??
         (options.fromV1Path as string | undefined) ??
-        'docs/.workflow-runs/rd3-orchestration-dev';
+        'docs/.workflow-runs/rd3-orchestration-v1';
     const result = await migrateFromV1(state.getDb(), v1Dir);
     if (result.errors.length > 0) {
         logger.error(`Migration completed with ${result.errors.length} error(s)`);
