@@ -5,6 +5,8 @@ see_also:
   - rd3:task-decomposition
 ---
 
+> **Note:** The primary output format for task decomposition is now the simplified markdown checklist written directly to the parent task's Solution section. See the "Output Format" section in SKILL.md. The JSON format below remains available for `tasks batch-create` integration.
+
 # Structured Output Protocol
 
 ### Batch-Creation-Compatible JSON
