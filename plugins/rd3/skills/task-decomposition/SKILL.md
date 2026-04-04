@@ -376,9 +376,14 @@ See `references/structured-output-protocol.md` for the full JSON schema.
 - Task decomposition patterns apply universally
 - Reference file loading is platform-independent
 
-See [Additional Resources](references/external-resources.md) for detailed content.
+## Additional Resources
 
-See [Boundary Definition](references/boundary-definition.md) for detailed content.
+- [Additional Resources](references/external-resources.md)
+- [Boundary Definition](references/boundary-definition.md)
+- [Structured Output Protocol](references/structured-output-protocol.md)
+- [Decomposition Decision Rules](references/decomposition-decision-rules.md)
+- [Core Principles](references/core-principles.md)
+- [Verification Protocol](references/verification-protocol.md)
 
 See [Structured Output Protocol](references/structured-output-protocol.md) for detailed content.
 
