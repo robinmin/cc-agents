@@ -43,6 +43,7 @@ export function runServer(args: string[]): void {
         hostname: config.host,
         port: config.port,
         fetch: handler,
+        idleTimeout: 255, // 255 seconds (max allowed by Bun)
     });
 
     logger.info(`rd3:tasks server listening on http://${config.host}:${config.port}`);
