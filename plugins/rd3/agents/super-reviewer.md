@@ -45,13 +45,13 @@ Route as follows:
 
 ### Worker Mode
 
-Use worker mode only when invoked by `rd3:orchestration-dev` for **Phase 7**.
+Use worker mode only when invoked by `rd3:orchestration-v2` for **Phase 7**.
 
 Worker mode rules:
 - Phase is locked to **Phase 7: Code Review**.
 - Canonical backbone: `rd3:code-review-common`.
 - Worker mode must preserve the `execution_channel` selected by orchestration.
-- Worker mode must not call `rd3:orchestration-dev`.
+- Worker mode must not call `rd3:orchestration-v2`.
 - Worker mode must not reinterpret profile, phase ordering, or gate policy.
 
 ## Worker Contract
@@ -129,7 +129,7 @@ After returning output, verify all of the following:
 ### DON'T
 
 - Implement review logic directly — delegate to `rd3:code-review-common`
-- Call `rd3:orchestration-dev` from worker mode
+- Call `rd3:orchestration-v2` from worker mode
 - Reinterpret phase ordering, profile, or gate policy
 - Modify `execution_channel` or `phase_context` in worker mode
 - Produce free-form commentary in worker mode — use the structured envelope
