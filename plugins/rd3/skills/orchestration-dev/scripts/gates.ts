@@ -160,10 +160,16 @@ function buildPhaseChecker(phase: Phase, evidencePath: string, context: PhaseMan
             break;
         case 2:
         case 3:
-        case 4:
         case 8:
         case 9:
             checks.push(contentMatch(evidencePath, `"has_output"\\s*:\\s*true`));
+            break;
+        case 4:
+            checks.push(contentMatch(evidencePath, `"has_output"\\s*:\\s*true`));
+            // Verify subtask links in Solution section OR a skip justification
+            if (taskPath && taskPath !== '.') {
+                checks.push(contentMatch(taskPath, `(?:#### Subtasks|No decomposition needed)`));
+            }
             break;
         case 5:
             checks.push(contentMatch(evidencePath, `"has_structured_output"\\s*:\\s*true`));
