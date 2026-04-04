@@ -72,9 +72,16 @@ name: Test Task
 
         writeFileSync(taskPath, taskContent);
 
-        const result = openTask(tempDir, '0001');
+        const mockSpawnSync = mock(() => ({
+            pid: 123,
+            output: [],
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+            status: 0,
+            signal: null,
+        }));
+        const result = openTask(tempDir, '0001', false, { spawnSync: mockSpawnSync });
 
-        // execSync may fail in test environments (no GUI), but path should still be found
         expect(result.ok).toBe(true);
         if (result.ok) {
             expect(result.value.wbs).toBe('0001');
@@ -93,7 +100,15 @@ name: Another Task
 
         writeFileSync(taskPath, taskContent);
 
-        const result = openTask(tempDir, '47');
+        const mockSpawnSync = mock(() => ({
+            pid: 123,
+            output: [],
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+            status: 0,
+            signal: null,
+        }));
+        const result = openTask(tempDir, '47', false, { spawnSync: mockSpawnSync });
 
         expect(result.ok).toBe(true);
         if (result.ok) {
@@ -115,13 +130,54 @@ name: Test Task
         writeFileSync(taskPath, taskContent);
         setGlobalSilent(true);
 
-        const result = openTask(tempDir, '0001', true);
+        const mockSpawnSync = mock(() => ({
+            pid: 123,
+            output: [],
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+            status: 0,
+            signal: null,
+        }));
+        const result = openTask(tempDir, '0001', true, { spawnSync: mockSpawnSync });
 
         expect(result.ok).toBe(true);
         // quiet=true means we don't log - but result is still returned
     });
 
-    test('handles execSync error gracefully', () => {
+    test('passes the task path as a discrete argument instead of shell-interpolating it', () => {
+        const maliciousPath = join(tempDir, 'docs', 'tasks', '0001_foo";touch_$TMPDIR;echo_".md');
+        writeFileSync(maliciousPath, '---\nname: Test Task\n---\n');
+
+        const mockSpawnSync = mock(() => ({
+            pid: 123,
+            output: [],
+            stdout: Buffer.alloc(0),
+            stderr: Buffer.alloc(0),
+            status: 0,
+            signal: null,
+        }));
+
+        const result = openTask(tempDir, '0001', false, { spawnSync: mockSpawnSync });
+
+        expect(result.ok).toBe(true);
+        expect(mockSpawnSync).toHaveBeenCalledTimes(1);
+        const recordedCall = mockSpawnSync.mock.calls[0];
+        expect(recordedCall).toBeDefined();
+        if (!recordedCall) {
+            throw new Error('Expected spawnSync to be called once');
+        }
+        const [command, args, options] = recordedCall as unknown as [
+            string,
+            string[],
+            { shell: boolean; stdio: string },
+        ];
+        expect(typeof command).toBe('string');
+        expect(Array.isArray(args)).toBe(true);
+        expect(args).toContain(maliciousPath);
+        expect(options).toMatchObject({ shell: false, stdio: 'ignore' });
+    });
+
+    test('handles spawnSync error gracefully', () => {
         // Create a task file
         const taskPath = join(tempDir, 'docs', 'tasks', '0001_Test_Task.md');
         const taskContent = `---
@@ -132,12 +188,11 @@ name: Test Task
 `;
         writeFileSync(taskPath, taskContent);
 
-        // Mock execSync to throw an error - injected via options
-        const mockExecSync = mock(() => {
+        const mockSpawnSync = mock(() => {
             throw new Error('Mocked exec error');
         });
 
-        const result = openTask(tempDir, '0001', false, { execSync: mockExecSync });
+        const result = openTask(tempDir, '0001', false, { spawnSync: mockSpawnSync });
 
         expect(result.ok).toBe(false);
         if (!result.ok) {
