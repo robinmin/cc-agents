@@ -67,14 +67,14 @@ Direct-entry mode must not absorb pipeline ownership. Refer full-pipeline reques
 
 ### Worker Mode
 
-Use worker mode only when invoked by `rd3:orchestration-dev` for **Phase 5**.
+Use worker mode only when invoked by `rd3:orchestration-v2` for **Phase 5**.
 
 Worker mode rules:
 - Phase is locked to **Phase 5: Implementation**.
 - Canonical backbone: `rd3:code-implement-common`.
 - Supporting skills may include `rd3:tdd-workflow`, `rd3:sys-debugging`, and language planning skills.
 - Worker mode must preserve the `execution_channel` selected by orchestration.
-- Worker mode must not call `rd3:orchestration-dev`.
+- Worker mode must not call `rd3:orchestration-v2`.
 - Worker mode must not reinterpret profile, phase ordering, human gates, or rework policy.
 
 ## Worker Contract
@@ -171,7 +171,7 @@ next_step_recommendation: fix_and_retry
 ### DON'T
 
 - Absorb orchestration logic into this agent
-- Call `rd3:orchestration-dev` while in worker mode
+- Call `rd3:orchestration-v2` while in worker mode
 - Reinterpret profile, phase ordering, human gates, or rework policy
 - Expand pipeline scope unless explicitly requested
 - Implement logic directly instead of delegating to skills
