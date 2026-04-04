@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
+import { describe, expect, it, beforeEach, afterEach, spyOn } from 'bun:test';
 import { mkdirSync, writeFileSync, rmSync, chmodSync } from 'node:fs';
 import { join } from 'node:path';
 import { EventBroadcaster } from '../../scripts/server/sse';
@@ -19,6 +19,8 @@ import {
     getConfigHandler,
     updateConfigHandler,
     eventsHandler,
+    getTemplateHandler,
+    taskActionHandler,
 } from '../../scripts/server/routeHandlers';
 import { setGlobalSilent } from '../../../../scripts/logger';
 
@@ -74,15 +76,24 @@ This is a test Q&A content.
 describe('routeHandlers tests', () => {
     const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `tasks-server-test-${Date.now()}`);
     const folder = 'docs/tasks';
+    let spawnSpy: ReturnType<typeof spyOn>;
 
     beforeEach(() => {
         writeConfig(tempDir, folder);
         setGlobalSilent(true);
+        spawnSpy = spyOn(Bun, 'spawn').mockImplementation(
+            () =>
+                ({
+                    pid: 123,
+                    exitCode: Promise.resolve(0),
+                }) as unknown as ReturnType<typeof Bun.spawn>,
+        );
     });
 
     afterEach(() => {
         setGlobalSilent(false);
         rmSync(tempDir, { recursive: true, force: true });
+        spawnSpy.mockRestore();
     });
 
     // --- Helpers ---
@@ -186,6 +197,19 @@ describe('routeHandlers tests', () => {
             const res = await createTaskHandler(tempDir, req, {}, noopBroadcaster);
             expect((await getJson(res)).ok).toBe(false);
             chmodSync(join(tempDir, folder), 0o755);
+        });
+
+        it('creates a task with raw content', async () => {
+            const req = new Request('http://localhost/tasks', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name: 'RawContent',
+                    content: '---\nwbs: "0005"\nname: "RawContent"\n---\n### Background\nRaw Bg',
+                }),
+            });
+            const res = await createTaskHandler(tempDir, req, {}, noopBroadcaster);
+            const body = await getJson(res);
+            expect(body.ok).toBe(true);
         });
     });
 
@@ -369,6 +393,15 @@ impl_progress:
             const req = new Request('http://loc', {
                 method: 'POST',
                 body: JSON.stringify({ field: 'profile', value: 'standard' }),
+            });
+            const res = await updateTaskHandler(tempDir, req, { wbs: '0001' }, noopBroadcaster);
+            expect((await getJson(res)).ok).toBe(true);
+        });
+
+        it('updates body', async () => {
+            const req = new Request('http://loc', {
+                method: 'POST',
+                body: JSON.stringify({ body: '---\nwbs: "0001"\nname: "Test"\n---\nNew Body' }),
             });
             const res = await updateTaskHandler(tempDir, req, { wbs: '0001' }, noopBroadcaster);
             expect((await getJson(res)).ok).toBe(true);
@@ -582,6 +615,65 @@ impl_progress:
             const res = await eventsHandler(tempDir, new Request('http://loc?status=wat'), {}, bc);
             expect((await getJson(res)).ok).toBe(false);
             bc.closeAll();
+        });
+    });
+
+    describe('getTemplateHandler', () => {
+        it('returns standard template', async () => {
+            const res = await getTemplateHandler(tempDir, new Request('http://loc'), {}, noopBroadcaster);
+            const body = await getJson(res);
+            expect(body.ok).toBe(true);
+            const data = body.data as { template: string };
+            expect(typeof data.template).toBe('string');
+        });
+    });
+
+    describe('taskActionHandler', () => {
+        beforeEach(() => writeTask(tempDir, '0001'));
+
+        it('delegates action to channel via orchestrator', async () => {
+            const bc = new EventBroadcaster();
+            let events = 0;
+            bc.broadcast = () => {
+                events++;
+            };
+            const req = new Request('http://loc', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'refine', channel: 'claude' }),
+            });
+            const res = await taskActionHandler(tempDir, req, { wbs: '0001' }, bc);
+            const body = await getJson(res);
+            expect(body.ok).toBe(true);
+            expect(events).toBe(1);
+            const data = body.data as { command: string };
+            expect(data.command).toContain('orchestrator run 0001 --preset refine --channel claude');
+        });
+
+        it('supports codex channel via orchestrator', async () => {
+            const req = new Request('http://loc', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'plan', channel: 'codex' }),
+            });
+            const res = await taskActionHandler(tempDir, req, { wbs: '0001' }, noopBroadcaster);
+            const body = await getJson(res);
+            expect(body.ok).toBe(true);
+            const data = body.data as { command: string };
+            expect(data.command).toContain('orchestrator run 0001 --preset plan --channel codex');
+        });
+
+        it('rejects missing wbs', async () => {
+            const req = new Request('http://loc', {
+                method: 'POST',
+                body: JSON.stringify({ action: 'refine', channel: 'claude' }),
+            });
+            const res = await taskActionHandler(tempDir, req, {}, noopBroadcaster);
+            expect((await getJson(res)).ok).toBe(false);
+        });
+
+        it('rejects missing action or channel', async () => {
+            const req = new Request('http://loc', { method: 'POST', body: JSON.stringify({ action: 'refine' }) });
+            const res = await taskActionHandler(tempDir, req, { wbs: '0001' }, noopBroadcaster);
+            expect((await getJson(res)).ok).toBe(false);
         });
     });
 });
