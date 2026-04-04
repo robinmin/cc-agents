@@ -50,7 +50,7 @@ Some rd3 slash commands expose `--channel <current|claude-code|codex|openclaw|op
 - `claude-code` is the user-facing slash-command alias for the ACP agent name `claude`.
 - `codex`, `openclaw`, `opencode`, and `pi` map directly to ACP agent names.
 - `antigravity` is a user-facing channel option and should be resolved through a configured ACP agent command for Antigravity in the local `acpx` config.
-- Slash command wrappers should pass the raw channel value into `rd3:orchestration-dev`. Orchestration then decides when delegated phase work should use `rd3:run-acp`.
+- Slash command wrappers should pass the raw channel value into `rd3:orchestration-v2`. Orchestration then decides when delegated phase work should use `rd3:run-acp`.
 
 ## Install
 
