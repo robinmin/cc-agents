@@ -1,7 +1,7 @@
 ---
 name: Implement real auto gate using verification-chain LLM checker
 description: Implement real auto gate using verification-chain LLM checker
-status: Backlog
+status: Done
 created_at: 2026-04-02T19:18:12.835Z
 updated_at: 2026-04-02T19:18:12.835Z
 folder: docs/tasks2
