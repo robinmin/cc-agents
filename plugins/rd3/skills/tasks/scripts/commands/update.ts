@@ -8,6 +8,7 @@ import {
     readTaskFile,
     updateStatus,
     updateSection,
+    updateTaskBody,
     updateImplPhase,
     updateFrontmatterField,
     validateTaskForTransition,
@@ -19,6 +20,7 @@ import { VALID_STATUSES } from '../types';
 export interface UpdateOptions {
     status?: TaskStatus;
     section?: string;
+    body?: string;
     fromFile?: string;
     phase?: ImplPhase;
     phaseStatus?: string;
@@ -128,6 +130,23 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
             logger.success(`Updated section '${options.section}' in ${wbs}`);
         }
         return ok({ wbs, action: 'section', dryRun: false, newValue: options.section });
+    }
+
+    // Update entire body
+    if (options.body !== undefined) {
+        if (options.dryRun) {
+            if (!options.quiet) {
+                logger.log(`[DRY RUN] Would update entire body in ${wbs}`);
+            }
+            return ok({ wbs, action: 'section', dryRun: true });
+        }
+
+        const result = updateTaskBody(taskPath, options.body);
+        if (!result.ok) return result;
+        if (!options.quiet) {
+            logger.success(`Updated body in ${wbs}`);
+        }
+        return ok({ wbs, action: 'section', dryRun: false });
     }
 
     // Update impl_progress phase
