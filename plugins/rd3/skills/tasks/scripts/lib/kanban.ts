@@ -48,7 +48,7 @@ export function buildKanbanFromFolder(folder: string, projectRoot: string): Kanb
 
     if (!existsSync(fullPath)) return columns;
 
-    const files = readdirSync(fullPath).filter((f) => f.endsWith('.md'));
+    const files = readdirSync(fullPath).filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'kanban.md');
 
     for (const file of files) {
         const filePath = resolve(fullPath, file);
