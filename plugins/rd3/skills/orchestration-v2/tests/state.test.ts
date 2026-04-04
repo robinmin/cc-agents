@@ -354,6 +354,91 @@ describe('StateManager', () => {
         }
     });
 
+    test('gate results preserve advisory flag and retain repeated attempts', async () => {
+        const { mgr, cleanup } = makeManager();
+        try {
+            await mgr.init();
+
+            await mgr.createRun({
+                id: 'run-4b',
+                task_ref: '0319',
+                phases_requested: 'review',
+                status: 'RUNNING',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+
+            await mgr.saveGateResult({
+                run_id: 'run-4b',
+                phase_name: 'review',
+                step_name: 'auto-gate',
+                checker_method: 'llm',
+                passed: false,
+                advisory: true,
+                evidence: { severity: 'advisory', checklist: [{ item: 'a', passed: false }] },
+                duration_ms: 25,
+            });
+            await mgr.saveGateResult({
+                run_id: 'run-4b',
+                phase_name: 'review',
+                step_name: 'auto-gate',
+                checker_method: 'llm',
+                passed: true,
+                evidence: { severity: 'blocking', checklist: [{ item: 'a', passed: true }] },
+                duration_ms: 30,
+            });
+
+            const results = await mgr.getGateResults('run-4b', 'review');
+            expect(results).toHaveLength(2);
+            expect(results[0]?.advisory).toBe(true);
+            expect(results[0]?.passed).toBe(false);
+            expect(results[1]?.passed).toBe(true);
+            expect(results.map((result) => result.step_name)).toEqual(['auto-gate', 'auto-gate#2']);
+        } finally {
+            cleanup();
+        }
+    });
+
+    test('phase evidence persists and is queryable by phase', async () => {
+        const { mgr, cleanup } = makeManager();
+        try {
+            await mgr.init();
+
+            await mgr.createRun({
+                id: 'run-4c',
+                task_ref: '0319',
+                phases_requested: 'implement',
+                status: 'RUNNING',
+                config_snapshot: { phases: {} },
+                pipeline_name: 'default',
+            });
+
+            await mgr.savePhaseEvidence({
+                run_id: 'run-4c',
+                phase_name: 'implement',
+                rework_iteration: 0,
+                evidence: {
+                    stdout: 'phase stdout',
+                    stderr: 'phase stderr',
+                    files_changed: ['a.ts'],
+                    files_added: ['b.ts'],
+                },
+            });
+
+            const evidence = await mgr.getPhaseEvidence('run-4c', 'implement');
+            expect(evidence).toHaveLength(1);
+            expect(evidence[0]?.rework_iteration).toBe(0);
+            expect(evidence[0]?.evidence).toMatchObject({
+                stdout: 'phase stdout',
+                stderr: 'phase stderr',
+                files_changed: ['a.ts'],
+                files_added: ['b.ts'],
+            });
+        } finally {
+            cleanup();
+        }
+    });
+
     test('resource usage', async () => {
         const { mgr, cleanup } = makeManager();
         try {
