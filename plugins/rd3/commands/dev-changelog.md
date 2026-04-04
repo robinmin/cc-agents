@@ -93,7 +93,7 @@ git tag --sort=-version:refname | head -1
 
 ## Pipeline Integration
 
-This is a **standalone git utility**, not a pipeline phase shortcut. It does not delegate to `rd3:orchestration-dev`. Use it independently when preparing releases, or alongside any pipeline phase as needed.
+This is a **standalone git utility**, not a pipeline phase shortcut. It does not delegate to `rd3:orchestration-v2`. Use it independently when preparing releases, or alongside any pipeline phase as needed.
 
 > **Note:** This command uses the `Write` tool (to write changelogs to disk), unlike pipeline phase commands that use `Read`, `Glob`, `Bash`, `Skill`.
 
