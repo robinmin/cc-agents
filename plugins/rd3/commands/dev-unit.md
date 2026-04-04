@@ -34,17 +34,17 @@ Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
 
 ```
 # Default unit target on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile unit --channel current")
 
 # Custom coverage threshold on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 90 --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile unit --coverage 90 --channel current")
 
 # Execute the same workflow on another channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile unit --coverage 90 --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile unit --coverage 90 --channel codex")
 ```
 
 ## Completion Criteria
