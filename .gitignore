@@ -168,6 +168,7 @@ vite.config.ts.timestamp-*
 /opencode.json
 
 /plugins/wt/skills/image-generate/scripts/config_loader.py
+/plugins/rd3/skills/tasks/scripts/static
 /.ant-colony
 /docs/.migration
 /.rtk/
