@@ -571,6 +571,7 @@ async function handleInspect(options: Record<string, unknown>, state: StateManag
     }
 
     const gateResults = await state.getGateResults(summary.run.id, phaseName);
+    const phaseEvidence = await state.getPhaseEvidence(summary.run.id, phaseName);
     const detail = {
         runId: summary.run.id,
         taskRef: summary.run.task_ref,
@@ -590,9 +591,15 @@ async function handleInspect(options: Record<string, unknown>, state: StateManag
             step: result.step_name,
             checker: result.checker_method,
             passed: result.passed,
+            ...(result.advisory != null && { advisory: result.advisory }),
             ...(result.duration_ms != null && { durationMs: result.duration_ms }),
             ...(result.created_at && { createdAt: result.created_at.toISOString() }),
             ...(result.evidence && { evidence: result.evidence }),
+        })),
+        phaseEvidence: phaseEvidence.map((record) => ({
+            reworkIteration: record.rework_iteration,
+            ...(record.created_at && { createdAt: record.created_at.toISOString() }),
+            evidence: record.evidence,
         })),
     };
 
@@ -633,6 +640,13 @@ async function handleInspect(options: Record<string, unknown>, state: StateManag
                 if (result.evidence) {
                     lines.push(`    ${JSON.stringify(result.evidence)}`);
                 }
+            }
+        }
+
+        if (detail.phaseEvidence.length > 0) {
+            lines.push('  Phase evidence:');
+            for (const record of detail.phaseEvidence) {
+                lines.push(`    [rework ${record.reworkIteration}] ${JSON.stringify(record.evidence)}`);
             }
         }
     }
