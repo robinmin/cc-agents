@@ -160,4 +160,3 @@ Completion of 0316 should leave the repo in a state where `command` can be used 
 - `plugins/rd3/skills/orchestration-v2/references/error-codes.md` — gate failure reporting and recovery guidance
 - `docs/tasks2/0318_Re-align_and_re-design_orchestration-v2_gate_architecture.md` — follow-on redesign task
 - `docs/tasks2/0319_Implement_real_auto_gate_using_verification-chain_LLM_checker.md` — follow-on `auto` implementation task
-
