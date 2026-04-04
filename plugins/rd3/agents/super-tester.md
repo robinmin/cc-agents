@@ -60,14 +60,14 @@ Direct-entry mode must not absorb pipeline ownership. Refer full-pipeline reques
 
 ### Worker Mode
 
-Use worker mode only when invoked by `rd3:orchestration-dev` for **Phase 6**.
+Use worker mode only when invoked by `rd3:orchestration-v2` for **Phase 6**.
 
 Worker mode rules:
 - Phase is locked to **Phase 6: Unit Testing**.
 - Canonical backbones: `rd3:sys-testing` and `rd3:advanced-testing`.
 - Supporting skill: `rd3:sys-debugging` when verification fails.
 - Worker mode must preserve the `execution_channel` selected by orchestration.
-- Worker mode must not call `rd3:orchestration-dev`.
+- Worker mode must not call `rd3:orchestration-v2`.
 - Worker mode must not reinterpret profile, phase ordering, human gates, or rework policy.
 
 ## Worker Contract
@@ -177,7 +177,7 @@ assistant: Routing to rd3:sys-debugging...
 
 - **Do not implement testing logic directly**: This is a thin wrapper — delegate to skills.
 - **Do not reinterpret phase ordering or policy**: Worker mode is locked to Phase 6.
-- **Do not call rd3:orchestration-dev**: Worker mode must not loop back to orchestration.
+- **Do not call rd3:orchestration-v2**: Worker mode must not loop back to orchestration.
 - **Do not use additional tools unless necessary**: Thin-wrapper discipline.
 - **Do not drift into code review**: Keep focus on testing, not quality assessment.
 - **Do not skip failure reporting**: Every failure needs a `failed_stage` and `next_step_recommendation`.
