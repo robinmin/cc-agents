@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PHASE_WORKER_CONTRACTS } from '../skills/orchestration-dev/scripts/contracts';
+import { PHASE_WORKER_CONTRACTS } from '../skills/orchestration-v1/scripts/contracts';
 
 const RD3_ROOT = join(import.meta.dir, '..');
 
@@ -16,15 +16,15 @@ describe('phase-worker agent docs', () => {
 
         expect(superCoder).toContain('## Mode Selection');
         expect(superCoder).toContain('### Worker Mode');
-        expect(superCoder).toContain('must not call `rd3:orchestration-dev`');
-        expect(superCoder).not.toContain('- rd3:orchestration-dev');
-        expect(superCoder).not.toContain('| Full WBS pipeline execution | `rd3:orchestration-dev` |');
+        expect(superCoder).toContain('must not call `rd3:orchestration-v2`');
+        expect(superCoder).not.toContain('- rd3:orchestration-v2');
+        expect(superCoder).not.toContain('| Full WBS pipeline execution | `rd3:orchestration-v2` |');
 
         expect(superTester).toContain('## Mode Selection');
         expect(superTester).toContain('### Worker Mode');
-        expect(superTester).toContain('must not call `rd3:orchestration-dev`');
-        expect(superTester).not.toContain('- rd3:orchestration-dev');
-        expect(superTester).not.toContain('| Full WBS pipeline execution | `rd3:orchestration-dev` |');
+        expect(superTester).toContain('must not call `rd3:orchestration-v2`');
+        expect(superTester).not.toContain('- rd3:orchestration-v2');
+        expect(superTester).not.toContain('| Full WBS pipeline execution | `rd3:orchestration-v2` |');
     });
 
     it('defines super-reviewer as the phase-7 worker over code-review-common', () => {
@@ -32,7 +32,7 @@ describe('phase-worker agent docs', () => {
 
         expect(superReviewer).toContain('rd3:code-review-common');
         expect(superReviewer).toContain('Phase 7');
-        expect(superReviewer).toContain('must not call `rd3:orchestration-dev`');
+        expect(superReviewer).toContain('must not call `rd3:orchestration-v2`');
         expect(superReviewer).toContain('worker mode');
     });
 
@@ -92,7 +92,7 @@ describe('phase-worker agent docs', () => {
         }
     });
 
-    it('does not include rd3:orchestration-dev in any worker agent skill list', () => {
+    it('does not include rd3:orchestration-v2 in any worker agent skill list', () => {
         const superCoder = readRd3File('agents/super-coder.md');
         const superTester = readRd3File('agents/super-tester.md');
         const superReviewer = readRd3File('agents/super-reviewer.md');
@@ -101,7 +101,7 @@ describe('phase-worker agent docs', () => {
         for (const content of [superCoder, superTester, superReviewer]) {
             const frontmatter = content.split('---')[1] ?? '';
             const skillLines = frontmatter.split('\n').filter((line) => line.trim().startsWith('- rd3:'));
-            const hasOrchestration = skillLines.some((line) => line.includes('rd3:orchestration-dev'));
+            const hasOrchestration = skillLines.some((line) => line.includes('rd3:orchestration-v2'));
             expect(hasOrchestration).toBe(false);
         }
     });
