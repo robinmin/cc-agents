@@ -4,13 +4,36 @@
  * Usage:
  *   tasks server [--port <number>] [--host <addr>]
  */
-import { logger } from '../../../../scripts/logger';
+import { getStaticDir, getUiDir } from '../lib/config';
 import { EventBroadcaster } from '../server/sse';
 import { createRequestHandler } from '../server/router';
 import type { ServerConfig } from '../server/types';
+import { existsSync } from 'node:fs';
+import { logger } from '../../../../scripts/logger';
 
 const DEFAULT_PORT = 3456;
 const DEFAULT_HOST = '127.0.0.1';
+
+type ServerRuntime = {
+    pathExists: (path: string) => boolean;
+    resolveStaticDir: () => string;
+    resolveUiDir: () => string;
+    buildUi: (uiDir: string) => number | null | undefined;
+    registerSignal: (event: NodeJS.Signals, listener: () => void) => NodeJS.Process;
+};
+
+const defaultServerRuntime: ServerRuntime = {
+    pathExists: existsSync,
+    resolveStaticDir: getStaticDir,
+    resolveUiDir: getUiDir,
+    buildUi: (uiDir) =>
+        Bun.spawnSync(['bun', 'run', 'build'], {
+            cwd: uiDir,
+            stdout: 'ignore',
+            stderr: 'ignore',
+        }).exitCode,
+    registerSignal: (event, listener) => process.on(event, listener),
+};
 
 function parseServerArgs(args: string[]): ServerConfig {
     const config: ServerConfig = {
@@ -28,15 +51,53 @@ function parseServerArgs(args: string[]): ServerConfig {
             config.port = parsed;
         } else if (args[i] === '--host' && i + 1 < args.length) {
             config.host = args[++i];
+        } else if (args[i] === '--build') {
+            config.build = true;
         }
     }
 
     return config;
 }
 
-export function runServer(args: string[]): void {
+/**
+ * Ensure the UI is built. Triggers if artifacts are missing or if force is requested.
+ */
+function ensureUIBuilt(force = false, runtime: ServerRuntime = defaultServerRuntime): void {
+    const staticDir = runtime.resolveStaticDir();
+    const uiDir = runtime.resolveUiDir();
+
+    if (!force && runtime.pathExists(staticDir)) {
+        return;
+    }
+
+    if (force) {
+        logger.info('Forcing UI rebuild...');
+    } else {
+        logger.info('UI artifacts missing. Building Kanban UI...');
+    }
+
+    if (!runtime.pathExists(uiDir)) {
+        logger.error(`UI source directory not found at ${uiDir}`);
+        return;
+    }
+
+    const exitCode = runtime.buildUi(uiDir);
+
+    if (exitCode !== 0) {
+        logger.error(`UI build failed with exit code ${exitCode}`);
+    } else {
+        logger.info('UI build successful.');
+    }
+}
+
+export function runServer(args: string[], runtimeOverrides: Partial<ServerRuntime> = {}): void {
     const config = parseServerArgs(args);
     const broadcaster = new EventBroadcaster();
+    const runtime: ServerRuntime = { ...defaultServerRuntime, ...runtimeOverrides };
+
+    // Ensure UI is built if missing OR if --build flag is present
+    ensureUIBuilt(config.build, runtime);
+
     const handler = createRequestHandler(broadcaster);
 
     const server = Bun.serve({
@@ -57,6 +118,6 @@ export function runServer(args: string[]): void {
         process.exit(0);
     };
 
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
+    runtime.registerSignal('SIGINT', shutdown);
+    runtime.registerSignal('SIGTERM', shutdown);
 }
