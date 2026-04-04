@@ -32,6 +32,7 @@ export function createTask(
         tags?: string[];
         profile?: string;
         quiet?: boolean;
+        content?: string;
     } = {},
 ): Result<{ wbs: string; path: string }> {
     const config = loadConfig(projectRoot);
@@ -76,25 +77,30 @@ export function createTask(
 
         // Render template with placeholder cleanup after WBS allocation so the
         // generated content and filename stay consistent inside the critical section.
-        const vars = getTemplateVars(name, wbs, folder, name);
-        let content = substituteTemplateVars(templateContent, vars);
-        content = stripInputTips(content);
+        let content: string;
+        if (options.content) {
+            content = options.content;
+        } else {
+            const vars = getTemplateVars(name, wbs, folder, name);
+            content = substituteTemplateVars(templateContent, vars);
+            content = stripInputTips(content);
 
-        if (options.background) {
-            content = replaceSectionContent(content, 'Background', options.background);
-        }
-        if (options.requirements) {
-            content = replaceSectionContent(content, 'Requirements', options.requirements);
-        }
-        if (options.solution) {
-            content = replaceSectionContent(content, 'Solution', options.solution);
-        }
+            if (options.background) {
+                content = replaceSectionContent(content, 'Background', options.background);
+            }
+            if (options.requirements) {
+                content = replaceSectionContent(content, 'Requirements', options.requirements);
+            }
+            if (options.solution) {
+                content = replaceSectionContent(content, 'Solution', options.solution);
+            }
 
-        content = upsertFrontmatterField(content, 'priority', options.priority);
-        content = upsertFrontmatterField(content, 'estimated_hours', options.estimatedHours);
-        content = upsertFrontmatterField(content, 'dependencies', options.dependencies);
-        content = upsertFrontmatterField(content, 'tags', options.tags);
-        content = upsertFrontmatterField(content, 'profile', options.profile);
+            content = upsertFrontmatterField(content, 'priority', options.priority);
+            content = upsertFrontmatterField(content, 'estimated_hours', options.estimatedHours);
+            content = upsertFrontmatterField(content, 'dependencies', options.dependencies);
+            content = upsertFrontmatterField(content, 'tags', options.tags);
+            content = upsertFrontmatterField(content, 'profile', options.profile);
+        }
 
         const fileName = `${wbs}_${name.replace(/\s+/g, '_')}.md`;
         const filePath = resolve(folderPath, fileName);
@@ -231,6 +237,15 @@ export function renderFrontmatterValue(value: string | number | string[]): strin
     }
 
     return JSON.stringify(value);
+}
+
+export function getTaskTemplate(projectRoot: string): string {
+    const templatePath = resolve(getMetaDir(projectRoot), 'task.md');
+    try {
+        return readFileSync(templatePath, 'utf-8');
+    } catch {
+        return getDefaultTemplate();
+    }
 }
 
 function getDefaultTemplate(): string {
