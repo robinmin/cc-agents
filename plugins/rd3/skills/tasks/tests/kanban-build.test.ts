@@ -234,6 +234,34 @@ status: Todo
         expect(content).toContain('0047_My_Task');
     });
 
+    test('does not re-ingest generated kanban.md on repeated refreshes', () => {
+        writeFileSync(
+            join(tempDir, 'docs', 'tasks', '0047_my-task.md'),
+            `---
+name: My Task
+status: Todo
+---
+
+### Background
+`,
+        );
+        const config: TasksConfig = {
+            $schema_version: 1,
+            folders: { 'docs/tasks': { base_counter: 0 } },
+            active_folder: 'docs/tasks',
+        };
+
+        const first = refreshKanban(tempDir, config);
+        const second = refreshKanban(tempDir, config);
+
+        expect(first.ok).toBe(true);
+        expect(second.ok).toBe(true);
+
+        const content = readFileSync(join(tempDir, 'docs', 'tasks', 'kanban.md'), 'utf-8');
+        expect(content).toContain('0047_My_Task');
+        expect(content).not.toContain('kanban.md_kanban');
+    });
+
     test('collects errors for non-existent folders', () => {
         const config: TasksConfig = {
             $schema_version: 1,
