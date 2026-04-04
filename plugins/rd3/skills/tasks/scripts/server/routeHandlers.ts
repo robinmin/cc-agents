@@ -5,12 +5,11 @@
  * No HTTP server dependency — testable via direct function invocation.
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { isAbsolute, join, relative, resolve, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createTask } from '../commands/create';
 import { listTasks } from '../commands/list';
 import { updateTask } from '../commands/update';
-import { showTask } from '../commands/show';
 import { checkTask } from '../commands/check';
 import { putArtifact, validateArtifactDisplayName } from '../commands/put';
 import { getArtifacts } from '../commands/get';
@@ -26,6 +25,7 @@ import { normalizeStatus, type TaskStatus } from '../types';
 import { acquire } from './writeLock';
 import { EventBroadcaster } from './sse';
 import type { Broadcaster, JsonResponse, RouteHandler, TaskEvent } from './types';
+import { logger } from '../../../../scripts/logger';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -146,6 +146,7 @@ interface CreateBody {
     tags?: string[];
     profile?: string;
     folder?: string;
+    content?: string;
 }
 
 export const createTaskHandler: RouteHandler = async (projectRoot, request, _params, broadcaster) => {
@@ -170,6 +171,7 @@ export const createTaskHandler: RouteHandler = async (projectRoot, request, _par
         ...(body.dependencies ? { dependencies: body.dependencies } : {}),
         ...(body.tags ? { tags: body.tags } : {}),
         ...(body.profile ? { profile: body.profile } : {}),
+        ...(body.content ? { content: body.content } : {}),
         quiet: true,
     });
 
@@ -191,16 +193,24 @@ export const showTaskHandler: RouteHandler = async (projectRoot, _request, param
     const wbs = params.wbs;
     if (!wbs) return jsonErr('Missing WBS parameter');
 
-    const result = showTask(projectRoot, wbs, true);
-    if (isErr(result)) {
-        return jsonErr(result.error, 404);
+    const config = loadConfig(projectRoot);
+    const taskPath = findTaskByWbs(wbs, config, projectRoot);
+    if (!taskPath) {
+        return jsonErr(`Task ${wbs} not found`, 404);
     }
-    return jsonOk(result.value);
+
+    const task = readTaskFile(taskPath);
+    if (!task) {
+        return jsonErr(`Failed to read task ${wbs}`, 500);
+    }
+
+    return jsonOk(task);
 };
 
 interface UpdateBody {
     status?: string;
     section?: string;
+    body?: string;
     content?: string;
     fromFile?: string;
     phase?: string;
@@ -255,6 +265,28 @@ export const updateTaskHandler: RouteHandler = async (projectRoot, request, para
             const result = updateTask(projectRoot, wbs, {
                 section: body.section,
                 fromFile: tempPath,
+                quiet: true,
+            });
+            if (isErr(result)) {
+                return jsonErr(result.error);
+            }
+
+            const status = getTaskStatus(projectRoot, wbs);
+
+            emitEvent(broadcaster, {
+                type: 'updated',
+                wbs,
+                ...(status ? { status } : {}),
+                timestamp: new Date().toISOString(),
+            });
+
+            return jsonOk(result.value);
+        }
+
+        // Entire body update
+        if (body.body !== undefined) {
+            const result = updateTask(projectRoot, wbs, {
+                body: body.body,
                 quiet: true,
             });
             if (isErr(result)) {
@@ -528,7 +560,7 @@ export const refreshHandler: RouteHandler = async (projectRoot) => {
 
 export const getConfigHandler: RouteHandler = async (projectRoot) => {
     const result = showConfig(projectRoot, true);
-    return jsonOk(result);
+    return jsonOk({ ...result, project_name: basename(projectRoot) });
 };
 
 interface ConfigUpdateBody {
@@ -583,4 +615,68 @@ export const eventsHandler: RouteHandler = async (_projectRoot, request, _params
     }
 
     return broadcaster.createStream();
+};
+
+// ── Actions ──────────────────────────────────────────────────────────────
+
+export const taskActionHandler: RouteHandler = async (projectRoot, request, params, broadcaster) => {
+    const wbs = params.wbs;
+    if (!wbs) return jsonErr("Missing WBS parameter");
+
+    const body = (await request.json().catch(() => ({}))) as { action?: string; channel?: string };
+    const { action, channel } = body;
+    if (!action || !channel) return jsonErr("Missing action or channel field");
+
+    // Mapping logic for orchestrator-v2
+    const actionArgs: string[] = [];
+    if (action === "refine") {
+        actionArgs.push("--preset", "refine");
+    } else if (action === "plan") {
+        actionArgs.push("--preset", "plan");
+    } else if (action === "run") {
+        actionArgs.push("--phases", "implement");
+    } else if (action === "verify") {
+        actionArgs.push("--phases", "test");
+    } else if (action === "decompose") {
+        actionArgs.push("--phases", "decompose");
+    } else if (action === "evaluate") {
+        actionArgs.push("--phases", "review");
+    } else {
+        return jsonErr(`Unknown action: ${action}`);
+    }
+
+    logger.info(`Delegating task action: orchestrator run ${wbs} ${actionArgs.join(" ")} --channel ${channel}`);
+
+    try {
+        // Trigger execution via orchestrator CLI
+        Bun.spawn(["orchestrator", "run", wbs, ...actionArgs, "--channel", channel], {
+            stdout: "inherit",
+            stderr: "inherit",
+        });
+
+        const status = getTaskStatus(projectRoot, wbs);
+        emitEvent(broadcaster, {
+            type: "updated",
+            wbs,
+            ...(status ? { status } : {}),
+            timestamp: new Date().toISOString(),
+        });
+
+        return jsonOk({
+            message: `Action '${action}' delegated to orchestrator with channel ${channel} for task ${wbs}`,
+            action,
+            channel,
+            wbs,
+            command: `orchestrator run ${wbs} ${actionArgs.join(" ")} --channel ${channel}`,
+        });
+    } catch (err) {
+        logger.error(`Failed to delegate action: ${err}`);
+        return jsonErr(`Failed to trigger orchestrator: ${err instanceof Error ? err.message : String(err)}`);
+    }
+};
+
+export const getTemplateHandler: RouteHandler = async (projectRoot) => {
+    const { getTaskTemplate } = await import('../commands/create');
+    const template = getTaskTemplate(projectRoot);
+    return jsonOk({ template });
 };
