@@ -256,6 +256,22 @@ describe('config/schema — validateSchema', () => {
         expect(result.errors.some((e) => e.rule === 'gate_prompt')).toBe(true);
     });
 
+    test('command gate rejects prompt_template field', () => {
+        const pipeline = {
+            ...VALID_PIPELINE,
+            phases: {
+                test: {
+                    skill: 'rd3:sys-testing',
+                    gate: { type: 'command', command: 'bun test', prompt_template: 'check {items}' },
+                },
+            },
+            presets: {},
+        };
+        const result = validateSchema(pipeline);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e) => e.rule === 'gate_prompt_template')).toBe(true);
+    });
+
     test('auto gate rejects prompt field', () => {
         const pipeline = {
             ...VALID_PIPELINE,
