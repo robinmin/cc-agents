@@ -31,6 +31,9 @@ import { EventStore } from '../state/events';
 import { EventBus } from '../observability/event-bus';
 import { DefaultCoVDriver } from '../verification/cov-driver';
 import { logger } from '../../../../scripts/logger';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { parseYamlString } from '../config/parser';
 
 const DEFAULT_AUTO_GATE_PROMPT_TEMPLATE = `You are a verification checker. For each item in the checklist, determine if it PASSES or FAILS.
 
@@ -455,6 +458,7 @@ export class PipelineRunner {
                         phaseDef.gate,
                         options.taskRef,
                         phaseResult.evidence,
+                        phaseDef.skill,
                     );
 
                     while (gateResult.status === 'fail') {
@@ -467,6 +471,7 @@ export class PipelineRunner {
                                 phaseDef.gate,
                                 options.taskRef,
                                 reworkResult.evidence,
+                                phaseDef.skill,
                             );
                             continue;
                         }
@@ -721,16 +726,23 @@ export class PipelineRunner {
             const result = await this.pool.execute(req);
 
             if (result.success) {
+                const evidence = await this.buildPhaseEvidence(
+                    runId,
+                    phaseName,
+                    options.taskRef,
+                    iteration,
+                    result,
+                    feedback,
+                );
+                await this.state.savePhaseEvidence({
+                    run_id: runId,
+                    phase_name: phaseName,
+                    rework_iteration: evidence.rework_iteration,
+                    evidence,
+                });
                 return {
                     success: true,
-                    evidence: await this.buildPhaseEvidence(
-                        runId,
-                        phaseName,
-                        options.taskRef,
-                        iteration,
-                        result,
-                        feedback,
-                    ),
+                    evidence,
                 };
             }
 
@@ -763,6 +775,7 @@ export class PipelineRunner {
         gate?: GateConfig,
         taskRef?: string,
         phaseEvidence?: PhaseEvidence,
+        phaseSkill?: string,
     ): Promise<ChainState> {
         if (!gate) {
             return { status: 'pass', results: [] };
@@ -772,10 +785,9 @@ export class PipelineRunner {
         if (gate.type === 'command') {
             result = await this.checkCommandGate(runId, phaseName, gate, taskRef);
         } else if (gate.type === 'auto') {
-            result = await this.checkAutoGate(runId, phaseName, gate, phaseEvidence);
+            result = await this.checkAutoGate(runId, phaseName, gate, phaseEvidence, phaseSkill);
         } else if (gate.type === 'human') {
-            // Human gates require pause
-            return { status: 'pending', results: [] };
+            result = this.checkHumanGate(runId, phaseName, gate, phaseEvidence);
         } else {
             return { status: 'pass', results: [] };
         }
@@ -801,12 +813,22 @@ export class PipelineRunner {
      * 1. Pipeline YAML explicit checklist
      * 2. Engine defaults
      */
-    private resolveAutoChecklist(gate: GateConfig): string[] {
+    private resolveAutoChecklist(
+        gate: GateConfig,
+        skillRef?: string,
+    ): { checklist: string[]; source: 'yaml' | 'skill' | 'engine' } {
         if (gate.checklist && gate.checklist.length > 0) {
-            return [...gate.checklist];
+            return { checklist: [...gate.checklist], source: 'yaml' };
         }
-        // Engine defaults (fallback when no YAML or no skill defaults)
-        return ['Phase completed successfully without errors', 'Output is consistent with task requirements'];
+
+        const skillDefaults = skillRef ? this.loadSkillAutoGateDefaults(skillRef) : null;
+        if (skillDefaults?.checklist && skillDefaults.checklist.length > 0) {
+            return { checklist: [...skillDefaults.checklist], source: 'skill' };
+        }
+        return {
+            checklist: ['Phase completed successfully without errors', 'Output is consistent with task requirements'],
+            source: 'engine',
+        };
     }
 
     /**
@@ -819,11 +841,15 @@ export class PipelineRunner {
         phaseName: string,
         gate: GateConfig,
         phaseEvidence?: PhaseEvidence,
+        skillRef?: string,
     ): Promise<ChainState> {
-        const checklist = this.resolveAutoChecklist(gate);
+        const resolvedChecklist = this.resolveAutoChecklist(gate, skillRef);
 
         const severity = gate.severity ?? 'blocking';
-        const promptTemplate = this.buildAutoGatePromptTemplate(gate.prompt_template, phaseEvidence);
+        const promptTemplate = this.buildAutoGatePromptTemplate(
+            gate.prompt_template ?? this.loadSkillAutoGateDefaults(skillRef ?? '')?.prompt_template,
+            phaseEvidence,
+        );
 
         const manifest: ChainManifest = {
             run_id: runId,
@@ -833,7 +859,7 @@ export class PipelineRunner {
                     name: 'auto-gate',
                     method: 'llm',
                     params: {
-                        checklist,
+                        checklist: resolvedChecklist.checklist,
                         ...(promptTemplate && { prompt_template: promptTemplate }),
                     },
                 },
@@ -847,13 +873,10 @@ export class PipelineRunner {
         const gateEvidence: Record<string, unknown> = {
             ...(driverResult.evidence ?? {}),
             severity,
-            source: gate.checklist ? 'yaml' : 'engine',
+            source: resolvedChecklist.source,
         };
         if (phaseEvidence) {
-            gateEvidence.phase_evidence = {
-                success: phaseEvidence.success,
-                files_changed: phaseEvidence.files_changed,
-            };
+            gateEvidence.phase_evidence = phaseEvidence;
         }
 
         const passed = driverResult.passed;
@@ -883,6 +906,32 @@ export class PipelineRunner {
         return {
             status,
             results: [gateResult],
+        };
+    }
+
+    private checkHumanGate(
+        runId: string,
+        phaseName: string,
+        gate: GateConfig,
+        phaseEvidence?: PhaseEvidence,
+    ): ChainState {
+        return {
+            status: 'pending',
+            results: [
+                {
+                    run_id: runId,
+                    phase_name: phaseName,
+                    step_name: 'human-gate',
+                    checker_method: 'human',
+                    passed: false,
+                    evidence: {
+                        prompt: gate.prompt ?? `Approval required for phase ${phaseName}`,
+                        ...(phaseEvidence ? { phase_evidence: phaseEvidence } : {}),
+                    },
+                    duration_ms: 0,
+                    created_at: new Date(),
+                },
+            ],
         };
     }
 
@@ -1054,7 +1103,7 @@ Evaluate each checklist item against the evidence above.`;
         },
         reworkFeedback?: string,
     ): Promise<PhaseEvidence> {
-        const changedFiles = await this.getChangedFiles();
+        const diffSummary = await this.getChangedFileSummary();
         return {
             success: true,
             exitCode: result.exitCode,
@@ -1062,8 +1111,8 @@ Evaluate each checklist item against the evidence above.`;
             ...(result.stderr && { stderr: result.stderr.slice(0, 4096) }),
             ...(result.structured && { structured: result.structured }),
             duration_ms: result.durationMs,
-            files_changed: Object.keys(changedFiles).slice(0, 100),
-            files_added: [],
+            files_changed: diffSummary.changed,
+            files_added: diffSummary.added,
             task_ref: taskRef,
             phase_name: phaseName,
             run_id: runId,
@@ -1206,5 +1255,97 @@ Evaluate each checklist item against the evidence above.`;
         } catch {
             return {};
         }
+    }
+
+    private async getChangedFileSummary(): Promise<{ changed: string[]; added: string[] }> {
+        const changed = new Set<string>();
+        const added = new Set<string>();
+
+        try {
+            const diffProc = Bun.spawnSync(['git', 'diff', '--name-status', '--find-renames', 'HEAD'], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+            });
+            const diffOutput = new TextDecoder().decode(diffProc.stdout).trim();
+            if (diffOutput) {
+                for (const line of diffOutput.split('\n')) {
+                    const [status, ...rest] = line.trim().split(/\s+/);
+                    const file = rest[rest.length - 1];
+                    if (!file) continue;
+                    if (status?.startsWith('A')) {
+                        added.add(file);
+                    } else {
+                        changed.add(file);
+                    }
+                }
+            }
+
+            const untrackedProc = Bun.spawnSync(['git', 'ls-files', '--others', '--exclude-standard'], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+            });
+            const untrackedOutput = new TextDecoder().decode(untrackedProc.stdout).trim();
+            if (untrackedOutput) {
+                for (const file of untrackedOutput
+                    .split('\n')
+                    .map((entry) => entry.trim())
+                    .filter(Boolean)) {
+                    added.add(file);
+                }
+            }
+        } catch {
+            return { changed: [], added: [] };
+        }
+
+        return {
+            changed: [...changed].slice(0, 100),
+            added: [...added].slice(0, 100),
+        };
+    }
+
+    private loadSkillAutoGateDefaults(skillRef: string): { checklist?: string[]; prompt_template?: string } | null {
+        const skillPath = this.resolveSkillDefinitionPath(skillRef);
+        if (!skillPath || !existsSync(skillPath)) {
+            return null;
+        }
+
+        try {
+            const content = readFileSync(skillPath, 'utf-8');
+            const match = content.match(/^---\n([\s\S]*?)\n---/);
+            if (!match || !match[1]) {
+                return null;
+            }
+
+            const frontmatter = parseYamlString(match[1]);
+            const metadata = frontmatter.metadata as Record<string, unknown> | undefined;
+            const gateDefaults = metadata?.gate_defaults as Record<string, unknown> | undefined;
+            const autoDefaults = gateDefaults?.auto as Record<string, unknown> | undefined;
+            if (!autoDefaults) {
+                return null;
+            }
+
+            const checklist = Array.isArray(autoDefaults.checklist)
+                ? autoDefaults.checklist.filter(
+                      (item): item is string => typeof item === 'string' && item.trim().length > 0,
+                  )
+                : undefined;
+            const promptTemplate =
+                typeof autoDefaults.prompt_template === 'string' ? autoDefaults.prompt_template : undefined;
+
+            return {
+                ...(checklist && checklist.length > 0 ? { checklist } : {}),
+                ...(promptTemplate ? { prompt_template: promptTemplate } : {}),
+            };
+        } catch {
+            return null;
+        }
+    }
+
+    private resolveSkillDefinitionPath(skillRef: string): string | null {
+        const [plugin, skillName] = skillRef.split(':');
+        if (!plugin || !skillName) {
+            return null;
+        }
+        return resolve(process.cwd(), 'plugins', plugin, 'skills', skillName, 'SKILL.md');
     }
 }
