@@ -16,6 +16,7 @@ import {
     createTask,
     getErrorCode,
     isStaleLock,
+    sanitizeTaskFileNameSegment,
     releaseCreateLock,
     renderFrontmatterValue,
     replaceSectionContent,
@@ -150,6 +151,32 @@ impl_progress:
         expect(content).toContain('tags: ["planning","workflow-core"]');
         expect(content).toContain('### Requirements\n\n- Requirement A\n- Requirement B');
         expect(content).toContain('### Solution\n\nImplement the core flow and verify it with tests.');
+    });
+
+    test('sanitizes task names before deriving the output file path', () => {
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            JSON.stringify(
+                {
+                    $schema_version: 1,
+                    active_folder: 'docs/tasks',
+                    folders: {
+                        'docs/tasks': { base_counter: 0 },
+                    },
+                },
+                null,
+                2,
+            ),
+        );
+
+        const result = createTask(tempDir, '../../../notes', undefined, { quiet: true });
+        expect(result.ok).toBe(true);
+
+        const escapedPath = join(tempDir, 'notes.md');
+        expect(existsSync(escapedPath)).toBe(false);
+        if (result.ok) {
+            expect(result.value.path).toBe(join(tempDir, 'docs', 'tasks', '0001_.._.._.._notes.md'));
+        }
     });
 
     test('returns an error when the configured task folder is not writable as a directory', () => {
@@ -374,6 +401,7 @@ impl_progress:
         expect(renderFrontmatterValue('value')).toBe('"value"');
         expect(renderFrontmatterValue(7)).toBe('7');
         expect(renderFrontmatterValue(['a', 'b'])).toBe('["a","b"]');
+        expect(sanitizeTaskFileNameSegment(' foo/../../bar "; ')).toBe('foo_.._.._bar');
 
         expect(getErrorCode({ code: 'ENOENT' })).toBe('ENOENT');
         expect(getErrorCode('oops')).toBeUndefined();
