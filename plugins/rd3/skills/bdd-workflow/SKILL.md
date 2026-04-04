@@ -18,7 +18,7 @@ metadata:
 see_also:
   - rd3:verification-chain
   - rd3:functional-review
-  - rd3:orchestration-dev
+  - rd3:orchestration-v2
 ---
 
 # rd3:bdd-workflow — BDD/Gherkin Functional Verification
