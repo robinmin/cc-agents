@@ -5,7 +5,8 @@
     "description": "CC-Agents monorepo - Bun/TypeScript/Biome unified config",
     "workspaces": [
         "plugins/rd3",
-        "plugins/wt"
+        "plugins/wt",
+        "plugins/rd3/skills/tasks/scripts/server/ui"
     ],
     "scripts": {
         "dev": "bun run --watch",
@@ -30,7 +31,9 @@
         "tasks": "bun run --cwd plugins/rd3 tasks",
         "tasks:check": "bun run --cwd plugins/rd3 check",
         "tasks:test": "bun run --cwd plugins/rd3 test",
-        "test-bats": "bats plugins/rd3/skills/cc-hooks/tests/*.bats && bats tests"
+        "test-bats": "bats plugins/rd3/skills/cc-hooks/tests/*.bats && bats tests",
+        "build:ui": "cd plugins/rd3/skills/tasks/scripts/server/ui && bun run build",
+        "ui:dev": "cd plugins/rd3/skills/tasks/scripts/server/ui && bun run dev"
     },
     "devDependencies": {
         "@biomejs/biome": "2.3.13",
