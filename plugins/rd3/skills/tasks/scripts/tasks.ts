@@ -30,6 +30,7 @@
  *   --force                   Bypass warnings
  */
 
+import { readFileSync } from 'node:fs';
 import { getProjectRoot } from './lib/config';
 import { runInit } from './commands/init';
 import { createTask } from './commands/create';
@@ -154,7 +155,8 @@ async function main() {
 
     // Handle write-guard separately (used by hooks)
     if (args[0] === 'write-guard') {
-        const exitCode = runWriteGuardStdin();
+        const input = readFileSync('/dev/stdin', 'utf-8');
+        const exitCode = runWriteGuardStdin(input);
         process.exit(exitCode);
     }
 
