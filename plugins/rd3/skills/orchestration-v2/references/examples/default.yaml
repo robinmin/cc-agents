@@ -1,7 +1,7 @@
 # Default 9-phase pipeline for rd3
 #
-# Faithfully maps the v1 orchestration-dev 9-phase workflow into v2 DAG format.
-# See: plugins/rd3/skills/orchestration-dev/references/phase-matrix.md
+# Faithfully maps the rd3 9-phase workflow into v2 DAG format.
+# See: plugins/rd3/skills/orchestration-v1/references/phase-matrix.md
 #
 # DAG structure:
 #   intake ──> arch ──> design ──┐
