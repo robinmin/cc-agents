@@ -12,6 +12,7 @@ import type {
     RunRecord,
     PhaseRecord,
     GateResult,
+    PhaseEvidenceRecord,
     RollbackSnapshot,
     ResourceUsageRecord,
     FSMState,
@@ -203,16 +204,18 @@ export class StateManager {
     }
 
     async saveGateResult(result: GateResult): Promise<void> {
+        const stepName = this.resolveGateResultStepName(result);
         const stmt = this.db.prepare(
-            `INSERT OR REPLACE INTO gate_results (run_id, phase_name, step_name, checker_method, passed, evidence, duration_ms)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO gate_results (run_id, phase_name, step_name, checker_method, passed, advisory, evidence, duration_ms)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         );
         stmt.run(
             result.run_id,
             result.phase_name,
-            result.step_name,
+            stepName,
             result.checker_method,
             result.passed ? 1 : 0,
+            result.advisory ? 1 : 0,
             result.evidence ? JSON.stringify(result.evidence) : null,
             result.duration_ms ?? null,
         );
@@ -224,6 +227,22 @@ export class StateManager {
         );
         const rows = stmt.all(runId, phaseName) as Array<Record<string, unknown>>;
         return rows.map(rowToGateResult);
+    }
+
+    async savePhaseEvidence(record: Omit<PhaseEvidenceRecord, 'created_at'>): Promise<void> {
+        const stmt = this.db.prepare(
+            `INSERT INTO phase_evidence (run_id, phase_name, rework_iteration, evidence)
+       VALUES (?, ?, ?, ?)`,
+        );
+        stmt.run(record.run_id, record.phase_name, record.rework_iteration, JSON.stringify(record.evidence));
+    }
+
+    async getPhaseEvidence(runId: string, phaseName: string): Promise<PhaseEvidenceRecord[]> {
+        const stmt = this.db.prepare(
+            'SELECT run_id, phase_name, rework_iteration, evidence, created_at FROM phase_evidence WHERE run_id = ? AND phase_name = ? ORDER BY created_at, id',
+        );
+        const rows = stmt.all(runId, phaseName) as Array<Record<string, unknown>>;
+        return rows.map(rowToPhaseEvidenceRecord);
     }
 
     async saveRollbackSnapshot(snapshot: RollbackSnapshot): Promise<void> {
@@ -277,6 +296,37 @@ export class StateManager {
     getDb(): Database {
         return this.db;
     }
+
+    private resolveGateResultStepName(result: GateResult): string {
+        const existing = this.db
+            .prepare(
+                `SELECT step_name
+                 FROM gate_results
+                 WHERE run_id = ? AND phase_name = ? AND (step_name = ? OR step_name GLOB ?)
+                 ORDER BY created_at, step_name`,
+            )
+            .all(result.run_id, result.phase_name, result.step_name, `${result.step_name}#*`) as Array<{
+            step_name: string;
+        }>;
+
+        if (existing.length === 0) {
+            return result.step_name;
+        }
+
+        let maxAttempt = 1;
+        for (const row of existing) {
+            if (row.step_name === result.step_name) {
+                maxAttempt = Math.max(maxAttempt, 1);
+                continue;
+            }
+            const match = row.step_name.match(/#(\d+)$/);
+            if (match) {
+                maxAttempt = Math.max(maxAttempt, Number.parseInt(match[1] ?? '1', 10));
+            }
+        }
+
+        return `${result.step_name}#${maxAttempt + 1}`;
+    }
 }
 
 // ─── Row-to-Record Mappers ──────────────────────────────────────────────────
@@ -317,8 +367,19 @@ function rowToGateResult(row: Record<string, unknown>): GateResult {
         step_name: row.step_name as string,
         checker_method: row.checker_method as string,
         passed: (row.passed as number) === 1,
+        ...(row.advisory != null && (row.advisory as number) === 1 ? { advisory: true } : {}),
         ...(row.evidence != null && { evidence: JSON.parse(row.evidence as string) as Record<string, unknown> }),
         ...(row.duration_ms != null && { duration_ms: row.duration_ms as number }),
+        ...(row.created_at != null && { created_at: new Date(row.created_at as string) }),
+    };
+}
+
+function rowToPhaseEvidenceRecord(row: Record<string, unknown>): PhaseEvidenceRecord {
+    return {
+        run_id: row.run_id as string,
+        phase_name: row.phase_name as string,
+        rework_iteration: (row.rework_iteration as number) ?? 0,
+        evidence: JSON.parse(row.evidence as string) as Record<string, unknown>,
         ...(row.created_at != null && { created_at: new Date(row.created_at as string) }),
     };
 }
