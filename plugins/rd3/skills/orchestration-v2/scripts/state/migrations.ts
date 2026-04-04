@@ -6,7 +6,7 @@
 
 import type { Database } from 'bun:sqlite';
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 export const SCHEMA_DDL = `
 CREATE TABLE IF NOT EXISTS schema_version (
@@ -60,12 +60,24 @@ CREATE TABLE IF NOT EXISTS gate_results (
     step_name TEXT NOT NULL,
     checker_method TEXT NOT NULL,
     passed INTEGER NOT NULL,
+    advisory INTEGER DEFAULT 0,
     evidence JSON,
     duration_ms INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (run_id, phase_name, step_name),
     FOREIGN KEY (run_id) REFERENCES runs(id)
 );
+
+CREATE TABLE IF NOT EXISTS phase_evidence (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL,
+    phase_name TEXT NOT NULL,
+    rework_iteration INTEGER DEFAULT 0,
+    evidence JSON NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (run_id) REFERENCES runs(id)
+);
+CREATE INDEX IF NOT EXISTS idx_phase_evidence_run_phase ON phase_evidence(run_id, phase_name);
 
 CREATE TABLE IF NOT EXISTS rollback_snapshots (
     run_id TEXT NOT NULL,
@@ -119,9 +131,18 @@ export function runMigrations(db: Database): void {
     } | null;
 
     const currentVersion = row?.version ?? 0;
-    if (currentVersion < CURRENT_SCHEMA_VERSION) {
-        // Apply migrations — for now, just apply full DDL (idempotent with IF NOT EXISTS)
+    if (currentVersion < 2) {
         db.exec(SCHEMA_DDL);
-        db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(CURRENT_SCHEMA_VERSION);
+        ensureGateResultsAdvisoryColumn(db);
+        db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(2);
+        return;
+    }
+}
+
+function ensureGateResultsAdvisoryColumn(db: Database): void {
+    const columns = db.prepare("PRAGMA table_info('gate_results')").all() as Array<{ name?: string }>;
+    const hasAdvisory = columns.some((column) => column.name === 'advisory');
+    if (!hasAdvisory) {
+        db.exec('ALTER TABLE gate_results ADD COLUMN advisory INTEGER DEFAULT 0');
     }
 }
