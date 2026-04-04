@@ -1,7 +1,7 @@
 ---
 name: 0322 Add Decomposed status to tasks CLI
 description: 0322 Add Decomposed status to tasks CLI
-status: Backlog
+status: Done
 created_at: 2026-04-04T06:20:07.407Z
 updated_at: 2026-04-04T06:20:07.407Z
 folder: docs/tasks2
