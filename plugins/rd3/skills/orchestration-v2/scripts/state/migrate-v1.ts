@@ -1,8 +1,8 @@
 /**
  * orchestration-v2 — V1 state migration
  *
- * Migrates JSON state files from orchestration-dev (v1) to SQLite (v2).
- * Scans docs/.workflow-runs/rd3-orchestration-dev/ for JSON state files
+ * Migrates JSON state files from orchestration-v1 (legacy) to SQLite (v2).
+ * Scans docs/.workflow-runs/rd3-orchestration-v1/ for JSON state files
  * and converts them to v2 database records.
  */
 
@@ -100,7 +100,7 @@ export interface MigrationResult {
  * Scan a directory for v1 JSON state files and migrate them to SQLite.
  *
  * @param db - Target SQLite database
- * @param v1Dir - Directory containing v1 JSON state files (e.g. docs/.workflow-runs/rd3-orchestration-dev/)
+ * @param v1Dir - Directory containing v1 JSON state files (e.g. docs/.workflow-runs/rd3-orchestration-v1/)
  * @returns Migration statistics
  */
 export async function migrateFromV1(db: Database, v1Dir: string): Promise<MigrationResult> {
