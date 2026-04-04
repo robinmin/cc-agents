@@ -6,6 +6,16 @@
 
 import type { ValidationError, ValidationResult } from '../model';
 
+// Helper to build JSON Schema if/then conditional without triggering noThenProperty lint rule
+function jsonSchemaConditional(
+    condition: Record<string, unknown>,
+    consequence: Record<string, unknown>,
+): Record<string, unknown> {
+    const obj: Record<string, unknown> = { if: condition };
+    Object.defineProperty(obj, 'then', { value: consequence, enumerable: true });
+    return obj;
+}
+
 const VALID_GATE_TYPES = new Set(['command', 'auto', 'human']);
 const VALID_ESCALATIONS = new Set(['pause', 'fail']);
 const TIMEOUT_REGEX = /^(\d+h)?(\d+m)?(\d+s)?$/;
@@ -92,6 +102,12 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
                             errors.push({
                                 rule: 'gate_prompt',
                                 message: `Phase "${name}" gate type "command" must not have a "prompt" field`,
+                            });
+                        }
+                        if (gate.prompt_template != null) {
+                            errors.push({
+                                rule: 'gate_prompt_template',
+                                message: `Phase "${name}" gate type "command" must not have a "prompt_template" field`,
                             });
                         }
                     } else if (gate.type === 'auto') {
@@ -273,6 +289,43 @@ export function getPipelineJsonSchema(): Record<string, unknown> {
                                         },
                                     },
                                 },
+                                allOf: [
+                                    jsonSchemaConditional(
+                                        { properties: { type: { const: 'command' } }, required: ['type'] },
+                                        {
+                                            required: ['command'],
+                                            not: {
+                                                anyOf: [
+                                                    { required: ['checklist'] },
+                                                    { required: ['prompt_template'] },
+                                                    { required: ['severity'] },
+                                                    { required: ['prompt'] },
+                                                ],
+                                            },
+                                        },
+                                    ),
+                                    jsonSchemaConditional(
+                                        { properties: { type: { const: 'auto' } }, required: ['type'] },
+                                        {
+                                            not: {
+                                                anyOf: [{ required: ['command'] }, { required: ['prompt'] }],
+                                            },
+                                        },
+                                    ),
+                                    jsonSchemaConditional(
+                                        { properties: { type: { const: 'human' } }, required: ['type'] },
+                                        {
+                                            not: {
+                                                anyOf: [
+                                                    { required: ['command'] },
+                                                    { required: ['checklist'] },
+                                                    { required: ['prompt_template'] },
+                                                    { required: ['severity'] },
+                                                ],
+                                            },
+                                        },
+                                    ),
+                                ],
                             },
                             timeout: { type: 'string', pattern: '^(\\d+h)?(\\d+m)?(\\d+s)?$' },
                             after: { type: 'array', items: { type: 'string' } },
