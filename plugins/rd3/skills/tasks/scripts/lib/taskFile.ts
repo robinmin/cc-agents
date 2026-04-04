@@ -216,6 +216,23 @@ export function updateSection(path: string, section: string, newContent: string)
     }
 }
 
+export function updateTaskBody(path: string, newBody: string): Result<boolean> {
+    try {
+        const content = readFileSync(path, 'utf-8');
+        const frontmatterMatch = content.match(FRONTMATTER_REGEX);
+        if (!frontmatterMatch) {
+            return err('Frontmatter block not found');
+        }
+
+        const frontmatter = frontmatterMatch[0];
+        const updated = `${frontmatter}\n${newBody.trim()}\n`;
+        writeFileSync(path, updated, 'utf-8');
+        return ok(true);
+    } catch (e) {
+        return err(`Failed to update task body: ${e}`);
+    }
+}
+
 export function updateImplPhase(path: string, phase: ImplPhase, phaseStatus: string): Result<boolean> {
     try {
         const content = readFileSync(path, 'utf-8');
