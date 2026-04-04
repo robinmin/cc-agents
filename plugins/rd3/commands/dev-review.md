@@ -33,14 +33,14 @@ Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation qu
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. Phase 7 runs via worker agent on the `current` channel and carries a human gate — the run pauses after review unless you pass `--auto`. ACP channels are available when you want the review delegated onto another agent.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. Phase 7 runs via worker agent on the `current` channel and carries a human gate — the run pauses after review unless you pass `--auto`. ACP channels are available when you want the review delegated onto another agent.
 
 ```
 # Run review locally on the current channel (pauses for approval unless --auto)
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile review --channel current")
 
 # Execute the review on another channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile review --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile review --channel codex")
 ```
 
 ## Review Dimensions
