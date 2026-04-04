@@ -33,17 +33,17 @@ Execute phases 2-4 of the 9-phase pipeline: Architecture, Design, and Task Decom
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-dev**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
+Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
 
 ```
 # Default: execute on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile plan --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile plan --channel current")
 
 # Optional: bypass the design gate on the current channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile plan --auto --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile plan --auto --channel current")
 
 # Execute the same workflow on another channel
-Skill(skill="rd3:orchestration-dev", args="{task-ref} --profile plan --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile plan --channel codex")
 ```
 
 ## Examples
