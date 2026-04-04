@@ -154,6 +154,17 @@ phases:
             passed: false,
             evidence: { reason: 'missing tests' },
         });
+        await state.savePhaseEvidence({
+            run_id: 'run-inspect-001',
+            phase_name: 'review',
+            rework_iteration: 1,
+            evidence: {
+                stdout: 'review stdout',
+                stderr: 'review stderr',
+                files_changed: ['src/review.ts'],
+                files_added: ['tests/review.test.ts'],
+            },
+        });
         await state.close();
 
         const result = runCli(['inspect', 'inspect-001', 'review', '--evidence'], cwd);
@@ -163,6 +174,8 @@ phases:
         expect(result.stdout).toContain('Status: failed');
         expect(result.stdout).toContain('Human review rejected');
         expect(result.stdout).toContain('missing tests');
+        expect(result.stdout).toContain('review stdout');
+        expect(result.stdout).toContain('tests/review.test.ts');
         expect(result.stdout).not.toContain('implement completed');
     });
 
