@@ -1,22 +1,37 @@
 // open command — open task in default editor (for humans)
 
 import { existsSync } from 'node:fs';
-import { execSync as defaultExecSync, type ExecSyncOptions } from 'node:child_process';
+import { spawnSync as defaultSpawnSync, type SpawnSyncOptions, type SpawnSyncReturns } from 'node:child_process';
 import { err, ok, type Result } from '../lib/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
 import { logger } from '../../../../scripts/logger';
 import { platform } from 'node:os';
 
-// Type for execSync function - allows dependency injection for testing
-type ExecSyncFn = (command: string, options?: ExecSyncOptions) => Buffer | undefined;
+type SpawnSyncFn = (
+    command: string,
+    args?: readonly string[],
+    options?: SpawnSyncOptions,
+) => SpawnSyncReturns<Buffer>;
 
 /**
  * Options for openTask function.
- * @param execSync - Optional execSync function for testing (defaults to node:child_process.execSync)
+ * @param spawnSync - Optional spawnSync function for testing (defaults to node:child_process.spawnSync)
  */
 export interface OpenTaskOptions {
-    execSync?: ExecSyncFn;
+    spawnSync?: SpawnSyncFn;
+}
+
+export function getOpenCommandForPlatform(os: NodeJS.Platform, taskPath: string): { command: string; args: string[] } {
+    if (os === 'darwin') {
+        return { command: 'open', args: [taskPath] };
+    }
+
+    if (os === 'linux') {
+        return { command: 'xdg-open', args: [taskPath] };
+    }
+
+    return { command: 'cmd', args: ['/c', 'start', '', taskPath] };
 }
 
 export function openTask(
@@ -25,7 +40,7 @@ export function openTask(
     quiet = false,
     options?: OpenTaskOptions,
 ): Result<{ wbs: string; path: string }> {
-    const execSync = options?.execSync ?? defaultExecSync;
+    const spawnSync = options?.spawnSync ?? defaultSpawnSync;
     const config = loadConfig(projectRoot);
     const taskPath = findTaskByWbs(wbs, config, projectRoot);
 
@@ -34,13 +49,17 @@ export function openTask(
     }
 
     try {
-        const os = platform();
-        if (os === 'darwin') {
-            execSync(`open "${taskPath}"`, { stdio: 'ignore' });
-        } else if (os === 'linux') {
-            execSync(`xdg-open "${taskPath}"`, { stdio: 'ignore' });
-        } else {
-            execSync(`start "" "${taskPath}"`, { stdio: 'ignore' });
+        const { command, args } = getOpenCommandForPlatform(platform(), taskPath);
+        const result = spawnSync(command, args, {
+            stdio: 'ignore',
+            shell: false,
+            windowsHide: true,
+        });
+        if (result.error) {
+            throw result.error;
+        }
+        if (typeof result.status === 'number' && result.status !== 0) {
+            throw new Error(`${command} exited with status ${result.status}`);
         }
         if (!quiet) {
             logger.log(`Opened ${wbs} in editor`);
