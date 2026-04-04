@@ -17,7 +17,7 @@ metadata:
 see_also:
   - rd3:bdd-workflow
   - rd3:verification-chain
-  - rd3:orchestration-dev
+  - rd3:orchestration-v2
 ---
 
 # rd3:functional-review — Requirements Traceability Assessment
