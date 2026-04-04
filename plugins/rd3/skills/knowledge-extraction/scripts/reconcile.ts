@@ -409,10 +409,21 @@ export function getReconcileHelpLines(): string[] {
     ];
 }
 
-export async function readTextFromStream(stream: AsyncIterable<Uint8Array>): Promise<string> {
+export async function readTextFromStream(
+    stream: ReadableStream<Uint8Array> | AsyncGenerator<Uint8Array>,
+): Promise<string> {
     const chunks: Uint8Array[] = [];
-    for await (const chunk of stream) {
-        chunks.push(chunk);
+    if (stream instanceof ReadableStream) {
+        const reader = stream.getReader();
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+        }
+    } else {
+        for await (const chunk of stream) {
+            chunks.push(chunk);
+        }
     }
     return Buffer.concat(chunks).toString();
 }
