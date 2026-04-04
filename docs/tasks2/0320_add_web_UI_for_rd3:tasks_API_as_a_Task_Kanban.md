@@ -1,7 +1,7 @@
 ---
 name: add web UI for rd3:tasks API as a Task Kanban
 description: add web UI for rd3:tasks API as a Task Kanban
-status: Backlog
+status: Done
 created_at: 2026-04-03T03:41:49.939Z
 updated_at: 2026-04-03T17:15:00.000Z
 folder: docs/tasks2
