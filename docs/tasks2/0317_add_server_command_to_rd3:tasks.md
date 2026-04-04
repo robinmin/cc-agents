@@ -1,7 +1,7 @@
 ---
 name: add server command to rd3:tasks
 description: add server command to rd3:tasks
-status: Backlog
+status: Done
 created_at: 2026-04-02T18:51:10.245Z
 updated_at: 2026-04-02T18:51:10.245Z
 folder: docs/tasks2
