@@ -99,7 +99,7 @@ Present the generated message in a code block for easy copying.
 
 ## Pipeline Integration
 
-This is a **standalone git utility**, not a pipeline phase shortcut. It does not delegate to `rd3:orchestration-dev`. Use it independently before committing, or alongside any pipeline phase as needed.
+This is a **standalone git utility**, not a pipeline phase shortcut. It does not delegate to `rd3:orchestration-v2`. Use it independently before committing, or alongside any pipeline phase as needed.
 
 ## See Also
 
