@@ -1,10 +1,10 @@
 ---
 name: task-decomposition
-description: "Structured methodology for breaking complex requirements into actionable tasks with dependency mapping, effort estimation, and batch-creation-compatible JSON output. Use for: planning features, decomposing work, estimating effort, creating WBS-structured breakdowns. NOT for: task file operations (use rd3:tasks), business analysis, or system architecture."
+description: "Structured methodology for deciding whether to decompose tasks and breaking complex requirements into actionable subtasks with dependency mapping and effort estimation. Outputs subtask checklists to the parent task's Solution section. Use for: planning features, decomposing work, estimating effort, creating WBS-structured breakdowns. NOT for: task file operations (use rd3:tasks), business analysis, or system architecture."
 license: Apache-2.0
-version: 1.0.0
+version: 2.0.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-04-03
 platform: rd3
 tags: [task-decomposition, planning, wbs, estimation, workflow-core]
 metadata:
@@ -21,7 +21,7 @@ see_also:
 
 # rd3:task-decomposition — Structured Task Decomposition
 
-Structured methodology for breaking complex requirements into actionable, implementable tasks. This skill provides the **knowledge** of HOW to decompose and WHEN to apply each pattern, with **structured outputs** compatible with batch task creation.
+Structured methodology for deciding whether to decompose tasks and breaking complex requirements into actionable, implementable subtasks. This skill provides the **knowledge** of WHEN to decompose, HOW to decompose, and WHERE to output the results (parent task's Solution section).
 
 **Key distinction:**
 - **`rd3:task-decomposition`** = WHAT to decompose, HOW to decompose, structured output (knowledge/patterns/machine-readable)
@@ -30,20 +30,22 @@ Structured methodology for breaking complex requirements into actionable, implem
 
 You are a **Senior Workflow Architect** with deep expertise in project management, task decomposition, work breakdown structure design, and structured planning.
 
-**You DO:** Design task breakdowns, generate structured task definitions, provide decomposition patterns, offer estimation techniques, guide on task content quality, identify dependencies and risk factors, output batch-creation-compatible JSON.
+**You DO:** Evaluate whether decomposition is needed, design task breakdowns, generate structured task definitions, provide decomposition patterns, offer estimation techniques, guide on task content quality, identify dependencies and risk factors, write subtask lists to parent task's Solution section.
 
 **You DO NOT:** Execute tasks, create actual files directly, assign WBS numbers, update kanban boards, perform business analysis, design system architecture.
 
 ## Quick Start
 
 ```
-1. ANALYZE    — Understand goal, constraints, success criteria
-2. SELECT     — Choose decomposition pattern (see references/patterns.md)
-3. DECOMPOSE  — Break into tasks at 2-8 hour granularity
-4. DEPEND     — Map sequential (->), parallel (||), blocked (X)
-5. ESTIMATE   — Apply technique (see references/estimation.md)
-6. VALIDATE   — Review against quality checklist
-7. OUTPUT     — Generate structured JSON for batch creation
+1. DECIDE     — Apply Decomposition Decision Rules (decompose or skip?)
+2. ANALYZE    — Understand goal, constraints, success criteria
+3. SELECT     — Choose decomposition pattern (see references/patterns.md)
+4. DECOMPOSE  — Break into tasks at 2-8 hour granularity
+5. DEPEND     — Map sequential (->), parallel (||), blocked (X)
+6. ESTIMATE   — Apply technique (see references/estimation.md)
+7. VALIDATE   — Review against quality checklist
+8. OUTPUT     — Write subtask list to parent task's Solution section
+9. STATUS     — Update parent task: `tasks update <WBS> decomposed`
 ```
 
 **For detailed patterns, domain-specific guidance, and examples, see `references/`.**
@@ -62,118 +64,34 @@ Activate rd3:task-decomposition when you encounter:
 | "task list for" | User wants a structured task list generated |
 
 This skill is for **analysis and decomposition only**. It does not create task files directly. Use `rd3:tasks` to create actual task records from the structured JSON output.
-
-## Core Principles
-
-### Granularity
-
-**Ideal task size:** 2-8 hours of implementable work
-
-- Too small (< 1 hour): Consider combining related tasks
-- Too large (> 16 hours): Needs further decomposition
-- Just right: Can be completed in a single focused work session
-
-### Dependency Management
-
-| Type | Description | Symbol |
-|------|-------------|--------|
-| **Blocking** | Task B cannot start until Task A completes | A -> B |
-| **Related** | Task B references Task A but can proceed | A \|\| B |
-| **Blocked** | Waiting on external factor | A X |
-
-Document dependencies explicitly. Avoid circular dependencies. Explain WHY tasks depend on each other.
-
-### Single Responsibility
-
-Each task has: **One clear objective**, **One deliverable**, **One verification method**
-
-### Testable Outcomes
-
-Every task must be verifiable: Unit tests, Integration tests, Acceptance criteria
-
-### Content Quality Thresholds
-
-Tasks must be created with substantive content to support downstream workflows:
-
-| Content | Minimum | Ideal | Rationale |
-|---------|---------|-------|-----------|
-| **Background** | 50 chars | 100+ chars | Context for why the task exists |
-| **Requirements** | 50 chars | 100+ chars | Measurable success criteria |
-| **Solution** | Optional | Recommended | Technical approach aids implementation |
-
-Avoid placeholder text like "TBD", "[placeholder]", or "See above". Empty or skeletal tasks reduce decomposition value and may block status transitions in task management systems.
-
-## Verification Protocol
-
-### Before Decomposing Any Task
-
-1. **Understand the Goal:** What is the objective? What does success look like?
-2. **Identify Constraints:** Time, resources, technical limitations
-3. **Map Dependencies:** What depends on what? What can run in parallel?
-4. **Define Success Criteria:** How do we know each task is complete?
-5. **Gather References:** What codebase files relate to this work?
-
-### Red Flags — STOP and Verify
-
-- Unclear success criteria or deliverables
-- Vague acceptance criteria (cannot be objectively verified)
-- Tasks exceeding 1 day of effort (needs further decomposition)
-- Conflicting or circular dependencies
-- Missing context about constraints
-- External dependencies without clear ownership
-- Critical path identified but no buffers included
-- No relevant codebase files to reference
-- Empty Background/Requirements content (signals over-decomposition — merge into fewer, richer tasks)
-
-### Confidence Scoring
-
-| Level | Criteria |
-|-------|----------|
-| **HIGH** | Clear requirements, verified approach, authoritative methodology, substantive content |
-| **MEDIUM** | Reasonable approach with some assumptions, mixed sources |
-| **LOW** | Unclear requirements, many assumptions, unverified approach — FLAG FOR REVIEW |
-
-### Decomposition Quality Checklist
-
-- [ ] Each task has proper sizing (2-8 hours)
-- [ ] Each task has substantive Background content (> 50 chars)
-- [ ] Each task has substantive Requirements content (> 50 chars)
-- [ ] Each task has success criteria
-- [ ] Dependencies explicitly mapped
-- [ ] Parallel opportunities identified
-- [ ] Effort estimated
-- [ ] Blocked tasks marked with reasons
-- [ ] References gathered from codebase
-- [ ] No circular dependencies
-- [ ] High-risk tasks flagged
-## Integration with rd3:tasks
+ Integration with rd3:tasks
 
 This skill provides the **knowledge** for decomposition with **structured outputs**, while `rd3:tasks` handles the **file operations**.
 
 **Workflow:**
 
 ```
-1. Use task-decomposition to analyze requirements
-2. Apply decomposition patterns to create task breakdown
-3. Generate structured JSON output
-4. Hand off to rd3:tasks batch-create (JSON) or create (rich flags)
-5. rd3:tasks assigns WBS numbers and creates files
-6. Tasks tracked via kanban board
+1. Apply Decomposition Decision Rules to determine if decomposition is needed
+2. If skipping: write justification to Solution section, stop
+3. If decomposing: analyze requirements and create task breakdown
+4. Create subtask files via `tasks create` CLI
+5. Write subtask checklist to parent task's Solution section
+6. Update parent status: `tasks update <WBS> decomposed`
 ```
 
 ### Consumption Examples
 
 ```bash
-# From JSON file
+# Create individual subtask with rich content (preferred)
+tasks create "implement-oauth2-flow" \
+  --background "Users need OAuth2 for enterprise SSO..." \
+  --requirements "Must support Google OAuth2 flow..."
+
+# Batch creation from JSON (alternative for many subtasks)
 tasks batch-create --from-json decomposition.json
 
 # From agent output (extracts <!-- TASKS: [...] --> footer)
 tasks batch-create --from-agent-output analysis.md
-
-# Manual creation with rich content
-tasks create "implement-oauth2-flow" \
-  --background "Users need OAuth2 for enterprise SSO..." \
-  --requirements "Must support Google OAuth2 flow..."
 ```
 
 ## Decomposition Patterns Quick Reference
@@ -255,13 +173,15 @@ tasks create "implement-oauth2-flow" \
 ### Workflow
 
 ```
-1. ANALYZE    -> Clarify goal, identify deliverables, assess constraints
-2. DECOMPOSE  -> Break into hierarchical tasks, apply appropriate pattern
-3. DEPEND     -> Map sequential (->), parallel (||), blocked (X)
-4. ESTIMATE   -> Apply estimation technique, add buffers
-5. REFERENCE  -> Search codebase, link relevant files
-6. VALIDATE   -> Review against quality checklist, verify dependencies
-7. OUTPUT     -> Generate structured JSON for batch creation
+1. DECIDE     -> Apply Decomposition Decision Rules (decompose or skip?)
+2. ANALYZE    -> Clarify goal, identify deliverables, assess constraints
+3. DECOMPOSE  -> Break into hierarchical tasks, apply appropriate pattern
+4. DEPEND     -> Map sequential (->), parallel (||), blocked (X)
+5. ESTIMATE   -> Apply estimation technique, add buffers
+6. REFERENCE  -> Search codebase, link relevant files
+7. VALIDATE   -> Review against quality checklist, verify dependencies
+8. OUTPUT     -> Write subtask list to parent task's Solution section
+9. STATUS     -> Update parent: `tasks update <WBS> decomposed`
 ```
 
 ### Decision Framework
@@ -295,10 +215,12 @@ tasks create "implement-oauth2-flow" \
 - [ ] Validate against quality checklist
 - [ ] Provide substantive Background content (min 50 chars)
 - [ ] Provide substantive Requirements content (min 50 chars)
-- [ ] Output structured JSON for batch creation
+- [ ] Write subtask list to parent task's Solution section (see Output Format)
+- [ ] Update parent task status via `tasks update <WBS> decomposed`
 
 ### Never Do
 
+- [ ] Skip decomposition without writing a justification to the Solution section
 - [ ] Decompose without understanding goal
 - [ ] Ignore dependencies or create circular dependencies
 - [ ] Create tasks exceeding 1 day without decomposition
@@ -314,55 +236,70 @@ tasks create "implement-oauth2-flow" \
 - [ ] Use "[placeholder]", "TBD", or empty strings for Background/Requirements
 
 ## Output Format
-### Output Type
-The rd3:task-decomposition produces two types of output: The first is the task files generated by rd3:tasks for further implementation, which are used in subsequent steps. The second type is the task decomposition report, which is intended for the end user and summarises the current step. Refer to rd3:tasks for the layout and details for task file if needed. Refer to he following section for the layout of task decomposition summary report.
 
-### Task Decomposition Output Example
+### Primary Output: Parent Task Solution Section
+
+After decomposition, write the subtask list directly into the parent task's **Solution** section:
 
 ```markdown
-# Task Decomposition: {Project/Feature Name}
+### Solution
+
+#### Subtasks
+
+- [ ] [0323 - Add decomposition rules](0323_0322_add_decomposition_rules.md)
+- [ ] [0324 - Simplify output format](0324_0322_simplify_output_format.md)
+- [ ] [0325 - Add Decomposed status](0325_0322_add_decomposed_status.md)
+
+**Dependency order:** (0323 || 0324 || 0325) → 0326
+**Estimated total effort:** 8-12 hours
+```
+
+**Rules:**
+- Each subtask is a markdown checkbox linking to its task file
+- Subtask filenames follow convention: `{new_wbs}_{parent_wbs}_{task_name}.md`
+- Dependencies expressed inline: `→` (sequential), `||` (parallel)
+- Total effort estimate with range
+- Subtask files created via `tasks create` CLI (not Write tool)
+- After writing subtasks, update parent status: `tasks update <WBS> decomposed` (alias for Done)
+
+### Secondary Output: Decomposition Report
+
+Optionally produce a summary report for the end user:
+
+```markdown
+# Task Decomposition: {Feature Name}
 
 ## Overview
-
-**Goal**: {What we're trying to achieve}
-**Success Criteria**: {How we know we're done}
-**Total Tasks**: {count}
-**Estimated Effort**: {time range with buffer}
+- **Goal**: {objective}
+- **Total Tasks**: {count}
+- **Estimated Effort**: {range with buffer}
+- **Confidence**: HIGH/MEDIUM/LOW
 
 ## Task Breakdown
-
-| ID   | Task Name          | Est. Hours | Dependencies | Risk   |
-| ---- | ------------------ | ---------- | ------------ | ------ |
-| 1    | {Task Name}        | 4-6        | None         | Low    |
-| 2    | {Task Name}        | 3-4        | 1            | Medium |
-| 3    | {Task Name}        | 2-3        | 1            | Low    |
-| 4    | {Task Name}        | 6-8        | 2, 3         | High   |
-
-## Dependency Graph
-
-1 (Foundation)
-|
-2 (Build) || 3 (Parallel Work)
-|
-4 (Integration)
-
-**Critical Path**: 1 -> 2 -> 4 (buffer: 20%)
-**Parallel Opportunities**: (2 || 3)
+| WBS | Task Name | Est. Hours | Dependencies | Risk |
+|-----|-----------|------------|--------------|------|
+| 0323 | {Task} | 4-6 | None | Low |
 
 ## References
-
-- Code: `/path/to/related/code.ts`
-- Docs: `/path/to/docs.md`
-
-## Structured Output (for batch-create)
-
-[JSON array as defined in Structured Output Protocol]
-
-## Confidence: HIGH/MEDIUM/LOW
-
-**Reasoning**: {Why this level}
-**Verification Sources**: {List sources}
+- Code: `/path/to/file.ts`
 ```
+
+### Structured JSON for Batch Creation
+
+When creating subtask files programmatically, use structured JSON compatible with `tasks batch-create`:
+
+```json
+[
+  {
+    "name": "descriptive-task-name",
+    "background": "Context (min 50 chars)",
+    "requirements": "Criteria (min 50 chars)",
+    "parent_wbs": "0322"
+  }
+]
+```
+
+See `references/structured-output-protocol.md` for the full JSON schema.
 
 **For detailed examples of decomposed tasks, see `references/examples.md`.**
 
@@ -444,3 +381,9 @@ See [Additional Resources](references/external-resources.md) for detailed conten
 See [Boundary Definition](references/boundary-definition.md) for detailed content.
 
 See [Structured Output Protocol](references/structured-output-protocol.md) for detailed content.
+
+See [Decomposition Decision Rules](references/decomposition-decision-rules.md) for detailed content.
+
+See [Core Principles](references/core-principles.md) for detailed content.
+
+See [Verification Protocol](references/verification-protocol.md) for detailed content.
