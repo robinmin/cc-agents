@@ -11,6 +11,7 @@ export interface ParsedCommand {
 }
 
 const VALID_COMMANDS = [
+    'init',
     'run',
     'resume',
     'status',
