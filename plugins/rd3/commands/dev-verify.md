@@ -40,7 +40,7 @@ Resolve `task-ref` to a task file. Read the task frontmatter and Requirements/De
 Unless `--skip-review` is present, run `/rd3:dev-review` semantics first.
 
 ```text
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile review --channel {channel}")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset review --channel {channel}")
 ```
 
 This step owns implementation-quality review only:
