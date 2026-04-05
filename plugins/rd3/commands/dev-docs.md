@@ -1,6 +1,6 @@
 ---
 description: Refresh cumulative project documentation based on task changes
-argument-hint: "<task-ref> [--auto] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--auto] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -22,7 +22,7 @@ Execute phase 9 (Documentation) of the 9-phase pipeline. Refreshes the canonical
 |----------|----------|-------------|
 | `task-ref` | Yes | WBS number or file path |
 | `--auto` | No | Auto-approve gates |
-| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `current` |
+| `--channel <auto\|current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `auto` |
 
 ### Smart Positional Detection
 
@@ -33,11 +33,11 @@ Execute phase 9 (Documentation) of the 9-phase pipeline. Refreshes the canonical
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
+Resolves `--channel` (default: `auto`) and forwards it to **rd3:orchestration-v2**. `auto` means "use the configured default backend"; `current` is kept as a deprecated compatibility alias.
 
 ```
-# Default: current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset docs --channel current")
+# Default: auto-routed channel
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset docs --channel auto")
 
 # Execute on another channel
 Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset docs --channel codex")
