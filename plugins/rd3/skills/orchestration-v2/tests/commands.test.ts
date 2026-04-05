@@ -347,7 +347,7 @@ describe('validateCommand', () => {
             const result = validateCommand({ command: 'unknown', options: {} });
             expect(result).toContain('Unknown command: unknown');
             expect(result).toContain(
-                'Valid commands: run, resume, status, report, validate, list, history, undo, inspect, prune, migrate',
+                'Valid commands: init, run, resume, status, report, validate, list, history, undo, inspect, prune, migrate',
             );
         });
 
@@ -467,6 +467,7 @@ describe('validateCommand', () => {
 
     describe('all valid commands enumeration', () => {
         const allValidCommands = [
+            'init',
             'run',
             'resume',
             'status',
