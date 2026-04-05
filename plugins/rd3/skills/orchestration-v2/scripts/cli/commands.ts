@@ -7,6 +7,7 @@
 export interface ParsedCommand {
     readonly command: string;
     readonly options: Record<string, unknown>;
+    readonly unknownFlags?: readonly string[];
 }
 
 const VALID_COMMANDS = [
@@ -28,6 +29,7 @@ type ValidCommand = (typeof VALID_COMMANDS)[number];
 export function parseArgs(argv: string[]): ParsedCommand {
     const positional: string[] = [];
     const options: Record<string, unknown> = {};
+    const unknownFlags: string[] = [];
     let i = 0;
 
     while (i < argv.length) {
@@ -54,6 +56,11 @@ export function parseArgs(argv: string[]): ParsedCommand {
             i++;
         } else if (arg === '--preset' && argv[i + 1]) {
             options.preset = argv[i + 1];
+            i++;
+        } else if (arg === '--profile' && argv[i + 1]) {
+            // Compatibility alias for --preset (deprecated, emits warning in run.ts)
+            options.preset = argv[i + 1];
+            options.profileDeprecated = true;
             i++;
         } else if (arg === '--channel' && argv[i + 1]) {
             options.channel = argv[i + 1];
@@ -109,7 +116,10 @@ export function parseArgs(argv: string[]): ParsedCommand {
         } else if (arg === '--schema') {
             options.schema = true;
         } else if (arg.startsWith('-')) {
-            // Unknown flag — skip
+            unknownFlags.push(arg);
+            if (argv[i + 1] && !argv[i + 1].startsWith('-')) {
+                i++;
+            }
         } else {
             positional.push(arg);
         }
@@ -120,14 +130,23 @@ export function parseArgs(argv: string[]): ParsedCommand {
     if (positional[1]) options.taskRef = positional[1];
     if (positional[2]) options.phaseName = positional[2];
 
-    return { command, options };
+    return {
+        command,
+        options,
+        ...(unknownFlags.length > 0 && { unknownFlags }),
+    };
 }
 
 export function validateCommand(cmd: ParsedCommand): string | null {
-    const { command } = cmd;
+    const { command, unknownFlags } = cmd;
 
     if (!VALID_COMMANDS.includes(command as ValidCommand)) {
         return `Unknown command: ${command}. Valid commands: ${VALID_COMMANDS.join(', ')}`;
+    }
+
+    if (unknownFlags && unknownFlags.length > 0) {
+        const label = unknownFlags.length === 1 ? 'option' : 'options';
+        return `Unknown ${label}: ${unknownFlags.join(', ')}`;
     }
 
     if (command === 'run' && !cmd.options.taskRef) {
