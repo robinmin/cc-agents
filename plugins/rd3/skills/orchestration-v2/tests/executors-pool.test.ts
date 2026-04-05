@@ -1,53 +1,70 @@
-import { describe, test, expect, beforeEach, beforeAll } from 'bun:test';
-import { LocalBunExecutor } from '../scripts/executors/local';
+import { describe, test, expect } from 'bun:test';
+import { LocalExecutor } from '../scripts/executors/local';
 import { AcpExecutor } from '../scripts/executors/acp';
 import { ExecutorPool } from '../scripts/executors/pool';
+import { MockExecutor } from '../scripts/executors/mock';
 import type { ExecutionRequest } from '../scripts/model';
 import { setGlobalSilent } from '../../../scripts/logger';
 
-beforeAll(() => {
-    setGlobalSilent(true);
-});
+setGlobalSilent(true);
 
-const BASE_REQUEST: ExecutionRequest = {
-    skill: 'echo',
-    phase: 'test',
-    prompt: 'hello',
-    payload: {},
-    channel: 'current',
-    timeoutMs: 5000,
-};
+function makeRequest(overrides: Partial<ExecutionRequest> = {}): ExecutionRequest {
+    return {
+        skill: 'rd3:orchestration-v2',
+        phase: 'test',
+        prompt: 'hello',
+        payload: {},
+        channel: 'auto',
+        timeoutMs: 5000,
+        ...overrides,
+    };
+}
 
-describe('LocalBunExecutor', () => {
-    test('has correct id and capabilities', () => {
-        const exec = new LocalBunExecutor();
-        expect(exec.id).toBe('local');
-        expect(exec.capabilities.parallel).toBe(false);
-        expect(exec.capabilities.maxConcurrency).toBe(1);
-        expect(exec.capabilities.channels).toEqual(['current']);
+// ── LocalExecutor ────────────────────────────────────────────────────────────────
+
+describe('LocalExecutor', () => {
+    test('has id "auto" and registers auto/current channels', () => {
+        const mock = new MockExecutor();
+        const exec = new LocalExecutor(mock);
+        expect(exec.id).toBe('auto');
+        expect(exec.capabilities.channels).toContain('auto');
+        expect(exec.capabilities.channels).toContain('current');
     });
 
-    test('healthCheck returns healthy', async () => {
-        const exec = new LocalBunExecutor();
+    test('inherits parallel from injected delegate', () => {
+        const mock = new MockExecutor();
+        const exec = new LocalExecutor(mock);
+        expect(exec.capabilities.parallel).toBe(true); // MockExecutor has parallel: true
+        expect(exec.capabilities.maxConcurrency).toBe(Number.MAX_SAFE_INTEGER);
+    });
+
+    test('dispose delegates to injected executor', async () => {
+        const mock = new MockExecutor();
+        const exec = new LocalExecutor(mock);
+        await exec.dispose();
+        expect(mock.getCallLog()).toHaveLength(0); // MockExecutor clears log on dispose
+    });
+
+    test('healthCheck delegates to injected executor', async () => {
+        const exec = new LocalExecutor(new MockExecutor());
         const health = await exec.healthCheck();
         expect(health.healthy).toBe(true);
     });
 
-    test('executes a simple command successfully', async () => {
-        const exec = new LocalBunExecutor();
-        // Use a skill name that resolves to a simple command
-        const result = await exec.execute({
-            ...BASE_REQUEST,
-            skill: '-e', // bun -e runs inline code
-        });
-        expect(result.durationMs).toBeGreaterThan(0);
-    });
+    test('execute delegates to injected executor', async () => {
+        const mock = new MockExecutor();
+        mock.setResponses([{ result: { success: true, exitCode: 0, durationMs: 42, timedOut: false } }]);
+        const exec = new LocalExecutor(mock);
 
-    test('disposes without error', async () => {
-        const exec = new LocalBunExecutor();
-        await expect(exec.dispose()).resolves.toBeUndefined();
+        const result = await exec.execute(makeRequest({ phase: 'implement' }));
+
+        expect(result.success).toBe(true);
+        expect(result.durationMs).toBe(42);
+        expect(mock.getCallLog()[0].phase).toBe('implement');
     });
 });
+
+// ── AcpExecutor ────────────────────────────────────────────────────────────────
 
 describe('AcpExecutor', () => {
     test('has correct id from agent name', () => {
@@ -55,66 +72,70 @@ describe('AcpExecutor', () => {
         expect(exec.id).toBe('acp:codex');
         expect(exec.capabilities.parallel).toBe(true);
         expect(exec.capabilities.maxConcurrency).toBe(4);
-        expect(exec.capabilities.channels).toEqual(['codex']);
+        expect(exec.capabilities.channels).toContain('codex');
+        expect(exec.capabilities.channels).toContain('acp');
     });
 
-    test('healthCheck returns unhealthy when acpx not available', async () => {
-        const exec = new AcpExecutor('codex');
-        const health = await exec.healthCheck();
-        // acpx likely not installed in test env
-        expect(typeof health.healthy).toBe('boolean');
-    });
-
-    test('disposes without error', async () => {
-        const exec = new AcpExecutor('codex');
+    test('dispose is idempotent', async () => {
+        const exec = new AcpExecutor('pi');
+        await exec.dispose();
         await expect(exec.dispose()).resolves.toBeUndefined();
     });
 });
 
-describe('ExecutorPool', () => {
-    let pool: ExecutorPool;
+// ── ExecutorPool ───────────────────────────────────────────────────────────────
 
-    beforeEach(() => {
-        pool = new ExecutorPool();
+/**
+ * Tests that depend only on 'auto' and the deprecated 'current' alias.
+ * These tests do NOT read the real config file and are fully isolated.
+ */
+describe('ExecutorPool (config-independent)', () => {
+    test('getDefault returns auto executor', () => {
+        const pool = new ExecutorPool();
+        expect(pool.getDefault().id).toBe('auto');
     });
 
-    test('has local executor by default', () => {
-        const local = pool.getDefault();
-        expect(local.id).toBe('local');
+    test('resolve("auto") returns auto executor', () => {
+        const pool = new ExecutorPool();
+        expect(pool.resolve('auto').id).toBe('auto');
     });
 
-    test('list returns unique executors', () => {
-        const list = pool.list();
-        expect(list.length).toBeGreaterThanOrEqual(1);
-        const ids = list.map((e) => e.id);
-        expect(ids).toContain('local');
-    });
-
-    test('resolve returns executor for channel', () => {
-        const exec = pool.resolve('current');
-        expect(exec.id).toBe('local');
+    test('resolve("current") returns auto executor via compatibility alias', () => {
+        const pool = new ExecutorPool();
+        expect(pool.resolve('current').id).toBe('auto');
     });
 
     test('resolve throws for unknown channel', () => {
-        expect(() => pool.resolve('nonexistent')).toThrow();
+        const pool = new ExecutorPool();
+        expect(() => pool.resolve('unknown-channel')).toThrow();
     });
 
-    test('get returns executor by id', () => {
-        const exec = pool.get('local');
-        expect(exec?.id).toBe('local');
-    });
-
-    test('get returns undefined for unknown id', () => {
-        const exec = pool.get('nonexistent');
-        expect(exec).toBeUndefined();
-    });
-
-    test('has checks channel registration', () => {
+    test('has returns true for registered channels', () => {
+        const pool = new ExecutorPool();
+        expect(pool.has('auto')).toBe(true);
         expect(pool.has('current')).toBe(true);
+    });
+
+    test('has returns false for unknown channels', () => {
+        const pool = new ExecutorPool();
         expect(pool.has('nonexistent')).toBe(false);
     });
 
-    test('register adds executor for multiple channels', () => {
+    test('disposeAll clears executors', async () => {
+        const pool = new ExecutorPool();
+        await pool.disposeAll();
+        expect(pool.list()).toHaveLength(0);
+    });
+});
+
+/**
+ * Tests for manually registered executors — isolated from the pool's config-driven
+ * registration. Uses a fresh pool so config read in constructor does not affect
+ * the assertions.
+ */
+describe('ExecutorPool (manual registration)', () => {
+    test('register adds executor for channel alias', () => {
+        const pool = new ExecutorPool();
         const acp = new AcpExecutor('codex');
         pool.register(acp);
         expect(pool.has('codex')).toBe(true);
@@ -122,15 +143,41 @@ describe('ExecutorPool', () => {
         expect(pool.get('acp:codex')?.id).toBe('acp:codex');
     });
 
-    test('healthCheckAll returns map of results', async () => {
-        const results = await pool.healthCheckAll();
-        expect(results.has('local')).toBe(true);
-        const localHealth = results.get('local');
-        expect(localHealth?.healthy).toBe(true);
+    test('register adds executor also for its id', () => {
+        const pool = new ExecutorPool();
+        pool.register(new AcpExecutor('openclaw'));
+        expect(pool.has('acp:openclaw')).toBe(true);
     });
 
-    test('disposeAll clears executors', async () => {
-        await pool.disposeAll();
-        expect(pool.list()).toHaveLength(0);
+    test('execute dispatches to manually registered executor', async () => {
+        const mock = new MockExecutor();
+        mock.setResponses([{ result: { success: true, exitCode: 0, durationMs: 7, timedOut: false } }]);
+        const local = new LocalExecutor(mock);
+        const pool = new ExecutorPool();
+        pool.register(local);
+
+        const result = await pool.execute(makeRequest());
+
+        expect(result.durationMs).toBe(7);
+        expect(mock.getCallLog()).toHaveLength(1);
+    });
+
+    test('execute dispatches to explicitly registered executor by channel', async () => {
+        const mock = new MockExecutor();
+        mock.setResponses([{ result: { success: true, exitCode: 0, durationMs: 11, timedOut: false } }]);
+        const acp = new LocalExecutor(mock); // use LocalExecutor so it registers auto/current
+        const pool = new ExecutorPool();
+        pool.register(acp);
+
+        const result = await pool.execute(makeRequest({ channel: 'current' }));
+
+        expect(result.durationMs).toBe(11);
+        expect(mock.getCallLog()).toHaveLength(1);
+    });
+
+    test('healthCheckAll returns map with auto executor', async () => {
+        const pool = new ExecutorPool();
+        const results = await pool.healthCheckAll();
+        expect(results.has('auto')).toBe(true);
     });
 });
