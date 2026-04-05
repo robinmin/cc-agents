@@ -1,6 +1,7 @@
 import { expect, test, describe, spyOn, beforeEach, afterEach } from 'bun:test';
-import { runServer } from '../scripts/commands/server';
+import { describePortUsage, exitServerProcess, runServer } from '../scripts/commands/server';
 import { setGlobalSilent } from '../../../scripts/logger';
+import { logger } from '../../../scripts/logger';
 
 describe('server cmd', () => {
     let originalServe: typeof globalThis.Bun.serve;
@@ -141,5 +142,119 @@ describe('server cmd', () => {
         });
 
         expect(buildCount).toBe(1);
+    });
+
+    test('prints port-in-use diagnostics and current process details when available', () => {
+        const exitError = new Error('exit 1');
+        const errorSpy = spyOn(logger, 'error');
+        const logSpy = spyOn(logger, 'log');
+
+        globalThis.Bun.serve = (() => {
+            const error = new Error('Address in use') as NodeJS.ErrnoException;
+            error.code = 'EADDRINUSE';
+            throw error;
+        }) as typeof globalThis.Bun.serve;
+
+        expect(() =>
+            runServer(['--port', '3456'], {
+                pathExists: () => true,
+                describePortUsage: () => 'bun     123 robin   10u  IPv4 0x123      TCP *:3456 (LISTEN)',
+                exitProcess: () => {
+                    throw exitError;
+                },
+                registerSignal: () => process,
+            }),
+        ).toThrow(exitError);
+
+        expect(errorSpy).toHaveBeenCalledWith('Port 3456 is already in use.');
+        expect(logSpy).toHaveBeenCalledWith('To find the process using this port:');
+        expect(logSpy).toHaveBeenCalledWith('  lsof -i :3456');
+        expect(logSpy).toHaveBeenCalledWith('To kill it:');
+        expect(logSpy).toHaveBeenCalledWith('  kill $(lsof -t -i :3456)');
+        expect(logSpy).toHaveBeenCalledWith('Or start on a different port:');
+        expect(logSpy).toHaveBeenCalledWith('  tasks server --port 3457');
+        expect(logSpy).toHaveBeenCalledWith('Current process using port:');
+        expect(logSpy).toHaveBeenCalledWith('bun     123 robin   10u  IPv4 0x123      TCP *:3456 (LISTEN)');
+
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
+    });
+
+    test('exits cleanly when port lookup fails for an in-use port', () => {
+        const exitError = new Error('exit 1');
+        const logSpy = spyOn(logger, 'log');
+
+        globalThis.Bun.serve = (() => {
+            const error = new Error('Address in use') as NodeJS.ErrnoException;
+            error.code = 'EADDRINUSE';
+            throw error;
+        }) as typeof globalThis.Bun.serve;
+
+        expect(() =>
+            runServer(['--port', '4567'], {
+                pathExists: () => true,
+                describePortUsage: () => {
+                    throw new Error('lsof unavailable');
+                },
+                exitProcess: () => {
+                    throw exitError;
+                },
+                registerSignal: () => process,
+            }),
+        ).toThrow(exitError);
+
+        expect(logSpy).not.toHaveBeenCalledWith('Current process using port:');
+
+        logSpy.mockRestore();
+    });
+
+    test('rethrows unexpected Bun.serve errors', () => {
+        const boom = new Error('boom');
+
+        globalThis.Bun.serve = (() => {
+            throw boom;
+        }) as typeof globalThis.Bun.serve;
+
+        expect(() =>
+            runServer([], {
+                pathExists: () => true,
+                registerSignal: () => process,
+            }),
+        ).toThrow(boom);
+    });
+
+    test('builds the lsof command with the expected options', () => {
+        let receivedCommand = '';
+        let receivedOptions: Record<string, unknown> | undefined;
+
+        const result = describePortUsage(
+            3456,
+            ((command, options) => {
+                receivedCommand = command;
+                receivedOptions = options as Record<string, unknown>;
+                return 'listener';
+            }) as typeof import('node:child_process').execSync,
+        );
+
+        expect(result).toBe('listener');
+        expect(receivedCommand).toBe('lsof -i :3456 2>/dev/null | tail -n +2');
+        expect(receivedOptions).toMatchObject({
+            encoding: 'utf-8',
+            timeout: 5000,
+        });
+    });
+
+    test('delegates exits through the injected exit function', () => {
+        const exitError = new Error('exit 1');
+
+        expect(() =>
+            exitServerProcess(
+                1,
+                ((code) => {
+                    expect(code).toBe(1);
+                    throw exitError;
+                }) as typeof process.exit,
+            ),
+        ).toThrow(exitError);
     });
 });
