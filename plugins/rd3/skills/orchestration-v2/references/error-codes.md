@@ -110,4 +110,4 @@ orchestrator validate
 1. Check channel: `orchestrator status --json`
 2. Verify acpx: `acpx --version`
 3. Check agent list: `acpx list`
-4. Try local: `orchestrator run <task> --channel current`
+4. Try the configured default backend: `orchestrator run <task> --channel auto`
