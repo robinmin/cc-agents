@@ -516,6 +516,96 @@ describe('history command', () => {
         expect(result.stdout).toContain('success rate');
     });
 
+    test('--preset standard --dry-run loads default.yaml and lists all phases', () => {
+        // This verifies the built-in named preset resolution fix:
+        // --preset standard should resolve to default.yaml (where "standard" is defined
+        // as a named preset), not try to open standard.yaml which does not exist.
+        const cwd = createTempCwd('preset-standard');
+        const result = runCli(['run', '0300', '--preset', 'standard', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pipeline valid');
+        expect(result.stdout).toContain('intake');
+        expect(result.stdout).toContain('decompose');
+        expect(result.stdout).toContain('implement');
+        expect(result.stdout).toContain('test');
+        expect(result.stdout).toContain('review');
+        expect(result.stdout).toContain('verify-bdd');
+        expect(result.stdout).toContain('docs');
+    });
+
+    test('--preset simple --dry-run loads default.yaml (named preset, not simple.yaml)', () => {
+        const cwd = createTempCwd('preset-simple');
+        const result = runCli(['run', '0300', '--preset', 'simple', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pipeline valid');
+        // simple preset phases are: implement, test
+        expect(result.stdout).toContain('implement');
+        expect(result.stdout).toContain('test');
+    });
+
+    test('--preset complex --dry-run loads default.yaml (named preset)', () => {
+        const cwd = createTempCwd('preset-complex');
+        const result = runCli(['run', '0300', '--preset', 'complex', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pipeline valid');
+        // complex preset includes all phases: intake, arch, design, decompose, etc.
+        expect(result.stdout).toContain('intake');
+        expect(result.stdout).toContain('arch');
+        expect(result.stdout).toContain('design');
+    });
+
+    test('--preset security-first --dry-run loads standalone security-first.yaml', () => {
+        const cwd = createTempCwd('preset-security-first');
+        const result = runCli(['run', '0300', '--preset', 'security-first', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pipeline valid');
+        expect(result.stdout).toContain('security-scan');
+        expect(result.stdout).toContain('review');
+    });
+
+    test('--preset review --dry-run loads standalone review.yaml', () => {
+        const cwd = createTempCwd('preset-review');
+        const result = runCli(['run', '0300', '--preset', 'review', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pipeline valid');
+        expect(result.stdout).toContain('review');
+        expect(result.stdout).not.toContain('implement');
+    });
+
+    test('--profile alias emits deprecation warning but still works', () => {
+        const cwd = createTempCwd('profile-deprecated');
+        const result = runCli(['run', '0300', '--profile', 'standard', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pipeline valid');
+        // Warning is emitted to stderr
+        expect(result.stderr).toContain('--profile is deprecated');
+        expect(result.stderr).toContain('--preset');
+    });
+
+    test('unknown flags fail loudly instead of falling through to the default pipeline', () => {
+        const cwd = createTempCwd('unknown-flag');
+        const result = runCli(['run', '0300', '--preste', 'simple', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(10);
+        expect(result.stderr).toContain('Unknown option: --preste');
+        expect(result.stdout).not.toContain('Pipeline valid');
+    });
+
+    test('unknown preset names fail instead of silently falling back', () => {
+        const cwd = createTempCwd('unknown-preset');
+        const result = runCli(['run', '0300', '--preset', 'not-a-real-preset', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(10);
+        expect(result.stderr).toContain('Unknown preset: not-a-real-preset');
+        expect(result.stdout).not.toContain('Pipeline valid');
+    });
+
     test('history text mode skips trends for single run', async () => {
         const cwd = createTempCwd('history-single');
         const dbPath = join(cwd, 'docs', '.workflow-runs', 'state.db');
