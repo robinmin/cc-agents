@@ -1,7 +1,7 @@
 ---
 name: jon-snow
 description: |
-  Use PROACTIVELY for rd3 pipeline routing: full runs, resumes, dry-runs, phase-only profiles, and delegated execution channels. Trigger phrases: "run pipeline", "resume from phase 5", "plan task", "unit-only", "review-only", "docs-only", "run on codex".
+  Use PROACTIVELY for rd3 pipeline routing: full runs, resumes, dry-runs, phase-only profiles, and delegated execution channels. Trigger phrases: "run pipeline", "resume pipeline", "plan task", "unit-only", "review-only", "docs-only", "run on codex".
   <example>
   user: "Run task 0266 through the pipeline"
   assistant: "Delegating to rd3:orchestration-v2 skill..."
@@ -62,13 +62,12 @@ Invoke `rd3:orchestration-v2` with the appropriate arguments using your platform
 Examples (Claude Code syntax — adapt to your platform):
 ```
 rd3:orchestration-v2 0266 --channel codex
-rd3:orchestration-v2 0266 --start-phase 5 --channel codex
 rd3:orchestration-v2 0266 --preset complex --channel codex
 rd3:orchestration-v2 0266 --preset plan --channel codex
 rd3:orchestration-v2 0266 --preset unit --coverage 90
 rd3:orchestration-v2 0266 --auto --channel codex
 rd3:orchestration-v2 0266 --dry-run
-rd3:orchestration-v2 0266 --skip-phases 7,8
+rd3:orchestration-v2 resume 0266 --approve --auto
 ```
 
 **On platforms without agent support**, invoke `rd3:orchestration-v2` directly as a skill. The wrapper is optional.
@@ -86,7 +85,7 @@ Map the request to the orchestration profile and flags before delegating:
 | User says... | Delegate as... | Notes |
 |--------------|----------------|-------|
 | "run the full pipeline", "orchestrate task" | `task_ref` only, or `--preset complex` if explicitly requested | Uses task frontmatter profile when present |
-| "resume from phase 5" | `--start-phase 5` | Keep the same profile unless user overrides |
+| "resume pipeline", "continue the paused run" | `resume <task_ref> [--approve] [--auto]` | Use the resume command, not a synthetic phase jump |
 | "plan this task" | `--preset plan` | Phases 2, 3, 4 |
 | "run unit phase" | `--preset unit` | Supports `--coverage` override |
 | "review only" | `--preset review` | Code review-only execution |
@@ -94,14 +93,14 @@ Map the request to the orchestration profile and flags before delegating:
 | "dry run the pipeline" | `--dry-run` | No side effects |
 | "run it on codex/opencode/claude" | `--channel <agent>` | Pass channel unchanged to orchestration |
 | "auto-approve the gates" | `--auto` | Human gates do not pause |
-| "refine requirements first" | `--refine` or `--preset refine` | `--refine` alters phase 1 mode; `refine` profile runs only phase 1 |
+| "refine requirements first" | `--preset refine` | Runs only the intake/refinement preset |
 
 ## Examples
 
 ```text
 rd3:orchestration-v2 0266 --channel codex
 rd3:orchestration-v2 0266 --preset plan --channel codex
-rd3:orchestration-v2 0266 --start-phase 5 --auto --channel codex
+rd3:orchestration-v2 resume 0266 --approve --auto
 rd3:orchestration-v2 0266 --preset unit --coverage 90
 ```
 
@@ -113,13 +112,11 @@ Keep the wrapper aligned with the real orchestration skill interface:
 |----------|-------------|---------|
 | `task_ref` | WBS number or path to task file | (required) |
 | `--preset` | `simple`, `standard`, `complex`, `research`, `refine`, `plan`, `unit`, `review`, or `docs` | from task frontmatter, else `standard` |
-| `--start-phase` | Resume from a specific phase within the selected profile | (none) |
-| `--skip-phases` | Comma-separated phase numbers to skip | (none) |
 | `--dry-run` | Preview the execution plan without side effects | false |
 | `--auto` | Auto-approve human gates | false |
 | `--coverage` | Override phase 6 coverage target | profile default |
-| `--refine` | Run phase 1 in refine mode | false |
-| `--channel` | Execution channel: `current` or ACP agent name | `current` |
+| `--phases` | Comma-separated phase names; DAG resolves order | all |
+| `--channel` | Execution channel: `auto`, `current` (deprecated alias), or explicit ACP agent name | `auto` |
 
 ## Phase Skills
 
@@ -134,12 +131,12 @@ The following specialist skills are available for delegation:
 | 5 | `rd3:super-coder` -> `rd3:code-implement-common` | Implementation |
 | 6 | `rd3:super-tester` -> `rd3:sys-testing` / `rd3:advanced-testing` | Unit testing |
 | 7 | `rd3:super-reviewer` -> `rd3:code-review-common` | Code review |
-| 8 | `rd3:bdd-workflow` / `rd3:functional-review` | Functional verification |
+| 8 | `rd3:bdd-workflow` / `rd3:functional-review` | Verification (`verify-bdd` + `verify-func`) |
 | 9 | `rd3:code-docs` | Documentation |
 
-**Note for v1 Pilot:** Currently, only Phases 5, 6, and 7 are executable end-to-end within the orchestration pipeline. Phases 1-4 and 8-9 are plan-only. Furthermore, if executing worker phases (5 and 7) on the `current` channel, the local prompt runner requires an explicit prompt agent configured by the user via `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT` environment variables.
+**Channel contract:** `rd3:orchestration-v2` treats `auto` as the canonical "use the configured default backend" value. `current` remains accepted as a deprecated compatibility alias for the same behavior. Explicit agent names such as `pi` or `codex` route directly to those backends.
 
-`rd3:orchestration-v2` is the routing authority for local vs ACP-backed execution. This wrapper should pass the requested channel through, not reinterpret it.
+`rd3:orchestration-v2` is the routing authority for configured-default versus explicit backend execution. This wrapper should pass the requested channel through, not reinterpret it.
 
 ## Process
 
@@ -161,9 +158,8 @@ The following specialist skills are available for delegation:
 | Missing task reference | Ask for the WBS number or task file path |
 | Invalid phase/profile combination | Report the mismatch and restate valid profile/flag choices |
 | Skill invocation unavailable | Fall back to the platform's alternative skill invocation mechanism |
-| Missing prompt agent configuration | Instruct the user to set `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT` |
 | Delegated orchestration failure | Report the error verbatim and identify the failed phase if present |
-| Unknown execution channel | Pass through only recognized `current` or ACP agent values |
+| Unknown execution channel | Pass through only recognized `auto`/`current` aliases or explicit ACP agent values |
 
 ## Output Format
 
