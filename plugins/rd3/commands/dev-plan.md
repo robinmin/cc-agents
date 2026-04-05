@@ -1,6 +1,6 @@
 ---
 description: Execute architecture, design, and task decomposition for a task, optionally on another execution channel
-argument-hint: "<task-ref> [--auto] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--auto] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -22,7 +22,7 @@ Execute phases 2-4 of the 9-phase pipeline: Architecture, Design, and Task Decom
 |----------|----------|-------------|
 | `task-ref` | Yes | WBS number or file path |
 | `--auto` | No | Auto-approve gates |
-| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `current` |
+| `--channel <auto\|current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `auto` |
 
 ### Smart Positional Detection
 
@@ -33,14 +33,14 @@ Execute phases 2-4 of the 9-phase pipeline: Architecture, Design, and Task Decom
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
+Resolves `--channel` (default: `auto`) and forwards it to **rd3:orchestration-v2**. `auto` means "use the configured default backend"; `current` is kept as a deprecated compatibility alias.
 
 ```
-# Default: execute on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset plan --channel current")
+# Default: execute on the auto-routed channel
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset plan --channel auto")
 
-# Optional: bypass the design gate on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset plan --auto --channel current")
+# Optional: bypass the design gate on the auto-routed channel
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset plan --auto --channel auto")
 
 # Execute the same workflow on another channel
 Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset plan --channel codex")
