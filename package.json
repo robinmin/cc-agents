@@ -27,7 +27,7 @@
         "test:rd3": "bun run --cwd plugins/rd3 test --coverage --reporter=dots",
         "test:coverage:rd3": "bun run --cwd plugins/rd3 test:coverage",
 
-        "update-cc": "rm -rf ~/.claude/plugins/cache/cc-agents/ && claude plugin marketplace update cc-agents && claude plugin update rd3@cc-agents",
+        "update-cc": "./scripts/setup-all.sh",
         "tasks": "bun run --cwd plugins/rd3 tasks",
         "tasks:check": "bun run --cwd plugins/rd3 check",
         "tasks:test": "bun run --cwd plugins/rd3 test",
