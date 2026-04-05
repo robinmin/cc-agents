@@ -531,6 +531,7 @@ describe('history command', () => {
         expect(result.stdout).toContain('test');
         expect(result.stdout).toContain('review');
         expect(result.stdout).toContain('verify-bdd');
+        expect(result.stdout).toContain('verify-func');
         expect(result.stdout).toContain('docs');
     });
 
@@ -575,6 +576,27 @@ describe('history command', () => {
         expect(result.stdout).toContain('Pipeline valid');
         expect(result.stdout).toContain('review');
         expect(result.stdout).not.toContain('implement');
+    });
+
+    test('--phases --dry-run shows only the requested DAG-ordered subset', () => {
+        const cwd = createTempCwd('phases-dry-run');
+        const result = runCli(['run', '0300', '--phases', 'verify-bdd,review', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pipeline valid');
+        expect(result.stdout).toContain('review');
+        expect(result.stdout).toContain('verify-bdd');
+        expect(result.stdout).not.toContain('implement');
+        expect(result.stdout.indexOf('review')).toBeLessThan(result.stdout.indexOf('verify-bdd'));
+    });
+
+    test('--channel current warns and normalizes to auto', () => {
+        const cwd = createTempCwd('channel-current');
+        const result = runCli(['run', '0300', '--preset', 'simple', '--channel', 'current', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stderr).toContain('--channel current is deprecated');
+        expect(result.stderr).toContain('--channel auto');
     });
 
     test('--profile alias emits deprecation warning but still works', () => {
