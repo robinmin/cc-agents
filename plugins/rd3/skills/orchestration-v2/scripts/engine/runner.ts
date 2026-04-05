@@ -713,7 +713,7 @@ export class PipelineRunner {
                     ...(feedback && { feedback }),
                     ...(iteration > 0 && { rework_iteration: iteration }),
                 },
-                channel: options.channel ?? 'current',
+                channel: options.channel ?? 'auto',
                 taskRef: options.taskRef,
                 timeoutMs: this.parseTimeout(phaseDef.timeout),
                 ...(feedback && { feedback }),
