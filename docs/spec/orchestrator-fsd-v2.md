@@ -88,7 +88,7 @@
 |------|------|---------|-------------|
 | `--preset <name>` | string | none | Named preset from pipeline YAML |
 | `--phases <a,b>` | string[] | all | Comma-separated phases; DAG resolves order |
-| `--channel <name>` | string | `current` | Execution channel |
+| `--channel <name>` | string | `auto` | Execution channel (`current` is a deprecated alias) |
 | `--coverage <n>` | number | from preset | Override coverage threshold (1-100) |
 | `--auto` | boolean | false | Auto-approve all human gates |
 | `--dry-run` | boolean | false | Show plan without executing |
@@ -434,7 +434,7 @@ For each ready phase from DAG evaluation:
 | `phase` | string | Phase name |
 | `prompt` | string | Generated prompt text |
 | `payload` | object | Task ref, phase, feedback, rework iteration |
-| `channel` | string | Execution channel (default: `current`) |
+| `channel` | string | Execution channel (default: `auto`; `current` is a deprecated alias) |
 | `timeoutMs` | number | Parsed from phase `timeout` string |
 | `taskRef` | string | Task reference from run record |
 | `feedback` | string? | Error from previous rework attempt |
