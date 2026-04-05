@@ -1,6 +1,6 @@
 ---
-description: Profile-driven task execution through the 9-phase pipeline
-argument-hint: "<task-ref> [--profile <profile>] [--auto] [--coverage <n>] [--dry-run] [--refine] [--skip-phases <n,n>] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+description: Preset-driven task execution through the 9-phase pipeline
+argument-hint: "<task-ref> [--preset <preset>] [--auto] [--coverage <n>] [--dry-run] [--refine] [--skip-phases <n,n>] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -43,7 +43,7 @@ Default: read from task frontmatter, fall back to `standard`.
 |----------|----------|-------------|
 | `task-ref` | Yes | WBS number or file path |
 | `--auto` | No | Auto-approve human gates (no pauses) |
-| `--profile` | No | Override profile (default: from task frontmatter) |
+| `--preset` | No | Override profile (default: from task frontmatter) |
 | `--coverage <n>` | No | Override project coverage threshold for phase 6 |
 | `--dry-run` | No | Preview execution plan without executing |
 | `--refine` | No | Run phase 1 in refine mode |
@@ -56,8 +56,8 @@ Forward `--channel` (default: `current`) to **rd3:orchestration-v2**. All 9 phas
 
 ```
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --profile complex")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --profile unit")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset complex")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset unit")
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --auto")
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --dry-run")
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --refine --coverage 90 --auto")
@@ -69,35 +69,35 @@ Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --channel opencode")
 <example>
 Run a simple task (implementation + testing)
 ```bash
-/rd3:dev-run 0274 --profile simple
+/rd3:dev-run 0274 --preset simple
 ```
 </example>
 
 <example>
 Run unit testing only
 ```bash
-/rd3:dev-run 0274 --profile unit
+/rd3:dev-run 0274 --preset unit
 ```
 </example>
 
 <example>
 Run review-only on the current channel and auto-approve the review gate
 ```bash
-/rd3:dev-run 0274 --profile review --auto
+/rd3:dev-run 0274 --preset review --auto
 ```
 </example>
 
 <example>
 Preview a complex profile plan without executing
 ```bash
-/rd3:dev-run 0274 --profile complex --dry-run
+/rd3:dev-run 0274 --preset complex --dry-run
 ```
 </example>
 
 <example>
 Preview a refine profile plan
 ```bash
-/rd3:dev-run 0274 --profile refine --dry-run
+/rd3:dev-run 0274 --preset refine --dry-run
 ```
 </example>
 
@@ -112,17 +112,17 @@ Preview the execution plan without running anything
 
 - **rd3:orchestration-v2**: Full 9-phase pipeline orchestrator skill
 - **rd3:run-acp**: ACP executor used by orchestration for delegated remote work
-- Phase shortcut commands: use `--profile <phase-name>` with this command to run individual phases
+- Phase shortcut commands: use `--preset <phase-name>` with this command to run individual phases
 
 
 ## Platform Notes
 
 ### Claude Code (primary)
-Native `Skill()` and `!`cmd`` support. Pass arguments directly: `/rd3:dev-run 0274 --profile complex`.
+Native `Skill()` and `!`cmd`` support. Pass arguments directly: `/rd3:dev-run 0274 --preset complex`.
 
 ### Other Platforms
 `Skill()`, `Task()`, `$ARGUMENTS`, `!`cmd$``, and slash command syntax (`/rd3:dev-run`) are Claude Code–only. On Codex, OpenClaw, OpenCode, Antigravity, or Gemini CLI: invoke the orchestration skill directly via Bash:
 ```bash
-bun plugins/rd3/skills/orchestration-dev/scripts/run.ts <task-ref> --profile <name> [options]
+bun plugins/rd3/skills/orchestration-v2/scripts/run.ts run <task-ref> --preset <name> [options]
 ```
 See **rd3:orchestration-v2** for available arguments.
