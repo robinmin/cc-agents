@@ -134,12 +134,12 @@ describe('parseArgs', () => {
     });
 
     describe('edge cases and error conditions', () => {
-        test('skips unknown flags', () => {
+        test('records unknown flags without corrupting positional parsing', () => {
             const result = parseArgs(['run', '0300', '--unknown-flag', '--verbose']);
             expect(result.command).toBe('run');
             expect(result.options.taskRef).toBe('0300');
             expect(result.options.verbose).toBe(true);
-            expect(result.options).not.toHaveProperty('unknownFlag');
+            expect(result.unknownFlags).toEqual(['--unknown-flag']);
         });
 
         test('handles value flag without value at end of args', () => {
@@ -158,6 +158,7 @@ describe('parseArgs', () => {
             const result = parseArgs(['run', '0300', '--unknown1', '--unknown2', '--verbose']);
             expect(result.command).toBe('run');
             expect(result.options.verbose).toBe(true);
+            expect(result.unknownFlags).toEqual(['--unknown1', '--unknown2']);
         });
 
         test('handles positional args beyond task ref and phase', () => {
@@ -376,6 +377,15 @@ describe('validateCommand', () => {
             const cmd: ParsedCommand = { command: 'status', options: {} };
             const result = validateCommand(cmd);
             expect(result).toBeNull();
+        });
+
+        test('rejects unknown flags on otherwise valid commands', () => {
+            const result = validateCommand({
+                command: 'run',
+                options: { taskRef: '0300' },
+                unknownFlags: ['--preste'],
+            });
+            expect(result).toBe('Unknown option: --preste');
         });
 
         test('handles null values in options', () => {
