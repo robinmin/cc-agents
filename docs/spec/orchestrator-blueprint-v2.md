@@ -154,7 +154,7 @@ orchestrator run 0266 --coverage 90                # Override coverage threshold
 | `--phases` | string | all phases | Comma-separated phase names — DAG resolves execution order. Overrides `--preset`. |
 | `--pipeline` | path | `.rd3/pipeline.yaml` | Path to pipeline definition file |
 | `--auto` | boolean | false | Auto-approve all human gates |
-| `--channel` | string | `current` | Execution channel for worker phases |
+| `--channel` | string | `auto` | Execution channel for worker phases (`current` is a deprecated alias) |
 | `--dry-run` | boolean | false | Show execution plan without running |
 | `--coverage` | number | from preset/phase | Override coverage threshold |
 
@@ -424,7 +424,7 @@ Resource Usage:
   Tokens: 15K input / 5K output
   Wall clock: 6m 12s | Execution: 5m 48s | First token: 2.3s
 
-Executor: AcpExecutor (channel: current)
+Executor: AutoExecutor (channel: auto)
 Rework: 0/2 iterations used
 
 Evidence: orchestrator inspect 0266 7 --evidence
@@ -1025,7 +1025,7 @@ interface ExecutorPool {
 ```
 
 The pool selects the appropriate executor based on the channel string:
-- `current` → `LocalBunExecutor`
+- `auto` → configured default executor (`current` is a deprecated alias)
 - Any ACP agent name (e.g., `codex`, `claude`) → `AcpExecutor`
 - `mock` → `MockExecutor` (test mode only)
 
