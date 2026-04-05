@@ -15,11 +15,24 @@ import { execSync } from 'node:child_process';
 const DEFAULT_PORT = 3456;
 const DEFAULT_HOST = '127.0.0.1';
 
+export function describePortUsage(port: number, runner: typeof execSync = execSync): string {
+    return runner(`lsof -i :${port} 2>/dev/null | tail -n +2`, {
+        encoding: 'utf-8',
+        timeout: 5000,
+    });
+}
+
+export function exitServerProcess(code: number, exitFn: typeof process.exit = process.exit): never {
+    return exitFn(code);
+}
+
 type ServerRuntime = {
     pathExists: (path: string) => boolean;
     resolveStaticDir: () => string;
     resolveUiDir: () => string;
     buildUi: (uiDir: string) => number | null | undefined;
+    describePortUsage: (port: number) => string;
+    exitProcess: (code: number) => never;
     registerSignal: (event: NodeJS.Signals, listener: () => void) => NodeJS.Process;
 };
 
@@ -33,6 +46,8 @@ const defaultServerRuntime: ServerRuntime = {
             stdout: 'ignore',
             stderr: 'ignore',
         }).exitCode,
+    describePortUsage,
+    exitProcess: exitServerProcess,
     registerSignal: (event, listener) => process.on(event, listener),
 };
 
@@ -126,10 +141,7 @@ export function runServer(args: string[], runtimeOverrides: Partial<ServerRuntim
             logger.log('');
             // Try to identify what process is using the port
             try {
-                const result = execSync(`lsof -i :${config.port} 2>/dev/null | tail -n +2`, {
-                    encoding: 'utf-8',
-                    timeout: 5000,
-                });
+                const result = runtime.describePortUsage(config.port);
                 if (result.trim()) {
                     logger.log('Current process using port:');
                     logger.log(result.trim());
@@ -137,7 +149,7 @@ export function runServer(args: string[], runtimeOverrides: Partial<ServerRuntim
             } catch {
                 // lsof not available or timed out, skip additional info
             }
-            process.exit(1);
+            runtime.exitProcess(1);
         }
         // Re-throw for unexpected errors
         throw err;
