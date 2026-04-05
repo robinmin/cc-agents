@@ -805,7 +805,7 @@ Your working tree has uncommitted changes. Either:
 |------|------|---------|-------------|
 | `--preset <name>` | string | — | Named preset from pipeline YAML |
 | `--phases <a,b>` | string[] | all | Comma-separated phase names |
-| `--channel <name>` | string | `current` | Execution channel |
+| `--channel <name>` | string | `auto` | Execution channel (`current` is a deprecated alias) |
 | `--coverage <n>` | number | preset default | Coverage threshold (1-100) |
 | `--auto` | bool | false | Auto-approve human gates |
 | `--dry-run` | bool | false | Show plan only |
