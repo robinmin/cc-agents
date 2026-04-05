@@ -1,6 +1,6 @@
 ---
 description: Refine task requirements via structured quality analysis, optionally on another execution channel
-argument-hint: "<task-ref> [--auto] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--auto] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -23,7 +23,7 @@ Refine task requirements by analyzing existing content for quality issues and im
 |----------|----------|-------------|
 | `task-ref` | Yes | WBS number or file path |
 | `--auto` | No | Auto-approve gates |
-| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `current` |
+| `--channel <auto\|current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `auto` |
 
 ### Smart Positional Detection
 
@@ -34,14 +34,14 @@ Refine task requirements by analyzing existing content for quality issues and im
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. The orchestrator decides whether delegated work stays local or uses **rd3:run-acp** for ACP-backed execution.
+Resolves `--channel` (default: `auto`) and forwards it to **rd3:orchestration-v2**. `auto` means "use the configured default backend"; `current` is kept as a deprecated compatibility alias.
 
 ```
-# Default: execute on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --channel current")
+# Default: execute on the auto-routed channel
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --channel auto")
 
-# Optional: bypass any future human gates on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --auto --channel current")
+# Optional: bypass any future human gates on the auto-routed channel
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --auto --channel auto")
 
 # Execute the same workflow on another channel
 Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --channel codex")
