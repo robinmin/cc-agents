@@ -1,7 +1,7 @@
 ---
 description: Preset-driven task execution through the 9-phase pipeline
-argument-hint: "<task-ref> [--preset <preset>] [--auto] [--coverage <n>] [--dry-run] [--refine] [--skip-phases <n,n>] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
-allowed-tools: ["Read", "Glob", "Bash", "Skill"]
+argument-hint: "<task-ref> [--preset <preset>] [--phases <a,b>] [--auto] [--coverage <n>] [--dry-run] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
 # Dev Run
@@ -21,7 +21,7 @@ Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:o
 | Profile | Phases | Description |
 |---------|--------|-------------|
 | `simple` | 5, 6 | Single deliverable, 1-2 files |
-| `standard` | 1, 4, 5, 6, 7, 8(bdd), 9(refs) | Moderate scope, 2-5 files |
+| `standard` | 1, 4, 5, 6, 7, 8(bdd), 8(func), 9(refs) | Moderate scope, 2-5 files |
 | `complex` | 1-9 (all) | Large scope, 6+ files, full rigor |
 | `research` | 1-9 (all) | Investigation-heavy work with a lighter default test gate |
 
@@ -44,15 +44,14 @@ Default: read from task frontmatter, fall back to `standard`.
 | `task-ref` | Yes | WBS number or file path |
 | `--auto` | No | Auto-approve human gates (no pauses) |
 | `--preset` | No | Override profile (default: from task frontmatter) |
+| `--phases <a,b>` | No | Run a specific DAG-valid subset of named phases |
 | `--coverage <n>` | No | Override project coverage threshold for phase 6 |
 | `--dry-run` | No | Preview execution plan without executing |
-| `--refine` | No | Run phase 1 in refine mode |
-| `--skip-phases <n,n>` | No | Skip trailing phases only (advanced) |
-| `--channel <name>` | No | Execution channel: `current`, `claude-code`, `codex`, `openclaw`, `opencode`, `antigravity`, `pi`. Default: `current` |
+| `--channel <name>` | No | Execution channel: `auto`, `current` (deprecated alias), `claude-code`, `codex`, `openclaw`, `opencode`, `antigravity`, `pi`. Default: `auto` |
 
 ## Workflow
 
-Forward `--channel` (default: `current`) to **rd3:orchestration-v2**. All 9 phases are executable. Phases 5-7 use worker-agent envelopes; Phase 6 runs through verification-chain. Phases 1-4 and 8-9 execute as direct-skill phases on the `current` channel. Review runs pause at the Phase 7 human gate unless `--auto` is set. Worker phases (5, 7) require `ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT` or `ACPX_AGENT` for local prompt execution.
+Forward `--channel` (default: `auto`) to **rd3:orchestration-v2**. `auto` means "route through the configured default backend from `default_channel`". `current` remains accepted as a deprecated alias for the same behavior. Explicit ACP agent names like `pi` or `codex` still target those backends directly. All 9 phases are executable. Phases 5-7 use worker-agent envelopes; Phase 6 runs through verification-chain. Phases 1-4 and 8-9 execute through the same configured default channel unless you override them explicitly. Review runs pause at the Phase 7 human gate unless `--auto` is set.
 
 ```
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS")
@@ -60,7 +59,7 @@ Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset complex")
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset unit")
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --auto")
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --dry-run")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --refine --coverage 90 --auto")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset refine")
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --channel opencode")
 ```
 
@@ -81,7 +80,7 @@ Run unit testing only
 </example>
 
 <example>
-Run review-only on the current channel and auto-approve the review gate
+Run review-only on the auto-routed channel and auto-approve the review gate
 ```bash
 /rd3:dev-run 0274 --preset review --auto
 ```
@@ -105,6 +104,13 @@ Preview a refine profile plan
 Preview the execution plan without running anything
 ```bash
 /rd3:dev-run 0274 --dry-run
+```
+</example>
+
+<example>
+Run only the review and verification subset in DAG order
+```bash
+/rd3:dev-run 0274 --phases review,verify-bdd,verify-func,docs
 ```
 </example>
 
