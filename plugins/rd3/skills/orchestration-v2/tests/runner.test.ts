@@ -70,7 +70,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
         eventBus = new EventBus();
 
         // Create and register mock executor — channels come from capabilities
-        mockExecutor = new MockExecutor({ channels: ['local', 'current'] });
+        mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
         executorPool.register(mockExecutor);
 
         // Create runner with all dependencies
