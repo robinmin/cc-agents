@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 
 Execute phases 2-4 of the 9-phase pipeline: Architecture, Design, and Task Decomposition.
 
-**Shortcut for:** `/rd3:dev-run {task-ref} --profile plan`
+**Shortcut for:** `/rd3:dev-run {task-ref} --preset plan`
 
 ## When to Use
 
@@ -37,13 +37,13 @@ Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration
 
 ```
 # Default: execute on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile plan --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset plan --channel current")
 
 # Optional: bypass the design gate on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile plan --auto --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset plan --auto --channel current")
 
 # Execute the same workflow on another channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile plan --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset plan --channel codex")
 ```
 
 ## Examples
