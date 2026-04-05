@@ -36,6 +36,10 @@ const DEFAULT_STATE_DIR = 'docs/.workflow-runs';
 const DB_FILENAME = 'state.db';
 const PRESETS_DIR = resolve(import.meta.dir, '../references/examples');
 const PROJECT_PIPELINE = 'docs/.workflows/pipeline.yaml';
+type PipelineSource = {
+    readonly file: string;
+    readonly presetMode: 'default' | 'named' | 'standalone';
+};
 
 function printHelp(): void {
     process.stdout.write(`Usage:
@@ -236,12 +240,19 @@ async function main(): Promise<void> {
 async function handleRun(options: Record<string, unknown>, state: StateManager): Promise<void> {
     const taskRef = options.taskRef as string;
     const preset = (options.preset as string | undefined) ?? 'default';
+    if (options.profileDeprecated === true) {
+        logger.warn('--profile is deprecated; use --preset instead. --profile will be removed in a future version.');
+    }
     try {
-        const pipelineFile = resolvePipelineFile(options.file as string | undefined, preset);
-        const [pipelineDef, validation] = await loadValidatedPipeline(pipelineFile);
+        const pipelineSource = await resolvePipelineFile(options.file as string | undefined, preset);
+        const [pipelineDef, validation] = await loadValidatedPipeline(pipelineSource.file);
         if (!validation.valid) {
             logger.error(`Pipeline validation failed: ${validation.errors.map((e) => e.message).join(', ')}`);
             process.exit(EXIT_VALIDATION_FAILED);
+        }
+        if (pipelineSource.presetMode === 'named' && !pipelineDef.presets?.[preset]) {
+            logger.error(`Unknown preset: ${preset}`);
+            process.exit(EXIT_INVALID_ARGS);
         }
 
         if (options.dryRun) {
@@ -274,7 +285,7 @@ async function handleRun(options: Record<string, unknown>, state: StateManager):
     } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.error(`Failed to load pipeline: ${msg}`);
-        process.exit(EXIT_VALIDATION_FAILED);
+        process.exit(msg.startsWith('Unknown preset:') ? EXIT_INVALID_ARGS : EXIT_VALIDATION_FAILED);
     }
 }
 
@@ -422,11 +433,11 @@ async function handleValidate(options: Record<string, unknown>): Promise<void> {
         process.exit(EXIT_SUCCESS);
     }
 
-    const file = resolvePipelineFile(options.file as string | undefined, 'default');
     try {
-        const [def, validation] = await loadValidatedPipeline(file);
+        const pipelineSource = await resolvePipelineFile(options.file as string | undefined, 'default');
+        const [def, validation] = await loadValidatedPipeline(pipelineSource.file);
         if (validation.valid) {
-            process.stdout.write(`\u2713 Pipeline valid: ${file}\n`);
+            process.stdout.write(`\u2713 Pipeline valid: ${pipelineSource.file}\n`);
             for (const phaseName of Object.keys(def.phases)) {
                 process.stdout.write(`  \u2713 ${phaseName}\n`);
             }
@@ -435,7 +446,7 @@ async function handleValidate(options: Record<string, unknown>): Promise<void> {
             }
             process.exit(EXIT_SUCCESS);
         } else {
-            process.stderr.write(`\u2717 Pipeline invalid: ${file}\n`);
+            process.stderr.write(`\u2717 Pipeline invalid: ${pipelineSource.file}\n`);
             for (const err of validation.errors) {
                 process.stderr.write(`  \u2717 ${err.message}\n`);
             }
@@ -700,14 +711,50 @@ async function handleMigrate(options: Record<string, unknown>, state: StateManag
     process.exit(EXIT_SUCCESS);
 }
 
-function resolvePipelineFile(file: string | undefined, preset: string): string {
-    if (file) return resolve(file);
+async function resolvePipelineFile(file: string | undefined, preset: string): Promise<PipelineSource> {
+    if (file) {
+        return {
+            file: resolve(file),
+            presetMode: preset === 'default' ? 'default' : 'named',
+        };
+    }
 
     // Check for project-local pipeline first
     const projectPipeline = resolve(PROJECT_PIPELINE);
-    if (existsSync(projectPipeline) && statSync(projectPipeline).size > 0) return projectPipeline;
+    if (existsSync(projectPipeline) && statSync(projectPipeline).size > 0) {
+        return {
+            file: projectPipeline,
+            presetMode: preset === 'default' ? 'default' : 'named',
+        };
+    }
 
-    return resolve(PRESETS_DIR, `${preset}.yaml`);
+    const defaultYaml = resolve(PRESETS_DIR, 'default.yaml');
+    if (preset === 'default') {
+        return {
+            file: defaultYaml,
+            presetMode: 'default',
+        };
+    }
+
+    const standaloneYaml = resolve(PRESETS_DIR, `${preset}.yaml`);
+    if (existsSync(standaloneYaml)) {
+        return {
+            file: standaloneYaml,
+            presetMode: 'standalone',
+        };
+    }
+
+    if (existsSync(defaultYaml)) {
+        const [defaultDefinition] = await parsePipelineYaml(defaultYaml);
+        if (defaultDefinition.presets?.[preset]) {
+            return {
+                file: defaultYaml,
+                presetMode: 'named',
+            };
+        }
+    }
+
+    throw new Error(`Unknown preset: ${preset}`);
 }
 
 async function loadValidatedPipeline(file: string): Promise<[PipelineDefinition, ValidationResult]> {
