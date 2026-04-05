@@ -41,7 +41,7 @@ The `rd3` task system is built on three layers:
 | **WBS (0047)** | A unique 4-digit ID assigned to every task. |
 | **9-Phase Pipeline** | The lifecycle from requirements (P1) to documentation (P9). |
 | **Execution Profile** | A preset governing which phases to run (`simple`, `complex`). |
-| **Execution Channel** | Where the work happens (`current`, `codex`, `opencode`). |
+| **Execution Channel** | Where the work happens (`auto`, explicit agent channels like `codex`, `opencode`; `current` is a deprecated alias of `auto`). |
 
 ---
 
