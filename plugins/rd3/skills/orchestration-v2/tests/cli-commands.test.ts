@@ -210,11 +210,31 @@ describe('cli/commands — parseArgs', () => {
         expect(result.options.verbose).toBe(true);
     });
 
-    test('ignores unknown flags', () => {
+    test('records unknown flags and skips their values', () => {
         const result = parseArgs(['run', '0300', '--unknown-flag', 'value']);
         expect(result.command).toBe('run');
         expect(result.options.taskRef).toBe('0300');
-        expect(result.options.unknownFlag).toBeUndefined();
+        expect(result.options.phaseName).toBeUndefined();
+        expect(result.unknownFlags).toEqual(['--unknown-flag']);
+    });
+
+    test('parses --profile as compatibility alias for --preset', () => {
+        const result = parseArgs(['run', '0300', '--profile', 'standard']);
+        expect(result.options.preset).toBe('standard');
+        expect(result.options.profileDeprecated).toBe(true);
+    });
+
+    test('--profile alias works with all preset names', () => {
+        const result = parseArgs(['run', '0300', '--profile', 'complex']);
+        expect(result.options.preset).toBe('complex');
+        expect(result.options.profileDeprecated).toBe(true);
+    });
+
+    test('--profile and --preset together use --preset value (last wins)', () => {
+        const result = parseArgs(['run', '0300', '--profile', 'simple', '--preset', 'complex']);
+        // Both set, but --preset is canonical; behavior depends on run.ts ordering
+        expect(result.options.preset).toBe('complex');
+        expect(result.options.profileDeprecated).toBe(true);
     });
 });
 
@@ -310,6 +330,15 @@ describe('cli/commands — validateCommand', () => {
     test('empty command returns error', () => {
         const cmd: ParsedCommand = { command: '', options: {} };
         expect(validateCommand(cmd)).toContain('Unknown command');
+    });
+
+    test('unknown flags return an error for valid commands', () => {
+        const cmd: ParsedCommand = {
+            command: 'run',
+            options: { taskRef: '0300' },
+            unknownFlags: ['--preste'],
+        };
+        expect(validateCommand(cmd)).toBe('Unknown option: --preste');
     });
 
     test('trends is not a valid command', () => {
