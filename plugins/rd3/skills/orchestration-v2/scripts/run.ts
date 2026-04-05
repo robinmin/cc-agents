@@ -4,10 +4,10 @@
  *
  * Usage: orchestrator <command> [options]
  *
- * Commands: run, resume, status, report, validate, list, history, undo, inspect, prune, migrate
+ * Commands: init, run, resume, status, report, validate, list, history, undo, inspect, prune, migrate
  */
 
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, statSync, mkdirSync, copyFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs, validateCommand } from './cli/commands';
 import { formatStatusOutput, formatStatusJson, formatStatusListOutput, formatStatusListJson } from './cli/status';
@@ -50,6 +50,7 @@ DAG-based pipeline orchestration engine for AI agent workflows.
 State is stored in docs/.workflow-runs/ relative to CWD.
 
 Commands:
+  init                     Initialize project with workflow directories and default pipeline
   run <task-ref>           Run a pipeline
   resume <task-ref>        Resume paused pipeline
   status [<task-ref>]      Show pipeline status
@@ -174,6 +175,9 @@ async function main(): Promise<void> {
 
     try {
         switch (parsed.command) {
+            case 'init':
+                await handleInit();
+                break;
             case 'run': {
                 const ctx = await getStateContext();
                 await handleRun(parsed.options, ctx.state);
@@ -235,6 +239,48 @@ async function main(): Promise<void> {
             await currentState.close();
         }
     }
+}
+
+/**
+ * Initialize project directories and copy default workflow.
+ */
+async function handleInit(): Promise<void> {
+    const workflowsDir = resolve(process.cwd(), 'docs', '.workflows');
+    const stateDir = resolve(process.cwd(), DEFAULT_STATE_DIR);
+    const defaultPipelineSrc = resolve(import.meta.dir, '../references/examples/default.yaml');
+    const defaultPipelineDst = resolve(process.cwd(), PROJECT_PIPELINE);
+
+    // Create docs/.workflows directory
+    if (!existsSync(workflowsDir)) {
+        mkdirSync(workflowsDir, { recursive: true });
+        logger.info(`Created directory: ${workflowsDir}`);
+    } else {
+        logger.info(`Directory already exists: ${workflowsDir}`);
+    }
+
+    // Create docs/.workflow-runs directory
+    if (!existsSync(stateDir)) {
+        mkdirSync(stateDir, { recursive: true });
+        logger.info(`Created directory: ${stateDir}`);
+    } else {
+        logger.info(`Directory already exists: ${stateDir}`);
+    }
+
+    // Copy default workflow to docs/.workflows/pipeline.yaml
+    if (!existsSync(defaultPipelineDst)) {
+        if (existsSync(defaultPipelineSrc)) {
+            copyFileSync(defaultPipelineSrc, defaultPipelineDst);
+            logger.info(`Copied default pipeline to: ${defaultPipelineDst}`);
+        } else {
+            logger.error(`Default pipeline not found: ${defaultPipelineSrc}`);
+            process.exit(EXIT_VALIDATION_FAILED);
+        }
+    } else {
+        logger.info(`Pipeline already exists: ${defaultPipelineDst}`);
+    }
+
+    logger.info('Initialization complete.');
+    process.exit(EXIT_SUCCESS);
 }
 
 async function handleRun(options: Record<string, unknown>, state: StateManager): Promise<void> {
