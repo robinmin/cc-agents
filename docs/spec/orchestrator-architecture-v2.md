@@ -467,7 +467,7 @@ interface Executor {
 ### 8.4 ExecutorPool Pattern
 
 The pool registers executors by their channel strings. Route resolution:
-- `current` → `LocalBunExecutor`
+- `auto` → configured default executor (`current` is a deprecated alias)
 - `mock` → `MockExecutor`
 - Custom channels → matched by executor `capabilities.channels`
 
