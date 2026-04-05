@@ -633,4 +633,39 @@ describe('history command', () => {
         expect(result.exitCode).toBe(0);
         expect(result.stdout).not.toContain('Pipeline Trends');
     });
+
+    test('init creates directories and copies default pipeline', () => {
+        const cwd = createTempCwd('init-fresh');
+        const result = runCli(['init'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Created directory');
+        expect(result.stdout).toContain('docs/.workflows');
+        expect(result.stdout).toContain('docs/.workflow-runs');
+        expect(result.stdout).toContain('Copied default pipeline');
+        expect(result.stdout).toContain('Initialization complete');
+    });
+
+    test('init is idempotent - running twice reports directories already exist', () => {
+        const cwd = createTempCwd('init-twice');
+
+        // First run
+        const first = runCli(['init'], cwd);
+        expect(first.exitCode).toBe(0);
+
+        // Second run
+        const second = runCli(['init'], cwd);
+        expect(second.exitCode).toBe(0);
+        expect(second.stdout).toContain('already exists');
+        expect(second.stdout).toContain('Initialization complete');
+    });
+
+    test('init --help shows init command in help text', () => {
+        const cwd = createTempCwd('init-help');
+        const result = runCli(['--help'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('init');
+        expect(result.stdout).toContain('Initialize project');
+    });
 });
