@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 
 Execute phase 9 (Documentation) of the 9-phase pipeline. Refreshes the canonical cumulative docs affected by a task.
 
-**Shortcut for:** `/rd3:dev-run {task-ref} --profile docs`
+**Shortcut for:** `/rd3:dev-run {task-ref} --preset docs`
 
 ## When to Use
 
@@ -37,10 +37,10 @@ Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration
 
 ```
 # Default: current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile docs --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset docs --channel current")
 
 # Execute on another channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile docs --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset docs --channel codex")
 ```
 
 ## Canonical Docs Refreshed
