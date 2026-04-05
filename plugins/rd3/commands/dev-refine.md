@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 
 Refine task requirements by analyzing existing content for quality issues and improving them through targeted Q&A.
 
-**Shortcut for:** `/rd3:dev-run {task-ref} --profile refine`
+**Shortcut for:** `/rd3:dev-run {task-ref} --preset refine`
 
 ## When to Use
 
@@ -38,13 +38,13 @@ Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration
 
 ```
 # Default: execute on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile refine --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --channel current")
 
 # Optional: bypass any future human gates on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile refine --auto --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --auto --channel current")
 
 # Execute the same workflow on another channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile refine --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --channel codex")
 ```
 
 ## Examples
