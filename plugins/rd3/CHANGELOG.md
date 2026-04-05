@@ -2,6 +2,65 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.5] - 2026-04-04
+
+### New Features
+
+- **rd3:orchestration-v2**: Complete rewrite of the 9-phase orchestration pipeline
+  - New engine architecture with improved phase orchestration
+  - Enhanced gate architecture with better error discrimination
+  - Profile-driven execution (simple, standard, complex, research)
+  - Phase profiles for single-phase execution (refine, plan, unit, review, docs)
+  - Worker phases (5-7) routed to execution channels; direct-skill phases (1-4, 8-9) pinned to current channel
+  - Dry-run preview, resume from any phase, `--undo` rollback via git-based sandbox
+  - Automated rework loops with configurable retry limits
+
+- **rd3:tasks Web UI**: New browser-based interface for the tasks server
+  - Real-time task visualization and management
+  - Terminal output streaming
+  - Task tree browser
+  - SSE-based live updates
+
+- **rd3:tasks Server Commands**: New CLI commands for task management
+  - `server` subcommand for launching the tasks HTTP server
+  - `write` subcommand for creating/updating tasks
+  - `open` subcommand for opening task files in editor
+  - `put` subcommand for batch updates
+  - `refresh` subcommand for reloading tasks from disk
+
+- **rd3:dev-verify**: New slash command for task verification
+  - Profile-driven verification execution
+  - Integration with orchestration-v2 pipeline
+
+- **rd3:task-decomposition Enhancements**: Improved requirements elicitation
+  - Better WBS generation
+  - Enhanced domain routing
+
+### Improvements
+
+- **Task Status**: Added `Canceled` status for tasks
+- **Description Handling**: Fixed issues with long task descriptions
+- **Setup Scripts**: Fixed `scripts/setup-all.sh` compatibility
+
+### Bug Fixes
+
+- Fixed numerous issues with orchestration-v2 Gate Architecture
+- Fixed web UI issues with rd3:tasks (description handling, status updates)
+- Fixed setup script compatibility issues
+
+### Test Coverage
+
+- 15 new test files for rd3:tasks skill (open, put, refresh, router, server-cmd, integration, routeHandlers, writeLock, show, terminal, tree, update, writeGuard)
+- 2,409+ new tests across the skills
+- New best-practice-fixes test suite
+- Phase worker documentation tests
+
+### Internal Changes
+
+- 211 files changed, 33,666 insertions, 563 deletions
+- 256 commits since v0.4.4
+- Complete migration from `rd3:orchestration-dev` to `rd3:orchestration-v2`
+
 ## [0.4.4] - 2026-03-31
 
 ### Improvements
