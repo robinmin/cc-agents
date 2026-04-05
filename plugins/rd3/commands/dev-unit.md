@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 
 Execute phase 6 (Unit Testing) of the 9-phase pipeline. Generates unit tests and iterates until the default unit target is met: per-file coverage >=90% and 100% passing tests.
 
-**Shortcut for:** `/rd3:dev-run {task-ref} --profile unit`
+**Shortcut for:** `/rd3:dev-run {task-ref} --preset unit`
 
 ## When to Use
 
@@ -38,13 +38,13 @@ Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration
 
 ```
 # Default unit target on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile unit --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset unit --channel current")
 
 # Custom coverage threshold on the current channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile unit --coverage 90 --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset unit --coverage 90 --channel current")
 
 # Execute the same workflow on another channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile unit --coverage 90 --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset unit --coverage 90 --channel codex")
 ```
 
 ## Completion Criteria
