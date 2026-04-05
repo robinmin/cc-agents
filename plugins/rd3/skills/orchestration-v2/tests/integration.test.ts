@@ -88,7 +88,7 @@ describe('Integration: full pipeline run', () => {
     test('runs sequential pipeline from start to completion', async () => {
         await stateManager.init();
 
-        const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['current'] });
+        const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
@@ -105,7 +105,7 @@ describe('Integration: full pipeline run', () => {
     test('runs parallel pipeline with DAG dependencies', async () => {
         await stateManager.init();
 
-        const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['current'] });
+        const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
@@ -121,7 +121,7 @@ describe('Integration: full pipeline run', () => {
     test('state persists run after completion', async () => {
         await stateManager.init();
 
-        const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['current'] });
+        const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
@@ -136,7 +136,7 @@ describe('Integration: full pipeline run', () => {
     test('queries produce valid RunSummary', async () => {
         await stateManager.init();
 
-        const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['current'] });
+        const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
@@ -156,7 +156,7 @@ describe('Integration: full pipeline run', () => {
     test('reporter formats completed run', async () => {
         await stateManager.init();
 
-        const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['current'] });
+        const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
@@ -184,7 +184,7 @@ describe('Integration: full pipeline run', () => {
     test('event bus records events during run', async () => {
         await stateManager.init();
 
-        const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['current'] });
+        const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
@@ -205,7 +205,7 @@ describe('Integration: full pipeline run', () => {
     test('parallel verification phases complete before downstream', async () => {
         await stateManager.init();
 
-        const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['current'] });
+        const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
