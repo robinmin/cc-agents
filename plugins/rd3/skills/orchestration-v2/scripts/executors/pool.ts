@@ -3,19 +3,41 @@
  *
  * Registry for executors. Routes execution requests to the appropriate
  * executor based on channel or executor ID.
+ *
+ * Channel resolution:
+ *   - 'auto'     → AutoExecutor (uses default_channel from config)
+ *   - 'current'  → AutoExecutor (deprecated compatibility alias)
+ *   - 'pi'       → AcpExecutor('pi')
+ *   - 'codex'     → AcpExecutor('codex')
+ *   - ... (any registered channel → AcpExecutor(channel))
+ *
+ * Config: ~/.config/orchestrator/config.yaml
+ *   executor_channels: [pi, codex, ...]
+ *   default_channel: pi
  */
 
 import type { Executor, ExecutionRequest, ExecutionResult, ExecutorHealth } from '../model';
-import { LocalBunExecutor } from './local';
+import { resolveConfig } from '../config/config';
+import { AutoExecutor } from './local';
+import { AcpExecutor } from './acp';
 
 export class ExecutorPool {
     private executors: Map<string, Executor> = new Map();
     private readonly defaultId: string;
 
     constructor() {
-        const local = new LocalBunExecutor();
-        this.register(local);
-        this.defaultId = local.id;
+        // AutoExecutor is always registered for the canonical 'auto' alias
+        // and the deprecated 'current' compatibility alias.
+        const auto = new AutoExecutor();
+        this.register(auto);
+        this.defaultId = auto.id;
+
+        // Register AcpExecutor for each configured channel
+        const config = resolveConfig();
+        for (const channel of config.executorChannels) {
+            const acp = new AcpExecutor(channel);
+            this.register(acp);
+        }
     }
 
     register(executor: Executor): void {
@@ -32,7 +54,7 @@ export class ExecutorPool {
     getDefault(): Executor {
         const executor = this.executors.get(this.defaultId);
         if (!executor) {
-            throw new Error('Default executor not found');
+            throw new Error(`Default executor not found: ${this.defaultId}`);
         }
         return executor;
     }
