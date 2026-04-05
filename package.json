@@ -27,7 +27,7 @@
         "test:rd3": "bun run --cwd plugins/rd3 test --coverage --reporter=dots",
         "test:coverage:rd3": "bun run --cwd plugins/rd3 test:coverage",
 
-        "update-cc": "./scripts/setup-all.sh",
+        "setup-all": "./scripts/setup-all.sh",
         "tasks": "bun run --cwd plugins/rd3 tasks",
         "tasks:check": "bun run --cwd plugins/rd3 check",
         "tasks:test": "bun run --cwd plugins/rd3 test",
