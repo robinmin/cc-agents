@@ -112,6 +112,10 @@ orchestrator run 0266 --preset simple    # ≡ --phases implement,test
 orchestrator run 0266 --preset complex   # ≡ --phases intake,arch,...,docs
 ```
 
+### Execution Channels
+
+`auto` is the canonical channel contract for v2. It means "route through the configured default backend from `default_channel`". `current` remains accepted as a deprecated compatibility alias for the same behavior. Explicit agent names such as `pi`, `codex`, or `opencode` route directly to those backends.
+
 ### FSM Lifecycle
 
 Every pipeline run has exactly 5 lifecycle states: IDLE → RUNNING → PAUSED/COMPLETED/FAILED. The FSM is engine-internal — users never specify FSM states in YAML.
@@ -190,7 +194,7 @@ The engine is a micro-kernel with pluggable subsystems:
 - **DAG Scheduler** — Dependency resolution, topological sort, parallel dispatch
 - **Event Bus** — Typed event emitter, all subsystems produce
 - **State Manager** — SQLite with event sourcing (6 tables)
-- **Executor Pool** — LocalBun, ACP, and Mock executors
+- **Executor Pool** — Auto/default-backend, ACP, and Mock executors
 - **CoV Driver** — Verification chain adapter
 - **Pipeline Compiler** — YAML → validated PipelineDefinition → DAG + FSM config
 
