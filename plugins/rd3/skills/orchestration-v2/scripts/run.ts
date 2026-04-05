@@ -13,6 +13,7 @@ import { parseArgs, validateCommand } from './cli/commands';
 import { formatStatusOutput, formatStatusJson, formatStatusListOutput, formatStatusListJson } from './cli/status';
 import { outputReport } from './cli/report';
 import { PipelineRunner } from './engine/runner';
+import { DAGScheduler } from './engine/dag';
 import { parsePipelineYaml, validatePipeline } from './config/parser';
 import { resolveExtends } from './config/resolver';
 import { StateManager } from './state/manager';
@@ -28,14 +29,17 @@ import {
     EXIT_TASK_NOT_FOUND,
     EXIT_STATE_ERROR,
 } from './model';
+import {
+    DEFAULT_STATE_DIR,
+    DB_FILENAME,
+    DEFAULT_PIPELINE_FILE,
+} from './config/consts';
 import { migrateFromV1 } from './state/migrate-v1';
 import { Pruner } from './state/prune';
 import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, ValidationResult } from './model';
 
-const DEFAULT_STATE_DIR = 'docs/.workflow-runs';
-const DB_FILENAME = 'state.db';
 const PRESETS_DIR = resolve(import.meta.dir, '../references/examples');
-const PROJECT_PIPELINE = 'docs/.workflows/pipeline.yaml';
+const PROJECT_PIPELINE = resolve('docs', '.workflows', DEFAULT_PIPELINE_FILE);
 type PipelineSource = {
     readonly file: string;
     readonly presetMode: 'default' | 'named' | 'standalone';
@@ -78,7 +82,7 @@ Command-specific options:
   run:
     --preset <name>         Named preset from pipeline YAML
     --phases <a,b>          Comma-separated phase names (DAG resolves order)
-    --channel <name>        Execution channel (default: current)
+    --channel <name>        Execution channel (default: auto)
     --coverage <n>          Override coverage threshold (1-100)
     --auto                  Auto-approve all human gates
     --dry-run               Show execution plan without running
@@ -283,9 +287,42 @@ async function handleInit(): Promise<void> {
     process.exit(EXIT_SUCCESS);
 }
 
+function normalizeRequestedChannel(channel: string | undefined): string | undefined {
+    if (channel === 'current') {
+        logger.warn('--channel current is deprecated; use --channel auto instead.');
+        return 'auto';
+    }
+    return channel;
+}
+
+function resolveDryRunPhases(
+    options: Record<string, unknown>,
+    pipelineSource: PipelineSource,
+    preset: string,
+    pipelineDef: PipelineDefinition,
+): readonly string[] {
+    const requestedPhases = options.phases as readonly string[] | undefined;
+    const scheduler = new DAGScheduler();
+    scheduler.buildFromPhases(pipelineDef.phases);
+    const ordered = scheduler.topologicalSort();
+
+    if (requestedPhases && requestedPhases.length > 0) {
+        const requested = new Set(requestedPhases);
+        return ordered.filter((phaseName) => requested.has(phaseName));
+    }
+
+    if (pipelineSource.presetMode === 'named' && preset !== 'default' && pipelineDef.presets?.[preset]) {
+        const requested = new Set(pipelineDef.presets[preset].phases);
+        return ordered.filter((phaseName) => requested.has(phaseName));
+    }
+
+    return ordered;
+}
+
 async function handleRun(options: Record<string, unknown>, state: StateManager): Promise<void> {
     const taskRef = options.taskRef as string;
     const preset = (options.preset as string | undefined) ?? 'default';
+    const normalizedChannel = normalizeRequestedChannel(options.channel as string | undefined);
     if (options.profileDeprecated === true) {
         logger.warn('--profile is deprecated; use --preset instead. --profile will be removed in a future version.');
     }
@@ -302,8 +339,9 @@ async function handleRun(options: Record<string, unknown>, state: StateManager):
         }
 
         if (options.dryRun) {
+            const phasesToShow = resolveDryRunPhases(options, pipelineSource, preset, pipelineDef);
             logger.info('[dry-run] Pipeline valid. Would execute:');
-            for (const phaseName of Object.keys(pipelineDef.phases)) {
+            for (const phaseName of phasesToShow) {
                 logger.info(`  - ${phaseName}`);
             }
             process.exit(EXIT_SUCCESS);
@@ -313,7 +351,7 @@ async function handleRun(options: Record<string, unknown>, state: StateManager):
             taskRef,
             ...(options.preset != null && { preset: options.preset as string }),
             ...(options.phases != null && { phases: options.phases as readonly string[] }),
-            ...(options.channel != null && { channel: options.channel as string }),
+            ...(normalizedChannel != null && { channel: normalizedChannel }),
             ...(options.coverage != null && { coverage: options.coverage as number }),
             ...(options.auto === true && { auto: true }),
         };
