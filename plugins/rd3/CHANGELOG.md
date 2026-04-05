@@ -2,6 +2,73 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.6] - 2026-04-05
+
+### New Features
+
+- **rd3:super-coder & rd3:super-tester**: New subagents for implementation and testing workflows
+  - `rd3:super-coder`: Handles feature delivery, bug fixes, refactoring, and phase-5 worker mode
+  - `rd3:super-tester`: Manages test execution, coverage measurement, TDD workflow, and phase-6 worker execution
+  - Both integrate with orchestration-v2 for profile-driven task execution
+
+- **rd3:reverse-engineering**: New agent skill for codebase analysis
+  - High-Level Design (HLD) generation from existing codebases
+  - Critical issue auditing and technical debt assessment
+  - Architecture documentation for onboarding and refactoring planning
+
+- **rd3:knowledge-extraction**: New agent skill for multi-source information synthesis
+  - Cross-verification and chain-of-verification protocols
+  - RAG-grounded synthesis with deduplication
+  - Source attribution and conflict resolution
+
+- **rd3:verification-chain**: New agent skill for Chain-of-Verification (CoV) workflows
+  - Maker-Checker node patterns with parallel groups
+  - Convergence modes and human-in-the-loop pause/resume
+  - Support for CLI, LLM, human, file-exists, and content-match verification methods
+
+- **rd3:cc-magents**: New meta agent skill for main agent configuration management
+  - Universal Main Agent Model (UMAM) across 23+ platforms
+  - 5-dimension quality scoring
+  - Bootstrap patterns and evolution protocols
+
+- **rd3:cc-commands**: Enhanced slash command management
+  - 10 new slash commands for dev workflow: `dev-plan`, `dev-refine`, `dev-unit`, `dev-review`, `dev-docs`, `dev-fixall`, `dev-gitmsg`, `dev-changelog`, `dev-reverse`, `dev-init`
+  - Workflow patterns for command scaffolding and evaluation
+
+- **rd3:cc-skills ADK Support**: Added Agent Development Kit compatibility
+  - ADK behavior patterns for skill packaging
+  - Platform-specific companion file generation
+
+### Improvements
+
+- **Task-decomposition**: Enhanced WBS generation and domain routing
+- **Token Efficiency**: Improved AGENTS.md configurations to reduce LLM token consumption
+- **Deep-research**: Enhanced output folder handling and report validation
+- **Verification-chain**: Comprehensive test suite with 27 interpreter tests and 8 integration tests
+
+### Bug Fixes
+
+- Fixed orchestration-v2 Gate Architecture issues
+- Fixed rd3:tasks WBS race conditions
+- Fixed token-saver hook configuration issues
+- Fixed web UI issues with status invalidation
+- Fixed task description truncation issues
+
+### Test Coverage
+
+- 15 new test files for rd3:tasks skill
+- 2,400+ new tests across all skills
+- New verification-chain test suite (27 interpreter tests, 8 integration tests)
+- New knowledge-extraction benchmark tests (942 lines)
+- Total: 845 files changed, 222,208 insertions
+
+### Internal Changes
+
+- Complete migration from plugin rd2 to plugin rd3
+- Refactored meta-agent skills to use LLM Content Improvements
+- Enhanced cc-skills with ADK behavior support
+- Improved installation scripts for cross-platform compatibility
+
 ## [0.4.5] - 2026-04-04
 
 ### New Features
