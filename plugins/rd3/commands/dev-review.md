@@ -1,6 +1,6 @@
 ---
 description: Comprehensive code review for a task scope, optionally on another execution channel
-argument-hint: "<task-ref> [--auto] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--auto] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -22,7 +22,7 @@ Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation qu
 |----------|----------|-------------|
 | `task-ref` | Yes | WBS number or task file path |
 | `--auto` | No | Auto-approve gates |
-| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `current` |
+| `--channel <auto\|current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | Execution channel for delegated skills. Default: `auto` |
 
 ### Smart Positional Detection
 
@@ -33,11 +33,11 @@ Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation qu
 
 ## Workflow
 
-Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration-v2**. Phase 7 runs via worker agent on the `current` channel and carries a human gate — the run pauses after review unless you pass `--auto`. ACP channels are available when you want the review delegated onto another agent.
+Resolves `--channel` (default: `auto`) and forwards it to **rd3:orchestration-v2**. Phase 7 runs via the configured default backend when you use `auto`; `current` remains accepted as a deprecated alias. The run still pauses after review unless you pass `--auto`. Explicit ACP channels are available when you want the review delegated onto another agent.
 
 ```
-# Run review locally on the current channel (pauses for approval unless --auto)
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset review --channel current")
+# Run review on the auto-routed channel (pauses for approval unless --auto)
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset review --channel auto")
 
 # Execute the review on another channel
 Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset review --channel codex")
