@@ -105,7 +105,7 @@ phases:
 # | Profile   | v1 phases        | v2 preset phases                                        |
 # |-----------|------------------|---------------------------------------------------------|
 # | simple    | 5, 6             | implement, test                                         |
-# | standard  | 1,4,5,6,7,8a,9  | intake, decompose, implement, test, review, verify-bdd, docs |
+# | standard  | 1,4,5,6,7,8a,8b,9 | intake, decompose, implement, test, review, verify-bdd, verify-func, docs |
 # | complex   | 1-9 (all)        | all 10 phases                                           |
 # | research  | 1-9 (all, 60%)   | all 10 phases, lower coverage                           |
 
@@ -115,7 +115,7 @@ presets:
     defaults: { coverage_threshold: 60 }
 
   standard:
-    phases: [intake, decompose, implement, test, review, verify-bdd, docs]
+    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func, docs]
     defaults: { coverage_threshold: 80 }
 
   complex:
