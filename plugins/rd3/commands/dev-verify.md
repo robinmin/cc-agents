@@ -1,6 +1,6 @@
 ---
 description: Verify a task via review, traceability, and optional fixes
-argument-hint: "<task-ref> [--skip-review] [--review-only] [--skip-confirm] [--channel <current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--skip-review] [--review-only] [--skip-confirm] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
@@ -24,7 +24,7 @@ Meta-command for final task verification. Optionally runs Phase 7 code review, a
 | `--skip-review` | No | `false` | Skip `/rd3:dev-review`; run functional verification only |
 | `--review-only` | No | `false` | Report findings only; do NOT apply fixes |
 | `--skip-confirm` | No | `false` | Skip confirmation, fix immediately |
-| `--channel <current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | `current` | Execution channel for the `/rd3:dev-review` leg only |
+| `--channel <auto\|current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | `auto` | Execution channel for the `/rd3:dev-review` leg only |
 
 Resolve `task-ref`: digits → glob `docs/tasks2/{digits}_*.md`, ends with `.md` → use as-is.
 
@@ -49,7 +49,7 @@ This step owns implementation-quality review only:
 - Findings from `rd3:code-review-common`
 
 ### Step 3: Functional Review
-Run `rd3:functional-review` on the current channel to verify requirements traceability and completeness.
+Run `rd3:functional-review` on the active execution context to verify requirements traceability and completeness.
 
 ```text
 Skill(skill="rd3:functional-review", args="{task-ref}")
@@ -137,7 +137,7 @@ Produce a final verification verdict after the review/traceability loop complete
 ```bash
 /rd3:dev-verify 0274 --skip-confirm --channel codex
 ```
-<commentary>Delegates the review leg to Codex, runs functional review locally, then applies fixes without asking again.</commentary>
+<commentary>Delegates the review leg to Codex, runs functional review in the active execution context, then applies fixes without asking again.</commentary>
 </example>
 
 ## See Also
@@ -149,5 +149,5 @@ Produce a final verification verdict after the review/traceability loop complete
 ## Platform Notes
 
 - **Claude Code**: Coordinate `/rd3:dev-review` and `Skill("rd3:functional-review", ...)`, then apply fixes locally if requested.
-- **Other platforms**: Treat this command as an orchestration prompt template. The review leg may delegate remotely; functional review and remediation stay on the current execution context.
-- **Channel behavior**: `--channel` applies only to the review leg. Functional review is a direct-skill phase and remains on `current`.
+- **Other platforms**: Treat this command as an orchestration prompt template. The review leg may delegate remotely; functional review and remediation stay on the active execution context.
+- **Channel behavior**: `--channel` applies only to the review leg. Functional review runs on the active execution context; use `auto` for the configured default backend.
