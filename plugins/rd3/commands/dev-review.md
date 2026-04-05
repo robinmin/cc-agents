@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 
 Execute phase 7 (Code Review) of the 9-phase pipeline. Reviews implementation quality for a specific task scope.
 
-**Shortcut for:** `/rd3:dev-run {task-ref} --profile review`
+**Shortcut for:** `/rd3:dev-run {task-ref} --preset review`
 
 ## When to Use
 
@@ -37,10 +37,10 @@ Resolves `--channel` (default: `current`) and forwards it to **rd3:orchestration
 
 ```
 # Run review locally on the current channel (pauses for approval unless --auto)
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile review --channel current")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset review --channel current")
 
 # Execute the review on another channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --profile review --channel codex")
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset review --channel codex")
 ```
 
 ## Review Dimensions
