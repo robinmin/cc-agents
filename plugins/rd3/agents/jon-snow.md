@@ -63,9 +63,9 @@ Examples (Claude Code syntax — adapt to your platform):
 ```
 rd3:orchestration-v2 0266 --channel codex
 rd3:orchestration-v2 0266 --start-phase 5 --channel codex
-rd3:orchestration-v2 0266 --profile complex --channel codex
-rd3:orchestration-v2 0266 --profile plan --channel codex
-rd3:orchestration-v2 0266 --profile unit --coverage 90
+rd3:orchestration-v2 0266 --preset complex --channel codex
+rd3:orchestration-v2 0266 --preset plan --channel codex
+rd3:orchestration-v2 0266 --preset unit --coverage 90
 rd3:orchestration-v2 0266 --auto --channel codex
 rd3:orchestration-v2 0266 --dry-run
 rd3:orchestration-v2 0266 --skip-phases 7,8
@@ -85,24 +85,24 @@ Map the request to the orchestration profile and flags before delegating:
 
 | User says... | Delegate as... | Notes |
 |--------------|----------------|-------|
-| "run the full pipeline", "orchestrate task" | `task_ref` only, or `--profile complex` if explicitly requested | Uses task frontmatter profile when present |
+| "run the full pipeline", "orchestrate task" | `task_ref` only, or `--preset complex` if explicitly requested | Uses task frontmatter profile when present |
 | "resume from phase 5" | `--start-phase 5` | Keep the same profile unless user overrides |
-| "plan this task" | `--profile plan` | Phases 2, 3, 4 |
-| "run unit phase" | `--profile unit` | Supports `--coverage` override |
-| "review only" | `--profile review` | Code review-only execution |
-| "generate docs only" | `--profile docs` | Phase 9 only |
+| "plan this task" | `--preset plan` | Phases 2, 3, 4 |
+| "run unit phase" | `--preset unit` | Supports `--coverage` override |
+| "review only" | `--preset review` | Code review-only execution |
+| "generate docs only" | `--preset docs` | Phase 9 only |
 | "dry run the pipeline" | `--dry-run` | No side effects |
 | "run it on codex/opencode/claude" | `--channel <agent>` | Pass channel unchanged to orchestration |
 | "auto-approve the gates" | `--auto` | Human gates do not pause |
-| "refine requirements first" | `--refine` or `--profile refine` | `--refine` alters phase 1 mode; `refine` profile runs only phase 1 |
+| "refine requirements first" | `--refine` or `--preset refine` | `--refine` alters phase 1 mode; `refine` profile runs only phase 1 |
 
 ## Examples
 
 ```text
 rd3:orchestration-v2 0266 --channel codex
-rd3:orchestration-v2 0266 --profile plan --channel codex
+rd3:orchestration-v2 0266 --preset plan --channel codex
 rd3:orchestration-v2 0266 --start-phase 5 --auto --channel codex
-rd3:orchestration-v2 0266 --profile unit --coverage 90
+rd3:orchestration-v2 0266 --preset unit --coverage 90
 ```
 
 ## Argument Contract
@@ -112,7 +112,7 @@ Keep the wrapper aligned with the real orchestration skill interface:
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `task_ref` | WBS number or path to task file | (required) |
-| `--profile` | `simple`, `standard`, `complex`, `research`, `refine`, `plan`, `unit`, `review`, or `docs` | from task frontmatter, else `standard` |
+| `--preset` | `simple`, `standard`, `complex`, `research`, `refine`, `plan`, `unit`, `review`, or `docs` | from task frontmatter, else `standard` |
 | `--start-phase` | Resume from a specific phase within the selected profile | (none) |
 | `--skip-phases` | Comma-separated phase numbers to skip | (none) |
 | `--dry-run` | Preview the execution plan without side effects | false |
