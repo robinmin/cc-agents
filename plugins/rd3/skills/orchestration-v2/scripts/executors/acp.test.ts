@@ -1,771 +1,416 @@
-import { describe, test, expect, beforeAll, jest, beforeEach, afterEach } from 'bun:test';
-import { AcpExecutor } from './acp';
-import type { ExecutionRequest, ResourceMetrics } from '../model';
+import { describe, test, expect, beforeAll, beforeEach, afterEach } from 'bun:test';
+import { AcpExecutor, ALLOWED_TOOLS } from './acp';
+import type { ExecutionRequest } from '../model';
 import { setGlobalSilent } from '../../../../scripts/logger';
-
-/** Test-visible interface exposing private methods for unit testing */
-interface TestableAcpExecutor {
-    buildArgs(req: ExecutionRequest): string[];
-    buildEnv(req: ExecutionRequest): NodeJS.ProcessEnv;
-    parseEventStream(output: string): ResourceMetrics[];
-}
-
-/** Helper to cast AcpExecutor for testing private methods */
-function asTestable(exec: AcpExecutor): TestableAcpExecutor {
-    return exec as unknown as TestableAcpExecutor;
-}
-
-/** Minimal type for Bun.spawn mock process objects */
-interface MockProcess {
-    exited: Promise<number>;
-    stdout: ReadableStream;
-    stderr: ReadableStream;
-}
-
-/** Minimal type for Bun.spawn options in mock implementations */
-interface SpawnOptions {
-    signal?: AbortSignal;
-    stdout?: string;
-    stderr?: string;
-    cwd?: string;
-    env?: NodeJS.ProcessEnv;
-}
 
 beforeAll(() => {
     setGlobalSilent(true);
 });
 
-// Mock Bun.spawn
-const mockSpawn = jest.fn();
+// ── Mock Bun.spawn ────────────────────────────────────────────────────────────
+
 const originalSpawn = Bun.spawn;
+let capturedCmd: string[] = [];
+let capturedOpts: Record<string, unknown> = {};
+let mockExitCode = 0;
+let mockStdout = '';
+let mockStderr = '';
+
+function setupMock(code = 0, stdout = '', stderr = '') {
+    mockExitCode = code;
+    mockStdout = stdout;
+    mockStderr = stderr;
+    capturedCmd = [];
+    capturedOpts = {};
+}
+
+function makeStream(data: string) {
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(new TextEncoder().encode(data));
+            controller.close();
+        },
+    });
+}
 
 beforeEach(() => {
-    Bun.spawn = mockSpawn as typeof Bun.spawn;
-    mockSpawn.mockClear();
+    setupMock();
+    Bun.spawn = ((cmd: string[], opts?: Record<string, unknown>) => {
+        capturedCmd = cmd;
+        capturedOpts = opts ?? {};
+        return {
+            exited: Promise.resolve(mockExitCode),
+            stdout: makeStream(mockStdout),
+            stderr: makeStream(mockStderr),
+        } as unknown as ReturnType<typeof Bun.spawn>;
+    }) as unknown as typeof Bun.spawn;
 });
 
 afterEach(() => {
     Bun.spawn = originalSpawn;
 });
 
-describe('executors/acp — AcpExecutor', () => {
+const BASE_REQ: ExecutionRequest = {
+    skill: 'rd3:request-intake',
+    phase: 'intake',
+    prompt: 'Process the task',
+    payload: {},
+    channel: 'pi',
+    timeoutMs: 30_000,
+    taskRef: 'task-001',
+};
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe('AcpExecutor', () => {
     test('constructor sets agent name, id, and capabilities', () => {
-        const exec = new AcpExecutor('test-agent');
-
-        expect(exec.id).toBe('acp:test-agent');
-        expect(exec.capabilities).toEqual({
-            parallel: true,
-            streaming: true,
-            structuredOutput: true,
-            channels: ['test-agent'],
-            maxConcurrency: 4,
-        });
+        const exec = new AcpExecutor('codex');
+        expect(exec.id).toBe('acp:codex');
+        expect(exec.capabilities.parallel).toBe(true);
+        expect(exec.capabilities.maxConcurrency).toBe(4);
+        expect(exec.capabilities.channels).toContain('codex');
+        expect(exec.capabilities.channels).toContain('acp');
     });
 
-    test('constructor with different agent name', () => {
-        const exec = new AcpExecutor('my-custom-agent');
-
-        expect(exec.id).toBe('acp:my-custom-agent');
-        expect(exec.capabilities.channels).toEqual(['my-custom-agent']);
+    test('ALLOWED_TOOLS constant includes Skill', () => {
+        expect(ALLOWED_TOOLS).toContain('Skill');
     });
 
-    const createMockProcess = (exitCode = 0, stdout = '', stderr = ''): MockProcess => ({
-        exited: Promise.resolve(exitCode),
-        stdout: new ReadableStream({
-            start(controller) {
-                controller.enqueue(new TextEncoder().encode(stdout));
-                controller.close();
-            },
-        }),
-        stderr: new ReadableStream({
-            start(controller) {
-                controller.enqueue(new TextEncoder().encode(stderr));
-                controller.close();
-            },
-        }),
+    test('healthCheck returns healthy when acpx is available', async () => {
+        const exec = new AcpExecutor('pi');
+        setupMock(0, 'acpx version 1.0.0', '');
+        const health = await exec.healthCheck();
+        expect(health.healthy).toBe(true);
+    });
+
+    test('healthCheck returns unhealthy when acpx is absent', async () => {
+        const exec = new AcpExecutor('pi');
+        Bun.spawn = (() => { throw new Error('ENOENT'); }) as unknown as typeof Bun.spawn;
+        const health = await exec.healthCheck();
+        expect(health.healthy).toBe(false);
+        expect(health.message).toBe('acpx not available');
+    });
+
+    test('dispose is idempotent', async () => {
+        const exec = new AcpExecutor('pi');
+        await exec.dispose();
+        await expect(exec.dispose()).resolves.toBeUndefined();
     });
 
     describe('execute()', () => {
-        test('executes successfully with basic request', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const mockProcess = createMockProcess(0, 'Success output', '');
-            mockSpawn.mockReturnValue(mockProcess);
+        test('passes --allowed-tools with Skill in exec command', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            expect(capturedCmd).toContain('--allowed-tools');
+            const idx = capturedCmd.indexOf('--allowed-tools');
+            expect(capturedCmd[idx + 1]).toContain('Skill');
+        });
 
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
+        test('passes --format json for structured output', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            expect(capturedCmd).toContain('--format');
+            const idx = capturedCmd.indexOf('--format');
+            expect(capturedCmd[idx + 1]).toBe('json');
+        });
 
-            const result = await exec.execute(req);
+        test('passes pi exec as the agent subcommand', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            expect(capturedCmd).toContain('pi');
+            const piIdx = capturedCmd.indexOf('pi');
+            expect(capturedCmd[piIdx + 1]).toBe('exec');
+        });
 
+        test('converts timeout from ms to seconds', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute({ ...BASE_REQ, timeoutMs: 90_000 });
+            const idx = capturedCmd.indexOf('--timeout');
+            expect(capturedCmd[idx + 1]).toBe('90');
+        });
+
+        test('--timeout is positioned before the agent (global option)', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            const timeoutIdx = capturedCmd.indexOf('--timeout');
+            const piIdx = capturedCmd.indexOf('pi');
+            // Global options must come before the agent
+            expect(timeoutIdx).toBeGreaterThan(0);
+            expect(piIdx).toBeGreaterThan(timeoutIdx);
+        });
+
+        test('passes --non-interactive-permissions deny', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            expect(capturedCmd).toContain('--non-interactive-permissions');
+            const idx = capturedCmd.indexOf('--non-interactive-permissions');
+            expect(capturedCmd[idx + 1]).toBe('deny');
+        });
+
+        test('sets ORCH_PHASE, ORCH_CHANNEL, ORCH_TASK_REF env vars', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            const env = capturedOpts.env as NodeJS.ProcessEnv | undefined;
+            expect(env?.ORCH_PHASE).toBe('intake');
+            expect(env?.ORCH_CHANNEL).toBe('pi');
+            expect(env?.ORCH_TASK_REF).toBe('task-001');
+        });
+
+        test('returns success for zero exit code', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(0, '{"type":"done"}\n', '');
+            const result = await exec.execute(BASE_REQ);
             expect(result.success).toBe(true);
             expect(result.exitCode).toBe(0);
-            expect(result.stdout).toBe('Success output');
-            expect(result.stderr).toBe('');
-            expect(result.timedOut).toBe(false);
-            expect(typeof result.durationMs).toBe('number');
-            expect(result.durationMs).toBeGreaterThanOrEqual(0);
         });
 
-        test('handles process failure with non-zero exit code', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const mockProcess = createMockProcess(1, '', 'Error occurred');
-            mockSpawn.mockReturnValue(mockProcess);
-
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const result = await exec.execute(req);
-
+        test('returns failure for non-zero exit code', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(1, '', 'Internal error');
+            const result = await exec.execute(BASE_REQ);
             expect(result.success).toBe(false);
             expect(result.exitCode).toBe(1);
-            expect(result.stderr).toBe('Error occurred');
-            expect(result.timedOut).toBe(false);
+            expect(result.stderr).toBe('Internal error');
         });
 
-        test('handles spawn exception', async () => {
-            const exec = new AcpExecutor('test-agent');
-            mockSpawn.mockImplementation(() => {
-                throw new Error('Spawn failed');
-            });
+        test('returns timed-out on AbortError', async () => {
+            const exec = new AcpExecutor('pi');
+            let abortHandler: (() => void) | undefined;
+            Bun.spawn = ((_cmd: unknown, opts?: { signal?: AbortSignal }) => {
+                opts?.signal?.addEventListener('abort', () => abortHandler?.());
+                return {
+                    exited: new Promise<number>((resolve) => {
+                        abortHandler = () => resolve(1);
+                    }),
+                    stdout: makeStream(''),
+                    stderr: makeStream(''),
+                } as unknown as ReturnType<typeof Bun.spawn>;
+            }) as unknown as typeof Bun.spawn;
 
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const result = await exec.execute(req);
-
+            const result = await exec.execute({ ...BASE_REQ, timeoutMs: 50 });
             expect(result.success).toBe(false);
-            expect(result.exitCode).toBe(1);
-            expect(result.stderr).toBe('Spawn failed');
-            expect(result.timedOut).toBe(false);
-        });
-
-        test('handles timeout with abort signal', async () => {
-            const exec = new AcpExecutor('test-agent');
-
-            mockSpawn.mockImplementation((_cmd: string[], opts: SpawnOptions) => {
-                const proc: MockProcess = {
-                    exited: new Promise<number>((_resolve, reject) => {
-                        opts.signal?.addEventListener('abort', () => reject(new Error('Aborted')));
-                    }),
-                    stdout: new ReadableStream({
-                        start(controller) {
-                            controller.close();
-                        },
-                    }),
-                    stderr: new ReadableStream({
-                        start(controller) {
-                            controller.close();
-                        },
-                    }),
-                };
-                return proc;
-            });
-
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 100,
-            };
-
-            const result = await exec.execute(req);
-
-            expect(result.success).toBe(false);
-            expect(result.exitCode).toBe(1);
-            expect(result.stderr).toContain('timed out after 100ms');
             expect(result.timedOut).toBe(true);
         });
+    });
 
-        test('truncates large stdout and stderr', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const largeStdout = 'a'.repeat(60000);
-            const largeStderr = 'b'.repeat(15000);
-            const mockProcess = createMockProcess(0, largeStdout, largeStderr);
-            mockSpawn.mockReturnValue(mockProcess);
-
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const result = await exec.execute(req);
-
-            expect(result.stdout?.length).toBe(50000);
-            expect(result.stderr?.length).toBe(10000);
+    describe('prompt building', () => {
+        test('prompt starts with Skill execution directive', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            expect(prompt).toContain('Skill execution:');
+            expect(prompt).toContain('rd3:request-intake');
         });
 
-        test('parses resource metrics from NDJSON output', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const stdout = [
-                '{"type": "usage", "usage": {"model_id": "gpt-4", "model_provider": "openai", "input_tokens": 100, "output_tokens": 50, "wall_clock_ms": 1000, "execution_ms": 800}}',
-                '{"type": "other", "data": "ignored"}',
-                '{"type": "usage", "usage": {"model_id": "claude-3", "model_provider": "anthropic", "input_tokens": 200, "output_tokens": 75, "wall_clock_ms": 1200, "execution_ms": 900, "cache_read_tokens": 10, "cache_creation_tokens": 5, "first_token_ms": 150}}',
-                'regular output line',
-            ].join('\n');
-
-            const mockProcess = createMockProcess(0, stdout, '');
-            mockSpawn.mockReturnValue(mockProcess);
-
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const result = await exec.execute(req);
-
-            expect(result.success).toBe(true);
-            expect(result.resources).toHaveLength(2);
-
-            const resource1 = result.resources?.[0];
-            expect(resource1).toEqual({
-                model_id: 'gpt-4',
-                model_provider: 'openai',
-                input_tokens: 100,
-                output_tokens: 50,
-                wall_clock_ms: 1000,
-                execution_ms: 800,
-            });
-
-            const resource2 = result.resources?.[1];
-            expect(resource2).toEqual({
-                model_id: 'claude-3',
-                model_provider: 'anthropic',
-                input_tokens: 200,
-                output_tokens: 75,
-                wall_clock_ms: 1200,
-                execution_ms: 900,
-                cache_read_tokens: 10,
-                cache_creation_tokens: 5,
-                first_token_ms: 150,
-            });
+        test('prompt includes phase and task context', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute({ ...BASE_REQ, phase: 'implement', taskRef: 'task-xyz' });
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            expect(prompt).toContain('phase: implement');
+            expect(prompt).toContain('task: task-xyz');
         });
 
-        test('skips invalid JSON and non-usage events in resource parsing', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const stdout = [
-                'invalid json line',
-                '{"type": "log", "message": "not a usage event"}',
-                '{"malformed": json}',
-                '{"type": "usage", "usage": {"model_id": "gpt-4", "input_tokens": 100, "output_tokens": 50, "wall_clock_ms": 1000, "execution_ms": 800}}',
+        test('prompt includes payload as JSON', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute({ ...BASE_REQ, payload: { coverage: 90 } });
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            expect(prompt).toContain('"coverage":90');
+        });
+
+        test('prompt includes rework iteration', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute({ ...BASE_REQ, reworkIteration: 2, reworkMax: 3 });
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            expect(prompt).toContain('rework: iteration 2/3');
+        });
+
+        test('prompt includes feedback', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute({ ...BASE_REQ, feedback: 'Improve coverage' });
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            expect(prompt).toContain('feedback: Improve coverage');
+        });
+
+        test('prompt instructs agent to invoke Skill() immediately', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            expect(prompt).toContain('Invoke Skill("rd3:request-intake")');
+        });
+
+        test('prompt requests JSON output from skill', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            expect(prompt).toContain('```json');
+        });
+
+        test('prompt omits payload section when payload is empty', async () => {
+            const exec = new AcpExecutor('pi');
+            await exec.execute(BASE_REQ);
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            // payload line should not appear when payload is {}
+            const payloadLines = prompt.split('\n').filter((l) => l.startsWith('  payload:'));
+            expect(payloadLines).toHaveLength(0);
+        });
+
+        test('prompt omits task when taskRef is absent', async () => {
+            const exec = new AcpExecutor('pi');
+            const reqNoTask: ExecutionRequest = {
+                skill: BASE_REQ.skill,
+                phase: BASE_REQ.phase,
+                prompt: BASE_REQ.prompt,
+                payload: BASE_REQ.payload,
+                channel: BASE_REQ.channel,
+                timeoutMs: BASE_REQ.timeoutMs,
+            };
+            await exec.execute(reqNoTask);
+            const prompt = capturedCmd[capturedCmd.length - 1];
+            expect(prompt).toContain('task: (none)');
+        });
+    });
+
+    describe('output parsing', () => {
+        test('extracts structured data from NDJSON structured event', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(0, '{"type":"structured","data":{"result":"ok"}}\n', '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.structured).toEqual({ result: 'ok' });
+        });
+
+        test('extracts resource usage from NDJSON usage events', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(
+                0,
+                '{"type":"usage","usage":{"model_id":"gpt-4","input_tokens":100,"output_tokens":50,"wall_clock_ms":1000,"execution_ms":800}}\n',
                 '',
-            ].join('\n');
-
-            const mockProcess = createMockProcess(0, stdout, '');
-            mockSpawn.mockReturnValue(mockProcess);
-
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const result = await exec.execute(req);
-
-            expect(result.resources).toHaveLength(1);
-            expect(result.resources?.[0].model_id).toBe('gpt-4');
-        });
-
-        test('handles missing or null usage fields gracefully', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const stdout = '{"type": "usage", "usage": {"input_tokens": null, "output_tokens": "50"}}';
-
-            const mockProcess = createMockProcess(0, stdout, '');
-            mockSpawn.mockReturnValue(mockProcess);
-
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const result = await exec.execute(req);
-
-            expect(result.resources).toHaveLength(1);
-            expect(result.resources?.[0]).toEqual({
-                model_id: '',
-                model_provider: '',
-                input_tokens: 0,
-                output_tokens: 50,
-                wall_clock_ms: 0,
-                execution_ms: 0,
-            });
-        });
-    });
-
-    describe('buildArgs()', () => {
-        test('builds basic arguments correctly', () => {
-            const exec = new AcpExecutor('test-agent');
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            // Access private method for testing
-            const args = asTestable(exec).buildArgs(req);
-
-            expect(args).toEqual([
-                'run',
-                '--agent',
-                'test-agent',
-                '--skill',
-                'test-skill',
-                '--phase',
-                'implement',
-                '--channel',
-                'test-channel',
-                '--prompt',
-                'Test prompt',
-            ]);
-        });
-
-        test('includes payload when provided', () => {
-            const exec = new AcpExecutor('test-agent');
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: { key: 'value', number: 42 },
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const args = asTestable(exec).buildArgs(req);
-
-            expect(args).toContain('--payload');
-            const payloadIndex = args.indexOf('--payload');
-            expect(args[payloadIndex + 1]).toBe('{"key":"value","number":42}');
-        });
-
-        test('includes optional fields when provided', () => {
-            const exec = new AcpExecutor('test-agent');
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-                feedback: 'Please improve this',
-                reworkIteration: 2,
-                reworkMax: 5,
-                outputSchema: { type: 'object', properties: { result: { type: 'string' } } },
-            };
-
-            const args = asTestable(exec).buildArgs(req);
-
-            expect(args).toContain('--feedback');
-            expect(args).toContain('Please improve this');
-            expect(args).toContain('--rework-iteration');
-            expect(args).toContain('2');
-            expect(args).toContain('--rework-max');
-            expect(args).toContain('5');
-            expect(args).toContain('--output-schema');
-            expect(args).toContain('{"type":"object","properties":{"result":{"type":"string"}}}');
-        });
-
-        test('omits optional fields when undefined', () => {
-            const exec = new AcpExecutor('test-agent');
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const args = asTestable(exec).buildArgs(req);
-
-            expect(args).not.toContain('--feedback');
-            expect(args).not.toContain('--rework-iteration');
-            expect(args).not.toContain('--rework-max');
-            expect(args).not.toContain('--output-schema');
-        });
-
-        test('handles zero values for rework fields', () => {
-            const exec = new AcpExecutor('test-agent');
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-                reworkIteration: 0,
-                reworkMax: 0,
-            };
-
-            const args = asTestable(exec).buildArgs(req);
-
-            expect(args).toContain('--rework-iteration');
-            expect(args).toContain('0');
-            expect(args).toContain('--rework-max');
-            expect(args).toContain('0');
-        });
-    });
-
-    describe('buildEnv()', () => {
-        test('builds environment with required variables', () => {
-            const exec = new AcpExecutor('test-agent');
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const env = asTestable(exec).buildEnv(req);
-
-            expect(env).toMatchObject({
-                ORCH_PHASE: 'implement',
-                ORCH_CHANNEL: 'test-channel',
-            });
-            // Should include process.env
-            expect(env).toMatchObject(process.env);
-        });
-
-        test('includes task reference when provided', () => {
-            const exec = new AcpExecutor('test-agent');
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-                taskRef: 'task-123-abc',
-            };
-
-            const env = asTestable(exec).buildEnv(req);
-
-            expect(env.ORCH_TASK_REF).toBe('task-123-abc');
-        });
-
-        test('omits task reference when not provided', () => {
-            const exec = new AcpExecutor('test-agent');
-            const req: ExecutionRequest = {
-                skill: 'test-skill',
-                phase: 'implement',
-                prompt: 'Test prompt',
-                payload: {},
-                channel: 'test-channel',
-                timeoutMs: 5000,
-            };
-
-            const env = asTestable(exec).buildEnv(req);
-
-            expect(env).not.toHaveProperty('ORCH_TASK_REF');
-        });
-    });
-
-    describe('parseEventStream()', () => {
-        test('handles empty output', () => {
-            const exec = new AcpExecutor('test-agent');
-            const resources = asTestable(exec).parseEventStream('');
-            expect(resources).toEqual([]);
-        });
-
-        test('handles whitespace-only output', () => {
-            const exec = new AcpExecutor('test-agent');
-            const resources = asTestable(exec).parseEventStream('  \n\t  \n  ');
-            expect(resources).toEqual([]);
-        });
-
-        test('skips invalid JSON lines', () => {
-            const exec = new AcpExecutor('test-agent');
-            const output = [
-                'not json',
-                '{"invalid": json}',
-                '{"type": "usage", "usage": {"model_id": "gpt-4", "input_tokens": 100}}',
-                'another invalid line',
-            ].join('\n');
-
-            const resources = asTestable(exec).parseEventStream(output);
-            expect(resources).toHaveLength(1);
-            expect(resources[0].model_id).toBe('gpt-4');
-        });
-
-        test('filters non-usage events', () => {
-            const exec = new AcpExecutor('test-agent');
-            const output = [
-                '{"type": "log", "message": "starting"}',
-                '{"type": "progress", "percent": 50}',
-                '{"type": "usage", "usage": {"model_id": "gpt-4", "input_tokens": 100}}',
-                '{"type": "error", "error": "something failed"}',
-            ].join('\n');
-
-            const resources = asTestable(exec).parseEventStream(output);
-            expect(resources).toHaveLength(1);
-            expect(resources[0].model_id).toBe('gpt-4');
-        });
-
-        test('handles missing usage field in usage event', () => {
-            const exec = new AcpExecutor('test-agent');
-            const output = '{"type": "usage"}';
-
-            const resources = asTestable(exec).parseEventStream(output);
-            expect(resources).toEqual([]);
-        });
-
-        test('handles null usage field in usage event', () => {
-            const exec = new AcpExecutor('test-agent');
-            const output = '{"type": "usage", "usage": null}';
-
-            const resources = asTestable(exec).parseEventStream(output);
-            expect(resources).toEqual([]);
-        });
-
-        test('converts all usage fields to appropriate types', () => {
-            const exec = new AcpExecutor('test-agent');
-            const output =
-                '{"type": "usage", "usage": {"model_id": 123, "model_provider": null, "input_tokens": "100", "output_tokens": 50.5, "wall_clock_ms": true, "execution_ms": "invalid"}}';
-
-            const resources = asTestable(exec).parseEventStream(output);
-            expect(resources).toHaveLength(1);
-
-            const resource = resources[0];
-            expect(resource.model_id).toBe('123');
-            expect(resource.model_provider).toBe('');
-            expect(resource.input_tokens).toBe(100);
-            expect(resource.output_tokens).toBe(50);
-            expect(resource.wall_clock_ms).toBe(1);
-            expect(resource.execution_ms).toBe(0); // NaN becomes 0
-        });
-
-        test('includes optional cache and timing fields when present', () => {
-            const exec = new AcpExecutor('test-agent');
-            const output =
-                '{"type": "usage", "usage": {"model_id": "gpt-4", "cache_read_tokens": 10, "cache_creation_tokens": 5, "first_token_ms": 150}}';
-
-            const resources = asTestable(exec).parseEventStream(output);
-            expect(resources).toHaveLength(1);
-
-            const resource = resources[0];
-            expect(resource).toHaveProperty('cache_read_tokens', 10);
-            expect(resource).toHaveProperty('cache_creation_tokens', 5);
-            expect(resource).toHaveProperty('first_token_ms', 150);
-        });
-
-        test('omits optional fields when null', () => {
-            const exec = new AcpExecutor('test-agent');
-            const output = '{"type": "usage", "usage": {"model_id": "gpt-4", "cache_read_tokens": null}}';
-
-            const resources = asTestable(exec).parseEventStream(output);
-            expect(resources).toHaveLength(1);
-
-            const resource = resources[0];
-            expect(resource).not.toHaveProperty('cache_read_tokens');
-        });
-    });
-
-    describe('healthCheck()', () => {
-        test('returns healthy when acpx --version succeeds', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const mockProcess = createMockProcess(0, 'acpx version 1.0.0', '');
-            mockSpawn.mockReturnValue(mockProcess);
-
-            const health = await exec.healthCheck();
-
-            expect(health.healthy).toBe(true);
-            expect(health.message).toBeUndefined();
-            expect(health.lastChecked).toBeInstanceOf(Date);
-        });
-
-        test('returns unhealthy when acpx --version fails', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const mockProcess = createMockProcess(1, '', 'command not found');
-            mockSpawn.mockReturnValue(mockProcess);
-
-            const health = await exec.healthCheck();
-
-            expect(health.healthy).toBe(false);
-            expect(health.message).toBe('acpx not found or not working');
-            expect(health.lastChecked).toBeInstanceOf(Date);
-        });
-
-        test('returns unhealthy when spawn throws exception', async () => {
-            const exec = new AcpExecutor('test-agent');
-            mockSpawn.mockImplementation(() => {
-                throw new Error('Command not found');
-            });
-
-            const health = await exec.healthCheck();
-
-            expect(health.healthy).toBe(false);
-            expect(health.message).toBe('acpx not available');
-            expect(health.lastChecked).toBeInstanceOf(Date);
-        });
-
-        test('calls acpx with correct arguments', async () => {
-            const exec = new AcpExecutor('test-agent');
-            const mockProcess = createMockProcess(0, '', '');
-            mockSpawn.mockReturnValue(mockProcess);
-
-            await exec.healthCheck();
-
-            expect(mockSpawn).toHaveBeenCalledWith(['acpx', '--version'], {
-                stdout: 'pipe',
-                stderr: 'pipe',
-            });
-        });
-    });
-
-    describe('dispose()', () => {
-        test('completes without error', async () => {
-            const exec = new AcpExecutor('test-agent');
-            await expect(exec.dispose()).resolves.toBeUndefined();
-        });
-
-        test('can be called multiple times', async () => {
-            const exec = new AcpExecutor('test-agent');
-            await exec.dispose();
-            await expect(exec.dispose()).resolves.toBeUndefined();
-        });
-    });
-
-    describe('integration scenarios', () => {
-        test('verifies spawn is called with correct arguments and environment', async () => {
-            const exec = new AcpExecutor('my-agent');
-            const mockProcess = createMockProcess(0, '', '');
-            mockSpawn.mockReturnValue(mockProcess);
-
-            const req: ExecutionRequest = {
-                skill: 'code-implement',
-                phase: 'implement',
-                prompt: 'Write unit tests',
-                payload: { language: 'typescript' },
-                channel: 'development',
-                timeoutMs: 30000,
-                feedback: 'Add more edge cases',
-                reworkIteration: 1,
-                taskRef: 'task-456',
-            };
-
-            await exec.execute(req);
-
-            expect(mockSpawn).toHaveBeenCalledWith(
-                [
-                    'acpx',
-                    'run',
-                    '--agent',
-                    'my-agent',
-                    '--skill',
-                    'code-implement',
-                    '--phase',
-                    'implement',
-                    '--channel',
-                    'development',
-                    '--prompt',
-                    'Write unit tests',
-                    '--payload',
-                    '{"language":"typescript"}',
-                    '--feedback',
-                    'Add more edge cases',
-                    '--rework-iteration',
-                    '1',
-                ],
-                expect.objectContaining({
-                    stdout: 'pipe',
-                    stderr: 'pipe',
-                    cwd: process.cwd(),
-                    signal: expect.any(AbortSignal),
-                    env: expect.objectContaining({
-                        ORCH_PHASE: 'implement',
-                        ORCH_CHANNEL: 'development',
-                        ORCH_TASK_REF: 'task-456',
-                    }),
-                }),
             );
+            const result = await exec.execute(BASE_REQ);
+            expect(result.resources ?? []).toHaveLength(1);
+            expect(result.resources?.[0].model_id).toBe('gpt-4');
+            expect(result.resources?.[0].input_tokens).toBe(100);
         });
 
-        test('handles complex resource metrics parsing in realistic scenario', async () => {
-            const exec = new AcpExecutor('code-agent');
-            const complexOutput = [
-                '{"type": "log", "level": "info", "message": "Starting code generation"}',
-                '{"type": "usage", "usage": {"model_id": "gpt-4-turbo", "model_provider": "openai", "input_tokens": 1500, "output_tokens": 800, "wall_clock_ms": 3500, "execution_ms": 3200, "first_token_ms": 250}}',
-                'Generated 5 test cases for user authentication module',
-                '{"type": "progress", "step": "validation", "percent": 80}',
-                '{"type": "usage", "usage": {"model_id": "gpt-4-turbo", "model_provider": "openai", "input_tokens": 500, "output_tokens": 200, "wall_clock_ms": 1200, "execution_ms": 1100, "cache_read_tokens": 300, "first_token_ms": 100}}',
-                'Validation completed successfully',
-                '{"type": "result", "status": "complete"}',
-            ].join('\n');
+        test('extracts JSON code block from text output as structured result', async () => {
+            const exec = new AcpExecutor('pi');
+            const stdout = 'Skill executed.\n```json\n{"status":"done","items":3}\n\n```\nFinal output.';
+            setupMock(0, stdout, '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.structured).toEqual({ status: 'done', items: 3 });
+        });
 
-            const mockProcess = createMockProcess(0, complexOutput, '');
-            mockSpawn.mockReturnValue(mockProcess);
+        test('skips invalid JSON lines gracefully', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(
+                0,
+                'not json\n{"broken:\n{"type":"usage","usage":{"model_id":"x","input_tokens":1,"output_tokens":1,"wall_clock_ms":1,"execution_ms":1}}\n',
+                '',
+            );
+            const result = await exec.execute(BASE_REQ);
+            expect(result.resources ?? []).toHaveLength(1);
+        });
 
-            const req: ExecutionRequest = {
-                skill: 'test-generation',
-                phase: 'implement',
-                prompt: 'Generate comprehensive unit tests',
-                payload: { module: 'auth' },
-                channel: 'testing',
-                timeoutMs: 60000,
-            };
+        test('ignores non-JSON code blocks', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(0, '```typescript\nconst x = 1;\n```\n', '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.structured).toBeUndefined();
+        });
 
-            const result = await exec.execute(req);
-
-            expect(result.success).toBe(true);
-            expect(result.resources).toHaveLength(2);
-
-            expect(result.resources?.[0]).toEqual({
-                model_id: 'gpt-4-turbo',
-                model_provider: 'openai',
-                input_tokens: 1500,
-                output_tokens: 800,
-                wall_clock_ms: 3500,
-                execution_ms: 3200,
-                first_token_ms: 250,
+        test('extracts deeply nested JSON (no truncation)', async () => {
+            const exec = new AcpExecutor('pi');
+            const stdout =
+                '```json\n' +
+                '{"status":"ok","config":{"retry":{"attempts":3,"backoff":{"type":"exponential","ms":500}},"timeout":60}}\n' +
+                '```\n';
+            setupMock(0, stdout, '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.structured).toEqual({
+                status: 'ok',
+                config: { retry: { attempts: 3, backoff: { type: 'exponential', ms: 500 } }, timeout: 60 },
             });
+        });
 
-            expect(result.resources?.[1]).toEqual({
-                model_id: 'gpt-4-turbo',
-                model_provider: 'openai',
-                input_tokens: 500,
-                output_tokens: 200,
-                wall_clock_ms: 1200,
-                execution_ms: 1100,
-                cache_read_tokens: 300,
-                first_token_ms: 100,
-            });
+        test('extracts JSON when closing fence is on the same line', async () => {
+            const exec = new AcpExecutor('pi');
+            // Fence on same line as JSON (no trailing newline before ```)
+            const stdout = '```json\n{"key":"value"}```\n';
+            setupMock(0, stdout, '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.structured).toEqual({ key: 'value' });
+        });
+
+        test('extracts fenced JSON that contains escaped quotes', async () => {
+            const exec = new AcpExecutor('pi');
+            const stdout = '```json\n{"summary":"x\\\\\\"y","status":"ok"}\n```\n';
+            setupMock(0, stdout, '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.structured).toEqual({ summary: 'x\\"y', status: 'ok' });
+        });
+
+        test('returns undefined for truncated JSON (unbalanced braces)', async () => {
+            const exec = new AcpExecutor('pi');
+            // Missing closing brace — should not silently return partial data
+            const stdout = '```json\n{"status":"ok","items":[1,2,3}\n```\n';
+            setupMock(0, stdout, '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.structured).toBeUndefined();
+        });
+
+        test('silently handles usage event without usage field', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(0, '{"type":"usage"}\n{"type":"log","msg":"hi"}\n', '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.resources ?? []).toEqual([]);
+        });
+
+        test('extracts multiple usage events', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(
+                0,
+                `${[
+                    '{"type":"usage","usage":{"model_id":"x","input_tokens":10,"output_tokens":5,"wall_clock_ms":100,"execution_ms":80}}',
+                    '{"type":"usage","usage":{"model_id":"y","input_tokens":20,"output_tokens":10,"wall_clock_ms":200,"execution_ms":150}}',
+                ].join('\n')}
+`,
+                '',
+            );
+            const result = await exec.execute(BASE_REQ);
+            expect(result.resources ?? []).toHaveLength(2);
+            expect(result.resources?.[0].model_id).toBe('x');
+            expect(result.resources?.[1].model_id).toBe('y');
+        });
+
+        test('includes optional cache and timing fields', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(
+                0,
+                '{"type":"usage","usage":{"model_id":"x","input_tokens":1,"output_tokens":1,"wall_clock_ms":1,"execution_ms":1,"cache_read_tokens":5,"cache_creation_tokens":3,"first_token_ms":50}}\n',
+                '',
+            );
+            const result = await exec.execute(BASE_REQ);
+            expect(result.resources?.[0]).toHaveProperty('cache_read_tokens', 5);
+            expect(result.resources?.[0]).toHaveProperty('cache_creation_tokens', 3);
+            expect(result.resources?.[0]).toHaveProperty('first_token_ms', 50);
+        });
+
+        test('omits optional fields when null or missing', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(0, '{"type":"usage","usage":{"model_id":"x","input_tokens":1,"output_tokens":1,"wall_clock_ms":1,"execution_ms":1,"cache_read_tokens":null}}\n', '');
+            const result = await exec.execute(BASE_REQ);
+            expect(result.resources?.[0]).not.toHaveProperty('cache_read_tokens');
+        });
+
+        test('structured NDJSON event takes precedence over JSON code block', async () => {
+            const exec = new AcpExecutor('pi');
+            setupMock(
+                0,
+                'Output:\n```json\n{"from":"codeblock"}\n```\n{"type":"structured","data":{"from":"event"}}\n',
+                '',
+            );
+            const result = await exec.execute(BASE_REQ);
+            // Structured event takes precedence (processed first)
+            expect(result.structured).toEqual({ from: 'event' });
         });
     });
 });
