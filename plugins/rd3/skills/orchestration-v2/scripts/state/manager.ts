@@ -19,6 +19,20 @@ import type {
     DAGPhaseState,
 } from '../model';
 import { runMigrations } from './migrations';
+import {
+    RUN_SQL,
+    PHASE_SQL,
+    GATE_RESULT_SQL,
+    PHASE_EVIDENCE_SQL,
+    ROLLBACK_SQL,
+    RESOURCE_USAGE_SQL,
+    parseRunRecord,
+    parsePhaseRecord,
+    parseGateResult,
+    parsePhaseEvidenceRecord,
+    parseRollbackSnapshot,
+    parseResourceUsage,
+} from '../dao';
 
 export interface StateManagerOptions {
     readonly dbPath: string;
@@ -47,10 +61,7 @@ export class StateManager {
     }
 
     async createRun(record: Omit<RunRecord, 'created_at' | 'updated_at'>): Promise<string> {
-        const stmt = this.db.prepare(
-            `INSERT INTO runs (id, task_ref, preset, phases_requested, status, config_snapshot, pipeline_name)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        );
+        const stmt = this.db.prepare(RUN_SQL.insert);
         stmt.run(
             record.id,
             record.task_ref,
@@ -65,39 +76,34 @@ export class StateManager {
     }
 
     async getRun(runId: string): Promise<RunRecord | null> {
-        const stmt = this.db.prepare('SELECT * FROM runs WHERE id = ?');
+        const stmt = this.db.prepare(RUN_SQL.selectById);
         const row = stmt.get(runId) as Record<string, unknown> | null;
         if (!row) return null;
-        return rowToRunRecord(row);
+        return parseRunRecord(row);
     }
 
     async getRunByTaskRef(taskRef: string): Promise<RunRecord | null> {
-        const stmt = this.db.prepare('SELECT * FROM runs WHERE task_ref = ? ORDER BY created_at DESC LIMIT 1');
+        const stmt = this.db.prepare(RUN_SQL.selectByTaskRef);
         const row = stmt.get(taskRef) as Record<string, unknown> | null;
         if (!row) return null;
-        return rowToRunRecord(row);
+        return parseRunRecord(row);
     }
 
     async getActiveRuns(): Promise<RunRecord[]> {
-        const stmt = this.db.prepare(
-            "SELECT * FROM runs WHERE status IN ('RUNNING', 'PAUSED') ORDER BY created_at DESC",
-        );
+        const stmt = this.db.prepare(RUN_SQL.selectActive);
         const rows = stmt.all() as Array<Record<string, unknown>>;
-        return rows.map(rowToRunRecord);
+        return rows.map(parseRunRecord);
     }
 
     async updateRunStatus(runId: string, status: FSMState): Promise<void> {
-        const stmt = this.db.prepare('UPDATE runs SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        const stmt = this.db.prepare(RUN_SQL.updateStatus);
         stmt.run(status, runId);
     }
 
     async createPhase(
         record: Omit<PhaseRecord, 'started_at' | 'completed_at' | 'error_code' | 'error_message'>,
     ): Promise<void> {
-        const stmt = this.db.prepare(
-            `INSERT INTO phases (run_id, name, status, skill, payload, rework_iteration)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-        );
+        const stmt = this.db.prepare(PHASE_SQL.insert);
         stmt.run(
             record.run_id,
             record.name,
@@ -121,34 +127,46 @@ export class StateManager {
         if (status === 'running') {
             fields.push('started_at = ?');
             values.push(new Date().toISOString());
-        }
-        if (status === 'completed' || status === 'failed') {
+        } else if (status === 'completed' || status === 'failed') {
             fields.push('completed_at = ?');
             values.push(new Date().toISOString());
+        } else {
+            fields.push('started_at = ?');
+            values.push(null);
+            fields.push('completed_at = ?');
+            values.push(null);
         }
+
         if (errorCode !== undefined) {
             fields.push('error_code = ?');
             values.push(errorCode);
+        } else {
+            fields.push('error_code = ?');
+            values.push(null);
         }
+
         if (errorMessage !== undefined) {
             fields.push('error_message = ?');
             values.push(errorMessage);
+        } else {
+            fields.push('error_message = ?');
+            values.push(null);
         }
 
         values.push(runId, name);
-        const stmt = this.db.prepare(`UPDATE phases SET ${fields.join(', ')} WHERE run_id = ? AND name = ?`);
-        stmt.run(...(values as Array<string | number>));
+        const sql = `UPDATE phases SET ${fields.join(', ')} WHERE run_id = ? AND name = ?`;
+        this.db.prepare(sql).run(...(values as Array<string | number>));
     }
 
     async updatePhaseReworkIteration(runId: string, name: string, iteration: number): Promise<void> {
-        const stmt = this.db.prepare('UPDATE phases SET rework_iteration = ? WHERE run_id = ? AND name = ?');
+        const stmt = this.db.prepare(PHASE_SQL.updateReworkIteration);
         stmt.run(iteration, runId, name);
     }
 
     async getPhasesByStatus(runId: string, status: DAGPhaseState): Promise<PhaseRecord[]> {
-        const stmt = this.db.prepare('SELECT * FROM phases WHERE run_id = ? AND status = ?');
+        const stmt = this.db.prepare(PHASE_SQL.selectByRunAndStatus);
         const rows = stmt.all(runId, status) as Array<Record<string, unknown>>;
-        return rows.map(rowToPhaseRecord);
+        return rows.map(parsePhaseRecord);
     }
 
     async updatePhase(
@@ -186,29 +204,26 @@ export class StateManager {
         }
 
         values.push(runId, name);
-        const stmt = this.db.prepare(`UPDATE phases SET ${fields.join(', ')} WHERE run_id = ? AND name = ?`);
-        stmt.run(...(values as Array<string | number>));
+        const sql = `UPDATE phases SET ${fields.join(', ')} WHERE run_id = ? AND name = ?`;
+        this.db.prepare(sql).run(...(values as Array<string | number>));
     }
 
     async getPhase(runId: string, name: string): Promise<PhaseRecord | null> {
-        const stmt = this.db.prepare('SELECT * FROM phases WHERE run_id = ? AND name = ?');
+        const stmt = this.db.prepare(PHASE_SQL.selectByRunAndName);
         const row = stmt.get(runId, name) as Record<string, unknown> | null;
         if (!row) return null;
-        return rowToPhaseRecord(row);
+        return parsePhaseRecord(row);
     }
 
     async getPhases(runId: string): Promise<PhaseRecord[]> {
-        const stmt = this.db.prepare('SELECT * FROM phases WHERE run_id = ? ORDER BY name');
+        const stmt = this.db.prepare(PHASE_SQL.selectByRun);
         const rows = stmt.all(runId) as Array<Record<string, unknown>>;
-        return rows.map(rowToPhaseRecord);
+        return rows.map(parsePhaseRecord);
     }
 
     async saveGateResult(result: GateResult): Promise<void> {
         const stepName = this.resolveGateResultStepName(result);
-        const stmt = this.db.prepare(
-            `INSERT INTO gate_results (run_id, phase_name, step_name, checker_method, passed, advisory, evidence, duration_ms)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        );
+        const stmt = this.db.prepare(GATE_RESULT_SQL.insert);
         stmt.run(
             result.run_id,
             result.phase_name,
@@ -222,34 +237,24 @@ export class StateManager {
     }
 
     async getGateResults(runId: string, phaseName: string): Promise<GateResult[]> {
-        const stmt = this.db.prepare(
-            'SELECT * FROM gate_results WHERE run_id = ? AND phase_name = ? ORDER BY created_at',
-        );
+        const stmt = this.db.prepare(GATE_RESULT_SQL.selectByRunAndPhase);
         const rows = stmt.all(runId, phaseName) as Array<Record<string, unknown>>;
-        return rows.map(rowToGateResult);
+        return rows.map(parseGateResult);
     }
 
     async savePhaseEvidence(record: Omit<PhaseEvidenceRecord, 'created_at'>): Promise<void> {
-        const stmt = this.db.prepare(
-            `INSERT INTO phase_evidence (run_id, phase_name, rework_iteration, evidence)
-       VALUES (?, ?, ?, ?)`,
-        );
+        const stmt = this.db.prepare(PHASE_EVIDENCE_SQL.insert);
         stmt.run(record.run_id, record.phase_name, record.rework_iteration, JSON.stringify(record.evidence));
     }
 
     async getPhaseEvidence(runId: string, phaseName: string): Promise<PhaseEvidenceRecord[]> {
-        const stmt = this.db.prepare(
-            'SELECT run_id, phase_name, rework_iteration, evidence, created_at FROM phase_evidence WHERE run_id = ? AND phase_name = ? ORDER BY created_at, id',
-        );
+        const stmt = this.db.prepare(PHASE_EVIDENCE_SQL.selectByRunAndPhase);
         const rows = stmt.all(runId, phaseName) as Array<Record<string, unknown>>;
-        return rows.map(rowToPhaseEvidenceRecord);
+        return rows.map(parsePhaseEvidenceRecord);
     }
 
     async saveRollbackSnapshot(snapshot: RollbackSnapshot): Promise<void> {
-        const stmt = this.db.prepare(
-            `INSERT OR REPLACE INTO rollback_snapshots (run_id, phase_name, git_head, files_before, files_after)
-       VALUES (?, ?, ?, ?, ?)`,
-        );
+        const stmt = this.db.prepare(ROLLBACK_SQL.insert);
         stmt.run(
             snapshot.run_id,
             snapshot.phase_name,
@@ -260,17 +265,14 @@ export class StateManager {
     }
 
     async getRollbackSnapshot(runId: string, phaseName: string): Promise<RollbackSnapshot | null> {
-        const stmt = this.db.prepare('SELECT * FROM rollback_snapshots WHERE run_id = ? AND phase_name = ?');
+        const stmt = this.db.prepare(ROLLBACK_SQL.selectByRunAndPhase);
         const row = stmt.get(runId, phaseName) as Record<string, unknown> | null;
         if (!row) return null;
-        return rowToRollbackSnapshot(row);
+        return parseRollbackSnapshot(row);
     }
 
     async saveResourceUsage(usage: Omit<ResourceUsageRecord, 'id' | 'recorded_at'>): Promise<void> {
-        const stmt = this.db.prepare(
-            `INSERT INTO resource_usage (run_id, phase_name, model_id, model_provider, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, wall_clock_ms, execution_ms, first_token_ms)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        );
+        const stmt = this.db.prepare(RESOURCE_USAGE_SQL.insert);
         stmt.run(
             usage.run_id,
             usage.phase_name,
@@ -287,9 +289,9 @@ export class StateManager {
     }
 
     async getResourceUsage(runId: string): Promise<ResourceUsageRecord[]> {
-        const stmt = this.db.prepare('SELECT * FROM resource_usage WHERE run_id = ? ORDER BY id');
+        const stmt = this.db.prepare(RESOURCE_USAGE_SQL.selectByRun);
         const rows = stmt.all(runId) as Array<Record<string, unknown>>;
-        return rows.map(rowToResourceUsage);
+        return rows.map(parseResourceUsage);
     }
 
     /** Expose db for queries module */
@@ -298,121 +300,32 @@ export class StateManager {
     }
 
     private resolveGateResultStepName(result: GateResult): string {
+        // SQL returns rows where step_name == base OR step_name GLOB 'base#*'.
         const existing = this.db
-            .prepare(
-                `SELECT step_name
-                 FROM gate_results
-                 WHERE run_id = ? AND phase_name = ? AND (step_name = ? OR step_name GLOB ?)
-                 ORDER BY created_at, step_name`,
-            )
+            .prepare(GATE_RESULT_SQL.selectExistingSteps)
             .all(result.run_id, result.phase_name, result.step_name, `${result.step_name}#*`) as Array<{
             step_name: string;
         }>;
 
+        // No existing rows — this is the first attempt; insert with base name.
         if (existing.length === 0) {
             return result.step_name;
         }
 
-        let maxAttempt = 1;
+        let maxSuffix = 1;
         for (const row of existing) {
             if (row.step_name === result.step_name) {
-                maxAttempt = Math.max(maxAttempt, 1);
-                continue;
-            }
-            const match = row.step_name.match(/#(\d+)$/);
-            if (match) {
-                maxAttempt = Math.max(maxAttempt, Number.parseInt(match[1] ?? '1', 10));
+                // Exact match — base row already present; increment from 1
+                maxSuffix = Math.max(maxSuffix, 1);
+            } else {
+                // Suffix variant — extract the number after '#'
+                const match = row.step_name.match(/#(\d+)$/);
+                if (match) {
+                    maxSuffix = Math.max(maxSuffix, Number.parseInt(match[1], 10));
+                }
             }
         }
 
-        return `${result.step_name}#${maxAttempt + 1}`;
+        return `${result.step_name}#${maxSuffix + 1}`;
     }
-}
-
-// ─── Row-to-Record Mappers ──────────────────────────────────────────────────
-
-function rowToRunRecord(row: Record<string, unknown>): RunRecord {
-    return {
-        id: row.id as string,
-        task_ref: row.task_ref as string,
-        ...(row.preset != null && { preset: row.preset as string }),
-        phases_requested: row.phases_requested as string,
-        status: row.status as FSMState,
-        config_snapshot: JSON.parse(row.config_snapshot as string) as Record<string, unknown>,
-        pipeline_name: row.pipeline_name as string,
-        ...(row.created_at != null && { created_at: new Date(row.created_at as string) }),
-        ...(row.updated_at != null && { updated_at: new Date(row.updated_at as string) }),
-    };
-}
-
-function rowToPhaseRecord(row: Record<string, unknown>): PhaseRecord {
-    return {
-        run_id: row.run_id as string,
-        name: row.name as string,
-        status: row.status as DAGPhaseState,
-        skill: row.skill as string,
-        ...(row.payload != null && { payload: JSON.parse(row.payload as string) as Record<string, unknown> }),
-        ...(row.started_at != null && { started_at: new Date(row.started_at as string) }),
-        ...(row.completed_at != null && { completed_at: new Date(row.completed_at as string) }),
-        ...(row.error_code != null && { error_code: row.error_code as string }),
-        ...(row.error_message != null && { error_message: row.error_message as string }),
-        rework_iteration: (row.rework_iteration as number) ?? 0,
-    };
-}
-
-function rowToGateResult(row: Record<string, unknown>): GateResult {
-    return {
-        run_id: row.run_id as string,
-        phase_name: row.phase_name as string,
-        step_name: row.step_name as string,
-        checker_method: row.checker_method as string,
-        passed: (row.passed as number) === 1,
-        ...(row.advisory != null && (row.advisory as number) === 1 ? { advisory: true } : {}),
-        ...(row.evidence != null && { evidence: JSON.parse(row.evidence as string) as Record<string, unknown> }),
-        ...(row.duration_ms != null && { duration_ms: row.duration_ms as number }),
-        ...(row.created_at != null && { created_at: new Date(row.created_at as string) }),
-    };
-}
-
-function rowToPhaseEvidenceRecord(row: Record<string, unknown>): PhaseEvidenceRecord {
-    return {
-        run_id: row.run_id as string,
-        phase_name: row.phase_name as string,
-        rework_iteration: (row.rework_iteration as number) ?? 0,
-        evidence: JSON.parse(row.evidence as string) as Record<string, unknown>,
-        ...(row.created_at != null && { created_at: new Date(row.created_at as string) }),
-    };
-}
-
-function rowToRollbackSnapshot(row: Record<string, unknown>): RollbackSnapshot {
-    return {
-        run_id: row.run_id as string,
-        phase_name: row.phase_name as string,
-        ...(row.git_head != null && { git_head: row.git_head as string }),
-        ...(row.files_before != null && {
-            files_before: JSON.parse(row.files_before as string) as Record<string, unknown>,
-        }),
-        ...(row.files_after != null && {
-            files_after: JSON.parse(row.files_after as string) as Record<string, unknown>,
-        }),
-        ...(row.created_at != null && { created_at: new Date(row.created_at as string) }),
-    };
-}
-
-function rowToResourceUsage(row: Record<string, unknown>): ResourceUsageRecord {
-    return {
-        id: row.id as number,
-        run_id: row.run_id as string,
-        phase_name: row.phase_name as string,
-        model_id: row.model_id as string,
-        model_provider: row.model_provider as string,
-        input_tokens: row.input_tokens as number,
-        output_tokens: row.output_tokens as number,
-        cache_read_tokens: (row.cache_read_tokens as number) ?? 0,
-        cache_creation_tokens: (row.cache_creation_tokens as number) ?? 0,
-        wall_clock_ms: row.wall_clock_ms as number,
-        execution_ms: row.execution_ms as number,
-        ...(row.first_token_ms != null && { first_token_ms: row.first_token_ms as number }),
-        ...(row.recorded_at != null && { recorded_at: new Date(row.recorded_at as string) }),
-    };
 }
