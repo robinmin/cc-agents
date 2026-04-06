@@ -1,4 +1,4 @@
-import { execLlmCli, getLegacyLlmCommand } from '../../../../scripts/libs/acpx-query';
+import { execLlmCli as defaultExecLlmCli, getLegacyLlmCommand } from '../../../../scripts/libs/acpx-query';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LlmCheckerConfig, MethodResult, CheckerEvidence } from '../types';
@@ -15,7 +15,7 @@ For each item, output exactly one line in this format:
 
 Be strict in your evaluation.`;
 
-interface FileOps {
+export interface FileOps {
     mkdtempSync: typeof mkdtempSync;
     writeFileSync: typeof writeFileSync;
     rmSync: typeof rmSync;
@@ -44,6 +44,8 @@ export async function runLlmCheck(
     config: LlmCheckerConfig,
     fileOps: FileOps = defaultFileOps,
     llmCliPathOverride?: string,
+    execLlmCliFn: typeof defaultExecLlmCli = defaultExecLlmCli,
+    getLlmCliCommand: () => string | undefined = getLegacyLlmCommand,
 ): Promise<MethodResult> {
     const evidence: CheckerEvidence = {
         method: 'llm',
@@ -51,7 +53,7 @@ export async function runLlmCheck(
         timestamp: new Date().toISOString(),
     };
 
-    const llmCliPath = llmCliPathOverride ?? getLegacyLlmCommand();
+    const llmCliPath = llmCliPathOverride ?? getLlmCliCommand();
     if (!llmCliPath) {
         const errorMsg = 'LLM CLI not found. Set LLM_CLI_COMMAND or ensure "pi" binary is in PATH';
         evidence.error = errorMsg;
@@ -89,9 +91,9 @@ export async function runLlmCheck(
     let stdout = '';
 
     try {
-        let result: ReturnType<typeof execLlmCli>;
+        let result: ReturnType<typeof execLlmCliFn>;
         try {
-            result = execLlmCli([llmCliPath], tempFile, 300_000);
+            result = execLlmCliFn([llmCliPath], tempFile, 300_000);
         } catch (err) {
             // Spawn error (e.g. ENOENT)
             const errorMsg = err instanceof Error ? err.message : String(err);
@@ -126,8 +128,7 @@ export async function runLlmCheck(
         evidence.llm_results = results;
 
         // All checklist items must have PASS to pass the check
-        const allPassed =
-            result.ok && results.length === config.checklist.length && results.every((r) => r.passed);
+        const allPassed = result.ok && results.length === config.checklist.length && results.every((r) => r.passed);
         evidence.result = allPassed ? 'pass' : 'fail';
 
         if (!allPassed) {
