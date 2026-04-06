@@ -61,7 +61,7 @@ phases:
     skill: rd3:sys-testing
     gate:
       type: command
-      command: "bun test --coverage"
+      command: "bun run check"
       rework: { max_iterations: 3, escalation: pause }
     timeout: 1h
     after: [implement]
