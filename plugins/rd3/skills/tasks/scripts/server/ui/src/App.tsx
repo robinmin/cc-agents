@@ -127,7 +127,9 @@ export function App() {
                 />
             )}
 
-            {selectedWbs && <TaskDetail wbs={selectedWbs} onClose={() => setSelectedWbs(null)} onStatusChange={refresh} />}
+            {selectedWbs && (
+                <TaskDetail wbs={selectedWbs} onClose={() => setSelectedWbs(null)} onStatusChange={refresh} />
+            )}
 
             {showCreate && <TaskCreate onClose={() => setShowCreate(false)} />}
         </div>
