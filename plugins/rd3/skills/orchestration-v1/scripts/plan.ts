@@ -23,13 +23,12 @@ import {
     VALID_PROFILES,
 } from './model';
 
-function resolveTaskPath(taskRef: string): string | undefined {
+function resolveTaskPath(taskRef: string, projectRoot = getProjectRoot()): string | undefined {
     if (taskRef.endsWith('.md')) {
-        const taskPath = isAbsolute(taskRef) ? taskRef : resolve(getProjectRoot(), taskRef);
+        const taskPath = isAbsolute(taskRef) ? taskRef : resolve(projectRoot, taskRef);
         return existsSync(taskPath) ? taskPath : undefined;
     }
 
-    const projectRoot = getProjectRoot();
     const config = loadConfig(projectRoot);
     const taskPath = findTaskByWbs(taskRef, config, projectRoot);
 
@@ -97,7 +96,8 @@ export function generateExecutionPlan(
 }
 
 export function createExecutionPlan(taskRef: string, options: CreateExecutionPlanOptions = {}): ExecutionPlan {
-    const taskPath = resolveTaskPath(taskRef);
+    const projectRoot = options.projectRoot ?? getProjectRoot();
+    const taskPath = resolveTaskPath(taskRef, projectRoot);
     const profile = options.profile ?? resolveProfileFromTask(taskPath) ?? 'standard';
     const refineMode = options.refine ?? false;
     const normalizedExecutionChannel = normalizeExecutionChannel(options.executionChannel);
