@@ -220,12 +220,28 @@ const PUBLIC_CLI_REWORK_CONFIG: ReworkConfig = {
 };
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
-    return Promise.race([
-        promise,
-        new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error(`Phase runner timed out after ${timeoutMs}ms: ${label}`)), timeoutMs);
-        }),
-    ]);
+    return new Promise<T>((resolve, reject) => {
+        const timeoutId = setTimeout(
+            () => reject(new Error(`Phase runner timed out after ${timeoutMs}ms: ${label}`)),
+            timeoutMs,
+        );
+
+        promise.then(
+            (value) => {
+                clearTimeout(timeoutId);
+                resolve(value);
+            },
+            (error) => {
+                clearTimeout(timeoutId);
+                reject(error);
+            },
+        );
+    });
+}
+
+export interface RuntimeMainOptions {
+    cwd?: string;
+    executorOptions?: Parameters<typeof createPilotPhaseRunner>[0];
 }
 
 interface PhaseExecutionOptions {
@@ -549,7 +565,7 @@ export async function resumeOrchestration(options: RunOrchestrationOptions): Pro
     });
 }
 
-export async function main(args = process.argv.slice(2)): Promise<number> {
+export async function main(args = process.argv.slice(2), options: RuntimeMainOptions = {}): Promise<number> {
     let parsed: ReturnType<typeof parseOrchestrationArgs>;
     try {
         parsed = parseOrchestrationArgs(args, validateProfile);
@@ -565,6 +581,8 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
         return 1;
     }
 
+    const cwd = options.cwd ?? process.cwd();
+
     try {
         normalizeExecutionChannel(parsed.executionChannel);
     } catch (error) {
@@ -577,7 +595,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
         try {
             const result = executeUndo(
                 { task_ref: parsed.taskRef, phase: parsed.undo, dry_run: parsed.undoDryRun, force: parsed.undoForce },
-                process.cwd(),
+                cwd,
             );
             logger.log(JSON.stringify(result, null, 2));
             if (result.errors.length > 0) {
@@ -600,6 +618,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
             auto: parsed.auto,
             dryRun: parsed.dryRun,
             refine: parsed.refine,
+            projectRoot: cwd,
         });
 
         if (plan.dry_run) {
@@ -607,14 +626,14 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
             return 0;
         }
 
-        const runner = createPilotPhaseRunner();
+        const runner = createPilotPhaseRunner(options.executorOptions);
         const reworkConfig = {
             ...PUBLIC_CLI_REWORK_CONFIG,
             ...(parsed.reworkMaxIterations !== undefined ? { max_iterations: parsed.reworkMaxIterations } : {}),
         };
         const sharedOpts = {
             plan,
-            projectRoot: process.cwd(),
+            projectRoot: cwd,
             phaseRunner: runner,
             stackProfile: parsed.stackProfile,
             rollbackEnabled: parsed.rollback,
