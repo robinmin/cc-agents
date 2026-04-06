@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { runInit } from '../scripts/commands/init';
 import { createTask } from '../scripts/commands/create';
@@ -9,10 +10,11 @@ import { setGlobalSilent } from '../../../scripts/logger';
 const repoRoot = resolve(import.meta.dir, '../../../../..');
 
 describe('init/create folder layout', () => {
-    const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `tasks-init-create-test-${Date.now()}`);
+    let tempDir: string;
     const originalPluginRoot = process.env.CLAUDE_PLUGIN_ROOT;
 
     beforeEach(() => {
+        tempDir = mkdtempSync(join(tmpdir(), 'tasks-init-create-test-'));
         mkdirSync(join(tempDir, 'docs'), { recursive: true });
         process.env.CLAUDE_PLUGIN_ROOT = repoRoot;
         setGlobalSilent(true);
