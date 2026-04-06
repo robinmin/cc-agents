@@ -1,7 +1,47 @@
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { PHASE_WORKER_CONTRACTS } from '../skills/orchestration-v1/scripts/contracts';
+
+/**
+ * Phase worker contracts inlined from the former orchestration-v1 contracts module.
+ * These define the expected input/output keys and canonical backbones for each worker phase.
+ */
+type WorkerPhaseNumber = 5 | 6 | 7;
+
+interface PhaseWorkerContract {
+    phase: WorkerPhaseNumber;
+    canonical_backbone: string[];
+    input_keys: string[];
+    output_keys: string[];
+}
+
+const PHASE_WORKER_CONTRACTS: Record<WorkerPhaseNumber, PhaseWorkerContract> = {
+    5: {
+        phase: 5,
+        canonical_backbone: ['rd3:code-implement-common'],
+        input_keys: ['task_ref', 'phase_context', 'execution_channel', 'constraints?', 'implementation_goal?'],
+        output_keys: ['status', 'phase', 'artifacts', 'evidence_summary', 'failed_stage?', 'next_step_recommendation'],
+    },
+    6: {
+        phase: 6,
+        canonical_backbone: ['rd3:sys-testing', 'rd3:advanced-testing'],
+        input_keys: ['task_ref', 'phase_context', 'execution_channel', 'constraints?', 'coverage_threshold'],
+        output_keys: [
+            'status',
+            'phase',
+            'test_artifacts',
+            'evidence_summary',
+            'failed_stage?',
+            'next_step_recommendation',
+        ],
+    },
+    7: {
+        phase: 7,
+        canonical_backbone: ['rd3:code-review-common'],
+        input_keys: ['task_ref', 'phase_context', 'execution_channel', 'constraints?', 'review_depth?'],
+        output_keys: ['status', 'phase', 'findings', 'evidence_summary', 'failed_stage?', 'next_step_recommendation'],
+    },
+};
 
 const RD3_ROOT = join(import.meta.dir, '..');
 
