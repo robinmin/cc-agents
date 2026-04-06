@@ -247,15 +247,11 @@ function resolveUncached(project: string): OrchestratorConfig {
             : resolve(project, external.state_dir)
         : defaults.stateDir;
 
-    const channels = external.executor_channels?.length
-        ? external.executor_channels
-        : [DEFAULT_CHANNEL];
+    const channels = external.executor_channels?.length ? external.executor_channels : [DEFAULT_CHANNEL];
 
     const defaultChannel = external.default_channel ?? defaults.defaultChannel;
 
-    const resolvedChannel = channels.includes(defaultChannel)
-        ? defaultChannel
-        : channels[0] ?? DEFAULT_CHANNEL;
+    const resolvedChannel = channels.includes(defaultChannel) ? defaultChannel : (channels[0] ?? DEFAULT_CHANNEL);
 
     return {
         stateDir,
