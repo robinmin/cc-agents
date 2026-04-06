@@ -1,0 +1,6 @@
+name: request-intake
+description: "Transform vague one-liner feature requests into fully-populated
+  task files via structured Q&A. Phase 1 entry point for the 9-phase
+  orchestration pipeline. Persona: Senior Business Analyst."
+version: 1.0.0
+emoji: 🛠️
