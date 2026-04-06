@@ -86,7 +86,7 @@ Use `/rd3:dev-review <task-ref>` to review a task after implementation.
 Examples:
 
 - `/rd3:dev-review 0274`
-- `/rd3:dev-review docs/tasks2/0274_add_dev_slash_commands.md`
+- `/rd3:dev-review <task-path>.md`
 ```
 
 ```markdown
