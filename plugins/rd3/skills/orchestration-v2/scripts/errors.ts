@@ -95,12 +95,7 @@ export type ErrorCodeKey = keyof typeof ERROR_CODES;
  */
 export function createError(code: ErrorCodeKey, message?: string): OrchestratorError {
     const errorDef = ERROR_CODES[code];
-    return new OrchestratorError(
-        message ?? errorDef.message,
-        errorDef.code,
-        errorDef.exitCode,
-        errorDef.category,
-    );
+    return new OrchestratorError(message ?? errorDef.message, errorDef.code, errorDef.exitCode, errorDef.category);
 }
 
 /**
