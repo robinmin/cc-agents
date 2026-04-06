@@ -188,7 +188,11 @@ function migrateV2toV3(db: Database): void {
             sql: 'CREATE INDEX idx_phase_evidence_created ON phase_evidence(created_at)',
         },
         { table: 'runs', name: 'idx_runs_created', sql: 'CREATE INDEX idx_runs_created ON runs(created_at)' },
-        { table: 'events', name: 'idx_events_timestamp', sql: 'CREATE INDEX idx_events_timestamp ON events(timestamp)' },
+        {
+            table: 'events',
+            name: 'idx_events_timestamp',
+            sql: 'CREATE INDEX idx_events_timestamp ON events(timestamp)',
+        },
         {
             table: 'gate_results',
             name: 'idx_gate_results_created',
