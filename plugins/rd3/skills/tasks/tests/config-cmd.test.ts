@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, spyOn } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { showConfig, setActiveFolder, addFolder } from '../scripts/commands/config';
 import { logger, setGlobalSilent } from '../../../scripts/logger';
 
@@ -20,10 +21,11 @@ function writeConfig(tempDir: string, configContent?: string, folder = 'docs/tas
 }
 
 describe('showConfig', () => {
-    const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `tasks-conffn-show-test-${Date.now()}`);
+    let tempDir: string;
     let logSpy: ReturnType<typeof spyOn>;
 
     beforeEach(() => {
+        tempDir = mkdtempSync(join(tmpdir(), 'tasks-conffn-show-test-'));
         writeConfig(tempDir);
         setGlobalSilent(true);
         logSpy = spyOn(logger, 'log');
@@ -69,10 +71,11 @@ describe('showConfig', () => {
 });
 
 describe('setActiveFolder', () => {
-    const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `tasks-conffn-setactive-test-${Date.now()}`);
+    let tempDir: string;
     let successSpy: ReturnType<typeof spyOn>;
 
     beforeEach(() => {
+        tempDir = mkdtempSync(join(tmpdir(), 'tasks-conffn-setactive-test-'));
         const config = JSON.stringify({
             $schema_version: 1,
             active_folder: 'docs/tasks',
@@ -123,10 +126,11 @@ describe('setActiveFolder', () => {
 });
 
 describe('addFolder', () => {
-    const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `tasks-conffn-addfolder-test-${Date.now()}`);
+    let tempDir: string;
     let successSpy: ReturnType<typeof spyOn>;
 
     beforeEach(() => {
+        tempDir = mkdtempSync(join(tmpdir(), 'tasks-conffn-addfolder-test-'));
         writeConfig(tempDir);
         setGlobalSilent(true);
         successSpy = spyOn(logger, 'success');
