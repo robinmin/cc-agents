@@ -227,14 +227,11 @@ describe('server cmd', () => {
         let receivedCommand = '';
         let receivedOptions: Record<string, unknown> | undefined;
 
-        const result = describePortUsage(
-            3456,
-            ((command, options) => {
-                receivedCommand = command;
-                receivedOptions = options as Record<string, unknown>;
-                return 'listener';
-            }) as typeof import('node:child_process').execSync,
-        );
+        const result = describePortUsage(3456, ((command, options) => {
+            receivedCommand = command;
+            receivedOptions = options as Record<string, unknown>;
+            return 'listener';
+        }) as typeof import('node:child_process').execSync);
 
         expect(result).toBe('listener');
         expect(receivedCommand).toBe('lsof -i :3456 2>/dev/null | tail -n +2');
@@ -248,13 +245,10 @@ describe('server cmd', () => {
         const exitError = new Error('exit 1');
 
         expect(() =>
-            exitServerProcess(
-                1,
-                ((code) => {
-                    expect(code).toBe(1);
-                    throw exitError;
-                }) as typeof process.exit,
-            ),
+            exitServerProcess(1, ((code) => {
+                expect(code).toBe(1);
+                throw exitError;
+            }) as typeof process.exit),
         ).toThrow(exitError);
     });
 });
