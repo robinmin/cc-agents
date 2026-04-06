@@ -39,17 +39,8 @@
 
 ### Installation
 
-The orchestrator is part of the `orchestration-v2` skill at:
-```
-plugins/rd3/skills/orchestration-v2/scripts/run.ts
-```
+The orchestrator is exposed as the `orchestrator` CLI:
 
-Run directly:
-```bash
-bun plugins/rd3/skills/orchestration-v2/scripts/run.ts --help
-```
-
-Or via the `orchestrator` symlink (if configured in `package.json`):
 ```bash
 orchestrator --help
 ```
