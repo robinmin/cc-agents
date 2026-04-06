@@ -1,87 +1,110 @@
 ---
 description: Verify a task via review, traceability, and optional fixes
-argument-hint: "<task-ref> [--skip-review] [--review-only] [--skip-confirm] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--mode <mode>] [--fix-priority <priority>] [--skip-confirm] [--channel <backend>]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
 # Dev Verify
 
-Meta-command for final task verification. Optionally runs Phase 7 code review, always runs requirements traceability, then offers an optional remediation pass before the task is marked Done.
+Wraps **rd3:orchestration-v2** and **rd3:functional-review** skills.
 
-**Coordinates:** `/rd3:dev-review` + `rd3:functional-review` + optional local fix pass
+Run final task verification by combining Phase 7 code review, Phase 8 requirements traceability, and an optional remediation loop before marking a task Done.
 
 ## When to Use
 
 - After implementation, before marking a task Done
-- Needing one command that checks both code quality and requirements completeness
-- Suspecting scope drift between requirements and implementation
+- Check code quality and requirements completeness in one pass
+- Investigate scope drift between requirements and implementation
 
 ## Arguments
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `task-ref` | Yes | — | WBS number or task file path |
-| `--skip-review` | No | `false` | Skip `/rd3:dev-review`; run functional verification only |
-| `--review-only` | No | `false` | Report findings only; do NOT apply fixes |
-| `--skip-confirm` | No | `false` | Skip confirmation, fix immediately |
-| `--channel <auto\|current\|claude-code\|codex\|openclaw\|opencode\|antigravity\|pi>` | No | `auto` | Execution channel for the `/rd3:dev-review` leg only |
+| `--mode` | No | `full` | `full` (both phases), `review-only` (Phase 7), `func-only` (Phase 8) |
+| `--skip-confirm` | No | `false` | Skip confirmation before applying fixes |
+| `--fix-priority` | No | `blockers-first` | `blockers-first` fixes blocking then re-verifies; `all` fixes everything in one pass |
+| `--channel` | No | `auto` | Phase 7 backend: `auto`, `current`, `claude-code`, `codex`, `openclaw`, `opencode`, `antigravity`, or `pi` |
 
-Resolve `task-ref`: digits → glob `docs/tasks2/{digits}_*.md`, ends with `.md` → use as-is.
+Wrapper note: when a platform shim forwards raw input, pass `$ARGUMENTS` through unchanged, then resolve `task-ref` from the first positional value.
 
 ## Workflow
 
-Parse `$ARGUMENTS` for `task-ref`, `--skip-review`, `--review-only`, `--skip-confirm`, and `--channel`.
+1. Detect the execution platform.
+   Claude Code uses `Skill()`. Other platforms use the CLI path directly. If the delegated backend is the thing being fixed, keep Phase 7 inline instead of using unsupported local delegation.
+2. Resolve task scope.
+   Digits use the configured task resolver. Paths ending in `.md` are read directly. Load frontmatter plus `Requirements`, `Design`, and `Solution`.
 
-### Step 1: Resolve Task Scope
-
-Resolve `task-ref` to a task file. Read the task frontmatter and Requirements/Design/Solution sections so downstream review and traceability use the same scope.
-
-### Step 2: Optional Code Review
-Unless `--skip-review` is present, run `/rd3:dev-review` semantics first.
-
-```text
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset review --channel {channel}")
+```bash
+if [[ "$TASK_REF" == *.md ]]; then
+  sed -n '1,240p' "$TASK_REF"
+else
+  tasks show "$TASK_REF"
+fi
 ```
 
-This step owns implementation-quality review only:
-- Security, correctness, performance, maintainability
-- Phase 7 gate behavior and delegated execution channel
-- Findings from `rd3:code-review-common`
+3. Run Phase 7 and Phase 8 in parallel.
 
-### Step 3: Functional Review
-Run `rd3:functional-review` on the active execution context to verify requirements traceability and completeness.
+Claude Code path:
 
-```text
-Skill(skill="rd3:functional-review", args="{task-ref}")
+```bash
+Skill(skill="rd3:orchestration-v2", args="$TASK_REF --preset review --channel $CHANNEL")
+Skill(skill="rd3:functional-review", args="$TASK_REF")
 ```
 
-This step owns requirements verification only:
-- Requirement-by-requirement met/partial/unmet verdicts
-- Specific evidence (`file:line`, symbol names, tests)
-- Scope drift between task requirements and delivered code
+CLI path:
 
-### Step 4: Unified Verification Report
-Merge the outputs from Step 2 and Step 3 into one ordered report:
-- Phase 7 findings from `/rd3:dev-review`
-- Phase 8 verdict from `rd3:functional-review`
-- A final summary: `PASS`, `PARTIAL`, or `FAIL`
+```bash
+orchestrator run "$TASK_REF" \
+  --preset review \
+  --channel "${CHANNEL:-auto}" \
+  --auto 2>&1
+```
 
-- `--review-only` → **STOP**
-- `--skip-confirm` → proceed to Step 5
-- Otherwise → ask user to confirm
+Inline Phase 8 when `Skill()` is unavailable:
+- Parse each requirement from the task file
+- Search implementation files for `file:line` evidence
+- Mark each requirement as `met`, `partial`, or `unmet`
+- Derive the overall functional verdict from those results
 
-### Step 5: Optional Fix Pass
-If the user confirms, or `--skip-confirm` is set, fix the combined findings locally in severity order:
-- Blockers from `dev-review`
-- Unmet/partial requirements from `functional-review`
-- Regression tests and validation updates needed to close the gap
+4. Merge reports.
+   Order the output as Phase 7 findings, then Phase 8 traceability, then the final verdict.
 
-Validate with `bun run check` after each fix batch. If remediation changes code, rerun:
-- `/rd3:dev-review` unless `--skip-review`
-- `rd3:functional-review`
+5. Apply the mode gate.
 
-### Step 6: Final Verdict
-Produce a final verification verdict after the review/traceability loop completes.
+| Mode | Behavior |
+|------|----------|
+| `--mode review-only` | Stop after the Phase 7 report |
+| `--mode func-only` | Stop after the Phase 8 report |
+| `--mode full` | Continue to the fix pass |
+| `--review-only` (legacy) | Stop after the Phase 7 report |
+
+6. Run the optional fix pass.
+   Unless `--skip-confirm` is set, confirm before editing code.
+
+```text
+--fix-priority blockers-first:
+  1. Fix all blockers from Phase 7
+  2. Run bun run check
+  3. If pass -> fix non-blockers
+  4. Run bun run check
+  5. Report final state
+
+--fix-priority all:
+  1. Fix all findings in severity order
+  2. Run bun run check
+  3. Report final state
+```
+
+For each fix batch:
+- Apply fixes locally
+- Validate with `bun run check`
+- If checks pass, continue
+- If checks fail, stop and report the failure
+
+If remediation changes code, rerun verification.
+
+7. Produce the final verdict.
 
 | Verdict | Condition |
 |---------|-----------|
@@ -89,65 +112,43 @@ Produce a final verification verdict after the review/traceability loop complete
 | **PARTIAL** | Requirements are partial or only non-blocking review findings remain |
 | **FAIL** | Unmet requirements or blocking review findings remain |
 
-## Ownership Boundaries
+Update task status after the verdict:
+- `Done` for PASS
+- `In Progress` for PARTIAL with the next action noted
+- `In Progress` for FAIL with the blocker list noted
+
+## Ownership
 
 | Concern | Owned By |
 |---------|----------|
-| Code quality, bugs, security, performance | `/rd3:dev-review` |
-| Requirements completeness, traceability, scope drift | `rd3:functional-review` |
-| Final remediation loop | `/rd3:dev-verify` |
-
-## Report Format
-
-```text
-## Verification Report: {task-ref}
-**Status:** {PASS|PARTIAL|FAIL}
-**Code Review:** {skipped|passed|findings}
-**Functional Review:** {pass|partial|fail}
-
-### Phase 7 Findings
-- {severity} {title} — {file:line}
-
-### Phase 8 Traceability
-| # | Requirement | Status | Evidence |
-|---|-------------|--------|----------|
-
-### Final Verdict
-- Decision: {PASS|PARTIAL|FAIL}
-- Next action: {mark done|fix remaining findings|re-run verification}
-```
+| Code quality, bugs, security, performance | Phase 7 (`/rd3:dev-review`) |
+| Requirements completeness, traceability, scope drift | Phase 8 (`rd3:functional-review`) |
+| Final remediation loop, verdict | `/rd3:dev-verify` |
 
 ## Examples
 
-<example>
 ```bash
 /rd3:dev-verify 0274
+/rd3:dev-verify 0274 --mode review-only
+/rd3:dev-verify 0274 --mode func-only
+/rd3:dev-verify 0274 --skip-confirm
+/rd3:dev-verify 0274 --fix-priority blockers-first
+/rd3:dev-verify 0274 --channel codex
 ```
-<commentary>Runs dev-review first, then functional-review, then asks before remediation.</commentary>
-</example>
-
-<example>
-```bash
-/rd3:dev-verify 0274 --skip-review --review-only
-```
-<commentary>Runs functional verification only and reports results without applying fixes.</commentary>
-</example>
-
-<example>
-```bash
-/rd3:dev-verify 0274 --skip-confirm --channel codex
-```
-<commentary>Delegates the review leg to Codex, runs functional review in the active execution context, then applies fixes without asking again.</commentary>
-</example>
-
-## See Also
-
-- **/rd3:dev-review** — Phase 7 code review shortcut
-- **/rd3:dev-run** — Full pipeline execution when you want orchestration to own all phases
-- **/rd3:dev-fixall** — Fix all lint/type/test errors
 
 ## Platform Notes
 
-- **Claude Code**: Coordinate `/rd3:dev-review` and `Skill("rd3:functional-review", ...)`, then apply fixes locally if requested.
-- **Other platforms**: Treat this command as an orchestration prompt template. The review leg may delegate remotely; functional review and remediation stay on the active execution context.
-- **Channel behavior**: `--channel` applies only to the review leg. Functional review runs on the active execution context; use `auto` for the configured default backend.
+### Claude Code
+
+- Use `Skill()` for both delegated phases
+- Run the two phase calls concurrently
+
+### Other Platforms
+
+- Use `orchestrator run <task> --preset review --channel <ch> --auto` for Phase 7
+- Run Phase 8 inline when `Skill()` is unavailable
+- Avoid unsupported `local` delegation; keep the affected phase inline
+
+### Gate Command Standardization
+
+Use `bun run check` as the universal gate command. Do not substitute `bun test` or `bun tsc --noEmit` for the full gate.
