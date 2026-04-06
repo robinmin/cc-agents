@@ -210,7 +210,7 @@ All events are synchronous-in-process. The EventBus emits to typed and global ha
 
 | Setting | Value | Rationale |
 |---------|-------|-----------|
-| Database path | `.rdinstate/orchestrator.db` | Project-local, git-ignored |
+| Database path | `docs/.workflow-runs/state.db` | Project-local, git-ignored |
 | Driver | `bun:sqlite` | Zero-dependency, built into Bun |
 | Journal mode | WAL | Concurrent reads during execution |
 | Busy timeout | 5000ms | Wait for locks instead of failing |
