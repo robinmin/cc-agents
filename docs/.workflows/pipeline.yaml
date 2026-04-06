@@ -70,7 +70,9 @@ phases:
 
   review:
     skill: rd3:code-review-common
-    gate: { type: human }
+    gate:
+      type: human
+      blocking: false  # Advisory - LLM review sufficient, human optional
     after: [test]
     payload:
       depth: thorough
@@ -100,6 +102,15 @@ phases:
     timeout: 30m
     after: [verify-bdd, verify-func]
 
+  pr:
+    skill: rd3:git-workflow
+    gate:
+      type: human
+      blocking: true
+      prompt: "Review PR, approve merge, or reject with feedback"
+    timeout: 30m
+    after: [docs]
+
 # ── Task profiles (match v1 phase-matrix.md) ──────────────────────────────────
 #
 # | Profile   | v1 phases        | v2 preset phases                                        |
@@ -115,15 +126,15 @@ presets:
     defaults: { coverage_threshold: 60 }
 
   standard:
-    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func, docs, pr]
     defaults: { coverage_threshold: 80 }
 
   complex:
-    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs, pr]
     defaults: { coverage_threshold: 80 }
 
   research:
-    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs, pr]
     defaults: { coverage_threshold: 60 }
 
   # ── Phase profiles (match v1 convenience commands) ────────────────────────────
