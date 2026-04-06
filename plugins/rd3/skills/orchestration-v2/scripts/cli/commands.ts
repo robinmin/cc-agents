@@ -23,6 +23,7 @@ const VALID_COMMANDS = [
     'inspect',
     'prune',
     'migrate',
+    'events',
 ] as const;
 
 type ValidCommand = (typeof VALID_COMMANDS)[number];
@@ -90,6 +91,10 @@ export function parseArgs(argv: string[]): ParsedCommand {
             i++;
         } else if (arg === '--run' && argv[i + 1]) {
             options.run = argv[i + 1];
+            i++;
+        } else if (arg === '--type' && argv[i + 1]) {
+            options.types = (options.types as string[] | undefined) ?? [];
+            (options.types as string[]).push(...argv[i + 1].split(','));
             i++;
         } else if (arg === '--all') {
             options.all = true;
@@ -164,6 +169,9 @@ export function validateCommand(cmd: ParsedCommand): string | null {
     }
     if (command === 'inspect' && (!cmd.options.taskRef || !cmd.options.phaseName)) {
         return 'Missing required arguments: task-ref and phase';
+    }
+    if (command === 'events' && !cmd.options.run && !cmd.options.taskRef) {
+        return 'Missing required: task-ref or --run <id>';
     }
 
     return null;

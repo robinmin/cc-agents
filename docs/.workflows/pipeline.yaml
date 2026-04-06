@@ -49,7 +49,7 @@ phases:
     skill: rd3:code-implement-common
     gate:
       type: command
-      command: "bun run check"
+      command: "bun run format && bun run lint && bun run typecheck"
       rework: { max_iterations: 2, escalation: pause }
     timeout: 2h
     after: [decompose]
@@ -61,7 +61,7 @@ phases:
     skill: rd3:sys-testing
     gate:
       type: command
-      command: "bun run check"
+      command: "bun run test"
       rework: { max_iterations: 3, escalation: pause }
     timeout: 1h
     after: [implement]

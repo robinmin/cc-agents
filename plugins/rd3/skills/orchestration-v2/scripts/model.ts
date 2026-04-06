@@ -468,3 +468,11 @@ export interface MigrateOptions {
     readonly fromV1?: boolean;
     readonly dryRun?: boolean;
 }
+
+export interface EventsOptions {
+    readonly taskRef?: string;
+    readonly runId?: string;
+    readonly types?: readonly string[];
+    readonly phase?: string;
+    readonly json?: boolean;
+}
