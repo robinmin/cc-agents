@@ -393,7 +393,9 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
 
             // Verify gate result has the error
             const gateResults = await stateManager.getGateResults(result.runId, 'implement');
-            expect(gateResults[0].evidence?.error).toBe('LLM CLI not found. Set LLM_CLI_COMMAND or ensure "pi" binary is in PATH');
+            expect(gateResults[0].evidence?.error).toBe(
+                'LLM CLI not found. Set LLM_CLI_COMMAND or ensure "pi" binary is in PATH',
+            );
         });
 
         test('should pause pipeline for human gate', async () => {
