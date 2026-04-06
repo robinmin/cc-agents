@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { getNextWbs, formatWbs, findTaskByWbs } from '../scripts/lib/wbs';
 import type { TasksConfig } from '../scripts/types';
 
@@ -15,9 +16,10 @@ function makeConfig(tempDir: string): TasksConfig {
 }
 
 describe('WBS utilities', () => {
-    const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `wbs-test-${Date.now()}`);
+    let tempDir: string;
 
     beforeEach(() => {
+        tempDir = mkdtempSync(join(tmpdir(), 'wbs-test-'));
         mkdirSync(tempDir, { recursive: true });
     });
 
@@ -93,7 +95,7 @@ describe('WBS utilities', () => {
         });
 
         test('searches across multiple folders', () => {
-            const tempDir2 = join(Bun.env.TEMP_DIR ?? '/tmp', `wbs-test2-${Date.now()}`);
+            const tempDir2 = mkdtempSync(join(tmpdir(), 'wbs-test2-'));
             mkdirSync(tempDir2, { recursive: true });
             writeFileSync(join(tempDir, '0010_task-a.md'), '---\nname: a\nstatus: Backlog\n---');
             writeFileSync(join(tempDir2, '0050_task-b.md'), '---\nname: b\nstatus: Backlog\n---');
