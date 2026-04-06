@@ -25,6 +25,37 @@ metadata:
 
 Orchestrate Chain-of-Verification (CoV) protocols — a Maker-Checker pattern where each chain node runs a maker action then verifies its output with one or more automated or human checkers.
 
+## When to Use
+
+- Implementing multi-step verification workflows (build → test → review → deploy)
+- Adding automated quality gates to CI/CD or orchestration pipelines
+- Creating Maker-Checker approval chains with human-in-the-loop gates
+- Verifying code quality, security, or compliance via LLM-judged checklists
+- Running parallel verification groups with convergence policies (all/any/quorum)
+- Resuming interrupted verification chains from persisted state
+
+## Quick Start
+
+```typescript
+import { runChain } from './interpreter';
+import type { ChainManifest } from './types';
+
+const manifest: ChainManifest = {
+  chain_id: "build-verify",
+  chain_name: "Build and Verify",
+  task_wbs: "TASK-001",
+  nodes: [{
+    name: "check-build",
+    type: "single",
+    maker: { command: "bun run build" },
+    checker: { method: "cli", config: { command: "test -d dist", exit_codes: [0] } },
+  }],
+};
+
+const state = await runChain({ manifest, stateDir: "./project" });
+// state.status → 'completed' | 'failed' | 'paused'
+```
+
 ## Overview
 
 A **chain** is a directed sequence of **nodes**. Each node has a **maker** (produces output) and a **checker** (verifies output). Chains support:
@@ -262,6 +293,23 @@ interface CheckerEvidence {
   error?: string;
 }
 ```
+
+## Workflows
+
+### Run → Verify → Resume
+
+1. **Define manifest** — create a `ChainManifest` with nodes, checkers, and failure policies
+2. **Run chain** — call `runChain()` which executes nodes sequentially, running maker then checker for each
+3. **Handle pause** — if a human gate is hit, the chain pauses and persists state to disk
+4. **Resume chain** — call `resumeChain()` with the human's response to continue from the paused node
+5. **Check result** — final state contains `status` (`completed`/`failed`/`paused`) and per-node evidence
+
+### Parallel Group Flow
+
+1. All child makers in a parallel group run concurrently
+2. Wait for convergence based on mode (`all`, `any`, `quorum`, `best-effort`)
+3. Run the group's checker against converged results
+4. Apply `on_fail` policy if checker fails
 
 ## Files
 
