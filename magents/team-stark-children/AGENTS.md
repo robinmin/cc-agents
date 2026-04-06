@@ -66,7 +66,6 @@ Skills are loaded dynamically via the Skill tool when the scenario matches. Acti
 | Find functions, classes, async patterns, inheritance | `sg` (ast-grep) | `sg run --pattern 'async function $F() { $$$ }' --lang ts` | AST pattern matching for structural code search. |
 | Rewrite code, refactor pattern, safe rename | `sg` | `sg run --pattern 'console.log($$$)' --rewrite 'logger.log($$$)' --lang ts` | Safe AST-aware rewrites preserving formatting. |
 | Detect anti-patterns, console-log, async-no-trycatch | `sg` | `sg scan --rule references/rules/console-log.yml` | Scan with pre-built detection rules. |
-| Read markdown, show .md file, render docs | `glow` | `glow README.md` | Default tool for rendering .md files in terminal. Prefer over `cat` for readability. |
 | Create task, list tasks, update task status, manage WBS | `tasks` | `tasks create "Do X"` / `tasks list wip` / `tasks update 0001 done` | CLI for creating, listing, and updating task files. Replaces direct file writes to `docs/.tasks/`. |
 
 ---
