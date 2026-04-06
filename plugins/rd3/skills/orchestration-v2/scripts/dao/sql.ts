@@ -32,8 +32,7 @@ export const PHASE_SQL = {
 
     selectByRunAndStatus: `SELECT * FROM phases WHERE run_id = ? AND status = ?`,
 
-    updateStatus:
-        `UPDATE phases SET status = ?, started_at = ?, completed_at = ?, error_code = ?, error_message = ? WHERE run_id = ? AND name = ?`,
+    updateStatus: `UPDATE phases SET status = ?, started_at = ?, completed_at = ?, error_code = ?, error_message = ? WHERE run_id = ? AND name = ?`,
 
     updateReworkIteration: `UPDATE phases SET rework_iteration = ? WHERE run_id = ? AND name = ?`,
 } as const;
@@ -48,8 +47,7 @@ export const GATE_RESULT_SQL = {
 
     // Returns rows where step_name matches the base name OR matches the "name#*" glob pattern.
     // The loop in resolveGateResultStepName includes the base name to compute correct suffixes.
-    selectExistingSteps:
-        `SELECT step_name FROM gate_results
+    selectExistingSteps: `SELECT step_name FROM gate_results
          WHERE run_id = ? AND phase_name = ? AND (step_name = ? OR step_name GLOB ?)
          ORDER BY created_at, step_name`,
 } as const;
@@ -60,8 +58,7 @@ export const PHASE_EVIDENCE_SQL = {
     insert: `INSERT INTO phase_evidence (run_id, phase_name, rework_iteration, evidence)
              VALUES (?, ?, ?, ?)`,
 
-    selectByRunAndPhase:
-        `SELECT run_id, phase_name, rework_iteration, evidence, created_at
+    selectByRunAndPhase: `SELECT run_id, phase_name, rework_iteration, evidence, created_at
          FROM phase_evidence WHERE run_id = ? AND phase_name = ? ORDER BY created_at, id`,
 } as const;
 
