@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import {
     AcpExecutor,
     LocalCommandExecutor,
@@ -35,6 +35,40 @@ describe('createExecutorForChannel', () => {
         const executor = createExecutorForChannel('codex');
         expect(executor).toBeInstanceOf(AcpExecutor);
     });
+});
+
+// Module-level env cleanup to prevent test pollution from other test files
+const originalAcpxAgent = process.env.ACPX_AGENT;
+const originalAcpxBin = process.env.ACPX_BIN;
+const originalLocalPromptAgent = process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
+const originalCwd = process.cwd();
+
+beforeEach(() => {
+    // Ensure clean environment before each test
+    delete process.env.ACPX_AGENT;
+    delete process.env.ACPX_BIN;
+    delete process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
+    process.chdir(originalCwd);
+});
+
+afterEach(() => {
+    // Restore original environment state
+    if (originalAcpxAgent === undefined) {
+        delete process.env.ACPX_AGENT;
+    } else {
+        process.env.ACPX_AGENT = originalAcpxAgent;
+    }
+    if (originalAcpxBin === undefined) {
+        delete process.env.ACPX_BIN;
+    } else {
+        process.env.ACPX_BIN = originalAcpxBin;
+    }
+    if (originalLocalPromptAgent === undefined) {
+        delete process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
+    } else {
+        process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT = originalLocalPromptAgent;
+    }
+    process.chdir(originalCwd);
 });
 
 describe('executors', () => {
@@ -94,68 +128,33 @@ describe('executors', () => {
     });
 
     test('local executor default prompt runner fails without an explicit prompt agent', async () => {
-        const originalAcpxAgent = process.env.ACPX_AGENT;
-        const originalLocalPromptAgent = process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
-        delete process.env.ACPX_AGENT;
-        delete process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
+        // ACPX_AGENT and ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT already deleted by beforeEach
+        const executor = new LocalCommandExecutor();
+        const result = await executor.execute({
+            channel: 'current',
+            cwd: process.cwd(),
+            prompt: 'review this task',
+        });
 
-        try {
-            const executor = new LocalCommandExecutor();
-            const result = await executor.execute({
-                channel: 'current',
-                cwd: process.cwd(),
-                prompt: 'review this task',
-            });
-
-            expect(result.status).toBe('failed');
-            expect(result.error).toContain('requires an explicit prompt agent');
-        } finally {
-            if (originalAcpxAgent === undefined) {
-                delete process.env.ACPX_AGENT;
-            } else {
-                process.env.ACPX_AGENT = originalAcpxAgent;
-            }
-
-            if (originalLocalPromptAgent === undefined) {
-                delete process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
-            } else {
-                process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT = originalLocalPromptAgent;
-            }
-        }
+        expect(result.status).toBe('failed');
+        expect(result.error).toContain('requires an explicit prompt agent');
     });
 
     test('local executor default prompt runner records the configured prompt agent', async () => {
-        const originalAcpxAgent = process.env.ACPX_AGENT;
-        const originalLocalPromptAgent = process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
+        // ACPX_AGENT deleted by beforeEach, set ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT for this test
         process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT = 'claude';
-        delete process.env.ACPX_AGENT;
+        const executor = new LocalCommandExecutor({
+            acpxBin: 'true',
+        });
+        const result = await executor.execute({
+            channel: 'current',
+            cwd: process.cwd(),
+            prompt: 'mock-prompt',
+        });
 
-        try {
-            const executor = new LocalCommandExecutor({
-                acpxBin: 'true',
-            });
-            const result = await executor.execute({
-                channel: 'current',
-                cwd: process.cwd(),
-                prompt: 'mock-prompt',
-            });
-
-            expect(result.status).toBe('completed');
-            expect(result.prompt_agent).toBe('claude');
-            expect(result.command).toEqual(['true', '--format', 'quiet', 'claude', 'exec', 'mock-prompt']);
-        } finally {
-            if (originalAcpxAgent === undefined) {
-                delete process.env.ACPX_AGENT;
-            } else {
-                process.env.ACPX_AGENT = originalAcpxAgent;
-            }
-
-            if (originalLocalPromptAgent === undefined) {
-                delete process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
-            } else {
-                process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT = originalLocalPromptAgent;
-            }
-        }
+        expect(result.status).toBe('completed');
+        expect(result.prompt_agent).toBe('claude');
+        expect(result.command).toEqual(['true', '--format', 'quiet', 'claude', 'exec', 'mock-prompt']);
     });
 
     test('local executor default runner captures successful shell output', async () => {
