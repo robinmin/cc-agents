@@ -98,7 +98,13 @@ export function analyzeStructuralIssues(model: UniversalMainAgent): {
     missingRequiredCategories: SectionCategory[];
     lowContentSections: MagentSection[];
 } {
-    const emptySections = model.sections.filter((s) => !s.content || s.content.trim().length === 0);
+    const emptySections = model.sections.filter((s, i) => {
+        if (s.content && s.content.trim().length > 0) return false;
+        // Skip parent sections that have sub-headings as children
+        const next = model.sections[i + 1];
+        if (next && next.level > s.level) return false;
+        return true;
+    });
     const duplicateHeadings: string[] = [];
     const lowContentSections: MagentSection[] = [];
 
