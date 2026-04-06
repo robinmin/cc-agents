@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, spyOn } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { listTasks } from '../scripts/commands/list';
 import type { Err } from '../scripts/lib/result';
@@ -37,11 +38,12 @@ created_at: 2026-01-01T00:00:00Z
 }
 
 describe('listTasks', () => {
-    const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `tasks-list-test-${Date.now()}`);
+    let tempDir: string;
     const folder = 'docs/tasks';
     let logSpy: ReturnType<typeof spyOn>;
 
     beforeEach(() => {
+        tempDir = mkdtempSync(join(tmpdir(), 'tasks-list-test-'));
         writeConfig(tempDir, folder);
         setGlobalSilent(true);
         logSpy = spyOn(logger, 'log');
