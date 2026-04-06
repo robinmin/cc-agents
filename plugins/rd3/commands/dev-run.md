@@ -1,6 +1,6 @@
 ---
 description: Preset-driven task execution through the 9-phase pipeline
-argument-hint: "<task-ref> [--preset <preset>] [--phases <a,b>] [--auto] [--coverage <n>] [--dry-run] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--preset <name>] [--phases <csv>] [--channel <name>] [--auto] [--dry-run]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
@@ -25,7 +25,7 @@ Execute the 9-phase pipeline for a task, driven by profile. Delegates to **rd3:o
 | `complex` | 1-9 (all) | Large scope, 6+ files, full rigor |
 | `research` | 1-9 (all) | Investigation-heavy work with a lighter default test gate |
 
-Default: read from task frontmatter, fall back to `standard`.
+Read the default profile from task frontmatter; fall back to `standard`.
 
 ### Phase Profiles
 
@@ -51,16 +51,12 @@ Default: read from task frontmatter, fall back to `standard`.
 
 ## Workflow
 
-Forward `--channel` (default: `auto`) to **rd3:orchestration-v2**. `auto` means "route through the configured default backend from `default_channel`". `current` remains accepted as a deprecated alias for the same behavior. Explicit ACP agent names like `pi` or `codex` still target those backends directly. All 9 phases are executable. Phases 5-7 use worker-agent envelopes; Phase 6 runs through verification-chain. Phases 1-4 and 8-9 execute through the same configured default channel unless you override them explicitly. Review runs pause at the Phase 7 human gate unless `--auto` is set.
+Run **rd3:orchestration-v2** with the requested task reference, profile, and overrides. Route `--channel` through the orchestrator as-is; `auto` uses the configured `default_channel`, while `current` remains a deprecated alias for the same behavior. Execute any of the 9 phases; phases 5-7 use worker-agent envelopes, phase 6 runs through verification-chain, and phases 1-4 plus 8-9 use the configured default channel unless you override them. Pause review runs at the Phase 7 human gate unless `--auto` is set.
 
 ```
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset complex")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset unit")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --auto")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --dry-run")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset refine")
-Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --channel opencode")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --preset <name>")
+Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --auto|--dry-run|--channel <name>")
 ```
 
 ## Examples
@@ -69,13 +65,6 @@ Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS --channel opencode")
 Run a simple task (implementation + testing)
 ```bash
 /rd3:dev-run 0274 --preset simple
-```
-</example>
-
-<example>
-Run unit testing only
-```bash
-/rd3:dev-run 0274 --preset unit
 ```
 </example>
 
@@ -94,41 +83,24 @@ Preview a complex profile plan without executing
 </example>
 
 <example>
-Preview a refine profile plan
-```bash
-/rd3:dev-run 0274 --preset refine --dry-run
-```
-</example>
-
-<example>
-Preview the execution plan without running anything
-```bash
-/rd3:dev-run 0274 --dry-run
-```
-</example>
-
-<example>
 Run only the review and verification subset in DAG order
 ```bash
 /rd3:dev-run 0274 --phases review,verify-bdd,verify-func,docs
 ```
 </example>
-
 ## See Also
 
 - **rd3:orchestration-v2**: Full 9-phase pipeline orchestrator skill
 - **rd3:run-acp**: ACP executor used by orchestration for delegated remote work
 - Phase shortcut commands: use `--preset <phase-name>` with this command to run individual phases
-
-
 ## Platform Notes
 
 ### Claude Code (primary)
-Native `Skill()` and `!`cmd`` support. Pass arguments directly: `/rd3:dev-run 0274 --preset complex`.
+Run the command directly with native `Skill()` and `!`cmd`` support: `/rd3:dev-run 0274 --preset complex`.
 
 ### Other Platforms
-`Skill()`, `Task()`, `$ARGUMENTS`, `!`cmd$``, and slash command syntax (`/rd3:dev-run`) are Claude Code–only. On Codex, OpenClaw, OpenCode, Antigravity, or Gemini CLI: invoke the orchestration skill directly via Bash:
+Run the orchestration skill directly via Bash on Codex, OpenClaw, OpenCode, Antigravity, or Gemini CLI because `Skill()`, `Task()`, `$ARGUMENTS`, `!`cmd$``, and slash command syntax (`/rd3:dev-run`) are Claude Code-only:
 ```bash
-bun plugins/rd3/skills/orchestration-v2/scripts/run.ts run <task-ref> --preset <name> [options]
+orchestrator run <task-ref> --preset <name> [options]
 ```
-See **rd3:orchestration-v2** for available arguments.
+Read **rd3:orchestration-v2** for the full argument set.
