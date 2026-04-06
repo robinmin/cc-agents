@@ -4,16 +4,20 @@ description: "Requirements traceability assessment: verify implementation satisf
 license: Apache-2.0
 version: 1.0.0
 created_at: 2026-03-27
-updated_at: 2026-03-27
+updated_at: 2026-04-05
 platform: rd3
 type: technique
 tags: [requirements, traceability, verification, phase-8, review]
 metadata:
   author: cc-agents
-  platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity"
+  platforms: "claude-code,codex,gemini,openclaw,opencode,antigravity,pi"
   category: verification
   interactions:
     - reviewer
+  severity_levels:
+    - fail
+    - partial
+    - pass
 see_also:
   - rd3:bdd-workflow
   - rd3:verification-chain
@@ -98,6 +102,31 @@ interface ExecutionReport {
 5. Compute overall verdict
 6. Write results to task file Review section
 ```
+
+## Workflows
+
+### Workflow 1: BDD-Assisted Functional Review
+
+1. Load the task file and parse the Requirements section into numbered review items.
+2. Load the BDD execution report from `rd3:bdd-workflow`.
+3. Map each requirement to one or more scenarios by requirement text, identifiers, or explicit traceability markers.
+4. Mark requirements as `met` when all covering scenarios pass, or `partial` when any covering scenario fails or skips.
+5. Run LLM evidence assessment only for requirements that remain uncovered after BDD mapping.
+6. Compute the overall functional verdict and persist the report to the task Review section.
+
+### Workflow 2: LLM-Only Functional Review
+
+1. Load the task file and parse the Requirements section.
+2. Enumerate relevant source paths and tests for the implementation under review.
+3. Gather concrete evidence with file paths, line numbers, and symbol names for each requirement.
+4. Assess each requirement as `met`, `partial`, or `unmet` using the evidence quality rules below.
+5. Compute the overall verdict and write the report to the task Review section.
+
+### Workflow 3: Phase Gate Handoff
+
+1. Consume the output from Phase 8a (`rd3:bdd-workflow`) when available.
+2. Produce a pass, partial, or fail decision for Phase 8b using the per-requirement verdicts.
+3. Return the structured report to orchestration for final gate handling.
 
 ## Two-Track Assessment
 
@@ -324,3 +353,45 @@ rd3:functional-review 0266 --review-depth quick
 1. **Evidence gate:** All evidence must be specific (file:line)
 2. **Coverage gate:** All requirements must have a verdict
 3. **Verdict gate:** Overall verdict must be pass/partial/fail with reasoning
+
+## Platform Notes
+
+### Claude Code
+- Invoke via `Skill(skill="rd3:functional-review", args="<task-ref>")`
+
+### Other Platforms (pi, Codex, OpenCode, etc.)
+
+This skill has **no CLI** and must be executed inline. Execute the workflow below directly inside the calling agent loop.
+
+**Inline execution** (run these steps directly):
+
+```bash
+# 1. Load task content
+#    WBS refs should go through the tasks CLI so configured task folders are respected.
+if [[ "$TASK_REF" == *.md ]]; then
+  TASK_CONTENT=$(cat "$TASK_REF")
+else
+  TASK_CONTENT=$(tasks show "$TASK_REF")
+fi
+
+# 2. Parse requirements from task content (extract numbered items from Requirements section)
+#    Look for lines matching: /^- \[ \]/ or /^[0-9]+\./ or explicit requirement markers
+
+# 3. For each requirement, search source files for evidence
+grep -rn "keyword" plugins/rd3/ --include="*.ts" | head -20
+
+# 4. Run gate: bun run check
+#    (always pass/fail gate before reporting)
+
+# 5. Produce report in the Review Report Format above
+#    Update task file with verdict
+```
+
+**Required permissions**: `Read`, `Bash` (for grep and bun), and `Edit` (to update the task file).
+
+**Key point**: `rd3:functional-review` is self-contained and has no external runtime dependencies.
+
+## Additional Resources
+
+- [Assessment rubric](references/assessment-rubric.md)
+- [Evidence standards](references/evidence-standards.md)
