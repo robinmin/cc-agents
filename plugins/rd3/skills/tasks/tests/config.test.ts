@@ -1,18 +1,24 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import {
     loadConfig,
     getProjectRoot,
+    getStaticDir,
+    getUiDir,
     resolveFolderPath,
+    resolveActiveFolder,
     getMetaDir,
     getConfigPath,
     getTemplatePath,
     getLegacyTemplatePath,
     saveConfig,
+    resetConfigCache,
     LEGACY_META_DIR,
     LEGACY_DIR,
+    PRIMARY_TASKS_DIR,
 } from '../scripts/lib/config';
+import type { TasksConfig } from '../scripts/types';
 
 describe('getProjectRoot', () => {
     test('returns project root from current directory', () => {
@@ -20,6 +26,32 @@ describe('getProjectRoot', () => {
         expect(root).toBeTruthy();
         // Should contain .claude or docs indicator
         expect(existsSync(join(root, '.claude')) || existsSync(join(root, 'docs'))).toBe(true);
+    });
+
+    test('returns temp task root when cwd is inside a temp project with docs/.tasks', () => {
+        const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `temp-root-${Date.now()}`);
+        const projectDir = join(tempDir, 'project');
+        mkdirSync(join(projectDir, LEGACY_META_DIR), { recursive: true });
+
+        const originalCwd = process.cwd;
+        process.cwd = () => join(projectDir, 'nested', 'worktree');
+        try {
+            expect(getProjectRoot()).toBe(projectDir);
+        } finally {
+            process.cwd = originalCwd;
+            rmSync(tempDir, { recursive: true, force: true });
+        }
+    });
+
+    test('falls back to the script directory repo root when cwd has no markers', () => {
+        const expectedRoot = realpathSync(join(import.meta.dir, '../../../../../'));
+        const originalCwd = process.cwd;
+        process.cwd = () => '/nonexistent-root/tasks-config-fallback';
+        try {
+            expect(realpathSync(getProjectRoot())).toBe(expectedRoot);
+        } finally {
+            process.cwd = originalCwd;
+        }
     });
 });
 
@@ -87,7 +119,7 @@ describe('loadConfig', () => {
 
     test('returns legacy config when no config.jsonc exists', () => {
         const config = loadConfig(tempDir);
-        expect(config.active_folder).toBe(LEGACY_DIR);
+        expect(config.active_folder).toBe(PRIMARY_TASKS_DIR);
         expect(config.folders[LEGACY_DIR]).toBeTruthy();
     });
 
@@ -96,7 +128,7 @@ describe('loadConfig', () => {
         writeFileSync(configPath, '{ invalid json ');
         // Should fall back to legacy mode
         const config = loadConfig(tempDir);
-        expect(config.active_folder).toBe(LEGACY_DIR);
+        expect(config.active_folder).toBe(PRIMARY_TASKS_DIR);
     });
 });
 
@@ -122,6 +154,36 @@ describe('resolveFolderPath', () => {
         const config = loadConfig(tempDir);
         const resolved = resolveFolderPath(config, tempDir, 'custom-folder');
         expect(resolved).toBe(join(tempDir, 'custom-folder'));
+    });
+});
+
+describe('path helpers', () => {
+    test('getStaticDir resolves relative to the tasks scripts directory', () => {
+        expect(getStaticDir()).toBe(join(import.meta.dir, '../scripts/static'));
+    });
+
+    test('getUiDir resolves relative to the tasks scripts directory', () => {
+        expect(getUiDir()).toBe(join(import.meta.dir, '../scripts/server/ui'));
+    });
+});
+
+describe('resolveActiveFolder', () => {
+    test('prefers cli folder override', () => {
+        const config: TasksConfig = {
+            $schema_version: 1,
+            active_folder: LEGACY_DIR,
+            folders: { [LEGACY_DIR]: { base_counter: 0 } },
+        };
+        expect(resolveActiveFolder(config, 'docs/tasks2')).toBe('docs/tasks2');
+    });
+
+    test('falls back to legacy folder when config has no active folder', () => {
+        const config = {
+            $schema_version: 1,
+            active_folder: '',
+            folders: { [LEGACY_DIR]: { base_counter: 0 } },
+        } as TasksConfig;
+        expect(resolveActiveFolder(config)).toBe(LEGACY_DIR);
     });
 });
 
@@ -217,9 +279,17 @@ describe('getProjectRoot - edge cases', () => {
         process.cwd = () => projectDir;
         try {
             const root = getProjectRoot();
-            expect(root).toBe(projectDir);
+            const realRoot = realpathSync(root);
+            const realExpected = realpathSync(projectDir);
+            expect(realRoot).toBe(realExpected);
         } finally {
             process.cwd = originalCwd;
         }
+    });
+});
+
+describe('resetConfigCache', () => {
+    test('is a no-op for compatibility', () => {
+        expect(() => resetConfigCache()).not.toThrow();
     });
 });
