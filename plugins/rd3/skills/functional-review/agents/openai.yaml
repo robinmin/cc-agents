@@ -1,0 +1,13 @@
+name: functional-review
+description: "Requirements traceability assessment: verify implementation
+  satisfies ALL task requirements. Phase 8b gate for the 9-phase orchestration
+  pipeline. Persona: Senior QA Lead."
+version: 1.0.0
+icon: 🛠️
+category: debugging
+tags:
+  - requirements
+  - traceability
+  - verification
+  - phase-8
+  - review
