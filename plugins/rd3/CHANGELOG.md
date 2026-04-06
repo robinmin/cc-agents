@@ -2,6 +2,66 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.7] - 2026-04-06
+
+### New Features
+
+- **rd3:dev-verify**: New slash command for task verification
+  - Requirements traceability assessment
+  - Phase 8b gate for the 9-phase orchestration pipeline
+  - Review and optional fixes workflow
+
+- **rd3:tasks Web UI**: New web interface for task management
+  - Visual task board with Backlog, Todo, In Progress, Done columns
+  - Task detail view with status management
+  - "Move to Todo" button for Backlog tasks
+  - Server mode for remote task access
+
+- **rd3:orchestration-v2 init Command**: New CLI entry point
+  - `init` command for quick project setup
+  - Phase-based execution profiles (simple, standard, complex, research)
+
+- **rd3:cli-for-ai**: New agent skill for CLI design
+  - 7 agent-friendly patterns (structured output, schema introspection, dry-run, next actions, input hardening, context discipline, skill shipping)
+  - Guide for building AI-compatible CLI tools
+
+- **rd3:super-reviewer**: New subagent for code review
+  - SECU framework implementation
+  - Priority taxonomy for findings
+  - rd3-run-acp integration for multi-agent workflows
+
+- **New Platform Language Skills**: Expanded language support
+  - `rd3:frontend-architect`: Frontend architecture patterns (SPA vs SSR vs SSG vs ISR, microfrontends, CDN/edge strategies)
+  - `rd3:backend-architect`: Backend system design (CQRS, Event Sourcing, Saga patterns, cloud-native patterns)
+  - `rd3:pl-golang`: Go project planning (concurrency, interfaces, generics)
+  - `rd3:pl-javascript`: JavaScript architecture (ES2024+, async patterns, DOM manipulation)
+  - `rd3:pl-python`: Python project planning (FastAPI, async pipelines, type system)
+
+- **rd3:quick-grep**: New agent skill for code search
+  - AST pattern matching with `sg` tool
+  - Structural code search and safe refactoring
+  - Prebuilt anti-pattern detection rules
+
+### Improvements
+
+- **Task-decomposition**: Enhanced WBS generation with effort estimation
+- **Tasks Server**: Added `server` command for remote task access
+- **Verification-chain**: Added 7 workflow patterns documentation
+
+### Bug Fixes
+
+- Fixed rd3:orchestration-v2 architecture review issues (40+ fixes)
+- Fixed acpx-query LLM CLI handling unification
+- Fixed rd3:tasks WBS collision on delete
+- Fixed task file issues with invalid status handling
+- Fixed setup-all.sh cross-platform compatibility
+
+### Internal Changes
+
+- Architecture review and refactoring for orchestration-v2
+- Enhanced rd3:super-coder and rd3:super-tester integration
+- Improved main agents with team-stark-children pattern
+
 ## [0.4.6] - 2026-04-05
 
 ### New Features
