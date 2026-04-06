@@ -133,10 +133,16 @@ function validateMarkdownStructure(ctx: ValidationContext, report: MutableReport
         return;
     }
 
-    // Check for empty sections
+    // Check for empty sections (skip parent sections that have sub-headings)
     let emptySectionCount = 0;
-    for (const section of sections) {
+    for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
         if (!section.content || section.content.trim().length === 0) {
+            // A parent section is not truly empty if the next section is a child
+            const nextSection = sections[i + 1];
+            if (nextSection && nextSection.level > section.level) {
+                continue;
+            }
             emptySectionCount++;
             addFinding(
                 report,
