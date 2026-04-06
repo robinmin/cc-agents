@@ -74,9 +74,42 @@ rd3:orchestration-v2 resume 0266 --approve --auto
 
 ## Platform Notes
 
-- Claude Code and Gemini can invoke the orchestration skill directly from the wrapper metadata.
-- Codex and OpenCode should treat this file as routing guidance; the actual execution still belongs to `rd3:orchestration-v2`.
-- OpenClaw should keep orchestration behavior in metadata-backed skill configuration, not duplicate logic in the wrapper body.
+### Claude Code
+- Can invoke `rd3:orchestration-v2` directly via `Skill()` tool.
+- Pass all arguments unchanged.
+
+### Other Platforms (pi, Codex, OpenCode, OpenClaw, Gemini CLI)
+- `Skill()` tool may not be available or may not support cross-skill delegation.
+- **Always use the CLI directly** instead:
+
+```bash
+orchestrator run <task-ref> --preset <name> [options]
+```
+
+**Platform detection** (run at session start):
+```bash
+# Check if Skill() is available (Claude Code specific)
+# If not, route all orchestration via CLI
+
+orchestrator run "$TASK_REF" \
+  --preset "$PRESET" \
+  --channel "${CHANNEL:-auto}" \
+  --auto \
+  2>&1
+```
+
+**Platform capability matrix**:
+
+| Platform | Skill() | CLI | Notes |
+|---------|---------|-----|-------|
+| Claude Code | ✅ | ✅ | Prefer Skill() |
+| pi | ❌ | ✅ | Use CLI only |
+| Codex | ❌ | ✅ | Use CLI via `acpx codex exec` |
+| OpenCode | ❌ | ✅ | Use CLI |
+| OpenClaw | ❌ | ✅ | Use CLI |
+| Gemini CLI | ❌ | ✅ | Use CLI |
+
+**Key principle**: If `Skill()` fails or is unavailable, fall back to CLI without asking. Never fail silently — always execute via the next available mechanism.
 
 ## Intent Routing
 
