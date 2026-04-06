@@ -123,7 +123,17 @@ function escapeRegex(value: string): string {
 }
 
 function isValidProfile(value: string): value is NonNullable<TaskFrontmatter['profile']> {
-    return value === 'simple' || value === 'standard' || value === 'complex' || value === 'research';
+    return (
+        value === 'simple' ||
+        value === 'standard' ||
+        value === 'complex' ||
+        value === 'research' ||
+        value === 'refine' ||
+        value === 'plan' ||
+        value === 'unit' ||
+        value === 'review' ||
+        value === 'docs'
+    );
 }
 
 export function parseSection(content: string, section: string): string {
