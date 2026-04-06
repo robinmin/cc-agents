@@ -1,12 +1,11 @@
 name: orchestration-v2
-description: Next-generation pipeline orchestration engine with DAG-based
-  parallel execution, FSM lifecycle management, event-sourced SQLite state, and
-  CLI-first interface. Use when running multi-phase development pipelines,
-  resuming paused workflows, generating pipeline reports, or customizing
-  pipeline definitions per-project.
+description: DAG-based pipeline orchestration with FSM lifecycle, event-sourced
+  SQLite state, and CLI-first interface. Use for multi-phase pipelines, resuming
+  paused workflows, pipeline reports, or customizing pipeline definitions
+  per-project.
 version: 0.1.0
 icon: 🛠️
-category: debugging
+category: orchestration
 tags:
   - orchestration
   - pipeline
