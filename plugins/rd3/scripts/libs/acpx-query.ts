@@ -15,7 +15,6 @@
  * - verification-chain/scripts/methods/llm.ts
  */
 
-
 import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync, type SpawnSyncOptions } from 'node:child_process';
 
@@ -139,12 +138,7 @@ export function initializeLlmEnv(): void {
 /**
  * Build acpx command arguments.
  */
-function buildAcpxArgs(
-    agent: string,
-    subcommand: string,
-    input: string,
-    options: ResolvedOptions,
-): string[] {
+function buildAcpxArgs(agent: string, subcommand: string, input: string, options: ResolvedOptions): string[] {
     const args: string[] = [];
 
     // Command: bin first
@@ -209,8 +203,6 @@ function resolveOptions(options?: AcpxQueryOptions): ResolvedOptions {
     };
 }
 
-
-
 /**
  * Execute an acpx command and return raw result.
  * @param command - Command array to execute
@@ -241,8 +233,8 @@ export function execAcpxSync(command: string[], timeoutMs?: number): AcpxQueryRe
     return {
         ok: result.status === 0,
         exitCode: result.status ?? 1,
-        stdout: typeof result.stdout === 'string' ? result.stdout : result.stdout?.toString() ?? '',
-        stderr: typeof result.stderr === 'string' ? result.stderr : result.stderr?.toString() ?? '',
+        stdout: typeof result.stdout === 'string' ? result.stdout : (result.stdout?.toString() ?? ''),
+        stderr: typeof result.stderr === 'string' ? result.stderr : (result.stderr?.toString() ?? ''),
         durationMs: Date.now() - startTime,
         timedOut: result.error?.message.includes('timeout') ?? false,
     };
@@ -257,11 +249,7 @@ export function execAcpxSync(command: string[], timeoutMs?: number): AcpxQueryRe
  * @param promptFile - Path to file containing the prompt (read and piped to stdin)
  * @param timeoutMs - Timeout in milliseconds
  */
-export function execLlmCli(
-    command: string[],
-    promptFile: string,
-    timeoutMs = 300_000,
-): AcpxQueryResult {
+export function execLlmCli(command: string[], promptFile: string, timeoutMs = 300_000): AcpxQueryResult {
     const startTime = Date.now();
 
     const bin = command[0];
@@ -269,9 +257,7 @@ export function execLlmCli(
 
     // If the binary is a shell script (.sh) or not executable directly,
     // invoke it through `sh` to avoid ENOENT / permission errors.
-    const [effectiveBin, effectiveArgs] = bin.endsWith('.sh')
-        ? ['/bin/sh', [bin, ...args]]
-        : [bin, args];
+    const [effectiveBin, effectiveArgs] = bin.endsWith('.sh') ? ['/bin/sh', [bin, ...args]] : [bin, args];
 
     const result = spawnSync(effectiveBin, effectiveArgs, {
         cwd: process.cwd(),
@@ -332,6 +318,20 @@ export function queryLlmFromFile(filePath: string, options?: AcpxQueryOptions): 
 
     return result;
 }
+
+// ─── Testing Exports ────────────────────────────────────────────────────────
+
+/**
+ * Resolve options with defaults and env var fallbacks.
+ * Exported for testing purposes.
+ */
+export { resolveOptions };
+
+/**
+ * Build acpx command arguments.
+ * Exported for testing purposes.
+ */
+export { buildAcpxArgs };
 
 // ─── Output Parsing ──────────────────────────────────────────────────────────
 
@@ -424,9 +424,18 @@ export function extractFromJsonBlock(output: string): Record<string, unknown> | 
     let escaped = false;
     for (let i = 0; i < candidate.length; i++) {
         const ch = candidate[i] as string;
-        if (escaped) { escaped = false; continue; }
-        if (ch === '\\') { escaped = true; continue; }
-        if (ch === '"') { inString = !inString; continue; }
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (ch === '\\') {
+            escaped = true;
+            continue;
+        }
+        if (ch === '"') {
+            inString = !inString;
+            continue;
+        }
         if (inString) continue;
         if (ch === '{' || ch === '[') depth++;
         if (ch === '}' || ch === ']') depth--;
@@ -456,9 +465,18 @@ export function extractFirstBalancedJsonObject(s: string): string {
 
     for (let i = start; i < trimmed.length; i++) {
         const ch = trimmed[i] as string;
-        if (escaped) { escaped = false; continue; }
-        if (ch === '\\') { escaped = true; continue; }
-        if (ch === '"') { inString = !inString; continue; }
+        if (escaped) {
+            escaped = false;
+            continue;
+        }
+        if (ch === '\\') {
+            escaped = true;
+            continue;
+        }
+        if (ch === '"') {
+            inString = !inString;
+            continue;
+        }
         if (inString) continue;
         if (ch === '{' || ch === '[') depth++;
         if (ch === '}' || ch === ']') {
@@ -502,5 +520,3 @@ export function checkAcpxHealth(acpxBin?: string): AcpxHealth {
         };
     }
 }
-
-
