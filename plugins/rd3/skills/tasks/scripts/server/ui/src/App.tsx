@@ -7,7 +7,7 @@ import { useState, useMemo } from 'react';
 import { STATUS_ORDER, STATUS_EMOJI, type TaskStatus } from './types';
 
 export function App() {
-    const { columns, config, activeFolder, loading, error, moveTask, changeFolder, connected } = useTasks();
+    const { columns, config, activeFolder, loading, error, moveTask, changeFolder, refresh, connected } = useTasks();
     const [selectedWbs, setSelectedWbs] = useState<string | null>(null);
     const [showCreate, setShowCreate] = useState(false);
 
@@ -127,7 +127,7 @@ export function App() {
                 />
             )}
 
-            {selectedWbs && <TaskDetail wbs={selectedWbs} onClose={() => setSelectedWbs(null)} />}
+            {selectedWbs && <TaskDetail wbs={selectedWbs} onClose={() => setSelectedWbs(null)} onStatusChange={refresh} />}
 
             {showCreate && <TaskCreate onClose={() => setShowCreate(false)} />}
         </div>

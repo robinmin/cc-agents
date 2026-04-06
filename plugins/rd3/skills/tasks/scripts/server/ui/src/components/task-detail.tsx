@@ -8,9 +8,10 @@ import { ChannelModal } from './channel-modal';
 interface TaskDetailProps {
     wbs: string;
     onClose: () => void;
+    onStatusChange?: () => void; // Callback to refresh kanban board after status change
 }
 
-export function TaskDetail({ wbs, onClose }: TaskDetailProps) {
+export function TaskDetail({ wbs, onClose, onStatusChange }: TaskDetailProps) {
     const [task, setTask] = useState<TaskFile | null>(null);
     const [loading, setLoading] = useState(true);
     const [modalAction, setModalAction] = useState<string | null>(null);
@@ -106,14 +107,19 @@ export function TaskDetail({ wbs, onClose }: TaskDetailProps) {
         return () => window.removeEventListener('keydown', handleKey);
     }, [onClose, isEditing]);
 
-    async function handleStatusChange(newStatus: TaskStatus) {
-        try {
-            await updateTaskStatus(wbs, newStatus);
-            setTask((prev) => (prev ? { ...prev, status: newStatus } : prev));
-        } catch {
-            // error handled by parent
-        }
-    }
+    const handleStatusChange = useCallback(
+        async (newStatus: TaskStatus) => {
+            try {
+                await updateTaskStatus(wbs, newStatus);
+                setTask((prev) => (prev ? { ...prev, status: newStatus } : prev));
+                // Notify parent to refresh kanban board
+                onStatusChange?.();
+            } catch {
+                // error handled by parent
+            }
+        },
+        [wbs, onStatusChange],
+    );
 
     const handleSave = useCallback(async () => {
         setSaving(true);
@@ -175,6 +181,27 @@ export function TaskDetail({ wbs, onClose }: TaskDetailProps) {
                 primary: false,
             });
         } else {
+            // Move to Todo: Only for Backlog tasks, shown as first button
+            if (task.status === 'Backlog') {
+                res.push({
+                    label: actionLoading === 'moveToTodo' ? 'Moving...' : 'Move to Todo',
+                    onClick: async () => {
+                        setActionLoading('moveToTodo');
+                        try {
+                            await handleStatusChange('Todo');
+                            onClose();
+                        } catch {
+                            // Error handled by handleStatusChange
+                        } finally {
+                            setActionLoading(null);
+                        }
+                    },
+                    primary: false,
+                    secondary: true,
+                    disabled: !!actionLoading,
+                });
+            }
+
             if (isEditable) {
                 res.push({
                     label: 'Edit',
@@ -235,7 +262,7 @@ export function TaskDetail({ wbs, onClose }: TaskDetailProps) {
             }
         }
         return res;
-    }, [task, isEditing, saving, isEditable, actionLoading, handleSave]);
+    }, [task, isEditing, saving, isEditable, actionLoading, handleSave, handleStatusChange, onClose]);
 
     return (
         <div className={`fixed inset-0 z-50 flex justify-end ${isResizing ? 'select-none' : ''}`}>
