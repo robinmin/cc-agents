@@ -114,9 +114,17 @@ export function parseSections(markdown: string): { sections: MagentSection[]; pr
     let currentHeading: string | null = null;
     let currentLevel = 0;
     let currentLines: string[] = [];
+    let inCodeBlock = false;
 
     for (const line of lines) {
-        const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+        // Track fenced code blocks to avoid parsing headings inside them
+        if (/^```/.test(line)) {
+            inCodeBlock = !inCodeBlock;
+            currentLines.push(line);
+            continue;
+        }
+
+        const headingMatch = !inCodeBlock ? line.match(/^(#{1,6})\s+(.+)$/) : null;
 
         if (headingMatch) {
             // Save previous section
