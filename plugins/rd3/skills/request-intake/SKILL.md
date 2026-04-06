@@ -1,5 +1,5 @@
 ---
-name: request-intake
+name: rd3-request-intake
 description: "Transform vague one-liner feature requests into fully-populated task files via structured Q&A. Phase 1 entry point for the 9-phase orchestration pipeline. Persona: Senior Business Analyst."
 license: Apache-2.0
 version: 1.0.0
@@ -16,12 +16,12 @@ metadata:
     - knowledge-only
     - generative
 see_also:
-  - rd3:orchestration-v2
-  - rd3:task-decomposition
-  - rd3:functional-review
+  - rd3-orchestration-v2
+  - rd3-task-decomposition
+  - rd3-functional-review
 ---
 
-# rd3:request-intake — Requirements Elicitation and Task Enrichment
+# rd3-request-intake — Requirements Elicitation and Task Enrichment
 
 Structured Q&A workflow that transforms vague one-liner feature requests into fully-populated task files with Background, Requirements, Constraints, and auto-assigned profile.
 
@@ -40,7 +40,7 @@ Load this skill when:
 - Profile field needs auto-assignment based on scope analysis
 - User needs guided elicitation through structured questions
 
-Do not use this skill for well-formed task files with complete requirements. Skip to `rd3:task-decomposition`.
+Do not use this skill for well-formed task files with complete requirements. Skip to `rd3-task-decomposition`.
 
 ## Overview
 
@@ -68,7 +68,7 @@ interface RequestIntakeInput {
 }
 ```
 
-`execution_channel` is normally injected by `rd3:orchestration-v2`. Use `current` for local execution, or an ACP agent name when orchestration routes delegated work through `rd3:run-acp`.
+`execution_channel` is normally injected by `rd3-orchestration-v2`. Use `current` for local execution, or an ACP agent name when orchestration routes delegated work through `rd3-run-acp`.
 
 ### Modes
 
@@ -210,6 +210,38 @@ Present questions via AskUserQuestion (Claude Code's built-in tool) in a single 
 - Request specific examples where helpful
 - **Hard cap**: max 7 questions total across all rounds, max 3 rounds
 
+#### Enhanced Question Format with Recommended Options
+
+**Key Enhancement**: Each question now includes recommended options to accelerate user response and reduce cognitive load:
+
+```markdown
+### Question: [The question being asked]
+
+**Options:**
+1. **Option A** — [brief description when this is recommended]
+2. **Option B** — [alternative approach]
+3. **Option C** — [another alternative]
+4. **Custom** — [input field for custom answer]
+
+**Recommended:** Option A — [brief rationale]
+
+[Your answer: ___]
+```
+
+**Question Types**:
+| Type | Pattern | Example |
+|------|---------|---------|
+| Binary | Yes / No | "Should X happen?" |
+| Multi-choice | A / B / C / Custom | "Which approach?" |
+| Scale | High / Medium / Low | "Priority level?" |
+| Pattern | Use existing / Create new | "API strategy?" |
+
+**Best Practices**:
+- Default to sensible defaults — Most users prefer picking from options
+- Always include 'Custom' option — Allow custom input when options don't fit
+- Lead with recommended — User can quickly confirm instead of typing
+- Keep options concise — Max 4 options per question
+
 ### Step 4: Synthesize
 
 Parse user responses and synthesize:
@@ -276,7 +308,43 @@ tasks update {wbs} --field profile --value standard
 - Overwrite existing content without confirmation
 - Accept vague answers like "whatever is best" or "I don't know"
 - Skip profile assignment (downstream phases depend on it)
-- Use yes/no questions when open-ended would yield better answers
+- Use open-ended questions when options would suffice (prefer options for efficiency)
+
+## Enhanced Refinement (NEW)
+
+### Refinement Questions with Recommended Answers
+
+For **refine mode**, questions should include recommended options to accelerate the feedback loop:
+
+**Format**:
+```markdown
+**Question:** [Clear question about the gap]
+
+**Options:**
+1. **[Yes / Recommended]** — [Why this is the recommended approach]
+2. **[No / Alternative]** — [When to choose this instead]
+3. **[Custom]** — [Allow user to specify their own answer]
+
+**Recommended:** Option 1 — [Brief rationale]
+```
+
+**Example from Task 0332**:
+```
+**Q: Should `Move to Todo` only appear for Backlog tasks?**
+Options:
+1. Yes, Backlog only — Standard kanban UX pattern
+2. No, all tasks — Allow moving between any statuses
+3. Custom — [User specifies]
+Recommended: Option 1
+
+User answer: 1
+```
+
+**Benefits**:
+- User can quickly select option instead of typing
+- Sensible defaults reduce decision fatigue
+- Custom option ensures flexibility
+- Faster refinement cycles
 
 ## Exit Criteria
 
@@ -299,10 +367,10 @@ Skill fails when:
 rd2:tasks refine {wbs} --phase intake
 
 # Or direct skill invocation
-rd3:request-intake {wbs}
+rd3-request-intake {wbs}
 ```
 
 **Phase integration:**
-- Output feeds into `rd3:task-decomposition` (Phase 4)
+- Output feeds into `rd3-task-decomposition` (Phase 4)
 - Profile assignment gates Phase 2 (Architecture) in orchestration-dev
-- Constraints inform verification strategy in `rd3:functional-review`
+- Constraints inform verification strategy in `rd3-functional-review`
