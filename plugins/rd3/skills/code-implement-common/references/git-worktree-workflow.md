@@ -10,6 +10,26 @@ see_also:
 
 Git worktree provides **isolated workspaces** for implementation without disrupting the main working directory.
 
+## ⚠️ CRITICAL: Feature Branch Required
+
+**Implementation MUST be performed on a feature branch, NOT on `main`.**
+
+This is enforced by the orchestrator pipeline's PR phase. Direct commits to `main` bypass the required PR review gate and violate the workflow.
+
+**Precondition Check:** The skill will fail with an error if `main` branch is detected:
+
+```bash
+# ❌ WRONG - Direct commit to main (forbidden)
+git checkout main
+git commit -m "fix: ..."  # PRECONDITION FAILED
+
+# ✅ CORRECT - Worktree on feature branch
+git worktree add ../feat-0047-my-feature main
+cd ../feat-0047-my-feature
+# ... implement ...
+git commit -m "feat: ..."
+```
+
 ## Why Worktree?
 
 | Approach | Main Branch | Isolation | Risk |
