@@ -98,6 +98,29 @@ This is the **default implementation skill**. Use it when:
 - Task is already decomposed (use `rd3:task-decomposition` if not)
 - Task file exists with clear requirements and acceptance criteria
 - Implementation can proceed without further clarification
+- **Feature branch** — Implementation MUST be on a feature branch, not `main`
+
+## Preconditions
+
+### ⚠️ Feature Branch Required
+
+**Implementation MUST be performed on a feature branch, NOT on `main`.**
+
+**Check:** Fail if `git branch --show-current` returns `main` or empty.
+
+**Error:**
+```
+PRECONDITION FAILED: Must be on a feature branch (e.g., feat-0042-my-feature), not main
+
+Direct commits to main bypass the pipeline's PR review gate and violate the workflow.
+
+To fix:
+  1. git worktree add ../feat-<wbs>-<description> main
+  2. cd ../feat-<wbs>-<description>
+  3. Then retry the implement phase
+```
+
+**Rationale:** The pipeline's `pr` phase requires a PR for all changes. Direct commits to main bypass this gate and make code review meaningless.
 
 **Do NOT use for:**
 
