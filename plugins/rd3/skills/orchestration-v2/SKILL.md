@@ -1,10 +1,10 @@
 ---
 name: orchestration-v2
-description: "Next-generation pipeline orchestration engine with DAG-based parallel execution, FSM lifecycle management, event-sourced SQLite state, and CLI-first interface. Use when running multi-phase development pipelines, resuming paused workflows, generating pipeline reports, or customizing pipeline definitions per-project."
+description: "DAG-based pipeline orchestration with FSM lifecycle, event-sourced SQLite state, and CLI-first interface. Use for multi-phase pipelines, resuming paused workflows, pipeline reports, or customizing pipeline definitions per-project."
 license: Apache-2.0
 version: 0.1.0
 created_at: 2026-03-31
-updated_at: 2026-04-02
+updated_at: 2026-04-05
 platform: rd3
 type: orchestration
 tags: [orchestration, pipeline, cli, dag, fsm, verification, event-sourced]
@@ -76,6 +76,12 @@ orchestrator validate
 
 # Show pipeline JSON Schema
 orchestrator validate --schema
+
+# Dry run (preview without executing)
+orchestrator run 0266 --dry-run
+
+# Override channel explicitly
+orchestrator run 0266 --channel codex
 ```
 
 ## Core Concepts
@@ -86,7 +92,7 @@ Pipelines are defined in `docs/.workflows/pipeline.yaml`. The YAML declares **wh
 
 ```yaml
 schema_version: 1
-name: default
+name: orchestration-v2
 phases:
   implement:
     skill: rd3:code-implement-common
@@ -114,7 +120,7 @@ orchestrator run 0266 --preset complex   # ≡ --phases intake,arch,...,docs
 
 ### Execution Channels
 
-`auto` is the canonical channel contract for v2. It means "route through the configured default backend from `default_channel`". `current` remains accepted as a deprecated compatibility alias for the same behavior. Explicit agent names such as `pi`, `codex`, or `opencode` route directly to those backends.
+`auto` is the canonical channel contract for v2. It means "route through the configured default backend from `default_channel`". `current` remains accepted as a deprecated compatibility alias for the same behavior. Explicit agent names such as `pi`, `codex`, or `opencode` route directly to those backends. There is no supported `local` channel in v2.
 
 ### FSM Lifecycle
 
@@ -208,6 +214,55 @@ During migration, both systems coexist:
 - `orchestration-v2/` — New system (active development)
 - `orchestrator` command always points to v2
 - No shared state — v1 uses JSON, v2 uses SQLite
+
+## Platform Notes
+
+### Claude Code (Primary)
+- Native `Skill()` and `!`cmd`` support.
+- Invoke via `Skill(skill="rd3:orchestration-v2", args="run <task> --preset <name>")`.
+
+### Other Platforms (pi, Codex, OpenCode, OpenClaw, Gemini CLI)
+
+**Use the CLI directly** — `Skill()` is not available or not reliable for cross-skill delegation on these platforms.
+
+```bash
+# Primary invocation (all platforms)
+orchestrator run <task-ref> --preset <name> [options]
+
+# Resume a paused pipeline
+orchestrator resume <task-ref> --approve
+
+# Check status
+orchestrator status <task-ref>
+
+# Dry run (preview without executing)
+orchestrator run <task-ref> --dry-run
+
+# Review preset (Phase 7 only)
+orchestrator run <task-ref> --preset review --auto
+
+# Unit preset (Phase 6 only)
+orchestrator run <task-ref> --preset unit
+
+# Override channel (explicit ACP backend)
+orchestrator run <task-ref> --channel codex
+```
+
+**Channel behavior**:
+
+| Channel | Executor | Use Case |
+|---------|---------|---------|
+| `auto` (default) | acp (pi agent) | Standard execution with agent delegation |
+| `current` | same as `auto` | Deprecated compatibility alias |
+| `codex` | acp:codex | Delegate to Codex agent |
+| `opencode` | acp:opencode | Delegate to OpenCode agent |
+
+### Dogfood Test
+
+When modifying the orchestrator itself (e.g., task 0334 fixing acpx fallback):
+1. Do **not** use `--local` or `--channel local`; those values are not supported by v2
+2. Use `bun run check` for local gate validation when the delegated backend is under repair
+3. Run review/verification steps inline until ACP-backed delegation is healthy again
 
 ## Additional Resources
 
