@@ -105,7 +105,16 @@ describe('buildAcpxFileCommand', () => {
             format: 'quiet',
         });
         // Order: bin, --format, format, --timeout, timeout, agent, exec, --file, path
-        expect(cmd).toEqual(['acpx', '--format', 'quiet', '--timeout', '300', 'claude', 'exec', '--file=/tmp/prompt.txt']);
+        expect(cmd).toEqual([
+            'acpx',
+            '--format',
+            'quiet',
+            '--timeout',
+            '300',
+            'claude',
+            'exec',
+            '--file=/tmp/prompt.txt',
+        ]);
     });
 
     test('supports stdin via dash', () => {
