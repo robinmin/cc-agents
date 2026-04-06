@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeAll, afterEach, beforeEach, mock } from 'bun:test';
+import { describe, test, expect, beforeAll, afterEach, beforeEach } from 'bun:test';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -193,152 +193,97 @@ describe('runContentMatchCheck', () => {
 // ============================================================
 // runLlmCheck tests
 // ============================================================
+// Helper: create a temp mock LLM script that outputs the given text to stdout.
+function makeMockLlmScript(output: string, includeStderr?: string): string {
+    const dir = mkdtempSync(join(tmpdir(), 'llm-check-test-'));
+    const scriptPath = join(dir, 'mock-llm.sh');
+    const stderrPart = includeStderr ? `\necho "${includeStderr.replace(/"/g, '\\"')}" >&2` : '';
+    // Build each line as `echo "content"`; join with "\n" to separate lines properly.
+    const echoLines = output
+        .split('\n')
+        .filter((line) => line.length > 0)
+        .map((line) => `echo "${line.replace(/"/g, '\\"')}"`)
+        .join('\n');
+    writeFileSync(scriptPath, `#!/bin/sh\n${echoLines}${stderrPart}\n`, 'utf-8');
+    return scriptPath;
+}
+
 describe('runLlmCheck', () => {
-    test('returns fail when LLM_CLI_COMMAND not set', async () => {
-        const env = import.meta as { env: Record<string, string | undefined> };
-        const originalEnv = env.env.LLM_CLI_COMMAND;
-        delete env.env.LLM_CLI_COMMAND;
-
-        const result = await runLlmCheck({ checklist: ['test item'] });
+    test('returns fail when LLM CLI not found', async () => {
+        const result = await runLlmCheck({ checklist: ['test item'] }, undefined, '/nonexistent-binary-llm-12345');
         expect(result.result).toBe('fail');
-        expect(result.evidence.error).toContain('LLM_CLI_COMMAND');
-
-        if (originalEnv !== undefined) {
-            env.env.LLM_CLI_COMMAND = originalEnv;
-        }
-    });
-
-    test('returns fail when LLM CLI command fails', async () => {
-        const env = import.meta as { env: Record<string, string | undefined> };
-        env.env.LLM_CLI_COMMAND = 'exit 1'; // Command that fails
-        const result = await runLlmCheck({ checklist: ['test item'] });
-        expect(result.result).toBe('fail');
-        // The LLM will fail to produce valid output, causing checklist items to fail
         expect(result.evidence.error).toBeDefined();
+        expect(result.evidence.error?.length).toBeGreaterThan(0);
     });
 
     test('parses PASS output and passes when all items pass', async () => {
-        const env = import.meta as { env: Record<string, string | undefined> };
-        const originalEnv = env.env.LLM_CLI_COMMAND;
-        env.env.LLM_CLI_COMMAND = 'echo "[PASS] item1: reason1" && echo "[PASS] item2: reason2"';
+        const scriptPath = makeMockLlmScript('[PASS] item1: reason1\n[PASS] item2: reason2');
         try {
-            const result = await runLlmCheck({ checklist: ['item1', 'item2'] });
+            const result = await runLlmCheck({ checklist: ['item1', 'item2'] }, undefined, scriptPath);
             expect(result.result).toBe('pass');
             expect(result.evidence.llm_results).toHaveLength(2);
             expect(result.evidence.llm_results?.[0]?.passed).toBe(true);
             expect(result.evidence.llm_results?.[1]?.passed).toBe(true);
         } finally {
-            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
-            else delete env.env.LLM_CLI_COMMAND;
+            rmSync(scriptPath, { force: true });
         }
     });
 
     test('parses FAIL output and fails when items fail', async () => {
-        const env = import.meta as { env: Record<string, string | undefined> };
-        const originalEnv = env.env.LLM_CLI_COMMAND;
-        env.env.LLM_CLI_COMMAND = 'echo "[FAIL] item1: bad"';
+        const scriptPath = makeMockLlmScript('[FAIL] item1: bad');
         try {
-            const result = await runLlmCheck({ checklist: ['item1'] });
+            const result = await runLlmCheck({ checklist: ['item1'] }, undefined, scriptPath);
             expect(result.result).toBe('fail');
             expect(result.evidence.llm_results).toHaveLength(1);
             expect(result.evidence.llm_results?.[0]?.passed).toBe(false);
         } finally {
-            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
-            else delete env.env.LLM_CLI_COMMAND;
+            rmSync(scriptPath, { force: true });
         }
     });
 
     test('mixed PASS/FAIL output fails check', async () => {
-        const env = import.meta as { env: Record<string, string | undefined> };
-        const originalEnv = env.env.LLM_CLI_COMMAND;
-        env.env.LLM_CLI_COMMAND = 'echo "[PASS] item1: ok" && echo "[FAIL] item2: bad"';
+        const scriptPath = makeMockLlmScript('[PASS] item1: ok\n[FAIL] item2: bad');
         try {
-            const result = await runLlmCheck({ checklist: ['item1', 'item2'] });
+            const result = await runLlmCheck({ checklist: ['item1', 'item2'] }, undefined, scriptPath);
             expect(result.result).toBe('fail');
             expect(result.evidence.llm_results).toHaveLength(2);
         } finally {
-            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
-            else delete env.env.LLM_CLI_COMMAND;
+            rmSync(scriptPath, { force: true });
         }
     });
 
     test('collects stderr output without affecting result', async () => {
-        const env = import.meta as { env: Record<string, string | undefined> };
-        const originalEnv = env.env.LLM_CLI_COMMAND;
-        env.env.LLM_CLI_COMMAND = 'echo "[PASS] item1: ok" && echo "debug info" >&2';
+        const scriptPath = makeMockLlmScript('[PASS] item1: ok', 'debug info');
         try {
-            const result = await runLlmCheck({ checklist: ['item1'] });
+            const result = await runLlmCheck({ checklist: ['item1'] }, undefined, scriptPath);
             expect(result.result).toBe('pass');
         } finally {
-            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
-            else delete env.env.LLM_CLI_COMMAND;
+            rmSync(scriptPath, { force: true });
         }
     });
 
     test('handles partial output (fewer results than checklist items)', async () => {
-        const env = import.meta as { env: Record<string, string | undefined> };
-        const originalEnv = env.env.LLM_CLI_COMMAND;
-        env.env.LLM_CLI_COMMAND = 'echo "[PASS] item1: ok"';
+        const scriptPath = makeMockLlmScript('[PASS] item1: ok');
         try {
-            const result = await runLlmCheck({ checklist: ['item1', 'item2', 'item3'] });
+            const result = await runLlmCheck({ checklist: ['item1', 'item2', 'item3'] }, undefined, scriptPath);
             expect(result.result).toBe('fail');
             expect(result.evidence.llm_results).toHaveLength(1);
         } finally {
-            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
-            else delete env.env.LLM_CLI_COMMAND;
+            rmSync(scriptPath, { force: true });
         }
     });
 });
 
 // ============================================================
-// runLlmCheck - spawn error (via dependency injection)
+// runLlmCheck - error paths
 // ============================================================
 describe('runLlmCheck - error paths', () => {
-    test('handles spawn error via injected spawn function', async () => {
-        const env = import.meta as { env: Record<string, string | undefined> };
-        const originalEnv = env.env.LLM_CLI_COMMAND;
-        env.env.LLM_CLI_COMMAND = 'cat';
-        try {
-            const handlers: Record<string, Array<(...args: unknown[]) => void>> = {};
-            const mockSpawn = mock(() => {
-                const child = {
-                    stdout: {
-                        on: (ev: string, fn: (...a: unknown[]) => void) => {
-                            const key = `stdout.${ev}`;
-                            if (!handlers[key]) handlers[key] = [];
-                            handlers[key].push(fn);
-                        },
-                    },
-                    stderr: {
-                        on: (ev: string, fn: (...a: unknown[]) => void) => {
-                            const key = `stderr.${ev}`;
-                            if (!handlers[key]) handlers[key] = [];
-                            handlers[key].push(fn);
-                        },
-                    },
-                    on: (ev: string, fn: (...a: unknown[]) => void) => {
-                        if (!handlers[ev]) handlers[ev] = [];
-                        handlers[ev].push(fn);
-                    },
-                    kill: () => {},
-                };
-                setTimeout(() => {
-                    for (const fn of handlers.error ?? []) {
-                        fn(new Error('mock: ENOENT'));
-                    }
-                }, 0);
-                return child;
-            });
-            const result = await runLlmCheck(
-                { checklist: ['item1'] },
-                mockSpawn as unknown as typeof import('node:child_process').spawn,
-            );
-            expect(result.result).toBe('fail');
-            expect(result.evidence.error).toContain('Spawn error');
-        } finally {
-            if (originalEnv !== undefined) env.env.LLM_CLI_COMMAND = originalEnv;
-            else delete env.env.LLM_CLI_COMMAND;
-        }
+    test('handles spawn error when binary does not exist', async () => {
+        // Use a path that definitely does not exist
+        const result = await runLlmCheck({ checklist: ['item1'] }, undefined, '/nonexistent-llm-binary-xyz');
+        expect(result.result).toBe('fail');
+        expect(result.evidence.error).toBeDefined();
+        expect(result.error).toBeDefined();
     });
 });
 
@@ -554,15 +499,25 @@ describe('runCompoundCheck', () => {
         expect(result.result).toBe('pass');
     });
 
-    test('runs llm sub-check - fails without LLM_CLI_COMMAND', async () => {
-        const result = await runCompoundCheck(
-            {
-                operator: 'and',
-                checks: [{ method: 'llm', config: { checklist: ['item1'] } }] as Checker[],
-            },
-            CWD,
-        );
-        expect(result.result).toBe('fail');
+    // Note: getLegacyLlmCommand() auto-detects "pi" binary path, so LLM_CLI_COMMAND
+    // being unset no longer causes immediate failure. This test sets an invalid path
+    // to verify the "no valid LLM CLI available" scenario causes fast failure.
+    test('runs llm sub-check with invalid CLI path fails fast', async () => {
+        const original = process.env.LLM_CLI_COMMAND;
+        process.env.LLM_CLI_COMMAND = '/nonexistent/invalid-llm-cli-xyz';
+        try {
+            const result = await runCompoundCheck(
+                {
+                    operator: 'and',
+                    checks: [{ method: 'llm', config: { checklist: ['item1'] } }] as Checker[],
+                },
+                CWD,
+            );
+            expect(result.result).toBe('fail');
+        } finally {
+            if (original !== undefined) process.env.LLM_CLI_COMMAND = original;
+            else delete process.env.LLM_CLI_COMMAND;
+        }
     });
 
     test('human sub-check causes compound to pause', async () => {

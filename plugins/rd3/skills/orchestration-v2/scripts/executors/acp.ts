@@ -28,19 +28,27 @@ import type {
     ExecutionResult,
     ExecutorCapabilities,
     ExecutorHealth,
-    ResourceMetrics,
 } from '../model';
 import { logger } from '../../../../scripts/logger';
+import {
+    ALLOWED_TOOLS,
+    checkAcpxHealth,
+    execAcpxSync,
+    parseOutput,
+    type AcpxQueryResult,
+} from '../../../../scripts/libs/acpx-query';
 
-/** Tools the pi agent is allowed to use during skill execution. */
-export const ALLOWED_TOOLS = 'Skill,Read,Bash,Edit,Write,Glob,grep,WebSearch,WebFetch';
+// Re-export ALLOWED_TOOLS for backward compatibility
+export { ALLOWED_TOOLS };
 
 export class AcpExecutor implements Executor {
     readonly id: string;
     readonly capabilities: ExecutorCapabilities;
     private readonly agentName: string;
+    /** Injectable exec function (defaults to execAcpxSync from acpx-query). Enables test mocking. */
+    readonly execFn: (cmd: string[], timeoutMs?: number) => AcpxQueryResult;
 
-    constructor(agentName = 'pi') {
+    constructor(agentName = 'pi', execFn?: typeof execAcpxSync) {
         this.agentName = agentName;
         this.id = `acp:${agentName}`;
         this.capabilities = {
@@ -50,64 +58,39 @@ export class AcpExecutor implements Executor {
             channels: [agentName, 'acp'],
             maxConcurrency: 4,
         };
+        this.execFn = execFn ?? execAcpxSync;
     }
 
     async execute(req: ExecutionRequest): Promise<ExecutionResult> {
         const startTime = Date.now();
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), req.timeoutMs);
 
         try {
             const args = this.buildArgs(req);
             logger.info(`[acp:${this.agentName}] acpx ${args.join(' ')}`);
 
-            const proc = Bun.spawn(['acpx', ...args], {
-                stdout: 'pipe',
-                stderr: 'pipe',
-                cwd: process.cwd(),
-                signal: controller.signal,
-                env: this.buildEnv(req),
-            });
-
-            const exitCode = await proc.exited;
-            clearTimeout(timeoutId);
-
-            const stdout = await new Response(proc.stdout).text();
-            const stderr = await new Response(proc.stderr).text();
+            const result = this.execFn(['acpx', ...args], req.timeoutMs);
             const durationMs = Date.now() - startTime;
-            const timedOut = controller.signal.aborted;
 
-            if (exitCode !== 0 && !timedOut) {
+            if (!result.ok && !result.timedOut) {
                 logger.error(
-                    `[acp:${this.agentName}] Phase ${req.phase} failed (exit ${exitCode}): ${stderr.slice(0, 300)}`,
+                    `[acp:${this.agentName}] Phase ${req.phase} failed (exit ${result.exitCode}): ${result.stderr.slice(0, 300)}`,
                 );
             }
 
-            const { structured, resources } = this.parseOutput(stdout);
+            const { structured, metrics } = parseOutput(result.stdout, true, true);
 
             return {
-                success: exitCode === 0,
-                exitCode,
-                stdout: stdout.slice(0, 50_000),
-                stderr: stderr.slice(0, 10_000),
+                success: result.ok,
+                exitCode: result.exitCode,
+                stdout: result.stdout.slice(0, 50_000),
+                stderr: result.stderr.slice(0, 10_000),
                 ...(structured !== undefined && { structured }),
                 durationMs,
-                timedOut,
-                ...(resources.length > 0 && { resources }),
+                timedOut: result.timedOut ?? false,
+                ...(metrics && metrics.length > 0 && { resources: metrics }),
             };
         } catch (err) {
-            clearTimeout(timeoutId);
             const durationMs = Date.now() - startTime;
-
-            if (controller.signal.aborted) {
-                return {
-                    success: false,
-                    exitCode: 1,
-                    stderr: `Phase ${req.phase} timed out after ${req.timeoutMs}ms`,
-                    durationMs,
-                    timedOut: true,
-                };
-            }
 
             return {
                 success: false,
@@ -120,37 +103,16 @@ export class AcpExecutor implements Executor {
     }
 
     async healthCheck(): Promise<ExecutorHealth> {
-        try {
-            const proc = Bun.spawn(['acpx', '--version'], {
-                stdout: 'pipe',
-                stderr: 'pipe',
-            });
-            const exitCode = await proc.exited;
-            return {
-                healthy: exitCode === 0,
-                ...(exitCode !== 0 && { message: 'acpx not found or not working' }),
-                lastChecked: new Date(),
-            };
-        } catch {
-            return {
-                healthy: false,
-                message: 'acpx not available',
-                lastChecked: new Date(),
-            };
-        }
+        const health = checkAcpxHealth('acpx');
+        return {
+            healthy: health.healthy,
+            ...(health.error && { message: health.error }),
+            lastChecked: new Date(),
+        };
     }
 
     async dispose(): Promise<void> {
         // Nothing to clean up
-    }
-
-    private buildEnv(req: ExecutionRequest): NodeJS.ProcessEnv {
-        return {
-            ...process.env,
-            ORCH_PHASE: req.phase,
-            ORCH_CHANNEL: req.channel,
-            ...(req.taskRef && { ORCH_TASK_REF: req.taskRef }),
-        };
     }
 
     /**
@@ -227,156 +189,5 @@ export class AcpExecutor implements Executor {
         return parts.join('\n');
     }
 
-    /**
-     * Parse acpx --format json output for structured results and resource metrics.
-     *
-     * acpx emits NDJSON — one JSON object per line:
-     *   { "type": "usage",   "usage": { "model_id": "...", ... } }
-     *   { "type": "text",    "content": "..." }
-     *   { "type": "tool",    "name": "Skill", "status": "done" }
-     *   { "type": "done" }
-     *
-     * Non-NDJSON lines (plain text or embedded JSON) are also possible and are
-     * handled gracefully — they may contain the skill's structured output.
-     */
-    private parseOutput(
-        output: string,
-    ): { structured: Record<string, unknown> | undefined; resources: ResourceMetrics[] } {
-        let structured: Record<string, unknown> | undefined;
-        const resources: ResourceMetrics[] = [];
 
-        // 1. First pass: extract NDJSON events (usage metrics, structured data)
-        for (const line of output.split('\n')) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-
-            try {
-                const event = JSON.parse(trimmed) as Record<string, unknown>;
-
-                if (event.type === 'usage' && typeof event.usage === 'object' && event.usage) {
-                    const usage = event.usage as Record<string, unknown>;
-                    resources.push({
-                        model_id: String(usage.model_id ?? ''),
-                        model_provider: String(usage.model_provider ?? ''),
-                        input_tokens: Math.floor(Number(usage.input_tokens ?? 0)) || 0,
-                        output_tokens: Math.floor(Number(usage.output_tokens ?? 0)) || 0,
-                        wall_clock_ms: Math.floor(Number(usage.wall_clock_ms ?? 0)) || 0,
-                        execution_ms: Math.floor(Number(usage.execution_ms ?? 0)) || 0,
-                        ...(usage.cache_read_tokens != null && {
-                            cache_read_tokens: Math.floor(Number(usage.cache_read_tokens)) || 0,
-                        }),
-                        ...(usage.cache_creation_tokens != null && {
-                            cache_creation_tokens: Math.floor(Number(usage.cache_creation_tokens)) || 0,
-                        }),
-                        ...(usage.first_token_ms != null && {
-                            first_token_ms: Math.floor(Number(usage.first_token_ms)) || 0,
-                        }),
-                    });
-                } else if (event.type === 'structured' && typeof event.data === 'object') {
-                    structured = event.data as Record<string, unknown>;
-                }
-                // Skip other event types (text, tool, done, etc.)
-            } catch {
-                // Not valid JSON on this line — try markdown JSON block extraction below
-            }
-        }
-
-        // 2. Second pass: extract JSON from markdown code blocks in full output
-        //    Uses a multi-line search so fences on separate lines are handled.
-        if (structured === undefined) {
-            structured = this.extractFromJsonBlock(output);
-        }
-
-        return { structured, resources };
-    }
-
-    /**
-     * Extract the first complete JSON object from a markdown ```json code block.
-     *
-     * Handles:
-     *   - Single-line blocks:     ```json\n{"a":1}\n```  (fence on its own line)
-     *   - Multi-line blocks:      ```json\n{"a":{"b":1}}\n```
-     *   - Nested objects:         ```json\n{"a":{"b":{"c":1}},"d":2}\n```
-     *   - Blank line before fence: ```json\n{"a":1}\n\n```  (common AI output format)
-     *   - No newline before fence: ```json\n{"x":1}``` (fence immediately after JSON)
-     *   - Multiple blocks: only the first is considered
-     *   - Partial JSON: returns undefined rather than a truncated object
-     */
-    private extractFromJsonBlock(output: string): Record<string, unknown> | undefined {
-        const fenceOpen = '```json';
-        const fenceClose = '```';
-
-        const openIdx = output.indexOf(fenceOpen);
-        if (openIdx === -1) return undefined;
-
-        const contentStart = openIdx + fenceOpen.length;
-        const closeIdx = output.indexOf(fenceClose, contentStart);
-        if (closeIdx === -1) return undefined;
-
-        const raw = output.slice(contentStart, closeIdx);
-        const candidate = this.extractFirstBalancedJsonObject(raw);
-
-        if (!candidate.startsWith('{') || !candidate.endsWith('}')) {
-            return undefined;
-        }
-
-        // Validate JSON is complete (balanced braces).
-        // Scan forward — if we never reach depth 0 by the end of candidate,
-        // the object was truncated mid-parsing.
-        let depth = 0;
-        let inString = false;
-        let escaped = false;
-        for (let i = 0; i < candidate.length; i++) {
-            const ch = candidate[i] as string;
-            if (escaped) { escaped = false; continue; }
-            if (ch === '\\') { escaped = true; continue; }
-            if (ch === '"') { inString = !inString; continue; }
-            if (inString) continue;
-            if (ch === '{' || ch === '[') depth++;
-            if (ch === '}' || ch === ']') depth--;
-        }
-        if (depth !== 0) return undefined; // truncated
-
-        try {
-            const parsed = JSON.parse(candidate) as Record<string, unknown>;
-            if (Object.keys(parsed).length > 0) return parsed;
-        } catch {
-            // Not valid JSON
-        }
-        return undefined;
-    }
-
-    /**
-     * Extract the first balanced JSON object from a string by scanning forward.
-     * This correctly handles escapes inside quoted strings.
-     */
-    private extractFirstBalancedJsonObject(s: string): string {
-        const trimmed = s.trimStart();
-        const start = trimmed.indexOf('{');
-        if (start === -1) {
-            return '';
-        }
-
-        let depth = 0;
-        let inString = false;
-        let escaped = false;
-
-        for (let i = start; i < trimmed.length; i++) {
-            const ch = trimmed[i] as string;
-            if (escaped) { escaped = false; continue; }
-            if (ch === '\\') { escaped = true; continue; }
-            if (ch === '"') { inString = !inString; continue; }
-            if (inString) continue;
-            if (ch === '{' || ch === '[') {
-                depth++;
-            } else if (ch === '}' || ch === ']') {
-                depth--;
-                if (depth === 0) {
-                    return trimmed.slice(start, i + 1);
-                }
-            }
-        }
-
-        return '';
-    }
 }

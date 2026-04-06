@@ -264,7 +264,7 @@ Use LLM to verify code quality:
 }
 ```
 
-Requires `LLM_CLI_COMMAND` env var pointing to a CLI that accepts a prompt on stdin and outputs `[PASS]`/`[FAIL]` lines.
+Reads `LLM_CLI_COMMAND` env var — auto-detects `pi` binary path if not set.
 
 ## Content Match: Verify Absence (Anti-Pattern)
 

@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execLlmCli, getLegacyLlmCommand } from '../../../../scripts/libs/acpx-query';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LlmCheckerConfig, MethodResult, CheckerEvidence } from '../types';
@@ -31,11 +31,19 @@ const defaultFileOps: FileOps = {
  * Run an LLM check using a CLI command that accepts a prompt on stdin.
  * Parses stdout for [PASS]/[FAIL] markers for each checklist item.
  * Result is 'pass' only if ALL checklist items have PASS.
+ *
+ * Uses execLlmCli from acpx-query which auto-detects the LLM CLI path
+ * and pipes prompt via stdin (no shell expansion needed).
+ *
+ * @param config - Checklist and prompt configuration
+ * @param fileOps - File system operations (for testing via dependency injection)
+ * @param llmCliPathOverride - Override LLM CLI path (for testing); falls back to
+ *   LLM_CLI_COMMAND env or auto-detected "pi" binary path.
  */
 export async function runLlmCheck(
     config: LlmCheckerConfig,
-    _spawnFn: typeof spawn = spawn,
     fileOps: FileOps = defaultFileOps,
+    llmCliPathOverride?: string,
 ): Promise<MethodResult> {
     const evidence: CheckerEvidence = {
         method: 'llm',
@@ -43,9 +51,9 @@ export async function runLlmCheck(
         timestamp: new Date().toISOString(),
     };
 
-    const llmCliCommand = (import.meta as { env: Record<string, string | undefined> }).env.LLM_CLI_COMMAND;
-    if (!llmCliCommand) {
-        const errorMsg = 'LLM_CLI_COMMAND environment variable is not set';
+    const llmCliPath = llmCliPathOverride ?? getLegacyLlmCommand();
+    if (!llmCliPath) {
+        const errorMsg = 'LLM CLI not found. Set LLM_CLI_COMMAND or ensure "pi" binary is in PATH';
         evidence.error = errorMsg;
         logger.error(errorMsg);
         return {
@@ -59,7 +67,7 @@ export async function runLlmCheck(
     const itemsText = config.checklist.map((item) => `- ${item}`).join('\n');
     const prompt = template.replace('{items}', itemsText);
 
-    // Write prompt to temp file
+    // Write prompt to temp file — piped to stdin by execLlmCli
     let tempDir: string;
     let tempFile: string;
     try {
@@ -78,83 +86,64 @@ export async function runLlmCheck(
         };
     }
 
-    return new Promise((resolve) => {
-        let stdout = '';
-        let stderr = '';
+    let stdout = '';
 
-        const child = _spawnFn(`${llmCliCommand} < "${tempFile}"`, [], {
-            shell: true,
-        });
-
-        child.stdout?.on('data', (data: unknown) => {
-            stdout += String(data);
-        });
-
-        child.stderr?.on('data', (data: unknown) => {
-            stderr += String(data);
-        });
-
-        child.on('error', (err: Error) => {
-            logger.error('LLM CLI spawn error:', err.message);
-            const errorMsg = `Spawn error: ${err.message}`;
+    try {
+        let result: ReturnType<typeof execLlmCli>;
+        try {
+            result = execLlmCli([llmCliPath], tempFile, 300_000);
+        } catch (err) {
+            // Spawn error (e.g. ENOENT)
+            const errorMsg = err instanceof Error ? err.message : String(err);
             evidence.error = errorMsg;
-            try {
-                fileOps.rmSync(tempDir, { recursive: true, force: true });
-            } catch {
-                /* ignore cleanup error */
-            }
-            resolve({
+            logger.error('LLM CLI spawn error:', errorMsg);
+            return {
                 result: 'fail',
                 evidence,
                 error: errorMsg,
-            });
-        });
+            };
+        }
+        stdout = result.stdout;
 
-        child.on('close', (code: number | null) => {
-            // Clean up temp file
-            try {
-                fileOps.rmSync(tempDir, { recursive: true, force: true });
-            } catch {
-                /* ignore cleanup error */
+        logger.debug(`LLM CLI exited with code ${result.exitCode}`);
+        if (result.stderr) logger.debug(`LLM stderr:\n${result.stderr}`);
+
+        // Parse results: each line [PASS] or [FAIL] criterion: reason
+        const results: Array<{ item: string; passed: boolean; reason?: string }> = [];
+        const lines = stdout.split('\n').filter((line) => line.trim());
+
+        for (const line of lines) {
+            const passMatch = line.match(/^\s*\[PASS\]\s*(.+?):\s*(.+)/i);
+            const failMatch = line.match(/^\s*\[FAIL\]\s*(.+?):\s*(.+)/i);
+
+            if (passMatch) {
+                results.push({ item: passMatch[1].trim(), passed: true, reason: passMatch[2].trim() });
+            } else if (failMatch) {
+                results.push({ item: failMatch[1].trim(), passed: false, reason: failMatch[2].trim() });
             }
+        }
 
-            logger.debug(`LLM CLI exited with code ${code}`);
-            logger.debug(`LLM stdout:\n${stdout}`);
-            if (stderr) {
-                logger.debug(`LLM stderr:\n${stderr}`);
-            }
+        evidence.llm_results = results;
 
-            // Parse results: each line [PASS] or [FAIL] criterion: reason
-            const results: Array<{ item: string; passed: boolean; reason?: string }> = [];
-            const lines = stdout.split('\n').filter((line) => line.trim());
+        // All checklist items must have PASS to pass the check
+        const allPassed =
+            result.ok && results.length === config.checklist.length && results.every((r) => r.passed);
+        evidence.result = allPassed ? 'pass' : 'fail';
 
-            for (const line of lines) {
-                const passMatch = line.match(/^\s*\[PASS\]\s*(.+?):\s*(.+)/i);
-                const failMatch = line.match(/^\s*\[FAIL\]\s*(.+?):\s*(.+)/i);
+        if (!allPassed) {
+            const failedItems = results.filter((r) => !r.passed).map((r) => r.item);
+            evidence.error = `Failed checklist items: ${failedItems.join(', ')}`;
+        }
 
-                if (passMatch) {
-                    results.push({ item: passMatch[1].trim(), passed: true, reason: passMatch[2].trim() });
-                } else if (failMatch) {
-                    results.push({ item: failMatch[1].trim(), passed: false, reason: failMatch[2].trim() });
-                }
-            }
-
-            evidence.llm_results = results;
-
-            // All checklist items must have PASS to pass the check
-            const allPassed = results.length === config.checklist.length && results.every((r) => r.passed);
-            evidence.result = allPassed ? 'pass' : 'fail';
-
-            if (!allPassed) {
-                const failedItems = results.filter((r) => !r.passed).map((r) => r.item);
-                evidence.error = `Failed checklist items: ${failedItems.join(', ')}`;
-            }
-
-            if (allPassed) {
-                resolve({ result: evidence.result, evidence });
-            } else {
-                resolve({ result: evidence.result, evidence, error: evidence.error as string });
-            }
-        });
-    });
+        return allPassed
+            ? { result: evidence.result, evidence }
+            : { result: evidence.result, evidence, error: evidence.error as string };
+    } finally {
+        // Clean up temp file
+        try {
+            fileOps.rmSync(tempDir, { recursive: true, force: true });
+        } catch {
+            /* ignore cleanup error */
+        }
+    }
 }

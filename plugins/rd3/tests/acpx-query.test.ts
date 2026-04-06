@@ -15,13 +15,14 @@ describe('getEnv', () => {
 });
 
 describe('buildAcpxCommand', () => {
-    test('builds command with defaults', () => {
+    test('builds command with defaults including timeout', () => {
         const cmd = buildAcpxCommand('summarize this', {
             agent: 'claude',
             acpxBin: 'acpx',
             format: 'quiet',
         });
-        expect(cmd).toEqual(['acpx', '--format', 'quiet', 'claude', 'exec', 'summarize this']);
+        // Order: bin, --format, format, --timeout, timeout, agent, exec, prompt
+        expect(cmd).toEqual(['acpx', '--format', 'quiet', '--timeout', '300', 'claude', 'exec', 'summarize this']);
     });
 
     test('uses custom agent', () => {
@@ -30,7 +31,9 @@ describe('buildAcpxCommand', () => {
             acpxBin: 'acpx',
             format: 'quiet',
         });
-        expect(cmd[3]).toBe('codex');
+        // Order: bin, --format, format, --timeout, timeout, agent, exec, prompt
+        // agent is at index 5 after bin, --format, format, --timeout, timeout
+        expect(cmd[5]).toBe('codex');
     });
 
     test('uses custom format', () => {
@@ -59,7 +62,8 @@ describe('buildAcpxCommand', () => {
             acpxBin: 'acpx',
             format: 'quiet',
         });
-        expect(cmd[5]).toBe(prompt);
+        // prompt is at the end
+        expect(cmd[cmd.length - 1]).toBe(prompt);
     });
 
     test('command structure is correct with all options', () => {
@@ -68,13 +72,15 @@ describe('buildAcpxCommand', () => {
             acpxBin: '/bin/acpx',
             format: 'text',
         });
-        // Order: bin, --format, format, agent, exec, prompt
+        // Order: bin, --format, format, --timeout, timeout, agent, exec, prompt
         expect(cmd[0]).toBe('/bin/acpx');
         expect(cmd[1]).toBe('--format');
         expect(cmd[2]).toBe('text');
-        expect(cmd[3]).toBe('custom-agent');
-        expect(cmd[4]).toBe('exec');
-        expect(cmd[5]).toBe('prompt text');
+        expect(cmd[3]).toBe('--timeout');
+        expect(cmd[4]).toBe('300');
+        expect(cmd[5]).toBe('custom-agent');
+        expect(cmd[6]).toBe('exec');
+        expect(cmd[7]).toBe('prompt text');
     });
 
     test('passing undefined options uses all defaults', () => {
@@ -83,9 +89,11 @@ describe('buildAcpxCommand', () => {
         expect(cmd[0]).toBe('acpx'); // default acpxBin from env or "acpx"
         expect(cmd[1]).toBe('--format');
         expect(cmd[2]).toBe('quiet'); // default format
-        expect(cmd[3]).toBe('claude'); // default agent from env or "claude"
-        expect(cmd[4]).toBe('exec');
-        expect(cmd[5]).toBe('test prompt');
+        expect(cmd[3]).toBe('--timeout');
+        expect(cmd[4]).toBe('300'); // default timeout
+        expect(cmd[5]).toBe('claude'); // default agent from env or "claude"
+        expect(cmd[6]).toBe('exec');
+        expect(cmd[7]).toBe('test prompt');
     });
 });
 
@@ -96,7 +104,8 @@ describe('buildAcpxFileCommand', () => {
             acpxBin: 'acpx',
             format: 'quiet',
         });
-        expect(cmd).toEqual(['acpx', '--format', 'quiet', 'claude', 'exec', '--file', '/tmp/prompt.txt']);
+        // Order: bin, --format, format, --timeout, timeout, agent, exec, --file, path
+        expect(cmd).toEqual(['acpx', '--format', 'quiet', '--timeout', '300', 'claude', 'exec', '--file=/tmp/prompt.txt']);
     });
 
     test('supports stdin via dash', () => {
@@ -105,7 +114,8 @@ describe('buildAcpxFileCommand', () => {
             acpxBin: 'acpx',
             format: 'quiet',
         });
-        expect(cmd[6]).toBe('-');
+        // --file=- is used for stdin
+        expect(cmd[cmd.length - 1]).toBe('--file=-');
     });
 
     test('file path with spaces is preserved', () => {
@@ -114,7 +124,7 @@ describe('buildAcpxFileCommand', () => {
             acpxBin: 'acpx',
             format: 'quiet',
         });
-        expect(cmd[6]).toBe('/tmp/my prompts/file with spaces.txt');
+        expect(cmd[cmd.length - 1]).toBe('--file=/tmp/my prompts/file with spaces.txt');
     });
 
     test('passing undefined options uses all defaults', () => {
@@ -122,10 +132,11 @@ describe('buildAcpxFileCommand', () => {
         expect(cmd[0]).toBe('acpx');
         expect(cmd[1]).toBe('--format');
         expect(cmd[2]).toBe('quiet');
-        expect(cmd[3]).toBe('claude');
-        expect(cmd[4]).toBe('exec');
-        expect(cmd[5]).toBe('--file');
-        expect(cmd[6]).toBe('/tmp/file.txt');
+        expect(cmd[3]).toBe('--timeout');
+        expect(cmd[4]).toBe('300');
+        expect(cmd[5]).toBe('claude');
+        expect(cmd[6]).toBe('exec');
+        expect(cmd[cmd.length - 1]).toBe('--file=/tmp/file.txt');
     });
 });
 

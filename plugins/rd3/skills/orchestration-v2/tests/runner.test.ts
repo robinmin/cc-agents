@@ -360,7 +360,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             // Mock runLlmCheck to return a configuration error
             llmSpy.mockResolvedValueOnce({
                 result: 'fail',
-                error: 'LLM_CLI_COMMAND environment variable is not set',
+                error: 'LLM CLI not found. Set LLM_CLI_COMMAND or ensure "pi" binary is in PATH',
                 evidence: {
                     method: 'llm',
                     result: 'fail',
@@ -393,7 +393,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
 
             // Verify gate result has the error
             const gateResults = await stateManager.getGateResults(result.runId, 'implement');
-            expect(gateResults[0].evidence?.error).toBe('LLM_CLI_COMMAND environment variable is not set');
+            expect(gateResults[0].evidence?.error).toBe('LLM CLI not found. Set LLM_CLI_COMMAND or ensure "pi" binary is in PATH');
         });
 
         test('should pause pipeline for human gate', async () => {

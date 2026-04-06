@@ -146,7 +146,7 @@ interface LlmCheckerConfig {
 }
 ```
 
-Reads `LLM_CLI_COMMAND` env var — the CLI command to invoke with the prompt on stdin.
+Reads `LLM_CLI_COMMAND` env var — auto-detects `pi` binary path if not set.
 
 ### HumanCheckerConfig
 

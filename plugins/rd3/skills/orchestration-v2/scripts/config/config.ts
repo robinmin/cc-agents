@@ -14,6 +14,7 @@ import { existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { spawnSync } from 'node:child_process';
 import { DEFAULT_STATE_DIR, DB_FILENAME, CONFIG_DIR_NAME, CONFIG_FILE_NAME, DEFAULT_CHANNEL } from './consts';
 
 // ─── Test injection ────────────────────────────────────────────────────────────
@@ -41,6 +42,49 @@ export function _resetTestConfigPath(): void {
 
 /** Cache key = resolved absolute project root. Value = resolved config. */
 const _cache = new Map<string, OrchestratorConfig>();
+
+/** Flag to ensure LLM CLI initialization runs only once. */
+let _llmCliInitialized = false;
+
+/**
+ * Detect the full path of the 'pi' agent binary.
+ * Returns undefined if not found.
+ */
+function detectPiPath(): string | undefined {
+    try {
+        const result = spawnSync('which', ['pi'], { shell: false });
+        if (result.status === 0 && result.stdout) {
+            const path = result.stdout.toString().trim();
+            if (path && existsSync(path)) {
+                return path;
+            }
+        }
+    } catch {
+        // Fallback: try common paths
+    }
+    return undefined;
+}
+
+/**
+ * Initialize LLM_CLI_COMMAND environment variable.
+ * If not set, defaults to the 'pi' agent's full path.
+ * This is called automatically on first resolveConfig() call.
+ */
+function ensureLlmCliInitialized(): void {
+    if (_llmCliInitialized) {
+        return; // Already initialized
+    }
+    _llmCliInitialized = true;
+
+    if (process.env.LLM_CLI_COMMAND) {
+        return; // User already set it, respect their choice
+    }
+
+    const piPath = detectPiPath();
+    if (piPath) {
+        process.env.LLM_CLI_COMMAND = piPath;
+    }
+}
 
 /**
  * Clear the in-process config cache. Forces the next resolveConfig() to reload from disk.
@@ -169,6 +213,9 @@ export function getGlobalConfigDir(): string {
  * same projectRoot return the cached value. Use resetConfigCache() to clear the cache.
  */
 export function resolveConfig(projectRoot?: string): OrchestratorConfig {
+    // Ensure LLM_CLI_COMMAND is initialized before any phase execution
+    ensureLlmCliInitialized();
+
     const project = resolve(projectRoot ?? process.cwd());
     const cached = _cache.get(project);
     if (cached !== undefined) {

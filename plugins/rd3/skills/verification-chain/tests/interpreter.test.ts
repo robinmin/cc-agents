@@ -637,21 +637,29 @@ describe('content-match checker (direct dispatch)', () => {
 });
 
 // ============================================================
-// llm checker (direct dispatch, no LLM_CLI_COMMAND)
+// llm checker (direct dispatch)
 // ============================================================
 describe('llm checker (direct dispatch)', () => {
-    test('no LLM_CLI_COMMAND env → checker fails', async () => {
-        const manifest = makeManifest([
-            {
-                name: 'llm-node',
-                type: 'single',
-                maker: { command: 'echo hello' },
-                checker: { method: 'llm', config: { checklist: ['item1'] } },
-            },
-        ]);
-        const state = await runChain({ manifest, stateDir: TEST_DIR });
-        expect(state.status).toBe('failed');
-        expect(state.nodes[0].checker_result).toBe('fail');
+    test('unavailable LLM CLI → checker fails fast', async () => {
+        // Set an invalid path so runLlmCheck fails immediately without network delay
+        const original = process.env.LLM_CLI_COMMAND;
+        process.env.LLM_CLI_COMMAND = '/nonexistent/invalid-llm-cli-xyz';
+        try {
+            const manifest = makeManifest([
+                {
+                    name: 'llm-node',
+                    type: 'single',
+                    maker: { command: 'echo hello' },
+                    checker: { method: 'llm', config: { checklist: ['item1'] } },
+                },
+            ]);
+            const state = await runChain({ manifest, stateDir: TEST_DIR });
+            expect(state.status).toBe('failed');
+            expect(state.nodes[0].checker_result).toBe('fail');
+        } finally {
+            if (original !== undefined) process.env.LLM_CLI_COMMAND = original;
+            else delete process.env.LLM_CLI_COMMAND;
+        }
     });
 });
 
