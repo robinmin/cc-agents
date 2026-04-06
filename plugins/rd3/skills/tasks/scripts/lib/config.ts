@@ -1,6 +1,7 @@
 // Config loading — dual-mode: legacy (no config.jsonc) and config mode
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import type { TasksConfig } from '../types';
 import { err, ok, type Result } from './result';
@@ -36,21 +37,34 @@ export function getUiDir(): string {
 /**
  * Robustly find the repo root.
  * Walks up from both process.cwd() and the script's own directory.
- * Prioritizes task-specific markers to avoid mis-identifying the root in monorepos.
- */
-/**
- * Robustly find the repo root.
- * Walks up from both process.cwd() and the script's own directory.
- * Prioritizes task-specific markers to avoid mis-identifying the root in monorepos.
  */
 export function getProjectRoot(): string {
-    const cwd = process.cwd();
+    const rawCwd = process.cwd();
+    const safeRealpath = (p: string) => {
+        try {
+            return realpathSync(p);
+        } catch {
+            return p;
+        }
+    };
+
+    const realCwd = safeRealpath(rawCwd);
+    const realTemp = safeRealpath(tmpdir());
+
     // Only isolate if specifically in a temporary directory to avoid monorepo config leakage.
     // We allow normal discovery if we're in the repository itself.
-    const isInTemp = cwd.includes('/tmp/') || cwd.includes('/Temp/');
+    const isInTemp =
+        realCwd === realTemp ||
+        realCwd.startsWith(`${realTemp}/`) ||
+        realCwd.startsWith(`${realTemp}\\`) ||
+        realCwd.includes('/tmp/') ||
+        realCwd.includes('/private/tmp/') ||
+        realCwd.includes('/Temp/') ||
+        realCwd.includes('/private/var/') ||
+        realCwd.includes('/var/folders/');
 
     const findMarker = (startDir: string, marker: string): string | null => {
-        let dir = startDir;
+        let dir = resolve(startDir);
         for (let i = 0; i < 12; i++) {
             if (existsSync(resolve(dir, marker))) return dir;
             const parent = resolve(dir, '..');
@@ -60,28 +74,41 @@ export function getProjectRoot(): string {
         return null;
     };
 
-    // 1. Prioritize closest docs/.tasks from CWD
-    const taskRoot = findMarker(cwd, 'docs/.tasks');
-    if (taskRoot) return taskRoot;
+    // Stage 1: Try discovery from current directory
+    const taskRoot = findMarker(rawCwd, 'docs/.tasks');
 
-    // 2. If in temp context, STOP HERE to prevent monorepo root leakage.
+    // Stage 2: If we are in a temp directory, ensure we don't leak to the monorepo root.
+    // We only return taskRoot if it's ALSO within the temp directory.
     if (isInTemp) {
-        return cwd;
+        if (taskRoot) {
+            const realTaskRoot = safeRealpath(taskRoot);
+            if (
+                realTaskRoot.startsWith(realTemp) ||
+                realTaskRoot.includes('/tmp/') ||
+                realTaskRoot.includes('/var/folders/')
+            ) {
+                return taskRoot;
+            }
+        }
+        return rawCwd;
     }
 
-    // 3. Fallback to walking up from the script's location for docs/.tasks
+    // Stage 3: Normal discovery (not in temp)
+    if (taskRoot) return taskRoot;
+
+    // Stage 4: Fallback to walking up from the script's location for docs/.tasks
     // This allows commands run inside plugins/rd3 to find the repo root.
     const scriptDir = dirname(import.meta.dir);
     const scriptTaskRoot = findMarker(scriptDir, 'docs/.tasks');
     if (scriptTaskRoot) return scriptTaskRoot;
 
-    // 4. Fallback to generic repo markers (.git, package.json)
+    // Stage 5: Fallback to generic repo markers (.git, package.json)
     for (const marker of ['.git', 'package.json', 'bun.lockb']) {
-        const root = findMarker(cwd, marker);
+        const root = findMarker(rawCwd, marker);
         if (root) return root;
     }
 
-    return cwd;
+    return rawCwd;
 }
 
 export function getMetaDir(projectRoot: string): string {
@@ -120,11 +147,13 @@ export function loadConfig(projectRoot?: string): TasksConfig {
     }
 
     // Legacy mode: no config.jsonc — use defaults
+    const active = existsSync(resolve(root, PRIMARY_TASKS_DIR)) ? PRIMARY_TASKS_DIR : LEGACY_DIR;
     return {
         $schema_version: 1,
-        active_folder: LEGACY_DIR,
+        active_folder: active,
         folders: {
             [LEGACY_DIR]: { base_counter: 0 },
+            [PRIMARY_TASKS_DIR]: { base_counter: 0 },
         },
     };
 }
