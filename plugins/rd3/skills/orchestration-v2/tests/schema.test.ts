@@ -656,7 +656,11 @@ describe('validateSchema', () => {
                 arch: { skill: 'rd3:arch', gate: { type: 'auto', checklist: ['Design reviewed'] }, after: ['intake'] },
                 implement: {
                     skill: 'rd3:implement',
-                    gate: { type: 'command', command: 'bun run check', rework: { max_iterations: 2, escalation: 'pause' } },
+                    gate: {
+                        type: 'command',
+                        command: 'bun run check',
+                        rework: { max_iterations: 2, escalation: 'pause' },
+                    },
                     timeout: '2h',
                     after: ['arch'],
                 },
