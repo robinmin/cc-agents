@@ -23,13 +23,7 @@
  * For testing: pass a MockExecutor as the delegate to avoid real acpx calls.
  */
 
-import type {
-    Executor,
-    ExecutionRequest,
-    ExecutionResult,
-    ExecutorCapabilities,
-    ExecutorHealth,
-} from '../model';
+import type { Executor, ExecutionRequest, ExecutionResult, ExecutorCapabilities, ExecutorHealth } from '../model';
 import { AcpExecutor } from './acp';
 import { resolveConfig } from '../config/config';
 
