@@ -4,8 +4,6 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { runLlmCheck } from '../../verification-chain/scripts/methods/llm';
 
-
-
 // Helper: create a temp mock LLM script that outputs the given text.
 function makeMockLlmScript(output: string, includeStderr?: string): string {
     const dir = mkdtempSync(join(tmpdir(), 'llm-check-test-'));
@@ -39,7 +37,7 @@ describe('verification-chain llm method', () => {
                         throw new Error('disk full');
                     },
                     rmSync: () => undefined,
-                // biome-ignore lint/suspicious/noExplicitAny: test mock via object literal
+                    // biome-ignore lint/suspicious/noExplicitAny: test mock via object literal
                 } as any,
                 scriptPath,
             );
@@ -75,10 +73,7 @@ describe('verification-chain llm method', () => {
     });
 
     test('records stderr output without changing a passing result', async () => {
-        const scriptPath = makeMockLlmScript(
-            '[PASS] Requirement captured: looks good',
-            'warning: model near limit',
-        );
+        const scriptPath = makeMockLlmScript('[PASS] Requirement captured: looks good', 'warning: model near limit');
         try {
             const result = await runLlmCheck({ checklist: ['Requirement captured'] }, undefined, scriptPath);
 
@@ -92,9 +87,7 @@ describe('verification-chain llm method', () => {
     });
 
     test('fails closed when output is malformed or incomplete', async () => {
-        const scriptPath = makeMockLlmScript(
-            '[PASS] Requirement captured: looks good\nnot a parsable line',
-        );
+        const scriptPath = makeMockLlmScript('[PASS] Requirement captured: looks good\nnot a parsable line');
         try {
             const result = await runLlmCheck(
                 { checklist: ['Requirement captured', 'Scope is clear'] },
