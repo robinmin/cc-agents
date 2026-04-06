@@ -10,6 +10,8 @@ import { runLlmCheck } from '../scripts/methods/llm';
 import { runHumanCheck } from '../scripts/methods/human';
 import { runCompoundCheck } from '../scripts/methods/compound';
 import type { Checker } from '../scripts/types';
+import type { FileOps } from '../scripts/methods/llm';
+import type { AcpxQueryResult } from '../../../scripts/libs/acpx-query';
 
 let TEST_DIR = '';
 let CWD = '';
@@ -272,6 +274,68 @@ describe('runLlmCheck', () => {
             rmSync(scriptPath, { force: true });
         }
     });
+
+    test('injects writeFileSync error and returns fail', async () => {
+        const failingFileOps = {
+            mkdtempSync: () => '/tmp/llm-check-test',
+            writeFileSync: () => {
+                throw new Error('Simulated write failure');
+            },
+            rmSync: () => {},
+        } as unknown as FileOps;
+        const result = await runLlmCheck({ checklist: ['item1'] }, failingFileOps, '/bin/echo');
+        expect(result.result).toBe('fail');
+        expect(result.evidence.error).toContain('Failed to write prompt');
+    });
+
+    test('injects getLlmCliCommand returning undefined and triggers early return', async () => {
+        // getLlmCliCommand() returns undefined → !llmCliPath is true → early return
+        const result = await runLlmCheck(
+            { checklist: ['item1'] },
+            undefined,
+            undefined, // llmCliPathOverride = undefined
+            undefined, // execLlmCliFn = undefined (not reached)
+            () => undefined,
+        );
+        expect(result.result).toBe('fail');
+        expect(result.evidence.error).toContain('LLM CLI not found');
+    });
+
+    test('injects execLlmCli that throws and catches spawn error', async () => {
+        const throwingExecLlmCli = () => {
+            throw new Error('Simulated ENOENT spawn error');
+        };
+        const result = await runLlmCheck(
+            { checklist: ['item1'] },
+            undefined,
+            '/bin/echo',
+            throwingExecLlmCli as unknown as Parameters<typeof runLlmCheck>[3],
+        );
+        expect(result.result).toBe('fail');
+        expect(result.evidence.error).toContain('Simulated ENOENT spawn error');
+    });
+
+    test('injects execLlmCli that returns non-empty stderr', async () => {
+        const stderrExecLlmCli = () => {
+            const result: AcpxQueryResult = {
+                ok: true,
+                exitCode: 0,
+                stdout: '[PASS] item1: ok',
+                stderr: 'Some debug warning from LLM',
+                durationMs: 100,
+                timedOut: false,
+            };
+            return result;
+        };
+        const result = await runLlmCheck(
+            { checklist: ['item1'] },
+            undefined,
+            '/bin/echo',
+            stderrExecLlmCli as unknown as Parameters<typeof runLlmCheck>[3],
+        );
+        expect(result.result).toBe('pass');
+        expect(result.evidence.llm_results?.[0]?.passed).toBe(true);
+    });
 });
 
 // ============================================================
@@ -284,6 +348,19 @@ describe('runLlmCheck - error paths', () => {
         expect(result.result).toBe('fail');
         expect(result.evidence.error).toBeDefined();
         expect(result.error).toBeDefined();
+    });
+
+    test('parsing ignores empty lines and non-matching lines', async () => {
+        const scriptPath = makeMockLlmScript('\nSome random text\n[PASS] item1: ok\n  [PASS]   item2  :  reason  \n');
+        try {
+            const result = await runLlmCheck({ checklist: ['item1', 'item2'] }, undefined, scriptPath);
+            expect(result.result).toBe('pass');
+            expect(result.evidence.llm_results).toHaveLength(2);
+            expect(result.evidence.llm_results?.[0]?.item).toBe('item1');
+            expect(result.evidence.llm_results?.[1]?.item).toBe('item2');
+        } finally {
+            rmSync(scriptPath, { force: true });
+        }
     });
 });
 
