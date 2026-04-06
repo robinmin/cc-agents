@@ -12,12 +12,10 @@ beforeAll(() => {
 });
 
 const originalExit = process.exit;
-const originalCwd = process.cwd();
 const tempDirs: string[] = [];
 
 afterEach(() => {
     process.exit = originalExit;
-    process.chdir(originalCwd);
     while (tempDirs.length > 0) {
         rmSync(tempDirs.pop() as string, { recursive: true, force: true });
     }
@@ -353,8 +351,7 @@ impl_progress:
             'utf-8',
         );
 
-        process.chdir(tempDir);
-        const plan = createExecutionPlan('0266');
+        const plan = createExecutionPlan('0266', { projectRoot: tempDir });
 
         expect(plan.profile).toBe('simple');
         expect(plan.coverage_threshold).toBe(60);
