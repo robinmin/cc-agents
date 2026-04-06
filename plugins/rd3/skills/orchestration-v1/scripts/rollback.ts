@@ -273,7 +273,13 @@ export function executeUndo(options: UndoOptions, stateDir: string): UndoResult 
     logger.info(`Undo completed for phase ${phase} of task ${task_ref}`);
     return result;
 }
-export async function main(args = process.argv.slice(2)): Promise<number> {
+export interface RollbackMainOptions {
+    cwd?: string;
+}
+
+export async function main(args = process.argv.slice(2), options: RollbackMainOptions = {}): Promise<number> {
+    const cwd = options.cwd ?? process.cwd();
+
     if (args.length < 2 || (args[0] !== '--undo' && args[0] !== '0292' && !args.includes('--undo'))) {
         // Simple heuristic for usage error
         if (args.length === 0 || (args.length === 1 && !args[0].startsWith('--'))) {
@@ -295,7 +301,7 @@ export async function main(args = process.argv.slice(2)): Promise<number> {
     }
 
     try {
-        const result = executeUndo({ task_ref: taskRef, phase: phase as PhaseNumber, dry_run: dryRun }, process.cwd());
+        const result = executeUndo({ task_ref: taskRef, phase: phase as PhaseNumber, dry_run: dryRun }, cwd);
         logger.log(JSON.stringify(result, null, 2));
 
         if (result.errors.length > 0) {
