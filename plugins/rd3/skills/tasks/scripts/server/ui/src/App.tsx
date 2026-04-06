@@ -1,9 +1,10 @@
 import { useTasks } from './hooks/use-tasks';
 import { KanbanBoard } from './components/kanban-board';
-import { TaskDetail } from './components/task-detail';
-import { TaskCreate } from './components/task-create';
 import { FolderSelector } from './components/folder-selector';
-import { useState, useMemo } from 'react';
+import { lazy, Suspense, useState, useMemo } from 'react';
+
+const TaskDetail = lazy(() => import('./components/task-detail').then((m) => ({ default: m.TaskDetail })));
+const TaskCreate = lazy(() => import('./components/task-create').then((m) => ({ default: m.TaskCreate })));
 import { STATUS_ORDER, STATUS_EMOJI, type TaskStatus } from './types';
 
 export function App() {
@@ -127,11 +128,13 @@ export function App() {
                 />
             )}
 
-            {selectedWbs && (
-                <TaskDetail wbs={selectedWbs} onClose={() => setSelectedWbs(null)} onStatusChange={refresh} />
-            )}
+            <Suspense>
+                {selectedWbs && (
+                    <TaskDetail wbs={selectedWbs} onClose={() => setSelectedWbs(null)} onStatusChange={refresh} />
+                )}
 
-            {showCreate && <TaskCreate onClose={() => setShowCreate(false)} />}
+                {showCreate && <TaskCreate onClose={() => setShowCreate(false)} />}
+            </Suspense>
         </div>
     );
 }
