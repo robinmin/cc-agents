@@ -348,10 +348,12 @@ async function runTests(skillPath: string): Promise<boolean> {
 
     try {
         const { spawn } = await import('bun');
-        // Run tests from plugins/rd3 (the root) to use the root bunfig.toml
-        // testsPath is like .../plugins/rd3/skills/cc-agents/tests, we need to run from plugins/rd3
-        const testsRelPath = testsPath.replace(/.*plugins\/rd3\//, '');
-        const cwd = resolve(testsPath, '../../..');
+        // Run tests from the project root (where bunfig.toml lives).
+        // Using plugins/rd3 as cwd breaks tests that depend on process.cwd()
+        // being the project root (e.g. skill-resolver.test.ts).
+        const projectRoot = findProjectRoot();
+        const testsRelPath = testsPath.startsWith(projectRoot) ? testsPath.slice(projectRoot.length + 1) : testsPath;
+        const cwd = projectRoot;
         const proc = spawn(['bun', 'test', testsRelPath], {
             cwd,
             stdout: 'pipe',
