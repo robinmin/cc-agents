@@ -1,5 +1,5 @@
 ---
-name: rd3-request-intake
+name: request-intake
 description: "Transform vague one-liner feature requests into fully-populated task files via structured Q&A. Phase 1 entry point for the 9-phase orchestration pipeline. Persona: Senior Business Analyst."
 license: Apache-2.0
 version: 1.0.0
@@ -14,14 +14,14 @@ metadata:
   category: orchestration
   interactions:
     - knowledge-only
-    - generative
+    - pipeline
 see_also:
-  - rd3-orchestration-v2
-  - rd3-task-decomposition
-  - rd3-functional-review
+  - rd3:orchestration-v2
+  - rd3:task-decomposition
+  - rd3:functional-review
 ---
 
-# rd3-request-intake — Requirements Elicitation and Task Enrichment
+# rd3:request-intake — Requirements Elicitation and Task Enrichment
 
 Structured Q&A workflow that transforms vague one-liner feature requests into fully-populated task files with Background, Requirements, Constraints, and auto-assigned profile.
 
@@ -40,14 +40,14 @@ Load this skill when:
 - Profile field needs auto-assignment based on scope analysis
 - User needs guided elicitation through structured questions
 
-Do not use this skill for well-formed task files with complete requirements. Skip to `rd3-task-decomposition`.
+Do not use this skill for well-formed task files with complete requirements. Skip to `rd3:task-decomposition`.
 
 ## Overview
 
 The request-intake skill follows IEEE 29148 and BABOK Guide best practices for requirements elicitation:
 
 1. **Analyze** existing task content for gaps and ambiguities
-2. **Question** using hybrid taxonomy (15-20 categorized templates)
+2. **Question** using hybrid taxonomy (15-20 categorized prompts)
 3. **Synthesize** answers into structured sections
 4. **Assign** profile based on scope heuristics
 5. **Persist** via tasks update (without overwriting existing content)
@@ -68,7 +68,7 @@ interface RequestIntakeInput {
 }
 ```
 
-`execution_channel` is normally injected by `rd3-orchestration-v2`. Use `current` for local execution, or an ACP agent name when orchestration routes delegated work through `rd3-run-acp`.
+`execution_channel` is normally injected by `rd3:orchestration-v2`. Use `current` for local execution, or an ACP agent name when orchestration routes delegated work through `rd3:run-acp`.
 
 ### Modes
 
@@ -90,16 +90,16 @@ interface RequestIntakeInput {
 
 ## Question Taxonomy
 
-See `references/question-taxonomy.md` for the 15-20 categorized question templates.
+See `references/question-taxonomy.md` for the 15-20 categorized question prompts.
 
 **Categories:**
-- Purpose (2 templates) — why this request, expected outcomes
-- Scope (4 templates) — what is/isn't in scope, boundaries
-- Constraints (3 templates) — budget, timeline, technical limits
-- Dependencies (2 templates) — what must be in place first
-- Acceptance Criteria (4 templates) — how to verify success
-- Users (2 templates) — who benefits, user personas
-- Timeline (2 templates) — deadlines, milestones
+- Purpose (2 prompts) — why this request, expected outcomes
+- Scope (4 prompts) — what is/isn't in scope, boundaries
+- Constraints (3 prompts) — budget, timeline, technical limits
+- Dependencies (2 prompts) — what must be in place first
+- Acceptance Criteria (4 prompts) — how to verify success
+- Users (2 prompts) — who benefits, user personas
+- Timeline (2 prompts) — deadlines, milestones
 
 ## Profile Assignment Heuristics
 
@@ -170,7 +170,7 @@ When `mode === 'refine'`, analyze existing content for these issues:
 
 ### Step 2: Generate Questions
 
-Select 3-7 templates from question-taxonomy.md based on:
+Select 3-7 prompts from question-taxonomy.md based on:
 - Detected gaps (don't ask about filled sections)
 - Domain hints (domain_expertise, technical_environment, user_personas)
 - Prior answers (adaptive follow-up)
@@ -330,7 +330,7 @@ For **refine mode**, questions should include recommended options to accelerate 
 
 **Example from Task 0332**:
 ```
-**Q: Should `Move to Todo` only appear for Backlog tasks?**
+**Q: Should `Move to To Do` only appear for Backlog tasks?**
 Options:
 1. Yes, Backlog only — Standard kanban UX pattern
 2. No, all tasks — Allow moving between any statuses
@@ -367,10 +367,23 @@ Skill fails when:
 rd2:tasks refine {wbs} --phase intake
 
 # Or direct skill invocation
-rd3-request-intake {wbs}
+rd3:request-intake {wbs}
 ```
 
 **Phase integration:**
-- Output feeds into `rd3-task-decomposition` (Phase 4)
+- Output feeds into `rd3:task-decomposition` (Phase 4)
 - Profile assignment gates Phase 2 (Architecture) in orchestration-dev
-- Constraints inform verification strategy in `rd3-functional-review`
+- Constraints inform verification strategy in `rd3:functional-review`
+
+## Platform Notes
+
+- Claude Code: batch clarifying questions into a single AskUserQuestion round when possible instead of prompting one-by-one.
+- Codex: companion defaults live in `agents/openai.yaml`; preserve `execution_channel` semantics when orchestration delegates the skill.
+- OpenClaw: compatibility metadata lives in `metadata.openclaw`.
+- All platforms: bash examples are documentation snippets; state-changing updates should go through the `tasks` CLI with repo-local permissions.
+
+## Additional Resources
+
+- [Question taxonomy](./references/question-taxonomy.md) for prompt selection and category coverage
+- `rd3:task-decomposition` for downstream breakdown once requirements are complete
+- `rd3:orchestration-v2` for phase routing and execution-channel propagation
