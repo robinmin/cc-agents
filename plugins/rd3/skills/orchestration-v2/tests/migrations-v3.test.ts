@@ -24,9 +24,9 @@ describe('migrations v2 to v3', () => {
     test('fresh install creates all indexes including v3 indexes', () => {
         runMigrations(db);
 
-        const indexes = db
-            .prepare("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name")
-            .all() as Array<{ name: string }>;
+        const indexes = db.prepare("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name").all() as Array<{
+            name: string;
+        }>;
 
         const indexNames = indexes.map((idx) => idx.name);
 
@@ -74,9 +74,9 @@ describe('migrations v2 to v3', () => {
         // Run migrations
         runMigrations(db);
 
-        const indexes = db
-            .prepare("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name")
-            .all() as Array<{ name: string }>;
+        const indexes = db.prepare("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name").all() as Array<{
+            name: string;
+        }>;
 
         const indexNames = indexes.map((idx) => idx.name);
 
@@ -152,9 +152,9 @@ describe('migrations v2 to v3', () => {
             'idx_runs_task',
         ];
 
-        const indexes = db
-            .prepare("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name")
-            .all() as Array<{ name: string }>;
+        const indexes = db.prepare("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name").all() as Array<{
+            name: string;
+        }>;
 
         const indexNames = indexes.map((idx) => idx.name);
 
