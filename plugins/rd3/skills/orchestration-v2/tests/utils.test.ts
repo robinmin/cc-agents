@@ -1,6 +1,12 @@
 import { describe, test, expect } from 'bun:test';
 import { parseDuration, formatDuration, isOlderThan } from '../scripts/utils/time';
-import { isValidWbs, isValidTaskRef, isValidPort, isValidCoverageThreshold, isValidPresetName } from '../scripts/utils/validation';
+import {
+    isValidWbs,
+    isValidTaskRef,
+    isValidPort,
+    isValidCoverageThreshold,
+    isValidPresetName,
+} from '../scripts/utils/validation';
 
 describe('utils/time', () => {
     describe('parseDuration', () => {
