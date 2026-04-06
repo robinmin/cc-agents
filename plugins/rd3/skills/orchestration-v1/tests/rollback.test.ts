@@ -531,11 +531,9 @@ describe('rollback', () => {
 
     describe('main', () => {
         const originalExit = process.exit;
-        const originalCwd = process.cwd();
 
         afterEach(() => {
             process.exit = originalExit;
-            process.chdir(originalCwd);
         });
 
         test('exits with usage error when no arguments', async () => {
@@ -556,8 +554,7 @@ describe('rollback', () => {
 
         test('exits with error when no state file exists', async () => {
             const dir = trackDir(createTempDir('rollback-main-nostate'));
-            process.chdir(dir);
-            expect(await rollbackMain(['--undo', '0292', '5'])).toBe(1);
+            expect(await rollbackMain(['--undo', '0292', '5'], { cwd: dir })).toBe(1);
         });
     });
 });
