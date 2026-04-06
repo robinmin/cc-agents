@@ -69,6 +69,7 @@ export interface CreateExecutionPlanOptions {
     auto?: boolean;
     dryRun?: boolean;
     refine?: boolean;
+    projectRoot?: string;
 }
 
 export const DEFAULT_PHASE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
