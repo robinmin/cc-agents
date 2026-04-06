@@ -29,11 +29,7 @@ import {
     EXIT_TASK_NOT_FOUND,
     EXIT_STATE_ERROR,
 } from './model';
-import {
-    DEFAULT_STATE_DIR,
-    DB_FILENAME,
-    DEFAULT_PIPELINE_FILE,
-} from './config/consts';
+import { DEFAULT_STATE_DIR, DB_FILENAME, DEFAULT_PIPELINE_FILE } from './config/consts';
 import { migrateFromV1 } from './state/migrate-v1';
 import { Pruner } from './state/prune';
 import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, ValidationResult } from './model';
