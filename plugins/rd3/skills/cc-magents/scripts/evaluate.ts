@@ -348,8 +348,13 @@ function scoreCoverage(ctx: EvaluationContext): DimensionResult {
     }
     score += (optionalCount / EXPECTED_CATEGORIES.optional.length) * COVERAGE_WEIGHT_OPTIONAL;
 
-    // Check for empty sections (penalty up to 10%)
-    const emptySections = ctx.sections.filter((s) => !s.content || s.content.trim().length === 0);
+    // Check for empty sections (penalty up to 10%), skipping parent sections with children
+    const emptySections = ctx.sections.filter((s, i) => {
+        if (s.content && s.content.trim().length > 0) return false;
+        const next = ctx.sections[i + 1];
+        if (next && next.level > s.level) return false; // parent with sub-headings
+        return true;
+    });
     const emptyPenalty = Math.min(emptySections.length * 2, COVERAGE_WEIGHT_EMPTY_PENALTY);
     score -= emptyPenalty;
 
