@@ -22,13 +22,7 @@
  *   acpx --allowed-tools Skill,Read,Bash,Edit,Write
  */
 
-import type {
-    Executor,
-    ExecutionRequest,
-    ExecutionResult,
-    ExecutorCapabilities,
-    ExecutorHealth,
-} from '../model';
+import type { Executor, ExecutionRequest, ExecutionResult, ExecutorCapabilities, ExecutorHealth } from '../model';
 import { logger } from '../../../../scripts/logger';
 import {
     ALLOWED_TOOLS,
@@ -188,6 +182,4 @@ export class AcpExecutor implements Executor {
 
         return parts.join('\n');
     }
-
-
 }
