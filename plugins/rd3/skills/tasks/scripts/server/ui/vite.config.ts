@@ -17,6 +17,15 @@ export default defineConfig({
     build: {
         outDir: STATIC_OUT,
         emptyOutDir: true,
+        chunkSizeWarningLimit: 1100,
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-dnd': ['@hello-pangea/dnd'],
+                    'vendor-md-editor': ['@uiw/react-md-editor'],
+                },
+            },
+        },
     },
     resolve: {
         alias: {
