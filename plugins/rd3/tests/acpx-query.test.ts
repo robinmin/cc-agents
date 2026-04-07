@@ -356,7 +356,7 @@ describe('queryLlmFromFileAgy', () => {
     test('returns result with file content', () => {
         // Create a temp file with content and use echo to verify the read path works
         const tmpFile = '/tmp/agy-test-prompt.txt';
-        require('fs').writeFileSync(tmpFile, 'test prompt content');
+        require('node:fs').writeFileSync(tmpFile, 'test prompt content');
         // Note: echo just echoes the content, doesn't read the file
         // This tests that the file reading works, actual content goes through queryLlmAgy
         const result = queryLlmFromFileAgy(tmpFile, { acpxBin: 'echo', agent: 'claude' });
