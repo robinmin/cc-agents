@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { runLlmCheck } from '../../verification-chain/scripts/methods/llm';
+import { runLlmCheck, type FileOps } from '../../verification-chain/scripts/methods/llm';
 
 // Helper: create a temp mock LLM script that outputs the given text.
 function makeMockLlmScript(output: string, includeStderr?: string): string {
@@ -29,18 +29,16 @@ describe('verification-chain llm method', () => {
     test('fails cleanly when prompt file creation fails', async () => {
         const scriptPath = makeMockLlmScript('[PASS] Requirement captured: looks good');
         try {
-            const result = await runLlmCheck(
-                { checklist: ['Requirement captured'] },
-                {
-                    mkdtempSync: () => '/tmp/cannot-write-here',
-                    writeFileSync: () => {
-                        throw new Error('disk full');
-                    },
-                    rmSync: () => undefined,
-                    // biome-ignore lint/suspicious/noExplicitAny: test mock via object literal
-                } as any,
-                scriptPath,
-            );
+            // Use type assertions to match FileOps interface - Node.js fs has complex overloads
+            const failingFileOps: FileOps = {
+                mkdtempSync: ((_prefix: string) => '/tmp/cannot-write-here') as typeof mkdtempSync,
+                writeFileSync: ((_path: string, _data: string | Buffer) => {
+                    throw new Error('disk full');
+                }) as typeof writeFileSync,
+                rmSync: ((_path: string, _options?: { force?: boolean }) => undefined) as typeof rmSync,
+            };
+
+            const result = await runLlmCheck({ checklist: ['Requirement captured'] }, failingFileOps, scriptPath);
 
             expect(result.result).toBe('fail');
             expect(result.error).toContain('Failed to write prompt to temp file');
