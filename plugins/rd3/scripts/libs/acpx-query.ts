@@ -1,13 +1,17 @@
 /**
- * Unified acpx-based LLM query library.
+ * Unified acpx-based LLM query library with Antigravity (agy) backend support.
  *
  * Provides a single, consistent interface for all LLM query operations across the codebase:
  * - Basic LLM queries with prompt input
  * - File-based prompt input
  * - Structured output parsing (JSON extraction from NDJSON and markdown blocks)
  * - Resource metrics extraction (tokens, latency)
- * - Health checks for acpx availability
- * - Automatic LLM CLI initialization
+ * - Health checks for acpx/agy availability
+ * - Backend selection via BACKEND environment variable (default: 'acpx')
+ *
+ * Backend Selection:
+ * - BACKEND=acpx (default): Uses acpx CLI for agent execution
+ * - BACKEND=antigravity: Uses agy CLI (VSCode Antigravity) for chat execution
  *
  * Used by:
  * - orchestration-v1/scripts/executors.ts
@@ -88,6 +92,24 @@ const ENV_ACPX_AGENT = 'ACPX_AGENT';
 
 /** Environment variable for LLM CLI command (legacy) */
 const ENV_LLM_CLI_COMMAND = 'LLM_CLI_COMMAND';
+
+/** Environment variable for backend selection: 'acpx' or 'antigravity' */
+const ENV_BACKEND = 'BACKEND';
+
+/** Supported backends */
+export type Backend = 'acpx' | 'antigravity';
+
+/**
+ * Get the current backend selection.
+ * Defaults to 'acpx' if BACKEND env var is not set or invalid.
+ */
+export function getBackend(): Backend {
+    const backend = getEnv(ENV_BACKEND);
+    if (backend === 'antigravity' || backend === 'agy') {
+        return 'antigravity';
+    }
+    return 'acpx';
+}
 
 /** Get environment variable from process.env (the canonical source in Bun/Node). */
 export function getEnv(key: string): string | undefined {
@@ -203,6 +225,192 @@ function resolveOptions(options?: AcpxQueryOptions): ResolvedOptions {
     };
 }
 
+// ─── Antigravity (agy) Adapter ───────────────────────────────────────────────
+
+/** Environment variable for agy binary path */
+const ENV_AGY_BIN = 'AGY_BIN';
+
+/** Default path for agy binary */
+const DEFAULT_AGY_BIN = 'agy';
+
+/**
+ * Get the agy binary path from options or environment.
+ */
+function getAgyBin(options?: AcpxQueryOptions): string {
+    return options?.acpxBin ?? getEnv(ENV_AGY_BIN) ?? DEFAULT_AGY_BIN;
+}
+
+/**
+ * Build agy chat command arguments.
+ *
+ * Maps acpx-style query to agy chat:
+ * - acpx: acpx <agent> exec <prompt>
+ * - agy: agy chat [--mode <mode>] <prompt>
+ *
+ * @param prompt - The prompt to send
+ * @param options - Query options
+ * @returns Command array [bin, arg1, arg2, ...]
+ */
+function buildAgyChatArgs(prompt: string, options?: AcpxQueryOptions): string[] {
+    const agyBin = getAgyBin(options);
+    const args: string[] = [agyBin, 'chat'];
+
+    // Map agent to agy mode if specified
+    const agent = options?.agent ?? getEnv(ENV_ACPX_AGENT);
+    if (agent && agent !== 'claude') {
+        // Map known agents to agy modes
+        const modeMap: Record<string, string> = {
+            pi: 'agent',
+            codex: 'agent',
+            openclaw: 'agent',
+            opencode: 'agent',
+            gemini: 'agent',
+            kilocode: 'agent',
+        };
+        const mode = modeMap[agent] ?? 'agent';
+        args.push('--mode', mode);
+    }
+
+    // Add prompt
+    args.push(prompt);
+
+    return args;
+}
+
+/**
+ * Execute an agy chat command and return result.
+ * Wraps the agy CLI to provide a compatible interface with acpx.
+ *
+ * @param command - Command array [bin, arg1, arg2, ...]
+ * @param timeoutMs - Timeout in milliseconds
+ * @returns AcpxQueryResult compatible result
+ */
+function execAgyChat(command: string[], timeoutMs?: number): AcpxQueryResult {
+    const startTime = Date.now();
+
+    const opts: SpawnSyncOptions = {
+        cwd: process.cwd(),
+        env: process.env as NodeJS.ProcessEnv,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        ...(timeoutMs ? { timeout: timeoutMs } : {}),
+    };
+
+    const result = spawnSync(command[0], command.slice(1), opts);
+
+    return {
+        ok: result.status === 0,
+        exitCode: result.status ?? 1,
+        stdout: typeof result.stdout === 'string' ? result.stdout : (result.stdout?.toString() ?? ''),
+        stderr: typeof result.stderr === 'string' ? result.stderr : (result.stderr?.toString() ?? ''),
+        durationMs: Date.now() - startTime,
+        timedOut: result.error?.message.includes('timeout') ?? false,
+    };
+}
+
+/**
+ * Query an LLM via agy chat.
+ *
+ * This is the Antigravity backend implementation that wraps the agy CLI.
+ *
+ * @param prompt - The prompt to send
+ * @param options - Query options
+ * @returns Query result
+ */
+export function queryLlmAgy(prompt: string, options?: AcpxQueryOptions): AcpxQueryResult {
+    const resolved = resolveOptions(options);
+    const args = buildAgyChatArgs(prompt, resolved);
+
+    const result = execAgyChat(args, resolved.timeoutMs);
+
+    // agy chat output is plain text, not structured
+    // Parse if requested but note agy doesn't emit JSON events
+    if (resolved.parseStructured || resolved.extractMetrics) {
+        const parsed = parseOutput(result.stdout, resolved.parseStructured, resolved.extractMetrics);
+        return { ...result, ...parsed };
+    }
+
+    return result;
+}
+
+/**
+ * Query an LLM via agy chat with prompt from file.
+ *
+ * @param filePath - Path to file containing the prompt
+ * @param options - Query options
+ * @returns Query result
+ */
+export function queryLlmFromFileAgy(filePath: string, options?: AcpxQueryOptions): AcpxQueryResult {
+    // agy chat doesn't support --file flag like acpx
+    // Read file and pass content directly
+    try {
+        const content = readFileSync(filePath, 'utf-8');
+        return queryLlmAgy(content, options);
+    } catch (err) {
+        return {
+            ok: false,
+            exitCode: 1,
+            stdout: '',
+            stderr: err instanceof Error ? `Failed to read file: ${err.message}` : 'Failed to read file',
+            durationMs: 0,
+            timedOut: false,
+        };
+    }
+}
+
+/**
+ * Health check for agy CLI.
+ */
+export function checkAgyHealth(agyBin?: string): { healthy: boolean; version?: string; error?: string } {
+    const bin = agyBin ?? getEnv(ENV_AGY_BIN) ?? DEFAULT_AGY_BIN;
+
+    try {
+        const result = spawnSync(bin, ['--version'], { shell: false });
+        if (result.status === 0) {
+            const version = new TextDecoder().decode(result.stdout).trim();
+            return { healthy: true, version };
+        }
+        return {
+            healthy: false,
+            error: `agy exited with code ${result.status}`,
+        };
+    } catch (err) {
+        return {
+            healthy: false,
+            error: err instanceof Error ? err.message : 'Unknown error',
+        };
+    }
+}
+
+/**
+ * Run slash command via agy.
+ *
+ * Note: agy does not support slash commands directly.
+ * This function returns a graceful "not supported" response.
+ *
+ * @param slashCommand - Claude Code style slash command
+ * @param _options - Execution options (ignored for agy)
+ * @returns Error result indicating not supported
+ */
+export function runSlashCommandAgy(_slashCommand: string, _options?: RunSlashCommandOptions): AcpxQueryResult {
+    return {
+        ok: false,
+        exitCode: 1,
+        stdout: '',
+        stderr: 'Slash commands are not supported by agy. Use acpx backend for slash command execution.',
+        durationMs: 0,
+        timedOut: false,
+    };
+}
+
+/**
+ * Get transformed slash command preview for agy.
+ *
+ * Returns a message indicating slash commands are not supported.
+ */
+export function transformSlashCommandAgy(_slashCommand: string): string {
+    return 'Slash commands are not supported by agy';
+}
+
 /**
  * Execute an acpx command and return raw result.
  * @param command - Command array to execute
@@ -278,13 +486,23 @@ export function execLlmCli(command: string[], promptFile: string, timeoutMs = 30
 }
 
 /**
- * Query an LLM via acpx with a prompt string.
+ * Query an LLM via acpx or agy with a prompt string.
+ *
+ * Backend selection is determined by the BACKEND environment variable:
+ * - BACKEND=acpx (default): Uses acpx CLI
+ * - BACKEND=antigravity: Uses agy CLI (Antigravity/VSCode)
  *
  * @param prompt - The prompt to send to the LLM
  * @param options - Query options
  * @returns Query result with optional structured output and metrics
  */
 export function queryLlm(prompt: string, options?: AcpxQueryOptions): AcpxQueryResult {
+    const backend = getBackend();
+
+    if (backend === 'antigravity') {
+        return queryLlmAgy(prompt, options);
+    }
+
     const resolved = resolveOptions(options);
     const args = buildAcpxArgs(resolved.agent, 'exec', prompt, resolved);
     // buildAcpxArgs already includes the acpx bin as the first element
@@ -299,13 +517,23 @@ export function queryLlm(prompt: string, options?: AcpxQueryOptions): AcpxQueryR
 }
 
 /**
- * Query an LLM via acpx reading prompt from a file.
+ * Query an LLM via acpx or agy reading prompt from a file.
+ *
+ * Backend selection is determined by the BACKEND environment variable:
+ * - BACKEND=acpx (default): Uses acpx CLI
+ * - BACKEND=antigravity: Uses agy CLI (reads file and passes content)
  *
  * @param filePath - Path to file containing the prompt
  * @param options - Query options
  * @returns Query result with optional structured output and metrics
  */
 export function queryLlmFromFile(filePath: string, options?: AcpxQueryOptions): AcpxQueryResult {
+    const backend = getBackend();
+
+    if (backend === 'antigravity') {
+        return queryLlmFromFileAgy(filePath, options);
+    }
+
     const resolved = resolveOptions(options);
     const args = buildAcpxArgs(resolved.agent, 'exec', `--file=${filePath}`, resolved);
     // buildAcpxArgs already includes the acpx bin as the first element
@@ -332,6 +560,18 @@ export { resolveOptions };
  * Exported for testing purposes.
  */
 export { buildAcpxArgs };
+
+/**
+ * Build agy chat command arguments.
+ * Exported for testing purposes.
+ */
+export { buildAgyChatArgs };
+
+/**
+ * Execute an agy chat command.
+ * Exported for testing purposes.
+ */
+export { execAgyChat };
 
 // ─── Output Parsing ──────────────────────────────────────────────────────────
 
@@ -538,29 +778,21 @@ export interface RunSlashCommandOptions {
  */
 const SLASH_COMMAND_TRANSFORMS: Record<ExecutionChannel, (cmd: string) => string> = {
     'claude-code': (cmd: string) => cmd,
-    'pi': (cmd: string) => cmd.replace('rd3:', 'skill:rd3-'),
-    'codex': (cmd: string) => cmd.replace('rd3:', '$rd3-').replace(/^\//, ''),
-    'gemini': (cmd: string) => cmd,
-    'kilocode': (cmd: string) => cmd,
-    'openclaw': (cmd: string) => cmd,
-    'opencode': (cmd: string) => cmd,
+    pi: (cmd: string) => cmd.replace('rd3:', 'skill:rd3-'),
+    codex: (cmd: string) => cmd.replace('rd3:', '$rd3-').replace(/^\//, ''),
+    gemini: (cmd: string) => cmd,
+    kilocode: (cmd: string) => cmd,
+    openclaw: (cmd: string) => cmd,
+    opencode: (cmd: string) => cmd,
 };
 
 /**
  * List of valid execution channels for error messages.
  */
-const VALID_CHANNELS: ExecutionChannel[] = [
-    'claude-code',
-    'pi',
-    'codex',
-    'gemini',
-    'kilocode',
-    'openclaw',
-    'opencode',
-];
+const VALID_CHANNELS: ExecutionChannel[] = ['claude-code', 'pi', 'codex', 'gemini', 'kilocode', 'openclaw', 'opencode'];
 
 /**
- * Execute a slash command via acpx on a specified channel.
+ * Execute a slash command via acpx or agy on a specified channel.
  *
  * Transforms Claude Code style slash commands to channel-specific formats:
  * - claude-code: /rd3:dev-fixall → /rd3:dev-fixall (pass through)
@@ -570,6 +802,9 @@ const VALID_CHANNELS: ExecutionChannel[] = [
  *
  * If options.session is provided, uses persistent session mode (prompt --session <name>).
  * Otherwise uses one-shot mode (exec).
+ *
+ * Note: When using BACKEND=antigravity, slash commands are not supported
+ * and will return an error indicating this limitation.
  *
  * @param slashCommand - Claude Code style slash command (e.g., "/rd3:dev-fixall \"bun run test\"")
  * @param options - Execution options (channel, timeout, allowedTools, session, sessionTtlSeconds)
@@ -587,6 +822,12 @@ export function runSlashCommand(slashCommand: string, options?: RunSlashCommandO
             durationMs: 0,
             timedOut: false,
         };
+    }
+
+    // Check backend selection - agy doesn't support slash commands
+    const backend = getBackend();
+    if (backend === 'antigravity') {
+        return runSlashCommandAgy(slashCommand, options);
     }
 
     // Resolve channel with default
@@ -671,9 +912,7 @@ function queryLlmSession(
  */
 export function transformSlashCommand(slashCommand: string, channel: ExecutionChannel): string {
     if (!isExecutionChannel(channel)) {
-        throw new TypeError(
-            `Invalid execution channel: "${channel}". Valid channels: ${VALID_CHANNELS.join(', ')}`,
-        );
+        throw new TypeError(`Invalid execution channel: "${channel}". Valid channels: ${VALID_CHANNELS.join(', ')}`);
     }
     return SLASH_COMMAND_TRANSFORMS[channel](slashCommand.trim());
 }
@@ -709,4 +948,61 @@ export function checkAcpxHealth(acpxBin?: string): AcpxHealth {
             error: err instanceof Error ? err.message : 'Unknown error',
         };
     }
+}
+
+/**
+ * Health check result for both backends.
+ */
+export interface HealthCheck {
+    backend: Backend;
+    healthy: boolean;
+    version?: string | undefined;
+    error?: string | undefined;
+}
+
+/**
+ * Check health of the current backend.
+ *
+ * Uses the backend selected by BACKEND environment variable:
+ * - BACKEND=acpx (default): Checks acpx health
+ * - BACKEND=antigravity: Checks agy health
+ *
+ * @param options - Optional binary paths
+ * @returns Health check result
+ */
+export function checkHealth(options?: { acpxBin?: string; agyBin?: string }): HealthCheck {
+    const backend = getBackend();
+
+    if (backend === 'antigravity') {
+        const health = checkAgyHealth(options?.agyBin);
+        return {
+            backend: 'antigravity',
+            healthy: health.healthy,
+            version: health.version,
+            error: health.error,
+        };
+    }
+
+    const health = checkAcpxHealth(options?.acpxBin);
+    return {
+        backend: 'acpx',
+        healthy: health.healthy,
+        version: health.version,
+        error: health.error,
+    };
+}
+
+/**
+ * Unified health check for both backends.
+ *
+ * @returns Object with health status for both acpx and agy
+ */
+export function checkAllBackendsHealth(): {
+    acpx: AcpxHealth;
+    agy: { healthy: boolean; version?: string | undefined; error?: string | undefined };
+} {
+    return {
+        acpx: checkAcpxHealth(),
+        agy: checkAgyHealth(),
+    };
 }
