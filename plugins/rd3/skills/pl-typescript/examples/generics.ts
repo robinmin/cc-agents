@@ -211,39 +211,41 @@ const _config = ConfigBuilder.create()
 // Type-Safe Event Emitter
 // ============================================================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyFn = (...args: any[]) => any;
+type AnyFn = (...args: unknown[]) => unknown;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-class TypedEmitter<T extends Record<string, (...args: any[]) => any>> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private handlers = new Map<string, Set<(...args: any[]) => any>>();
+class TypedEmitter<T extends Record<string, (...args: unknown[]) => unknown>> {
+  private handlers = new Map<string, Set<(...args: unknown[]) => unknown>>();
 
   on<K extends keyof T>(event: K, handler: T[K]): () => void {
-    const key = event as string;
+    const key = String(event);
     if (!this.handlers.has(key)) {
       this.handlers.set(key, new Set());
     }
-    this.handlers.get(key)!.add(handler as (...args: any[]) => any);
+    this.handlers.get(key)!.add(handler as (...args: unknown[]) => unknown);
 
     return () => {
-      this.handlers.get(key)?.delete(handler as (...args: any[]) => any);
+      this.handlers.get(key)?.delete(handler as (...args: unknown[]) => unknown);
     };
   }
 
   emit<K extends keyof T>(event: K, ...args: Parameters<T[K]>): void {
-    const key = event as string;
-    this.handlers.get(key)?.forEach(h => h(...args));
+    const key = String(event);
+    this.handlers.get(key)?.forEach((h) => h(...args));
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-interface AppEvents {
-  [key: string]: (...args: any[]) => void;
+// Define event handlers interface - used as TypedEmitter's type parameter
+type AppEventHandlers = {
   userLoggedIn: (userId: string, timestamp: Date) => void;
   dataLoaded: (data: unknown[], source: string) => void;
   error: (error: Error) => void;
-}
+};
+
+// TypedEmitter requires index signature matching all specific properties.
+// biome-ignore is required here because TypeScript's structural typing cannot express
+// "functions compatible with all specific signatures" without any.
+// biome-ignore lint/suspicious/noExplicitAny
+type AppEvents = AppEventHandlers & Record<string, (...args: any[]) => any>;
 
 const emitter = new TypedEmitter<AppEvents>();
 
