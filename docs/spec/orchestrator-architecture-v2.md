@@ -124,6 +124,7 @@ block-beta
 | **Event Store** | Append-only event persistence and querying | `OrchestratorEvent`, `EventType` | `state/events.ts` | `bun:sqlite`, `model.ts` |
 | **Queries** | Aggregation queries for status, history, trends | `RunSummary`, `HistoryEntry`, `TrendReport`, `PresetStats` | `state/queries.ts` | `bun:sqlite`, `model.ts` |
 | **Executor Pool** | Executor registry, channel-based routing | `Executor`, `ExecutionRequest`, `ExecutionResult` | `executors/pool.ts`, `executors/local.ts`, `executors/mock.ts` | `model.ts` |
+| **ACP Query Adapter** | Dual-backend LLM query library (acpx/agy) | `AcpxQueryOptions`, `AcpxQueryResult`, `Backend` | `scripts/libs/acpx-query.ts` | `spawnSync` |
 | **CoV Driver** | Gate verification via CLI commands and content matching | `ChainManifest`, `ChainState`, `GateResult` | `verification/cov-driver.ts` | `model.ts`, `logger` |
 | **Event Bus** | Typed pub/sub — all subsystems emit, consumers subscribe | `EventType`, `EventHandler` | `observability/event-bus.ts` | `model.ts` |
 | **Reporter** | Pipeline report generation in 4 formats | `ReportFormat`, `RunSummary` | `observability/reporter.ts`, `observability/metrics.ts` | `model.ts`, `queries.ts` |
@@ -453,7 +454,7 @@ interface Executor {
 |----------|--------|----------|:----------:|:-----------------:|:-------------------:|
 | `LocalBunExecutor` | **Implemented** | Default — runs skill scripts via `Bun.spawn` | No | 1 | Via JSON extraction |
 | `MockExecutor` | **Implemented** | Testing — returns scripted responses | Yes | Unlimited | Yes |
-| `AcpExecutor` | **Planned** | Cross-channel via `acpx` CLI | Yes | Configurable | Via `--format json` |
+| `AcpExecutor` | **Implemented** | Cross-channel via `acpx` or `agy` CLI (dual-backend) | Yes | Configurable | Via `--format json` (acpx) or plain text (agy) |
 
 ### 8.3 LocalBunExecutor Details
 
@@ -472,6 +473,55 @@ The pool registers executors by their channel strings. Route resolution:
 - Custom channels → matched by executor `capabilities.channels`
 
 The pool is initialized with `LocalBunExecutor` as default. Additional executors are registered via `pool.register()`.
+
+### 8.5 ACP Dual-Backend Adapter (acpx-query.ts)
+
+The `acpx-query.ts` library provides a unified interface for LLM queries across the codebase with dual-backend support:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    acpx-query.ts                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │       Backend Selector (BACKEND env var)              │   │
+│  └─────────────────────────────────────────────────────┘   │
+│           │                           │                     │
+│           ▼                           ▼                     │
+│  ┌─────────────────┐       ┌─────────────────────┐        │
+│  │   acpx Adapter   │       │   agy Adapter       │        │
+│  │  (default)      │       │  (Antigravity)      │        │
+│  └─────────────────┘       └─────────────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+| Feature | acpx Backend | agy Backend |
+|---------|-------------|-------------|
+| **Default** | Yes | No |
+| **Slash commands** | ✅ Full support | ❌ Returns "not supported" |
+| **Structured output** | ✅ JSON events | ❌ Plain text only |
+| **Metrics extraction** | ✅ Token/usage events | ❌ Not available |
+| **Environment** | `BACKEND=acpx` | `BACKEND=antigravity` or `BACKEND=agy` |
+
+**Backend Selection:**
+- `BACKEND=acpx` (default): Uses acpx CLI for full feature support
+- `BACKEND=antigravity` or `BACKEND=agy`: Uses agy CLI (VSCode Antigravity extension)
+
+**Usage:**
+```typescript
+import { queryLlm, runSlashCommand, checkHealth } from 'acpx-query';
+
+// Automatic backend selection via BACKEND env var
+const result = queryLlm('Analyze this code');
+
+// Health check for current backend
+const health = checkHealth();
+```
+
+**Key exports:**
+- `queryLlm(prompt, options)` — LLM query with prompt string
+- `queryLlmFromFile(filePath, options)` — LLM query reading prompt from file
+- `runSlashCommand(slashCmd, options)` — Execute slash command (acpx only)
+- `checkHealth()` — Health check for current backend
+- `checkAllBackendsHealth()` — Health check for both acpx and agy
 
 ---
 
@@ -612,6 +662,7 @@ plugins/rd3/skills/orchestration-v2/      # v2 — active development
 | `executors/pool.ts` | `ExecutorPool` — `register()`, `resolve()`, `execute()`, `healthCheckAll()`, `disposeAll()` |
 | `executors/local.ts` | `LocalBunExecutor` — implements `Executor` |
 | `executors/mock.ts` | `MockExecutor` — implements `Executor`, `addResponse()`, `getCallLog()`, `reset()` |
+| `scripts/libs/acpx-query.ts` | `queryLlm()`, `queryLlmFromFile()`, `runSlashCommand()`, `checkHealth()`, `checkAllBackendsHealth()`, `getBackend()`, `ALLOWED_TOOLS` |
 | `observability/event-bus.ts` | `EventBus` — `emit()`, `subscribe()`, `subscribeAll()`, `unsubscribe()`, `clear()` |
 | `observability/reporter.ts` | `Reporter` — `format()`, `formatStatusTable()`, `formatMarkdownReport()`, `formatJsonReport()`, `formatSummary()`, `formatTrendReport()` |
 | `observability/metrics.ts` | `aggregateMetrics()`, `metricsToRecord()`, `formatTokenCount()`, `formatDuration()` |
