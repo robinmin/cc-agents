@@ -423,6 +423,8 @@ export interface RunOptions {
     readonly channel?: string;
     readonly dryRun?: boolean;
     readonly coverage?: number;
+    /** Skip DAG dependency validation for phase subset runs */
+    readonly skipDeps?: boolean;
 }
 
 export interface ResumeOptions {
