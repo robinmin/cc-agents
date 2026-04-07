@@ -1,5 +1,5 @@
 ---
-name: rd3-ev-verification
+name: dev-verification
 description: Task verification combining Phase 7 code review and Phase 8 requirements traceability
 license: Apache-2.0
 version: 1.0.0
@@ -14,8 +14,9 @@ metadata:
   interactions: [reviewer, pipeline]
   severity_levels: [blocker, warning, info]
   pipeline_steps: [review, traceability, verdict]
-argument-hint: "<task-ref> [--mode <mode>] [--fix-priority <priority>] [--auto] [--channel <backend>]"
-allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
+see_also:
+  - rd3:functional-review
+  - rd3:orchestration-v2
 ---
 
 # Dev Verification
@@ -169,8 +170,3 @@ Update task status after the verdict:
 ### Gate Command Standardization
 
 Use `bun run check` as the universal gate command. Do not substitute `bun test` or `bun tsc --noEmit` for the full gate.
-
-## Additional Resources
-
-- [rd3-orchestration-v2](../orchestration-v2/SKILL.md) - Pipeline orchestration
-- [rd3-functional-review](../functional-review/SKILL.md) - Requirements traceability
