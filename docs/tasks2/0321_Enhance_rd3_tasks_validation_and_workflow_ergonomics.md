@@ -1,7 +1,7 @@
 ---
 name: Enhance rd3 tasks validation and workflow ergonomics
 description: Enhance rd3 tasks validation and workflow ergonomics
-status: Backlog
+status: Done
 created_at: 2026-04-04T05:58:47.289Z
 updated_at: 2026-04-04T05:58:47.289Z
 folder: docs/tasks2
@@ -11,11 +11,11 @@ estimated_hours: 40
 tags: ["tasks","security","api","workflow"]
 profile: "complex"
 impl_progress:
-  planning: pending
-  design: pending
-  implementation: pending
-  review: pending
-  testing: pending
+  planning: done
+  design: done
+  implementation: done
+  review: done
+  testing: done
 ---
 
 ## 0321. Enhance rd3 tasks validation and workflow ergonomics
@@ -65,6 +65,9 @@ Implement the work as three incremental batches so existing CLI and server consu
 
 | Type | Path | Agent | Date |
 | ---- | ---- | ----- | ---- |
+| Fix | `plugins/rd3/skills/tasks/scripts/server/routeHandlers.ts` | Lord Robb | 2026-04-07 |
+| Fix | `plugins/rd3/skills/tasks/scripts/commands/server.ts` | Lord Robb | 2026-04-07 |
+| Test | `plugins/rd3/skills/tasks/tests/server/routeHandlers.test.ts` | Lord Robb | 2026-04-07 |
 
 ### References
 

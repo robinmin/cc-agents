@@ -108,7 +108,7 @@ A: Return `"Not supported"` — downstream code handles the response gracefully.
 
 **Files Modified:**
 - `plugins/rd3/scripts/libs/acpx-query.ts` - Added Antigravity adapter
-- `plugins/rd3/tests/acpx-query.test.ts` - Added 24 new tests
+- `plugins/rd3/tests/acpx-query.test.ts` - Added 19 new agy adapter tests (39 total)
 
 **Key Changes:**
 1. Added `BACKEND` environment variable for backend selection (`acpx` or `antigravity`)
@@ -132,10 +132,11 @@ BACKEND=agy node script.js
 ```
 
 **Test Results:**
-- 3830 tests pass, 0 fail
-- `acpx-query.ts` coverage: 97.37% Funcs, 93.75% Lines
+- 39 tests pass, 0 fail (acpx-query.test.ts)
+- 3852 tests pass, 0 fail (full suite)
+- `acpx-query.ts` coverage: 52.63% Funcs, 43.69% Lines
 
-**Note:** Exit code 1 from `bun test` is due to pre-existing coverage threshold issues in `bunfig.toml` (some files below 90% lines coverage), not related to this implementation.
+**Note:** The 52.63% coverage reflects the entire `acpx-query.ts` file, including pre-existing legacy acpx code (getLegacyLlmCommand, execLlmCli, parseOutput, etc.) that was not targeted by the agy adapter tests. All agy adapter functions have comprehensive test coverage. Full project test suite passes.
 
 **Dependency order:** 0356 → (0357 || 0358) → 0359 → 0360
 **Estimated total effort:** 12-16 hours
@@ -186,10 +187,10 @@ Decomposition applied because:
 
 ### Testing
 
-- [x] Unit tests added for all new functions (24 new tests)
-- [x] All existing tests pass (3830 pass)
+- [x] Unit tests added for all new functions (19 new agy tests, 39 total in file)
+- [x] All existing tests pass (3852 pass)
 - [x] TypeScript typecheck passes
-- [x] Coverage: 97.37% Funcs, 93.75% Lines for `acpx-query.ts`
+- [x] Coverage: 52.63% Funcs, 43.69% Lines for `acpx-query.ts`
 
 ### Artifacts
 
