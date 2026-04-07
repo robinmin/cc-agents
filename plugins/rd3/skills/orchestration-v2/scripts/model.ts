@@ -24,6 +24,15 @@ export interface GateConfig {
     readonly severity?: 'blocking' | 'advisory';
     // ─── human-specific ─────────────────────
     readonly prompt?: string;
+    /**
+     * Whether this human gate MUST be approved by a human.
+     * - true (default for human gates): Pipeline pauses regardless of --auto flag
+     * - false: Pipeline can continue in auto mode (advisory review)
+     *
+     * Use blocking: true for PR review gates where human approval is mandatory.
+     * Use blocking: false for advisory gates where LLM review is sufficient.
+     */
+    readonly blocking?: boolean;
 }
 
 export interface PhaseEvidence {
