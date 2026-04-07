@@ -1,154 +1,31 @@
 ---
-description: Verify a task via review, traceability, and optional fixes
-argument-hint: "<task-ref> [--mode <mode>] [--fix-priority <priority>] [--skip-confirm] [--channel <backend>]"
+description: Verify task implementation via Phase 7 code review + Phase 8 requirements traceability
+argument-hint: "<task-ref> [--mode <mode>] [--fix-priority <blockers-first|all>] [--auto] [--channel <backend>]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
 # Dev Verify
 
-Wraps **rd3:orchestration-v2** and **rd3:functional-review** skills.
+Task verification command. Delegates to `rd3:dev-verification` agent skill.
 
-Run final task verification by combining Phase 7 code review, Phase 8 requirements traceability, and an optional remediation loop before marking a task Done.
+## Usage
 
-## When to Use
-
-- After implementation, before marking a task Done
-- Check code quality and requirements completeness in one pass
-- Investigate scope drift between requirements and implementation
+```
+/rd3:dev-verify <task-ref> [--mode <mode>] [--fix-priority <priority>] [--auto] [--channel <backend>]
+```
 
 ## Arguments
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `task-ref` | Yes | — | WBS number or task file path |
-| `--mode` | No | `full` | `full` (both phases), `review-only` (Phase 7), `func-only` (Phase 8) |
-| `--skip-confirm` | No | `false` | Skip confirmation before applying fixes |
-| `--fix-priority` | No | `blockers-first` | `blockers-first` fixes blocking then re-verifies; `all` fixes everything in one pass |
-| `--channel` | No | `auto` | Phase 7 backend: `auto`, `current`, `claude-code`, `codex`, `openclaw`, `opencode`, `antigravity`, or `pi` |
+| `--mode` | No | `full` | `full`, `review-only`, `func-only` |
+| `--auto` | No | `false` | Skip confirmation before applying fixes |
+| `--fix-priority` | No | `blockers-first` | `blockers-first` or `all` |
+| `--channel` | No | `auto` | Phase 7 backend |
 
-Wrapper note: when a platform shim forwards raw input, pass `$ARGUMENTS` through unchanged, then resolve `task-ref` from the first positional value.
+## Delegation
 
-## Workflow
+This command delegates all work to the `rd3:dev-verification` agent skill.
 
-1. Detect the execution platform.
-   Claude Code uses `Skill()`. Other platforms use the CLI path directly. If the delegated backend is the thing being fixed, keep Phase 7 inline instead of using unsupported local delegation.
-2. Resolve task scope.
-   Digits use the configured task resolver. Paths ending in `.md` are read directly. Load frontmatter plus `Requirements`, `Design`, and `Solution`.
-
-```bash
-if [[ "$TASK_REF" == *.md ]]; then
-  sed -n '1,240p' "$TASK_REF"
-else
-  tasks show "$TASK_REF"
-fi
-```
-
-3. Run Phase 7 and Phase 8 in parallel.
-
-Claude Code path:
-
-```bash
-Skill(skill="rd3:orchestration-v2", args="$TASK_REF --preset review --channel $CHANNEL")
-Skill(skill="rd3:functional-review", args="$TASK_REF")
-```
-
-CLI path:
-
-```bash
-orchestrator run "$TASK_REF" \
-  --preset review \
-  --channel "${CHANNEL:-auto}" \
-  --auto 2>&1
-```
-
-Inline Phase 8 when `Skill()` is unavailable:
-- Parse each requirement from the task file
-- Search implementation files for `file:line` evidence
-- Mark each requirement as `met`, `partial`, or `unmet`
-- Derive the overall functional verdict from those results
-
-4. Merge reports.
-   Order the output as Phase 7 findings, then Phase 8 traceability, then the final verdict.
-
-5. Apply the mode gate.
-
-| Mode | Behavior |
-|------|----------|
-| `--mode review-only` | Stop after the Phase 7 report |
-| `--mode func-only` | Stop after the Phase 8 report |
-| `--mode full` | Continue to the fix pass |
-| `--review-only` (legacy) | Stop after the Phase 7 report |
-
-6. Run the optional fix pass.
-   Unless `--skip-confirm` is set, confirm before editing code.
-
-```text
---fix-priority blockers-first:
-  1. Fix all blockers from Phase 7
-  2. Run bun run check
-  3. If pass -> fix non-blockers
-  4. Run bun run check
-  5. Report final state
-
---fix-priority all:
-  1. Fix all findings in severity order
-  2. Run bun run check
-  3. Report final state
-```
-
-For each fix batch:
-- Apply fixes locally
-- Validate with `bun run check`
-- If checks pass, continue
-- If checks fail, stop and report the failure
-
-If remediation changes code, rerun verification.
-
-7. Produce the final verdict.
-
-| Verdict | Condition |
-|---------|-----------|
-| **PASS** | Functional review passes and no blocking review findings remain |
-| **PARTIAL** | Requirements are partial or only non-blocking review findings remain |
-| **FAIL** | Unmet requirements or blocking review findings remain |
-
-Update task status after the verdict:
-- `Done` for PASS
-- `In Progress` for PARTIAL with the next action noted
-- `In Progress` for FAIL with the blocker list noted
-
-## Ownership
-
-| Concern | Owned By |
-|---------|----------|
-| Code quality, bugs, security, performance | Phase 7 (`/rd3:dev-review`) |
-| Requirements completeness, traceability, scope drift | Phase 8 (`rd3:functional-review`) |
-| Final remediation loop, verdict | `/rd3:dev-verify` |
-
-## Examples
-
-```bash
-/rd3:dev-verify 0274
-/rd3:dev-verify 0274 --mode review-only
-/rd3:dev-verify 0274 --mode func-only
-/rd3:dev-verify 0274 --skip-confirm
-/rd3:dev-verify 0274 --fix-priority blockers-first
-/rd3:dev-verify 0274 --channel codex
-```
-
-## Platform Notes
-
-### Claude Code
-
-- Use `Skill()` for both delegated phases
-- Run the two phase calls concurrently
-
-### Other Platforms
-
-- Use `orchestrator run <task> --preset review --channel <ch> --auto` for Phase 7
-- Run Phase 8 inline when `Skill()` is unavailable
-- Avoid unsupported `local` delegation; keep the affected phase inline
-
-### Gate Command Standardization
-
-Use `bun run check` as the universal gate command. Do not substitute `bun test` or `bun tsc --noEmit` for the full gate.
+See: `plugins/rd3/skills/dev-verification/SKILL.md`
