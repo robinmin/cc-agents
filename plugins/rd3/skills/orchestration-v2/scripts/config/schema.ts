@@ -351,3 +351,97 @@ export function getPipelineJsonSchema(): Record<string, unknown> {
         },
     };
 }
+
+/**
+ * Validation result for skill metadata.
+ */
+export interface SkillMetadataValidation {
+    readonly valid: boolean;
+    readonly errors: Array<{ rule: string; message: string }>;
+}
+
+/**
+ * Validate skill metadata gate_defaults structure.
+ *
+ * Expected structure:
+ * ```yaml
+ * metadata:
+ *   gate_defaults:
+ *     auto:
+ *       checklist: string[]
+ *       prompt_template: string | null
+ * ```
+ *
+ * @param metadata - The metadata object from a skill's SKILL.md frontmatter
+ * @returns Validation result with any errors found
+ */
+export function validateSkillMetadata(metadata: Record<string, unknown> | undefined): SkillMetadataValidation {
+    const errors: Array<{ rule: string; message: string }> = [];
+
+    if (!metadata) {
+        // No metadata is valid (optional)
+        return { valid: true, errors: [] };
+    }
+
+    if (typeof metadata !== 'object' || metadata === null) {
+        errors.push({ rule: 'metadata_type', message: 'metadata must be an object' });
+        return { valid: false, errors };
+    }
+
+    const gateDefaults = (metadata as Record<string, unknown>).gate_defaults;
+    if (gateDefaults === undefined) {
+        // No gate_defaults is valid (optional)
+        return { valid: true, errors: [] };
+    }
+
+    if (typeof gateDefaults !== 'object' || gateDefaults === null) {
+        errors.push({ rule: 'gate_defaults_type', message: 'gate_defaults must be an object' });
+        return { valid: false, errors };
+    }
+
+    const gateDefaultsObj = gateDefaults as Record<string, unknown>;
+    const auto = gateDefaultsObj.auto;
+
+    if (auto === undefined) {
+        // No auto gate defaults is valid (optional)
+        return { valid: true, errors: [] };
+    }
+
+    if (typeof auto !== 'object' || auto === null) {
+        errors.push({ rule: 'gate_defaults.auto_type', message: 'gate_defaults.auto must be an object' });
+        return { valid: false, errors };
+    }
+
+    const autoObj = auto as Record<string, unknown>;
+
+    // Validate checklist
+    const checklist = autoObj.checklist;
+    if (checklist !== undefined) {
+        if (!Array.isArray(checklist)) {
+            errors.push({
+                rule: 'gate_defaults.auto.checklist_type',
+                message: 'gate_defaults.auto.checklist must be an array of strings',
+            });
+        } else {
+            for (let i = 0; i < checklist.length; i++) {
+                if (typeof checklist[i] !== 'string') {
+                    errors.push({
+                        rule: 'gate_defaults.auto.checklist_item_type',
+                        message: `gate_defaults.auto.checklist[${i}] must be a string, got ${typeof checklist[i]}`,
+                    });
+                }
+            }
+        }
+    }
+
+    // Validate prompt_template
+    const promptTemplate = autoObj.prompt_template;
+    if (promptTemplate !== undefined && promptTemplate !== null && typeof promptTemplate !== 'string') {
+        errors.push({
+            rule: 'gate_defaults.auto.prompt_template_type',
+            message: 'gate_defaults.auto.prompt_template must be a string or null',
+        });
+    }
+
+    return { valid: errors.length === 0, errors };
+}
