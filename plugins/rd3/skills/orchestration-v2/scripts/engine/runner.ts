@@ -34,6 +34,7 @@ import { logger } from '../../../../scripts/logger';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseYamlString } from '../config/parser';
+import { getSubtasks, extractWbsFromPath } from '../utils/subtasks';
 
 const DEFAULT_AUTO_GATE_PROMPT_TEMPLATE = `You are a verification checker. For each item in the checklist, determine if it PASSES or FAILS.
 
@@ -459,6 +460,7 @@ export class PipelineRunner {
                         options.taskRef,
                         phaseResult.evidence,
                         phaseDef.skill,
+                        options.auto,
                     );
 
                     while (gateResult.status === 'fail') {
@@ -472,6 +474,7 @@ export class PipelineRunner {
                                 options.taskRef,
                                 reworkResult.evidence,
                                 phaseDef.skill,
+                                options.auto,
                             );
                             continue;
                         }
@@ -698,6 +701,112 @@ export class PipelineRunner {
     ): Promise<
         { success: true; evidence: PhaseEvidence } | { success: false; errorCode?: string; errorMessage?: string }
     > {
+        // Subtask-aware implement phase
+        // For implement phase, detect and iterate over subtask files
+        if (phaseName === 'implement') {
+            return this.executeSubtasksWithRework(runId, phaseName, phaseDef, options);
+        }
+
+        return this.executeSinglePhaseWithRework(runId, phaseName, phaseDef, options);
+    }
+
+    /**
+     * Execute subtasks sequentially for the implement phase.
+     *
+     * Detects subtask files based on parent task's WBS prefix and iterates
+     * over each subtask, running the implement skill on each one.
+     */
+    private async executeSubtasksWithRework(
+        runId: string,
+        phaseName: string,
+        phaseDef: PhaseDefinition,
+        options: RunOptions,
+    ): Promise<
+        { success: true; evidence: PhaseEvidence } | { success: false; errorCode?: string; errorMessage?: string }
+    > {
+        const parentWbs = extractWbsFromPath(options.taskRef);
+        if (!parentWbs) {
+            logger.warn('[runner] Could not extract WBS from task path, falling back to single phase');
+            return this.executeSinglePhaseWithRework(runId, phaseName, phaseDef, options);
+        }
+
+        const subtasks = getSubtasks(parentWbs);
+
+        if (subtasks.length === 0) {
+            // No subtasks - fall back to current behavior (execute on parent task)
+            logger.info(`[runner] No subtasks found for WBS ${parentWbs}, executing on parent task`);
+            return this.executeSinglePhaseWithRework(runId, phaseName, phaseDef, options);
+        }
+
+        logger.info(
+            `[runner] Found ${subtasks.length} subtask(s) for WBS ${parentWbs}: ${subtasks.map((s) => s.wbs).join(', ')}`,
+        );
+
+        const allEvidence: PhaseEvidence[] = [];
+
+        // Execute each subtask sequentially
+        for (const subtask of subtasks) {
+            logger.info(`[runner] Executing subtask ${subtask.wbs}: ${subtask.path}`);
+
+            const subtaskOptions: RunOptions = {
+                ...options,
+                taskRef: subtask.path,
+            };
+
+            const subtaskResult = await this.executeSinglePhaseWithRework(
+                runId,
+                `${phaseName}:${subtask.wbs}`,
+                phaseDef,
+                subtaskOptions,
+            );
+
+            if (!subtaskResult.success) {
+                logger.error(`[runner] Subtask ${subtask.wbs} failed: ${subtaskResult.errorMessage}`);
+                return subtaskResult;
+            }
+
+            allEvidence.push(subtaskResult.evidence);
+
+            // Update subtask status to Done via tasks CLI
+            await this.updateTaskStatus(subtask.wbs, 'done');
+
+            logger.info(`[runner] Subtask ${subtask.wbs} completed successfully`);
+        }
+
+        // Update parent task status to Done
+        await this.updateTaskStatus(parentWbs, 'done');
+
+        // Return combined evidence from all subtasks
+        const combinedEvidence: PhaseEvidence = {
+            success: true,
+            exitCode: 0,
+            duration_ms: allEvidence.reduce((sum, e) => sum + e.duration_ms, 0),
+            files_changed: [...new Set(allEvidence.flatMap((e) => [...e.files_changed]))],
+            files_added: [...new Set(allEvidence.flatMap((e) => [...e.files_added]))],
+            task_ref: options.taskRef,
+            phase_name: phaseName,
+            run_id: runId,
+            rework_iteration: 0,
+        };
+
+        return {
+            success: true,
+            evidence: combinedEvidence,
+        };
+    }
+
+    /**
+     * Execute a single phase with rework loop.
+     * This is the original executePhaseWithRework logic extracted for reuse.
+     */
+    private async executeSinglePhaseWithRework(
+        runId: string,
+        phaseName: string,
+        phaseDef: PhaseDefinition,
+        options: RunOptions,
+    ): Promise<
+        { success: true; evidence: PhaseEvidence } | { success: false; errorCode?: string; errorMessage?: string }
+    > {
         const maxRework = phaseDef.gate?.rework?.max_iterations ?? 0;
         let iteration = 0;
         let feedback: string | undefined;
@@ -769,6 +878,26 @@ export class PipelineRunner {
         return { success: false, errorCode: 'MAX_REWORK_EXCEEDED' };
     }
 
+    /**
+     * Update task status via tasks CLI.
+     */
+    private async updateTaskStatus(wbs: string, status: 'done' | 'wip' | 'pending'): Promise<void> {
+        try {
+            const proc = Bun.spawnSync(['tasks', 'update', wbs, status], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+                stderr: 'pipe',
+            });
+            if (proc.exitCode !== 0) {
+                logger.warn(
+                    `[runner] Failed to update task ${wbs} status: ${new TextDecoder().decode(proc.stderr).trim()}`,
+                );
+            }
+        } catch (err) {
+            logger.warn(`[runner] Error updating task ${wbs} status:`, err);
+        }
+    }
+
     private async checkGate(
         runId: string,
         phaseName: string,
@@ -776,6 +905,7 @@ export class PipelineRunner {
         taskRef?: string,
         phaseEvidence?: PhaseEvidence,
         phaseSkill?: string,
+        auto?: boolean,
     ): Promise<ChainState> {
         if (!gate) {
             return { status: 'pass', results: [] };
@@ -787,7 +917,7 @@ export class PipelineRunner {
         } else if (gate.type === 'auto') {
             result = await this.checkAutoGate(runId, phaseName, gate, phaseEvidence, phaseSkill);
         } else if (gate.type === 'human') {
-            result = this.checkHumanGate(runId, phaseName, gate, phaseEvidence);
+            result = this.checkHumanGate(runId, phaseName, gate, phaseEvidence, auto);
         } else {
             return { status: 'pass', results: [] };
         }
@@ -909,12 +1039,74 @@ export class PipelineRunner {
         };
     }
 
+    /**
+     * Check human gate with blocking/advisory logic.
+     *
+     * Human gates with `blocking: true` MUST pause pipeline regardless of --auto flag.
+     * Human gates with `blocking: false` (default) can be bypassed by --auto flag.
+     *
+     * Design decision: Human gates are blocking by default (safer defaults).
+     * Explicit `blocking: false` is needed for advisory gates where LLM review suffices.
+     */
     private checkHumanGate(
         runId: string,
         phaseName: string,
         gate: GateConfig,
         phaseEvidence?: PhaseEvidence,
+        auto?: boolean,
     ): ChainState {
+        // Blocking human gates ALWAYS pause regardless of --auto flag
+        // Use case: PR review gate where human approval is mandatory
+        if (gate.blocking === true) {
+            return {
+                status: 'pending',
+                results: [
+                    {
+                        run_id: runId,
+                        phase_name: phaseName,
+                        step_name: 'human-gate',
+                        checker_method: 'human',
+                        passed: false,
+                        evidence: {
+                            blocking: true,
+                            prompt: gate.prompt ?? `Approval required for phase ${phaseName}`,
+                            ...(phaseEvidence ? { phase_evidence: phaseEvidence } : {}),
+                        },
+                        duration_ms: 0,
+                        created_at: new Date(),
+                    },
+                ],
+            };
+        }
+
+        // Advisory human gates: bypass if --auto is set
+        // Use case: Optional review where LLM review is sufficient
+        if (auto === true) {
+            logger.info(`[gate] Human gate for phase ${phaseName} bypassed (advisory, --auto set)`);
+            return {
+                status: 'pass',
+                results: [
+                    {
+                        run_id: runId,
+                        phase_name: phaseName,
+                        step_name: 'human-gate',
+                        checker_method: 'human',
+                        passed: true,
+                        advisory: true,
+                        evidence: {
+                            blocking: false,
+                            auto_bypassed: true,
+                            prompt: gate.prompt ?? `Approval required for phase ${phaseName}`,
+                            ...(phaseEvidence ? { phase_evidence: phaseEvidence } : {}),
+                        },
+                        duration_ms: 0,
+                        created_at: new Date(),
+                    },
+                ],
+            };
+        }
+
+        // Non-blocking gate without --auto: pause for human approval
         return {
             status: 'pending',
             results: [
@@ -925,6 +1117,7 @@ export class PipelineRunner {
                     checker_method: 'human',
                     passed: false,
                     evidence: {
+                        blocking: false,
                         prompt: gate.prompt ?? `Approval required for phase ${phaseName}`,
                         ...(phaseEvidence ? { phase_evidence: phaseEvidence } : {}),
                     },
