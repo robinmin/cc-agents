@@ -50,6 +50,40 @@ export interface TrendReport {
     readonly presets: PresetTrend[];
 }
 
+/** Gate analytics interfaces */
+export interface PhaseGateStats {
+    readonly phaseName: string;
+    readonly totalGates: number;
+    readonly passedGates: number;
+    readonly failedGates: number;
+    readonly advisoryFails: number;
+    readonly passRate: number;
+    readonly avgDurationMs: number;
+}
+
+export interface GateFailureReport {
+    readonly periodDays: number;
+    readonly totalGates: number;
+    readonly blockingFails: number;
+    readonly advisoryFails: number;
+    readonly phases: PhaseGateStats[];
+}
+
+export interface ChecklistFailureStats {
+    readonly item: string;
+    readonly failureCount: number;
+    readonly lastSeen?: Date;
+}
+
+export interface ReworkStats {
+    readonly phaseName: string;
+    readonly totalAttempts: number;
+    readonly passesOnFirstTry: number;
+    readonly passesAfterRework: number;
+    readonly avgAttemptsBeforePass: number;
+    readonly reworkRate: number;
+}
+
 export interface HistoryFilters {
     preset?: string;
     since?: string;
@@ -266,6 +300,198 @@ export class Queries {
             successRate,
             presets: presetTrends,
         };
+    }
+
+    /**
+     * Get gate failure analytics for a time period.
+     * Returns blocking vs advisory failure rates by phase.
+     */
+    async getGateFailureAnalytics(days = 30): Promise<GateFailureReport> {
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+        const overall = this.db
+            .prepare(
+                `SELECT
+              COUNT(*) as total_gates,
+              SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as blocking_fails,
+              SUM(CASE WHEN advisory = 1 AND passed = 0 THEN 1 ELSE 0 END) as advisory_fails
+       FROM gate_results
+       WHERE created_at >= ?`,
+            )
+            .get(since) as Record<string, unknown> | null;
+
+        const totalGates = (overall?.total_gates as number) ?? 0;
+        const blockingFails = (overall?.blocking_fails as number) ?? 0;
+        const advisoryFails = (overall?.advisory_fails as number) ?? 0;
+
+        const phaseRows = this.db
+            .prepare(
+                `SELECT
+              phase_name,
+              COUNT(*) as total_gates,
+              SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as passed_gates,
+              SUM(CASE WHEN passed = 0 AND advisory = 0 THEN 1 ELSE 0 END) as blocking_fails,
+              SUM(CASE WHEN advisory = 1 AND passed = 0 THEN 1 ELSE 0 END) as advisory_fails,
+              AVG(duration_ms) as avg_duration_ms
+       FROM gate_results
+       WHERE created_at >= ?
+       GROUP BY phase_name
+       ORDER BY blocking_fails DESC, advisory_fails DESC`,
+            )
+            .all(since) as Array<Record<string, unknown>>;
+
+        const phases: PhaseGateStats[] = phaseRows.map((row) => {
+            const total = (row.total_gates as number) ?? 0;
+            const passed = (row.passed_gates as number) ?? 0;
+            return {
+                phaseName: row.phase_name as string,
+                totalGates: total,
+                passedGates: passed,
+                failedGates: total - passed,
+                advisoryFails: (row.advisory_fails as number) ?? 0,
+                passRate: total > 0 ? Math.round((100 * passed) / total) : 0,
+                avgDurationMs: Math.round((row.avg_duration_ms as number) ?? 0),
+            };
+        });
+
+        return {
+            periodDays: days,
+            totalGates,
+            blockingFails,
+            advisoryFails,
+            phases,
+        };
+    }
+
+    /**
+     * Get most frequently failed checklist items from gate evidence.
+     * Extracts checklist item failures from the evidence JSON.
+     */
+    async getChecklistFailureStats(limit = 10, days = 30): Promise<ChecklistFailureStats[]> {
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+        // Get all failed gate results with evidence
+        const rows = this.db
+            .prepare(
+                `SELECT evidence, created_at
+       FROM gate_results
+       WHERE passed = 0 AND evidence IS NOT NULL AND created_at >= ?`,
+            )
+            .all(since) as Array<Record<string, unknown>>;
+
+        // Count checklist item failures
+        const failureCounts = new Map<string, { count: number; lastSeen?: Date }>();
+
+        for (const row of rows) {
+            try {
+                const evidence = JSON.parse(row.evidence as string) as Record<string, unknown>;
+                const checklist = evidence.checklist as Array<{ item: string; passed: boolean }> | undefined;
+                if (checklist) {
+                    for (const entry of checklist) {
+                        if (!entry.passed) {
+                            const existing = failureCounts.get(entry.item);
+                            if (existing) {
+                                existing.count++;
+                                if (row.created_at) {
+                                    const seen = new Date(row.created_at as string);
+                                    if (!existing.lastSeen || seen > existing.lastSeen) {
+                                        existing.lastSeen = seen;
+                                    }
+                                }
+                            } else {
+                                const stats: { count: number; lastSeen?: Date } = { count: 1 };
+                                if (row.created_at) {
+                                    stats.lastSeen = new Date(row.created_at as string);
+                                }
+                                failureCounts.set(entry.item, stats);
+                            }
+                        }
+                    }
+                }
+            } catch {
+                // Skip malformed evidence JSON
+            }
+        }
+
+        return Array.from(failureCounts.entries())
+            .map(([item, stats]) => ({
+                item,
+                failureCount: stats.count,
+                ...(stats.lastSeen && { lastSeen: stats.lastSeen }),
+            }))
+            .sort((a, b) => b.failureCount - a.failureCount)
+            .slice(0, limit);
+    }
+
+    /**
+     * Get rework statistics per phase.
+     * Analyzes gate attempts to find phases that typically need rework.
+     */
+    async getReworkStats(days = 30): Promise<ReworkStats[]> {
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+        // Find gates that passed and count how many attempts it took
+        const rows = this.db
+            .prepare(
+                `SELECT
+              gr1.phase_name,
+              gr1.run_id,
+              gr1.step_name,
+              gr1.passed,
+              (
+                  SELECT COUNT(*)
+                  FROM gate_results gr2
+                  WHERE gr2.phase_name = gr1.phase_name
+                    AND gr2.run_id = gr1.run_id
+                    AND gr2.created_at <= gr1.created_at
+              ) as attempt_number
+       FROM gate_results gr1
+       WHERE gr1.created_at >= ?
+         AND gr1.passed = 1
+       ORDER BY gr1.phase_name, gr1.run_id, gr1.created_at`,
+            )
+            .all(since) as Array<Record<string, unknown>>;
+
+        // Aggregate by phase
+        const phaseStats = new Map<
+            string,
+            { totalAttempts: number; firstTryPasses: number; reworkPasses: number }
+        >();
+
+        for (const row of rows) {
+            const phase = row.phase_name as string;
+            const attemptNumber = (row.attempt_number as number) ?? 1;
+
+            const stats = phaseStats.get(phase) ?? {
+                totalAttempts: 0,
+                firstTryPasses: 0,
+                reworkPasses: 0,
+            };
+
+            stats.totalAttempts++;
+            if (attemptNumber === 1) {
+                stats.firstTryPasses++;
+            } else {
+                stats.reworkPasses++;
+            }
+
+            phaseStats.set(phase, stats);
+        }
+
+        return Array.from(phaseStats.entries())
+            .map(([phaseName, stats]) => ({
+                phaseName,
+                totalAttempts: stats.totalAttempts,
+                passesOnFirstTry: stats.firstTryPasses,
+                passesAfterRework: stats.reworkPasses,
+                // Estimate: first-try passes count as 1, rework passes count as ~2 attempts
+                avgAttemptsBeforePass:
+                    stats.totalAttempts > 0
+                        ? Math.round((100 * (stats.firstTryPasses + 2 * stats.reworkPasses)) / stats.totalAttempts) / 100
+                        : 0,
+                reworkRate: stats.totalAttempts > 0 ? Math.round((100 * stats.reworkPasses) / stats.totalAttempts) : 0,
+            }))
+            .sort((a, b) => b.reworkRate - a.reworkRate);
     }
 }
 
