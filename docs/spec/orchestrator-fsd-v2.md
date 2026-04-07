@@ -46,7 +46,7 @@
 | Custom pipelines | Per-project pipeline.yaml with extends | ✅ Implemented |
 | Hook system | Shell commands at pipeline transition points | ✅ Implemented |
 | Parallel execution | DAG supports parallel-ready dispatch | ✅ Implemented |
-| ACP cross-channel | Remote agent execution via acpx | 🔲 Planned |
+| ACP cross-channel | Remote agent execution via acpx or agy | ✅ Partial (acpx-query library) |
 
 ---
 
