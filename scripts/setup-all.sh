@@ -48,6 +48,7 @@ SKIP_MAGENTS=false
 SKIP_SKILLS=false
 SKIP_SUBAGENTS=false
 SKIP_COMMANDS=false
+SKIP_ORCHESTRATOR=true
 DRY_RUN=false
 VERBOSE=false
 
@@ -113,7 +114,8 @@ parse_args() {
             --skip-magents)    SKIP_MAGENTS=true; shift ;;
             --skip-skills)     SKIP_SKILLS=true; shift ;;
             --skip-subagents)  SKIP_SUBAGENTS=true; shift ;;
-            --skip-commands)   SKIP_COMMANDS=true; shift ;;
+            --skip-commands)    SKIP_COMMANDS=true; shift ;;
+            --skip-orchestrator)  SKIP_ORCHESTRATOR=true; shift ;;
             --dry-run)         DRY_RUN=true; shift ;;
             --verbose)         VERBOSE=true; shift ;;
             --help|-h)         usage; exit 0 ;;
@@ -307,6 +309,43 @@ install_non_claude() {
 }
 
 # =============================================================================
+# Orchestrator CLI symlink
+# =============================================================================
+
+install_orchestrator() {
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local bin_dir="${script_dir}/../bin"
+    local target="${bin_dir}/orchestrator"
+    local source="../plugins/rd3/skills/orchestration-v2/scripts/run.ts"
+
+    if [ "$SKIP_ORCHESTRATOR" = "true" ]; then
+        print_info "Skipping orchestrator (--skip-orchestrator)"
+        return
+    fi
+
+    print_info "Creating orchestrator symlink..."
+
+    # Create bin directory if it doesn't exist
+    mkdir -p "${bin_dir}"
+
+    # Remove existing symlink if present
+    if [ -L "${target}" ] || [ -e "${target}" ]; then
+        rm -f "${target}"
+    fi
+
+    # Create symlink
+    ln -sf "${source}" "${target}"
+
+    if [ -L "${target}" ]; then
+        print_success "orchestrator symlink created: ${target}"
+        echo "   Source: ${source}"
+        echo "   Usage: bun run bin/orchestrator <command>"
+    else
+        print_error "Failed to create orchestrator symlink"
+    fi
+}
+
+# =============================================================================
 # Main
 # =============================================================================
 
@@ -353,6 +392,9 @@ main() {
         install_non_claude "$mapped_targets"
     fi
 
+    # Install orchestrator CLI symlink
+    install_orchestrator
+
     # Summary
     echo
     print_success "Setup complete!"
@@ -375,6 +417,7 @@ main() {
             echo "   ${target}: ${target_display}"
         done
     fi
+    echo "   orchestrator: bin/orchestrator -> plugins/rd3/skills/orchestration-v2/scripts/run.ts"
 }
 
 main "$@"
