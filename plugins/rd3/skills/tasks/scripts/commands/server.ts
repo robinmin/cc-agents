@@ -7,6 +7,7 @@
 import { getStaticDir, getUiDir } from '../lib/config';
 import { EventBroadcaster } from '../server/sse';
 import { createRequestHandler } from '../server/router';
+import { purgeTempDir } from '../server/routeHandlers';
 import type { ServerConfig } from '../server/types';
 import { existsSync } from 'node:fs';
 import { logger } from '../../../../scripts/logger';
@@ -161,6 +162,7 @@ export function runServer(args: string[], runtimeOverrides: Partial<ServerRuntim
     // Graceful shutdown
     const shutdown = () => {
         logger.info('\nShutting down tasks server...');
+        purgeTempDir();
         broadcaster.closeAll();
         server.stop();
         process.exit(0);
