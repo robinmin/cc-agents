@@ -24,6 +24,7 @@ const VALID_COMMANDS = [
     'prune',
     'migrate',
     'events',
+    'exec',
 ] as const;
 
 type ValidCommand = (typeof VALID_COMMANDS)[number];
@@ -69,6 +70,8 @@ export function parseArgs(argv: string[]): ParsedCommand {
         } else if (arg === '--channel' && argv[i + 1]) {
             options.channel = argv[i + 1];
             i++;
+        } else if (arg.startsWith('--channel=')) {
+            options.channel = arg.slice('--channel='.length);
         } else if (arg === '--phases' && argv[i + 1]) {
             options.phases = argv[i + 1].split(',');
             i++;
