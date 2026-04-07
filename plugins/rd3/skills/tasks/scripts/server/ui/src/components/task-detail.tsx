@@ -137,7 +137,7 @@ export function TaskDetail({ wbs, onClose, onStatusChange }: TaskDetailProps) {
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [actionSuccess, setActionSuccess] = useState<{ action: string; message: string } | null>(null);
 
-    const handleAction = async (action: string, channel: string) => {
+    const handleAction = async (action: string, channel: string, skipDeps = false) => {
         if (!task) return;
         setActionLoading(action);
         setActionSuccess(null);
@@ -145,7 +145,7 @@ export function TaskDetail({ wbs, onClose, onStatusChange }: TaskDetailProps) {
             const resp = await fetch(`/tasks/${task.wbs}/actions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action, channel }),
+                body: JSON.stringify({ action, channel, skipDeps }),
             });
             const data = await resp.json();
             if (!data.ok) throw new Error(data.error);
@@ -295,7 +295,7 @@ export function TaskDetail({ wbs, onClose, onStatusChange }: TaskDetailProps) {
                     <ChannelModal
                         action={modalAction}
                         wbs={wbs}
-                        onConfirm={(channel) => handleAction(modalAction, channel)}
+                        onConfirm={(channel, skipDeps) => handleAction(modalAction, channel, skipDeps)}
                         onCancel={() => setModalAction(null)}
                     />
                 )}
