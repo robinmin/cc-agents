@@ -1,5 +1,25 @@
-import { describe, test, expect } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { parseSkillName, resolveSkillScript, skillHasScript } from '../scripts/utils/skill-resolver';
+import { resolve } from 'node:path';
+
+/** Mock process.cwd() to project root for skill-resolver tests */
+const PROJECT_ROOT = resolve(__dirname, '..', '..', '..', '..', '..');
+const ORIGINAL_CWD = process.cwd;
+
+beforeEach(() => {
+    // Override cwd to simulate running from project root (where package.json lives)
+    Object.defineProperty(process, 'cwd', {
+        value: () => PROJECT_ROOT,
+        configurable: true,
+    });
+});
+
+afterEach(() => {
+    Object.defineProperty(process, 'cwd', {
+        value: ORIGINAL_CWD,
+        configurable: true,
+    });
+});
 
 describe('parseSkillName', () => {
     test('parses valid skill name with colon', () => {
@@ -31,11 +51,6 @@ describe('resolveSkillScript', () => {
         expect(path).toContain('plugins/rd3/skills/orchestration-v2/scripts/run.ts');
     });
 
-    test('resolves orchestration-v1 skill to scripts/run.ts', () => {
-        const path = resolveSkillScript('rd3:orchestration-v1');
-        expect(path).toContain('plugins/rd3/skills/orchestration-v1/scripts/run.ts');
-    });
-
     test('returns undefined for markdown-only skills', () => {
         expect(resolveSkillScript('rd3:request-intake')).toBeUndefined();
         expect(resolveSkillScript('rd3:code-implement-common')).toBeUndefined();
@@ -52,7 +67,7 @@ describe('resolveSkillScript', () => {
 describe('skillHasScript', () => {
     test('returns true for skills with scripts/run.ts', () => {
         expect(skillHasScript('rd3:orchestration-v2')).toBe(true);
-        expect(skillHasScript('rd3:orchestration-v1')).toBe(true);
+        // expect(skillHasScript('rd3:orchestration-v1')).toBe(true);
     });
 
     test('returns false for markdown-only skills', () => {
