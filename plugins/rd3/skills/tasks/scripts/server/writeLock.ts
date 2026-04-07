@@ -14,10 +14,10 @@ const locks = new Map<string, Promise<void>>();
 export async function acquire(key: string): Promise<() => void> {
     // Wait for any in-flight operation on this key
     const existing = locks.get(key);
-    let resolveHolder: () => void;
+    const holder: { resolver?: () => void } = {};
 
     const next = new Promise<void>((resolve) => {
-        resolveHolder = resolve;
+        holder.resolver = resolve;
     });
 
     if (existing) {
@@ -26,9 +26,8 @@ export async function acquire(key: string): Promise<() => void> {
 
     locks.set(key, next);
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- assigned synchronously above
     return () => {
-        resolveHolder?.();
+        holder.resolver?.();
         if (locks.get(key) === next) {
             locks.delete(key);
         }
