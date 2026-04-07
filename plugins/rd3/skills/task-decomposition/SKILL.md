@@ -202,6 +202,7 @@ tasks batch-create --from-agent-output analysis.md
 ### Always Do
 
 - [ ] Analyze goal and constraints before decomposing
+- [ ] Decompose by **feature complexity**, NOT by implementation phases
 - [ ] Create hierarchical structure with 3-5 levels max
 - [ ] Map dependencies explicitly (sequential, parallel, blocked)
 - [ ] Define clear success criteria with objective measures
@@ -211,7 +212,6 @@ tasks batch-create --from-agent-output analysis.md
 - [ ] Add buffers to critical path estimates
 - [ ] Search codebase for related files and include paths
 - [ ] Flag high-risk tasks for mitigation
-- [ ] Include testing and documentation tasks
 - [ ] Validate against quality checklist
 - [ ] Provide substantive Background content (min 50 chars)
 - [ ] Provide substantive Requirements content (min 50 chars)
@@ -221,6 +221,8 @@ tasks batch-create --from-agent-output analysis.md
 ### Never Do
 
 - [ ] Skip decomposition without writing a justification to the Solution section
+- [ ] Decompose by implementation phases (investigation → design → implement → test) — this creates artificial boundaries and fragments implementation
+- [ ] Decompose into "investigation", "design", "implementation", "testing" subtasks — these are phases, not features
 - [ ] Decompose without understanding goal
 - [ ] Ignore dependencies or create circular dependencies
 - [ ] Create tasks exceeding 1 day without decomposition
@@ -228,7 +230,7 @@ tasks batch-create --from-agent-output analysis.md
 - [ ] Proceed with unclear requirements
 - [ ] Create tasks smaller than 1 hour (over-decomposition)
 - [ ] Ignore critical path without buffers
-- [ ] Leave task file sections empty (signals over-decomposition — each task must have substantive Background/Requirements, min 50 chars)
+- [ ] Leave task file sections empty (signals over-decomposition — merge into fewer, richer tasks instead)
 - [ ] Skip codebase reference gathering
 - [ ] Generate breakdowns without verification
 - [ ] Ignore red flags from verification protocol
@@ -384,6 +386,7 @@ See `references/structured-output-protocol.md` for the full JSON schema.
 - [Decomposition Decision Rules](references/decomposition-decision-rules.md)
 - [Core Principles](references/core-principles.md)
 - [Verification Protocol](references/verification-protocol.md)
+- [Anti-Patterns](references/anti-patterns.md) — **Important: Read before decomposing**
 
 See [Structured Output Protocol](references/structured-output-protocol.md) for detailed content.
 
@@ -392,3 +395,9 @@ See [Decomposition Decision Rules](references/decomposition-decision-rules.md) f
 See [Core Principles](references/core-principles.md) for detailed content.
 
 See [Verification Protocol](references/verification-protocol.md) for detailed content.
+
+See [Anti-Patterns](references/anti-patterns.md) for real-world examples of what NOT to do, including:
+- Implementation Phase Decomposition (0352 case study)
+- Skeleton Task Anti-Pattern
+- Over-Decomposition
+- Under-Decomposition
