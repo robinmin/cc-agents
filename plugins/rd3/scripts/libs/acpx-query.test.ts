@@ -745,3 +745,154 @@ describe('parseOutput edge cases', async () => {
         expect(result.structured).toBeUndefined();
     });
 });
+
+// ─── runSlashCommand Tests ──────────────────────────────────────────────────
+
+describe('isExecutionChannel', async () => {
+    const { isExecutionChannel } = await import('./acpx-query');
+
+    test('returns true for valid channels', () => {
+        expect(isExecutionChannel('claude-code')).toBe(true);
+        expect(isExecutionChannel('pi')).toBe(true);
+        expect(isExecutionChannel('codex')).toBe(true);
+        expect(isExecutionChannel('gemini')).toBe(true);
+        expect(isExecutionChannel('kilocode')).toBe(true);
+        expect(isExecutionChannel('openclaw')).toBe(true);
+        expect(isExecutionChannel('opencode')).toBe(true);
+    });
+
+    test('returns false for invalid channels', () => {
+        expect(isExecutionChannel('invalid')).toBe(false);
+        expect(isExecutionChannel('claude')).toBe(false);
+        expect(isExecutionChannel('openai')).toBe(false);
+        expect(isExecutionChannel('')).toBe(false);
+        expect(isExecutionChannel('CLAUDE-CODE')).toBe(false);
+    });
+});
+
+describe('transformSlashCommand', async () => {
+    const { transformSlashCommand } = await import('./acpx-query');
+
+    test('claude-code passes through unchanged', () => {
+        const result = transformSlashCommand('/rd3:dev-fixall "bun run test"', 'claude-code');
+        expect(result).toBe('/rd3:dev-fixall "bun run test"');
+    });
+
+    test('pi transforms rd3: to skill:rd3-', () => {
+        const result = transformSlashCommand('/rd3:dev-fixall "bun run test"', 'pi');
+        expect(result).toBe('/skill:rd3-dev-fixall "bun run test"');
+    });
+
+    test('codex transforms rd3: to $', () => {
+        const result = transformSlashCommand('/rd3:dev-fixall "bun run test"', 'codex');
+        expect(result).toBe('$rd3-dev-fixall "bun run test"');
+    });
+
+    test('gemini passes through unchanged', () => {
+        const result = transformSlashCommand('/rd3:dev-fixall', 'gemini');
+        expect(result).toBe('/rd3:dev-fixall');
+    });
+
+    test('kilocode passes through unchanged', () => {
+        const result = transformSlashCommand('/rd3:dev-fixall', 'kilocode');
+        expect(result).toBe('/rd3:dev-fixall');
+    });
+
+    test('openclaw passes through unchanged', () => {
+        const result = transformSlashCommand('/rd3:dev-fixall', 'openclaw');
+        expect(result).toBe('/rd3:dev-fixall');
+    });
+
+    test('opencode passes through unchanged', () => {
+        const result = transformSlashCommand('/rd3:dev-fixall', 'opencode');
+        expect(result).toBe('/rd3:dev-fixall');
+    });
+
+    test('throws TypeError for invalid channel', () => {
+        // @ts-expect-error - intentionally passing invalid channel to test error handling
+        expect(() => transformSlashCommand('/rd3:test', 'invalid')).toThrow(TypeError);
+    });
+
+    test('trims whitespace', () => {
+        const result = transformSlashCommand('  /rd3:dev-fixall  ', 'claude-code');
+        expect(result).toBe('/rd3:dev-fixall');
+    });
+
+    test('handles command without arguments', () => {
+        const result = transformSlashCommand('/rd3:dev-fixall', 'pi');
+        expect(result).toBe('/skill:rd3-dev-fixall');
+    });
+});
+
+describe('runSlashCommand', async () => {
+    const { runSlashCommand } = await import('./acpx-query');
+
+    test('returns error result for empty slash command', () => {
+        const result = runSlashCommand('');
+        expect(result.ok).toBe(false);
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain('Empty slash command');
+    });
+
+    test('returns error result for whitespace-only slash command', () => {
+        const result = runSlashCommand('   ');
+        expect(result.ok).toBe(false);
+        expect(result.exitCode).toBe(1);
+    });
+
+    test('returns error result for invalid channel', () => {
+        // @ts-expect-error Testing invalid channel input intentionally
+        const result = runSlashCommand('/rd3:test', { channel: 'invalid' });
+        expect(result.ok).toBe(false);
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain('Invalid execution channel');
+        expect(result.stderr).toContain('invalid');
+    });
+
+    test('error message lists valid channels', () => {
+        // @ts-expect-error Testing invalid channel input intentionally
+        const result = runSlashCommand('/rd3:test', { channel: 'not-valid' });
+        expect(result.stderr).toContain('claude-code');
+        expect(result.stderr).toContain('pi');
+        expect(result.stderr).toContain('codex');
+    });
+
+    test('uses claude-code as default channel', () => {
+        const result = runSlashCommand('/rd3:test', { timeoutMs: 1000 });
+        expect(typeof result.ok).toBe('boolean');
+    });
+
+    test('accepts valid channel option', () => {
+        const result = runSlashCommand('/rd3:test', { channel: 'pi', timeoutMs: 1000 });
+        expect(typeof result.ok).toBe('boolean');
+    });
+
+    test('result structure includes all expected fields', () => {
+        const result = runSlashCommand('/rd3:test', { timeoutMs: 1000 });
+        expect(typeof result.ok).toBe('boolean');
+        expect(typeof result.exitCode).toBe('number');
+        expect(typeof result.stdout).toBe('string');
+        expect(typeof result.stderr).toBe('string');
+        expect(typeof result.durationMs).toBe('number');
+        expect(typeof result.timedOut).toBe('boolean');
+    });
+});
+
+describe('runSlashCommand transformation integration', async () => {
+    const { transformSlashCommand } = await import('./acpx-query');
+
+    test('transformation for pi matches expected format', () => {
+        const transformed = transformSlashCommand('/rd3:dev-fixall "bun run test"', 'pi');
+        expect(transformed).toBe('/skill:rd3-dev-fixall "bun run test"');
+    });
+
+    test('transformation for codex matches expected format', () => {
+        const transformed = transformSlashCommand('/rd3:dev-fixall "bun run test"', 'codex');
+        expect(transformed).toBe('$rd3-dev-fixall "bun run test"');
+    });
+
+    test('transformation for claude-code passes through', () => {
+        const transformed = transformSlashCommand('/rd3:dev-fixall "bun run test"', 'claude-code');
+        expect(transformed).toBe('/rd3:dev-fixall "bun run test"');
+    });
+});
