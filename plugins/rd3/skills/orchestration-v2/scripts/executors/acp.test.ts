@@ -164,11 +164,10 @@ describe('AcpExecutor', () => {
     });
 
     describe('prompt building', () => {
-        function _capturePrompt(exec: AcpExecutor, req: ExecutionRequest): string {
+        function _capturePrompt(req: ExecutionRequest): string {
             const state = newState();
-            const _capturingExec = new AcpExecutor('pi', makeMockExec(state));
-            // biome-ignore lint/suspicious/noExplicitAny: test helper
-            (exec as any).execute(req);
+            const exec = new AcpExecutor('pi', makeMockExec(state));
+            exec.execute(req);
             return state.capturedArgs[state.capturedArgs.length - 1];
         }
 
