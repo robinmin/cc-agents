@@ -98,7 +98,8 @@ export class PipelineRunner {
         const requestedPhases = this.getRequestedPhases(options, pipeline);
 
         // Validate that requested phases form a valid subgraph (ss3.2)
-        if (requestedPhases) {
+        // Skip validation if --skip-deps is set (useful for standalone verification)
+        if (requestedPhases && !options.skipDeps) {
             const completedPhases = await this.getCompletedPhasesForTask(options.taskRef);
             const validation = validatePhaseSubset(requestedPhases, pipeline.phases, completedPhases);
             if (!validation.valid) {
