@@ -4,7 +4,7 @@
  *
  * Usage: orchestrator <command> [options]
  *
- * Commands: init, run, resume, status, report, validate, list, history, undo, inspect, prune, migrate
+ * Commands: init, run, resume, status, report, validate, list, history, undo, inspect, prune, migrate, events, exec
  */
 
 import { existsSync, statSync, mkdirSync, copyFileSync } from 'node:fs';
@@ -33,6 +33,8 @@ import { DEFAULT_STATE_DIR, DB_FILENAME, DEFAULT_PIPELINE_FILE } from './config/
 import { migrateFromV1 } from './state/migrate-v1';
 import { Pruner } from './state/prune';
 import { EventStore } from './state/events';
+import { runSlashCommand, transformSlashCommand, isExecutionChannel } from '../../../scripts/libs/acpx-query';
+import type { ExecutionChannel } from '../../../scripts/libs/acpx-query';
 import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, ValidationResult, EventType } from './model';
 
 const VALID_EVENT_TYPES: readonly EventType[] = [
@@ -101,6 +103,7 @@ Commands:
   prune                    Compact event store
   migrate                  Migrate v1 state to v2
   events <task-ref>        Show run events
+  exec <slash-command>    Execute slash command via acpx
 
 Global options:
   --state-dir <path>       State directory (default: docs/.workflow-runs)
@@ -161,6 +164,11 @@ Command-specific options:
     --type <t1,t2>          Comma-separated event types (e.g., run.paused,run.resumed)
     --phase <name>          Filter events by phase name
     --json                  JSON output
+
+  exec:
+    --channel <name>        Execution channel (claude-code, pi, codex, gemini, kilocode, openclaw, opencode)
+    --dry-run               Preview transformation without executing
+    <slash-command>        Claude Code style slash command (e.g., "/rd3:dev-fixall 'bun run test'")
 
   prune:
     --older-than <dur>      Delete events older than duration (e.g., 30d)
@@ -278,6 +286,10 @@ async function main(): Promise<void> {
             case 'events': {
                 const ctx = await getStateContext();
                 await handleEvents(parsed.options, ctx.state, ctx.queries);
+                break;
+            }
+            case 'exec': {
+                await handleExec(parsed.options);
                 break;
             }
             default:
@@ -983,6 +995,66 @@ async function resolvePipelineFile(file: string | undefined, preset: string): Pr
     }
 
     throw new Error(`Unknown preset: ${preset}`);
+}
+
+/**
+ * Handle the exec command - execute a slash command via acpx on a specified channel.
+ */
+async function handleExec(options: Record<string, unknown>): Promise<void> {
+    // Get the slash command from positional arguments (compacted)
+    const slashCommand = (options.taskRef as string | undefined) ?? '';
+
+    // Get channel (default: claude-code)
+    const channelOption = options.channel as string | undefined;
+    const channel: ExecutionChannel = (channelOption as ExecutionChannel) ?? 'claude-code';
+
+    // Validate channel
+    if (!isExecutionChannel(channel)) {
+        logger.error(
+            `Invalid channel: "${channel}". Valid channels: claude-code, pi, codex, gemini, kilocode, openclaw, opencode`,
+        );
+        process.exit(EXIT_INVALID_ARGS);
+    }
+
+    // Dry-run: just show the transformation
+    if (options.dryRun) {
+        try {
+            const transformed = transformSlashCommand(slashCommand, channel);
+            process.stdout.write(`[dry-run] Would execute:
+`);
+            process.stdout.write(`  Channel: ${channel}
+`);
+            process.stdout.write(`  Input:   ${slashCommand}
+`);
+            process.stdout.write(`  Transformed: ${transformed}
+`);
+            process.exit(EXIT_SUCCESS);
+        } catch (err) {
+            logger.error(`Transform error: ${err instanceof Error ? err.message : String(err)}`);
+            process.exit(EXIT_INVALID_ARGS);
+        }
+    }
+
+    // Execute the slash command
+    if (!slashCommand || slashCommand.trim().length === 0) {
+        logger.error('Missing slash command. Usage: orchestrator exec <slash-command>');
+        process.exit(EXIT_INVALID_ARGS);
+    }
+
+    // Get timeout (default: 5 minutes)
+    const timeoutMs = (options.coverage as number | undefined) ?? 300_000;
+
+    const result = runSlashCommand(slashCommand, { channel, timeoutMs });
+
+    // Output stdout/stderr
+    if (result.stdout) {
+        process.stdout.write(result.stdout);
+    }
+    if (result.stderr) {
+        process.stderr.write(result.stderr);
+    }
+
+    process.exit(result.exitCode);
 }
 
 async function loadValidatedPipeline(file: string): Promise<[PipelineDefinition, ValidationResult]> {
