@@ -1,0 +1,9 @@
+name: rd3-ev-verification
+description: Task verification combining Phase 7 code review and Phase 8
+  requirements traceability
+version: 1.0.0
+icon: 🛠️
+category: debugging
+tags:
+  - code
+  - workflow
