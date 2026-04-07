@@ -11,7 +11,7 @@
     "scripts": {
         "dev": "bun run --watch",
         "build": "bun run -r build",
-        "lint": "biome lint plugins",
+        "lint": "biome lint --error-on-warnings plugins",
         "lint:fix": "biome lint --write plugins",
         "format": "biome format --write plugins",
         "lint:all": "biome lint plugins",
