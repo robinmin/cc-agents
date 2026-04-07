@@ -488,6 +488,143 @@ export function extractFirstBalancedJsonObject(s: string): string {
     return '';
 }
 
+// ─── Slash Command Execution ─────────────────────────────────────────────────
+
+/**
+ * Supported execution channels for slash command execution.
+ * These are the channels that work reliably via acpx exec.
+ */
+export type ExecutionChannel = 'claude-code' | 'pi' | 'codex' | 'gemini' | 'kilocode' | 'openclaw' | 'opencode';
+
+/**
+ * Validates if a channel name is a supported ExecutionChannel.
+ */
+export function isExecutionChannel(channel: string): channel is ExecutionChannel {
+    return ['claude-code', 'pi', 'codex', 'gemini', 'kilocode', 'openclaw', 'opencode'].includes(channel);
+}
+
+/**
+ * Options for runSlashCommand.
+ */
+export interface RunSlashCommandOptions {
+    /** Execution channel (agent). Default: 'claude-code' */
+    channel?: ExecutionChannel;
+    /** Timeout in milliseconds. Default: 300000 (5 min) */
+    timeoutMs?: number;
+    /** Allowed tools for skill execution. Default: ALLOWED_TOOLS */
+    allowedTools?: string;
+}
+
+/**
+ * Translation map: transforms Claude Code style slash commands to channel-specific formats.
+ *
+ * Claude Code style: /rd3:dev-fixall "args"
+ * - claude-code: /rd3:dev-fixall "args" (pass through)
+ * - pi:          /skill:rd3-dev-fixall "args" (replace rd3: with skill:rd3-)
+ * - codex:       $rd3-dev-fixall "args" (replace rd3: with $rd3-, remove leading /)
+ * - others:      pass through (unverified but assume same as claude-code)
+ */
+const SLASH_COMMAND_TRANSFORMS: Record<ExecutionChannel, (cmd: string) => string> = {
+    'claude-code': (cmd: string) => cmd,
+    'pi': (cmd: string) => cmd.replace('rd3:', 'skill:rd3-'),
+    'codex': (cmd: string) => cmd.replace('rd3:', '$rd3-').replace(/^\//, ''),
+    'gemini': (cmd: string) => cmd,
+    'kilocode': (cmd: string) => cmd,
+    'openclaw': (cmd: string) => cmd,
+    'opencode': (cmd: string) => cmd,
+};
+
+/**
+ * List of valid execution channels for error messages.
+ */
+const VALID_CHANNELS: ExecutionChannel[] = [
+    'claude-code',
+    'pi',
+    'codex',
+    'gemini',
+    'kilocode',
+    'openclaw',
+    'opencode',
+];
+
+/**
+ * Execute a slash command via acpx on a specified channel.
+ *
+ * Transforms Claude Code style slash commands to channel-specific formats:
+ * - claude-code: /rd3:dev-fixall → /rd3:dev-fixall (pass through)
+ * - pi:          /rd3:dev-fixall → /skill:rd3-dev-fixall
+ * - codex:       /rd3:dev-fixall → $rd3-dev-fixall
+ * - others:      /rd3:dev-fixall → /rd3:dev-fixall (pass through)
+ *
+ * @param slashCommand - Claude Code style slash command (e.g., "/rd3:dev-fixall \"bun run test\"")
+ * @param options - Execution options (channel, timeout, allowedTools)
+ * @returns AcpxQueryResult with stdout/stderr/exitCode
+ * @throws TypeError if channel is invalid or slashCommand is empty
+ */
+export function runSlashCommand(slashCommand: string, options?: RunSlashCommandOptions): AcpxQueryResult {
+    // Validate slash command
+    if (!slashCommand || slashCommand.trim().length === 0) {
+        return {
+            ok: false,
+            exitCode: 1,
+            stdout: '',
+            stderr: 'Empty slash command provided',
+            durationMs: 0,
+            timedOut: false,
+        };
+    }
+
+    // Resolve channel with default
+    const channel: ExecutionChannel = options?.channel ?? 'claude-code';
+
+    // Validate channel
+    if (!isExecutionChannel(channel)) {
+        const error = new TypeError(
+            `Invalid execution channel: "${channel}". Valid channels: ${VALID_CHANNELS.join(', ')}`,
+        );
+        return {
+            ok: false,
+            exitCode: 1,
+            stdout: '',
+            stderr: error.message,
+            durationMs: 0,
+            timedOut: false,
+        };
+    }
+
+    // Transform command for channel
+    const transformedCommand = SLASH_COMMAND_TRANSFORMS[channel](slashCommand.trim());
+
+    // Build acpx exec options
+    const execOptions: AcpxQueryOptions = {
+        agent: channel,
+        format: 'quiet',
+        timeoutMs: options?.timeoutMs ?? 300_000,
+        allowedTools: options?.allowedTools ?? ALLOWED_TOOLS,
+    };
+
+    // Execute via queryLlm
+    return queryLlm(transformedCommand, execOptions);
+}
+
+/**
+ * Get the transformed slash command for a channel without executing.
+ * Useful for --dry-run preview.
+ *
+ * @param slashCommand - Claude Code style slash command
+ * @param channel - Target execution channel
+ * @returns Transformed slash command string
+ * @throws TypeError if channel is invalid
+ */
+export function transformSlashCommand(slashCommand: string, channel: ExecutionChannel): string {
+    if (!isExecutionChannel(channel)) {
+        throw new TypeError(
+            `Invalid execution channel: "${channel}". Valid channels: ${VALID_CHANNELS.join(', ')}`,
+        );
+    }
+    return SLASH_COMMAND_TRANSFORMS[channel](slashCommand.trim());
+}
+
 // ─── Health Check ────────────────────────────────────────────────────────────
 
 /** Health check result for acpx */
