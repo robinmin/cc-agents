@@ -121,6 +121,7 @@ Command-specific options:
     --coverage <n>          Override coverage threshold (1-100)
     --auto                  Auto-approve all human gates
     --dry-run               Show execution plan without running
+    --skip-deps             Skip DAG dependency validation for phase subsets
 
   resume:
     --approve               Approve pending human gate (default)
@@ -400,6 +401,7 @@ async function handleRun(options: Record<string, unknown>, state: StateManager):
             ...(normalizedChannel != null && { channel: normalizedChannel }),
             ...(options.coverage != null && { coverage: options.coverage as number }),
             ...(options.auto === true && { auto: true }),
+            ...(options.skipDeps === true && { skipDeps: true }),
         };
 
         const runner = new PipelineRunner(state);
