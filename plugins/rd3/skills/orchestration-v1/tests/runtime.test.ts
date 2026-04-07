@@ -28,13 +28,11 @@ beforeAll(() => {
 });
 
 const tempDirs: string[] = [];
-const originalCwd = process.cwd();
 const originalAcpxBin = process.env.ACPX_BIN;
 const originalAcpxAgent = process.env.ACPX_AGENT;
 const originalLocalPromptAgent = process.env.ORCHESTRATION_DEV_LOCAL_PROMPT_AGENT;
 
 afterEach(() => {
-    process.chdir(originalCwd);
     if (originalAcpxBin === undefined) {
         delete process.env.ACPX_BIN;
     } else {
@@ -180,6 +178,15 @@ fi
     );
     chmodSync(scriptPath, 0o755);
     return scriptPath;
+}
+
+function createLocalPromptExecutorOptions(dir: string) {
+    return {
+        local: {
+            acpxBin: writeMockAcpxScript(dir),
+            promptAgent: 'claude',
+        },
+    };
 }
 
 describe('orchestration runtime', () => {
@@ -834,11 +841,9 @@ describe('rollback integration', () => {
 
 describe('runtime main', () => {
     const originalExit = process.exit;
-    const originalCwd = process.cwd();
 
     afterEach(() => {
         process.exit = originalExit;
-        process.chdir(originalCwd);
     });
 
     test('exits when task_ref is missing', async () => {
@@ -866,9 +871,8 @@ describe('runtime main', () => {
         const dir = createTempDir('orchestration-main-success-');
         writePilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_success.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current']);
+        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current'], { cwd: dir });
         setGlobalSilent(true);
         expect(code).toBe(0);
 
@@ -881,9 +885,8 @@ describe('runtime main', () => {
         const dir = createTempDir('orchestration-main-retry-');
         writeRetryingPilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_retry.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        expect(await main([taskPath, '--profile', 'unit', '--channel', 'current'])).toBe(0);
+        expect(await main([taskPath, '--profile', 'unit', '--channel', 'current'], { cwd: dir })).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -899,12 +902,14 @@ describe('runtime main', () => {
     test('runs the pilot runtime successfully for a local simple-profile workspace with a phase 5 worker', async () => {
         const dir = createTempDir('orchestration-main-simple-current-');
         writePilotWorkspaceFiles(dir);
-        process.env.ACPX_BIN = writeMockAcpxScript(dir);
-        process.env.ACPX_AGENT = 'claude';
         const taskPath = writeTaskFile(dir, '0266_main_simple_current.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        expect(await main([taskPath, '--profile', 'simple', '--channel', 'current'])).toBe(0);
+        expect(
+            await main([taskPath, '--profile', 'simple', '--channel', 'current'], {
+                cwd: dir,
+                executorOptions: createLocalPromptExecutorOptions(dir),
+            }),
+        ).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -925,12 +930,14 @@ describe('runtime main', () => {
     test('pauses the pilot runtime at the local review gate for a review-profile workspace', async () => {
         const dir = createTempDir('orchestration-main-review-current-');
         writePilotWorkspaceFiles(dir);
-        process.env.ACPX_BIN = writeMockAcpxScript(dir);
-        process.env.ACPX_AGENT = 'claude';
         const taskPath = writeTaskFile(dir, '0266_main_review_current.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        expect(await main([taskPath, '--profile', 'review', '--channel', 'current'])).toBe(1);
+        expect(
+            await main([taskPath, '--profile', 'review', '--channel', 'current'], {
+                cwd: dir,
+                executorOptions: createLocalPromptExecutorOptions(dir),
+            }),
+        ).toBe(1);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -959,12 +966,14 @@ describe('runtime main', () => {
     test('pauses at the review gate when starting from phase 6 on current channel without auto approval', async () => {
         const dir = createTempDir('orchestration-main-start-phase-');
         writePilotWorkspaceFiles(dir);
-        process.env.ACPX_BIN = writeMockAcpxScript(dir);
-        process.env.ACPX_AGENT = 'claude';
         const taskPath = writeTaskFile(dir, '0266_main_start_phase.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        expect(await main([taskPath, '--profile', 'complex', '--start-phase', '6'])).toBe(1);
+        expect(
+            await main([taskPath, '--profile', 'complex', '--start-phase', '6'], {
+                cwd: dir,
+                executorOptions: createLocalPromptExecutorOptions(dir),
+            }),
+        ).toBe(1);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -984,12 +993,14 @@ describe('runtime main', () => {
     test('completes all phases including direct-skill phases 8 and 9 when auto approval is enabled', async () => {
         const dir = createTempDir('orchestration-main-start-phase-auto-');
         writePilotWorkspaceFiles(dir);
-        process.env.ACPX_BIN = writeMockAcpxScript(dir);
-        process.env.ACPX_AGENT = 'claude';
         const taskPath = writeTaskFile(dir, '0266_main_start_phase_auto.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        expect(await main([taskPath, '--profile', 'complex', '--start-phase', '6', '--auto'])).toBe(0);
+        expect(
+            await main([taskPath, '--profile', 'complex', '--start-phase', '6', '--auto'], {
+                cwd: dir,
+                executorOptions: createLocalPromptExecutorOptions(dir),
+            }),
+        ).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -1010,25 +1021,27 @@ describe('runtime main', () => {
         const dir = createTempDir('orchestration-main-skip-stack-');
         writePilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_skip_stack.md', 'Implement the feature.');
-        process.chdir(dir);
 
         expect(
-            await main([
-                taskPath,
-                '--profile',
-                'complex',
-                '--start-phase',
-                '6',
-                '--skip-phases',
-                '7,8,9',
-                '--stack-profile',
-                'typescript-bun-biome',
-                '--channel',
-                'current',
-                '--auto',
-                '--dry-run',
-                '--refine',
-            ]),
+            await main(
+                [
+                    taskPath,
+                    '--profile',
+                    'complex',
+                    '--start-phase',
+                    '6',
+                    '--skip-phases',
+                    '7,8,9',
+                    '--stack-profile',
+                    'typescript-bun-biome',
+                    '--channel',
+                    'current',
+                    '--auto',
+                    '--dry-run',
+                    '--refine',
+                ],
+                { cwd: dir },
+            ),
         ).toBe(0);
 
         expect(findOrchestrationStatePath(taskPath, dir)).toBeNull();
@@ -1038,10 +1051,11 @@ describe('runtime main', () => {
         const dir = createTempDir('orchestration-main-rework-override-');
         writeRetryingPilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_rework_override.md', 'Implement the feature.');
-        process.chdir(dir);
 
         expect(
-            await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rework-max-iterations', '1']),
+            await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rework-max-iterations', '1'], {
+                cwd: dir,
+            }),
         ).toBe(1);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
@@ -1060,9 +1074,8 @@ describe('runtime main', () => {
         const dir = createTempDir('orchestration-main-resume-');
         writePilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_resume.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        const plan = createExecutionPlan(taskPath, { profile: 'unit' });
+        const plan = createExecutionPlan(taskPath, { profile: 'unit', projectRoot: dir });
         const statePath = getOrchestrationStatePath(taskPath, dir);
         const state = createOrchestrationState(plan);
         state.status = 'paused';
@@ -1070,7 +1083,7 @@ describe('runtime main', () => {
         state.phases[0].status = 'paused';
         saveOrchestrationState(state, statePath);
 
-        expect(await main([taskPath, '--profile', 'unit', '--resume'])).toBe(0);
+        expect(await main([taskPath, '--profile', 'unit', '--resume'], { cwd: dir })).toBe(0);
 
         const persisted = JSON.parse(readFileSync(statePath, 'utf-8')) as { status: string };
         expect(persisted.status).toBe('completed');
@@ -1215,15 +1228,8 @@ describe('run lock', () => {
 });
 
 describe('undo CLI flags', () => {
-    const originalCwd = process.cwd();
-
-    afterEach(() => {
-        process.chdir(originalCwd);
-    });
-
     test('runtime main parses --undo with --force', async () => {
         const dir = createTempDir('undo-force-main-');
-        process.chdir(dir);
 
         // Need a git repo and state file for undo to work
         Bun.spawnSync({ cmd: ['git', 'init'], cwd: dir });
@@ -1263,18 +1269,17 @@ describe('undo CLI flags', () => {
         writeFileSync(join(dir, 'initial.txt'), 'modified');
 
         // Without --force should fail even with dry-run (can't parse state without proper snapshot)
-        const codeNoForce = await main(['0304', '--undo', '5', '--undo-dry-run']);
+        const codeNoForce = await main(['0304', '--undo', '5', '--undo-dry-run'], { cwd: dir });
         // dry-run should still return 0 since it doesn't attempt file restoration
         expect(codeNoForce).toBe(0);
 
         // With --force should also succeed
-        const codeForce = await main(['0304', '--undo', '5', '--force', '--undo-dry-run']);
+        const codeForce = await main(['0304', '--undo', '5', '--force', '--undo-dry-run'], { cwd: dir });
         expect(codeForce).toBe(0);
     });
 
     test('runtime main handles --undo with --undo-dry-run', async () => {
         const dir = createTempDir('undo-dryrun-main-');
-        process.chdir(dir);
 
         const snapshot = {
             phase: 6,
@@ -1301,7 +1306,7 @@ describe('undo CLI flags', () => {
         mkdirSync(dirname(statePath), { recursive: true });
         writeFileSync(statePath, JSON.stringify(state), 'utf-8');
 
-        const code = await main(['0304', '--undo', '6', '--undo-dry-run']);
+        const code = await main(['0304', '--undo', '6', '--undo-dry-run'], { cwd: dir });
         expect(code).toBe(0);
     });
 });
@@ -1333,9 +1338,10 @@ describe('--rollback CLI flag', () => {
         writeFileSync(join(dir, 'tsconfig.json'), '{}', 'utf-8');
         writeFileSync(join(dir, 'biome.json'), '{}', 'utf-8');
         const taskPath = writeTaskFile(dir, '0266_rollback_cli.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rollback']);
+        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rollback'], {
+            cwd: dir,
+        });
         expect(code).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
@@ -1351,9 +1357,8 @@ describe('--rollback CLI flag', () => {
         const dir = createTempDir('rollback-no-cli-');
         writePilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_no_rollback_cli.md', 'Implement the feature.');
-        process.chdir(dir);
 
-        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current']);
+        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current'], { cwd: dir });
         expect(code).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
