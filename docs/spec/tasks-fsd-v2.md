@@ -1,8 +1,8 @@
 # Tasks Functional Specification Document (FSD) V2
 
-**Version:** 2.2 (rd3)
+**Version:** 2.3 (rd3)
 **Status:** Canonical
-**Date:** 2026-04-04
+**Date:** 2026-04-07
 
 ---
 
@@ -267,6 +267,68 @@ tasks server
 # Start on custom port and host
 TASKS_PORT=5000 tasks server --host 0.0.0.0
 ```
+
+#### 8.7.1 REST API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Server health check with uptime |
+| `GET` | `/tasks` | List all tasks (supports `?status=`, `?folder=`, `?all=true`) |
+| `POST` | `/tasks` | Create a new task |
+| `GET` | `/tasks/:wbs` | Get a single task by WBS |
+| `PATCH` | `/tasks/:wbs` | Update task status or fields |
+| `DELETE` | `/tasks/:wbs` | Delete a task |
+| `POST` | `/tasks/:wbs/artifacts` | Upload artifact to task |
+| `GET` | `/tasks/:wbs/artifacts` | List artifacts for a task |
+| `GET` | `/tasks/:wbs/tree` | Get artifact tree for a task |
+| `POST` | `/tasks/:wbs/check` | Run validation on a task |
+| `POST` | `/tasks/batch` | Batch create multiple tasks |
+| `POST` | `/tasks/refresh` | Refresh kanban boards |
+| `GET` | `/config` | Get server configuration |
+| `PATCH` | `/config` | Update server configuration |
+| `GET` | `/events` | SSE stream for real-time updates |
+| `POST` | `/tasks/:wbs/action` | Execute task actions (e.g., decompose) |
+| `GET` | `/template` | Get task template |
+
+#### 8.7.2 SSE Events
+
+Connect to `/events` for real-time task updates:
+
+```typescript
+const eventSource = new EventSource('/events');
+eventSource.addEventListener('task.created', (e) => {
+  const task = JSON.parse(e.data);
+  // Add to kanban board
+});
+eventSource.addEventListener('task.updated', (e) => {
+  const { wbs, changes } = JSON.parse(e.data);
+  // Update task card
+});
+eventSource.addEventListener('task.deleted', (e) => {
+  const { wbs } = JSON.parse(e.data);
+  // Remove from kanban board
+});
+```
+
+Event types: `task.created`, `task.updated`, `task.deleted`, `config.updated`, `refresh.completed`.
+
+#### 8.7.3 Web UI (Kanban Board)
+
+The server serves a React-based Kanban UI at `/`:
+
+- **Drag-and-drop** status transitions via `@hello-pangea/dnd`
+- **Real-time updates** via SSE — no page refresh needed
+- **Task detail panel** with markdown rendering
+- **Task creation** via inline form
+- **Folder selector** for multi-folder projects
+- **Responsive design** for desktop and tablet
+
+Build the UI:
+```bash
+cd plugins/rd3/skills/tasks/scripts/server/ui && bun run build
+```
+
+Production UI is committed to `plugins/rd3/skills/tasks/scripts/static/`.
 
 ---
 
