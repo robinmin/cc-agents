@@ -79,6 +79,41 @@ constructor() {}
 
 **`biome-ignore` policy**: NEVER add `biome-ignore` comments to bypass lint errors. Fix the underlying code instead. Use proper type casts rather than suppressing `noExplicitAny`. The only permitted exception is `biome-ignore lint/complexity/noUselessConstructor` for the V8 function coverage workaround above.
 
+### Package Priority: Bun.js First, Node.js Only as Fallback
+
+When implementing features, prefer Bun.js native APIs over Node.js packages:
+
+| Category | Priority | Bun.js Native | Fallback to Node.js |
+|----------|----------|---------------|---------------------|
+| File I/O | 1st | `bun:fs`, `Bun.file()`, `Bun.write()` | `node:fs` |
+| HTTP client | 1st | `fetch` (native) | `node:fetch`, `undici` |
+| Crypto/Hashing | 1st | `bun:crypto` (native) | `node:crypto` |
+| Testing | 1st | `bun:test` | `node:test`, `vitest` |
+| Shell execution | 1st | `bun:shell`, `Bun.spawn()` | `node:child_process` |
+| Path manipulation | 1st | `bun:path` | `node:path` |
+| Buffer/Binary | 1st | `Buffer` (built-in) | `node:buffer` |
+| Streams | 1st | `bun:streams` | `node:stream` |
+| Zlib/Compression | 1st | `bun:zlib` | `node:zlib` |
+
+**Rule**: ALWAYS attempt `bun:*` imports first. Only use `node:*` if:
+1. Bun.js does not provide the equivalent API
+2. The `node:*` polyfill is explicitly required for compatibility
+3. A third-party Node.js library (not polyfill) provides unique functionality unavailable in Bun
+
+```typescript
+// ✅ CORRECT: Prefer bun:fs
+import { readFileSync, writeFileSync } from "bun:fs";
+
+// ❌ WRONG: Node.js fallback without trying bun:fs first
+import { readFileSync, writeFileSync } from "node:fs";
+
+// ✅ CORRECT: Use native fetch (available in Bun)
+const response = await fetch("https://api.example.com/data");
+
+// ✅ CORRECT: Node.js only when Bun lacks the feature
+import { EventEmitter } from "node:events"; // EventEmitter not in bun:*
+```
+
 ---
 
 ## Tools & Logging
