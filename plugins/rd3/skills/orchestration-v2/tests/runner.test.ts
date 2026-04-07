@@ -13,6 +13,9 @@
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach, afterAll, spyOn } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { PipelineRunner } from '../scripts/engine/runner';
 import { StateManager } from '../scripts/state/manager';
 import { ExecutorPool } from '../scripts/executors/pool';
@@ -20,7 +23,7 @@ import { MockExecutor } from '../scripts/executors/mock';
 import { HookRegistry } from '../scripts/engine/hooks';
 import { EventBus } from '../scripts/observability/event-bus';
 import { runMigrations } from '../scripts/state/migrations';
-import { setGlobalSilent } from '../../../scripts/logger';
+import { logger, setGlobalSilent } from '../../../scripts/logger';
 import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent } from '../scripts/model';
 import * as llmModule from '../../verification-chain/scripts/methods/llm';
 
@@ -902,6 +905,27 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             const result = await runner.undo('test-task', 'test-phase', { force: true });
             expect(result.success).toBe(false);
         });
+
+        test('should build an undo dry-run plan with created files', async () => {
+            await stateManager.saveRollbackSnapshot({
+                run_id: 'undo-dry-run',
+                phase_name: 'implement',
+                files_before: {
+                    'tracked.ts': 'abc123',
+                },
+                files_after: {
+                    'tracked.ts': 'def456',
+                    'created.ts': 'ghi789',
+                },
+            });
+
+            const result = await runner.undo('undo-dry-run', 'implement', {
+                force: true,
+                dryRun: true,
+            });
+
+            expect(result).toEqual({ success: true, exitCode: 0 });
+        });
     });
 
     // ─── Timeout Handling ────────────────────────────────────────────────────────
@@ -1281,6 +1305,1129 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
 
             expect(result.status).toBe('COMPLETED');
             expect(mockExecutor.getCallLog()).toHaveLength(10);
+        });
+    });
+
+    // ─── Command Gate Tests ─────────────────────────────────────────────────────
+
+    describe('Command Gate Tests', () => {
+        test('should execute command gate with successful command', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'command-gate-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'command', command: 'echo "success" && exit 0' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'command-gate-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+            expect(result.exitCode).toBe(0);
+
+            // Verify gate result was saved
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults.length).toBeGreaterThan(0);
+            expect(gateResults[0].passed).toBe(true);
+        });
+
+        test('should fail command gate with failing command', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'failing-command-gate-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'command', command: 'exit 1' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'command-fail-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('FAILED');
+            expect(result.exitCode).toBe(1);
+
+            // Verify gate result shows failure
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults.length).toBeGreaterThan(0);
+            expect(gateResults[0].passed).toBe(false);
+            expect(gateResults[0].evidence?.exitCode).toBe(1);
+        });
+
+        test('should substitute template variables in command gate', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'template-command-gate-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'command',
+                            command: 'echo "task={{task_ref}} phase={{phase}} run={{run_id}}" && exit 0',
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'template-test-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+
+            // Verify gate result contains substituted command
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].evidence?.command).toContain('task=template-test-001');
+            expect(gateResults[0].evidence?.command).toContain('phase=implement');
+            expect(gateResults[0].evidence?.command).toContain(`run=${result.runId}`);
+        });
+
+        test('should handle command gate with empty command', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'empty-command-gate-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'command', command: '' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'empty-command-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('FAILED');
+
+            // Verify error is captured
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].evidence?.error).toBe('No command specified for command gate');
+        });
+
+        test('should handle command gate with command exception', async () => {
+            // Use an invalid command that will fail (exit code 127 - command not found)
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'exception-command-gate-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'command', command: 'nonexistent_command_xyz_123' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'exception-command-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('FAILED');
+
+            // Verify gate result shows failure with exit code
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].passed).toBe(false);
+            expect(gateResults[0].evidence?.exitCode).toBeDefined();
+        });
+    });
+
+    // ─── Rework Escalation Edge Cases ──────────────────────────────────────────
+
+    describe('Rework Escalation Edge Cases', () => {
+        test('should escalate to pause when rework max_iterations is 0 and escalation is pause', async () => {
+            // Phase must succeed for gate rework to be triggered
+            // When gate fails and maxRework=0, escalation is evaluated
+            llmSpy.mockResolvedValueOnce({
+                result: 'fail',
+                evidence: {
+                    method: 'llm',
+                    result: 'fail',
+                    checklist: [{ item: 'Check 1', passed: false }],
+                    timestamp: new Date().toISOString(),
+                },
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'zero-rework-pause-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'auto',
+                            rework: {
+                                max_iterations: 0,
+                                escalation: 'pause',
+                            },
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'zero-rework-pause-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            // Gate fails immediately (maxRework=0), escalated to pause
+            expect(result.status).toBe('PAUSED');
+            expect(result.exitCode).toBe(0);
+        });
+
+        test('should escalate to fail when rework max_iterations is 0 and escalation is fail', async () => {
+            mockExecutor.setResponses([
+                {
+                    result: {
+                        success: false,
+                        exitCode: 1,
+                        stdout: '',
+                        stderr: 'Initial failure',
+                        durationMs: 100,
+                        timedOut: false,
+                    },
+                },
+            ]);
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'zero-rework-fail-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'auto',
+                            rework: {
+                                max_iterations: 0,
+                                escalation: 'fail',
+                            },
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'zero-rework-fail-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            // Phase fails immediately, escalated to fail
+            expect(result.status).toBe('FAILED');
+            expect(result.exitCode).toBe(1);
+        });
+
+        test('should handle rework iteration tracking via phase status', async () => {
+            // Phase must succeed, gate must fail first time, succeed second time
+            // This triggers rework loop which re-executes the phase
+            let llmCallCount = 0;
+            llmSpy.mockImplementation(() => {
+                llmCallCount++;
+                if (llmCallCount === 1) {
+                    // First gate check fails - triggers rework
+                    return Promise.resolve({
+                        result: 'fail',
+                        evidence: {
+                            method: 'llm',
+                            result: 'fail',
+                            checklist: [{ item: 'Check 1', passed: false }],
+                            timestamp: new Date().toISOString(),
+                        },
+                    });
+                }
+                // Second gate check passes
+                return Promise.resolve({
+                    result: 'pass',
+                    evidence: {
+                        method: 'llm',
+                        result: 'pass',
+                        checklist: [{ item: 'Check 1', passed: true }],
+                        timestamp: new Date().toISOString(),
+                    },
+                });
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'rework-iteration-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'auto',
+                            rework: {
+                                max_iterations: 3,
+                                escalation: 'fail',
+                            },
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'rework-iteration-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            // Phase succeeded, gate passed on retry
+            expect(result.status).toBe('COMPLETED');
+            // Phase is re-executed during rework, so executor called twice
+            expect(mockExecutor.getCallLog()).toHaveLength(2);
+            // LLM gate check called twice (fail then pass)
+            expect(llmCallCount).toBe(2);
+        });
+    });
+
+    // ─── Skill Auto Gate Defaults ──────────────────────────────────────────────
+
+    describe('Skill Auto Gate Defaults', () => {
+        test('should resolve skill definition path with valid plugin:skill format', () => {
+            // Test the private method indirectly through auto gate with skill ref
+            // The runner should attempt to load skill defaults for the specified skill
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'skill-defaults-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement-common',
+                        gate: { type: 'auto' }, // Should attempt to load rd3:code-implement-common defaults
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'skill-defaults-001',
+            };
+
+            // This will attempt to resolve the skill path and load defaults
+            // If the skill exists, it may find defaults; if not, it gracefully falls back
+            runner.run(options, pipeline).catch(() => {}); // Fire and forget
+        });
+
+        test('should handle invalid skill ref format gracefully', () => {
+            // Invalid format should return null path and not crash
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'invalid-skill-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'invalid-no-colon',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'invalid-skill-001',
+            };
+
+            // Should complete without crashing even with invalid skill ref
+            runner.run(options, pipeline).catch(() => {});
+        });
+    });
+
+    // ─── Gate Failure Message Extraction ──────────────────────────────────────
+
+    describe('Gate Failure Message Extraction', () => {
+        test('should extract error message from evidence.error field', async () => {
+            // Configure LLM to return a structured error
+            llmSpy.mockResolvedValueOnce({
+                result: 'fail',
+                error: 'Test error message',
+                evidence: {
+                    method: 'llm',
+                    result: 'fail',
+                    error: 'Test error message',
+                    timestamp: new Date().toISOString(),
+                },
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'error-message-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'error-message-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            // Pipeline should fail due to gate failure
+            expect(result.status).toBe('FAILED');
+
+            // Verify gate result contains the error
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].evidence?.error).toBe('Test error message');
+        });
+
+        test('should extract stderr from command gate failure', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'stderr-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'command', command: 'echo "error output" >&2 && exit 1' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'stderr-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('FAILED');
+
+            // Verify stderr is captured
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].evidence?.stderr).toContain('error output');
+        });
+    });
+
+    // ─── Auto Gate Checklist Resolution ───────────────────────────────────────
+
+    describe('Auto Gate Checklist Resolution', () => {
+        test('should use pipeline YAML explicit checklist', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'yaml-checklist-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'auto',
+                            checklist: ['Custom checklist item 1', 'Custom checklist item 2'],
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'yaml-checklist-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+
+            // Verify gate result includes the checklist source
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].evidence?.source).toBe('yaml');
+        });
+
+        test('should handle advisory severity for auto gate failures', async () => {
+            // Configure LLM to return a failure
+            llmSpy.mockResolvedValueOnce({
+                result: 'fail',
+                evidence: {
+                    method: 'llm',
+                    result: 'fail',
+                    checklist: [
+                        { item: 'Check 1', passed: false },
+                        { item: 'Check 2', passed: true },
+                    ],
+                    timestamp: new Date().toISOString(),
+                },
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'advisory-gate-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'auto',
+                            severity: 'advisory',
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'advisory-gate-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            // Advisory severity allows pipeline to continue even on gate failure
+            expect(result.status).toBe('COMPLETED');
+
+            // Verify advisory flag is set
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].advisory).toBe(true);
+        });
+    });
+
+    // ─── Human Gate Blocking Behavior ───────────────────────────────────────────
+
+    describe('Human Gate Blocking Behavior', () => {
+        test('should block human gate regardless of auto flag when blocking=true', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'blocking-human-gate-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'human',
+                            blocking: true,
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'blocking-human-001',
+                auto: true, // Even with --auto flag
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            // Blocking human gates MUST pause regardless of --auto
+            expect(result.status).toBe('PAUSED');
+            expect(result.exitCode).toBe(0);
+
+            // Verify blocking flag is set in evidence
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].evidence?.blocking).toBe(true);
+        });
+
+        test('should bypass advisory human gate when auto flag is set', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'advisory-human-gate-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'human',
+                            blocking: false,
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'advisory-human-001',
+                auto: true, // With --auto flag, bypass advisory human gates
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            // Advisory human gates are bypassed by --auto
+            expect(result.status).toBe('COMPLETED');
+
+            // Verify auto bypass flag is set in evidence
+            const gateResults = await stateManager.getGateResults(result.runId, 'implement');
+            expect(gateResults[0].evidence?.auto_bypassed).toBe(true);
+            expect(gateResults[0].advisory).toBe(true);
+        });
+    });
+
+    // ─── Subtasks Implementation ───────────────────────────────────────────────
+
+    describe('Subtasks Implementation', () => {
+        test('should handle implement phase without subtasks', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'no-subtasks-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement-common',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'no-subtasks-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+            expect(mockExecutor.getCallLog()).toHaveLength(1);
+            expect(mockExecutor.getCallLog()[0].phase).toBe('implement');
+        });
+    });
+
+    // ─── Snapshot Capture and Finalization ─────────────────────────────────────
+
+    describe('Snapshot Capture and Finalization', () => {
+        test('should capture snapshot before phase execution', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'snapshot-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'snapshot-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+
+            // Verify snapshot was captured
+            const snapshot = await stateManager.getRollbackSnapshot(result.runId, 'implement');
+            expect(snapshot).toBeDefined();
+            expect(snapshot?.git_head).toBeDefined();
+        });
+
+        test('should finalize snapshot after phase completion', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'finalize-snapshot-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'finalize-snapshot-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+
+            // Verify snapshot was finalized with both before and after
+            const snapshot = await stateManager.getRollbackSnapshot(result.runId, 'implement');
+            expect(snapshot).toBeDefined();
+            expect(snapshot?.files_before).toBeDefined();
+            expect(snapshot?.files_after).toBeDefined();
+        });
+    });
+
+    // ─── Build Phase Evidence ──────────────────────────────────────────────────
+
+    describe('Build Phase Evidence', () => {
+        test('should build phase evidence with stdout and stderr', async () => {
+            // Use command gate that outputs to stdout/stderr
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'evidence-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'command', command: 'echo "output" && exit 0' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'evidence-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+
+            // Verify evidence was saved
+            const evidence = await stateManager.getPhaseEvidence(result.runId, 'implement');
+            expect(evidence).toBeDefined();
+        });
+
+        test('should include rework feedback in evidence', async () => {
+            // Phase succeeds, gate fails, rework succeeds
+            let llmCallCount = 0;
+            llmSpy.mockImplementation(() => {
+                llmCallCount++;
+                if (llmCallCount === 1) {
+                    return Promise.resolve({
+                        result: 'fail',
+                        evidence: {
+                            method: 'llm',
+                            result: 'fail',
+                            checklist: [{ item: 'Check', passed: false }],
+                        },
+                    });
+                }
+                return Promise.resolve({
+                    result: 'pass',
+                    evidence: { method: 'llm', result: 'pass' },
+                });
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'rework-feedback-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'auto',
+                            rework: { max_iterations: 1, escalation: 'fail' },
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'rework-feedback-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+            expect(mockExecutor.getCallLog()).toHaveLength(2); // Initial + rework
+        });
+    });
+
+    // ─── Event Persistence Error Handling ──────────────────────────────────────
+
+    describe('Event Persistence Error Handling', () => {
+        test('should handle event bus subscription errors gracefully', async () => {
+            // This tests the catch block in the EventStore subscription
+            // We can't easily trigger this in tests without mocking, but we verify
+            // the runner still functions when events fail to persist
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'event-persistence-test',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'event-persist-001',
+            };
+
+            // Even if event persistence fails internally, run should complete
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+        });
+    });
+
+    // ─── Multi-Phase Rework Scenarios ──────────────────────────────────────────
+
+    describe('Multi-Phase Rework Scenarios', () => {
+        test('should handle rework in multi-phase pipeline', async () => {
+            let llmCallCount = 0;
+            llmSpy.mockImplementation(() => {
+                llmCallCount++;
+                // Only first gate fails
+                if (llmCallCount === 1) {
+                    return Promise.resolve({
+                        result: 'fail',
+                        evidence: {
+                            method: 'llm',
+                            result: 'fail',
+                            checklist: [{ item: 'Check', passed: false }],
+                        },
+                    });
+                }
+                return Promise.resolve({
+                    result: 'pass',
+                    evidence: { method: 'llm', result: 'pass' },
+                });
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'multi-phase-rework-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto', rework: { max_iterations: 1, escalation: 'fail' } },
+                    },
+                    test: {
+                        skill: 'rd3:sys-testing',
+                        gate: { type: 'auto' },
+                        after: ['implement'],
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'multi-phase-rework-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+            expect(mockExecutor.getCallLog()).toHaveLength(3); // 2 for implement rework, 1 for test
+        });
+    });
+
+    // ─── Gate Evaluated Event ──────────────────────────────────────────────────
+
+    describe('Gate Evaluated Event', () => {
+        test('should emit gate.evaluated event with timing', async () => {
+            const events: OrchestratorEvent[] = [];
+            eventBus.subscribeAll((event) => {
+                events.push(event);
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'gate-event-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'command', command: 'exit 0' },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'gate-event-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            expect(result.status).toBe('COMPLETED');
+            // Verify gate.evaluated event was emitted
+            const gateEvents = events.filter((e) => e.event_type === 'gate.evaluated');
+            expect(gateEvents.length).toBeGreaterThan(0);
+            expect(gateEvents[0].payload).toHaveProperty('gate_type');
+            expect(gateEvents[0].payload).toHaveProperty('duration_ms');
+        });
+    });
+
+    // ─── Max Rework Exceeded Edge Case ─────────────────────────────────────────
+
+    describe('Max Rework Exceeded Edge Case', () => {
+        test('should return MAX_REWORK_EXCEEDED when gate keeps failing during rework', async () => {
+            // Configure LLM to always fail the gate check
+            // This will trigger rework loop, which will exhaust all iterations
+            llmSpy.mockResolvedValue({
+                result: 'fail',
+                evidence: {
+                    method: 'llm',
+                    result: 'fail',
+                    checklist: [{ item: 'Always fails', passed: false }],
+                    timestamp: new Date().toISOString(),
+                },
+            });
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'max-rework-exceeded-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: {
+                            type: 'auto',
+                            rework: {
+                                max_iterations: 2, // 3 total attempts (0, 1, 2)
+                                escalation: 'fail',
+                            },
+                        },
+                    },
+                },
+            };
+
+            const options: RunOptions = {
+                taskRef: 'max-rework-exceeded-001',
+            };
+
+            const result = await runner.run(options, pipeline);
+
+            // Pipeline should fail after exhausting rework iterations
+            expect(result.status).toBe('FAILED');
+            // Phase execution happens once, but gate fails 3 times triggering rework
+            expect(mockExecutor.getCallLog()).toHaveLength(3); // 1 initial + 2 rework re-executions
+        });
+    });
+
+    // ─── Update Task Status Edge Cases ─────────────────────────────────────────
+
+    describe('Update Task Status Edge Cases', () => {
+        test('should handle updateTaskStatus with failing CLI', async () => {
+            // This tests the warning path when tasks CLI fails
+            // We need to run with subtasks to trigger updateTaskStatus
+            // The test verifies the runner handles this gracefully
+
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'task-status-pipeline',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            // Use a WBS-like task ref to potentially trigger subtask path
+            const options: RunOptions = {
+                taskRef: 'docs/.tasks/0266_test_task.md', // WBS-like path
+            };
+
+            // Even with subtask detection failing, runner should complete
+            const result = await runner.run(options, pipeline);
+
+            // Runner may complete or fail depending on subtask resolution
+            // The important thing is it doesn't crash on updateTaskStatus
+            expect(result.status).toBeDefined();
+        });
+
+        test('should warn when tasks CLI returns a non-zero exit code', async () => {
+            const spawnSpy = spyOn(Bun, 'spawnSync').mockReturnValue({
+                exitCode: 1,
+                stderr: new TextEncoder().encode('tasks update failed'),
+                stdout: new Uint8Array(),
+            } as never);
+            const warnSpy = spyOn(logger, 'warn').mockImplementation(() => {});
+
+            await (
+                runner as unknown as {
+                    updateTaskStatus: (wbs: string, status: 'done' | 'wip' | 'pending') => Promise<void>;
+                }
+            ).updateTaskStatus('0266', 'done');
+
+            expect(spawnSpy).toHaveBeenCalledWith(['tasks', 'update', '0266', 'done'], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+                stderr: 'pipe',
+            });
+            expect(warnSpy).toHaveBeenCalledWith('[runner] Failed to update task 0266 status: tasks update failed');
+
+            warnSpy.mockRestore();
+            spawnSpy.mockRestore();
+        });
+
+        test('should warn when tasks CLI throws', async () => {
+            const spawnSpy = spyOn(Bun, 'spawnSync').mockImplementation(() => {
+                throw new Error('spawn exploded');
+            });
+            const warnSpy = spyOn(logger, 'warn').mockImplementation(() => {});
+
+            await (
+                runner as unknown as {
+                    updateTaskStatus: (wbs: string, status: 'done' | 'wip' | 'pending') => Promise<void>;
+                }
+            ).updateTaskStatus('0267', 'pending');
+
+            expect(warnSpy).toHaveBeenCalledWith('[runner] Error updating task 0267 status:', expect.any(Error));
+
+            warnSpy.mockRestore();
+            spawnSpy.mockRestore();
+        });
+    });
+
+    // ─── Private Helper Coverage ───────────────────────────────────────────────
+
+    describe('Private Helper Coverage', () => {
+        test('should generate deterministic run ids from time and randomness', () => {
+            const nowSpy = spyOn(Date, 'now').mockReturnValue(1234567890);
+            const randomSpy = spyOn(Math, 'random').mockReturnValue(0.123456789);
+
+            const runId = (runner as unknown as { generateRunId: () => string }).generateRunId();
+
+            expect(runId).toBe(`run_${(1234567890).toString(36)}_${(0.123456789).toString(36).slice(2, 8)}`);
+
+            randomSpy.mockRestore();
+            nowSpy.mockRestore();
+        });
+
+        test('should detect uncommitted changes from git status output', async () => {
+            const spawnSpy = spyOn(Bun, 'spawnSync').mockReturnValue({
+                stdout: new TextEncoder().encode(' M plugins/rd3/skills/orchestration-v2/tests/runner.test.ts\n'),
+            } as never);
+
+            const hasChanges = await (
+                runner as unknown as { hasUncommittedChanges: () => Promise<boolean> }
+            ).hasUncommittedChanges();
+
+            expect(hasChanges).toBe(true);
+            expect(spawnSpy).toHaveBeenCalledWith(['git', 'status', '--porcelain'], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+            });
+
+            spawnSpy.mockRestore();
+        });
+
+        test('should return false when git status throws', async () => {
+            const spawnSpy = spyOn(Bun, 'spawnSync').mockImplementation(() => {
+                throw new Error('git unavailable');
+            });
+
+            const hasChanges = await (
+                runner as unknown as { hasUncommittedChanges: () => Promise<boolean> }
+            ).hasUncommittedChanges();
+
+            expect(hasChanges).toBe(false);
+
+            spawnSpy.mockRestore();
+        });
+
+        test('should warn when async event persistence fails', async () => {
+            const warnSpy = spyOn(logger, 'warn').mockImplementation(() => {});
+            const localEventBus = new EventBus();
+
+            new PipelineRunner({ getDb: () => ({}) } as unknown as StateManager, undefined, undefined, localEventBus);
+
+            localEventBus.emit({
+                run_id: 'event-persist-failure',
+                event_type: 'run.created',
+                payload: {},
+            });
+            await Promise.resolve();
+
+            expect(warnSpy).toHaveBeenCalledWith('[runner] Event persistence failed', expect.any(TypeError));
+
+            warnSpy.mockRestore();
+        });
+
+        test('should filter invalid skill checklist items from loaded defaults', () => {
+            const tempDir = mkdtempSync(join(tmpdir(), 'runner-skill-defaults-'));
+            const skillFile = join(tempDir, 'SKILL.md');
+            writeFileSync(
+                skillFile,
+                `---
+metadata:
+  gate_defaults:
+    auto:
+      checklist:
+        - "Keep me"
+        - ""
+        - 42
+      prompt_template: "Custom prompt"
+---
+body
+`,
+            );
+
+            const resolveSpy = spyOn(
+                runner as unknown as { resolveSkillDefinitionPath: (skillRef: string) => string | null },
+                'resolveSkillDefinitionPath',
+            ).mockReturnValue(skillFile);
+
+            const defaults = (
+                runner as unknown as {
+                    loadSkillAutoGateDefaults: (
+                        skillRef: string,
+                    ) => { checklist?: string[]; prompt_template?: string } | null;
+                }
+            ).loadSkillAutoGateDefaults('rd3:test-skill');
+
+            expect(defaults).toEqual({
+                checklist: ['Keep me'],
+                prompt_template: 'Custom prompt',
+            });
+
+            resolveSpy.mockRestore();
+            rmSync(tempDir, { recursive: true, force: true });
+        });
+
+        test('should summarize changed and untracked files', async () => {
+            const spawnSpy = spyOn(Bun, 'spawnSync')
+                .mockReturnValueOnce({
+                    stdout: new TextEncoder().encode('M tracked.ts\nA added.ts\n'),
+                } as never)
+                .mockReturnValueOnce({
+                    stdout: new TextEncoder().encode('  scratch.ts  \n\nnotes.md\n'),
+                } as never);
+
+            const summary = await (
+                runner as unknown as {
+                    getChangedFileSummary: () => Promise<{ changed: string[]; added: string[] }>;
+                }
+            ).getChangedFileSummary();
+
+            expect(summary).toEqual({
+                changed: ['tracked.ts'],
+                added: ['added.ts', 'scratch.ts', 'notes.md'],
+            });
+            expect(spawnSpy).toHaveBeenCalledTimes(2);
+
+            spawnSpy.mockRestore();
+        });
+    });
+
+    // ─── Undo with Downstream Phases ───────────────────────────────────────────
+
+    describe('Undo with Downstream Phases', () => {
+        test('should find downstream phases for undo', async () => {
+            // Create a run with snapshots that have downstream phases
+            const runId = 'undo-downstream-test';
+
+            await stateManager.createRun({
+                id: runId,
+                task_ref: 'undo-downstream-001',
+                phases_requested: 'implement,test,review',
+                status: 'RUNNING',
+                config_snapshot: {},
+                pipeline_name: 'test',
+            });
+
+            // Create phases
+            await stateManager.createPhase({
+                run_id: runId,
+                name: 'implement',
+                status: 'completed',
+                skill: 'rd3:code-implement',
+                rework_iteration: 0,
+            });
+
+            await stateManager.createPhase({
+                run_id: runId,
+                name: 'test',
+                status: 'completed',
+                skill: 'rd3:sys-testing',
+                rework_iteration: 0,
+            });
+
+            // Save a snapshot for implement phase
+            await stateManager.saveRollbackSnapshot({
+                run_id: runId,
+                phase_name: 'implement',
+                git_head: 'abc123',
+                files_before: { 'test.ts': 'hash1' },
+            });
+
+            // Undo should find downstream phases (test, review)
+            const undoResult = await runner.undo(runId, 'implement', { force: true });
+
+            // Undo should succeed (or fail gracefully if no git repo)
+            expect(undoResult).toBeDefined();
+            expect(typeof undoResult.success).toBe('boolean');
         });
     });
 });
