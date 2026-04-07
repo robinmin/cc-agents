@@ -38,6 +38,8 @@ export function parseArgs(argv: string[]): ParsedCommand {
         const arg = argv[i];
         if (arg === '--dry-run') {
             options.dryRun = true;
+        } else if (arg === '--skip-deps') {
+            options.skipDeps = true;
         } else if (arg === '--verbose') {
             options.verbose = true;
         } else if (arg === '--quiet') {
