@@ -103,6 +103,65 @@ Task 0341 ("Run bun run check") is not a deliverable — it is what you do at th
 
 Rule: if the subtask name ends with a file name or describes a step in an implementation plan, it is NOT a subtask — write it in the **Plan** section instead.
 
+### ⚠️ Critical: Do NOT Decompose by Implementation Phases
+
+**The most common anti-pattern is decomposing by implementation phases:**
+
+```yaml
+# BAD: Decomposing by phase (investigation, design, implement, test)
+0352: Add Antigravity adapter
+  ├── 0356: investigate agy CLI      ← Phase, not deliverable
+  ├── 0357: design adapter           ← Phase, not deliverable
+  ├── 0358: implement adapter       ← Part of the feature
+  ├── 0359: integrate backend        ← Part of the feature
+  └── 0360: add unit tests          ← Part of implementation
+```
+
+**Why this is wrong:**
+1. Phases are NOT features — they are activities within a feature
+2. "Investigation" task (0356) was marked "Done" before actual implementation
+3. 5 task files for work that could be 1 self-contained task
+4. Fragments review and implementation unnecessarily
+
+**Correct approach — Feature Complexity Decomposition:**
+
+```yaml
+# GOOD: Decompose by deliverable complexity
+0352: Add Antigravity adapter
+
+### Solution
+
+#### Subtasks
+
+- [ ] [0356 - Implement Antigravity adapter core](0356_antigravity_adapter_core.md)
+- [ ] [0357 - Add backend selection and health checks](0357_backend_selection.md)
+
+**Dependency order:** 0356 → 0357
+**Estimated total effort:** 4-6 hours
+```
+
+**Or better yet — don't decompose at all:**
+
+```yaml
+# If the feature fits in one head (< 8 hours), keep it as ONE task
+0352: Add Antigravity adapter
+
+### Solution
+
+(No decomposition — single task is sufficient)
+
+### Plan
+
+1. Research: `agy --help`, understand capabilities
+2. Design: Document adapter interface in Design section
+3. Implement: Add functions to acpx-query.ts
+4. Integrate: BACKEND env var
+5. Test: Unit tests
+6. Verify: bun run check
+```
+
+**Detection:** If your subtask names are pipeline phases (investigate, design, implement, test), you're doing it wrong.
+
 ### Over-Decomposition Warning Signs
 
 | Warning | Indicator |
