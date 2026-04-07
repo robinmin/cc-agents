@@ -612,8 +612,8 @@ export const taskActionHandler: RouteHandler = async (projectRoot, request, para
     const wbs = params.wbs;
     if (!wbs) return jsonErr('Missing WBS parameter');
 
-    const body = (await request.json().catch(() => ({}))) as { action?: string; channel?: string };
-    const { action, channel } = body;
+    const body = (await request.json().catch(() => ({}))) as { action?: string; channel?: string; skipDeps?: boolean };
+    const { action, channel, skipDeps } = body;
     if (!action || !channel) return jsonErr('Missing action or channel field');
 
     // Mapping logic for orchestrator-v2
@@ -625,13 +625,18 @@ export const taskActionHandler: RouteHandler = async (projectRoot, request, para
     } else if (action === 'run') {
         actionArgs.push('--phases', 'implement');
     } else if (action === 'verify') {
-        actionArgs.push('--phases', 'test');
+        actionArgs.push('--phases', 'verify-func');
     } else if (action === 'decompose') {
         actionArgs.push('--phases', 'decompose');
     } else if (action === 'evaluate') {
         actionArgs.push('--phases', 'review');
     } else {
         return jsonErr(`Unknown action: ${action}`);
+    }
+
+    // Add --skip-deps if checkbox is checked
+    if (skipDeps) {
+        actionArgs.push('--skip-deps');
     }
 
     logger.info(`Delegating task action: orchestrator run ${wbs} ${actionArgs.join(' ')} --channel ${channel}`);
