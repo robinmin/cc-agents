@@ -716,3 +716,117 @@ describe('config/parser — validatePipeline skill existence', () => {
         expect(result.warnings.some((e) => e.rule === 'skill_not_found')).toBe(false);
     });
 });
+
+describe('Skill Metadata Validation', () => {
+    const { validateSkillMetadata } = require('../scripts/config/schema');
+
+    test('validates empty/undefined metadata as valid', () => {
+        expect(validateSkillMetadata(undefined).valid).toBe(true);
+        expect(validateSkillMetadata({}).valid).toBe(true);
+    });
+
+    test('validates metadata without gate_defaults as valid', () => {
+        const result = validateSkillMetadata({
+            author: 'test',
+            platforms: ['claude'],
+        });
+        expect(result.valid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+    });
+
+    test('validates valid gate_defaults.auto structure', () => {
+        const result = validateSkillMetadata({
+            gate_defaults: {
+                auto: {
+                    checklist: [
+                        'Phase output is complete',
+                        'No obvious errors',
+                    ],
+                    prompt_template: 'Custom prompt: {checklist}',
+                },
+            },
+        });
+        expect(result.valid).toBe(true);
+        expect(result.errors).toHaveLength(0);
+    });
+
+    test('allows null prompt_template', () => {
+        const result = validateSkillMetadata({
+            gate_defaults: {
+                auto: {
+                    checklist: ['Test item'],
+                    prompt_template: null,
+                },
+            },
+        });
+        expect(result.valid).toBe(true);
+    });
+
+    test('rejects non-object gate_defaults', () => {
+        const result = validateSkillMetadata({
+            gate_defaults: 'not an object',
+        } as Record<string, unknown>);
+        expect(result.valid).toBe(false);
+        expect(result.errors[0].rule).toBe('gate_defaults_type');
+    });
+
+    test('rejects non-object auto', () => {
+        const result = validateSkillMetadata({
+            gate_defaults: {
+                auto: 'not an object',
+            },
+        } as Record<string, unknown>);
+        expect(result.valid).toBe(false);
+        expect(result.errors[0].rule).toBe('gate_defaults.auto_type');
+    });
+
+    test('rejects non-array checklist', () => {
+        const result = validateSkillMetadata({
+            gate_defaults: {
+                auto: {
+                    checklist: 'not an array',
+                },
+            },
+        } as Record<string, unknown>);
+        expect(result.valid).toBe(false);
+        expect(result.errors[0].rule).toBe('gate_defaults.auto.checklist_type');
+    });
+
+    test('rejects checklist with non-string items', () => {
+        const result = validateSkillMetadata({
+            gate_defaults: {
+                auto: {
+                    checklist: ['valid string', 123, 'another string'],
+                },
+            },
+        } as Record<string, unknown>);
+        expect(result.valid).toBe(false);
+        expect(result.errors.some((e: { rule: string }) => e.rule === 'gate_defaults.auto.checklist_item_type')).toBe(true);
+    });
+
+    test('rejects invalid prompt_template type', () => {
+        const result = validateSkillMetadata({
+            gate_defaults: {
+                auto: {
+                    checklist: ['Test'],
+                    prompt_template: 123,
+                },
+            },
+        } as Record<string, unknown>);
+        expect(result.valid).toBe(false);
+        expect(result.errors[0].rule).toBe('gate_defaults.auto.prompt_template_type');
+    });
+
+    test('collects multiple errors', () => {
+        const result = validateSkillMetadata({
+            gate_defaults: {
+                auto: {
+                    checklist: 123,
+                    prompt_template: 456,
+                },
+            },
+        } as Record<string, unknown>);
+        expect(result.valid).toBe(false);
+        expect(result.errors.length).toBeGreaterThanOrEqual(2);
+    });
+});
