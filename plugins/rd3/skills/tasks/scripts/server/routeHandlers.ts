@@ -4,7 +4,7 @@
  * Each handler receives (projectRoot, request, params, broadcaster) and returns a Response.
  * No HTTP server dependency — testable via direct function invocation.
  */
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createTask } from '../commands/create';
@@ -46,13 +46,39 @@ async function readJsonBody<T>(request: Request): Promise<T | null> {
     }
 }
 
+/** Directory for managed temp files */
+const TEMP_DIR = join(tmpdir(), 'tasks-server');
+
 /** Write content to a temp file and return its path */
 function writeToTempFile(content: string, prefix: string): string {
-    const dir = join(tmpdir(), 'tasks-server');
-    mkdirSync(dir, { recursive: true });
-    const path = join(dir, `${prefix}-${Date.now()}.md`);
+    mkdirSync(TEMP_DIR, { recursive: true });
+    const path = join(TEMP_DIR, `${prefix}-${Date.now()}.md`);
     writeFileSync(path, content, 'utf-8');
     return path;
+}
+
+/** Safely delete a temp file, ignoring errors (best-effort cleanup) */
+function cleanupTempFile(path: string): void {
+    try {
+        if (existsSync(path)) {
+            unlinkSync(path);
+        }
+    } catch {
+        // Best-effort cleanup — don't fail the operation
+    }
+}
+
+/** Purge all temp files in the managed temp directory */
+export function purgeTempDir(): void {
+    try {
+        const { readdirSync } = require('node:fs');
+        const files = readdirSync(TEMP_DIR);
+        for (const file of files) {
+            cleanupTempFile(join(TEMP_DIR, file));
+        }
+    } catch {
+        // Best-effort cleanup
+    }
 }
 
 function emitEvent(broadcaster: Broadcaster, event: TaskEvent): void {
@@ -262,25 +288,29 @@ export const updateTaskHandler: RouteHandler = async (projectRoot, request, para
         // Section update via inline content
         if (body.section && body.content !== undefined) {
             const tempPath = writeToTempFile(body.content, `task-${wbs}-section`);
-            const result = updateTask(projectRoot, wbs, {
-                section: body.section,
-                fromFile: tempPath,
-                quiet: true,
-            });
-            if (isErr(result)) {
-                return jsonErr(result.error);
+            try {
+                const result = updateTask(projectRoot, wbs, {
+                    section: body.section,
+                    fromFile: tempPath,
+                    quiet: true,
+                });
+                if (isErr(result)) {
+                    return jsonErr(result.error);
+                }
+
+                const status = getTaskStatus(projectRoot, wbs);
+
+                emitEvent(broadcaster, {
+                    type: 'updated',
+                    wbs,
+                    ...(status ? { status } : {}),
+                    timestamp: new Date().toISOString(),
+                });
+
+                return jsonOk(result.value);
+            } finally {
+                cleanupTempFile(tempPath);
             }
-
-            const status = getTaskStatus(projectRoot, wbs);
-
-            emitEvent(broadcaster, {
-                type: 'updated',
-                wbs,
-                ...(status ? { status } : {}),
-                timestamp: new Date().toISOString(),
-            });
-
-            return jsonOk(result.value);
         }
 
         // Entire body update
@@ -442,6 +472,7 @@ export const putArtifactHandler: RouteHandler = async (projectRoot, request, par
             return jsonOk(result.value);
         } finally {
             release();
+            cleanupTempFile(tempPath);
         }
     }
 
@@ -510,26 +541,30 @@ export const batchCreateHandler: RouteHandler = async (projectRoot, request, _pa
 
     // Write items to temp JSON file and delegate to batchCreate
     const tempPath = writeToTempFile(JSON.stringify(body.items), 'batch-create');
-    const result = batchCreate(projectRoot, tempPath, undefined, true, 'json');
-    if (isErr(result)) {
-        return jsonErr(result.error);
-    }
+    try {
+        const result = batchCreate(projectRoot, tempPath, undefined, true, 'json');
+        if (isErr(result)) {
+            return jsonErr(result.error);
+        }
 
-    // Broadcast created events for each WBS
-    for (const wbs of result.value.created) {
-        emitEvent(broadcaster, {
-            type: 'created',
-            wbs,
-            status: 'Backlog',
-            timestamp: new Date().toISOString(),
-        });
-    }
+        // Broadcast created events for each WBS
+        for (const wbs of result.value.created) {
+            emitEvent(broadcaster, {
+                type: 'created',
+                wbs,
+                status: 'Backlog',
+                timestamp: new Date().toISOString(),
+            });
+        }
 
-    if (result.value.created.length === 0 && result.value.errors.length > 0) {
-        return jsonErr(`Failed to create any tasks: ${result.value.errors[0]}`);
-    }
+        if (result.value.created.length === 0 && result.value.errors.length > 0) {
+            return jsonErr(`Failed to create any tasks: ${result.value.errors[0]}`);
+        }
 
-    return jsonOk(result.value);
+        return jsonOk(result.value);
+    } finally {
+        cleanupTempFile(tempPath);
+    }
 };
 
 // ── Refresh ──────────────────────────────────────────────────────────────
