@@ -8,3 +8,4 @@ export * from './fs';
 export * from './time';
 export * from './validation';
 export * from './subtasks';
+export * from './skill-resolver';
