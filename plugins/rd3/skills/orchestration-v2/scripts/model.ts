@@ -154,6 +154,10 @@ export interface ExecutionRequest {
     readonly reworkMax?: number;
     /** Optional task reference from RunRecord, injected by the runner. */
     readonly taskRef?: string;
+    /** Session name for persistent session execution. If provided, uses session mode. */
+    readonly session?: string;
+    /** Session TTL in seconds for keepalive. Only used when session is provided. */
+    readonly sessionTtlSeconds?: number;
 }
 
 export interface ResourceMetrics {
@@ -425,6 +429,10 @@ export interface RunOptions {
     readonly coverage?: number;
     /** Skip DAG dependency validation for phase subset runs */
     readonly skipDeps?: boolean;
+    /** Session name for persistent session execution across pipeline runs. */
+    readonly session?: string;
+    /** Session TTL in seconds for keepalive. Only used when session is provided. */
+    readonly sessionTtlSeconds?: number;
 }
 
 export interface ResumeOptions {

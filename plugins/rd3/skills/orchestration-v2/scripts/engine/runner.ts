@@ -831,6 +831,8 @@ export class PipelineRunner {
                 ...(iteration > 0 && { reworkIteration: iteration }),
                 ...(maxRework > 0 && { reworkMax: maxRework }),
                 ...(options.dryRun && { outputSchema: { dryRun: true } }),
+                ...(options.session && { session: options.session }),
+                ...(options.sessionTtlSeconds !== undefined && { sessionTtlSeconds: options.sessionTtlSeconds }),
             };
 
             const result = await this.pool.execute(req);

@@ -1,9 +1,9 @@
 ---
 name: add runSlashCommand to acpx-query.ts
 description: add runSlashCommand to acpx-query.ts
-status: Completed
+status: Done
 created_at: 2026-04-07T06:01:34.119Z
-updated_at: 2026-04-07T06:01:34.119Z
+updated_at: 2026-04-07T20:41:06.795Z
 folder: docs/tasks2
 type: task
 impl_progress:

@@ -161,6 +161,47 @@ describe('AcpExecutor', () => {
             expect(result.success).toBe(false);
             expect(result.timedOut).toBe(true);
         });
+
+        test('uses prompt --session when session is provided', async () => {
+            const state = newState();
+            const exec = new AcpExecutor('pi', makeMockExec(state));
+            await exec.execute({ ...BASE_REQ, session: 'my-session' });
+            const args = state.capturedArgs;
+            expect(args).toContain('prompt');
+            expect(args).toContain('--session');
+            expect(args).toContain('my-session');
+            // Should NOT contain 'exec'
+            expect(args.indexOf('exec')).toBe(-1);
+        });
+
+        test('adds --ttl when sessionTtlSeconds is provided', async () => {
+            const state = newState();
+            const exec = new AcpExecutor('pi', makeMockExec(state));
+            await exec.execute({ ...BASE_REQ, session: 'my-session', sessionTtlSeconds: 600 });
+            const args = state.capturedArgs;
+            const ttlIdx = args.indexOf('--ttl');
+            expect(ttlIdx).toBeGreaterThan(0);
+            expect(args[ttlIdx + 1]).toBe('600');
+        });
+
+        test('omits --ttl when sessionTtlSeconds is undefined', async () => {
+            const state = newState();
+            const exec = new AcpExecutor('pi', makeMockExec(state));
+            await exec.execute({ ...BASE_REQ, session: 'my-session' });
+            const args = state.capturedArgs;
+            expect(args).not.toContain('--ttl');
+        });
+
+        test('uses exec when no session is provided', async () => {
+            const state = newState();
+            const exec = new AcpExecutor('pi', makeMockExec(state));
+            await exec.execute(BASE_REQ);
+            const args = state.capturedArgs;
+            expect(args).toContain('exec');
+            // Should NOT contain 'prompt' and '--session'
+            expect(args.indexOf('prompt')).toBe(-1);
+            expect(args.indexOf('--session')).toBe(-1);
+        });
     });
 
     describe('prompt building', () => {

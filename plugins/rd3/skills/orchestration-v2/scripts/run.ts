@@ -125,6 +125,8 @@ Command-specific options:
     --auto                  Auto-approve all human gates
     --dry-run               Show execution plan without running
     --skip-deps             Skip DAG dependency validation for phase subsets
+    --session <name>        Use persistent session for faster reuse
+    --ttl <seconds>         Session TTL for keepalive (use with --session)
 
   resume:
     --approve               Approve pending human gate (default)
@@ -416,6 +418,8 @@ async function handleRun(options: Record<string, unknown>, state: StateManager):
             ...(options.coverage != null && { coverage: options.coverage as number }),
             ...(options.auto === true && { auto: true }),
             ...(options.skipDeps === true && { skipDeps: true }),
+            ...(options.session != null && { session: options.session as string }),
+            ...(options.ttl != null && { sessionTtlSeconds: options.ttl as number }),
         };
 
         const runner = new PipelineRunner(state);

@@ -112,21 +112,24 @@ export class AcpExecutor implements Executor {
     /**
      * Build acpx command-line arguments.
      *
-     * Uses `exec` subcommand for one-shot execution. Tool invocation is enabled
-     * via --allowed-tools so the pi agent can call Skill() directly.
+     * Uses `exec` subcommand for one-shot execution by default. If req.session
+     * is provided, uses `prompt --session <name>` for session reuse.
      *
-     * Argument ordering:
+     * Tool invocation is enabled via --allowed-tools so the pi agent can call
+     * Skill() directly.
+     *
+     * Argument ordering (exec mode):
      *   acpx [global options] <agent> exec [agent options] [prompt]
+     *
+     * Argument ordering (session mode):
+     *   acpx [global options] <agent> prompt --session <name> [prompt]
      *
      * Global options (positioned before the agent):
      *   --format json, --allowed-tools, --timeout, --non-interactive-permissions
      *
-     * Agent subcommand and prompt (positioned after the agent):
-     *   pi exec <prompt>
-     *
      * Note: --timeout and --non-interactive-permissions are global options in
      * acpx (v0.1.x). If acpx future-releases move them to agent-specific
-     * options they must be repositioned to after "pi exec".
+     * options they must be repositioned to after "pi exec" or "pi prompt".
      */
     private buildArgs(req: ExecutionRequest): string[] {
         const args: string[] = [];
@@ -138,7 +141,16 @@ export class AcpExecutor implements Executor {
         args.push('--non-interactive-permissions', 'deny');
 
         // Agent subcommand and prompt
-        args.push(this.agentName, 'exec');
+        if (req.session) {
+            // Session mode: use prompt --session for session reuse
+            args.push(this.agentName, 'prompt', '--session', req.session);
+            if (req.sessionTtlSeconds !== undefined && req.sessionTtlSeconds > 0) {
+                args.push('--ttl', String(req.sessionTtlSeconds));
+            }
+        } else {
+            // One-shot mode: use exec
+            args.push(this.agentName, 'exec');
+        }
         args.push(this.buildPrompt(req));
 
         return args;
