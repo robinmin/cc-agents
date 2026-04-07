@@ -1,17 +1,17 @@
 ---
 name: Enhance rd3 orchestration-v2 operability and gate analytics
 description: Strengthen orchestration-v2 with cleaner gate history, richer inspection/reporting, stronger skill metadata contracts, and improved analytics
-status: Backlog
+status: Done
 created_at: 2026-04-04T00:00:00.000Z
 updated_at: 2026-04-06T00:21:38.241Z
 folder: docs/tasks2
 type: task
 impl_progress:
-  planning: pending
-  design: pending
-  implementation: pending
-  review: pending
-  testing: pending
+  planning: done
+  design: done
+  implementation: done
+  review: done
+  testing: done
 ---
 
 ## 0327. Enhance rd3:orchestration-v2 operability and gate analytics
@@ -165,6 +165,13 @@ Review criteria for this backlog and its future sub-tasks:
 
 | Type | Path | Agent | Date |
 | ---- | ---- | ----- | ---- |
+| Fix | `plugins/rd3/skills/orchestration-v2/scripts/utils/skill-resolver.ts` | Lord Robb | 2026-04-07 |
+| Fix | `plugins/rd3/skills/orchestration-v2/scripts/config/parser.ts` | Lord Robb | 2026-04-07 |
+| Fix | `plugins/rd3/skills/orchestration-v2/scripts/state/queries.ts` | Lord Robb | 2026-04-07 |
+| Fix | `plugins/rd3/skills/orchestration-v2/scripts/config/schema.ts` | Lord Robb | 2026-04-07 |
+| Test | `plugins/rd3/skills/orchestration-v2/scripts/utils/skill-resolver.test.ts` | Lord Robb | 2026-04-07 |
+| Test | `plugins/rd3/skills/orchestration-v2/tests/gate-analytics.test.ts` | Lord Robb | 2026-04-07 |
+| Test | `plugins/rd3/skills/orchestration-v2/tests/config-parser.test.ts` | Lord Robb | 2026-04-07 |
 
 
 ### References
