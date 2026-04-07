@@ -30,6 +30,10 @@ Run a pipeline for a task.
 | `--channel` | string | `auto` | Execution channel for worker phases (`current` is a deprecated alias) |
 | `--dry-run` | boolean | false | Show execution plan without running |
 | `--coverage` | number | from preset/phase | Override coverage threshold |
+| `--source` | path | `.` | Source code path for docs phase |
+| `--architecture` | path | `docs/01_ARCHITECTURE_SPEC.md` | Architecture doc path (docs preset) |
+| `--spec` | path | `docs/02_DEVELOPER_SPEC.md` | Developer spec path (docs preset) |
+| `--user-manual` | path | `docs/03_USER_MANUAL.md` | User manual path (docs preset) |
 
 ### Phase Selection Precedence
 
