@@ -174,6 +174,25 @@ Full CLI documentation: → `references/cli-reference.md`
 | `orchestrator prune` | Compact event store |
 | `orchestrator migrate` | Migrate v1 state to v2 |
 
+### Docs Preset Arguments
+
+When using `--preset docs`, the following arguments customize canonical doc paths:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--source <path>` | `.` | Source code path to scan for changes |
+| `--architecture <path>` | `docs/01_ARCHITECTURE_SPEC.md` | Architecture document path |
+| `--spec <path>` | `docs/02_DEVELOPER_SPEC.md` | Developer spec document path |
+| `--user-manual <path>` | `docs/03_USER_MANUAL.md` | User manual document path |
+
+```bash
+# Default paths
+orchestrator run 0274 --preset docs
+
+# Custom doc paths
+orchestrator run 0274 --preset docs --source ./src --architecture docs/ARCH.md --spec docs/SPEC.md --user-manual docs/MANUAL.md
+```
+
 ## Pipeline YAML Guide
 
 How to write and customize pipeline definitions: → `references/pipeline-yaml-guide.md`
