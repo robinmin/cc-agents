@@ -101,6 +101,10 @@ phases:
       command: "bun run typecheck"
     timeout: 30m
     after: [verify-bdd, verify-func]
+    payload:
+      architecture: docs/spec/orchestrator-architecture-v2.md
+      spec: docs/spec/orchestrator-fsd-v2.md
+      user_manual: docs/spec/orchestrator-user-manual-v2.md
 
   pr:
     skill: rd3:git-workflow
@@ -111,16 +115,28 @@ phases:
     timeout: 30m
     after: [docs]
 
-# ── Task profiles (match v1 phase-matrix.md) ──────────────────────────────────
+# ── Task profiles ───────────────────────────────────────────────────────────────
 #
-# | Profile   | v1 phases        | v2 preset phases                                        |
-# |-----------|------------------|---------------------------------------------------------|
-# | simple    | 5, 6             | implement, test                                         |
-# | standard  | 1,4,5,6,7,8a,8b,9 | intake, decompose, implement, test, review, verify-bdd, verify-func, docs |
-# | complex   | 1-9 (all)        | all 10 phases                                           |
-# | research  | 1-9 (all, 60%)   | all 10 phases, lower coverage                           |
+# | Profile          | Phases (no docs/pr)                                     |
+# |------------------|--------------------------------------------------------|
+# | default          | intake, decompose, implement, test, review, verify-bdd, verify-func |
+# | default+docs     | default + docs                                         |
+# | simple           | implement, test                                        |
+# | standard         | default + docs, pr                                     |
+# | complex          | arch, design + standard                                |
+# | research         | arch, design + standard (60% coverage)                 |
 
 presets:
+  # Default for most tasks: standard workflow without docs/pr (manual opt-in)
+  default:
+    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func]
+    defaults: { coverage_threshold: 80 }
+
+  # Include docs phase (no pr - pr is always human-gated)
+  default+docs:
+    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    defaults: { coverage_threshold: 80 }
+
   simple:
     phases: [implement, test]
     defaults: { coverage_threshold: 60 }
