@@ -167,6 +167,8 @@ Command-specific options:
 
   exec:
     --channel <name>        Execution channel (claude-code, pi, codex, gemini, kilocode, openclaw, opencode)
+    --session <name>        Use persistent session for faster reuse (uses prompt --session)
+    --ttl <seconds>        Session TTL in seconds (keeps session alive, use with --session)
     --dry-run               Preview transformation without executing
     <slash-command>        Claude Code style slash command (e.g., "/rd3:dev-fixall 'bun run test'")
 
@@ -1008,6 +1010,11 @@ async function handleExec(options: Record<string, unknown>): Promise<void> {
     const channelOption = options.channel as string | undefined;
     const channel: ExecutionChannel = (channelOption as ExecutionChannel) ?? 'claude-code';
 
+    // Session for reuse (optional)
+    const session = options.session as string | undefined;
+    // TTL for session keepalive (optional)
+    const sessionTtlSeconds = options.ttl as number | undefined;
+
     // Validate channel
     if (!isExecutionChannel(channel)) {
         logger.error(
@@ -1024,6 +1031,15 @@ async function handleExec(options: Record<string, unknown>): Promise<void> {
 `);
             process.stdout.write(`  Channel: ${channel}
 `);
+            if (session) {
+                process.stdout.write(`  Session: ${session}${sessionTtlSeconds ? ` (TTL: ${sessionTtlSeconds}s)` : ''}
+`);
+                process.stdout.write(`  Mode: prompt --session
+`);
+            } else {
+                process.stdout.write(`  Mode: exec (one-shot)
+`);
+            }
             process.stdout.write(`  Input:   ${slashCommand}
 `);
             process.stdout.write(`  Transformed: ${transformed}
@@ -1044,7 +1060,12 @@ async function handleExec(options: Record<string, unknown>): Promise<void> {
     // Get timeout (default: 5 minutes)
     const timeoutMs = (options.coverage as number | undefined) ?? 300_000;
 
-    const result = runSlashCommand(slashCommand, { channel, timeoutMs });
+    const result = runSlashCommand(slashCommand, {
+        channel,
+        timeoutMs,
+        ...(session && { session }),
+        ...(sessionTtlSeconds !== undefined && { sessionTtlSeconds }),
+    });
 
     // Output stdout/stderr
     if (result.stdout) {

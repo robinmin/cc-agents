@@ -513,6 +513,18 @@ export interface RunSlashCommandOptions {
     timeoutMs?: number;
     /** Allowed tools for skill execution. Default: ALLOWED_TOOLS */
     allowedTools?: string;
+    /**
+     * Session name for persistent session execution.
+     * If provided, uses `prompt --session <name>` for session reuse.
+     * If not provided, uses `exec` (one-shot, no session reuse).
+     */
+    session?: string;
+    /**
+     * Session TTL in seconds. Only used when session is provided.
+     * Keeps the session alive for this duration after the command completes.
+     * Default: 300 (5 minutes).
+     */
+    sessionTtlSeconds?: number;
 }
 
 /**
@@ -556,8 +568,11 @@ const VALID_CHANNELS: ExecutionChannel[] = [
  * - codex:       /rd3:dev-fixall → $rd3-dev-fixall
  * - others:      /rd3:dev-fixall → /rd3:dev-fixall (pass through)
  *
+ * If options.session is provided, uses persistent session mode (prompt --session <name>).
+ * Otherwise uses one-shot mode (exec).
+ *
  * @param slashCommand - Claude Code style slash command (e.g., "/rd3:dev-fixall \"bun run test\"")
- * @param options - Execution options (channel, timeout, allowedTools)
+ * @param options - Execution options (channel, timeout, allowedTools, session, sessionTtlSeconds)
  * @returns AcpxQueryResult with stdout/stderr/exitCode
  * @throws TypeError if channel is invalid or slashCommand is empty
  */
@@ -594,19 +609,57 @@ export function runSlashCommand(slashCommand: string, options?: RunSlashCommandO
 
     // Transform command for channel
     const transformedCommand = SLASH_COMMAND_TRANSFORMS[channel](slashCommand.trim());
+    const sessionName = options?.session;
+    const timeoutMs = options?.timeoutMs ?? 300_000;
 
-    // Build acpx exec options
-    const execOptions: AcpxQueryOptions = {
+    // Build acpx options
+    const acpxOptions: AcpxQueryOptions = {
         agent: channel,
         format: 'quiet',
-        timeoutMs: options?.timeoutMs ?? 300_000,
+        timeoutMs,
         allowedTools: options?.allowedTools ?? ALLOWED_TOOLS,
     };
 
-    // Execute via queryLlm
-    return queryLlm(transformedCommand, execOptions);
+    // If session is provided, use prompt --session mode for session reuse
+    if (sessionName) {
+        return queryLlmSession(sessionName, transformedCommand, acpxOptions, options?.sessionTtlSeconds);
+    }
+
+    // Otherwise use exec mode (one-shot)
+    return queryLlm(transformedCommand, acpxOptions);
 }
 
+/**
+ * Execute a prompt via acpx using a persistent session.
+ * This enables session reuse for faster subsequent calls.
+ *
+ * @param sessionName - Session name or ID to use
+ * @param prompt - The prompt to send
+ * @param options - acpx options
+ * @param ttlSeconds - Session TTL in seconds (keeps session alive)
+ * @returns AcpxQueryResult with stdout/stderr/exitCode
+ */
+function queryLlmSession(
+    sessionName: string,
+    prompt: string,
+    options: AcpxQueryOptions,
+    ttlSeconds?: number,
+): AcpxQueryResult {
+    const timeout = options.timeoutMs ?? 300_000;
+    const acpxBin = options.acpxBin ?? getEnv('ACPX_BIN') ?? 'acpx';
+    const agent = options.agent ?? 'claude';
+
+    // Build prompt command: acpx --format quiet [--timeout N] [--ttl N] <agent> prompt --session <name> <prompt>
+    const args: string[] = [acpxBin, '--format', 'quiet'];
+    if (timeout < 86400_000) {
+        args.push('--timeout', String(Math.ceil(timeout / 1000)));
+    }
+    if (ttlSeconds !== undefined && ttlSeconds > 0) {
+        args.push('--ttl', String(ttlSeconds));
+    }
+    args.push(agent, 'prompt', '--session', sessionName, prompt);
+    return execAcpxSync(args, timeout);
+}
 /**
  * Get the transformed slash command for a channel without executing.
  * Useful for --dry-run preview.

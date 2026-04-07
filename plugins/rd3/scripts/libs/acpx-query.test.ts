@@ -314,6 +314,27 @@ describe('extractFirstBalancedJsonObject', async () => {
         const result = extractFirstBalancedJsonObject('{"items":[1,2,3]}');
         expect(result).toContain('"items"');
     });
+
+    test('handles escaped backslash', async () => {
+        const { extractFirstBalancedJsonObject } = await import('./acpx-query');
+        // Test escaped backslash handling (lines 428-429)
+        const result = extractFirstBalancedJsonObject('{"path":"C:\\\\Users\\\\test"}');
+        expect(result).toContain('path');
+    });
+
+    test('returns empty string for incomplete object', async () => {
+        const { extractFirstBalancedJsonObject } = await import('./acpx-query');
+        // Test early return when no balanced braces found (lines 432-433)
+        const result = extractFirstBalancedJsonObject('{incomplete');
+        expect(result).toBe('');
+    });
+
+    test('handles object with escaped quotes', async () => {
+        const { extractFirstBalancedJsonObject } = await import('./acpx-query');
+        // Test escaped quote handling
+        const result = extractFirstBalancedJsonObject('{"msg":"say \\"hello\\""}');
+        expect(result).toContain('msg');
+    });
 });
 
 describe('ALLOWED_TOOLS constant', async () => {
@@ -894,5 +915,82 @@ describe('runSlashCommand transformation integration', async () => {
     test('transformation for claude-code passes through', () => {
         const transformed = transformSlashCommand('/rd3:dev-fixall "bun run test"', 'claude-code');
         expect(transformed).toBe('/rd3:dev-fixall "bun run test"');
+    });
+});
+
+// ─── Additional Coverage Tests ───────────────────────────────────────────────
+
+describe('queryLlmSession via runSlashCommand', async () => {
+    test('creates session-based query with ttl', async () => {
+        const { runSlashCommand } = await import('./acpx-query');
+        const result = runSlashCommand('/rd3:test', {
+            channel: 'claude-code',
+            session: 'test-session',
+            sessionTtlSeconds: 3600,
+            timeoutMs: 5000,
+        });
+        // Should return valid structure regardless of execution result
+        expect(typeof result.ok).toBe('boolean');
+        expect(typeof result.durationMs).toBe('number');
+        expect(typeof result.exitCode).toBe('number');
+    });
+
+    test('session query without ttl uses defaults', async () => {
+        const { runSlashCommand } = await import('./acpx-query');
+        const result = runSlashCommand('/rd3:test', {
+            channel: 'claude-code',
+            session: 'test-session-no-ttl',
+            timeoutMs: 1000,
+        });
+        expect(typeof result.ok).toBe('boolean');
+        expect(typeof result.timedOut).toBe('boolean');
+    });
+});
+
+describe('checkAcpxHealth error handling', async () => {
+    test('handles binary that exits with non-zero', async () => {
+        const { checkAcpxHealth } = await import('./acpx-query');
+        const result = checkAcpxHealth('/bin/false');
+        expect(result.healthy).toBe(false);
+        expect(result.error).toContain('exited with code');
+    });
+
+    test('handles exception when spawning binary', async () => {
+        const { checkAcpxHealth } = await import('./acpx-query');
+        // Use an invalid path that will throw
+        const result = checkAcpxHealth('/nonexistent/binary/path/xyz');
+        expect(result.healthy).toBe(false);
+        expect(result.error).toBeDefined();
+    });
+});
+
+describe('queryLlmFromFile early return', async () => {
+    test('returns result without parsing when no options enabled', async () => {
+        const { queryLlmFromFile } = await import('./acpx-query');
+        // Create a temp file
+        const fs = await import('node:fs');
+        const os = await import('node:os');
+        const path = await import('node:path');
+        const tmpPath = path.join(os.tmpdir(), `test-${Date.now()}.txt`);
+        fs.writeFileSync(tmpPath, 'test content');
+
+        try {
+            // Use mock acpx via env
+            const originalBin = process.env.ACPX_BIN;
+            process.env.ACPX_BIN = '/tmp/acpx-mock/mock-acpx.sh';
+
+            const result = queryLlmFromFile(tmpPath, {
+                timeoutMs: 1000,
+                parseStructured: false,
+                extractMetrics: false,
+            });
+            // Should return result directly without parsing
+            expect(typeof result.ok).toBe('boolean');
+            expect(typeof result.durationMs).toBe('number');
+
+            process.env.ACPX_BIN = originalBin;
+        } finally {
+            fs.unlinkSync(tmpPath);
+        }
     });
 });

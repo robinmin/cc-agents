@@ -72,6 +72,16 @@ export function parseArgs(argv: string[]): ParsedCommand {
             i++;
         } else if (arg.startsWith('--channel=')) {
             options.channel = arg.slice('--channel='.length);
+        } else if (arg === '--session' && argv[i + 1]) {
+            options.session = argv[i + 1];
+            i++;
+        } else if (arg.startsWith('--session=')) {
+            options.session = arg.slice('--session='.length);
+        } else if (arg === '--ttl' && argv[i + 1]) {
+            options.ttl = Number(argv[i + 1]);
+            i++;
+        } else if (arg.startsWith('--ttl=')) {
+            options.ttl = Number(arg.slice('--ttl='.length));
         } else if (arg === '--phases' && argv[i + 1]) {
             options.phases = argv[i + 1].split(',');
             i++;
