@@ -10,7 +10,7 @@
  * Config file path: ~/.config/orchestrator/config.yaml
  */
 
-import { existsSync, readFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
@@ -182,7 +182,7 @@ export function createDefaultConfig(): void {
         ``,
     ].join('\n');
 
-    Bun.write(path, content);
+    writeFileSync(path, content, 'utf-8');
 }
 
 /**
