@@ -6,6 +6,22 @@ export type ImplPhase = 'planning' | 'design' | 'implementation' | 'review' | 't
 
 export type TaskType = 'task' | 'brainstorm';
 
+export const VALID_PROFILES = [
+    'simple',
+    'standard',
+    'complex',
+    'research',
+    'refine',
+    'plan',
+    'unit',
+    'review',
+    'review-only',
+    'docs',
+    'docs-only',
+] as const;
+
+export type TaskProfile = (typeof VALID_PROFILES)[number];
+
 export interface ImplProgress {
     planning: 'pending' | 'in_progress' | 'completed';
     design: 'pending' | 'in_progress' | 'completed';
@@ -26,7 +42,8 @@ export interface TaskFrontmatter {
     estimated_hours?: number;
     tags?: string[];
     dependencies?: string[];
-    profile?: 'simple' | 'standard' | 'complex' | 'research';
+    preset?: TaskProfile;
+    profile?: TaskProfile;
     impl_progress: ImplProgress;
 }
 
@@ -88,6 +105,7 @@ export interface CliArgs {
     estimatedHours?: number;
     tags?: string[];
     dependencies?: string[];
+    preset?: string;
     profile?: string;
     phase?: ImplPhase;
     phaseStatus?: string;
