@@ -76,10 +76,7 @@ export function skillHasScript(skillName: string): boolean {
  * @param startDir - Directory to start walking from (defaults to script location)
  * @returns Absolute path to the skill directory, or null if not found
  */
-export function resolveSkillDirectory(
-    skillRef: string,
-    startDir: string = import.meta.dir,
-): string | null {
+export function resolveSkillDirectory(skillRef: string, startDir: string = import.meta.dir): string | null {
     const colonIdx = skillRef.indexOf(':');
     if (colonIdx === -1) return null;
 
