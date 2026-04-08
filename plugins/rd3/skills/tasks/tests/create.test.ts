@@ -254,10 +254,11 @@ impl_progress:
         expect(result.ok).toBe(true);
 
         const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_Profile_Test.md'), 'utf-8');
-        expect(content).toContain('profile: "complex"');
+        expect(content).toContain('preset: "complex"');
+        expect(content).not.toContain('profile: ');
     });
 
-    test('accepts all valid profile values during task creation', () => {
+    test('accepts all valid preset values during task creation', () => {
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),
             JSON.stringify(
@@ -273,20 +274,33 @@ impl_progress:
             ),
         );
 
-        for (const profileVal of ['simple', 'standard', 'complex', 'research']) {
+        for (const profileVal of [
+            'simple',
+            'standard',
+            'complex',
+            'research',
+            'refine',
+            'plan',
+            'unit',
+            'review',
+            'review-only',
+            'docs',
+            'docs-only',
+        ]) {
             const result = createTask(tempDir, `Profile ${profileVal}`, undefined, {
                 profile: profileVal,
                 quiet: true,
             });
             expect(result.ok).toBe(true);
             const content = readFileSync(join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`), 'utf-8');
-            expect(content).toContain(`profile: "${profileVal}"`);
+            expect(content).toContain(`preset: "${profileVal}"`);
+            expect(content).not.toContain('profile: ');
             // Clean up for next iteration
             rmSync(join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`), { force: true });
         }
     });
 
-    test('backward compatible - tasks without profile remain valid', () => {
+    test('backward compatible - tasks without preset remain valid', () => {
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),
             JSON.stringify(
@@ -308,11 +322,11 @@ impl_progress:
         expect(result.ok).toBe(true);
 
         const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_No_Profile.md'), 'utf-8');
-        // Profile field should NOT be present when not specified (backward compatibility)
+        // Orchestration preset should not be present when not specified.
         expect(content).not.toContain('profile:');
     });
 
-    test('rejects invalid profile values', () => {
+    test('rejects invalid preset values', () => {
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),
             JSON.stringify(
@@ -334,7 +348,7 @@ impl_progress:
         });
         expect(result.ok).toBe(false);
         if (!result.ok) {
-            expect(result.error).toContain('Invalid profile');
+            expect(result.error).toContain('Invalid preset');
         }
     });
 
