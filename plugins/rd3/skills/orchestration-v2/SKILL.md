@@ -56,8 +56,11 @@ The orchestration-v2 engine is a micro-kernel with six pluggable subsystems: FSM
 # Run all phases in DAG order
 orchestrator run 0266
 
-# Run with a preset (named phase subset)
+# Run with an explicit preset (named phase subset)
 orchestrator run 0266 --preset complex
+
+# Or omit --preset and resolve from task frontmatter/default config
+orchestrator run 0266
 
 # Run specific phases (DAG resolves order)
 orchestrator run 0266 --phases implement,test
@@ -114,9 +117,17 @@ phases:
 Named aliases for common `--phases` combinations. Not a core concept — the DAG is the source of truth.
 
 ```bash
-orchestrator run 0266 --preset simple    # ≡ --phases implement,test
+orchestrator run 0266 --preset simple    # ≡ --phases intake,decompose,implement,test
 orchestrator run 0266 --preset complex   # ≡ --phases intake,arch,...,docs
 ```
+
+When `--preset` is omitted, the engine resolves it in this order:
+1. Explicit CLI `--preset`
+2. Task frontmatter `preset`
+3. Legacy task frontmatter `profile`
+4. Project `defaultPreset`
+
+Legacy task aliases `review` and `docs` remain accepted and are normalized to `review-only` and `docs-only`.
 
 ### Execution Channels
 
