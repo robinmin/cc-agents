@@ -129,7 +129,8 @@ describe('tasks CLI contracts', () => {
         expect(createPayload.ok).toBe(true);
 
         let content = readFileSync(createPayload.data.path, 'utf-8');
-        expect(content).toContain('profile: "simple"');
+        expect(content).toContain('preset: "simple"');
+        expect(content).not.toContain('profile: ');
 
         const updateResult = runCli(tempDir, ['update', '0001', '--field', 'profile', '--value', 'research', '--json']);
         expect(updateResult.exitCode).toBe(0);
@@ -143,7 +144,37 @@ describe('tasks CLI contracts', () => {
         expect(updatePayload.data.newValue).toBe('research');
 
         content = readFileSync(createPayload.data.path, 'utf-8');
-        expect(content).toContain('profile: "research"');
+        expect(content).toContain('preset: "research"');
+        expect(content).not.toContain('profile: ');
+    });
+
+    test('phase-only profiles round-trip through the CLI', () => {
+        expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+
+        const createResult = runCli(tempDir, ['create', 'Review Only Task', '--preset', 'review-only', '--json']);
+        expect(createResult.exitCode).toBe(0);
+
+        const createPayload = JSON.parse(createResult.stdout) as {
+            ok: boolean;
+            data: { path: string };
+        };
+        expect(createPayload.ok).toBe(true);
+        let content = readFileSync(createPayload.data.path, 'utf-8');
+        expect(content).toContain('preset: "review-only"');
+        expect(content).not.toContain('profile: ');
+
+        const updateResult = runCli(tempDir, ['update', '0001', '--field', 'preset', '--value', 'docs-only', '--json']);
+        expect(updateResult.exitCode).toBe(0);
+
+        const updatePayload = JSON.parse(updateResult.stdout) as {
+            ok: boolean;
+            data: { newValue: string };
+        };
+        expect(updatePayload.ok).toBe(true);
+        expect(updatePayload.data.newValue).toBe('docs-only');
+        content = readFileSync(createPayload.data.path, 'utf-8');
+        expect(content).toContain('preset: "docs-only"');
+        expect(content).not.toContain('profile: ');
     });
 
     test('update phase modifies the indented impl_progress frontmatter block', () => {
