@@ -7,11 +7,11 @@ updated_at: 2026-04-02T19:18:12.835Z
 folder: docs/tasks2
 type: task
 impl_progress:
-  planning: pending
-  design: pending
-  implementation: pending
-  review: pending
-  testing: pending
+  planning: done
+  design: done
+  implementation: done
+  review: done
+  testing: done
 ---
 
 ## 0319. Implement real auto gate using verification-chain LLM checker
@@ -138,6 +138,10 @@ Review criteria for 0319:
 
 | Type | Path | Agent | Date |
 | ---- | ---- | ----- | ---- |
+| Implementation | `plugins/rd3/skills/orchestration-v2/scripts/engine/runner.ts` — `checkAutoGate` method using `DefaultCoVDriver` | Lord Robb | 2026-04-08 |
+| Implementation | `plugins/rd3/skills/orchestration-v2/scripts/verification/cov-driver.ts` — `runLlmCheckDriver` integrating with `verification-chain` | Lord Robb | 2026-04-08 |
+| Tests | `plugins/rd3/skills/orchestration-v2/scripts/engine/runner.test.ts` — gate execution tests including auto/advisory/blocking | Lord Robb | 2026-04-08 |
+| Test Fix | `plugins/rd3/skills/orchestration-v2/scripts/engine/runner.test.ts` — added missing `loadExternalConfig` mock export | Lord Robb | 2026-04-08 |
 
 ### References
 
