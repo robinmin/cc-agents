@@ -24,7 +24,7 @@ see_also:
 
 # rd3:tasks — Markdown-Based Task Management
 
-Task files live in `docs/tasks/<wbs>_<name>.md` with YAML frontmatter and markdown body sections. Task metadata and templates live in `docs/.tasks/`. WBS numbers are globally unique across all configured folders.
+Task files live in `docs/tasks/<wbs>_<name>.md` with YAML frontmatter and markdown body sections. Task metadata and templates live in `docs/.tasks/`. WBS numbers are globally unique across all configured folders. The canonical orchestration frontmatter key is `preset`; legacy task files may still use `profile`, and the CLI accepts both.
 
 ## Runtime Assumption
 
@@ -50,6 +50,8 @@ tasks create "Implement user authentication"
 tasks create "Implement user authentication" \
   --background "Why this work exists" \
   --requirements $'- Requirement 1\n- Requirement 2'
+tasks create "Implement user authentication" --preset standard
+tasks create "Implement user authentication" --profile standard   # legacy alias
 
 # List all tasks (optionally filter by status)
 tasks list
@@ -76,6 +78,8 @@ tasks update 0047 --section Solution --from-file /tmp/solution.md
 # Update implementation phase progress
 tasks update 0047 --phase planning --phase-status completed
 tasks update 0047 --phase design --phase-status in_progress
+tasks update 0047 --field preset --value complex
+tasks update 0047 --field profile --value complex   # legacy alias
 
 # Batch create from JSON array
 tasks batch-create --from-json /tmp/tasks.json
@@ -128,6 +132,7 @@ Defaults and behavior:
 - Environment override: `TASKS_PORT`
 - Mutating requests are serialized per-WBS to avoid concurrent task-file corruption
 - All responses use the standard JSON envelope: `{ ok, data }` or `{ ok, error }`
+- Both CLI and HTTP APIs accept canonical `preset` and legacy `profile`, but task-file writes normalize to `preset`
 
 Endpoints:
 
