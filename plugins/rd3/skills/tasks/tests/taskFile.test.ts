@@ -8,6 +8,7 @@ import {
     readTaskFile,
     updateStatus,
     updateFrontmatterField,
+    updatePresetFrontmatterField,
     updateSection,
     updateImplPhase,
     appendArtifactRow,
@@ -106,6 +107,32 @@ profile: "research"
 `;
         const fm = parseFrontmatter(content);
         expect(fm?.profile).toBe('research');
+        expect(fm?.preset).toBe('research');
+    });
+
+    test('parses orchestration phase-profile aliases from frontmatter', () => {
+        const content = `---
+name: Review Task
+status: Todo
+profile: "review-only"
+---
+`;
+        const fm = parseFrontmatter(content);
+        expect(fm?.profile).toBe('review-only');
+        expect(fm?.preset).toBe('review-only');
+    });
+
+    test('prefers preset over legacy profile when both are present', () => {
+        const content = `---
+name: Preset Task
+status: Todo
+preset: "simple"
+profile: "complex"
+---
+`;
+        const fm = parseFrontmatter(content);
+        expect(fm?.preset).toBe('simple');
+        expect(fm?.profile).toBe('simple');
     });
 });
 
@@ -510,11 +537,31 @@ status: Todo
 ### Background
 `,
         );
-        const result = updateFrontmatterField(filePath, 'profile', '"standard"');
+        const result = updateFrontmatterField(filePath, 'preset', '"standard"');
         expect(result.ok).toBe(true);
         const content = readFileSync(filePath, 'utf-8');
-        expect(content).toContain('profile: "standard"');
-        expect(content.indexOf('profile: "standard"')).toBeLessThan(content.indexOf('---\n\n### Background'));
+        expect(content).toContain('preset: "standard"');
+        expect(content.indexOf('preset: "standard"')).toBeLessThan(content.indexOf('---\n\n### Background'));
+    });
+
+    test('canonicalizes legacy profile writes to preset', () => {
+        const filePath = join(tempDir, '0049_preset-field-test.md');
+        writeFileSync(
+            filePath,
+            `---
+name: Field Test
+status: Todo
+profile: "standard"
+---
+
+### Background
+`,
+        );
+        const result = updatePresetFrontmatterField(filePath, '"complex"');
+        expect(result.ok).toBe(true);
+        const content = readFileSync(filePath, 'utf-8');
+        expect(content).toContain('preset: "complex"');
+        expect(content).not.toContain('profile: ');
     });
 
     test('returns err for non-existent file', () => {
