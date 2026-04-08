@@ -738,10 +738,7 @@ describe('Skill Metadata Validation', () => {
         const result = validateSkillMetadata({
             gate_defaults: {
                 auto: {
-                    checklist: [
-                        'Phase output is complete',
-                        'No obvious errors',
-                    ],
+                    checklist: ['Phase output is complete', 'No obvious errors'],
                     prompt_template: 'Custom prompt: {checklist}',
                 },
             },
@@ -801,7 +798,9 @@ describe('Skill Metadata Validation', () => {
             },
         } as Record<string, unknown>);
         expect(result.valid).toBe(false);
-        expect(result.errors.some((e: { rule: string }) => e.rule === 'gate_defaults.auto.checklist_item_type')).toBe(true);
+        expect(result.errors.some((e: { rule: string }) => e.rule === 'gate_defaults.auto.checklist_item_type')).toBe(
+            true,
+        );
     });
 
     test('rejects invalid prompt_template type', () => {
