@@ -151,7 +151,8 @@ describe('AcpExecutor', () => {
             const result = await exec.execute(BASE_REQ);
             expect(result.success).toBe(false);
             expect(result.exitCode).toBe(1);
-            expect(result.stderr).toBe('Internal error');
+            expect(result.stderr).toContain('Internal error');
+            expect(result.stderr).toContain('acpx diagnostics:');
         });
 
         test('returns timed-out on timedOut flag', async () => {
@@ -160,6 +161,41 @@ describe('AcpExecutor', () => {
             const result = await exec.execute({ ...BASE_REQ, timeoutMs: 50 });
             expect(result.success).toBe(false);
             expect(result.timedOut).toBe(true);
+        });
+
+        test('adds actionable diagnostics for stalled session-based execution', async () => {
+            const state: MockState = {
+                capturedBin: '',
+                capturedArgs: [],
+                capturedTimeout: undefined,
+                mockResult: {
+                    ok: false,
+                    exitCode: 1,
+                    stdout: '',
+                    stderr: '',
+                    durationMs: 10,
+                    timedOut: true,
+                    errorMessage: 'spawnSync acpx ETIMEDOUT',
+                    signal: 'SIGTERM',
+                },
+            };
+            const exec = new AcpExecutor('pi', makeMockExec(state));
+            const result = await exec.execute({
+                ...BASE_REQ,
+                timeoutMs: 50,
+                session: 'stall-session',
+                sessionTtlSeconds: 600,
+            });
+            expect(result.success).toBe(false);
+            expect(result.stderr).toContain('acpx diagnostics:');
+            expect(result.stderr).toContain('mode: prompt --session');
+            expect(result.stderr).toContain('session: stall-session');
+            expect(result.stderr).toContain('session_ttl_seconds: 600');
+            expect(result.stderr).toContain('timeout_ms: 50');
+            expect(result.stderr).toContain('timed_out: true');
+            expect(result.stderr).toContain('signal: SIGTERM');
+            expect(result.stderr).toContain('spawn_error: spawnSync acpx ETIMEDOUT');
+            expect(result.stderr).toContain('command: acpx --format json');
         });
 
         test('uses prompt --session when session is provided', async () => {
