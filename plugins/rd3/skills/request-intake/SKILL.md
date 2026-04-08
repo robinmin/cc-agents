@@ -23,7 +23,7 @@ see_also:
 
 # rd3:request-intake — Requirements Elicitation and Task Enrichment
 
-Structured Q&A workflow that transforms vague one-liner feature requests into fully-populated task files with Background, Requirements, Constraints, and auto-assigned profile.
+Structured Q&A workflow that transforms vague one-liner feature requests into fully-populated task files with Background, Requirements, Constraints, and auto-assigned orchestration preset.
 
 **Key distinction:**
 - **`request-intake`** = requirements elicitation (what to build, why, constraints)
@@ -37,7 +37,7 @@ Structured Q&A workflow that transforms vague one-liner feature requests into fu
 Load this skill when:
 - Starting a new task from a vague one-liner request
 - Task file has incomplete Background, Requirements, or Constraints sections
-- Profile field needs auto-assignment based on scope analysis
+- Preset field needs auto-assignment based on scope analysis
 - User needs guided elicitation through structured questions
 
 Do not use this skill for well-formed task files with complete requirements. Skip to `rd3:task-decomposition`.
@@ -49,7 +49,7 @@ The request-intake skill follows IEEE 29148 and BABOK Guide best practices for r
 1. **Analyze** existing task content for gaps and ambiguities
 2. **Question** using hybrid taxonomy (15-20 categorized prompts)
 3. **Synthesize** answers into structured sections
-4. **Assign** profile based on scope heuristics
+4. **Assign** preset based on scope heuristics
 5. **Persist** via tasks update (without overwriting existing content)
 
 ## Input Schema
@@ -84,7 +84,7 @@ interface RequestIntakeInput {
 3. Generate 3-7 clarifying questions
 4. Present questions via AskUserQuestion (batched, not one-at-a-time)
 5. Synthesize answers into Background (100+ chars), Requirements (numbered), Constraints
-6. Auto-assign profile using heuristics
+6. Auto-assign preset using heuristics
 7. Write back via tasks update (preserve existing non-empty sections)
 ```
 
@@ -101,9 +101,9 @@ See `references/question-taxonomy.md` for the 15-20 categorized question prompts
 - Users (2 prompts) — who benefits, user personas
 - Timeline (2 prompts) — deadlines, milestones
 
-## Profile Assignment Heuristics
+## Preset Assignment Heuristics
 
-Auto-assign profile based on these signals:
+Auto-assign preset based on these signals:
 
 | Signal | simple | standard | complex | research |
 |--------|--------|----------|---------|----------|
@@ -119,7 +119,7 @@ Auto-assign profile based on these signals:
 3. `simple`: 3+ signals in simple column AND 0 signals in complex/research
 4. `standard`: Default — applies when signals are mixed or insufficient
 
-**Tiebreaker**: When signals conflict (e.g., 2 complex + 2 simple), prefer the **higher** profile to avoid under-estimating scope. If signals are unknown/missing, default to `standard`.
+**Tiebreaker**: When signals conflict (e.g., 2 complex + 2 simple), prefer the **higher** preset to avoid under-estimating scope. If signals are unknown/missing, default to `standard`.
 
 ## Workflow
 
@@ -149,7 +149,7 @@ if (input.mode === 'refine') {
       background: task.background.length < 100,
       requirements: !task.requirements || task.requirements.includes('[What needs to be done]'),
       constraints: !task.constraints || task.constraints.includes('[Constraints]'),
-      profile: !task.frontmatter.profile,
+      preset: !(task.frontmatter.preset || task.frontmatter.profile),
     };
 }
 ```
@@ -166,7 +166,7 @@ When `mode === 'refine'`, analyze existing content for these issues:
 | No acceptance criteria | Missing "should", "must", "verify" | Untestable |
 | Compound requirements | Contains "and" + 3+ concepts | Split needed |
 | No constraints | Section empty or missing | Incomplete |
-| Profile unassigned | Not in frontmatter | Missing |
+| Preset unassigned | Not in frontmatter | Missing |
 
 ### Step 2: Generate Questions
 
@@ -261,11 +261,11 @@ const constraints = answers
   .map(a => `- ${a.constraint}`);
 ```
 
-### Step 5: Assign Profile
+### Step 5: Assign Preset
 
 ```typescript
-const profile = computeProfile(answers);
-// Profile must be one of: 'simple' | 'standard' | 'complex' | 'research'
+const preset = computeProfile(answers);
+// Preset must be one of: 'simple' | 'standard' | 'complex' | 'research'
 ```
 
 ### Step 6: Persist
@@ -277,6 +277,9 @@ Write back via tasks CLI (preserve existing non-empty sections):
 tasks update {wbs} --section Background --from-file /tmp/background.md
 tasks update {wbs} --section Requirements --from-file /tmp/requirements.md
 tasks update {wbs} --section Constraints --from-file /tmp/constraints.md
+tasks update {wbs} --field preset --value standard
+
+# Legacy compatibility
 tasks update {wbs} --field profile --value standard
 ```
 
@@ -307,7 +310,7 @@ tasks update {wbs} --field profile --value standard
 - Ask all 20 questions at once (cognitive overload)
 - Overwrite existing content without confirmation
 - Accept vague answers like "whatever is best" or "I don't know"
-- Skip profile assignment (downstream phases depend on it)
+- Skip preset assignment (downstream phases depend on it)
 - Use open-ended questions when options would suffice (prefer options for efficiency)
 
 ## Enhanced Refinement (NEW)
@@ -351,7 +354,7 @@ User answer: 1
 Skill succeeds when:
 1. Background section is 100+ chars
 2. Requirements has 1+ numbered, testable items
-3. Profile field is assigned
+3. Preset field is assigned
 4. All existing non-empty sections preserved
 
 Skill fails when:
@@ -372,7 +375,7 @@ rd3:request-intake {wbs}
 
 **Phase integration:**
 - Output feeds into `rd3:task-decomposition` (Phase 4)
-- Profile assignment gates Phase 2 (Architecture) in orchestration-dev
+- Preset assignment gates Phase 2 (Architecture) in orchestration-dev
 - Constraints inform verification strategy in `rd3:functional-review`
 
 ## Platform Notes
