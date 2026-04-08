@@ -66,16 +66,16 @@ Commands:
                                  Preserve decomposition metadata at creation time
   create <name> --dependencies <a,b> [--tags <x,y>]
                                  Attach structured planning metadata
-  create <name> --profile <profile>
-                                 Persist orchestration profile in task frontmatter
+  create <name> --preset <preset>
+                                 Persist orchestration preset in task frontmatter (\`--profile\` is a legacy alias)
   list [stage]                  List all tasks, optionally filtered by stage
   update <WBS> <stage>          Update task status (Backlog|Todo|WIP|Testing|Blocked|Done|Canceled)
   update <WBS> --section <name> --from-file <path>
                                  Update a task section from a file
   update <WBS> --phase <phase> --phase-status <status>
                                  Update impl_progress phase
-  update <WBS> --field profile --value <profile>
-                                 Update a supported frontmatter field
+  update <WBS> --field preset --value <preset>
+                                 Update the orchestration preset field (\`profile\` is also accepted)
   show <WBS>                    Show task content (for agents)
   open <WBS>                    Open task in default editor (for humans)
   refresh                       Regenerate kanban boards
@@ -107,14 +107,14 @@ Examples:
   tasks init
   tasks create "Implement user auth"
   tasks create "Implement user auth" --background "Why this exists" --requirements "What success looks like"
-  tasks create "Implement user auth" --profile standard
+  tasks create "Implement user auth" --preset standard
   tasks list
   tasks list --all
   tasks list wip
   tasks update 47 wip --force
   tasks show 47 --json
   tasks update 47 --section Solution --from-file /tmp/solution.md
-  tasks update 47 --field profile --value complex
+  tasks update 47 --field preset --value complex
   tasks refresh
   tasks check 47
   tasks put 47 /tmp/design.png --name design.png
@@ -223,6 +223,7 @@ async function main() {
                 estimatedHours?: number;
                 dependencies?: string[];
                 tags?: string[];
+                preset?: string;
                 profile?: string;
                 quiet: boolean;
             } = { quiet: json };
@@ -261,8 +262,8 @@ async function main() {
                     if (tags) {
                         createOptions.tags = tags;
                     }
-                } else if (arg === '--profile' && i + 1 < cmdArgs.length) {
-                    createOptions.profile = cmdArgs[++i];
+                } else if ((arg === '--profile' || arg === '--preset') && i + 1 < cmdArgs.length) {
+                    createOptions.preset = cmdArgs[++i];
                 } else if (arg.startsWith('--')) {
                     const error = `Unknown create flag: ${arg}`;
                     if (json) {
@@ -355,11 +356,11 @@ async function main() {
             if (!rest[0]) {
                 if (json) {
                     emitJsonError(
-                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --field profile --value <profile>',
+                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --field preset --value <preset>',
                     );
                 } else {
                     logger.error(
-                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --field profile --value <profile>',
+                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --field preset --value <preset>',
                     );
                 }
                 exitCode = 1;
@@ -451,7 +452,7 @@ async function main() {
                     const field = cmdArgs[fieldIdx + 1];
                     const value = cmdArgs[valueIdx + 1];
                     const result = updateTask(projectRoot, wbs, {
-                        field: field as 'profile',
+                        field: field as 'profile' | 'preset',
                         value,
                         dryRun,
                         json,
@@ -469,7 +470,7 @@ async function main() {
                     }
                 } else {
                     const error =
-                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --section <name> --from-file <path> OR tasks update <WBS> --field profile --value <profile>';
+                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --section <name> --from-file <path> OR tasks update <WBS> --field preset --value <preset>';
                     if (json) {
                         emitJsonError(error);
                     } else {
