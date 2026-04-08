@@ -579,6 +579,23 @@ describe('execAcpxSync integration', async () => {
         expect(typeof result.durationMs).toBe('number');
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
+
+    test('surfaces spawn errors for missing binaries', async () => {
+        const { execAcpxSync } = await import('./acpx-query');
+        const result = execAcpxSync(['/definitely/missing/acpx-binary']);
+        expect(result.ok).toBe(false);
+        expect(result.errorMessage).toBeDefined();
+        expect(result.stderr).toContain('spawn_error:');
+    });
+
+    test('marks timed out processes and preserves timeout diagnostics', async () => {
+        const { execAcpxSync } = await import('./acpx-query');
+        const result = execAcpxSync(['/bin/sh', '-c', 'sleep 1'], 10);
+        expect(result.ok).toBe(false);
+        expect(result.timedOut).toBe(true);
+        expect(result.errorMessage).toBeDefined();
+        expect(result.stderr).toContain('spawn_error:');
+    });
 });
 
 describe('execLlmCli integration', async () => {
