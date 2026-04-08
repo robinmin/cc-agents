@@ -11,7 +11,7 @@ import type {
     ValidationResult,
     ValidationIssue,
 } from '../types';
-import { VALID_STATUSES, VALID_PHASES, normalizeStatus } from '../types';
+import { VALID_PHASES, VALID_PROFILES, VALID_STATUSES, normalizeStatus } from '../types';
 import { err, ok, type Result } from './result';
 
 const FRONTMATTER_REGEX = /^---\n([\s\S]*?)\n---\n/;
@@ -79,10 +79,12 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
         frontmatter.dependencies = dependencies;
     }
 
-    if (fm.profile !== undefined) {
-        const normalizedProfile = stripWrappingQuotes(fm.profile);
-        if (isValidProfile(normalizedProfile)) {
-            frontmatter.profile = normalizedProfile;
+    const presetValue = fm.preset ?? fm.profile;
+    if (presetValue !== undefined) {
+        const normalizedPreset = stripWrappingQuotes(presetValue);
+        if (isValidProfile(normalizedPreset)) {
+            frontmatter.preset = normalizedPreset;
+            frontmatter.profile = normalizedPreset;
         }
     }
 
@@ -123,17 +125,7 @@ function escapeRegex(value: string): string {
 }
 
 function isValidProfile(value: string): value is NonNullable<TaskFrontmatter['profile']> {
-    return (
-        value === 'simple' ||
-        value === 'standard' ||
-        value === 'complex' ||
-        value === 'research' ||
-        value === 'refine' ||
-        value === 'plan' ||
-        value === 'unit' ||
-        value === 'review' ||
-        value === 'docs'
-    );
+    return VALID_PROFILES.includes(value as (typeof VALID_PROFILES)[number]);
 }
 
 export function parseSection(content: string, section: string): string {
@@ -190,6 +182,26 @@ export function updateFrontmatterField(path: string, field: string, value: strin
         return ok(true);
     } catch (e) {
         return err(`Failed to update frontmatter: ${e}`);
+    }
+}
+
+export function updatePresetFrontmatterField(path: string, value: string): Result<boolean> {
+    try {
+        const content = readFileSync(path, 'utf-8');
+        const frontmatterMatch = content.match(FRONTMATTER_REGEX);
+        if (!frontmatterMatch) {
+            return err('Frontmatter block not found');
+        }
+
+        const frontmatterBlock = frontmatterMatch[1]
+            .split('\n')
+            .filter((line) => !line.startsWith('preset: ') && !line.startsWith('profile: '))
+            .join('\n');
+        const nextContent = content.replace(FRONTMATTER_REGEX, `---\n${frontmatterBlock}\npreset: ${value}\n---\n`);
+        writeFileSync(path, nextContent, 'utf-8');
+        return ok(true);
+    } catch (e) {
+        return err(`Failed to update frontmatter preset: ${e}`);
     }
 }
 
