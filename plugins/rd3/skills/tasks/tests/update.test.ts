@@ -269,14 +269,34 @@ Requirements content for testing purposes.
             const taskPath = writeTask(tempDir, folder, '0001', 'Backlog', 'standard');
             const result = updateTask(tempDir, '0001', { field: 'profile', value: 'complex', quiet: false });
             expect(result.ok).toBe(true);
-            expect(readFileSync(taskPath, 'utf8')).toContain('profile: "complex"');
+            const content = readFileSync(taskPath, 'utf8');
+            expect(content).toContain('preset: "complex"');
+            expect(content).not.toContain('profile: ');
         });
 
-        test('returns err on invalid profile', () => {
+        test('accepts orchestration phase-profile aliases when updating profile', () => {
+            const taskPath = writeTask(tempDir, folder, '0001', 'Backlog', 'standard');
+            const result = updateTask(tempDir, '0001', { field: 'profile', value: 'review-only', quiet: false });
+            expect(result.ok).toBe(true);
+            const content = readFileSync(taskPath, 'utf8');
+            expect(content).toContain('preset: "review-only"');
+            expect(content).not.toContain('profile: ');
+        });
+
+        test('accepts preset field directly', () => {
+            const taskPath = writeTask(tempDir, folder, '0001', 'Backlog', 'standard');
+            const result = updateTask(tempDir, '0001', { field: 'preset', value: 'docs-only', quiet: false });
+            expect(result.ok).toBe(true);
+            const content = readFileSync(taskPath, 'utf8');
+            expect(content).toContain('preset: "docs-only"');
+            expect(content).not.toContain('profile: ');
+        });
+
+        test('returns err on invalid preset', () => {
             writeTask(tempDir, folder, '0001');
             const result = updateTask(tempDir, '0001', { field: 'profile', value: 'invalid_prof' });
             expect(result.ok).toBe(false);
-            expect((result as Err<string>).error).toContain('Invalid profile');
+            expect((result as Err<string>).error).toContain('Invalid preset');
         });
 
         test('handles dryRun for field update', () => {
