@@ -170,6 +170,7 @@ interface CreateBody {
     estimatedHours?: number;
     dependencies?: string[];
     tags?: string[];
+    preset?: string;
     profile?: string;
     folder?: string;
     content?: string;
@@ -196,7 +197,7 @@ export const createTaskHandler: RouteHandler = async (projectRoot, request, _par
         ...(body.estimatedHours !== undefined ? { estimatedHours: body.estimatedHours } : {}),
         ...(body.dependencies ? { dependencies: body.dependencies } : {}),
         ...(body.tags ? { tags: body.tags } : {}),
-        ...(body.profile ? { profile: body.profile } : {}),
+        ...(body.preset || body.profile ? { preset: body.preset ?? body.profile } : {}),
         ...(body.content ? { content: body.content } : {}),
         quiet: true,
     });
@@ -367,7 +368,7 @@ export const updateTaskHandler: RouteHandler = async (projectRoot, request, para
         // Field update
         if (body.field && body.value) {
             const result = updateTask(projectRoot, wbs, {
-                field: body.field as 'profile',
+                field: body.field as 'profile' | 'preset',
                 value: body.value,
                 quiet: true,
             });
