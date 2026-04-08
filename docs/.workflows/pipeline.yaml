@@ -121,7 +121,7 @@ phases:
 # |------------------|--------------------------------------------------------|
 # | default          | intake, decompose, implement, test, review, verify-bdd, verify-func |
 # | default+docs     | default + docs                                         |
-# | simple           | implement, test                                        |
+# | simple           | intake, decompose, implement, test                    |
 # | standard         | default + docs, pr                                     |
 # | complex          | arch, design + standard                                |
 # | research         | arch, design + standard (60% coverage)                 |
@@ -138,7 +138,7 @@ presets:
     defaults: { coverage_threshold: 80 }
 
   simple:
-    phases: [implement, test]
+    phases: [intake, decompose, implement, test]
     defaults: { coverage_threshold: 60 }
 
   standard:
