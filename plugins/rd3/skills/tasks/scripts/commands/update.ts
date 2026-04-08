@@ -11,11 +11,12 @@ import {
     updateTaskBody,
     updateImplPhase,
     updateFrontmatterField,
+    updatePresetFrontmatterField,
     validateTaskForTransition,
 } from '../lib/taskFile';
 import { logger } from '../../../../scripts/logger';
 import type { TaskStatus, ImplPhase } from '../types';
-import { VALID_STATUSES } from '../types';
+import { VALID_PROFILES, VALID_STATUSES } from '../types';
 
 export interface UpdateOptions {
     status?: TaskStatus;
@@ -24,7 +25,7 @@ export interface UpdateOptions {
     fromFile?: string;
     phase?: ImplPhase;
     phaseStatus?: string;
-    field?: 'profile';
+    field?: 'profile' | 'preset';
     value?: string;
     force?: boolean;
     dryRun?: boolean;
@@ -40,8 +41,6 @@ export interface UpdateResult {
     newValue?: string;
     warnings?: string[];
 }
-
-const VALID_PROFILES = new Set(['simple', 'standard', 'complex', 'research']);
 
 export function updateTask(projectRoot: string, wbs: string, options: UpdateOptions): Result<UpdateResult> {
     const config = loadConfig(projectRoot);
@@ -181,8 +180,11 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
     }
 
     if (options.field && options.value) {
-        if (options.field === 'profile' && !VALID_PROFILES.has(options.value)) {
-            return err(`Invalid profile: ${options.value}. Valid: ${[...VALID_PROFILES].join(', ')}`);
+        if (
+            (options.field === 'profile' || options.field === 'preset') &&
+            !VALID_PROFILES.includes(options.value as (typeof VALID_PROFILES)[number])
+        ) {
+            return err(`Invalid preset: ${options.value}. Valid: ${VALID_PROFILES.join(', ')}`);
         }
 
         if (options.dryRun) {
@@ -195,13 +197,18 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
                 wbs,
                 action: 'field',
                 dryRun: true,
-                ...(task.frontmatter[options.field] ? { oldValue: task.frontmatter[options.field] } : {}),
+                ...((task.frontmatter.preset ?? task.frontmatter.profile)
+                    ? { oldValue: task.frontmatter.preset ?? task.frontmatter.profile }
+                    : {}),
                 newValue: options.value,
             });
         }
 
-        const serializedValue = options.field === 'profile' ? JSON.stringify(options.value) : options.value;
-        const result = updateFrontmatterField(taskPath, options.field, serializedValue);
+        const serializedValue = JSON.stringify(options.value);
+        const result =
+            options.field === 'profile' || options.field === 'preset'
+                ? updatePresetFrontmatterField(taskPath, serializedValue)
+                : updateFrontmatterField(taskPath, options.field, serializedValue);
         if (!result.ok) return result;
         if (!options.quiet) {
             logger.success(`Updated frontmatter field '${options.field}' in ${wbs}`);
@@ -210,7 +217,9 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
             wbs,
             action: 'field',
             dryRun: false,
-            ...(task.frontmatter[options.field] ? { oldValue: task.frontmatter[options.field] } : {}),
+            ...((task.frontmatter.preset ?? task.frontmatter.profile)
+                ? { oldValue: task.frontmatter.preset ?? task.frontmatter.profile }
+                : {}),
             newValue: options.value,
         });
     }
