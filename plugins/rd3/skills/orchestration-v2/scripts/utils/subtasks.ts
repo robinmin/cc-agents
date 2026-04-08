@@ -78,6 +78,9 @@ export function getSubtasks(parentWbs: string, tasksDir = 'docs/tasks2'): Subtas
  * @returns WBS number (e.g., "0343") or null if not found
  */
 export function extractWbsFromPath(taskPath: string): string | null {
+    if (/^\d{4}$/.test(taskPath)) {
+        return taskPath;
+    }
     const match = taskPath.match(/(?:^|\/)(\d{4})_[^/]+\.md$/);
     return match ? match[1] : null;
 }
