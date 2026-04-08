@@ -35,6 +35,26 @@ function createTempCwd(name: string): string {
     return cwd;
 }
 
+function writeTaskConfig(cwd: string): void {
+    mkdirSync(join(cwd, 'docs', '.tasks'), { recursive: true });
+    writeFileSync(
+        join(cwd, 'docs', '.tasks', 'config.jsonc'),
+        JSON.stringify(
+            {
+                $schema_version: 1,
+                active_folder: 'docs/tasks2',
+                folders: {
+                    'docs/prompts': { base_counter: 0 },
+                    'docs/tasks': { base_counter: 0 },
+                    'docs/tasks2': { base_counter: 0 },
+                },
+            },
+            null,
+            2,
+        ),
+    );
+}
+
 describe('scripts/run.ts CLI integration', () => {
     test('validate succeeds from a fresh checkout without a state directory', () => {
         const cwd = createTempCwd('validate');
@@ -541,9 +561,11 @@ describe('history command', () => {
 
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('Pipeline valid');
-        // simple preset phases are: implement, test
+        expect(result.stdout).toContain('intake');
+        expect(result.stdout).toContain('decompose');
         expect(result.stdout).toContain('implement');
         expect(result.stdout).toContain('test');
+        expect(result.stdout).not.toContain('review');
     });
 
     test('--preset complex --dry-run loads default.yaml (named preset)', () => {
@@ -608,6 +630,81 @@ describe('history command', () => {
         // Warning is emitted to stderr
         expect(result.stderr).toContain('--profile is deprecated');
         expect(result.stderr).toContain('--preset');
+    });
+
+    test('task frontmatter preset overrides the old hardcoded default preset', () => {
+        const cwd = createTempCwd('task-profile-simple');
+        writeTaskConfig(cwd);
+        mkdirSync(join(cwd, 'docs', 'tasks2'), { recursive: true });
+        writeFileSync(
+            join(cwd, 'docs', 'tasks2', '0353_Enhance_Kanban_UI.md'),
+            `---
+name: Enhance Kanban UI
+description: Task-scoped preset selection regression
+status: Backlog
+created_at: 2026-04-07T20:58:36.206Z
+updated_at: 2026-04-08T05:15:00.000Z
+folder: docs/tasks2
+type: task
+preset: simple
+impl_progress:
+  planning: pending
+  design: pending
+  implementation: pending
+  review: pending
+  testing: pending
+---
+
+## 0353. Enhance Kanban UI
+`,
+        );
+
+        const result = runCli(['run', '0353', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Pipeline valid');
+        expect(result.stdout).toContain('intake');
+        expect(result.stdout).toContain('decompose');
+        expect(result.stdout).toContain('implement');
+        expect(result.stdout).toContain('test');
+        expect(result.stdout).not.toContain('review');
+        expect(result.stdout).not.toContain('docs');
+    });
+
+    test('legacy task frontmatter profile still resolves when preset is absent', () => {
+        const cwd = createTempCwd('task-legacy-profile-simple');
+        writeTaskConfig(cwd);
+        mkdirSync(join(cwd, 'docs', 'tasks2'), { recursive: true });
+        writeFileSync(
+            join(cwd, 'docs', 'tasks2', '0354_Legacy_Profile_Task.md'),
+            `---
+name: Legacy Profile Task
+description: Legacy profile compatibility
+status: Backlog
+created_at: 2026-04-07T20:58:36.206Z
+updated_at: 2026-04-08T05:15:00.000Z
+folder: docs/tasks2
+type: task
+profile: simple
+impl_progress:
+  planning: pending
+  design: pending
+  implementation: pending
+  review: pending
+  testing: pending
+---
+
+## 0354. Legacy Profile Task
+`,
+        );
+
+        const result = runCli(['run', '0354', '--dry-run'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('intake');
+        expect(result.stdout).toContain('decompose');
+        expect(result.stdout).toContain('implement');
+        expect(result.stdout).toContain('test');
     });
 
     test('unknown flags fail loudly instead of falling through to the default pipeline', () => {
