@@ -453,10 +453,7 @@ export class Queries {
             .all(since) as Array<Record<string, unknown>>;
 
         // Aggregate by phase
-        const phaseStats = new Map<
-            string,
-            { totalAttempts: number; firstTryPasses: number; reworkPasses: number }
-        >();
+        const phaseStats = new Map<string, { totalAttempts: number; firstTryPasses: number; reworkPasses: number }>();
 
         for (const row of rows) {
             const phase = row.phase_name as string;
@@ -487,7 +484,8 @@ export class Queries {
                 // Estimate: first-try passes count as 1, rework passes count as ~2 attempts
                 avgAttemptsBeforePass:
                     stats.totalAttempts > 0
-                        ? Math.round((100 * (stats.firstTryPasses + 2 * stats.reworkPasses)) / stats.totalAttempts) / 100
+                        ? Math.round((100 * (stats.firstTryPasses + 2 * stats.reworkPasses)) / stats.totalAttempts) /
+                          100
                         : 0,
                 reworkRate: stats.totalAttempts > 0 ? Math.round((100 * stats.reworkPasses) / stats.totalAttempts) : 0,
             }))
