@@ -506,7 +506,9 @@ function isSpawnTimeout(error: Error | undefined): boolean {
     }
     const message = error.message.toLowerCase();
     const code =
-        typeof error === 'object' && error !== null && 'code' in error ? String((error as { code?: unknown }).code) : '';
+        typeof error === 'object' && error !== null && 'code' in error
+            ? String((error as { code?: unknown }).code)
+            : '';
     return code === 'ETIMEDOUT' || message.includes('timed out') || message.includes('timeout');
 }
 
