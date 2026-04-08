@@ -321,7 +321,7 @@ export function TaskDetail({ wbs, onClose, onStatusChange }: TaskDetailProps) {
                                     {STATUS_EMOJI[task.status]} {task.status}
                                 </span>
                                 <span>•</span>
-                                <span>{task.frontmatter.profile || 'standard'} profile</span>
+                                <span>{task.frontmatter.preset || task.frontmatter.profile || 'standard'} preset</span>
                             </div>
                         )}
                     </div>
