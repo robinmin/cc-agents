@@ -63,6 +63,10 @@ export interface AcpxQueryResult {
     durationMs?: number;
     /** Whether the query timed out (optional, may not be present in legacy results) */
     timedOut?: boolean;
+    /** Signal that terminated the child process, if any */
+    signal?: string;
+    /** spawnSync/process-level error message, if any */
+    errorMessage?: string;
     /** Extracted structured data (if parseStructured enabled) */
     structured?: Record<string, unknown>;
     /** Extracted resource metrics (if extractMetrics enabled) */
@@ -296,15 +300,7 @@ function execAgyChat(command: string[], timeoutMs?: number): AcpxQueryResult {
     };
 
     const result = spawnSync(command[0], command.slice(1), opts);
-
-    return {
-        ok: result.status === 0,
-        exitCode: result.status ?? 1,
-        stdout: typeof result.stdout === 'string' ? result.stdout : (result.stdout?.toString() ?? ''),
-        stderr: typeof result.stderr === 'string' ? result.stderr : (result.stderr?.toString() ?? ''),
-        durationMs: Date.now() - startTime,
-        timedOut: result.error?.message.includes('timeout') ?? false,
-    };
+    return normalizeSpawnSyncResult(result, startTime);
 }
 
 /**
@@ -437,15 +433,7 @@ export function execAcpxSync(command: string[], timeoutMs?: number): AcpxQueryRe
     };
 
     const result = spawnSync(command[0], command.slice(1), opts);
-
-    return {
-        ok: result.status === 0,
-        exitCode: result.status ?? 1,
-        stdout: typeof result.stdout === 'string' ? result.stdout : (result.stdout?.toString() ?? ''),
-        stderr: typeof result.stderr === 'string' ? result.stderr : (result.stderr?.toString() ?? ''),
-        durationMs: Date.now() - startTime,
-        timedOut: result.error?.message.includes('timeout') ?? false,
-    };
+    return normalizeSpawnSyncResult(result, startTime);
 }
 
 /**
@@ -474,15 +462,52 @@ export function execLlmCli(command: string[], promptFile: string, timeoutMs = 30
         timeout: timeoutMs,
         encoding: 'utf-8',
     });
+    return normalizeSpawnSyncResult(result, startTime);
+}
+
+function normalizeSpawnSyncResult(result: ReturnType<typeof spawnSync>, startTime: number): AcpxQueryResult {
+    const stdout = typeof result.stdout === 'string' ? result.stdout : (result.stdout?.toString() ?? '');
+    const stderr = typeof result.stderr === 'string' ? result.stderr : (result.stderr?.toString() ?? '');
+    const errorMessage = result.error instanceof Error ? result.error.message : undefined;
+    const signal = result.signal ?? undefined;
 
     return {
         ok: result.status === 0,
         exitCode: result.status ?? 1,
-        stdout: result.stdout ?? '',
-        stderr: result.stderr ?? '',
+        stdout,
+        stderr: appendProcessDiagnostics(stderr, errorMessage, signal),
         durationMs: Date.now() - startTime,
-        timedOut: result.error?.message.includes('timeout') ?? false,
+        timedOut: isSpawnTimeout(result.error),
+        ...(signal && { signal }),
+        ...(errorMessage && { errorMessage }),
     };
+}
+
+function appendProcessDiagnostics(stderr: string, errorMessage?: string, signal?: string): string {
+    const diagnostics: string[] = [];
+    if (errorMessage) {
+        diagnostics.push(`spawn_error: ${errorMessage}`);
+    }
+    if (signal) {
+        diagnostics.push(`signal: ${signal}`);
+    }
+    if (diagnostics.length === 0) {
+        return stderr;
+    }
+    if (!stderr) {
+        return diagnostics.join('\n');
+    }
+    return `${stderr.replace(/\s+$/u, '')}\n${diagnostics.join('\n')}`;
+}
+
+function isSpawnTimeout(error: Error | undefined): boolean {
+    if (!error) {
+        return false;
+    }
+    const message = error.message.toLowerCase();
+    const code =
+        typeof error === 'object' && error !== null && 'code' in error ? String((error as { code?: unknown }).code) : '';
+    return code === 'ETIMEDOUT' || message.includes('timed out') || message.includes('timeout');
 }
 
 /**
