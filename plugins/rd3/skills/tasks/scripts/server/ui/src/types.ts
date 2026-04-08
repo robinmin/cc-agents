@@ -51,6 +51,7 @@ export interface TaskFrontmatter {
     estimated_hours?: number;
     tags?: string[];
     dependencies?: string[];
+    preset?: string;
     profile?: string;
     impl_progress?: ImplProgress;
 }
