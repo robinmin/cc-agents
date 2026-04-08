@@ -64,11 +64,14 @@ export class AcpExecutor implements Executor {
 
             const result = this.execFn(['acpx', ...args], req.timeoutMs);
             const durationMs = Date.now() - startTime;
+            const stderr = this.withFailureDiagnostics(req, result);
 
             if (!result.ok && !result.timedOut) {
                 logger.error(
-                    `[acp:${this.agentName}] Phase ${req.phase} failed (exit ${result.exitCode}): ${result.stderr.slice(0, 300)}`,
+                    `[acp:${this.agentName}] Phase ${req.phase} failed (exit ${result.exitCode}): ${stderr.slice(0, 300)}`,
                 );
+            } else if (result.timedOut) {
+                logger.error(`[acp:${this.agentName}] Phase ${req.phase} timed out after ${req.timeoutMs}ms`);
             }
 
             const { structured, metrics } = parseOutput(result.stdout, true, true);
@@ -77,7 +80,7 @@ export class AcpExecutor implements Executor {
                 success: result.ok,
                 exitCode: result.exitCode,
                 stdout: result.stdout.slice(0, 50_000),
-                stderr: result.stderr.slice(0, 10_000),
+                stderr: stderr.slice(0, 10_000),
                 ...(structured !== undefined && { structured }),
                 durationMs,
                 timedOut: result.timedOut ?? false,
@@ -193,5 +196,47 @@ export class AcpExecutor implements Executor {
         );
 
         return parts.join('\n');
+    }
+
+    private withFailureDiagnostics(req: ExecutionRequest, result: AcpxQueryResult): string {
+        const baseStderr = result.stderr ?? '';
+        if (result.ok && !result.timedOut) {
+            return baseStderr;
+        }
+
+        const mode = req.session ? 'prompt --session' : 'exec';
+        const commandPreview = [
+            'acpx',
+            '--format json',
+            '--allowed-tools [configured]',
+            `--timeout ${Math.max(1, Math.ceil(req.timeoutMs / 1000))}`,
+            '--non-interactive-permissions deny',
+            this.agentName,
+            req.session ? 'prompt --session <session>' : 'exec',
+            '<prompt>',
+        ].join(' ');
+
+        const diagnostics = [
+            'acpx diagnostics:',
+            `phase: ${req.phase}`,
+            `agent: ${this.agentName}`,
+            `mode: ${mode}`,
+            `timeout_ms: ${req.timeoutMs}`,
+            `timed_out: ${String(result.timedOut ?? false)}`,
+            `exit_code: ${result.exitCode}`,
+            ...(req.session ? [`session: ${req.session}`] : []),
+            ...(req.sessionTtlSeconds !== undefined ? [`session_ttl_seconds: ${req.sessionTtlSeconds}`] : []),
+            ...(result.signal ? [`signal: ${result.signal}`] : []),
+            ...(result.errorMessage ? [`spawn_error: ${result.errorMessage}`] : []),
+            `command: ${commandPreview}`,
+        ].join('\n');
+
+        if (!baseStderr) {
+            return diagnostics;
+        }
+        if (baseStderr.includes('acpx diagnostics:')) {
+            return baseStderr;
+        }
+        return `${baseStderr.replace(/\s+$/u, '')}\n${diagnostics}`;
     }
 }
