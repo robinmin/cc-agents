@@ -122,6 +122,11 @@ describe('extractWbsFromPath', () => {
         expect(result).toBe('0343');
     });
 
+    it('should extract WBS from a bare WBS task ref', () => {
+        const result = extractWbsFromPath('0353');
+        expect(result).toBe('0353');
+    });
+
     it('should return null for invalid path', () => {
         expect(extractWbsFromPath('invalid')).toBeNull();
         expect(extractWbsFromPath('no_wbs_here')).toBeNull();
