@@ -16,6 +16,7 @@ import { handleEvents, normalizeTaskRef } from './cli/events';
 import { PipelineRunner } from './engine/runner';
 import { DAGScheduler } from './engine/dag';
 import { parsePipelineYaml, validatePipeline } from './config/parser';
+import { resolveConfig } from './config/config';
 import { resolveExtends } from './config/resolver';
 import { StateManager } from './state/manager';
 import { Queries } from './state/queries';
@@ -34,6 +35,9 @@ import { DEFAULT_STATE_DIR, DB_FILENAME, DEFAULT_PIPELINE_FILE } from './config/
 import { migrateFromV1 } from './state/migrate-v1';
 import { Pruner } from './state/prune';
 import { runSlashCommand, transformSlashCommand, isExecutionChannel } from '../../../scripts/libs/acpx-query';
+import { loadConfig as loadTasksConfig } from '../../tasks/scripts/lib/config';
+import { readTaskFile } from '../../tasks/scripts/lib/taskFile';
+import { findTaskByWbs } from '../../tasks/scripts/lib/wbs';
 import type { ExecutionChannel } from '../../../scripts/libs/acpx-query';
 import type { RunOptions, ResumeOptions, ReportFormat, PipelineDefinition, ValidationResult } from './model';
 
@@ -42,6 +46,11 @@ const PROJECT_PIPELINE = resolve('docs', '.workflows', DEFAULT_PIPELINE_FILE);
 type PipelineSource = {
     readonly file: string;
     readonly presetMode: 'default' | 'named' | 'standalone';
+};
+
+const TASK_PROFILE_PRESET_ALIASES: Readonly<Record<string, string>> = {
+    review: 'review-only',
+    docs: 'docs-only',
 };
 
 function printHelp(): void {
@@ -345,9 +354,42 @@ function resolveDryRunPhases(
     return ordered;
 }
 
+function normalizeTaskProfilePreset(profile: string | undefined): string | undefined {
+    if (!profile) {
+        return undefined;
+    }
+    return TASK_PROFILE_PRESET_ALIASES[profile] ?? profile;
+}
+
+function resolveTaskFrontmatterPreset(taskRef: string, projectRoot: string): string | undefined {
+    const tasksConfig = loadTasksConfig(projectRoot);
+    const taskPath = findTaskByWbs(taskRef, tasksConfig, projectRoot);
+    if (!taskPath) {
+        return undefined;
+    }
+
+    const task = readTaskFile(taskPath);
+    return normalizeTaskProfilePreset(task?.frontmatter.preset ?? task?.frontmatter.profile);
+}
+
+function resolveRunPreset(options: Record<string, unknown>, taskRef: string, projectRoot: string): string {
+    const explicitPreset = options.preset as string | undefined;
+    if (explicitPreset) {
+        return explicitPreset;
+    }
+
+    const taskPreset = resolveTaskFrontmatterPreset(taskRef, projectRoot);
+    if (taskPreset) {
+        return taskPreset;
+    }
+
+    return resolveConfig(projectRoot).defaultPreset;
+}
+
 async function handleRun(options: Record<string, unknown>, state: StateManager): Promise<void> {
+    const projectRoot = process.cwd();
     const taskRef = normalizeTaskRef(options.taskRef as string);
-    const preset = (options.preset as string | undefined) ?? 'default';
+    const preset = resolveRunPreset(options, taskRef, projectRoot);
     const normalizedChannel = normalizeRequestedChannel(options.channel as string | undefined);
     if (options.profileDeprecated === true) {
         logger.warn('--profile is deprecated; use --preset instead. --profile will be removed in a future version.');
@@ -375,7 +417,7 @@ async function handleRun(options: Record<string, unknown>, state: StateManager):
 
         const runOptions: RunOptions = {
             taskRef,
-            ...(options.preset != null && { preset: options.preset as string }),
+            preset,
             ...(options.phases != null && { phases: options.phases as readonly string[] }),
             ...(normalizedChannel != null && { channel: normalizedChannel }),
             ...(options.coverage != null && { coverage: options.coverage as number }),
