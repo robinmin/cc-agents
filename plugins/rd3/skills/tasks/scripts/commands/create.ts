@@ -6,6 +6,7 @@ import { err, ok, type Result } from '../lib/result';
 import { loadConfig, resolveFolderPath, getMetaDir } from '../lib/config';
 import { getNextWbs, formatWbs } from '../lib/wbs';
 import { getTemplateVars, substituteTemplateVars, stripInputTips } from '../lib/template';
+import { VALID_PROFILES } from '../types';
 import { logger } from '../../../../scripts/logger';
 
 const CREATE_LOCK_RETRY_MS = 10;
@@ -40,6 +41,7 @@ export function createTask(
         estimatedHours?: number;
         dependencies?: string[];
         tags?: string[];
+        preset?: string;
         profile?: string;
         quiet?: boolean;
         content?: string;
@@ -49,10 +51,11 @@ export function createTask(
     const folder = cliFolder || config.active_folder;
     const folderPath = resolveFolderPath(config, projectRoot, cliFolder);
 
-    if (options.profile !== undefined) {
-        const validProfiles = ['simple', 'standard', 'complex', 'research'];
-        if (!validProfiles.includes(options.profile)) {
-            return err(`Invalid profile: "${options.profile}". Valid values: ${validProfiles.join(', ')}`);
+    const resolvedPreset = options.preset ?? options.profile;
+
+    if (resolvedPreset !== undefined) {
+        if (!VALID_PROFILES.includes(resolvedPreset as (typeof VALID_PROFILES)[number])) {
+            return err(`Invalid preset: "${resolvedPreset}". Valid values: ${VALID_PROFILES.join(', ')}`);
         }
     }
 
@@ -90,6 +93,10 @@ export function createTask(
         let content: string;
         if (options.content) {
             content = options.content;
+            if (resolvedPreset !== undefined) {
+                content = removeFrontmatterField(content, 'profile');
+                content = upsertFrontmatterField(content, 'preset', resolvedPreset);
+            }
         } else {
             const vars = getTemplateVars(name, wbs, folder, name);
             content = substituteTemplateVars(templateContent, vars);
@@ -109,7 +116,8 @@ export function createTask(
             content = upsertFrontmatterField(content, 'estimated_hours', options.estimatedHours);
             content = upsertFrontmatterField(content, 'dependencies', options.dependencies);
             content = upsertFrontmatterField(content, 'tags', options.tags);
-            content = upsertFrontmatterField(content, 'profile', options.profile);
+            content = removeFrontmatterField(content, 'profile');
+            content = upsertFrontmatterField(content, 'preset', resolvedPreset);
         }
 
         const safeName = sanitizeTaskFileNameSegment(name);
@@ -240,6 +248,10 @@ export function upsertFrontmatterField(
     }
 
     return content.replace(/\n---\n/, `\n${field}: ${renderedValue}\n---\n`);
+}
+
+export function removeFrontmatterField(content: string, field: string): string {
+    return content.replace(new RegExp(`^${field}: .+$\\n?`, 'm'), '');
 }
 
 export function renderFrontmatterValue(value: string | number | string[]): string {
