@@ -167,7 +167,7 @@ The following specialist skills are available for delegation:
 | 8 | `rd3:bdd-workflow` / `rd3:functional-review` | Verification (`verify-bdd` + `verify-func`) |
 | 9 | `rd3:code-docs` | Documentation |
 
-**Channel contract:** `rd3:orchestration-v2` treats `auto` as the canonical "use the configured default backend" value. `current` remains accepted as a deprecated compatibility alias for the same behavior. Explicit agent names such as `pi` or `codex` route directly to those backends.
+**Channel contract:** `rd3:orchestration-v2` defaults to `local`. `direct` is the explicit subprocess transport. `auto` means "use the orchestrator default" and currently resolves to `local`; `current` remains a deprecated compatibility alias. Explicit agent names such as `pi` or `codex` stay external ACP-backed backends.
 
 `rd3:orchestration-v2` is the routing authority for configured-default versus explicit backend execution. This wrapper should pass the requested channel through, not reinterpret it.
 
