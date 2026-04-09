@@ -4,7 +4,7 @@
  * Returns canned responses for testing. Supports scripted sequences.
  */
 
-import type { Executor, ExecutionRequest, ExecutionResult, ExecutorCapabilities, ExecutorHealth } from '../model';
+import type { Executor, ExecutionRequest, ExecutionResult, ExecutorHealth } from '../model';
 
 export interface MockResponse {
     readonly result: ExecutionResult;
@@ -18,22 +18,17 @@ export interface MockExecutorOptions {
 
 export class MockExecutor implements Executor {
     readonly id = 'mock';
+    readonly name = 'Mock Executor';
+    readonly channels: readonly string[];
+    readonly maxConcurrency = Number.MAX_SAFE_INTEGER;
     private responses: MockResponse[] = [];
     private callLog: ExecutionRequest[] = [];
     private callIndex = 0;
     private readonly delayMs: number;
 
-    readonly capabilities: ExecutorCapabilities;
-
     constructor(options?: MockExecutorOptions) {
         this.delayMs = options?.delayMs ?? 0;
-        this.capabilities = {
-            parallel: true,
-            streaming: false,
-            structuredOutput: true,
-            channels: options?.channels ?? ['mock'],
-            maxConcurrency: Number.MAX_SAFE_INTEGER,
-        };
+        this.channels = options?.channels ?? ['mock'];
     }
 
     addResponse(response: MockResponse): void {
