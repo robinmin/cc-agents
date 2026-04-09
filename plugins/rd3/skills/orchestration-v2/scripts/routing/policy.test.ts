@@ -39,7 +39,7 @@ describe('configToPolicy', () => {
 
         const policy = configToPolicy(config, 'fallback');
 
-        expect(policy.defaultAdapterId).toBe('acp-stateless:pi');
+        expect(policy.defaultAdapterId).toBe('acp-oneshot:pi');
         expect(policy.defaultMode).toBe('stateless');
     });
 
@@ -69,22 +69,22 @@ describe('configToPolicy', () => {
         const policy = configToPolicy(config, 'fallback');
 
         expect(policy.channelOverrides).toBeDefined();
-        expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-sessioned:codex');
+        expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-session:codex');
         expect(policy.channelOverrides?.codex?.executionMode).toBe('sessioned');
     });
 
     it('uses fallback adapter when not specified', () => {
         const config = {};
 
-        const policy = configToPolicy(config, 'acp-stateless:pi');
+        const policy = configToPolicy(config, 'acp-oneshot:pi');
 
-        expect(policy.defaultAdapterId).toBe('acp-stateless:pi');
+        expect(policy.defaultAdapterId).toBe('acp-oneshot:pi');
     });
 
     it('defaults to stateless mode', () => {
         const config = {};
 
-        const policy = configToPolicy(config, 'acp-stateless:pi');
+        const policy = configToPolicy(config, 'acp-oneshot:pi');
 
         expect(policy.defaultMode).toBe('stateless');
     });
@@ -101,21 +101,21 @@ describe('materializePolicyChannels', () => {
         );
 
         expect(policy.defaultAdapterId).toBe('local');
-        expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-stateless:pi');
-        expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-stateless:codex');
+        expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-oneshot:pi');
+        expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-oneshot:codex');
     });
 
     it('creates channel-specific ACP overrides from the default policy', () => {
         const policy = materializePolicyChannels(
             {
-                defaultAdapterId: 'acp-stateless:pi',
+                defaultAdapterId: 'acp-oneshot:pi',
                 defaultMode: 'stateless',
             },
             ['pi', 'codex'],
         );
 
-        expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-stateless:pi');
-        expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-stateless:codex');
+        expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-oneshot:pi');
+        expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-oneshot:codex');
     });
 
     it('normalizes legacy ACP adapter ids while preserving mode', () => {
@@ -127,8 +127,8 @@ describe('materializePolicyChannels', () => {
             ['pi'],
         );
 
-        expect(policy.defaultAdapterId).toBe('acp-sessioned:pi');
-        expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-sessioned:pi');
+        expect(policy.defaultAdapterId).toBe('acp-session:pi');
+        expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-session:pi');
     });
 
     it('normalizes existing phase and channel overrides', () => {
@@ -152,14 +152,14 @@ describe('materializePolicyChannels', () => {
         );
 
         expect(policy.phaseOverrides?.implement).toEqual({
-            adapterId: 'acp-stateless:codex',
+            adapterId: 'acp-oneshot:codex',
         });
         expect(policy.channelOverrides?.codex).toEqual({
-            adapterId: 'acp-sessioned:codex',
+            adapterId: 'acp-session:codex',
             executionMode: 'sessioned',
         });
         expect(policy.channelOverrides?.pi).toEqual({
-            adapterId: 'acp-stateless:pi',
+            adapterId: 'acp-oneshot:pi',
             executionMode: 'stateless',
         });
     });
@@ -168,28 +168,28 @@ describe('materializePolicyChannels', () => {
 describe('policyToConfig', () => {
     it('converts policy to config', () => {
         const policy = {
-            defaultAdapterId: 'acp-stateless:pi',
+            defaultAdapterId: 'acp-oneshot:pi',
             defaultMode: 'stateless' as const,
             phaseOverrides: {
                 implement: { adapterId: 'local' },
             },
             channelOverrides: {
-                codex: { adapterId: 'acp-sessioned:codex', executionMode: 'sessioned' as const },
+                codex: { adapterId: 'acp-session:codex', executionMode: 'sessioned' as const },
             },
         };
 
         const config = policyToConfig(policy);
 
-        expect(config.default_adapter).toBe('acp-stateless:pi');
+        expect(config.default_adapter).toBe('acp-oneshot:pi');
         expect(config.default_mode).toBe('stateless');
         expect(config.phase_overrides?.implement?.adapter).toBe('local');
-        expect(config.channel_overrides?.codex?.adapter).toBe('acp-sessioned:codex');
+        expect(config.channel_overrides?.codex?.adapter).toBe('acp-session:codex');
         expect(config.channel_overrides?.codex?.mode).toBe('sessioned');
     });
 
     it('omits empty overrides', () => {
         const policy = {
-            defaultAdapterId: 'acp-stateless:pi',
+            defaultAdapterId: 'acp-oneshot:pi',
             defaultMode: 'stateless' as const,
         };
 
@@ -252,19 +252,19 @@ describe('validatePolicyConfig', () => {
 describe('formatPolicyForDisplay', () => {
     it('formats basic policy', () => {
         const policy = {
-            defaultAdapterId: 'acp-stateless:pi',
+            defaultAdapterId: 'acp-oneshot:pi',
             defaultMode: 'stateless' as const,
         };
 
         const output = formatPolicyForDisplay(policy);
 
-        expect(output).toContain('Default Adapter: acp-stateless:pi');
+        expect(output).toContain('Default Adapter: acp-oneshot:pi');
         expect(output).toContain('Default Mode: stateless');
     });
 
     it('formats phase overrides', () => {
         const policy = {
-            defaultAdapterId: 'acp-stateless:pi',
+            defaultAdapterId: 'acp-oneshot:pi',
             defaultMode: 'stateless' as const,
             phaseOverrides: {
                 implement: { adapterId: 'local' },
@@ -279,17 +279,17 @@ describe('formatPolicyForDisplay', () => {
 
     it('formats channel overrides with mode', () => {
         const policy = {
-            defaultAdapterId: 'acp-sessioned:pi',
+            defaultAdapterId: 'acp-session:pi',
             defaultMode: 'sessioned' as const,
             channelOverrides: {
-                codex: { adapterId: 'acp-sessioned:codex', executionMode: 'sessioned' as const },
+                codex: { adapterId: 'acp-session:codex', executionMode: 'sessioned' as const },
             },
         };
 
         const output = formatPolicyForDisplay(policy);
 
         expect(output).toContain('Channel Overrides:');
-        expect(output).toContain('codex: acp-sessioned:codex (sessioned)');
+        expect(output).toContain('codex: acp-session:codex (sessioned)');
     });
 });
 
@@ -334,7 +334,7 @@ describe('loadRoutingPolicy', () => {
             },
         });
 
-        const policy = loadRoutingPolicy('acp-stateless:pi');
+        const policy = loadRoutingPolicy('acp-oneshot:pi');
 
         expect(policy.defaultAdapterId).toBe('local');
         expect(policy.defaultMode).toBe('sessioned');
@@ -343,7 +343,7 @@ describe('loadRoutingPolicy', () => {
     it('uses environment variable for sessioned mode', () => {
         process.env.ORCHESTRATION_DEFAULT_MODE = 'sessioned';
 
-        const policy = loadRoutingPolicy('acp-stateless:pi');
+        const policy = loadRoutingPolicy('acp-oneshot:pi');
 
         expect(policy.defaultMode).toBe('sessioned');
     });
@@ -357,7 +357,7 @@ describe('loadRoutingPolicy', () => {
             },
         });
 
-        const policy = loadRoutingPolicy('acp-stateless:pi');
+        const policy = loadRoutingPolicy('acp-oneshot:pi');
 
         // Config is checked first, so env var is ignored
         expect(policy.defaultAdapterId).toBe('local');
@@ -383,7 +383,7 @@ describe('Built-in Policies', () => {
     it('sessioned policy uses sessioned mode', () => {
         const policy = getBuiltInPolicy('sessioned');
 
-        expect(policy?.defaultAdapterId).toBe('acp-sessioned:pi');
+        expect(policy?.defaultAdapterId).toBe('acp-session:pi');
         expect(policy?.defaultMode).toBe('sessioned');
     });
 
