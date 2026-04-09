@@ -11,7 +11,7 @@ export function formatRelativeTime(dateStr: string | undefined | null): string {
     if (!dateStr) return 'unknown';
 
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return 'unknown';
+    if (Number.isNaN(date.getTime())) return 'unknown';
 
     const now = Date.now();
     const diffMs = now - date.getTime();
