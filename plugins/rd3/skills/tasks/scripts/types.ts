@@ -62,6 +62,8 @@ export interface TaskListItem {
     name: string;
     status: TaskStatus;
     folder: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface FolderConfig {
