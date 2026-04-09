@@ -148,6 +148,8 @@ class MockStateManager {
 
 class MockExecutorPool {
     executeCount = 0;
+    lastRequest: unknown;
+    lastExecutorId: string | undefined;
     mockResult: ExecutionResult = {
         success: true,
         exitCode: 0,
@@ -157,8 +159,10 @@ class MockExecutorPool {
         timedOut: false,
     };
 
-    async execute(_req: unknown): Promise<ExecutionResult> {
+    async execute(req: unknown, executorId?: string): Promise<ExecutionResult> {
         this.executeCount++;
+        this.lastRequest = req;
+        this.lastExecutorId = executorId;
         return this.mockResult;
     }
 
@@ -558,6 +562,47 @@ describe('PipelineRunner.run() basic behavior', () => {
         expect(['IDLE', 'RUNNING', 'PAUSED', 'COMPLETED', 'FAILED']).toContain(result.status);
         expect(typeof result.exitCode).toBe('number');
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
+    });
+
+    test('uses direct executor ID when a phase pins executor.mode: direct', async () => {
+        const stateManager = new MockStateManager();
+        const executorPool = new MockExecutorPool();
+        const { PipelineRunner } = await import('./runner');
+        const runner = new PipelineRunner(stateManager as never, executorPool as never);
+        const pipeline = createTestPipeline({
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement-common',
+                    executor: { mode: 'direct' },
+                    gate: { type: 'command', command: 'true' },
+                },
+            },
+        });
+
+        await runner.run({ taskRef: '0367', phases: ['implement'] }, pipeline);
+
+        expect(executorPool.lastExecutorId).toBe('direct');
+    });
+
+    test('uses explicit external channel when a phase pins executor.channel', async () => {
+        const stateManager = new MockStateManager();
+        const executorPool = new MockExecutorPool();
+        const { PipelineRunner } = await import('./runner');
+        const runner = new PipelineRunner(stateManager as never, executorPool as never);
+        const pipeline = createTestPipeline({
+            phases: {
+                review: {
+                    skill: 'rd3:code-review-common',
+                    executor: { channel: 'codex' },
+                    gate: { type: 'human' },
+                },
+            },
+        });
+
+        await runner.run({ taskRef: '0367', phases: ['review'] }, pipeline);
+
+        expect((executorPool.lastRequest as { channel: string }).channel).toBe('codex');
+        expect(executorPool.lastExecutorId).toBeUndefined();
     });
 });
 
