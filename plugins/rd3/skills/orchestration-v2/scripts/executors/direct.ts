@@ -1,8 +1,7 @@
 /**
  * orchestration-v2 — Direct Executor Adapter
  *
- * True local/direct execution using Bun spawn APIs.
- * This is the default executor for ordinary pipeline phases.
+ * Explicit Bun-subprocess execution using Bun spawn APIs.
  *
  * Design principles:
  * - No ACP/acpx dependency — runs skill scripts directly
@@ -13,7 +12,8 @@
  * Execution model:
  *   bun run <skill-script> --task-ref <task> --phase <phase> [--options]
  *
- * This adapter replaces the misleading ACP-backed "local" executor.
+ * Use this when a phase needs subprocess isolation or does not support
+ * in-process local execution.
  */
 
 import type { PhaseExecutorAdapter, ExecutorHealth } from './adapter';
@@ -21,6 +21,8 @@ import type { ExecutionRequest, ExecutionResult, ExecutorCapabilities } from '..
 import { logger } from '../../../../scripts/logger';
 import { resolve } from 'node:path';
 import { spawn } from 'bun';
+import { executeStateless as executeAcpTransport } from '../integrations/acp/transport';
+import { buildPromptFromRequest } from '../integrations/acp/prompts';
 
 // ─── Adapter ID Constants ─────────────────────────────────────────────────────
 
@@ -32,19 +34,20 @@ export const DIRECT_ADAPTER_NAME = 'Direct Executor (Bun spawn)';
 /**
  * Direct executor adapter using Bun spawn APIs.
  *
- * Executes skill scripts directly via Bun subprocess without ACP/acpx.
- * This is the default orchestrator executor for ordinary phase execution.
+ * Executes skill scripts directly via Bun subprocess without ACP/acpx where
+ * possible. SKILL-only packages fall back to the generic prompt transport so
+ * common rd3 presets still have a runnable path.
  */
 export class DirectExecutor implements PhaseExecutorAdapter {
     readonly id = DIRECT_ADAPTER_ID;
     readonly name = DIRECT_ADAPTER_NAME;
     readonly executionMode: 'stateless' = 'stateless';
-    readonly channels = [DIRECT_ADAPTER_ID, 'direct', 'local'] as const;
+    readonly channels = [DIRECT_ADAPTER_ID, 'direct'] as const;
     readonly capabilities: ExecutorCapabilities = {
         parallel: false, // Direct execution is sequential
         streaming: false, // We capture stdout/stderr after completion
         structuredOutput: false, // Direct executor doesn't support structured output
-        channels: [DIRECT_ADAPTER_ID, 'direct', 'local'],
+        channels: [DIRECT_ADAPTER_ID, 'direct'],
         maxConcurrency: 1,
     };
 
@@ -75,9 +78,19 @@ export class DirectExecutor implements PhaseExecutorAdapter {
         const startTime = Date.now();
         const timeoutMs = req.timeoutMs ?? 30 * 60 * 1000; // Default 30 minutes
 
+        if (req.session) {
+            return {
+                success: false,
+                exitCode: 1,
+                stderr: 'Direct execution does not support --session. Use local mode for in-process work or an explicit ACP channel/adapter for sessioned execution.',
+                durationMs: Date.now() - startTime,
+                timedOut: false,
+            };
+        }
+
         try {
-            const skillScript = this.resolveSkillScript(req.skill);
-            if (!skillScript) {
+            const resolved = this.resolveSkillScript(req.skill);
+            if (!resolved) {
                 return {
                     success: false,
                     exitCode: 1,
@@ -87,11 +100,16 @@ export class DirectExecutor implements PhaseExecutorAdapter {
                 };
             }
 
+            // SKILL-only package: use ACP transport fallback
+            if (resolved.type === 'skill-only') {
+                return this.executeSkillOnly(req);
+            }
+
             // Build the command arguments
             const args = this.buildArgs(req);
 
             // Execute via Bun spawn
-            const result = await this.spawnSkill(skillScript, args, timeoutMs);
+            const result = await this.spawnSkill(resolved.path, args, timeoutMs, req.phase);
 
             return {
                 ...result,
@@ -163,10 +181,14 @@ export class DirectExecutor implements PhaseExecutorAdapter {
      * Format: "plugin:skill-name" (e.g., "rd3:code-implement-common")
      *
      * Resolution:
-     * - plugins/{plugin}/skills/{skill}/scripts/run.ts
-     * - plugins/{plugin}/skills/{skill}/index.ts
+     * - scripts/run.ts → { type: 'script', path: ... }
+     * - index.ts → { type: 'script', path: ... }
+     * - SKILL.md only → { type: 'skill-only' } (fallback to ACP)
+     * - not found → null
      */
-    private resolveSkillScript(skillRef: string): string | null {
+    readonly resolveSkillScript = (
+        skillRef: string,
+    ): { type: 'script'; path: string } | { type: 'skill-only' } | null => {
         const [plugin, skillName] = skillRef.split(':');
         if (!plugin || !skillName) {
             logger.warn(`[direct] Invalid skill ref format: ${skillRef}`);
@@ -177,31 +199,70 @@ export class DirectExecutor implements PhaseExecutorAdapter {
         const scriptPath = resolve(this.skillBaseDir, plugin, skillName, 'scripts', 'run.ts');
         const { existsSync } = require('node:fs');
         if (existsSync(scriptPath)) {
-            return scriptPath;
+            return { type: 'script', path: scriptPath };
         }
 
         // Fall back to index.ts
         const indexPath = resolve(this.skillBaseDir, plugin, skillName, 'index.ts');
         if (existsSync(indexPath)) {
-            return indexPath;
+            return { type: 'script', path: indexPath };
         }
 
-        // Fall back to main skill file
+        // Check for SKILL.md (SKILL-only package)
         const skillPath = resolve(this.skillBaseDir, plugin, skillName, 'SKILL.md');
         if (existsSync(skillPath)) {
-            // For SKILL.md files, we need to use the skill runner
-            return resolve(this.skillBaseDir, plugin, skillName);
+            // SKILL-only package: no runnable script, will use ACP fallback
+            return { type: 'skill-only' };
         }
 
-        logger.warn(`[direct] Skill script not found for ${skillRef}`);
+        logger.warn(`[direct] Skill not found: ${skillRef}`);
         logger.warn(`[direct] Looked in: ${scriptPath}`);
         return null;
+    };
+
+    /**
+     * Execute a SKILL-only phase via ACP transport fallback.
+     *
+     * When a skill has no runnable script (SKILL.md only), we delegate to
+     * ACP transport to invoke the skill via Skill() tool invocation.
+     */
+    private async executeSkillOnly(req: ExecutionRequest): Promise<ExecutionResult> {
+        const startTime = Date.now();
+        const timeoutMs = req.timeoutMs ?? 30 * 60 * 1000;
+
+        logger.info(`[direct] SKILL-only package ${req.skill} — falling back to ACP transport`);
+
+        try {
+            const prompt = buildPromptFromRequest(req);
+            const result = executeAcpTransport(prompt, timeoutMs);
+
+            return {
+                success: result.success,
+                exitCode: result.exitCode,
+                stdout: result.stdout?.slice(0, 50_000),
+                stderr: result.stderr?.slice(0, 10_000),
+                ...(result.structured && { structured: result.structured }),
+                durationMs: Date.now() - startTime,
+                timedOut: result.timedOut,
+                ...(result.resources && result.resources.length > 0 && { resources: result.resources }),
+            };
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            logger.error(`[direct] SKILL-only ACP fallback failed for ${req.skill}: ${message}`);
+            return {
+                success: false,
+                exitCode: 1,
+                stderr: message,
+                durationMs: Date.now() - startTime,
+                timedOut: false,
+            };
+        }
     }
 
     /**
      * Build command arguments for skill execution.
      */
-    private buildArgs(req: ExecutionRequest): string[] {
+    readonly buildArgs = (req: ExecutionRequest): string[] => {
         const args: string[] = [];
 
         // Task reference
@@ -235,7 +296,7 @@ export class DirectExecutor implements PhaseExecutorAdapter {
         }
 
         return args;
-    }
+    };
 
     /**
      * Spawn a skill script and wait for completion.
@@ -248,10 +309,9 @@ export class DirectExecutor implements PhaseExecutorAdapter {
         scriptPath: string,
         args: string[],
         timeoutMs: number,
+        phase?: string,
     ): Promise<Omit<ExecutionResult, 'durationMs'>> {
         return new Promise((resolve) => {
-            let stdout = '';
-            let stderr = '';
             let timedOut = false;
 
             const proc = spawn({
@@ -262,50 +322,35 @@ export class DirectExecutor implements PhaseExecutorAdapter {
                 env: {
                     ...process.env,
                     ORCH_EXECUTOR: this.id,
-                    ORCH_PHASE: args[2] ?? '', // phase arg if present
+                    ORCH_PHASE: phase ?? '',
                 },
                 ...(timeoutMs > 0 ? { timeout: timeoutMs } : {}),
             });
 
-            // Set up timeout
-            const timeoutHandle = setTimeout(() => {
-                timedOut = true;
-                proc.kill();
-            }, timeoutMs);
-
-            // Collect stdout - proc.stdout is a ReadableStream<Uint8Array>
             const stdoutStream = proc.stdout as unknown as ReadableStream<Uint8Array> | undefined;
-            if (stdoutStream) {
-                const reader = stdoutStream.getReader();
-                reader
-                    .read()
-                    .then(async function readChunk(): Promise<void> {
-                        const { done, value } = await reader.read();
-                        if (done) return;
-                        stdout += new TextDecoder().decode(value);
-                        readChunk();
-                    })
-                    .catch(() => {}); // Ignore read errors
-            }
-
-            // Collect stderr
             const stderrStream = proc.stderr as unknown as ReadableStream<Uint8Array> | undefined;
-            if (stderrStream) {
-                const reader = stderrStream.getReader();
-                reader
-                    .read()
-                    .then(async function readChunk(): Promise<void> {
-                        const { done, value } = await reader.read();
-                        if (done) return;
-                        stderr += new TextDecoder().decode(value);
-                        readChunk();
-                    })
-                    .catch(() => {}); // Ignore read errors
-            }
+            const stdoutPromise = stdoutStream
+                ? new Response(stdoutStream).text().catch(() => '')
+                : Promise.resolve('');
+            const stderrPromise = stderrStream
+                ? new Response(stderrStream).text().catch(() => '')
+                : Promise.resolve('');
 
-            // Wait for completion
-            proc.exited.then((exitCode: number) => {
-                clearTimeout(timeoutHandle);
+            const timeoutHandle =
+                timeoutMs > 0
+                    ? setTimeout(() => {
+                          timedOut = true;
+                          proc.kill();
+                      }, timeoutMs)
+                    : undefined;
+
+            proc.exited.then(async (exitCode: number) => {
+                if (timeoutHandle) {
+                    clearTimeout(timeoutHandle);
+                }
+
+                const stdout = await stdoutPromise;
+                let stderr = await stderrPromise;
 
                 const success = exitCode === 0 && !timedOut;
 
