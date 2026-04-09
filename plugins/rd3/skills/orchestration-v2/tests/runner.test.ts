@@ -26,19 +26,29 @@ import { runMigrations } from '../scripts/state/migrations';
 import { logger, setGlobalSilent } from '../../../scripts/logger';
 import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent } from '../scripts/model';
 import * as llmModule from '../../verification-chain/scripts/methods/llm';
+import type { MethodResult } from '../../verification-chain/scripts/types';
 
 // Setup global test environment
 let llmSpy: ReturnType<typeof spyOn>;
+
+function createDefaultLlmCheckResult(): MethodResult {
+    return {
+        result: 'pass' as const,
+        evidence: {
+            method: 'llm',
+            result: 'pass',
+            timestamp: new Date().toISOString(),
+            llm_results: [],
+        },
+    };
+}
 
 beforeAll(() => {
     setGlobalSilent(true);
 
     // Mock runLlmCheck to always pass — auto gates use LLM verification
     // which requires external LLM access not available in test
-    llmSpy = spyOn(llmModule, 'runLlmCheck').mockResolvedValue({
-        result: 'pass',
-        evidence: { method: 'llm', result: 'pass', timestamp: new Date().toISOString(), llm_results: [] },
-    });
+    llmSpy = spyOn(llmModule, 'runLlmCheck').mockResolvedValue(createDefaultLlmCheckResult());
 });
 
 afterAll(() => {
@@ -69,6 +79,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
         // Create fresh test environment
         stateManager = createTestStateManager();
         executorPool = new ExecutorPool();
+        executorPool.disableAdapterMode();
         hookRegistry = new HookRegistry();
         eventBus = new EventBus();
 
@@ -80,8 +91,10 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
         runner = new PipelineRunner(stateManager, executorPool, hookRegistry, eventBus);
     });
 
-    afterEach(() => {
-        stateManager.close();
+    afterEach(async () => {
+        llmSpy.mockReset();
+        llmSpy.mockResolvedValue(createDefaultLlmCheckResult());
+        await stateManager.close();
     });
 
     // ─── Constructor & Initialization ───────────────────────────────────────────
@@ -1600,7 +1613,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
     // ─── Skill Auto Gate Defaults ──────────────────────────────────────────────
 
     describe('Skill Auto Gate Defaults', () => {
-        test('should resolve skill definition path with valid plugin:skill format', () => {
+        test('should resolve skill definition path with valid plugin:skill format', async () => {
             // Test the private method indirectly through auto gate with skill ref
             // The runner should attempt to load skill defaults for the specified skill
             const pipeline: PipelineDefinition = {
@@ -1620,10 +1633,11 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
 
             // This will attempt to resolve the skill path and load defaults
             // If the skill exists, it may find defaults; if not, it gracefully falls back
-            runner.run(options, pipeline).catch(() => {}); // Fire and forget
+            const result = await runner.run(options, pipeline);
+            expect(result.status).toBe('COMPLETED');
         });
 
-        test('should handle invalid skill ref format gracefully', () => {
+        test('should handle invalid skill ref format gracefully', async () => {
             // Invalid format should return null path and not crash
             const pipeline: PipelineDefinition = {
                 schema_version: 1,
@@ -1641,7 +1655,8 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             };
 
             // Should complete without crashing even with invalid skill ref
-            runner.run(options, pipeline).catch(() => {});
+            const result = await runner.run(options, pipeline);
+            expect(result.status).toBe('COMPLETED');
         });
     });
 
