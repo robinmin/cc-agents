@@ -116,6 +116,8 @@ export interface ExternalConfig {
     readonly db_path?: string;
     /** Registered and enabled executor channels. Defaults to [DEFAULT_CHANNEL]. */
     readonly executor_channels?: readonly string[];
+    /** Raw routing policy config, preserved for routing/policy.ts. */
+    readonly routing?: unknown;
 }
 
 function getConfigDir(): string {
