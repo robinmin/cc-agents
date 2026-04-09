@@ -21,17 +21,17 @@ vi.mock('../config/config', () => ({
 // ─── Import after mocks ───────────────────────────────────────────────────────
 
 import { ExecutorPool } from './pool';
-import { AutoExecutor } from './auto';
-import type { ExecutionRoutingPolicy } from './adapter';
 import { createDefaultPolicy } from './adapter';
 import type { Executor } from '../model';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 function createMockExecutor(id: string, channels: string[]): Executor {
-    // Executor type has id, capabilities, execute, healthCheck, dispose
     return {
         id,
+        name: `Mock (${id})`,
+        channels,
+        maxConcurrency: 4,
         execute: vi.fn().mockResolvedValue({
             success: true,
             exitCode: 0,
@@ -44,13 +44,6 @@ function createMockExecutor(id: string, channels: string[]): Executor {
             lastChecked: new Date(),
         }),
         dispose: vi.fn().mockResolvedValue(undefined),
-        capabilities: {
-            parallel: true,
-            streaming: true,
-            structuredOutput: true,
-            channels: channels,
-            maxConcurrency: 4,
-        },
     };
 }
 
@@ -84,9 +77,9 @@ describe('ExecutorPool', () => {
             const policy = pool.getRoutingPolicy();
             expect(policy).toBeDefined();
             expect(policy.defaultMode).toBe('stateless');
-            expect(policy.defaultAdapterId).toBe('local');
-            expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-stateless:pi');
-            expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-stateless:codex');
+            expect(policy.defaultAdapterId).toBe('inline');
+            expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-oneshot:pi');
+            expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-oneshot:codex');
         });
     });
 
@@ -108,7 +101,7 @@ describe('ExecutorPool', () => {
 
     describe('get', () => {
         it('returns executor by ID', () => {
-            const executor = pool.get('auto');
+            const executor = pool.get('inline');
             expect(executor).toBeDefined();
         });
 
@@ -116,12 +109,21 @@ describe('ExecutorPool', () => {
             const executor = pool.get('nonexistent-id');
             expect(executor).toBeUndefined();
         });
+
+        it('resolves legacy alias "local" to inline', () => {
+            const executor = pool.get('local');
+            expect(executor).toBeDefined();
+            if (executor) {
+                expect(executor.id).toBe('inline');
+            }
+        });
     });
 
     describe('getDefault', () => {
-        it('returns default executor', () => {
+        it('returns inline executor as default', () => {
             const executor = pool.getDefault();
             expect(executor).toBeDefined();
+            expect(executor.id).toBe('inline');
         });
     });
 
@@ -134,8 +136,19 @@ describe('ExecutorPool', () => {
 
     describe('resolve', () => {
         it('resolves executor by channel', () => {
-            const executor = pool.resolve('local');
+            const executor = pool.resolve('inline');
             expect(executor).toBeDefined();
+            expect(executor.id).toBe('inline');
+        });
+
+        it('resolves legacy alias "local" to inline', () => {
+            const executor = pool.resolve('local');
+            expect(executor.id).toBe('inline');
+        });
+
+        it('resolves legacy alias "direct" to subprocess', () => {
+            const executor = pool.resolve('direct');
+            expect(executor.id).toBe('subprocess');
         });
 
         it('throws for unknown channel', () => {
@@ -145,7 +158,14 @@ describe('ExecutorPool', () => {
 
     describe('has', () => {
         it('returns true for registered channel', () => {
+            expect(pool.has('inline')).toBe(true);
+        });
+
+        it('returns true for legacy aliases', () => {
             expect(pool.has('local')).toBe(true);
+            expect(pool.has('direct')).toBe(true);
+            expect(pool.has('auto')).toBe(true);
+            expect(pool.has('current')).toBe(true);
         });
 
         it('returns false for unknown channel', () => {
@@ -184,47 +204,14 @@ describe('Routing Policy Integration', () => {
         pool = new ExecutorPool();
     });
 
-    describe('enableAdapterMode', () => {
-        it('enables adapter mode with default policy', () => {
-            pool.enableAdapterMode();
-            expect(pool.getRoutingPolicy().defaultMode).toBe('stateless');
-        });
-
-        it('enables adapter mode with custom policy', () => {
-            const customPolicy: ExecutionRoutingPolicy = {
-                defaultAdapterId: 'local',
-                defaultMode: 'sessioned',
-            };
-            pool.enableAdapterMode(customPolicy);
-            expect(pool.getRoutingPolicy().defaultMode).toBe('sessioned');
-            expect(pool.getRoutingPolicy().channelOverrides?.codex?.adapterId).toBe('acp-sessioned:codex');
-        });
-    });
-
-    describe('disableAdapterMode', () => {
-        it('disables adapter mode and restores legacy executors', () => {
-            pool.enableAdapterMode();
-            pool.disableAdapterMode();
-            expect(pool.get('pi')).toBeDefined();
-        });
-    });
-
     describe('getRoutingPolicy', () => {
         it('returns stateless as default mode', () => {
             expect(pool.getRoutingPolicy().defaultMode).toBe('stateless');
         });
 
-        it('returns default adapter ID', () => {
-            expect(pool.getRoutingPolicy().defaultAdapterId).toBeDefined();
+        it('returns inline as default adapter ID', () => {
+            expect(pool.getRoutingPolicy().defaultAdapterId).toBe('inline');
         });
-    });
-});
-
-describe('AutoExecutor', () => {
-    it('can be instantiated directly', () => {
-        const auto = new AutoExecutor();
-        expect(auto).toBeDefined();
-        expect(auto.id).toBe('auto');
     });
 });
 
@@ -236,7 +223,7 @@ describe('createDefaultPolicy', () => {
     });
 });
 
-describe('executeWithPolicy (adapter mode)', () => {
+describe('execute with routing', () => {
     // Helper: create a pool with only mock executors to avoid real ACP calls
     function createMockPool(): ExecutorPool {
         const pool = new ExecutorPool();
@@ -246,13 +233,8 @@ describe('executeWithPolicy (adapter mode)', () => {
         return pool;
     }
 
-    it('falls back to legacy mode when adapter not found and executor exists', async () => {
+    it('uses explicit executor ID which bypasses routing', async () => {
         const pool2 = createMockPool();
-        pool2.enableAdapterMode({
-            defaultAdapterId: 'nonexistent:adapter',
-            defaultMode: 'stateless',
-        });
-        // Create request with mock channel directly
         const req: ExecutionRequest = {
             skill: 'rd3:test',
             phase: 'implement',
@@ -261,19 +243,66 @@ describe('executeWithPolicy (adapter mode)', () => {
             channel: 'mock-channel',
             timeoutMs: 60000,
         };
-        // Should fall back to legacy mode and resolve mock executor
-        const result = await pool2.execute(req);
+        // When executorId is provided, it bypasses routing entirely
+        const result = await pool2.execute(req, 'mock-exec');
         expect(result).toBeDefined();
         expect(result.success).toBe(true);
     });
 
-    it('falls back to legacy mode and throws when no executor found', async () => {
-        const pool2 = createMockPool();
-        pool2.enableAdapterMode({
-            defaultAdapterId: 'nonexistent:adapter',
-            defaultMode: 'stateless',
+    it('preserves explicit subprocess channel selection before policy fallback', async () => {
+        const pool2 = new ExecutorPool();
+        const subprocess = pool2.resolve('subprocess');
+        const executeSpy = vi.spyOn(subprocess, 'execute').mockResolvedValue({
+            success: true,
+            exitCode: 0,
+            stdout: 'subprocess output',
+            durationMs: 12,
+            timedOut: false,
         });
-        // Create request with nonexistent channel
+        const req: ExecutionRequest = {
+            skill: 'rd3:test',
+            phase: 'implement',
+            prompt: 'test prompt',
+            payload: { task_ref: 'test' },
+            channel: 'subprocess',
+            timeoutMs: 60000,
+        };
+
+        const result = await pool2.execute(req);
+
+        expect(result.success).toBe(true);
+        expect(executeSpy).toHaveBeenCalledTimes(1);
+        expect(executeSpy).toHaveBeenCalledWith(req);
+    });
+
+    it('preserves legacy direct channel selection before policy fallback', async () => {
+        const pool2 = new ExecutorPool();
+        const subprocess = pool2.resolve('subprocess');
+        const executeSpy = vi.spyOn(subprocess, 'execute').mockResolvedValue({
+            success: true,
+            exitCode: 0,
+            stdout: 'subprocess output',
+            durationMs: 12,
+            timedOut: false,
+        });
+        const req: ExecutionRequest = {
+            skill: 'rd3:test',
+            phase: 'implement',
+            prompt: 'test prompt',
+            payload: { task_ref: 'test' },
+            channel: 'direct',
+            timeoutMs: 60000,
+        };
+
+        const result = await pool2.execute(req);
+
+        expect(result.success).toBe(true);
+        expect(executeSpy).toHaveBeenCalledTimes(1);
+        expect(executeSpy).toHaveBeenCalledWith(req);
+    });
+
+    it('throws for unknown channel instead of falling back to inline', async () => {
+        const pool2 = new ExecutorPool();
         const req: ExecutionRequest = {
             skill: 'rd3:test',
             phase: 'implement',
@@ -282,23 +311,7 @@ describe('executeWithPolicy (adapter mode)', () => {
             channel: 'nonexistent-channel',
             timeoutMs: 60000,
         };
-        // Should fall back to legacy mode and throw
-        await expect(pool2.execute(req)).rejects.toThrow('No executor registered for channel');
-    });
 
-    it('uses explicit executor ID which bypasses adapter mode', async () => {
-        const pool2 = createMockPool();
-        // Create request with mock channel directly
-        const req: ExecutionRequest = {
-            skill: 'rd3:test',
-            phase: 'implement',
-            prompt: 'test prompt',
-            payload: { task_ref: 'test' },
-            channel: 'mock-channel',
-            timeoutMs: 60000,
-        };
-        // When executorId is provided, it bypasses adapter mode entirely
-        const result = await pool2.execute(req, 'mock-exec');
-        expect(result).toBeDefined();
+        await expect(pool2.execute(req)).rejects.toThrow('No executor registered for channel: nonexistent-channel');
     });
 });
