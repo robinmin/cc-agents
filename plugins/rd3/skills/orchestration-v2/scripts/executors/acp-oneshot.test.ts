@@ -1,7 +1,7 @@
 /**
- * acp-stateless.ts tests
+ * acp-oneshot.ts tests
  *
- * Tests for ACP stateless executor adapter.
+ * Tests for ACP oneshot executor.
  */
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
@@ -54,7 +54,7 @@ mock.module('../../../../scripts/libs/acpx-query', () => ({
 
 // ─── Import after mocks ───────────────────────────────────────────────────────
 
-import { AcpStatelessExecutor } from './acp-stateless';
+import { AcpOneshotExecutor } from './acp-oneshot';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -71,10 +71,10 @@ function createRequest(overrides: Partial<ExecutionRequest> = {}): ExecutionRequ
     };
 }
 
-// ─── AcpStatelessExecutor Tests ───────────────────────────────────────────────
+// ─── AcpOneshotExecutor Tests ───────────────────────────────────────────────
 
-describe('AcpStatelessExecutor', () => {
-    let executor: AcpStatelessExecutor;
+describe('AcpOneshotExecutor', () => {
+    let executor: AcpOneshotExecutor;
 
     beforeEach(() => {
         mockExecAcpxSync.mockClear();
@@ -90,17 +90,17 @@ describe('AcpStatelessExecutor', () => {
             structured: undefined,
             metrics: [],
         };
-        executor = new AcpStatelessExecutor('pi');
+        executor = new AcpOneshotExecutor('pi');
     });
 
     describe('constructor', () => {
         it('sets correct id and name for default agent', () => {
-            expect(executor.id).toBe('acp-stateless:pi');
-            expect(executor.name).toBe('ACP Stateless (pi)');
+            expect(executor.id).toBe('acp-oneshot:pi');
+            expect(executor.name).toBe('ACP Oneshot (pi)');
         });
 
-        it('reports stateless execution mode', () => {
-            expect(executor.executionMode).toBe('stateless');
+        it('has maxConcurrency of 4 by default', () => {
+            expect(executor.maxConcurrency).toBe(4);
         });
 
         it('registers expected channels', () => {
@@ -110,11 +110,16 @@ describe('AcpStatelessExecutor', () => {
         });
 
         it('accepts custom agent name', () => {
-            const customExecutor = new AcpStatelessExecutor('codex');
+            const customExecutor = new AcpOneshotExecutor('codex');
 
-            expect(customExecutor.id).toBe('acp-stateless:codex');
-            expect(customExecutor.name).toBe('ACP Stateless (codex)');
+            expect(customExecutor.id).toBe('acp-oneshot:codex');
+            expect(customExecutor.name).toBe('ACP Oneshot (codex)');
             expect(customExecutor.channels).toContain('codex');
+        });
+
+        it('accepts custom maxConcurrency', () => {
+            const customExecutor = new AcpOneshotExecutor('pi', 8);
+            expect(customExecutor.maxConcurrency).toBe(8);
         });
     });
 
@@ -129,7 +134,7 @@ describe('AcpStatelessExecutor', () => {
             expect(result.exitCode).toBe(0);
         });
 
-        it('includes session fields but ignores them (stateless)', async () => {
+        it('includes session fields but ignores them (oneshot)', async () => {
             const req = createRequest({
                 session: 'ignored-session',
                 sessionTtlSeconds: 300,
@@ -218,30 +223,30 @@ describe('AcpStatelessExecutor', () => {
 });
 
 describe('Factory functions', () => {
-    describe('createStatelessExecutor', () => {
+    describe('createOneshotExecutor', () => {
         it('creates executor with default agent', async () => {
-            const { createStatelessExecutor } = await import('./acp-stateless');
-            const executor = createStatelessExecutor();
+            const { createOneshotExecutor } = await import('./acp-oneshot');
+            const executor = createOneshotExecutor();
 
             expect(executor).toBeDefined();
-            expect(executor.id).toBe('acp-stateless:pi');
+            expect(executor.id).toBe('acp-oneshot:pi');
         });
 
         it('creates executor with custom agent', async () => {
-            const { createStatelessExecutor } = await import('./acp-stateless');
-            const executor = createStatelessExecutor('codex');
+            const { createOneshotExecutor } = await import('./acp-oneshot');
+            const executor = createOneshotExecutor('codex');
 
             expect(executor).toBeDefined();
-            expect(executor.id).toBe('acp-stateless:codex');
+            expect(executor.id).toBe('acp-oneshot:codex');
         });
     });
 
-    describe('DEFAULT_STATELESS_EXECUTOR', () => {
+    describe('DEFAULT_ONESHOT_EXECUTOR', () => {
         it('is pre-configured for pi agent', async () => {
-            const { DEFAULT_STATELESS_EXECUTOR } = await import('./acp-stateless');
+            const { DEFAULT_ONESHOT_EXECUTOR } = await import('./acp-oneshot');
 
-            expect(DEFAULT_STATELESS_EXECUTOR).toBeDefined();
-            expect(DEFAULT_STATELESS_EXECUTOR.id).toBe('acp-stateless:pi');
+            expect(DEFAULT_ONESHOT_EXECUTOR).toBeDefined();
+            expect(DEFAULT_ONESHOT_EXECUTOR.id).toBe('acp-oneshot:pi');
         });
     });
 });
