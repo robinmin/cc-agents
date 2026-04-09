@@ -3,15 +3,15 @@ name: Add Relative Timestamp to Task Cards
 description: Enhance Kanban task card layout to show WBS and relative timestamp on first line
 status: Done
 created_at: 2026-04-09T00:00:00.000Z
-updated_at: 2026-04-09T01:50:00.000Z
-folder: tasks2
+updated_at: 2026-04-08T22:36:00.000Z
+folder: docs/tasks2
 type: task
 profile: simple
 impl_progress:
   planning: completed
   design: completed
   implementation: completed
-  review: pending
+  review: completed
   testing: completed
 ---
 
@@ -26,7 +26,7 @@ impl_progress:
    - Auto-refresh capability via interval trigger
 
 2. **Created unit tests**
-   - Location: `plugins/rd3/skills/tasks/scripts/server/ui/src/utils/formatRelativeTime.test.ts`
+   - Location: `plugins/rd3/skills/tasks/scripts/server/ui/src/utils/formatRelativeTime.vitest.ts`
    - 21 test cases covering all scenarios
    - All tests pass: ✓
 
@@ -39,18 +39,19 @@ impl_progress:
 
 ### Verification
 
-- TypeScript: ✓ Passes (`bun tsc --noEmit`)
-- Tests: ✓ 32 pass (21 new + 11 existing)
+- TypeScript: ✓
+- Tests: ✓ relative timestamp coverage passes
+- Backend payload: ✓ `/tasks` now returns `updated_at`, so the UI no longer renders `unknown`
 - Format: ✓ Biome format applied
-- Branch: `feat-0354-sorting-kanban-panels`
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
 | `src/utils/formatRelativeTime.ts` | New |
-| `src/utils/formatRelativeTime.test.ts` | New |
+| `src/utils/formatRelativeTime.vitest.ts` | New |
 | `src/components/kanban-board.tsx` | Modified |
+| `plugins/rd3/skills/tasks/scripts/commands/list.ts` | Modified |
 
 ## 0355. Add Relative Timestamp to Task Cards
 
