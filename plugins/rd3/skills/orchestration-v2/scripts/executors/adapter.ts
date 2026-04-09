@@ -228,7 +228,7 @@ export function routePhase(policy: ExecutionRoutingPolicy, phaseName: string, ch
  *
  * Safe defaults:
  * - Stateless execution for all phases
- * - ACP adapter as default
+ * - Caller chooses the default adapter explicitly (local is recommended)
  *
  * Sessioned mode must be explicitly enabled via phase/channel overrides.
  */
@@ -355,7 +355,10 @@ export type { ExecutionRequest, ExecutionResult } from '../model';
 
 // ─── Known Adapter IDs ────────────────────────────────────────────────────────
 
-/** Direct execution adapter - default for ordinary phases. */
+/** Local in-process execution adapter. */
+export const ADAPTER_LOCAL = 'local' as const;
+
+/** Direct Bun subprocess execution adapter. */
 export const ADAPTER_DIRECT = 'direct' as const;
 
 /** ACP stateless adapter pattern - use for explicit ACP phases. */
@@ -368,7 +371,14 @@ export const ADAPTER_ACP_SESSIONED_PATTERN = /^acp-sessioned:(.+)$/;
  * Check if an adapter ID refers to a direct adapter.
  */
 export function isDirectAdapter(adapterId: string): boolean {
-    return adapterId === ADAPTER_DIRECT || adapterId === 'local';
+    return adapterId === ADAPTER_DIRECT;
+}
+
+/**
+ * Check if an adapter ID refers to the in-process local adapter.
+ */
+export function isLocalAdapter(adapterId: string): boolean {
+    return adapterId === ADAPTER_LOCAL;
 }
 
 /**
