@@ -47,11 +47,11 @@ Read the default profile from task frontmatter; fall back to `standard`.
 | `--phases <a,b>` | No | Run a specific DAG-valid subset of named phases |
 | `--coverage <n>` | No | Override project coverage threshold for phase 6 |
 | `--dry-run` | No | Preview execution plan without executing |
-| `--channel <name>` | No | Execution channel: `auto`, `current` (deprecated alias), `claude-code`, `codex`, `openclaw`, `opencode`, `antigravity`, `pi`. Default: `auto` |
+| `--channel <name>` | No | Execution target: `local` (default), `direct`, `auto`, `current` (deprecated alias), or an explicit external channel such as `codex`, `openclaw`, `opencode`, or `pi` |
 
 ## Workflow
 
-Run **rd3:orchestration-v2** with the requested task reference, profile, and overrides. Route `--channel` through the orchestrator as-is; `auto` uses the configured `default_channel`, while `current` remains a deprecated alias for the same behavior. Execute any of the 9 phases; phases 5-7 use worker-agent envelopes, phase 6 runs through verification-chain, and phases 1-4 plus 8-9 use the configured default channel unless you override them. Pause review runs at the Phase 7 human gate unless `--auto` is set.
+Run **rd3:orchestration-v2** with the requested task reference, profile, and overrides. Route `--channel` through the orchestrator as-is; `local` is the default interactive executor, `direct` is the explicit subprocess transport, and external ACP channels remain opt-in. `auto` means "use the orchestrator default", while `current` remains a deprecated alias. Pause review runs at the Phase 7 human gate unless `--auto` is set.
 
 ```
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS")
