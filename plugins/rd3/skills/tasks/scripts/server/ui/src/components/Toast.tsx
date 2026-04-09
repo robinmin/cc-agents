@@ -73,8 +73,9 @@ export const Toast: FC<ToastProps> = ({ message, type = 'error', visible, onDism
             </span>
 
             <p className="flex-1 text-sm text-gray-800 dark:text-gray-100">
-                {message.split(/`([^`]+)`/).reduce<Array<{ key: string; text?: string; code?: string }>>(
-                    (acc, part, i) => {
+                {message
+                    .split(/`([^`]+)`/)
+                    .reduce<Array<{ key: string; text?: string; code?: string }>>((acc, part, i) => {
                         if (i === 0) {
                             // First element is always plain text (before first backtick)
                             if (part) acc.push({ key: `text-${i}`, text: part });
@@ -86,20 +87,19 @@ export const Toast: FC<ToastProps> = ({ message, type = 'error', visible, onDism
                             if (part) acc.push({ key: `text-${i}`, text: part });
                         }
                         return acc;
-                    },
-                    [],
-                ).map((segment) =>
-                    segment.code ? (
-                        <code
-                            key={segment.key}
-                            className="px-1 py-0.5 bg-white/50 dark:bg-black/30 rounded text-xs font-mono"
-                        >
-                            {segment.code}
-                        </code>
-                    ) : (
-                        <span key={segment.key}>{segment.text}</span>
-                    ),
-                )}
+                    }, [])
+                    .map((segment) =>
+                        segment.code ? (
+                            <code
+                                key={segment.key}
+                                className="px-1 py-0.5 bg-white/50 dark:bg-black/30 rounded text-xs font-mono"
+                            >
+                                {segment.code}
+                            </code>
+                        ) : (
+                            <span key={segment.key}>{segment.text}</span>
+                        ),
+                    )}
             </p>
 
             {onDismiss && (
