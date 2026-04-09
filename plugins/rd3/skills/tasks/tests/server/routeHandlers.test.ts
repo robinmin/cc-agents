@@ -52,6 +52,7 @@ name: "Test"
 status: ${status}
 type: task
 created_at: 2026-01-01T00:00:00Z
+updated_at: 2026-01-02T00:00:00Z
 impl_progress:
   planning: pending
   design: pending
@@ -117,6 +118,9 @@ describe('routeHandlers tests', () => {
             const body = await getJson(res);
             expect(body.ok).toBe(true);
             expect(Array.isArray(body.data)).toBe(true);
+            const [task] = body.data as Array<Record<string, unknown>>;
+            expect(task?.created_at).toBe('2026-01-01T00:00:00Z');
+            expect(task?.updated_at).toBe('2026-01-02T00:00:00Z');
         });
 
         it('filters by status', async () => {
@@ -473,7 +477,9 @@ impl_progress:
             formData.append('file', new File(['hello'], 'test.txt'));
             const req = new Request('http://loc', { method: 'POST', body: formData });
             const res = await putArtifactHandler(tempDir, req, { wbs: '0001' }, bc);
-            expect((await getJson(res)).ok).toBe(true);
+            const json = await getJson(res);
+            if (!json.ok) console.error('PUT ARTIFACT ERROR:', json);
+            expect(json.ok).toBe(true);
             expect(events).toHaveLength(1);
             expect(events[0]).toMatchObject({ type: 'updated', wbs: '0001', status: 'Backlog' });
         });
