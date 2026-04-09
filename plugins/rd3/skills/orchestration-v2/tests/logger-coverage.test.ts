@@ -65,13 +65,14 @@ describe('logger coverage for orchestration-v2', () => {
         quietLogger.error('hidden error');
         quietLogger.success('hidden success');
         quietLogger.fail('hidden fail');
-        quietLogger.log('still visible');
+        // log() is now also suppressed by RD3_LOG_QUIET (consistent with all other methods)
+        quietLogger.log('also hidden');
 
         expect(debugSpy).not.toHaveBeenCalled();
         expect(infoSpy).not.toHaveBeenCalled();
         expect(warnSpy).not.toHaveBeenCalled();
         expect(errorSpy).not.toHaveBeenCalled();
-        expect(logSpy).toHaveBeenCalledWith('still visible');
+        expect(logSpy).not.toHaveBeenCalled();
     });
 
     test('global silent suppresses every output path and exported default logger is usable', () => {
