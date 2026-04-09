@@ -6,7 +6,7 @@
  * handled by the invoking LLM agent via checklist.
  */
 
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from './fs';
 import { join } from 'node:path';
 
 // ============================================================================
