@@ -90,6 +90,7 @@ describe('Integration: full pipeline run', () => {
 
         const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(mockExecutor);
 
         const runner = new PipelineRunner(stateManager, pool);
@@ -107,6 +108,7 @@ describe('Integration: full pipeline run', () => {
 
         const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(mockExecutor);
 
         const runner = new PipelineRunner(stateManager, pool);
@@ -123,6 +125,7 @@ describe('Integration: full pipeline run', () => {
 
         const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(mockExecutor);
 
         const runner = new PipelineRunner(stateManager, pool);
@@ -138,6 +141,7 @@ describe('Integration: full pipeline run', () => {
 
         const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(mockExecutor);
 
         const runner = new PipelineRunner(stateManager, pool);
@@ -158,6 +162,7 @@ describe('Integration: full pipeline run', () => {
 
         const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(mockExecutor);
 
         const runner = new PipelineRunner(stateManager, pool);
@@ -186,6 +191,7 @@ describe('Integration: full pipeline run', () => {
 
         const mockExecutor = new MockExecutor({ delayMs: 5, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(mockExecutor);
 
         const eventBus = new EventBus();
@@ -207,6 +213,7 @@ describe('Integration: full pipeline run', () => {
 
         const mockExecutor = new MockExecutor({ delayMs: 10, channels: ['auto', 'current'] });
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(mockExecutor);
 
         const runner = new PipelineRunner(stateManager, pool);
