@@ -72,7 +72,7 @@ phases:
     skill: rd3:code-review-common
     gate:
       type: human
-      blocking: false  # Advisory - LLM review sufficient, human optional
+      blocking: false # Advisory - LLM review sufficient, human optional
     after: [test]
     payload:
       depth: thorough
@@ -129,28 +129,76 @@ phases:
 presets:
   # Default for most tasks: standard workflow without docs/pr (manual opt-in)
   default:
-    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func]
+    phases:
+      [intake, decompose, implement, test, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 80 }
 
   # Include docs phase (no pr - pr is always human-gated)
   default+docs:
-    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    phases:
+      [
+        intake,
+        decompose,
+        implement,
+        test,
+        review,
+        verify-bdd,
+        verify-func,
+        docs,
+      ]
     defaults: { coverage_threshold: 80 }
 
   simple:
-    phases: [intake, decompose, implement, test]
+    phases: [intake, implement, test, review]
     defaults: { coverage_threshold: 60 }
 
   standard:
-    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func, docs, pr]
+    phases:
+      [
+        intake,
+        decompose,
+        implement,
+        test,
+        review,
+        verify-bdd,
+        verify-func,
+        docs,
+        pr,
+      ]
     defaults: { coverage_threshold: 80 }
 
   complex:
-    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs, pr]
+    phases:
+      [
+        intake,
+        arch,
+        design,
+        decompose,
+        implement,
+        test,
+        review,
+        verify-bdd,
+        verify-func,
+        docs,
+        pr,
+      ]
     defaults: { coverage_threshold: 80 }
 
   research:
-    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs, pr]
+    phases:
+      [
+        intake,
+        arch,
+        design,
+        decompose,
+        implement,
+        test,
+        review,
+        verify-bdd,
+        verify-func,
+        docs,
+        pr,
+      ]
     defaults: { coverage_threshold: 60 }
 
   # ── Phase profiles (match v1 convenience commands) ────────────────────────────
