@@ -1,0 +1,61 @@
+{
+    "description": "Status transition matrix for Kanban board drag-and-drop validation",
+    "transitions": {
+        "Backlog": {
+            "Todo": true,
+            "WIP": false,
+            "Testing": false,
+            "Blocked": false,
+            "Done": false,
+            "Canceled": false
+        },
+        "Todo": {
+            "Backlog": false,
+            "WIP": false,
+            "Testing": false,
+            "Blocked": false,
+            "Done": false,
+            "Canceled": false
+        },
+        "WIP": {
+            "Backlog": false,
+            "Todo": false,
+            "Testing": false,
+            "Blocked": false,
+            "Done": false,
+            "Canceled": false
+        },
+        "Testing": {
+            "Backlog": false,
+            "Todo": false,
+            "WIP": false,
+            "Blocked": false,
+            "Done": false,
+            "Canceled": false
+        },
+        "Blocked": {
+            "Backlog": false,
+            "Todo": false,
+            "WIP": false,
+            "Testing": false,
+            "Done": false,
+            "Canceled": false
+        },
+        "Done": {
+            "Backlog": false,
+            "Todo": false,
+            "WIP": false,
+            "Testing": false,
+            "Blocked": false,
+            "Canceled": false
+        },
+        "Canceled": {
+            "Backlog": false,
+            "Todo": false,
+            "WIP": false,
+            "Testing": false,
+            "Blocked": false,
+            "Done": false
+        }
+    }
+}

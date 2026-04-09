@@ -14,7 +14,7 @@ impl_progress:
   testing: pending
 ---
 
-## 0354. Enhance orchestrator CLI with several query commands
+## 0364. Enhance orchestrator CLI with several query commands
 
 ### Background
 

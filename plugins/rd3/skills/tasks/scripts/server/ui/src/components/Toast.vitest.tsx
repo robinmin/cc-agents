@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { Toast } from './Toast';
 
 describe('Toast', () => {
@@ -15,13 +16,7 @@ describe('Toast', () => {
     describe('Rendering', () => {
         it('should render error toast with correct message', () => {
             render(
-                <Toast
-                    message="Test error message"
-                    visible={true}
-                    type="error"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
+                <Toast message="Test error message" visible={true} type="error" onDismiss={vi.fn()} duration={3000} />,
             );
 
             expect(screen.getByRole('alert')).toBeInTheDocument();
@@ -44,41 +39,21 @@ describe('Toast', () => {
 
         it('should render info toast with info icon', () => {
             render(
-                <Toast
-                    message="Information message"
-                    visible={true}
-                    type="info"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
+                <Toast message="Information message" visible={true} type="info" onDismiss={vi.fn()} duration={3000} />,
             );
 
             expect(screen.getByText('ℹ️')).toBeInTheDocument();
         });
 
         it('should render error toast with 🚫 icon', () => {
-            render(
-                <Toast
-                    message="Error occurred"
-                    visible={true}
-                    type="error"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
-            );
+            render(<Toast message="Error occurred" visible={true} type="error" onDismiss={vi.fn()} duration={3000} />);
 
             expect(screen.getByText('🚫')).toBeInTheDocument();
         });
 
         it('should render dismiss button when onDismiss is provided', () => {
             render(
-                <Toast
-                    message="Toast with dismiss"
-                    visible={true}
-                    type="info"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
+                <Toast message="Toast with dismiss" visible={true} type="info" onDismiss={vi.fn()} duration={3000} />,
             );
 
             expect(screen.getByRole('button', { name: /dismiss notification/i })).toBeInTheDocument();
@@ -118,13 +93,7 @@ describe('Toast', () => {
         it('should call onDismiss when dismiss button is clicked', () => {
             const onDismiss = vi.fn();
             render(
-                <Toast
-                    message="Click to dismiss"
-                    visible={true}
-                    type="info"
-                    onDismiss={onDismiss}
-                    duration={3000}
-                />,
+                <Toast message="Click to dismiss" visible={true} type="info" onDismiss={onDismiss} duration={3000} />,
             );
 
             const dismissButton = screen.getByRole('button', { name: /dismiss notification/i });
@@ -135,13 +104,7 @@ describe('Toast', () => {
 
         it('should auto-dismiss after duration', () => {
             render(
-                <Toast
-                    message="Auto-dismiss message"
-                    visible={true}
-                    type="info"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
+                <Toast message="Auto-dismiss message" visible={true} type="info" onDismiss={vi.fn()} duration={3000} />,
             );
 
             expect(screen.getByRole('alert')).toBeInTheDocument();
@@ -161,28 +124,14 @@ describe('Toast', () => {
 
     describe('Accessibility', () => {
         it('should have role alert for screen readers', () => {
-            render(
-                <Toast
-                    message="Accessible toast"
-                    visible={true}
-                    type="info"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
-            );
+            render(<Toast message="Accessible toast" visible={true} type="info" onDismiss={vi.fn()} duration={3000} />);
 
             expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'assertive');
         });
 
         it('should have aria-label on dismiss button', () => {
             render(
-                <Toast
-                    message="Accessible dismiss"
-                    visible={true}
-                    type="info"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
+                <Toast message="Accessible dismiss" visible={true} type="info" onDismiss={vi.fn()} duration={3000} />,
             );
 
             const button = screen.getByRole('button', { name: /dismiss notification/i });
@@ -193,13 +142,7 @@ describe('Toast', () => {
     describe('Animation', () => {
         it('should show exit animation class when dismissed', () => {
             const { rerender } = render(
-                <Toast
-                    message="Animated toast"
-                    visible={true}
-                    type="info"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
+                <Toast message="Animated toast" visible={true} type="info" onDismiss={vi.fn()} duration={3000} />,
             );
 
             // First render should show toast
@@ -207,17 +150,19 @@ describe('Toast', () => {
 
             // Rerender with visible=false to trigger exit
             rerender(
-                <Toast
-                    message="Animated toast"
-                    visible={false}
-                    type="info"
-                    onDismiss={vi.fn()}
-                    duration={3000}
-                />,
+                <Toast message="Animated toast" visible={false} type="info" onDismiss={vi.fn()} duration={3000} />,
             );
 
             // Toast should still be in DOM during exit animation
             expect(screen.getByRole('alert')).toBeInTheDocument();
+
+            // Advance timers to complete exit animation
+            act(() => {
+                vi.advanceTimersByTime(300);
+            });
+
+            // Toast should be removed
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
         });
     });
 });
