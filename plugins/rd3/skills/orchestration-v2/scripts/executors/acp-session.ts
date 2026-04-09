@@ -1,5 +1,5 @@
 /**
- * orchestration-v2 — ACP Sessioned Executor Adapter
+ * orchestration-v2 — ACP Session Executor
  *
  * Persistent session ACP execution for scenarios requiring context carry-over.
  *
@@ -7,29 +7,29 @@
  *   acpx [--options] pi prompt --session <name> [--ttl N] "<prompt>"
  *
  * Key characteristics:
- * - Sessioned: context carries over between calls
+ * - Session: context carries over between calls
  * - Stateful: session lifecycle must be managed
  * - Persistent: session survives individual turn timeouts
  *
- * USE CASES (when sessioned is appropriate):
+ * USE CASES (when session is appropriate):
  * - Human-guided iterative refinement
  * - Deliberately persistent research/coding conversations
  * - Workflows that need context carry-over and are prepared
  *   to manage queue/session semantics
  *
  * DO NOT USE for ordinary pipeline phase execution.
- * Prefer AcpStatelessExecutor for safe bounded execution.
+ * Prefer AcpOneshotExecutor for safe bounded execution.
  */
 
-import type { PhaseExecutorAdapter, ExecutorHealth, ExecutionMode } from './adapter';
-import type { ExecutionRequest, ExecutionResult } from '../model';
+import type { Executor, ExecutorHealth, ExecutionRequest, ExecutionResult } from '../model';
+import type { PhaseExecutorAdapter, ExecutionMode } from './adapter';
 import { logger } from '../../../../scripts/logger';
 import * as transport from '../integrations/acp/transport';
 import * as prompts from '../integrations/acp/prompts';
 import { DefaultSessionLifecycle, type SessionConfig } from '../integrations/acp/sessions';
 
 /**
- * ACP Sessioned Executor Adapter.
+ * ACP Session Executor.
  *
  * Uses `prompt --session` for sessioned execution with context carry-over.
  *
@@ -39,40 +39,42 @@ import { DefaultSessionLifecycle, type SessionConfig } from '../integrations/acp
  * - Stale sessions are detected and recovered
  * - Sessions must be explicitly closed
  *
- * WARNING: Sessioned execution introduces:
+ * WARNING: Session execution introduces:
  * - Non-deterministic queue behavior
  * - Potential for session stalls
  * - Complexity in lifecycle management
  *
  * Only use when session semantics are explicitly needed.
  */
-export class AcpSessionedExecutor implements PhaseExecutorAdapter {
+export class AcpSessionExecutor implements Executor {
     readonly id: string;
     readonly name: string;
-    readonly executionMode: ExecutionMode = 'sessioned';
     readonly channels: readonly string[];
+    readonly maxConcurrency: number;
 
     private readonly agentName: string;
     private readonly sessionLifecycle: DefaultSessionLifecycle;
     private readonly defaultSessionTtlSeconds: number;
 
     /**
-     * Create a sessioned ACP executor.
+     * Create a session ACP executor.
      *
      * @param agentName - ACP agent name (e.g., "pi", "codex"). Default: "pi"
      * @param defaultSessionTtlSeconds - Default TTL for sessions. Default: 300 (5 min)
+     * @param maxConcurrency - Maximum concurrent executions. Default: 1
      */
-    constructor(agentName = 'pi', defaultSessionTtlSeconds = 300) {
+    constructor(agentName = 'pi', defaultSessionTtlSeconds = 300, maxConcurrency = 1) {
         this.agentName = agentName;
-        this.id = `acp-sessioned:${agentName}`;
-        this.name = `ACP Sessioned (${agentName})`;
-        this.channels = [`${agentName}:sessioned`, `sessioned:${agentName}`];
+        this.id = `acp-session:${agentName}`;
+        this.name = `ACP Session (${agentName})`;
+        this.channels = [`${agentName}:session`, `session:${agentName}`];
+        this.maxConcurrency = maxConcurrency;
         this.sessionLifecycle = new DefaultSessionLifecycle();
         this.defaultSessionTtlSeconds = defaultSessionTtlSeconds;
     }
 
     /**
-     * Execute a phase using sessioned ACP.
+     * Execute a phase using session ACP.
      *
      * Requires session name from request. If no session name is provided,
      * falls back to stateless execution with a warning.
@@ -85,12 +87,12 @@ export class AcpSessionedExecutor implements PhaseExecutorAdapter {
     async execute(req: ExecutionRequest): Promise<ExecutionResult> {
         const startTime = Date.now();
 
-        // Sessioned execution REQUIRES a session name
+        // Session execution REQUIRES a session name
         if (!req.session) {
             logger.warn(
-                `[${this.id}] Sessioned executor called without session name. ` +
+                `[${this.id}] Session executor called without session name. ` +
                     'Falling back to stateless execution. ' +
-                    'Set session field in ExecutionRequest for sessioned mode.',
+                    'Set session field in ExecutionRequest for session mode.',
             );
             // Fall back to stateless
             return this.executeStateless(req, startTime);
@@ -230,18 +232,18 @@ export class AcpSessionedExecutor implements PhaseExecutorAdapter {
 // ─── Session-Aware Executor ──────────────────────────────────────────────────
 
 /**
- * Session-aware executor that can switch between stateless and sessioned.
+ * Session-aware executor that can switch between stateless and session.
  *
  * This executor:
  * - Uses stateless by default
- * - Switches to sessioned when session name is provided
+ * - Switches to session when session name is provided
  * - Useful for gradual migration or testing
  *
  * NOTE: This mixes modes in a single executor. For cleaner separation,
- * prefer using separate AcpStatelessExecutor and AcpSessionedExecutor
+ * prefer using separate AcpOneshotExecutor and AcpSessionExecutor
  * with routing policy to choose between them.
  *
- * @deprecated Use separate adapters with routing policy instead
+ * @deprecated Use separate executors with routing policy instead
  */
 export class AcpSessionAwareExecutor implements PhaseExecutorAdapter {
     readonly id: string;
@@ -249,38 +251,38 @@ export class AcpSessionAwareExecutor implements PhaseExecutorAdapter {
     readonly executionMode: ExecutionMode = 'stateless'; // Reports stateless as base mode
     readonly channels: readonly string[];
 
-    private readonly stateless: AcpSessionedExecutor;
+    private readonly session: AcpSessionExecutor;
 
     constructor(agentName = 'pi') {
         this.id = `acp:${agentName}`;
         this.name = `ACP (${agentName})`;
         this.channels = [agentName, 'acp', `acp:${agentName}`];
-        this.stateless = new AcpSessionedExecutor(agentName);
+        this.session = new AcpSessionExecutor(agentName);
     }
 
     async execute(req: ExecutionRequest): Promise<ExecutionResult> {
-        return this.stateless.execute(req);
+        return this.session.execute(req);
     }
 
     async healthCheck(): Promise<ExecutorHealth> {
-        return this.stateless.healthCheck();
+        return this.session.healthCheck();
     }
 
     async dispose(): Promise<void> {
-        await this.stateless.dispose();
+        await this.session.dispose();
     }
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
 /**
- * Create a sessioned ACP executor for an agent.
+ * Create a session ACP executor for an agent.
  */
-export function createSessionedExecutor(agentName = 'pi', ttlSeconds = 300): PhaseExecutorAdapter {
-    return new AcpSessionedExecutor(agentName, ttlSeconds);
+export function createSessionExecutor(agentName = 'pi', ttlSeconds = 300, maxConcurrency = 1): Executor {
+    return new AcpSessionExecutor(agentName, ttlSeconds, maxConcurrency);
 }
 
 /**
- * Default sessioned executor for pi agent.
+ * Default session executor for pi agent.
  */
-export const DEFAULT_SESSIONED_EXECUTOR = new AcpSessionedExecutor('pi');
+export const DEFAULT_SESSION_EXECUTOR = new AcpSessionExecutor('pi');
