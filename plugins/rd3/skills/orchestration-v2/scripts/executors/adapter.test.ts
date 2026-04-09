@@ -10,14 +10,14 @@ import type { PhaseExecutorAdapter, ExecutionRoutingPolicy, ExecutorHealth } fro
 import {
     routePhase,
     createDefaultPolicy,
-    isDirectAdapter,
-    isLocalAdapter,
+    isSubprocessAdapter,
+    isInlineAdapter,
     isAcpAdapter,
     extractAcpChannel,
-    ADAPTER_LOCAL,
-    ADAPTER_DIRECT,
-    ADAPTER_ACP_STATELESS_PATTERN,
-    ADAPTER_ACP_SESSIONED_PATTERN,
+    ADAPTER_INLINE,
+    ADAPTER_SUBPROCESS,
+    ACP_ONESHOT_PATTERN,
+    ACP_SESSION_PATTERN,
 } from './adapter';
 import { DefaultAdapterRegistry } from './adapter';
 
@@ -268,56 +268,56 @@ describe('ExecutionMode', () => {
 
 // ─── Adapter ID Helpers Tests ─────────────────────────────────────────────────
 
-describe('isDirectAdapter', () => {
-    it('returns true for ADAPTER_DIRECT constant', () => {
-        expect(isDirectAdapter(ADAPTER_DIRECT)).toBe(true);
+describe('isSubprocessAdapter', () => {
+    it('returns true for ADAPTER_SUBPROCESS constant', () => {
+        expect(isSubprocessAdapter(ADAPTER_SUBPROCESS)).toBe(true);
     });
 
     it('returns false for "local"', () => {
-        expect(isDirectAdapter('local')).toBe(false);
+        expect(isSubprocessAdapter('local')).toBe(false);
     });
 
     it('returns false for ACP adapter IDs', () => {
-        expect(isDirectAdapter('acp:pi')).toBe(false);
-        expect(isDirectAdapter('acp-stateless:pi')).toBe(false);
-        expect(isDirectAdapter('acp-sessioned:codex')).toBe(false);
+        expect(isSubprocessAdapter('acp:pi')).toBe(false);
+        expect(isSubprocessAdapter('acp-oneshot:pi')).toBe(false);
+        expect(isSubprocessAdapter('acp-session:codex')).toBe(false);
     });
 
     it('returns false for arbitrary strings', () => {
-        expect(isDirectAdapter('unknown')).toBe(false);
-        expect(isDirectAdapter('mock-adapter')).toBe(false);
+        expect(isSubprocessAdapter('unknown')).toBe(false);
+        expect(isSubprocessAdapter('mock-adapter')).toBe(false);
     });
 });
 
-describe('isLocalAdapter', () => {
-    it('returns true for ADAPTER_LOCAL constant', () => {
-        expect(isLocalAdapter(ADAPTER_LOCAL)).toBe(true);
+describe('isInlineAdapter', () => {
+    it('returns true for ADAPTER_INLINE constant', () => {
+        expect(isInlineAdapter(ADAPTER_INLINE)).toBe(true);
     });
 
-    it('returns false for direct and ACP adapter IDs', () => {
-        expect(isLocalAdapter(ADAPTER_DIRECT)).toBe(false);
-        expect(isLocalAdapter('acp-stateless:pi')).toBe(false);
-        expect(isLocalAdapter('acp-sessioned:codex')).toBe(false);
+    it('returns false for subprocess and ACP adapter IDs', () => {
+        expect(isInlineAdapter(ADAPTER_SUBPROCESS)).toBe(false);
+        expect(isInlineAdapter('acp-oneshot:pi')).toBe(false);
+        expect(isInlineAdapter('acp-session:codex')).toBe(false);
     });
 
     it('returns false for arbitrary strings', () => {
-        expect(isLocalAdapter('unknown')).toBe(false);
+        expect(isInlineAdapter('unknown')).toBe(false);
     });
 });
 
 describe('isAcpAdapter', () => {
     it('returns true for stateless ACP adapter pattern', () => {
-        expect(isAcpAdapter('acp-stateless:pi')).toBe(true);
-        expect(isAcpAdapter('acp-stateless:codex')).toBe(true);
+        expect(isAcpAdapter('acp-oneshot:pi')).toBe(true);
+        expect(isAcpAdapter('acp-oneshot:codex')).toBe(true);
     });
 
     it('returns true for sessioned ACP adapter pattern', () => {
-        expect(isAcpAdapter('acp-sessioned:pi')).toBe(true);
-        expect(isAcpAdapter('acp-sessioned:claude-code')).toBe(true);
+        expect(isAcpAdapter('acp-session:pi')).toBe(true);
+        expect(isAcpAdapter('acp-session:claude-code')).toBe(true);
     });
 
     it('returns false for direct adapter IDs', () => {
-        expect(isAcpAdapter(ADAPTER_DIRECT)).toBe(false);
+        expect(isAcpAdapter(ADAPTER_SUBPROCESS)).toBe(false);
         expect(isAcpAdapter('local')).toBe(false);
     });
 
@@ -329,36 +329,36 @@ describe('isAcpAdapter', () => {
 
 describe('extractAcpChannel', () => {
     it('extracts channel from stateless adapter ID', () => {
-        expect(extractAcpChannel('acp-stateless:pi')).toBe('pi');
-        expect(extractAcpChannel('acp-stateless:codex')).toBe('codex');
-        expect(extractAcpChannel('acp-stateless:claude-code')).toBe('claude-code');
+        expect(extractAcpChannel('acp-oneshot:pi')).toBe('pi');
+        expect(extractAcpChannel('acp-oneshot:codex')).toBe('codex');
+        expect(extractAcpChannel('acp-oneshot:claude-code')).toBe('claude-code');
     });
 
     it('extracts channel from sessioned adapter ID', () => {
-        expect(extractAcpChannel('acp-sessioned:pi')).toBe('pi');
-        expect(extractAcpChannel('acp-sessioned:openclaw')).toBe('openclaw');
+        expect(extractAcpChannel('acp-session:pi')).toBe('pi');
+        expect(extractAcpChannel('acp-session:openclaw')).toBe('openclaw');
     });
 
     it('returns null for non-ACP adapter IDs', () => {
-        expect(extractAcpChannel(ADAPTER_DIRECT)).toBeNull();
+        expect(extractAcpChannel(ADAPTER_SUBPROCESS)).toBeNull();
         expect(extractAcpChannel('local')).toBeNull();
         expect(extractAcpChannel('acp:pi')).toBeNull();
         expect(extractAcpChannel('mock-adapter')).toBeNull();
     });
 
     it('handles channel names with special characters', () => {
-        expect(extractAcpChannel('acp-stateless:claude-code')).toBe('claude-code');
+        expect(extractAcpChannel('acp-oneshot:claude-code')).toBe('claude-code');
     });
 });
 
-describe('ADAPTER_ACP patterns', () => {
-    it('ADAPTER_ACP_STATELESS_PATTERN matches stateless adapter IDs', () => {
-        expect(ADAPTER_ACP_STATELESS_PATTERN.test('acp-stateless:pi')).toBe(true);
-        expect(ADAPTER_ACP_STATELESS_PATTERN.test('acp-stateless:codex')).toBe(true);
+describe('ACP patterns', () => {
+    it('ACP_ONESHOT_PATTERN matches oneshot adapter IDs', () => {
+        expect(ACP_ONESHOT_PATTERN.test('acp-oneshot:pi')).toBe(true);
+        expect(ACP_ONESHOT_PATTERN.test('acp-oneshot:codex')).toBe(true);
     });
 
-    it('ADAPTER_ACP_SESSIONED_PATTERN matches sessioned adapter IDs', () => {
-        expect(ADAPTER_ACP_SESSIONED_PATTERN.test('acp-sessioned:pi')).toBe(true);
-        expect(ADAPTER_ACP_SESSIONED_PATTERN.test('acp-sessioned:codex')).toBe(true);
+    it('ACP_SESSION_PATTERN matches session adapter IDs', () => {
+        expect(ACP_SESSION_PATTERN.test('acp-session:pi')).toBe(true);
+        expect(ACP_SESSION_PATTERN.test('acp-session:codex')).toBe(true);
     });
 });
