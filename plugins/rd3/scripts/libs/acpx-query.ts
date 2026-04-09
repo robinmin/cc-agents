@@ -19,7 +19,7 @@
  * - verification-chain/scripts/methods/llm.ts
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from '../fs';
 import { spawnSync, type SpawnSyncOptions } from 'node:child_process';
 
 /** Tools the pi agent is allowed to use during skill execution. */
