@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2026-04-09
+
+### New Features
+
+- **rd3:orchestration-v2 Direct Executor**: New local execution mode
+  - Direct execution for skill scripts without ACP overhead
+  - Simplified skill invocation for standalone use cases
+
+- **rd3:tasks Kanban Web UI Enhancements**:
+  - **SortDropdown**: Sort tasks by creation date, WBS order, or custom order
+  - **Relative timestamps**: Human-readable time labels on task cards (e.g., "2 hours ago")
+  - **Drag-and-drop reordering**: Drag tasks within columns to reorder
+  - **Toast notifications**: Visual feedback for user actions
+
+- **rd3:tasks Status Transitions**:
+  - Explicit allowed status transitions per column (Backlog → Todo → In Progress → Done → Canceled)
+  - Prevents invalid status changes via UI
+
+### Improvements
+
+- **Kanban UI Tests**: Comprehensive test coverage with vitest
+  - Toast component tests
+  - Kanban board component tests
+  - Drag-and-drop hook tests
+  - Relative time formatting tests
+
+- **Adapter Executor**: Enhanced adapter executor with better error handling
+
+### Bug Fixes
+
+- Fixed tasks list command to properly display task status
+- Fixed orchestrator adapter executor edge cases
+- Resolved remaining lint issues
+- Improved Toast tests with better edge case coverage
+
 ## [0.4.9] - 2026-04-09
 
 ### Internal Changes
