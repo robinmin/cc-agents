@@ -91,6 +91,20 @@ describe('configToPolicy', () => {
 });
 
 describe('materializePolicyChannels', () => {
+    it('keeps local as the default while materializing external channel overrides', () => {
+        const policy = materializePolicyChannels(
+            {
+                defaultAdapterId: 'local',
+                defaultMode: 'stateless',
+            },
+            ['pi', 'codex'],
+        );
+
+        expect(policy.defaultAdapterId).toBe('local');
+        expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-stateless:pi');
+        expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-stateless:codex');
+    });
+
     it('creates channel-specific ACP overrides from the default policy', () => {
         const policy = materializePolicyChannels(
             {
@@ -300,16 +314,16 @@ describe('loadRoutingPolicy', () => {
     });
 
     it('returns default stateless policy when no config', () => {
-        const policy = loadRoutingPolicy('acp-stateless:pi');
+        const policy = loadRoutingPolicy('local');
 
-        expect(policy.defaultAdapterId).toBe('acp-stateless:pi');
+        expect(policy.defaultAdapterId).toBe('local');
         expect(policy.defaultMode).toBe('stateless');
     });
 
     it('uses custom adapter id when provided', () => {
-        const policy = loadRoutingPolicy('acp-stateless:codex');
+        const policy = loadRoutingPolicy('direct');
 
-        expect(policy.defaultAdapterId).toBe('acp-stateless:codex');
+        expect(policy.defaultAdapterId).toBe('direct');
     });
 
     it('uses routing config from config file', () => {
@@ -355,7 +369,7 @@ describe('Built-in Policies', () => {
     it('safe policy uses stateless by default', () => {
         const policy = getBuiltInPolicy('safe');
 
-        expect(policy?.defaultAdapterId).toBe('acp-stateless:pi');
+        expect(policy?.defaultAdapterId).toBe('local');
         expect(policy?.defaultMode).toBe('stateless');
     });
 
@@ -387,7 +401,7 @@ describe('Built-in Policies', () => {
     });
 
     it('exposes adapter ids that match the registered ACP adapters', () => {
-        expect(BUILT_IN_POLICIES.safe.defaultAdapterId).toBe(buildAcpAdapterId('pi', 'stateless'));
+        expect(BUILT_IN_POLICIES.safe.defaultAdapterId).toBe('local');
         expect(BUILT_IN_POLICIES.sessioned.defaultAdapterId).toBe(buildAcpAdapterId('pi', 'sessioned'));
     });
 });
