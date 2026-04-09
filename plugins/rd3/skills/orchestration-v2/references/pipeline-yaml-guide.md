@@ -206,7 +206,7 @@ phases:
 - `executor: local` → in-process local execution
 - `executor: direct` → Bun subprocess execution
 - `executor: codex` → explicit external ACP execution
-- `executor: { adapter: acp-sessioned:codex }` → explicit adapter selection
+- `executor: { adapter: acp-session:codex }` → explicit adapter selection
 
 ## DAG Dependencies
 
