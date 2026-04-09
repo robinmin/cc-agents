@@ -81,10 +81,11 @@ describe('MockExecutor', () => {
         expect(executor.getCallLog()).toHaveLength(0);
     });
 
-    test('capabilities are correct', () => {
+    test('properties are correct', () => {
         const executor = new MockExecutor();
         expect(executor.id).toBe('mock');
-        expect(executor.capabilities.parallel).toBe(true);
-        expect(executor.capabilities.channels).toContain('mock');
+        expect(executor.name).toBe('Mock Executor');
+        expect(executor.maxConcurrency).toBe(Number.MAX_SAFE_INTEGER);
+        expect(executor.channels).toContain('mock');
     });
 });
