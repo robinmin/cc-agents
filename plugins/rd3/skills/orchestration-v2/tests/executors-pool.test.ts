@@ -136,6 +136,7 @@ describe('ExecutorPool (config-independent)', () => {
 describe('ExecutorPool (manual registration)', () => {
     test('register adds executor for channel alias', () => {
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         const acp = new AcpExecutor('codex');
         pool.register(acp);
         expect(pool.has('codex')).toBe(true);
@@ -145,6 +146,7 @@ describe('ExecutorPool (manual registration)', () => {
 
     test('register adds executor also for its id', () => {
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(new AcpExecutor('openclaw'));
         expect(pool.has('acp:openclaw')).toBe(true);
     });
@@ -154,6 +156,7 @@ describe('ExecutorPool (manual registration)', () => {
         mock.setResponses([{ result: { success: true, exitCode: 0, durationMs: 7, timedOut: false } }]);
         const local = new LocalExecutor(mock);
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(local);
 
         const result = await pool.execute(makeRequest());
@@ -167,6 +170,7 @@ describe('ExecutorPool (manual registration)', () => {
         mock.setResponses([{ result: { success: true, exitCode: 0, durationMs: 11, timedOut: false } }]);
         const acp = new LocalExecutor(mock); // use LocalExecutor so it registers auto/current
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         pool.register(acp);
 
         const result = await pool.execute(makeRequest({ channel: 'current' }));
@@ -177,6 +181,7 @@ describe('ExecutorPool (manual registration)', () => {
 
     test('healthCheckAll returns map with auto executor', async () => {
         const pool = new ExecutorPool();
+        pool.disableAdapterMode();
         const results = await pool.healthCheckAll();
         expect(results.has('auto')).toBe(true);
     });
