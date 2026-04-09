@@ -3,49 +3,15 @@ import { useState, useEffect, useCallback, type FC } from 'react';
 import { STATUS_ORDER, STATUS_EMOJI, type TaskStatus, type TaskListItem } from '../types';
 import { SortDropdown, type SortOption } from './SortDropdown';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
+import { sortTasks } from '../utils/taskSort';
 import { Toast } from './Toast';
 import { useKanbanDragDrop } from '../hooks/useKanbanDragDrop';
-import { updateTaskStatus } from '../lib/api';
 
 interface KanbanBoardProps {
     columns: Record<string, TaskListItem[]>;
     visibleStatuses: Record<TaskStatus, boolean>;
     onMoveTask: (wbs: string, newStatus: TaskStatus) => void;
     onSelectTask: (wbs: string) => void;
-}
-
-function parseWbsNumber(wbs: string): number {
-    const parts = wbs.split('.');
-    return parts.reduce((acc, part, index) => {
-        const num = parseInt(part, 10);
-        return acc + num / 100 ** (index + 1);
-    }, 0);
-}
-
-function parseDate(dateStr: string | undefined): number {
-    if (!dateStr) return 0;
-    return new Date(dateStr).getTime();
-}
-
-function sortTasks(tasks: TaskListItem[], sortOption: SortOption): TaskListItem[] {
-    return [...tasks].sort((a, b) => {
-        switch (sortOption) {
-            case 'wbs-asc':
-                return parseWbsNumber(a.wbs) - parseWbsNumber(b.wbs);
-            case 'wbs-desc':
-                return parseWbsNumber(b.wbs) - parseWbsNumber(a.wbs);
-            case 'created-asc':
-                return parseDate(a.created_at) - parseDate(b.created_at);
-            case 'created-desc':
-                return parseDate(b.created_at) - parseDate(a.created_at);
-            case 'updated-asc':
-                return parseDate(a.updated_at) - parseDate(b.updated_at);
-            case 'updated-desc':
-                return parseDate(b.updated_at) - parseDate(a.updated_at);
-            default:
-                return 0;
-        }
-    });
 }
 
 export function KanbanBoard({ columns, visibleStatuses, onMoveTask, onSelectTask }: KanbanBoardProps) {
@@ -73,36 +39,17 @@ export function KanbanBoard({ columns, visibleStatuses, onMoveTask, onSelectTask
         [columns],
     );
 
-    // Handle valid transition - call API and notify parent
-    const handleValidTransition = useCallback(
-        async (wbs: string, targetStatus: TaskStatus) => {
-            try {
-                await updateTaskStatus(wbs, targetStatus);
-                onMoveTask(wbs, targetStatus);
-            } catch (error) {
-                console.error('Failed to update task status:', error);
-            }
-        },
-        [onMoveTask],
-    );
-
     const {
         state: toastState,
         handleDragEnd,
         dismissToast,
     } = useKanbanDragDrop({
-        onValidTransition: handleValidTransition,
+        onValidTransition: onMoveTask,
         toastDuration: 3000,
     });
 
     function onDragEnd(result: DropResult) {
-        const { action, wbs, targetStatus } = handleDragEnd(result, getTaskStatus);
-
-        // Only call onMoveTask if it wasn't already called by handleValidTransition
-        // handleValidTransition already calls onMoveTask, so we skip duplicate calls
-        if (action === 'move' && wbs && targetStatus) {
-            // Status update was already handled by handleValidTransition via API
-        }
+        handleDragEnd(result, getTaskStatus);
     }
 
     function handleSortChange(status: TaskStatus, option: SortOption) {
