@@ -26,9 +26,13 @@
 import type { Executor, ExecutionRequest, ExecutionResult, ExecutorCapabilities, ExecutorHealth } from '../model';
 import { AcpExecutor } from './acp';
 import { resolveConfig } from '../config/config';
+import type { ExecutionMode, PhaseExecutorAdapter } from './adapter';
 
-export class AutoExecutor implements Executor {
+export class AutoExecutor implements Executor, PhaseExecutorAdapter {
     readonly id = 'auto';
+    readonly name = 'Auto Executor';
+    readonly executionMode: ExecutionMode = 'stateless';
+    readonly channels = ['auto', 'current'] as const;
     readonly capabilities: ExecutorCapabilities;
     private readonly delegate: Executor;
 
@@ -50,7 +54,7 @@ export class AutoExecutor implements Executor {
             parallel: this.delegate.capabilities.parallel,
             streaming: this.delegate.capabilities.streaming,
             structuredOutput: this.delegate.capabilities.structuredOutput,
-            channels: ['auto', 'current'],
+            channels: this.channels,
             maxConcurrency: this.delegate.capabilities.maxConcurrency,
         };
     }
