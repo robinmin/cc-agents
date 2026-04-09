@@ -129,12 +129,13 @@ describe('logger', () => {
         logger.error('hidden error');
         logger.success('hidden success');
         logger.fail('hidden fail');
-        logger.log('visible log');
+        logger.log('also hidden');
 
         expect(calls.info).toHaveLength(0);
         expect(calls.warn).toHaveLength(0);
         expect(calls.error).toHaveLength(0);
-        expect(calls.log).toEqual([['visible log']]);
+        // log() is now also suppressed by RD3_LOG_QUIET (consistent with all other methods)
+        expect(calls.log).toHaveLength(0);
     });
 
     test('suppresses all output when global silent is enabled', () => {
