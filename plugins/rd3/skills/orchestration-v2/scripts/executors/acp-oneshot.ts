@@ -1,5 +1,5 @@
 /**
- * orchestration-v2 — ACP Stateless Executor Adapter
+ * orchestration-v2 — ACP Oneshot Executor
  *
  * Bounded one-shot ACP execution for ordinary pipeline phases.
  *
@@ -7,50 +7,51 @@
  *   acpx [--options] pi exec "<prompt>"
  *
  * Key characteristics:
- * - Stateless: no session reuse
+ * - Oneshot: no session reuse
  * - Bounded: explicit timeout
  * - Tool-first: agent invokes Skill() immediately
  *
  * This is the safe default for pipeline phase execution.
- * Use AcpSessionedExecutor only when session semantics are explicitly needed.
+ * Use AcpSessionExecutor only when session semantics are explicitly needed.
  */
 
-import type { PhaseExecutorAdapter, ExecutorHealth, ExecutionMode } from './adapter';
-import type { ExecutionRequest, ExecutionResult } from '../model';
+import type { Executor, ExecutorHealth, ExecutionRequest, ExecutionResult } from '../model';
 import { logger } from '../../../../scripts/logger';
 import * as transport from '../integrations/acp/transport';
 import * as prompts from '../integrations/acp/prompts';
 
 /**
- * ACP Stateless Executor Adapter.
+ * ACP Oneshot Executor.
  *
  * Always uses `acpx <agent> exec` for one-shot bounded execution.
  * No session reuse, no context carry-over.
  *
- * This is the recommended adapter for ordinary pipeline phase execution.
+ * This is the recommended executor for ordinary pipeline phase execution.
  */
-export class AcpStatelessExecutor implements PhaseExecutorAdapter {
+export class AcpOneshotExecutor implements Executor {
     readonly id: string;
     readonly name: string;
-    readonly executionMode: ExecutionMode = 'stateless';
     readonly channels: readonly string[];
+    readonly maxConcurrency: number;
 
     private readonly agentName: string;
 
     /**
-     * Create a stateless ACP executor.
+     * Create a oneshot ACP executor.
      *
      * @param agentName - ACP agent name (e.g., "pi", "codex"). Default: "pi"
+     * @param maxConcurrency - Maximum concurrent executions. Default: 4
      */
-    constructor(agentName = 'pi') {
+    constructor(agentName = 'pi', maxConcurrency = 4) {
         this.agentName = agentName;
-        this.id = `acp-stateless:${agentName}`;
-        this.name = `ACP Stateless (${agentName})`;
+        this.id = `acp-oneshot:${agentName}`;
+        this.name = `ACP Oneshot (${agentName})`;
         this.channels = [agentName, 'acp', `acp:${agentName}`];
+        this.maxConcurrency = maxConcurrency;
     }
 
     /**
-     * Execute a phase using stateless ACP.
+     * Execute a phase using oneshot ACP.
      *
      * Always uses `exec` mode regardless of request options.
      * Session fields in the request are ignored.
@@ -62,7 +63,7 @@ export class AcpStatelessExecutor implements PhaseExecutorAdapter {
             // Build prompt using ACP prompt shaping
             const prompt = prompts.buildPromptFromRequest(req);
 
-            // Execute via transport (always stateless)
+            // Execute via transport (always stateless/oneshot)
             const result = transport.executeStateless(prompt, req.timeoutMs, { agent: this.agentName });
 
             // Map to ExecutionResult
@@ -103,7 +104,7 @@ export class AcpStatelessExecutor implements PhaseExecutorAdapter {
     }
 
     /**
-     * No-op dispose (stateless has no resources to clean up).
+     * No-op dispose (oneshot has no resources to clean up).
      */
     async dispose(): Promise<void> {
         // Nothing to clean up
@@ -141,13 +142,13 @@ export class AcpStatelessExecutor implements PhaseExecutorAdapter {
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
 /**
- * Create a stateless ACP executor for an agent.
+ * Create a oneshot ACP executor for an agent.
  */
-export function createStatelessExecutor(agentName = 'pi'): PhaseExecutorAdapter {
-    return new AcpStatelessExecutor(agentName);
+export function createOneshotExecutor(agentName = 'pi', maxConcurrency = 4): Executor {
+    return new AcpOneshotExecutor(agentName, maxConcurrency);
 }
 
 /**
- * Default stateless executor for pi agent.
+ * Default oneshot executor for pi agent.
  */
-export const DEFAULT_STATELESS_EXECUTOR = new AcpStatelessExecutor('pi');
+export const DEFAULT_ONESHOT_EXECUTOR = new AcpOneshotExecutor('pi');
