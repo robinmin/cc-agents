@@ -8,7 +8,10 @@ export default defineConfig({
         environment: 'jsdom',
         globals: true,
         setupFiles: ['@testing-library/jest-dom'],
-        include: ['src/**/*.test.{ts,tsx}'],
+        include: ['src/**/*.test.{ts,tsx}', 'src/**/*.vitest.{ts,tsx}'],
+        coverage: {
+            reporter: ['text', 'json', 'clover'],
+        },
     },
     resolve: {
         alias: {
