@@ -34,14 +34,14 @@ Refine task requirements by analyzing existing content for quality issues and im
 
 ## Workflow
 
-Resolves `--channel` (default: `auto`) and forwards it to **rd3:orchestration-v2**. `auto` means "use the configured default backend"; `current` is kept as a deprecated compatibility alias.
+Resolves `--channel` (default: `local`) and forwards it to **rd3:orchestration-v2**. `auto` means "use the orchestrator default" and currently resolves to `local`; `current` remains a deprecated compatibility alias.
 
 ```
-# Default: execute on the auto-routed channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --channel auto")
+# Default: execute with the orchestrator default executor
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine")
 
-# Optional: bypass any future human gates on the auto-routed channel
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --auto --channel auto")
+# Optional: bypass any future human gates on the default executor
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --auto")
 
 # Execute the same workflow on another channel
 Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset refine --channel codex")
