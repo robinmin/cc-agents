@@ -116,3 +116,42 @@ body {
 .w-md-editor-preview .token.variable {
     color: #d16969;
 }
+
+/* Toast animations */
+@keyframes shrink-bar {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}
+
+.animate-shrink-bar {
+    animation: shrink-bar linear forwards;
+}
+
+@keyframes revert-shake {
+    0% {
+        transform: translateX(0);
+    }
+    20% {
+        transform: translateX(-8px);
+    }
+    40% {
+        transform: translateX(8px);
+    }
+    60% {
+        transform: translateX(-4px);
+    }
+    80% {
+        transform: translateX(4px);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+.animate-revert-shake {
+    animation: revert-shake 0.3s ease-in-out;
+}
