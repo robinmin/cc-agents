@@ -5,7 +5,7 @@
  * Tests cover: FSM transitions, DAG scheduling, gate types, and runner lifecycle.
  */
 
-import { describe, expect, test, beforeEach } from 'bun:test';
+import { describe, expect, test, beforeEach, vi } from 'bun:test';
 import { mkdirSync, rmSync } from 'node:fs';
 import type {
     RunOptions,
@@ -19,6 +19,19 @@ import type {
 } from '../model';
 import { FSMEngine } from './fsm';
 import { DAGScheduler, validatePhaseSubset } from './dag';
+
+// ─── Mock modules ──────────────────────────────────────────────────────────────
+
+vi.mock('../config/config', () => ({
+    resolveConfig: vi.fn().mockReturnValue({
+        defaultChannel: 'pi',
+        executorChannels: ['pi'],
+    }),
+    loadExternalConfig: vi.fn().mockReturnValue(null),
+    globalConfigExists: vi.fn().mockReturnValue(false),
+    getGlobalConfigPath: vi.fn().mockReturnValue('/tmp/test-config.yaml'),
+    createDefaultConfig: vi.fn(),
+}));
 
 // ─── Test Directory Setup ───────────────────────────────────────────────────────
 
