@@ -4,7 +4,7 @@
  * Common file operations, path handling, and validation helpers
  */
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from './fs';
 import { basename, dirname, join, resolve } from 'node:path';
 
 // ============================================================================
