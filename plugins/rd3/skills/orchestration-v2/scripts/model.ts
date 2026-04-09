@@ -65,14 +65,13 @@ export interface ReworkConfig {
     readonly escalation: 'pause' | 'fail';
 }
 
-export type PhaseExecutorMode = 'auto' | 'local' | 'direct';
+export type PhaseExecutorMode = 'inline' | 'subprocess';
 
 export interface PhaseExecutorDefinition {
     /**
      * Built-in execution mode.
-     * - auto   → use orchestrator default routing (defaults to local)
-     * - local  → in-process execution in the current Bun process
-     * - direct → explicit Bun subprocess execution
+     * - inline    → in-process execution in the current Bun process
+     * - subprocess → explicit Bun subprocess execution
      */
     readonly mode?: PhaseExecutorMode;
 
@@ -83,7 +82,7 @@ export interface PhaseExecutorDefinition {
     readonly channel?: string;
 
     /**
-     * Explicit adapter ID (for example: "acp-stateless:codex").
+     * Explicit adapter ID (for example: "acp-oneshot:codex").
      * Bypasses default routing and selects the named adapter directly.
      */
     readonly adapter?: string;
@@ -152,14 +151,6 @@ export interface ValidationResult {
 
 // ─── Executor ──────────────────────────────────────────────────────────────────
 
-export interface ExecutorCapabilities {
-    readonly parallel: boolean;
-    readonly streaming: boolean;
-    readonly structuredOutput: boolean;
-    readonly channels: readonly string[];
-    readonly maxConcurrency: number;
-}
-
 export interface ExecutorHealth {
     readonly healthy: boolean;
     readonly message?: string;
@@ -210,10 +201,46 @@ export interface ExecutionResult {
 
 export interface Executor {
     readonly id: string;
-    readonly capabilities: ExecutorCapabilities;
+    /** Human-readable name for logging and diagnostics. */
+    readonly name: string;
+    /** Channels this executor can serve (empty = any channel). */
+    readonly channels: readonly string[];
+    /** Maximum number of concurrent executions this executor supports. */
+    readonly maxConcurrency: number;
     execute(req: ExecutionRequest): Promise<ExecutionResult>;
     healthCheck(): Promise<ExecutorHealth>;
     dispose(): Promise<void>;
+}
+
+// ─── Executor ID Normalization ────────────────────────────────────────────────
+
+/**
+ * Normalize a legacy executor ID to its modern equivalent.
+ *
+ * Mapping:
+ *   local           → inline
+ *   direct          → subprocess
+ *   auto            → inline
+ *   current         → inline
+ *   acp-stateless:X → acp-oneshot:X
+ *   acp-sessioned:X → acp-session:X
+ *
+ * Anything else passes through unchanged.
+ */
+export function normalizeExecutorId(id: string): string {
+    const trimmed = id.trim();
+    const LEGACY_MAP: Record<string, string> = {
+        local: 'inline',
+        direct: 'subprocess',
+        auto: 'inline',
+        current: 'inline',
+    };
+    if (LEGACY_MAP[trimmed]) return LEGACY_MAP[trimmed];
+    const statelessMatch = /^acp-stateless:(.+)$/.exec(trimmed);
+    if (statelessMatch) return `acp-oneshot:${statelessMatch[1]}`;
+    const sessionedMatch = /^acp-sessioned:(.+)$/.exec(trimmed);
+    if (sessionedMatch) return `acp-session:${sessionedMatch[1]}`;
+    return trimmed;
 }
 
 // ─── Event Types ───────────────────────────────────────────────────────────────
