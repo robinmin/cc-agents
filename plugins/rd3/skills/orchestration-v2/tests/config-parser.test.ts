@@ -2,13 +2,14 @@ import { describe, test, expect, beforeAll } from 'bun:test';
 import { parsePipelineYaml, parseYamlString, validatePipeline } from '../scripts/config/parser';
 import type { PipelineDefinition } from '../scripts/model';
 import { setGlobalSilent } from '../../../scripts/logger';
-import { writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { writeFileSync, mkdirSync, rmSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 /** Test-visible interface for parsed phase config */
 interface PhaseTestConfig {
     skill: string;
+    executor?: string | { mode?: string; channel?: string; adapter?: string };
     gate?: {
         type: string;
         rework?: { max_iterations: number; escalation: string };
@@ -48,6 +49,8 @@ empty: null
 phases:
   implement:
     skill: rd3:code-implement
+    executor:
+      mode: direct
     timeout: 1h
     gate:
       type: auto
@@ -60,10 +63,42 @@ phases:
         const implement = phases.implement;
 
         expect(implement.skill).toBe('rd3:code-implement');
+        expect(implement.executor).toEqual({ mode: 'direct' });
         expect(implement.timeout).toBe('1h');
         expect(implement.gate?.type).toBe('auto');
         expect(implement.gate?.rework?.max_iterations).toBe(3);
         expect(implement.gate?.rework?.escalation).toBe('pause');
+    });
+
+    test('normalizes string executor shorthands into object form', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'orch-v2-parser-'));
+        const file = join(dir, 'pipeline.yaml');
+        writeFileSync(
+            file,
+            `
+schema_version: 1
+name: exec-shorthand
+phases:
+  implement:
+    skill: rd3:code-implement-common
+    executor: direct
+  review:
+    skill: rd3:code-review-common
+    executor: codex
+  docs:
+    skill: rd3:code-docs
+    executor: acp-sessioned:pi
+`,
+        );
+
+        try {
+            const [pipeline] = await parsePipelineYaml(file);
+            expect(pipeline.phases.implement.executor).toEqual({ mode: 'direct' });
+            expect(pipeline.phases.review.executor).toEqual({ channel: 'codex' });
+            expect(pipeline.phases.docs.executor).toEqual({ adapter: 'acp-sessioned:pi' });
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 
     test('parses arrays with different syntax styles', () => {
