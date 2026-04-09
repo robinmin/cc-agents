@@ -79,12 +79,11 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
         // Create fresh test environment
         stateManager = createTestStateManager();
         executorPool = new ExecutorPool();
-        executorPool.disableAdapterMode();
         hookRegistry = new HookRegistry();
         eventBus = new EventBus();
 
         // Create and register mock executor — channels come from capabilities
-        mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
+        mockExecutor = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
         executorPool.register(mockExecutor);
 
         // Create runner with all dependencies
@@ -270,7 +269,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             expect(mockExecutor.getCallLog()).toHaveLength(1);
         });
 
-        test('should handle executor unavailable error', async () => {
+        test('should fail when the requested channel is unavailable', async () => {
             const pipeline: PipelineDefinition = {
                 schema_version: 1,
                 name: 'unavailable-executor-pipeline',
