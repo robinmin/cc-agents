@@ -396,4 +396,31 @@ executor_channels:
         const config = loadExternalConfig();
         expect(config?.executor_channels).toEqual(['pi']);
     });
+
+    test('preserves raw routing config for downstream policy loading', () => {
+        _setTestConfigPath(TEST_CONFIG_DIR, TEST_CONFIG_PATH);
+        writeFileSync(
+            TEST_CONFIG_PATH,
+            `
+routing:
+  default_adapter: acp-sessioned:codex
+  default_mode: sessioned
+  channel_overrides:
+    pi:
+      adapter: acp-stateless:pi
+      mode: stateless
+`,
+        );
+        const config = loadExternalConfig();
+        expect(config?.routing).toEqual({
+            default_adapter: 'acp-sessioned:codex',
+            default_mode: 'sessioned',
+            channel_overrides: {
+                pi: {
+                    adapter: 'acp-stateless:pi',
+                    mode: 'stateless',
+                },
+            },
+        });
+    });
 });
