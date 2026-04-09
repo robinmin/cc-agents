@@ -18,6 +18,7 @@ function jsonSchemaConditional(
 
 const VALID_GATE_TYPES = new Set(['command', 'auto', 'human']);
 const VALID_ESCALATIONS = new Set(['pause', 'fail']);
+const VALID_EXECUTOR_MODES = new Set(['auto', 'local', 'direct']);
 const TIMEOUT_REGEX = /^(\d+h)?(\d+m)?(\d+s)?$/;
 
 /**
@@ -65,6 +66,60 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
                         rule: 'skill',
                         message: `Phase "${name}" must have a skill (string)`,
                     });
+                }
+                if (p.executor != null) {
+                    if (typeof p.executor === 'string') {
+                        if ((p.executor as string).trim() === '') {
+                            errors.push({
+                                rule: 'executor',
+                                message: `Phase "${name}" executor string must not be empty`,
+                            });
+                        }
+                    } else if (typeof p.executor === 'object' && !Array.isArray(p.executor)) {
+                        const executor = p.executor as Record<string, unknown>;
+                        const mode = executor.mode;
+                        const channel = executor.channel;
+                        const adapter = executor.adapter;
+                        const definedKeys = [mode != null, channel != null, adapter != null].filter(Boolean).length;
+
+                        if (definedKeys === 0) {
+                            errors.push({
+                                rule: 'executor',
+                                message: `Phase "${name}" executor must define exactly one of "mode", "channel", or "adapter"`,
+                            });
+                        } else if (definedKeys > 1) {
+                            errors.push({
+                                rule: 'executor',
+                                message: `Phase "${name}" executor must not mix "mode", "channel", and "adapter"`,
+                            });
+                        }
+
+                        if (mode != null && !VALID_EXECUTOR_MODES.has(mode as string)) {
+                            errors.push({
+                                rule: 'executor_mode',
+                                message: `Phase "${name}" executor mode must be "auto", "local", or "direct", got "${mode}"`,
+                            });
+                        }
+
+                        if (channel != null && (typeof channel !== 'string' || channel.trim() === '')) {
+                            errors.push({
+                                rule: 'executor_channel',
+                                message: `Phase "${name}" executor channel must be a non-empty string`,
+                            });
+                        }
+
+                        if (adapter != null && (typeof adapter !== 'string' || adapter.trim() === '')) {
+                            errors.push({
+                                rule: 'executor_adapter',
+                                message: `Phase "${name}" executor adapter must be a non-empty string`,
+                            });
+                        }
+                    } else {
+                        errors.push({
+                            rule: 'executor',
+                            message: `Phase "${name}" executor must be a string or object`,
+                        });
+                    }
                 }
                 if (p.gate && typeof p.gate === 'object') {
                     const gate = p.gate as Record<string, unknown>;
@@ -330,6 +385,24 @@ export function getPipelineJsonSchema(): Record<string, unknown> {
                             timeout: { type: 'string', pattern: '^(\\d+h)?(\\d+m)?(\\d+s)?$' },
                             after: { type: 'array', items: { type: 'string' } },
                             payload: { type: 'object' },
+                            executor: {
+                                oneOf: [
+                                    { type: 'string', minLength: 1 },
+                                    {
+                                        type: 'object',
+                                        properties: {
+                                            mode: { enum: ['auto', 'local', 'direct'] },
+                                            channel: { type: 'string', minLength: 1 },
+                                            adapter: { type: 'string', minLength: 1 },
+                                        },
+                                        oneOf: [
+                                            { required: ['mode'] },
+                                            { required: ['channel'] },
+                                            { required: ['adapter'] },
+                                        ],
+                                    },
+                                ],
+                            },
                         },
                     },
                 },
