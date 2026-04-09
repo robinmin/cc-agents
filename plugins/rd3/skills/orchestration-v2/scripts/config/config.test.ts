@@ -403,21 +403,21 @@ executor_channels:
             TEST_CONFIG_PATH,
             `
 routing:
-  default_adapter: acp-sessioned:codex
+  default_adapter: acp-session:codex
   default_mode: sessioned
   channel_overrides:
     pi:
-      adapter: acp-stateless:pi
+      adapter: acp-oneshot:pi
       mode: stateless
 `,
         );
         const config = loadExternalConfig();
         expect(config?.routing).toEqual({
-            default_adapter: 'acp-sessioned:codex',
+            default_adapter: 'acp-session:codex',
             default_mode: 'sessioned',
             channel_overrides: {
                 pi: {
-                    adapter: 'acp-stateless:pi',
+                    adapter: 'acp-oneshot:pi',
                     mode: 'stateless',
                 },
             },
