@@ -41,8 +41,8 @@ The skill detects the target type automatically:
 
 ## Workflows
 
-> **Important — `--channel auto` vs explicit ACP channels:**
-> The orchestrator maps `auto` → the configured default backend from `default_channel`. `current` remains accepted as a deprecated alias for the same behavior. Use explicit ACP channels like `pi` when you want deterministic routing to a named backend.
+> **Important — local/direct/default vs explicit ACP channels:**
+> The orchestrator defaults to `local`. Use `direct` when a phase needs subprocess isolation. `auto` means "use the orchestrator default", and `current` remains a deprecated compatibility alias. Use explicit ACP channels like `pi` only when you intentionally want external routing.
 
 ### Workflow A: Direct Test Execution (File Path Target)
 
