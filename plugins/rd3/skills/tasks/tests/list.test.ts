@@ -30,6 +30,7 @@ name: "${name}"
 status: ${status}
 type: task
 created_at: 2026-01-01T00:00:00Z
+updated_at: 2026-01-02T00:00:00Z
 ---
 
 ## Background
@@ -64,6 +65,8 @@ describe('listTasks', () => {
         if (result.ok) {
             expect(result.value).toHaveLength(2);
             expect(result.value.map((t) => t.wbs)).toEqual(['0001', '0002']);
+            expect(result.value[0]?.created_at).toBe('2026-01-01T00:00:00Z');
+            expect(result.value[0]?.updated_at).toBe('2026-01-02T00:00:00Z');
         }
     });
 
