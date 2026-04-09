@@ -18,6 +18,7 @@ import type {
     ChainState,
     OrchestratorEvent,
     PhaseEvidence,
+    PhaseExecutorDefinition,
     VerificationDriver,
     ChainManifest,
 } from '../model';
@@ -811,6 +812,7 @@ export class PipelineRunner {
         const maxRework = phaseDef.gate?.rework?.max_iterations ?? 0;
         let iteration = 0;
         let feedback: string | undefined;
+        const executionTarget = this.resolveExecutionTarget(phaseDef.executor, options.channel);
 
         while (iteration <= maxRework) {
             const req: ExecutionRequest = {
@@ -823,7 +825,7 @@ export class PipelineRunner {
                     ...(feedback && { feedback }),
                     ...(iteration > 0 && { rework_iteration: iteration }),
                 },
-                channel: options.channel ?? 'auto',
+                channel: executionTarget.channel,
                 taskRef: options.taskRef,
                 timeoutMs: this.parseTimeout(phaseDef.timeout),
                 ...(feedback && { feedback }),
@@ -839,7 +841,7 @@ export class PipelineRunner {
                 ...(options.sessionTtlSeconds !== undefined && { sessionTtlSeconds: options.sessionTtlSeconds }),
             };
 
-            const result = await this.pool.execute(req);
+            const result = await this.pool.execute(req, executionTarget.executorId);
 
             if (result.success) {
                 const evidence = await this.buildPhaseEvidence(
@@ -883,6 +885,45 @@ export class PipelineRunner {
         }
 
         return { success: false, errorCode: 'MAX_REWORK_EXCEEDED' };
+    }
+
+    private resolveExecutionTarget(
+        executor: PhaseExecutorDefinition | undefined,
+        requestedChannel: string | undefined,
+    ): { channel: string; executorId?: string } {
+        if (!executor) {
+            return {
+                channel: requestedChannel ?? 'auto',
+            };
+        }
+
+        if (executor.mode === 'local') {
+            return { channel: 'local', executorId: 'local' };
+        }
+
+        if (executor.mode === 'direct') {
+            return { channel: 'direct', executorId: 'direct' };
+        }
+
+        if (executor.mode === 'auto') {
+            return { channel: requestedChannel ?? 'auto' };
+        }
+
+        if (executor.adapter) {
+            const acpMatch = /^acp-(?:stateless|sessioned):(.+)$/.exec(executor.adapter);
+            return {
+                channel: acpMatch?.[1] ?? executor.adapter,
+                executorId: executor.adapter,
+            };
+        }
+
+        if (executor.channel) {
+            return { channel: executor.channel };
+        }
+
+        return {
+            channel: requestedChannel ?? 'auto',
+        };
     }
 
     /**
