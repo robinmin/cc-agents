@@ -14,7 +14,7 @@ impl_progress:
   testing: completed
 ---
 
-## 0356. investigate agy CLI and acpx source for Antigravity adapter
+## 0366. investigate agy CLI and acpx source for Antigravity adapter
 
 ### Background
 

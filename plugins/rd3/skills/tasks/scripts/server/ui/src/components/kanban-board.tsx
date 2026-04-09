@@ -1,7 +1,7 @@
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { useState, useEffect, useCallback, type FC } from 'react';
 import { STATUS_ORDER, STATUS_EMOJI, type TaskStatus, type TaskListItem } from '../types';
-import { SortDropdown, type SortOption } from './SortDropdown';
+import type { SortOption } from './SortDropdown';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 import { sortTasks } from '../utils/taskSort';
 import { Toast } from './Toast';
@@ -101,10 +101,18 @@ const KanbanColumn: FC<KanbanColumnProps> = ({ status, tasks, sortOption, onSort
             >
                 <span>{STATUS_EMOJI[status]}</span>
                 <span>{status}</span>
-                <SortDropdown value={sortOption} onChange={onSortChange} />
-                <span className="ml-auto text-xs" style={{ color: 'var(--kanban-text-secondary)' }}>
-                    {tasks.length}
+                <span className="flex-1 text-center text-xs" style={{ color: 'var(--kanban-text-secondary)' }}>
+                    {tasks.length} tasks
                 </span>
+                <button
+                    type="button"
+                    onClick={() => onSortChange(sortOption === 'wbs-asc' ? 'wbs-desc' : 'wbs-asc')}
+                    className="text-xs px-1 hover:opacity-70 transition-opacity"
+                    style={{ color: 'var(--kanban-text-secondary)' }}
+                    title={sortOption === 'wbs-asc' ? 'Sorted: WBS Ascending' : 'Sorted: WBS Descending'}
+                >
+                    {sortOption === 'wbs-asc' ? '▲' : '▼'}
+                </button>
             </div>
             <Droppable droppableId={status}>
                 {(provided, snapshot) => (
