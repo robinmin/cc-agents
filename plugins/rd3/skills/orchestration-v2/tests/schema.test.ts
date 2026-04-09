@@ -165,7 +165,7 @@ describe('validateSchema', () => {
             phases: {
                 implement: {
                     skill: 'rd3:code-implement-common',
-                    executor: { mode: 'local', adapter: 'acp-stateless:codex' },
+                    executor: { mode: 'local', adapter: 'acp-oneshot:codex' },
                 },
             },
         });
