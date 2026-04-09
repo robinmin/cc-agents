@@ -27,7 +27,7 @@ Run a pipeline for a task.
 | `--phases` | string | all | Comma-separated phase names; DAG resolves order. Overrides `--preset`. |
 | `--pipeline` | path | `docs/.workflows/pipeline.yaml` | Path to pipeline definition file |
 | `--auto` | boolean | false | Auto-approve all human gates |
-| `--channel` | string | `auto` | Execution channel for worker phases (`current` is a deprecated alias) |
+| `--channel` | string | `local` | Execution target for phases. `auto` means "use the orchestrator default"; `current` is a deprecated alias. |
 | `--dry-run` | boolean | false | Show execution plan without running |
 | `--coverage` | number | from preset/phase | Override coverage threshold |
 | `--source` | path | `.` | Source code path for docs phase |
@@ -65,7 +65,7 @@ orchestrator run 0266 --dry-run
 # Auto-approve human gates
 orchestrator run 0266 --auto
 
-# Remote execution
+# Explicit external execution
 orchestrator run 0266 --channel codex
 ```
 
