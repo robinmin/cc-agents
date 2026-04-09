@@ -13,7 +13,7 @@
  * - ExecutionRoutingPolicy: Configuration-driven adapter selection
  */
 
-import type { ExecutionRequest, ExecutionResult } from '../model';
+import type { ExecutionRequest, ExecutionResult, ExecutorHealth } from '../model';
 
 // ─── Adapter Interface ────────────────────────────────────────────────────────
 
@@ -32,14 +32,7 @@ import type { ExecutionRequest, ExecutionResult } from '../model';
  */
 export type ExecutionMode = 'stateless' | 'sessioned';
 
-/**
- * Health status of an executor adapter.
- */
-export interface ExecutorHealth {
-    readonly healthy: boolean;
-    readonly message?: string;
-    readonly lastChecked: Date;
-}
+// ExecutorHealth is imported from '../model' (single source of truth)
 
 /**
  * Transport-agnostic executor adapter interface.
@@ -326,10 +319,7 @@ export class DefaultAdapterRegistry implements AdapterRegistry {
             };
         }
 
-        // Create modified request if mode override is needed
-        const execReq = decision.executionMode ? { ...req, executionMode: decision.executionMode } : req;
-
-        return adapter.execute(execReq);
+        return adapter.execute(req);
     }
 
     async healthCheckAll(): Promise<Map<string, ExecutorHealth>> {
@@ -351,53 +341,83 @@ export class DefaultAdapterRegistry implements AdapterRegistry {
 
 // ─── Re-exports for convenience ─────────────────────────────────────────────
 
-export type { ExecutionRequest, ExecutionResult } from '../model';
+export type { ExecutionRequest, ExecutionResult, ExecutorHealth } from '../model';
 
 // ─── Known Adapter IDs ────────────────────────────────────────────────────────
 
-/** Local in-process execution adapter. */
-export const ADAPTER_LOCAL = 'local' as const;
+/** In-process execution adapter. */
+export const ADAPTER_INLINE = 'inline' as const;
 
-/** Direct Bun subprocess execution adapter. */
-export const ADAPTER_DIRECT = 'direct' as const;
+/** @deprecated Use ADAPTER_INLINE */
+export const ADAPTER_LOCAL = ADAPTER_INLINE;
 
-/** ACP stateless adapter pattern - use for explicit ACP phases. */
-export const ADAPTER_ACP_STATELESS_PATTERN = /^acp-stateless:(.+)$/;
+/** Bun subprocess execution adapter. */
+export const ADAPTER_SUBPROCESS = 'subprocess' as const;
 
-/** ACP sessioned adapter pattern - use for explicit sessioned phases. */
-export const ADAPTER_ACP_SESSIONED_PATTERN = /^acp-sessioned:(.+)$/;
+/** @deprecated Use ADAPTER_SUBPROCESS */
+export const ADAPTER_DIRECT = ADAPTER_SUBPROCESS;
+
+/** ACP oneshot adapter pattern - use for explicit ACP one-shot phases. */
+export const ACP_ONESHOT_PATTERN = /^acp-oneshot:(.+)$/;
+
+/** @deprecated Use ACP_ONESHOT_PATTERN — kept for backward compat during migration */
+export const ACP_STATELESS_PATTERN = ACP_ONESHOT_PATTERN;
+
+/** @deprecated Use ACP_ONESHOT_PATTERN — kept for backward compat during migration */
+export const ADAPTER_ACP_STATELESS_PATTERN = ACP_ONESHOT_PATTERN;
+
+/** ACP session adapter pattern - use for explicit session phases. */
+export const ACP_SESSION_PATTERN = /^acp-session:(.+)$/;
+
+/** @deprecated Use ACP_SESSION_PATTERN — kept for backward compat during migration */
+export const ACP_SESSIONED_PATTERN = ACP_SESSION_PATTERN;
+
+/** @deprecated Use ACP_SESSION_PATTERN — kept for backward compat during migration */
+export const ADAPTER_ACP_SESSIONED_PATTERN = ACP_SESSION_PATTERN;
 
 /**
- * Check if an adapter ID refers to a direct adapter.
+ * Check if an adapter ID refers to a subprocess adapter.
  */
-export function isDirectAdapter(adapterId: string): boolean {
-    return adapterId === ADAPTER_DIRECT;
+export function isSubprocessAdapter(adapterId: string): boolean {
+    return adapterId === ADAPTER_SUBPROCESS;
 }
 
+/** @deprecated Use isSubprocessAdapter */
+export const isDirectAdapter = isSubprocessAdapter;
+
 /**
- * Check if an adapter ID refers to the in-process local adapter.
+ * Check if an adapter ID refers to the inline (local) adapter.
  */
-export function isLocalAdapter(adapterId: string): boolean {
-    return adapterId === ADAPTER_LOCAL;
+export function isInlineAdapter(adapterId: string): boolean {
+    return adapterId === ADAPTER_INLINE;
 }
+
+/** @deprecated Use isInlineAdapter */
+export const isLocalAdapter = isInlineAdapter;
 
 /**
  * Check if an adapter ID refers to an ACP adapter.
  */
+const LEGACY_ACP_PATTERN = /^acp-(?:stateless|sessioned):(.+)$/;
+
 export function isAcpAdapter(adapterId: string): boolean {
-    return ADAPTER_ACP_STATELESS_PATTERN.test(adapterId) || ADAPTER_ACP_SESSIONED_PATTERN.test(adapterId);
+    return ACP_ONESHOT_PATTERN.test(adapterId) || ACP_SESSION_PATTERN.test(adapterId) || LEGACY_ACP_PATTERN.test(adapterId);
 }
 
 /**
  * Get the ACP channel from an ACP adapter ID.
- * E.g., "acp-stateless:pi" -> "pi"
+ * E.g., "acp-oneshot:pi" -> "pi"
  */
 export function extractAcpChannel(adapterId: string): string | null {
-    const statelessMatch = ADAPTER_ACP_STATELESS_PATTERN.exec(adapterId);
-    if (statelessMatch) return statelessMatch[1];
+    const oneshotMatch = ACP_ONESHOT_PATTERN.exec(adapterId);
+    if (oneshotMatch) return oneshotMatch[1];
 
-    const sessionedMatch = ADAPTER_ACP_SESSIONED_PATTERN.exec(adapterId);
-    if (sessionedMatch) return sessionedMatch[1];
+    const sessionMatch = ACP_SESSION_PATTERN.exec(adapterId);
+    if (sessionMatch) return sessionMatch[1];
+
+    // Legacy patterns: acp-stateless:<channel>, acp-sessioned:<channel>
+    const legacyMatch = LEGACY_ACP_PATTERN.exec(adapterId);
+    if (legacyMatch) return legacyMatch[1];
 
     return null;
 }
