@@ -352,3 +352,42 @@ export class DefaultAdapterRegistry implements AdapterRegistry {
 // ─── Re-exports for convenience ─────────────────────────────────────────────
 
 export type { ExecutionRequest, ExecutionResult } from '../model';
+
+// ─── Known Adapter IDs ────────────────────────────────────────────────────────
+
+/** Direct execution adapter - default for ordinary phases. */
+export const ADAPTER_DIRECT = 'direct' as const;
+
+/** ACP stateless adapter pattern - use for explicit ACP phases. */
+export const ADAPTER_ACP_STATELESS_PATTERN = /^acp-stateless:(.+)$/;
+
+/** ACP sessioned adapter pattern - use for explicit sessioned phases. */
+export const ADAPTER_ACP_SESSIONED_PATTERN = /^acp-sessioned:(.+)$/;
+
+/**
+ * Check if an adapter ID refers to a direct adapter.
+ */
+export function isDirectAdapter(adapterId: string): boolean {
+    return adapterId === ADAPTER_DIRECT || adapterId === 'local';
+}
+
+/**
+ * Check if an adapter ID refers to an ACP adapter.
+ */
+export function isAcpAdapter(adapterId: string): boolean {
+    return ADAPTER_ACP_STATELESS_PATTERN.test(adapterId) || ADAPTER_ACP_SESSIONED_PATTERN.test(adapterId);
+}
+
+/**
+ * Get the ACP channel from an ACP adapter ID.
+ * E.g., "acp-stateless:pi" -> "pi"
+ */
+export function extractAcpChannel(adapterId: string): string | null {
+    const statelessMatch = ADAPTER_ACP_STATELESS_PATTERN.exec(adapterId);
+    if (statelessMatch) return statelessMatch[1];
+
+    const sessionedMatch = ADAPTER_ACP_SESSIONED_PATTERN.exec(adapterId);
+    if (sessionedMatch) return sessionedMatch[1];
+
+    return null;
+}
