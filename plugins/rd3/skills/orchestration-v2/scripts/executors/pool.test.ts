@@ -21,7 +21,7 @@ vi.mock('../config/config', () => ({
 // ─── Import after mocks ───────────────────────────────────────────────────────
 
 import { ExecutorPool } from './pool';
-import { AutoExecutor } from './local';
+import { AutoExecutor } from './auto';
 import type { ExecutionRoutingPolicy } from './adapter';
 import { createDefaultPolicy } from './adapter';
 import type { Executor } from '../model';
@@ -84,6 +84,7 @@ describe('ExecutorPool', () => {
             const policy = pool.getRoutingPolicy();
             expect(policy).toBeDefined();
             expect(policy.defaultMode).toBe('stateless');
+            expect(policy.defaultAdapterId).toBe('local');
             expect(policy.channelOverrides?.pi?.adapterId).toBe('acp-stateless:pi');
             expect(policy.channelOverrides?.codex?.adapterId).toBe('acp-stateless:codex');
         });
@@ -133,7 +134,7 @@ describe('ExecutorPool', () => {
 
     describe('resolve', () => {
         it('resolves executor by channel', () => {
-            const executor = pool.resolve('auto');
+            const executor = pool.resolve('local');
             expect(executor).toBeDefined();
         });
 
@@ -144,7 +145,7 @@ describe('ExecutorPool', () => {
 
     describe('has', () => {
         it('returns true for registered channel', () => {
-            expect(pool.has('auto')).toBe(true);
+            expect(pool.has('local')).toBe(true);
         });
 
         it('returns false for unknown channel', () => {
@@ -191,7 +192,7 @@ describe('Routing Policy Integration', () => {
 
         it('enables adapter mode with custom policy', () => {
             const customPolicy: ExecutionRoutingPolicy = {
-                defaultAdapterId: 'acp:pi',
+                defaultAdapterId: 'local',
                 defaultMode: 'sessioned',
             };
             pool.enableAdapterMode(customPolicy);
