@@ -61,6 +61,7 @@ describe('engine/runner — PipelineRunner', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
+        pool.disableAdapterMode();
         mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
         pool.register(mockExecutor);
         runner = new PipelineRunner(stateManager, pool);
@@ -656,6 +657,7 @@ describe('engine/runner — command gate', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
+        pool.disableAdapterMode();
         mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
         pool.register(mockExecutor);
     });
@@ -828,6 +830,7 @@ describe('engine/runner — auto gate evidence', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
+        pool.disableAdapterMode();
         mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
         pool.register(mockExecutor);
     });
@@ -957,6 +960,7 @@ describe('engine/runner — human gate evidence', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
+        pool.disableAdapterMode();
         mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
         pool.register(mockExecutor);
     });
@@ -997,6 +1001,7 @@ describe('engine/runner — hook execution', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
+        pool.disableAdapterMode();
         mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
         pool.register(mockExecutor);
     });
