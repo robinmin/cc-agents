@@ -6,7 +6,7 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { PipelineDefinition, ValidationResult, PhaseDefinition } from '../model';
+import type { PipelineDefinition, ValidationResult, PhaseDefinition, PhaseExecutorDefinition } from '../model';
 import { validateSchema } from './schema';
 import { OrchestratorError } from '../model';
 import { resolveSkillDirectory } from '../utils';
@@ -515,17 +515,65 @@ function parseScalarValue(value: string): unknown {
     return parseInlineValue(value);
 }
 
+function normalizePhaseExecutor(raw: unknown): PhaseExecutorDefinition | undefined {
+    if (raw == null) {
+        return undefined;
+    }
+
+    if (typeof raw === 'string') {
+        const trimmed = raw.trim();
+        if (trimmed === '') {
+            return undefined;
+        }
+
+        if (trimmed === 'auto' || trimmed === 'local' || trimmed === 'direct') {
+            return { mode: trimmed };
+        }
+
+        if (
+            trimmed.startsWith('acp:') ||
+            trimmed.startsWith('acp-stateless:') ||
+            trimmed.startsWith('acp-sessioned:')
+        ) {
+            return { adapter: trimmed };
+        }
+
+        return { channel: trimmed };
+    }
+
+    if (typeof raw !== 'object' || Array.isArray(raw)) {
+        return undefined;
+    }
+
+    const value = raw as Record<string, unknown>;
+    const mode = value.mode === 'auto' || value.mode === 'local' || value.mode === 'direct' ? value.mode : undefined;
+    const channel = typeof value.channel === 'string' && value.channel.trim() !== '' ? value.channel.trim() : undefined;
+    const adapter = typeof value.adapter === 'string' && value.adapter.trim() !== '' ? value.adapter.trim() : undefined;
+
+    if (!mode && !channel && !adapter) {
+        return undefined;
+    }
+
+    return {
+        ...(mode && { mode }),
+        ...(channel && { channel }),
+        ...(adapter && { adapter }),
+    };
+}
+
 function rawToPipelineDefinition(raw: Record<string, unknown>): PipelineDefinition {
     const phases: Record<string, PhaseDefinition> = {};
     const rawPhases = raw.phases as Record<string, Record<string, unknown>> | undefined;
     if (rawPhases) {
         for (const [name, p] of Object.entries(rawPhases)) {
+            const executor = normalizePhaseExecutor(p.executor);
             phases[name] = {
                 skill: p.skill as string,
                 ...(p.gate != null ? { gate: p.gate as PhaseDefinition['gate'] } : {}),
                 ...(p.timeout != null ? { timeout: p.timeout as string } : {}),
                 ...(p.after != null ? { after: p.after as string[] } : {}),
                 ...(p.payload != null ? { payload: p.payload as Record<string, unknown> } : {}),
+                ...(executor != null ? { executor } : {}),
             } as PhaseDefinition;
         }
     }
