@@ -24,7 +24,7 @@
       "description": "Next generation tools for Rapid Development"
     },
     {
-      "version": "0.5.0",
+      "version": "0.5.1",
       "name": "rd3",
       "source": "./plugins/rd3",
       "description": "New generation tools for Rapid Development"
