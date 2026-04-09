@@ -23,20 +23,44 @@ export {
     createDefaultPolicy,
 } from '../executors/adapter';
 
-const ACP_ADAPTER_ID_PATTERN = /^acp-(stateless|sessioned):(.+)$/;
+const ACP_ADAPTER_ID_PATTERN = /^acp-(oneshot|session):(.+)$/;
+const LEGACY_ACP_ADAPTER_ID_PATTERN_OLD = /^acp-(stateless|sessioned):(.+)$/;
 const LEGACY_ACP_ADAPTER_ID_PATTERN = /^acp:(.+)$/;
 const RESERVED_LOCAL_CHANNELS = new Set(['auto', 'current', 'local', 'direct']);
 
+const MODE_TO_PREFIX: Record<ExecutionMode, string> = {
+    stateless: 'oneshot',
+    sessioned: 'session',
+};
+
+const PREFIX_TO_MODE: Record<string, ExecutionMode> = {
+    oneshot: 'stateless',
+    session: 'sessioned',
+    // Legacy aliases
+    stateless: 'stateless',
+    sessioned: 'sessioned',
+};
+
 export function buildAcpAdapterId(channel: string, mode: ExecutionMode): string {
-    return `acp-${mode}:${channel}`;
+    return `acp-${MODE_TO_PREFIX[mode]}:${channel}`;
 }
 
 export function normalizeAdapterId(adapterId: string, mode: ExecutionMode): string {
     const normalized = adapterId.trim();
+    // Already new-style: acp-oneshot: or acp-session:
     if (ACP_ADAPTER_ID_PATTERN.test(normalized)) {
         return normalized;
     }
 
+    // Legacy style: acp-stateless: or acp-sessioned: → convert to acp-oneshot: or acp-session:
+    const legacyNewMatch = LEGACY_ACP_ADAPTER_ID_PATTERN_OLD.exec(normalized);
+    if (legacyNewMatch) {
+        const legacyMode = legacyNewMatch[1] as ExecutionMode;
+        const channel = legacyNewMatch[2];
+        return buildAcpAdapterId(channel, legacyMode);
+    }
+
+    // Bare acp:channel → convert using mode
     const legacyMatch = LEGACY_ACP_ADAPTER_ID_PATTERN.exec(normalized);
     if (legacyMatch) {
         return buildAcpAdapterId(legacyMatch[1], mode);
@@ -72,7 +96,9 @@ export function materializePolicyChannels(
     );
 
     const defaultAdapterMatch = ACP_ADAPTER_ID_PATTERN.exec(defaultAdapterId);
-    const adapterMode = defaultAdapterMatch ? (defaultAdapterMatch[1] as ExecutionMode) : policy.defaultMode;
+    const adapterMode = defaultAdapterMatch
+        ? (PREFIX_TO_MODE[defaultAdapterMatch[1]] ?? policy.defaultMode)
+        : policy.defaultMode;
     for (const channel of channels) {
         if (channelOverrides[channel] || RESERVED_LOCAL_CHANNELS.has(channel)) {
             continue;
