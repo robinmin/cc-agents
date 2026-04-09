@@ -207,7 +207,7 @@ interface TaskCardProps {
 }
 
 const TaskCard: FC<TaskCardProps> = ({ task, provided, snapshot, onSelectTask }) => {
-    const [tick, setTick] = useState(0);
+    const [, setTick] = useState(0);
 
     // Auto-update timestamps every minute
     useEffect(() => {
