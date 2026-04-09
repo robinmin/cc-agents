@@ -5,15 +5,21 @@
  * executor based on channel or executor ID.
  *
  * Execution modes (clean vocabulary):
- *   - 'local'   → LocalExecutor (in-process execution)
- *   - 'direct'  → DirectExecutor (explicit Bun subprocess)
- *   - 'auto'    → orchestrator default (defaults to local)
- *   - 'current' → AutoExecutor (deprecated alias for auto)
- *   - 'acp-stateless:<channel>' → ACP stateless adapter
- *   - 'acp-sessioned:<channel>'  → ACP sessioned adapter
+ *   - 'inline'             → InlineExecutor (in-process execution)
+ *   - 'subprocess'         → SubprocessExecutor (explicit Bun subprocess)
+ *   - 'acp-oneshot:<ch>'   → AcpOneshotExecutor (one-shot ACP execution)
+ *   - 'acp-session:<ch>'   → AcpSessionExecutor (sessioned ACP execution)
  *
- * Default: 'local' (LocalExecutor) for interactive workflows.
- * Use 'direct' for explicit subprocess isolation.
+ * Legacy aliases (accepted, normalized with deprecation warning):
+ *   - 'local' → 'inline'
+ *   - 'direct' → 'subprocess'
+ *   - 'auto' → 'inline'
+ *   - 'current' → 'inline'
+ *   - 'acp-stateless:<ch>' → 'acp-oneshot:<ch>'
+ *   - 'acp-sessioned:<ch>' → 'acp-session:<ch>'
+ *
+ * Default: 'inline' (InlineExecutor) for interactive workflows.
+ * Use 'subprocess' for explicit subprocess isolation.
  * Use ACP adapters for external channel execution.
  *
  * Config: ~/.config/orchestrator/config.yaml
@@ -22,86 +28,47 @@
  */
 
 import type { Executor, ExecutionRequest, ExecutionResult, ExecutorHealth } from '../model';
+import { normalizeExecutorId } from '../model';
 import { resolveConfig } from '../config/config';
 import { logger } from '../../../../scripts/logger';
-import { AutoExecutor } from './auto';
-import { AcpExecutor } from './acp';
-import type { PhaseExecutorAdapter, ExecutionRoutingPolicy } from './adapter';
+import type { ExecutionRoutingPolicy } from './adapter';
+import { ACP_ONESHOT_PATTERN, ADAPTER_INLINE, ADAPTER_SUBPROCESS } from './adapter';
 import { loadRoutingPolicy, materializePolicyChannels } from '../routing/policy';
-import { AcpStatelessExecutor } from './acp-stateless';
-import { AcpSessionedExecutor } from './acp-sessioned';
-import { DirectExecutor } from './direct';
-import { LocalExecutor } from './local';
+import { AcpOneshotExecutor } from './acp-oneshot';
+import { AcpSessionExecutor } from './acp-session';
+import { SubprocessExecutor } from './subprocess';
+import { InlineExecutor } from './inline';
 
 export class ExecutorPool {
-    private executors: Map<string, Executor> = new Map();
-    private readonly defaultId: string;
+    private registry: Map<string, Executor> = new Map();
+    private readonly defaultId = 'inline';
     private readonly configuredChannels: readonly string[];
     private routingPolicy: ExecutionRoutingPolicy;
-    private adapters: Map<string, PhaseExecutorAdapter> = new Map();
-    private useAdapters = true;
 
     constructor() {
-        // AutoExecutor is always registered for the canonical 'auto' alias
-        // and the deprecated 'current' compatibility alias.
-        const auto = new AutoExecutor();
-        this.register(auto);
-        this.adapters.set(auto.id, auto);
-        this.adapters.set('auto', auto);
+        // InlineExecutor is the in-process executor and the interactive default.
+        const inline = new InlineExecutor();
+        this.register(inline);
 
-        // LocalExecutor is the true in-process executor and the interactive default.
-        const local = new LocalExecutor();
-        this.register(local as unknown as Executor);
-        this.adapters.set(local.id, local);
+        // SubprocessExecutor is the explicit Bun subprocess executor.
+        const subprocess = new SubprocessExecutor();
+        this.register(subprocess);
 
-        // DirectExecutor is registered as the canonical explicit subprocess executor.
-        const direct = new DirectExecutor();
-        this.register(direct as unknown as Executor);
-        this.adapters.set(direct.id, direct);
-        this.adapters.set('direct', direct);
-        this.defaultId = local.id;
-
-        // Register AcpExecutor for each configured channel (legacy mode)
+        // Load config and register ACP executors for each configured channel.
         const config = resolveConfig();
         this.configuredChannels = config.executorChannels;
-        this.routingPolicy = materializePolicyChannels(loadRoutingPolicy(local.id), this.configuredChannels);
+        this.routingPolicy = materializePolicyChannels(
+            loadRoutingPolicy(inline.id),
+            this.configuredChannels,
+        );
+
         for (const channel of config.executorChannels) {
-            const acp = new AcpExecutor(channel);
-            this.register(acp);
+            const oneshot = new AcpOneshotExecutor(channel);
+            this.register(oneshot);
+
+            const session = new AcpSessionExecutor(channel);
+            this.register(session);
         }
-
-        // Also register new adapter-mode executors
-        this.registerAdapters(config.executorChannels);
-    }
-
-    /**
-     * Register adapter-mode executors.
-     */
-    private registerAdapters(channels: readonly string[]): void {
-        for (const channel of channels) {
-            const stateless = new AcpStatelessExecutor(channel);
-            this.adapters.set(stateless.id, stateless);
-
-            const sessioned = new AcpSessionedExecutor(channel);
-            this.adapters.set(sessioned.id, sessioned);
-        }
-    }
-
-    /**
-     * Enable adapter mode with routing policy.
-     */
-    enableAdapterMode(policy?: ExecutionRoutingPolicy): void {
-        this.useAdapters = true;
-        if (policy) {
-            this.routingPolicy = materializePolicyChannels(policy, this.configuredChannels);
-        }
-    }
-
-    /**
-     * Disable adapter mode and fall back to legacy channel resolution.
-     */
-    disableAdapterMode(): void {
-        this.useAdapters = false;
     }
 
     /**
@@ -112,27 +79,21 @@ export class ExecutorPool {
     }
 
     register(executor: Executor): void {
-        for (const channel of executor.capabilities.channels) {
-            this.executors.set(channel, executor);
+        for (const channel of executor.channels) {
+            this.registry.set(channel, executor);
         }
-        this.executors.set(executor.id, executor);
+        this.registry.set(executor.id, executor);
     }
 
     get(id: string): Executor | undefined {
-        return this.executors.get(id);
+        const normalized = normalizeExecutorId(id);
+        return this.registry.get(normalized) ?? this.registry.get(id);
     }
 
     getDefault(): Executor {
-        // First check executors map (legacy executors)
-        const executor = this.executors.get(this.defaultId);
+        const executor = this.registry.get(this.defaultId);
         if (executor !== undefined) {
             return executor;
-        }
-        // Fall back to adapters map (DirectExecutor etc.)
-        const adapter = this.adapters.get(this.defaultId);
-        if (adapter !== undefined) {
-            // Type coercion: adapter implements the same execute/dispose/healthCheck interface
-            return adapter as unknown as Executor;
         }
         throw new Error(`Default executor not found: ${this.defaultId}`);
     }
@@ -140,7 +101,7 @@ export class ExecutorPool {
     list(): Executor[] {
         const seen = new Set<string>();
         const result: Executor[] = [];
-        for (const executor of this.executors.values()) {
+        for (const executor of this.registry.values()) {
             if (!seen.has(executor.id)) {
                 seen.add(executor.id);
                 result.push(executor);
@@ -150,7 +111,8 @@ export class ExecutorPool {
     }
 
     resolve(channel: string): Executor {
-        const executor = this.executors.get(channel);
+        const normalized = normalizeExecutorId(channel);
+        const executor = this.registry.get(normalized) ?? this.registry.get(channel);
         if (!executor) {
             throw new Error(`No executor registered for channel: ${channel}`);
         }
@@ -158,112 +120,120 @@ export class ExecutorPool {
     }
 
     has(channel: string): boolean {
-        return this.executors.has(channel);
+        const normalized = normalizeExecutorId(channel);
+        return this.registry.has(normalized) || this.registry.has(channel);
     }
 
     async execute(req: ExecutionRequest, executorId?: string): Promise<ExecutionResult> {
         // If explicit executor ID provided, use it directly.
         if (executorId) {
-            const adapter = this.adapters.get(executorId);
-            if (adapter) {
-                return adapter.execute(req);
-            }
-            const executor = this.get(executorId);
+            const normalized = normalizeExecutorId(executorId);
+            const executor = this.registry.get(normalized) ?? this.registry.get(executorId);
             if (!executor) {
                 throw new Error(`Executor not found: ${executorId}`);
             }
             return executor.execute(req);
         }
-        // If adapter mode enabled, use routing policy
-        if (this.useAdapters) {
-            return this.executeWithPolicy(req);
-        }
-        // Legacy channel resolution
-        const executor = this.resolve(req.channel);
-        if (!executor) {
-            throw new Error(`Executor not found: ${req.channel}`);
-        }
-        return executor.execute(req);
+
+        // Use routing policy for channel resolution
+        return this.executeWithPolicy(req);
     }
+
     /**
-     * Execute using routing policy to select adapter.
-     * Session-aware: when req.session is present, routes to sessioned ACP adapter.
+     * Execute using routing policy to select executor.
+     * Session-aware: when req.session is present, routes to sessioned ACP executor.
      */
     private async executeWithPolicy(req: ExecutionRequest): Promise<ExecutionResult> {
-        const { routePhase } = await import('../routing/policy');
-        const { ADAPTER_ACP_STATELESS_PATTERN } = await import('./adapter');
-        const decision = routePhase(this.routingPolicy, req.phase, req.channel);
+        const explicitLocalExecutor = this.resolveExplicitLocalExecutor(req.channel);
+        if (explicitLocalExecutor) {
+            return this.executeResolved(req, explicitLocalExecutor.id);
+        }
 
-        // Session-aware adapter selection: if request has session, route to sessioned variant
-        let adapterId = decision.adapterId;
+        if (!this.isKnownPolicyChannel(req.channel)) {
+            throw new Error(`No executor registered for channel: ${req.channel}`);
+        }
+
+        const { routePhase } = await import('../routing/policy');
+        const decision = routePhase(this.routingPolicy, req.phase, req.channel);
+        return this.executeResolved(req, decision.adapterId);
+    }
+
+    private async executeResolved(req: ExecutionRequest, adapterId: string): Promise<ExecutionResult> {
+        // Session-aware executor selection: if request has session, route to sessioned variant
+        let executorId = adapterId;
         if (req.session) {
-            const match = ADAPTER_ACP_STATELESS_PATTERN.exec(adapterId);
+            const match = ACP_ONESHOT_PATTERN.exec(executorId);
             if (match) {
                 const channel = match[1];
-                adapterId = `acp-sessioned:${channel}`;
-                logger.info(`[pool] Session "${req.session}" detected — routing to ${adapterId}`);
+                executorId = `acp-session:${channel}`;
+                logger.info(`[pool] Session "${req.session}" detected — routing to ${executorId}`);
             }
-            if (adapterId === 'direct') {
+            if (executorId === ADAPTER_SUBPROCESS) {
                 return {
                     success: false,
                     exitCode: 1,
-                    stderr: 'The direct executor does not support --session. Use local mode or an explicit ACP sessioned adapter instead.',
+                    stderr:
+                        'The subprocess executor does not support --session. ' +
+                        'Use inline mode or an explicit ACP session executor instead.',
                     durationMs: 0,
                     timedOut: false,
                 };
             }
         }
 
-        const adapter = this.adapters.get(adapterId);
-        if (!adapter) {
-            // Fall back to legacy mode
-            logger.warn(`[pool] Adapter ${adapterId} not found, falling back to legacy mode`);
-            const executor = this.resolve(req.channel);
-            if (!executor) {
-                throw new Error(`Executor not found: ${req.channel}`);
-            }
-            return executor.execute(req);
+        const executor = this.registry.get(executorId);
+        if (!executor) {
+            throw new Error(`Executor not found: ${executorId}`);
         }
-        return adapter.execute(req);
+        return executor.execute(req);
+    }
+
+    private resolveExplicitLocalExecutor(channel: string): Executor | undefined {
+        const normalized = normalizeExecutorId(channel);
+        if (normalized !== ADAPTER_INLINE && normalized !== ADAPTER_SUBPROCESS) {
+            return undefined;
+        }
+
+        if (channel === 'auto' || channel === 'current') {
+            return undefined;
+        }
+
+        return this.registry.get(normalized) ?? this.registry.get(channel);
+    }
+
+    private isKnownPolicyChannel(channel: string): boolean {
+        if (channel === 'auto' || channel === 'current') {
+            return true;
+        }
+
+        if (this.configuredChannels.includes(channel)) {
+            return true;
+        }
+
+        return this.routingPolicy.channelOverrides?.[channel] !== undefined;
     }
 
     async healthCheckAll(): Promise<Map<string, ExecutorHealth>> {
         const results = new Map<string, ExecutorHealth>();
-        const seenExecutorIds = new Set<string>();
-        for (const executor of this.executors.values()) {
-            if (!seenExecutorIds.has(executor.id)) {
-                seenExecutorIds.add(executor.id);
+        const seen = new Set<string>();
+        for (const executor of this.registry.values()) {
+            if (!seen.has(executor.id)) {
+                seen.add(executor.id);
                 results.set(executor.id, await executor.healthCheck());
             }
-        }
-        const seenAdapterIds = new Set<string>();
-        for (const [adapterId, adapter] of this.adapters.entries()) {
-            if (seenAdapterIds.has(adapterId) || results.has(adapterId)) {
-                continue;
-            }
-            seenAdapterIds.add(adapterId);
-            results.set(adapterId, await adapter.healthCheck());
         }
         return results;
     }
 
     async disposeAll(): Promise<void> {
-        const disposed = new Set<Executor | PhaseExecutorAdapter>();
-        for (const executor of this.executors.values()) {
+        const disposed = new Set<Executor>();
+        for (const executor of this.registry.values()) {
             if (disposed.has(executor)) {
                 continue;
             }
             disposed.add(executor);
             await executor.dispose();
         }
-        for (const adapter of this.adapters.values()) {
-            if (disposed.has(adapter)) {
-                continue;
-            }
-            disposed.add(adapter);
-            await adapter.dispose();
-        }
-        this.executors.clear();
-        this.adapters.clear();
+        this.registry.clear();
     }
 }
