@@ -286,8 +286,8 @@ orchestrator run <task-ref> --channel codex
 | `direct` | Bun subprocess executor | Explicit process isolation |
 | `auto` | orchestrator default | Compatibility alias for the configured default executor |
 | `current` | same as `auto` | Deprecated compatibility alias |
-| `codex` | acp-stateless:codex | Explicit external ACP execution |
-| `opencode` | acp-stateless:opencode | Explicit external ACP execution |
+| `codex` | acp-oneshot:codex | Explicit external ACP execution |
+| `opencode` | acp-oneshot:opencode | Explicit external ACP execution |
 
 ### Dogfood Test
 
