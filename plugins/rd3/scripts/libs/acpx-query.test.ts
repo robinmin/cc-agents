@@ -1,5 +1,24 @@
-import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
+import { describe, expect, test, beforeEach, afterEach, beforeAll } from 'bun:test';
 import type { AcpxQueryOptions, AcpxQueryResult, ResourceMetrics, AcpxHealth } from './acpx-query';
+import { mkdirSync, writeFileSync, chmodSync } from 'node:fs';
+import { join } from 'node:path';
+
+// ─── Mock ACPX Setup ─────────────────────────────────────────────────────────
+const MOCK_DIR = '/tmp/acpx-mock';
+const MOCK_SCRIPT = join(MOCK_DIR, 'mock-acpx.sh');
+
+beforeAll(() => {
+    mkdirSync(MOCK_DIR, { recursive: true });
+    writeFileSync(
+        MOCK_SCRIPT,
+        `#!/bin/sh
+printf '%s' 'mock output'
+exit 0
+`,
+        'utf-8',
+    );
+    chmodSync(MOCK_SCRIPT, 0o755);
+});
 
 // ─── Test State ───────────────────────────────────────────────────────────────
 // Capture ORIGINAL state at module load time to prevent test pollution
