@@ -831,6 +831,10 @@ export class PipelineRunner {
                 ...(iteration > 0 && { reworkIteration: iteration }),
                 ...(maxRework > 0 && { reworkMax: maxRework }),
                 ...(options.dryRun && { outputSchema: { dryRun: true } }),
+                // NOTE: Session fields are passed through for backward compatibility.
+                // By default, runner uses stateless ACP execution (acpx <agent> exec).
+                // Session mode is opt-in via --session flag or routing policy.
+                // See integrations/acp/sessions.ts for session lifecycle management.
                 ...(options.session && { session: options.session }),
                 ...(options.sessionTtlSeconds !== undefined && { sessionTtlSeconds: options.sessionTtlSeconds }),
             };
