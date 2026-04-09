@@ -1,9 +1,9 @@
 ---
 name: Purify executor layer: remove legacy executors, rename inline/subprocess/acp
 description: Remove AutoExecutor/AcpExecutor, unify Executor interface, rename local→inline, direct→subprocess, acp-stateless→acp-oneshot, acp-sessioned→acp-session
-status: Backlog
+status: Done
 created_at: 2026-04-09T19:23:06.895Z
-updated_at: 2026-04-09T20:00:00.000Z
+updated_at: 2026-04-09T23:27:29.364Z
 folder: docs/tasks2
 type: task
 preset: "standard"
@@ -134,7 +134,7 @@ Remove: dual `executors` + `adapters` maps, `useAdapters` flag, `enableAdapterMo
 - [ ] `references/pipeline-yaml-guide.md` — update documentation to reflect new vocabulary
 - [ ] `references/cli-reference.md` — update if executor modes are mentioned
 
-#### 7. Update pool and routing
+#### 7. Update pool, routing, and CLI channel resolution
 
 - [ ] `pool.ts` — single `registry` map with `InlineExecutor` as default
 - [ ] `pool.ts` — register legacy aliases with deprecation log:
@@ -144,14 +144,18 @@ Remove: dual `executors` + `adapters` maps, `useAdapters` flag, `enableAdapterMo
   - `current` → `inline`
   - `acp-stateless:<x>` → `acp-oneshot:<x>`
   - `acp-sessioned:<x>` → `acp-session:<x>`
-- [ ] `adapter.ts` — update constants: `ADAPTER_LOCAL` → `ADAPTER_INLINE`, `ADAPTER_DIRECT` → `ADAPTER_SUBPROCESS`, add `ADAPTER_ACP_ONESHOT_PATTERN`, `ADAPTER_ACP_SESSION_PATTERN`
-- [ ] `routing/policy.ts` — update default adapter ID references
+- [ ] `adapter.ts` — update constants: `ADAPTER_LOCAL` → `ADAPTER_INLINE`, `ADAPTER_DIRECT` → `ADAPTER_SUBPROCESS`, `ADAPTER_ACP_STATELESS_PATTERN` → `ADAPTER_ACP_ONESHOT_PATTERN`, `ADAPTER_ACP_SESSIONED_PATTERN` → `ADAPTER_ACP_SESSION_PATTERN`
+- [ ] `adapter.ts` — update helper functions: `isDirectAdapter()` → `isSubprocessAdapter()`, `isLocalAdapter()` → `isInlineAdapter()`, `extractAcpChannel()` pattern update
+- [ ] `routing/policy.ts` — update `RESERVED_LOCAL_CHANNELS` to new names, `loadRoutingPolicy()` default to `'inline'`, `buildAcpAdapterId()` to produce `acp-oneshot:`/`acp-session:` IDs, `normalizeOverride()` and `resolveAdapterId()` to use new vocabulary
+- [ ] `run.ts` — update `normalizeRequestedChannel()`: `current` → `inline` (deprecation), `auto` → `inline` (deprecation); update fallback `'local'` → `'inline'` (line 924); update channel discrimination (line 932) to use new names
+- [ ] **Create centralized `normalizeExecutorId(id: string): string`** in `model.ts` (or `adapter.ts`) — single source of truth for legacy→new mapping, called by parser, pool, and run.ts to prevent drift
 
-#### 8. Update runner and model
+#### 8. Update engine runner and model
 
-- [ ] `runner.ts` — update any hardcoded `'local'`/`'direct'` strings
+- [ ] `engine/runner.ts` — update hardcoded channel resolution (lines 896-925): `'auto'` → `'inline'`, `'local'` → `'inline'`, `'direct'` → `'subprocess'`; update `executor.mode` comparisons
 - [ ] `model.ts` — update `PhaseExecutorMode` type: `'auto' | 'local' | 'direct'` → `'inline' | 'subprocess'`
 - [ ] `model.ts` — update `PhaseExecutorDefinition.mode` doc comments
+- [ ] `model.ts` — update `PhaseExecutorDefinition.adapter` doc comment (currently references `acp-stateless:codex`)
 
 #### 9. Update all tests
 
@@ -181,8 +185,8 @@ Remove: dual `executors` + `adapters` maps, `useAdapters` flag, `enableAdapterMo
 6. `ExecutorHealth` defined only in `model.ts`
 7. YAML `executor:` values are `inline`, `subprocess`, `acp-oneshot:<channel>`, or `acp-session:<channel>`
 8. Legacy values (`local`, `direct`, `auto`, `current`, `acp-stateless:*`, `acp-sessioned:*`) accepted by parser with normalization + deprecation warning
-9. All 713+ existing tests still pass
-10. `default.yaml` and other example YAMLs have no `executor:` line (default = `inline`)
+9. All 1261+ existing tests still pass
+10. `default.yaml` and other example YAMLs have no `executor:` line (default = `inline`) — **already true, verify unchanged**
 
 ### Q&A
 
@@ -284,37 +288,56 @@ Phase 9: Update documentation (SKILL.md, pipeline-yaml-guide.md, cli-reference.m
 |------|-------------|-------|------|
 | 1 | Unify `Executor` interface in `model.ts`, remove `ExecutorCapabilities` | `model.ts`, `adapter.ts` | High |
 | 2 | Consolidate `ExecutorHealth` to `model.ts` only | `model.ts`, `adapter.ts` | Low |
-| 3 | Update all executor classes to implement unified `Executor` | 4 executor files | Medium |
-| 4 | Delete `auto.ts`, `auto.test.ts`, `acp.ts`, `acp.test.ts` | 4 files | Low |
-| 5 | Rename `local.ts` → `inline.ts`, update class/constants | 2 files | Medium |
-| 6 | Rename `direct.ts` → `subprocess.ts`, update class/constants | 2 files | Medium |
-| 7 | Rename `acp-stateless.ts` → `acp-oneshot.ts`, update class/constants | 2 files | Medium |
-| 8 | Rename `acp-sessioned.ts` → `acp-session.ts`, update class/constants | 2 files | Medium |
-| 9 | Simplify `ExecutorPool` to single `registry` map | `pool.ts` | High |
-| 10 | Update `adapter.ts` constants and helpers | `adapter.ts` | Medium |
-| 11 | Update `schema.ts` validation for new mode names | `schema.ts` | Low |
-| 12 | Update `parser.ts` with legacy normalization + deprecation warnings | `parser.ts` | Medium |
-| 13 | Update `runner.ts` hardcoded strings | `runner.ts` | Medium |
-| 14 | Update `model.ts` type definitions (`PhaseExecutorMode`, etc.) | `model.ts` | Low |
-| 15 | Update `routing/policy.ts` default adapter ID references | `policy.ts` | Medium |
-| 16 | Update all test files (rename, assertions, remove dead tests) | ~10 test files | High (volume) |
-| 17 | Update YAML examples | 8 YAML files | Low |
-| 18 | Update documentation (SKILL.md, pipeline-yaml-guide.md, cli-reference.md) | 3 MD files | Low |
-| 19 | Run `bun run check`, fix any issues | — | — |
+| 3 | Add `normalizeExecutorId()` in `model.ts` — centralized legacy→new mapping | `model.ts` | Low |
+| 4 | Update all executor classes to implement unified `Executor` | 4 executor files | Medium |
+| 5 | Delete `auto.ts`, `auto.test.ts`, `acp.ts`, `acp.test.ts` | 4 files | Low |
+| 6 | Rename `local.ts` → `inline.ts`, update class/constants | 2 files | Medium |
+| 7 | Rename `direct.ts` → `subprocess.ts`, update class/constants | 2 files | Medium |
+| 8 | Rename `acp-stateless.ts` → `acp-oneshot.ts`, update class/constants | 2 files | Medium |
+| 9 | Rename `acp-sessioned.ts` → `acp-session.ts`, update class/constants | 2 files | Medium |
+| 10 | Simplify `ExecutorPool` to single `registry` map | `pool.ts` | High |
+| 11 | Update `adapter.ts` constants, patterns, and helper functions | `adapter.ts` | Medium |
+| 12 | Update `schema.ts` validation for new mode names + error messages | `schema.ts` | Low |
+| 13 | Update `parser.ts` acp-prefix detection + use `normalizeExecutorId()` | `parser.ts` | Medium |
+| 14 | Update `engine/runner.ts` channel resolution (lines 896-925) | `engine/runner.ts` | Medium |
+| 15 | Update `run.ts` `normalizeRequestedChannel()` + fallbacks + use `normalizeExecutorId()` | `run.ts` | Medium |
+| 16 | Update `model.ts` type definitions (`PhaseExecutorMode`, doc comments) | `model.ts` | Low |
+| 17 | Update `routing/policy.ts` constants, defaults, `buildAcpAdapterId()`, `resolveAdapterId()` | `policy.ts` | Medium |
+| 18 | Update all test files (rename, assertions, remove dead tests) | ~12 test files | High (volume) |
+| 19 | Update YAML examples (verify unchanged — no `executor:` lines expected) | 8 YAML files | Low |
+| 20 | Update documentation (SKILL.md, pipeline-yaml-guide.md, cli-reference.md) | 3 MD files | Low |
+| 21 | Run `bun run check`, fix any issues | — | — |
 
 ### Review
 
-*(to be filled after implementation)*
+Refinement pass 1 (2026-04-09):
+- Fixed stale test count (713 → 1261)
+- Added `engine/runner.ts` to scope (was missing — separate from executors dir)
+- Added `run.ts` `normalizeRequestedChannel()` to scope (CLI channel resolution)
+- Added `routing/policy.ts` specific changes (`RESERVED_LOCAL_CHANNELS`, `buildAcpAdapterId()` etc.)
+- Added `adapter.ts` helper function renames (`isDirectAdapter` → `isSubprocessAdapter`, `isLocalAdapter` → `isInlineAdapter`)
+- Added centralized `normalizeExecutorId()` to prevent three-way normalization drift
+- Added `parser.ts` acp-prefix detection line specifics
+- Added `schema.ts` error message update
+- Added preserved behavior note for `acp-sessioned.ts` inner class
+- Noted YAML examples already have no `executor:` lines (verify-only)
+- Plan steps: 19 → 21 (added normalizeExecutorId step, split runner.ts into engine/runner.ts + run.ts)
 
 ### Testing
 
-- All existing 713+ tests must pass after changes
+- All existing 1261+ tests must pass after changes
 - Parser tests: verify normalization of all legacy values (`local` → `inline`, `direct` → `subprocess`, `auto` → `inline`, `acp-stateless:x` → `acp-oneshot:x`, `acp-sessioned:x` → `acp-session:x`)
-- Schema tests: verify `inline` and `subprocess` accepted
+- Schema tests: verify `inline` and `subprocess` accepted, error message updated
 - Pool tests: verify single map, legacy alias lookup, no `as unknown` casts
 - Pool tests: verify `enableAdapterMode()`/`disableAdapterMode()` removed
+- Pool tests: verify `normalizeExecutorId()` central function returns correct mappings
+- Adapter tests: verify renamed constants (`ADAPTER_INLINE`, `ADAPTER_SUBPROCESS`, `ADAPTER_ACP_ONESHOT_PATTERN`, `ADAPTER_ACP_SESSION_PATTERN`), renamed helper functions
 - Executor interface tests: verify all 4 executors implement unified `Executor`
+- Routing/policy tests: verify `buildAcpAdapterId()` produces `acp-oneshot:`/`acp-session:` IDs, default adapter is `'inline'`
+- Engine runner tests: verify channel resolution uses new names
+- CLI tests: verify `--channel current` and `--channel auto` log deprecation warnings and resolve to `inline`
 - Integration test: verify a pipeline YAML with no `executor:` field defaults to `InlineExecutor`
+- Verify `acp-sessioned.ts` inner `AcpSessionExecutorAdapter` still reports `executionMode: 'stateless'` as base mode (preserved behavior)
 
 ### Artifacts
 
