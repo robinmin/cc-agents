@@ -87,15 +87,15 @@ phases:
     executor: codex
   docs:
     skill: rd3:code-docs
-    executor: acp-sessioned:pi
+    executor: acp-session:pi
 `,
         );
 
         try {
             const [pipeline] = await parsePipelineYaml(file);
-            expect(pipeline.phases.implement.executor).toEqual({ mode: 'direct' });
+            expect(pipeline.phases.implement.executor).toEqual({ mode: 'subprocess' });
             expect(pipeline.phases.review.executor).toEqual({ channel: 'codex' });
-            expect(pipeline.phases.docs.executor).toEqual({ adapter: 'acp-sessioned:pi' });
+            expect(pipeline.phases.docs.executor).toEqual({ adapter: 'acp-session:pi' });
         } finally {
             rmSync(dir, { recursive: true, force: true });
         }
