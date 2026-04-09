@@ -65,12 +65,37 @@ export interface ReworkConfig {
     readonly escalation: 'pause' | 'fail';
 }
 
+export type PhaseExecutorMode = 'auto' | 'local' | 'direct';
+
+export interface PhaseExecutorDefinition {
+    /**
+     * Built-in execution mode.
+     * - auto   → use orchestrator default routing (defaults to local)
+     * - local  → in-process execution in the current Bun process
+     * - direct → explicit Bun subprocess execution
+     */
+    readonly mode?: PhaseExecutorMode;
+
+    /**
+     * Explicit external channel name (for example: "codex" or "pi").
+     * Routes through the adapter policy as an external backend.
+     */
+    readonly channel?: string;
+
+    /**
+     * Explicit adapter ID (for example: "acp-stateless:codex").
+     * Bypasses default routing and selects the named adapter directly.
+     */
+    readonly adapter?: string;
+}
+
 export interface PhaseDefinition {
     readonly skill: string;
     readonly gate?: GateConfig;
     readonly timeout?: string;
     readonly after?: readonly string[];
     readonly payload?: Record<string, unknown>;
+    readonly executor?: PhaseExecutorDefinition;
 }
 
 export interface PresetDefinition {
