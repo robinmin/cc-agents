@@ -564,7 +564,7 @@ describe('PipelineRunner.run() basic behavior', () => {
         expect(result.durationMs).toBeGreaterThanOrEqual(0);
     });
 
-    test('uses direct executor ID when a phase pins executor.mode: direct', async () => {
+    test('uses subprocess executor ID when a phase pins executor.mode: subprocess', async () => {
         const stateManager = new MockStateManager();
         const executorPool = new MockExecutorPool();
         const { PipelineRunner } = await import('./runner');
@@ -573,7 +573,7 @@ describe('PipelineRunner.run() basic behavior', () => {
             phases: {
                 implement: {
                     skill: 'rd3:code-implement-common',
-                    executor: { mode: 'direct' },
+                    executor: { mode: 'subprocess' },
                     gate: { type: 'command', command: 'true' },
                 },
             },
@@ -581,7 +581,7 @@ describe('PipelineRunner.run() basic behavior', () => {
 
         await runner.run({ taskRef: '0367', phases: ['implement'] }, pipeline);
 
-        expect(executorPool.lastExecutorId).toBe('direct');
+        expect(executorPool.lastExecutorId).toBe('subprocess');
     });
 
     test('uses explicit external channel when a phase pins executor.channel', async () => {
