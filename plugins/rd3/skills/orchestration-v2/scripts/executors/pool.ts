@@ -4,12 +4,17 @@
  * Registry for executors. Routes execution requests to the appropriate
  * executor based on channel or executor ID.
  *
- * Channel resolution:
- *   - 'auto'     → AutoExecutor (uses default_channel from config)
- *   - 'current'  → AutoExecutor (deprecated compatibility alias)
- *   - 'pi'       → AcpExecutor('pi')
- *   - 'codex'     → AcpExecutor('codex')
- *   - ... (any registered channel → AcpExecutor(channel))
+ * Execution modes (clean vocabulary):
+ *   - 'local'   → LocalExecutor (in-process execution)
+ *   - 'direct'  → DirectExecutor (explicit Bun subprocess)
+ *   - 'auto'    → orchestrator default (defaults to local)
+ *   - 'current' → AutoExecutor (deprecated alias for auto)
+ *   - 'acp-stateless:<channel>' → ACP stateless adapter
+ *   - 'acp-sessioned:<channel>'  → ACP sessioned adapter
+ *
+ * Default: 'local' (LocalExecutor) for interactive workflows.
+ * Use 'direct' for explicit subprocess isolation.
+ * Use ACP adapters for external channel execution.
  *
  * Config: ~/.config/orchestrator/config.yaml
  *   executor_channels: [pi, codex, ...]
@@ -19,12 +24,14 @@
 import type { Executor, ExecutionRequest, ExecutionResult, ExecutorHealth } from '../model';
 import { resolveConfig } from '../config/config';
 import { logger } from '../../../../scripts/logger';
-import { AutoExecutor } from './local';
+import { AutoExecutor } from './auto';
 import { AcpExecutor } from './acp';
 import type { PhaseExecutorAdapter, ExecutionRoutingPolicy } from './adapter';
-import { buildAcpAdapterId, loadRoutingPolicy, materializePolicyChannels } from '../routing/policy';
+import { loadRoutingPolicy, materializePolicyChannels } from '../routing/policy';
 import { AcpStatelessExecutor } from './acp-stateless';
 import { AcpSessionedExecutor } from './acp-sessioned';
+import { DirectExecutor } from './direct';
+import { LocalExecutor } from './local';
 
 export class ExecutorPool {
     private executors: Map<string, Executor> = new Map();
@@ -40,16 +47,24 @@ export class ExecutorPool {
         const auto = new AutoExecutor();
         this.register(auto);
         this.adapters.set(auto.id, auto);
-        this.adapters.set('local', auto);
-        this.defaultId = auto.id;
+        this.adapters.set('auto', auto);
+
+        // LocalExecutor is the true in-process executor and the interactive default.
+        const local = new LocalExecutor();
+        this.register(local as unknown as Executor);
+        this.adapters.set(local.id, local);
+
+        // DirectExecutor is registered as the canonical explicit subprocess executor.
+        const direct = new DirectExecutor();
+        this.register(direct as unknown as Executor);
+        this.adapters.set(direct.id, direct);
+        this.adapters.set('direct', direct);
+        this.defaultId = local.id;
 
         // Register AcpExecutor for each configured channel (legacy mode)
         const config = resolveConfig();
         this.configuredChannels = config.executorChannels;
-        this.routingPolicy = materializePolicyChannels(
-            loadRoutingPolicy(buildAcpAdapterId(config.defaultChannel, 'stateless')),
-            this.configuredChannels,
-        );
+        this.routingPolicy = materializePolicyChannels(loadRoutingPolicy(local.id), this.configuredChannels);
         for (const channel of config.executorChannels) {
             const acp = new AcpExecutor(channel);
             this.register(acp);
@@ -108,11 +123,18 @@ export class ExecutorPool {
     }
 
     getDefault(): Executor {
+        // First check executors map (legacy executors)
         const executor = this.executors.get(this.defaultId);
-        if (!executor) {
-            throw new Error(`Default executor not found: ${this.defaultId}`);
+        if (executor !== undefined) {
+            return executor;
         }
-        return executor;
+        // Fall back to adapters map (DirectExecutor etc.)
+        const adapter = this.adapters.get(this.defaultId);
+        if (adapter !== undefined) {
+            // Type coercion: adapter implements the same execute/dispose/healthCheck interface
+            return adapter as unknown as Executor;
+        }
+        throw new Error(`Default executor not found: ${this.defaultId}`);
     }
 
     list(): Executor[] {
@@ -165,14 +187,37 @@ export class ExecutorPool {
     }
     /**
      * Execute using routing policy to select adapter.
+     * Session-aware: when req.session is present, routes to sessioned ACP adapter.
      */
     private async executeWithPolicy(req: ExecutionRequest): Promise<ExecutionResult> {
         const { routePhase } = await import('../routing/policy');
+        const { ADAPTER_ACP_STATELESS_PATTERN } = await import('./adapter');
         const decision = routePhase(this.routingPolicy, req.phase, req.channel);
-        const adapter = this.adapters.get(decision.adapterId);
+
+        // Session-aware adapter selection: if request has session, route to sessioned variant
+        let adapterId = decision.adapterId;
+        if (req.session) {
+            const match = ADAPTER_ACP_STATELESS_PATTERN.exec(adapterId);
+            if (match) {
+                const channel = match[1];
+                adapterId = `acp-sessioned:${channel}`;
+                logger.info(`[pool] Session "${req.session}" detected — routing to ${adapterId}`);
+            }
+            if (adapterId === 'direct') {
+                return {
+                    success: false,
+                    exitCode: 1,
+                    stderr: 'The direct executor does not support --session. Use local mode or an explicit ACP sessioned adapter instead.',
+                    durationMs: 0,
+                    timedOut: false,
+                };
+            }
+        }
+
+        const adapter = this.adapters.get(adapterId);
         if (!adapter) {
             // Fall back to legacy mode
-            logger.warn(`[pool] Adapter ${decision.adapterId} not found, falling back to legacy mode`);
+            logger.warn(`[pool] Adapter ${adapterId} not found, falling back to legacy mode`);
             const executor = this.resolve(req.channel);
             if (!executor) {
                 throw new Error(`Executor not found: ${req.channel}`);
