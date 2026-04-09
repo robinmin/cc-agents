@@ -75,7 +75,7 @@ Commands:
   prune                    Compact event store
   migrate                  Migrate v1 state to v2
   events <task-ref>        Show run events
-  exec <slash-command>    Execute slash command via acpx
+  exec <slash-command>    Execute a slash command (local default, external channels explicit)
 
 Global options:
   --state-dir <path>       State directory (default: docs/.workflow-runs)
@@ -92,7 +92,7 @@ Command-specific options:
   run:
     --preset <name>         Named preset from pipeline YAML
     --phases <a,b>          Comma-separated phase names (DAG resolves order)
-    --channel <name>        Execution channel (default: auto)
+    --channel <name>        Execution target (default: local; auto = orchestrator default)
     --coverage <n>          Override coverage threshold (1-100)
     --auto                  Auto-approve all human gates
     --dry-run               Show execution plan without running
@@ -140,7 +140,7 @@ Command-specific options:
     --json                  JSON output
 
   exec:
-    --channel <name>        Execution channel (claude-code, pi, codex, gemini, kilocode, openclaw, opencode)
+    --channel <name>        Execution target (default: local; external: claude-code, pi, codex, gemini, kilocode, openclaw, opencode)
     --session <name>        Use persistent session for faster reuse (uses prompt --session)
     --ttl <seconds>        Session TTL in seconds (keeps session alive, use with --session)
     --dry-run               Preview transformation without executing
@@ -324,7 +324,7 @@ async function handleInit(): Promise<void> {
 
 function normalizeRequestedChannel(channel: string | undefined): string | undefined {
     if (channel === 'current') {
-        logger.warn('--channel current is deprecated; use --channel auto instead.');
+        logger.warn('--channel current is deprecated; use --channel auto or --channel local instead.');
         return 'auto';
     }
     return channel;
@@ -919,9 +919,9 @@ async function handleExec(options: Record<string, unknown>): Promise<void> {
     // Get the slash command from positional arguments (compacted)
     const slashCommand = (options.taskRef as string | undefined) ?? '';
 
-    // Get channel (default: claude-code)
+    // Get channel (default: local)
     const channelOption = options.channel as string | undefined;
-    const channel: ExecutionChannel = (channelOption as ExecutionChannel) ?? 'claude-code';
+    const channel = normalizeRequestedChannel(channelOption) ?? 'local';
 
     // Session for reuse (optional)
     const session = options.session as string | undefined;
@@ -929,7 +929,15 @@ async function handleExec(options: Record<string, unknown>): Promise<void> {
     const sessionTtlSeconds = options.ttl as number | undefined;
 
     // Validate channel
-    if (!isExecutionChannel(channel)) {
+    if (channel === 'auto' || channel === 'local' || channel === 'direct') {
+        logger.error(
+            `Execution target "${channel}" is not supported for slash-command transport. ` +
+                'Use an explicit external channel such as claude-code, pi, codex, gemini, kilocode, openclaw, or opencode.',
+        );
+        process.exit(EXIT_INVALID_ARGS);
+    }
+
+    if (!isExecutionChannel(channel as ExecutionChannel)) {
         logger.error(
             `Invalid channel: "${channel}". Valid channels: claude-code, pi, codex, gemini, kilocode, openclaw, opencode`,
         );
@@ -939,7 +947,7 @@ async function handleExec(options: Record<string, unknown>): Promise<void> {
     // Dry-run: just show the transformation
     if (options.dryRun) {
         try {
-            const transformed = transformSlashCommand(slashCommand, channel);
+            const transformed = transformSlashCommand(slashCommand, channel as ExecutionChannel);
             process.stdout.write(`[dry-run] Would execute:
 `);
             process.stdout.write(`  Channel: ${channel}
@@ -974,7 +982,7 @@ async function handleExec(options: Record<string, unknown>): Promise<void> {
     const timeoutMs = (options.coverage as number | undefined) ?? 300_000;
 
     const result = runSlashCommand(slashCommand, {
-        channel,
+        channel: channel as ExecutionChannel,
         timeoutMs,
         ...(session && { session }),
         ...(sessionTtlSeconds !== undefined && { sessionTtlSeconds }),
