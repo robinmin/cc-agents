@@ -135,6 +135,59 @@ describe('validateSchema', () => {
         expect(result.errors).not.toContainEqual(expect.objectContaining({ rule: 'skill' }));
     });
 
+    test('accepts executor string shorthand', () => {
+        const result = validateSchema({
+            schema_version: 1,
+            name: 'test',
+            phases: { implement: { skill: 'rd3:code-implement-common', executor: 'direct' } },
+        });
+        expect(result.valid).toBe(true);
+    });
+
+    test('accepts executor object form', () => {
+        const result = validateSchema({
+            schema_version: 1,
+            name: 'test',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement-common',
+                    executor: { channel: 'codex' },
+                },
+            },
+        });
+        expect(result.valid).toBe(true);
+    });
+
+    test('rejects executor objects that mix mode and adapter selectors', () => {
+        const result = validateSchema({
+            schema_version: 1,
+            name: 'test',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement-common',
+                    executor: { mode: 'local', adapter: 'acp-stateless:codex' },
+                },
+            },
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors).toContainEqual(expect.objectContaining({ rule: 'executor' }));
+    });
+
+    test('rejects invalid executor mode', () => {
+        const result = validateSchema({
+            schema_version: 1,
+            name: 'test',
+            phases: {
+                implement: {
+                    skill: 'rd3:code-implement-common',
+                    executor: { mode: 'invalid' },
+                },
+            },
+        });
+        expect(result.valid).toBe(false);
+        expect(result.errors).toContainEqual(expect.objectContaining({ rule: 'executor_mode' }));
+    });
+
     // ── phase gate field ─────────────────────────────────────────────────────
 
     test('passes when phase has no gate', () => {
