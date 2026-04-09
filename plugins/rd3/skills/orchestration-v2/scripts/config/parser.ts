@@ -10,6 +10,7 @@ import type { PipelineDefinition, ValidationResult, PhaseDefinition, PhaseExecut
 import { validateSchema } from './schema';
 import { OrchestratorError } from '../model';
 import { resolveSkillDirectory } from '../utils';
+import { logger } from '../../../../scripts/logger';
 
 /**
  * Parse a pipeline YAML file and validate it.
@@ -526,14 +527,23 @@ function normalizePhaseExecutor(raw: unknown): PhaseExecutorDefinition | undefin
             return undefined;
         }
 
-        if (trimmed === 'auto' || trimmed === 'local' || trimmed === 'direct') {
+        if (trimmed === 'inline' || trimmed === 'subprocess') {
             return { mode: trimmed };
+        }
+
+        // Legacy compat: normalize old executor mode names
+        if (trimmed === 'auto' || trimmed === 'local' || trimmed === 'direct' || trimmed === 'current') {
+            const normalized = trimmed === 'direct' ? 'subprocess' : 'inline';
+            logger.warn(`[parser] Executor mode "${trimmed}" is deprecated, use "${normalized}" instead.`);
+            return { mode: normalized };
         }
 
         if (
             trimmed.startsWith('acp:') ||
-            trimmed.startsWith('acp-stateless:') ||
-            trimmed.startsWith('acp-sessioned:')
+            trimmed.startsWith('acp-oneshot:') ||
+            trimmed.startsWith('acp-session:') ||
+            trimmed.startsWith('acp-stateless:') || // legacy compat
+            trimmed.startsWith('acp-sessioned:')    // legacy compat
         ) {
             return { adapter: trimmed };
         }
@@ -546,7 +556,18 @@ function normalizePhaseExecutor(raw: unknown): PhaseExecutorDefinition | undefin
     }
 
     const value = raw as Record<string, unknown>;
-    const mode = value.mode === 'auto' || value.mode === 'local' || value.mode === 'direct' ? value.mode : undefined;
+    let mode = value.mode === 'inline' || value.mode === 'subprocess' ? value.mode as 'inline' | 'subprocess' : undefined;
+    // Legacy compat: normalize old executor mode names in object form
+    if (!mode && typeof value.mode === 'string') {
+        const trimmedMode = (value.mode as string).trim();
+        if (trimmedMode === 'auto' || trimmedMode === 'local' || trimmedMode === 'current') {
+            mode = 'inline';
+            logger.warn(`[parser] Executor mode "${trimmedMode}" is deprecated, use "inline" instead.`);
+        } else if (trimmedMode === 'direct') {
+            mode = 'subprocess';
+            logger.warn(`[parser] Executor mode "${trimmedMode}" is deprecated, use "subprocess" instead.`);
+        }
+    }
     const channel = typeof value.channel === 'string' && value.channel.trim() !== '' ? value.channel.trim() : undefined;
     const adapter = typeof value.adapter === 'string' && value.adapter.trim() !== '' ? value.adapter.trim() : undefined;
 
