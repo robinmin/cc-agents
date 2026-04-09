@@ -131,7 +131,7 @@ Legacy task aliases `review` and `docs` remain accepted and are normalized to `r
 
 ### Execution Channels
 
-`auto` is the canonical channel contract for v2. It means "route through the configured default backend from `default_channel`". `current` remains accepted as a deprecated compatibility alias for the same behavior. Explicit agent names such as `pi`, `codex`, or `opencode` route directly to those backends. There is no supported `local` channel in v2.
+`local` is the default execution mode for v2 and means in-process execution in the current Bun process. `direct` is the explicit Bun-subprocess transport. `auto` means "use the orchestrator default" and currently resolves to `local` unless routing config overrides it. Explicit agent names such as `pi`, `codex`, or `opencode` stay external ACP-backed channels. `current` remains accepted as a deprecated compatibility alias for `auto`.
 
 ### FSM Lifecycle
 
@@ -282,17 +282,19 @@ orchestrator run <task-ref> --channel codex
 
 | Channel | Executor | Use Case |
 |---------|---------|---------|
-| `auto` (default) | acp (pi agent) | Standard execution with agent delegation |
+| `local` (default) | in-process local executor | Interactive/default path for skills with local entrypoints |
+| `direct` | Bun subprocess executor | Explicit process isolation |
+| `auto` | orchestrator default | Compatibility alias for the configured default executor |
 | `current` | same as `auto` | Deprecated compatibility alias |
-| `codex` | acp:codex | Delegate to Codex agent |
-| `opencode` | acp:opencode | Delegate to OpenCode agent |
+| `codex` | acp-stateless:codex | Explicit external ACP execution |
+| `opencode` | acp-stateless:opencode | Explicit external ACP execution |
 
 ### Dogfood Test
 
 When modifying the orchestrator itself (e.g., task 0334 fixing acpx fallback):
-1. Do **not** use `--local` or `--channel local`; those values are not supported by v2
-2. Use `bun run check` for local gate validation when the delegated backend is under repair
-3. Run review/verification steps inline until ACP-backed delegation is healthy again
+1. Prefer the default `local` executor for validation and steering
+2. Pin a phase to `direct` when it needs subprocess isolation
+3. Use explicit ACP channels only when you intentionally want external delegation
 
 ## Additional Resources
 
