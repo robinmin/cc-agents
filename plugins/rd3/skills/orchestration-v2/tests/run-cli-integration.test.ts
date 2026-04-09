@@ -621,6 +621,14 @@ describe('history command', () => {
         expect(result.stderr).toContain('--channel auto');
     });
 
+    test('help text advertises local as the default execution target', () => {
+        const cwd = createTempCwd('help-default-local');
+        const result = runCli(['--help'], cwd);
+
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toContain('Execution target (default: local');
+    });
+
     test('--profile alias emits deprecation warning but still works', () => {
         const cwd = createTempCwd('profile-deprecated');
         const result = runCli(['run', '0300', '--profile', 'standard', '--dry-run'], cwd);
