@@ -61,8 +61,7 @@ describe('engine/runner — PipelineRunner', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
-        pool.disableAdapterMode();
-        mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
+        mockExecutor = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
         pool.register(mockExecutor);
         runner = new PipelineRunner(stateManager, pool);
     });
@@ -182,7 +181,7 @@ describe('engine/runner — PipelineRunner', () => {
         expect(mockExecutor.getCallLog()).toHaveLength(1); // Only implement phase
     }, 10000);
 
-    test('run handles missing executor for channel', async () => {
+    test('run fails for unknown channel instead of routing to default executor', async () => {
         const pipeline: PipelineDefinition = {
             ...createTestPipeline(),
             phases: {
@@ -195,15 +194,21 @@ describe('engine/runner — PipelineRunner', () => {
             },
         };
 
+        mockExecutor.setResponses([
+            { result: { success: true, exitCode: 0, durationMs: 1000, timedOut: false } },
+            { result: { success: true, exitCode: 0, durationMs: 800, timedOut: false } },
+        ]);
+
         const options: RunOptions = {
             taskRef: 'test-006',
             dryRun: false,
-            channel: 'nonexistent', // No executor for this channel
+            channel: 'nonexistent',
         };
 
         const result = await runner.run(options, pipeline);
 
         expect(result.exitCode).toBe(1);
+        expect(result.status).toBe('FAILED');
     }, 10000);
 
     test('getStatus returns run information', async () => {
@@ -657,8 +662,7 @@ describe('engine/runner — command gate', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
-        pool.disableAdapterMode();
-        mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
+        mockExecutor = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
         pool.register(mockExecutor);
     });
 
@@ -830,8 +834,7 @@ describe('engine/runner — auto gate evidence', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
-        pool.disableAdapterMode();
-        mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
+        mockExecutor = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
         pool.register(mockExecutor);
     });
 
@@ -960,8 +963,7 @@ describe('engine/runner — human gate evidence', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
-        pool.disableAdapterMode();
-        mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
+        mockExecutor = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
         pool.register(mockExecutor);
     });
 
@@ -1001,8 +1003,7 @@ describe('engine/runner — hook execution', () => {
         stateManager = new StateManager({ dbPath: ':memory:' });
         await stateManager.init();
         pool = new ExecutorPool();
-        pool.disableAdapterMode();
-        mockExecutor = new MockExecutor({ channels: ['auto', 'current'] });
+        mockExecutor = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
         pool.register(mockExecutor);
     });
 
