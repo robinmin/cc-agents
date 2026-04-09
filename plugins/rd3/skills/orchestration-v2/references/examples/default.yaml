@@ -24,29 +24,34 @@ stack:
 phases:
   intake:
     skill: rd3:request-intake
+    executor: direct
     gate: { type: auto }
     timeout: 30m
 
   arch:
     skill: rd3:backend-architect
+    executor: direct
     gate: { type: auto }
     timeout: 1h
     after: [intake]
 
   design:
     skill: rd3:backend-design
+    executor: direct
     gate: { type: auto }
     timeout: 1h
     after: [arch]
 
   decompose:
     skill: rd3:task-decomposition
+    executor: direct
     gate: { type: auto }
     timeout: 30m
     after: [intake]
 
   implement:
     skill: rd3:code-implement-common
+    executor: direct
     gate:
       type: command
       command: "bun run check"
@@ -59,6 +64,7 @@ phases:
 
   test:
     skill: rd3:sys-testing
+    executor: direct
     gate:
       type: command
       command: "bun test --coverage"
@@ -70,6 +76,7 @@ phases:
 
   review:
     skill: rd3:code-review-common
+    executor: direct
     gate: { type: human }
     after: [test]
     payload:
@@ -78,6 +85,7 @@ phases:
 
   verify-bdd:
     skill: rd3:bdd-workflow
+    executor: direct
     gate: { type: auto }
     timeout: 30m
     after: [review]
@@ -86,6 +94,7 @@ phases:
 
   verify-func:
     skill: rd3:functional-review
+    executor: direct
     gate: { type: auto }
     timeout: 30m
     after: [review]
@@ -94,6 +103,7 @@ phases:
 
   docs:
     skill: rd3:code-docs
+    executor: direct
     gate:
       type: command
       command: "bun run typecheck"
