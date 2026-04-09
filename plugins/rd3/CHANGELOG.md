@@ -2,6 +2,46 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.9] - 2026-04-09
+
+### Internal Changes
+
+- **Orchestration-v2 Architecture Review**: Continued stability improvements (100+ fix commits)
+  - Gate architecture refinements
+  - Workflow control enhancements
+  - Execution state management improvements
+
+### Bug Fixes
+
+- Fixed issues with rd3:orchestration-v2 architecture review
+- Fixed rd3:task-decomposition edge cases
+- Fixed rd3:tasks invalid status handling
+- Fixed acpx-query antigravity platform support
+
+## [0.4.8] - 2026-04-08
+
+### Internal Changes
+
+- **Migration Complete**: Plugin rd3 now fully operational with plugin rd2 deprecated
+- **Orchestration-v2 Enhancements**: 42+ architecture review fixes
+  - Gate Architecture stability improvements
+  - Workflow control refinements
+  - Execution channel routing improvements
+
+### Bug Fixes
+
+- Fixed rd3:orchestration-v2 issues with workflow control (37+ commits)
+- Fixed rd3:dev-docs slash command issues
+- Fixed rd3:orchestration-dev uncompleted implementations
+- Fixed acpx-query LLM CLI handling unification
+
+### Improvements
+
+- Enhanced rd3:pl-golang skill coverage
+- Enhanced rd3:pl-python skill
+- Enhanced rd3:pl-typescript skill
+- Enhanced rd3:tasks for WBS and status management
+
 ## [0.4.7] - 2026-04-06
 
 ### New Features
