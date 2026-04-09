@@ -1,9 +1,9 @@
 ---
 name: Decouple ACP transport from orchestration-v2 core
 description: Decouple ACP transport from orchestration-v2 core
-status: Backlog
+status: Done
 created_at: 2026-04-08T07:17:55.189Z
-updated_at: 2026-04-08T07:17:55.189Z
+updated_at: 2026-04-09T00:23:22.247Z
 folder: docs/tasks2
 type: task
 preset: "standard"
