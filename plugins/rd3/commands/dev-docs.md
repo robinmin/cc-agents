@@ -37,11 +37,11 @@ Execute phase 9 (Documentation) of the 9-phase pipeline. Refreshes the canonical
 
 ## Workflow
 
-Resolves `--channel` (default: `auto`) and forwards it to **rd3:orchestration-v2**. `auto` means "use the configured default backend"; `current` is kept as a deprecated compatibility alias.
+Resolves `--channel` (default: `local`) and forwards it to **rd3:orchestration-v2**. `auto` means "use the orchestrator default" and currently resolves to `local`; `current` remains a deprecated compatibility alias.
 
 ```
-# Default: auto-routed channel with default doc paths
-Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset docs --channel auto --source . --architecture docs/01_ARCHITECTURE_SPEC.md --spec docs/02_DEVELOPER_SPEC.md --user-manual docs/03_USER_MANUAL.md")
+# Default: orchestrator default executor with default doc paths
+Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset docs --source . --architecture docs/01_ARCHITECTURE_SPEC.md --spec docs/02_DEVELOPER_SPEC.md --user-manual docs/03_USER_MANUAL.md")
 
 # Execute on another channel with custom paths
 Skill(skill="rd3:orchestration-v2", args="{task-ref} --preset docs --channel codex --source ./src --architecture docs/ARCH.md --spec docs/SPEC.md --user-manual docs/MANUAL.md")
