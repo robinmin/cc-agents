@@ -27,6 +27,7 @@ import { FSMEngine } from './fsm';
 import { DAGScheduler, validatePhaseSubset } from './dag';
 import { HookRegistry } from './hooks';
 import { ExecutorPool } from '../executors/pool';
+import { ADAPTER_INLINE, ADAPTER_SUBPROCESS, extractAcpChannel } from '../executors/adapter';
 import type { StateManager } from '../state/manager';
 import { EventStore } from '../state/events';
 import { EventBus } from '../observability/event-bus';
@@ -897,22 +898,18 @@ export class PipelineRunner {
             };
         }
 
-        if (executor.mode === 'local') {
-            return { channel: 'local', executorId: 'local' };
+        if (executor.mode === 'inline') {
+            return { channel: ADAPTER_INLINE, executorId: ADAPTER_INLINE };
         }
 
-        if (executor.mode === 'direct') {
-            return { channel: 'direct', executorId: 'direct' };
-        }
-
-        if (executor.mode === 'auto') {
-            return { channel: requestedChannel ?? 'auto' };
+        if (executor.mode === 'subprocess') {
+            return { channel: ADAPTER_SUBPROCESS, executorId: ADAPTER_SUBPROCESS };
         }
 
         if (executor.adapter) {
-            const acpMatch = /^acp-(?:stateless|sessioned):(.+)$/.exec(executor.adapter);
+            const acpChannel = extractAcpChannel(executor.adapter);
             return {
-                channel: acpMatch?.[1] ?? executor.adapter,
+                channel: acpChannel ?? executor.adapter,
                 executorId: executor.adapter,
             };
         }
