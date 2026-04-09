@@ -10,7 +10,6 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import YAML from 'yaml';
 import {
     getEvaluationDecisionState,
     getThresholdDecisionState,
@@ -18,6 +17,7 @@ import {
 } from '../../../scripts/grading';
 import { logger } from '../../../scripts/logger';
 import { countTodoMarkers, hasSecondPersonLanguage } from '../../../scripts/markdown-analysis';
+import { parseMarkdownFrontmatter } from '../../../scripts/markdown-frontmatter';
 import { AntigravityAdapter } from './adapters/antigravity';
 import { ClaudeAdapter } from './adapters/claude';
 import { CodexAdapter } from './adapters/codex';
@@ -458,7 +458,10 @@ function extractFeatures(
 /**
  * Extract trigger phrases from description
  */
-function extractTriggerPhrases(description: string): string[] {
+function extractTriggerPhrases(description: unknown): string[] {
+    if (typeof description !== 'string') {
+        return [];
+    }
     const _phrases: string[] = [];
     // Match patterns like "create X", "implement Y", "add Z"
     const matches = description.match(/"[^"]+"|\b\w+\s+\w+/g) || [];
@@ -1503,17 +1506,18 @@ async function evaluatePlatform(
     }
 
     const content = readFileSync(skillMdPath, 'utf-8');
-    const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    const { frontmatter, body, parseError } = parseMarkdownFrontmatter(content);
 
-    if (!fmMatch) {
+    if (parseError) {
+        return { errors: [`YAML parse error: ${parseError}`], warnings: [] };
+    }
+
+    if (!frontmatter) {
         return { errors: ['No frontmatter found'], warnings: [] };
     }
 
-    const frontmatter = YAML.parse(fmMatch[1]) as SkillFrontmatter;
-    const body = content.slice(fmMatch[0].length).trim();
-
     const skill = {
-        frontmatter,
+        frontmatter: frontmatter as SkillFrontmatter,
         body,
         raw: content,
         path: skillMdPath,
