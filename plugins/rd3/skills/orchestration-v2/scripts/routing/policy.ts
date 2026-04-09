@@ -25,6 +25,7 @@ export {
 
 const ACP_ADAPTER_ID_PATTERN = /^acp-(stateless|sessioned):(.+)$/;
 const LEGACY_ACP_ADAPTER_ID_PATTERN = /^acp:(.+)$/;
+const RESERVED_LOCAL_CHANNELS = new Set(['auto', 'current', 'local', 'direct']);
 
 export function buildAcpAdapterId(channel: string, mode: ExecutionMode): string {
     return `acp-${mode}:${channel}`;
@@ -71,17 +72,15 @@ export function materializePolicyChannels(
     );
 
     const defaultAdapterMatch = ACP_ADAPTER_ID_PATTERN.exec(defaultAdapterId);
-    if (defaultAdapterMatch) {
-        const adapterMode = defaultAdapterMatch[1] as ExecutionMode;
-        for (const channel of channels) {
-            if (channelOverrides[channel]) {
-                continue;
-            }
-            channelOverrides[channel] = {
-                adapterId: buildAcpAdapterId(channel, adapterMode),
-                executionMode: adapterMode,
-            };
+    const adapterMode = defaultAdapterMatch ? (defaultAdapterMatch[1] as ExecutionMode) : policy.defaultMode;
+    for (const channel of channels) {
+        if (channelOverrides[channel] || RESERVED_LOCAL_CHANNELS.has(channel)) {
+            continue;
         }
+        channelOverrides[channel] = {
+            adapterId: buildAcpAdapterId(channel, adapterMode),
+            executionMode: adapterMode,
+        };
     }
 
     return {
@@ -132,7 +131,7 @@ export interface PolicyConfig {
  * Reads from orchestrator config file and extracts routing section.
  * Falls back to defaults if not configured.
  */
-export function loadRoutingPolicy(adapterId = 'acp-stateless:pi'): ExecutionRoutingPolicy {
+export function loadRoutingPolicy(adapterId = 'local'): ExecutionRoutingPolicy {
     const externalConfig = loadExternalConfig();
 
     const routingConfig = externalConfig?.routing;
@@ -151,7 +150,7 @@ export function loadRoutingPolicy(adapterId = 'acp-stateless:pi'): ExecutionRout
         };
     }
 
-    // Default: stateless for safety
+    // Default: in-process local execution for interactive orchestration.
     return {
         defaultAdapterId: adapterId,
         defaultMode: 'stateless',
@@ -240,11 +239,10 @@ export function policyToConfig(policy: ExecutionRoutingPolicy): PolicyConfig {
  */
 export const BUILT_IN_POLICIES: Record<string, ExecutionRoutingPolicy> = {
     /**
-     * Safe default: all phases run stateless via ACP.
-     * No session reuse, bounded execution.
+     * Safe default: local by default, explicit external channels stay ACP-backed.
      */
     safe: {
-        defaultAdapterId: buildAcpAdapterId('pi', 'stateless'),
+        defaultAdapterId: 'local',
         defaultMode: 'stateless',
         phaseOverrides: {},
         channelOverrides: {},
