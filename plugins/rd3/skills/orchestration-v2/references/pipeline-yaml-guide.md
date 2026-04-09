@@ -28,6 +28,7 @@ stack:
 phases:
   <phase-name>:
     skill: string           # Skill to invoke (e.g., "rd3:request-intake")
+    executor: local | direct | auto | <external-channel> | { mode | channel | adapter }
     gate:
       type: command | auto | human
       # ── command-specific ───────────
@@ -183,6 +184,29 @@ test:
     coverage_threshold: 80
     report_format: detailed
 ```
+
+### Executor Selection
+
+Phases default to the orchestrator default executor, which is `local` unless routing config overrides it. Add `executor` only when a phase needs a different transport.
+
+```yaml
+phases:
+  implement:
+    skill: rd3:code-implement-common
+    executor: direct
+    gate: { type: command, command: "bun run check" }
+
+  review:
+    skill: rd3:code-review-common
+    executor:
+      channel: codex
+    gate: { type: human }
+```
+
+- `executor: local` → in-process local execution
+- `executor: direct` → Bun subprocess execution
+- `executor: codex` → explicit external ACP execution
+- `executor: { adapter: acp-sessioned:codex }` → explicit adapter selection
 
 ## DAG Dependencies
 
