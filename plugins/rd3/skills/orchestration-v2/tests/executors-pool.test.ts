@@ -1,10 +1,14 @@
 import { describe, test, expect } from 'bun:test';
+import { AutoExecutor } from '../scripts/executors/auto';
 import { LocalExecutor } from '../scripts/executors/local';
 import { AcpExecutor } from '../scripts/executors/acp';
 import { ExecutorPool } from '../scripts/executors/pool';
 import { MockExecutor } from '../scripts/executors/mock';
 import type { ExecutionRequest } from '../scripts/model';
 import { setGlobalSilent } from '../../../scripts/logger';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 setGlobalSilent(true);
 
@@ -14,18 +18,18 @@ function makeRequest(overrides: Partial<ExecutionRequest> = {}): ExecutionReques
         phase: 'test',
         prompt: 'hello',
         payload: {},
-        channel: 'auto',
+        channel: 'local',
         timeoutMs: 5000,
         ...overrides,
     };
 }
 
-// ── LocalExecutor ────────────────────────────────────────────────────────────────
+// ── AutoExecutor ────────────────────────────────────────────────────────────────
 
-describe('LocalExecutor', () => {
+describe('AutoExecutor', () => {
     test('has id "auto" and registers auto/current channels', () => {
         const mock = new MockExecutor();
-        const exec = new LocalExecutor(mock);
+        const exec = new AutoExecutor(mock);
         expect(exec.id).toBe('auto');
         expect(exec.capabilities.channels).toContain('auto');
         expect(exec.capabilities.channels).toContain('current');
@@ -33,20 +37,20 @@ describe('LocalExecutor', () => {
 
     test('inherits parallel from injected delegate', () => {
         const mock = new MockExecutor();
-        const exec = new LocalExecutor(mock);
+        const exec = new AutoExecutor(mock);
         expect(exec.capabilities.parallel).toBe(true); // MockExecutor has parallel: true
         expect(exec.capabilities.maxConcurrency).toBe(Number.MAX_SAFE_INTEGER);
     });
 
     test('dispose delegates to injected executor', async () => {
         const mock = new MockExecutor();
-        const exec = new LocalExecutor(mock);
+        const exec = new AutoExecutor(mock);
         await exec.dispose();
         expect(mock.getCallLog()).toHaveLength(0); // MockExecutor clears log on dispose
     });
 
     test('healthCheck delegates to injected executor', async () => {
-        const exec = new LocalExecutor(new MockExecutor());
+        const exec = new AutoExecutor(new MockExecutor());
         const health = await exec.healthCheck();
         expect(health.healthy).toBe(true);
     });
@@ -54,13 +58,53 @@ describe('LocalExecutor', () => {
     test('execute delegates to injected executor', async () => {
         const mock = new MockExecutor();
         mock.setResponses([{ result: { success: true, exitCode: 0, durationMs: 42, timedOut: false } }]);
-        const exec = new LocalExecutor(mock);
+        const exec = new AutoExecutor(mock);
 
-        const result = await exec.execute(makeRequest({ phase: 'implement' }));
+        const result = await exec.execute({ ...makeRequest({ phase: 'implement' }), channel: 'auto' });
 
         expect(result.success).toBe(true);
         expect(result.durationMs).toBe(42);
         expect(mock.getCallLog()[0].phase).toBe('implement');
+    });
+});
+
+describe('LocalExecutor', () => {
+    test('has id "local" and only registers the local channel', () => {
+        const exec = new LocalExecutor('/tmp/does-not-matter');
+        expect(exec.id).toBe('local');
+        expect(exec.capabilities.channels).toEqual(['local']);
+    });
+
+    test('fails clearly when a skill has no local entrypoint', async () => {
+        const exec = new LocalExecutor('/tmp/does-not-matter');
+        const result = await exec.execute(makeRequest({ skill: 'rd3:missing-skill' }));
+
+        expect(result.success).toBe(false);
+        expect(result.stderr).toContain('does not expose a local in-process entrypoint');
+    });
+
+    test('runs a dedicated scripts/local.ts entrypoint in-process', async () => {
+        const rootDir = mkdtempSync(join(tmpdir(), 'orch-v2-local-'));
+        const skillDir = join(rootDir, 'rd3', 'demo-skill', 'scripts');
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(
+            join(skillDir, 'local.ts'),
+            [
+                'export async function runLocalPhase(req) {',
+                '  return { success: true, exitCode: 0, stdout: "ok:" + req.phase, durationMs: 3, timedOut: false };',
+                '}',
+                '',
+            ].join('\n'),
+        );
+
+        try {
+            const exec = new LocalExecutor(rootDir);
+            const result = await exec.execute(makeRequest({ skill: 'rd3:demo-skill', phase: 'implement' }));
+            expect(result.success).toBe(true);
+            expect(result.stdout).toBe('ok:implement');
+        } finally {
+            rmSync(rootDir, { recursive: true, force: true });
+        }
     });
 });
 
@@ -90,14 +134,19 @@ describe('AcpExecutor', () => {
  * These tests do NOT read the real config file and are fully isolated.
  */
 describe('ExecutorPool (config-independent)', () => {
-    test('getDefault returns auto executor', () => {
+    test('getDefault returns local executor', () => {
         const pool = new ExecutorPool();
-        expect(pool.getDefault().id).toBe('auto');
+        expect(pool.getDefault().id).toBe('local');
     });
 
     test('resolve("auto") returns auto executor', () => {
         const pool = new ExecutorPool();
         expect(pool.resolve('auto').id).toBe('auto');
+    });
+
+    test('resolve("local") returns local executor', () => {
+        const pool = new ExecutorPool();
+        expect(pool.resolve('local').id).toBe('local');
     });
 
     test('resolve("current") returns auto executor via compatibility alias', () => {
@@ -112,6 +161,7 @@ describe('ExecutorPool (config-independent)', () => {
 
     test('has returns true for registered channels', () => {
         const pool = new ExecutorPool();
+        expect(pool.has('local')).toBe(true);
         expect(pool.has('auto')).toBe(true);
         expect(pool.has('current')).toBe(true);
     });
@@ -154,12 +204,12 @@ describe('ExecutorPool (manual registration)', () => {
     test('execute dispatches to manually registered executor', async () => {
         const mock = new MockExecutor();
         mock.setResponses([{ result: { success: true, exitCode: 0, durationMs: 7, timedOut: false } }]);
-        const local = new LocalExecutor(mock);
+        const auto = new AutoExecutor(mock);
         const pool = new ExecutorPool();
         pool.disableAdapterMode();
-        pool.register(local);
+        pool.register(auto);
 
-        const result = await pool.execute(makeRequest());
+        const result = await pool.execute({ ...makeRequest(), channel: 'auto' });
 
         expect(result.durationMs).toBe(7);
         expect(mock.getCallLog()).toHaveLength(1);
@@ -168,12 +218,12 @@ describe('ExecutorPool (manual registration)', () => {
     test('execute dispatches to explicitly registered executor by channel', async () => {
         const mock = new MockExecutor();
         mock.setResponses([{ result: { success: true, exitCode: 0, durationMs: 11, timedOut: false } }]);
-        const acp = new LocalExecutor(mock); // use LocalExecutor so it registers auto/current
+        const acp = new AutoExecutor(mock); // use AutoExecutor so it registers auto/current
         const pool = new ExecutorPool();
         pool.disableAdapterMode();
         pool.register(acp);
 
-        const result = await pool.execute(makeRequest({ channel: 'current' }));
+        const result = await pool.execute({ ...makeRequest(), channel: 'current' });
 
         expect(result.durationMs).toBe(11);
         expect(mock.getCallLog()).toHaveLength(1);
