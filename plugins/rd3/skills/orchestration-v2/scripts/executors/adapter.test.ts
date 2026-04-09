@@ -11,8 +11,10 @@ import {
     routePhase,
     createDefaultPolicy,
     isDirectAdapter,
+    isLocalAdapter,
     isAcpAdapter,
     extractAcpChannel,
+    ADAPTER_LOCAL,
     ADAPTER_DIRECT,
     ADAPTER_ACP_STATELESS_PATTERN,
     ADAPTER_ACP_SESSIONED_PATTERN,
@@ -271,8 +273,8 @@ describe('isDirectAdapter', () => {
         expect(isDirectAdapter(ADAPTER_DIRECT)).toBe(true);
     });
 
-    it('returns true for "local"', () => {
-        expect(isDirectAdapter('local')).toBe(true);
+    it('returns false for "local"', () => {
+        expect(isDirectAdapter('local')).toBe(false);
     });
 
     it('returns false for ACP adapter IDs', () => {
@@ -284,6 +286,22 @@ describe('isDirectAdapter', () => {
     it('returns false for arbitrary strings', () => {
         expect(isDirectAdapter('unknown')).toBe(false);
         expect(isDirectAdapter('mock-adapter')).toBe(false);
+    });
+});
+
+describe('isLocalAdapter', () => {
+    it('returns true for ADAPTER_LOCAL constant', () => {
+        expect(isLocalAdapter(ADAPTER_LOCAL)).toBe(true);
+    });
+
+    it('returns false for direct and ACP adapter IDs', () => {
+        expect(isLocalAdapter(ADAPTER_DIRECT)).toBe(false);
+        expect(isLocalAdapter('acp-stateless:pi')).toBe(false);
+        expect(isLocalAdapter('acp-sessioned:codex')).toBe(false);
+    });
+
+    it('returns false for arbitrary strings', () => {
+        expect(isLocalAdapter('unknown')).toBe(false);
     });
 });
 
