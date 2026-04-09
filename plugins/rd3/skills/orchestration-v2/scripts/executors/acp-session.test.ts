@@ -1,7 +1,7 @@
 /**
- * acp-sessioned.ts tests
+ * acp-session.ts tests
  *
- * Tests for ACP sessioned executor adapter.
+ * Tests for ACP session executor.
  */
 
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
@@ -54,7 +54,7 @@ mock.module('../../../../scripts/libs/acpx-query', () => ({
 
 // ─── Import after mocks ───────────────────────────────────────────────────────
 
-import { AcpSessionedExecutor, AcpSessionAwareExecutor } from './acp-sessioned';
+import { AcpSessionExecutor, AcpSessionAwareExecutor } from './acp-session';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -71,10 +71,10 @@ function createRequest(overrides: Partial<ExecutionRequest> = {}): ExecutionRequ
     };
 }
 
-// ─── AcpSessionedExecutor Tests ────────────────────────────────────────────────
+// ─── AcpSessionExecutor Tests ────────────────────────────────────────────────
 
-describe('AcpSessionedExecutor', () => {
-    let executor: AcpSessionedExecutor;
+describe('AcpSessionExecutor', () => {
+    let executor: AcpSessionExecutor;
 
     beforeEach(() => {
         mockExecAcpxSync.mockClear();
@@ -90,22 +90,22 @@ describe('AcpSessionedExecutor', () => {
             structured: undefined,
             metrics: [],
         };
-        executor = new AcpSessionedExecutor('pi', 300);
+        executor = new AcpSessionExecutor('pi', 300);
     });
 
     describe('constructor', () => {
         it('sets correct id and name', () => {
-            expect(executor.id).toBe('acp-sessioned:pi');
-            expect(executor.name).toBe('ACP Sessioned (pi)');
+            expect(executor.id).toBe('acp-session:pi');
+            expect(executor.name).toBe('ACP Session (pi)');
         });
 
-        it('reports sessioned execution mode', () => {
-            expect(executor.executionMode).toBe('sessioned');
+        it('reports default maxConcurrency', () => {
+            expect(executor.maxConcurrency).toBe(1);
         });
 
         it('registers expected channels', () => {
-            expect(executor.channels).toContain('pi:sessioned');
-            expect(executor.channels).toContain('sessioned:pi');
+            expect(executor.channels).toContain('pi:session');
+            expect(executor.channels).toContain('session:pi');
         });
     });
 
@@ -212,7 +212,7 @@ describe('AcpSessionedExecutor', () => {
 
     describe('session lifecycle integration', () => {
         it('uses custom TTL from constructor', () => {
-            const customExecutor = new AcpSessionedExecutor('pi', 600);
+            const customExecutor = new AcpSessionExecutor('pi', 600);
             expect(customExecutor).toBeDefined();
         });
     });
@@ -305,13 +305,13 @@ describe('AcpSessionAwareExecutor', () => {
 
 describe('Default TTL', () => {
     it('uses default TTL of 300 seconds', () => {
-        const executor = new AcpSessionedExecutor('pi');
+        const executor = new AcpSessionExecutor('pi');
 
         expect(executor).toBeDefined();
     });
 
     it('accepts custom TTL', () => {
-        const executor = new AcpSessionedExecutor('pi', 600);
+        const executor = new AcpSessionExecutor('pi', 600);
 
         expect(executor).toBeDefined();
     });
