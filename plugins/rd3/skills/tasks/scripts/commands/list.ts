@@ -125,6 +125,8 @@ function collectTasksForFolder(projectRoot: string, folder: string, statusFilter
             name: fm.name || file.replace(/\.md$/, ''),
             status: fm.status,
             folder,
+            created_at: fm.created_at || '',
+            updated_at: fm.updated_at || '',
         });
     }
 
