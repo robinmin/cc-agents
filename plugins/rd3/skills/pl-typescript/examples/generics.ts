@@ -242,10 +242,8 @@ type AppEventHandlers = {
 };
 
 // TypedEmitter requires index signature matching all specific properties.
-// biome-ignore is required here because TypeScript's structural typing cannot express
-// "functions compatible with all specific signatures" without any.
-// biome-ignore lint/suspicious/noExplicitAny
-type AppEvents = AppEventHandlers & Record<string, (...args: any[]) => any>;
+// Using unknown[] + void return for the catch-all index signature.
+type AppEvents = AppEventHandlers & Record<string, (...args: unknown[]) => void>;
 
 const emitter = new TypedEmitter<AppEvents>();
 
