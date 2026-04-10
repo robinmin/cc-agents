@@ -43,12 +43,34 @@ describe('getProjectRoot', () => {
         }
     });
 
-    test('falls back to the script directory repo root when cwd has no markers', () => {
-        const expectedRoot = realpathSync(join(import.meta.dir, '../../../../../'));
+    test('returns cwd when cwd is outside cc-agents with no markers', () => {
+        // Create a real temp directory without any markers
+        const tempBase = Bun.env.TEMP_DIR ?? '/tmp';
+        const externalDir = join(tempBase, `external-no-markers-${Date.now()}`);
+        mkdirSync(externalDir, { recursive: true });
+
         const originalCwd = process.cwd;
-        process.cwd = () => '/nonexistent-root/tasks-config-fallback';
+        process.cwd = () => externalDir;
         try {
-            expect(realpathSync(getProjectRoot())).toBe(expectedRoot);
+            // When outside cc-agents with no markers, should return cwd (not cc-agents)
+            const root = getProjectRoot();
+            expect(root).toBe(externalDir);
+        } finally {
+            process.cwd = originalCwd;
+            rmSync(externalDir, { recursive: true, force: true });
+        }
+    });
+
+    test('falls back to script directory only when cwd IS inside cc-agents', () => {
+        // When cwd IS inside cc-agents and has no docs/.tasks, should find cc-agents root
+        const ccAgentsRoot = realpathSync(join(import.meta.dir, '../../../../../'));
+        const nestedInCcAgents = join(ccAgentsRoot, 'plugins/rd3/skills/tasks');
+
+        const originalCwd = process.cwd;
+        process.cwd = () => nestedInCcAgents;
+        try {
+            // Should find cc-agents via Stage 4 since we're inside cc-agents
+            expect(getProjectRoot()).toBe(ccAgentsRoot);
         } finally {
             process.cwd = originalCwd;
         }
