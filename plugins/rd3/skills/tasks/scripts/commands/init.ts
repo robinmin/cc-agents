@@ -1,7 +1,7 @@
 // init command — idempotent initialization
 
 import { existsSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
 import {
     getMetaDir,
@@ -37,7 +37,10 @@ export function runInit(projectRoot: string): Result<boolean> {
         }
 
         // Copy template files if not already present
-        const skillTemplates = resolve(process.env.CLAUDE_PLUGIN_ROOT || '', 'plugins/rd3/skills/tasks/templates');
+        // Resolve templates relative to the script's location (skill directory)
+        const scriptsDir = dirname(import.meta.dir);
+        const skillDir = resolve(scriptsDir, '..');
+        const skillTemplates = resolve(skillDir, 'templates');
 
         // Task template
         const taskTemplateDest = resolve(metaDir, 'task.md');
