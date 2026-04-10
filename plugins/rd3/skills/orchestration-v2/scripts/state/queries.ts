@@ -313,8 +313,8 @@ export class Queries {
             .prepare(
                 `SELECT
               COUNT(*) as total_gates,
-              SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as blocking_fails,
-              SUM(CASE WHEN advisory = 1 AND passed = 0 THEN 1 ELSE 0 END) as advisory_fails
+              SUM(CASE WHEN passed = 0 AND advisory = 0 THEN 1 ELSE 0 END) as blocking_fails,
+              SUM(CASE WHEN passed = 0 AND advisory = 1 THEN 1 ELSE 0 END) as advisory_fails
        FROM gate_results
        WHERE created_at >= ?`,
             )
@@ -331,7 +331,7 @@ export class Queries {
               COUNT(*) as total_gates,
               SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as passed_gates,
               SUM(CASE WHEN passed = 0 AND advisory = 0 THEN 1 ELSE 0 END) as blocking_fails,
-              SUM(CASE WHEN advisory = 1 AND passed = 0 THEN 1 ELSE 0 END) as advisory_fails,
+              SUM(CASE WHEN passed = 0 AND advisory = 1 THEN 1 ELSE 0 END) as advisory_fails,
               AVG(duration_ms) as avg_duration_ms
        FROM gate_results
        WHERE created_at >= ?
