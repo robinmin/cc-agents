@@ -1,7 +1,7 @@
 // get command — list artifacts for a task
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
@@ -51,15 +51,17 @@ export function getArtifacts(
         }
     }
 
-    // Also check for files in docs/tasks/<wbs>/ directory
-    const artifactDir = resolve(projectRoot, 'docs/tasks', wbs);
+    // Also check for files in <task-dir>/<wbs>/ directory (alongside the task file)
+    const taskDir = dirname(taskPath);
+    const artifactDir = resolve(taskDir, wbs);
     const storedFiles: string[] = [];
     if (existsSync(artifactDir)) {
         const files = readdirSync(artifactDir);
         for (const file of files) {
-            const filePath = `docs/tasks/${wbs}/${file}`;
-            if (!storedFiles.includes(filePath)) {
-                storedFiles.push(filePath);
+            const filePath = resolve(artifactDir, file);
+            const relativePath = filePath.replace(`${projectRoot}/`, '');
+            if (!storedFiles.includes(relativePath)) {
+                storedFiles.push(relativePath);
             }
         }
     }
