@@ -1,6 +1,7 @@
 // Task file read/write operations with frontmatter parsing
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { parseYaml } from '../../../../scripts/markdown-frontmatter';
 import type {
     TaskFrontmatter,
     TaskStatus,
@@ -20,16 +21,7 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
     const match = content.match(FRONTMATTER_REGEX);
     if (!match) return null;
 
-    const yaml = match[1];
-    const fm: Record<string, string> = {};
-
-    for (const line of yaml.split('\n')) {
-        const colonIdx = line.indexOf(':');
-        if (colonIdx === -1) continue;
-        const key = line.slice(0, colonIdx).trim();
-        const value = line.slice(colonIdx + 1).trim();
-        fm[key] = value;
-    }
+    const parsed = parseYaml(match[1]);
 
     const implProgress: TaskFrontmatter['impl_progress'] = {
         planning: 'pending',
@@ -39,47 +31,47 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
         testing: 'pending',
     };
 
-    const implMatch = content.match(/impl_progress:\n([\s\S]*?)(?=\n---|\n###|\n$)/);
-    if (implMatch) {
+    const rawImplProgress = parsed.impl_progress as Record<string, unknown> | undefined;
+    if (rawImplProgress) {
         for (const phase of VALID_PHASES) {
-            const phaseMatch = implMatch[1].match(new RegExp(`(?:^|\\n)${phase}: (\\w+)`, 'm'));
-            if (phaseMatch) {
-                implProgress[phase] = phaseMatch[1] as TaskFrontmatter['impl_progress'][typeof phase];
+            const val = rawImplProgress[phase];
+            if (typeof val === 'string') {
+                implProgress[phase] = val as TaskFrontmatter['impl_progress'][typeof phase];
             }
         }
     }
 
     const frontmatter: TaskFrontmatter = {
-        name: fm.name || '',
-        description: fm.description || '',
-        status: fm.status ? normalizeStatus(fm.status).status : 'Backlog',
-        created_at: fm.created_at || '',
-        updated_at: fm.updated_at || '',
-        folder: fm.folder,
-        type: (fm.type as TaskType) || 'task',
+        name: typeof parsed.name === 'string' ? parsed.name : String(parsed.name ?? ''),
+        description: (parsed.description as string) || '',
+        status: parsed.status ? normalizeStatus(parsed.status as string).status : 'Backlog',
+        created_at: (parsed.created_at as string) || '',
+        updated_at: (parsed.updated_at as string) || '',
+        ...(parsed.folder != null ? { folder: parsed.folder as string } : {}),
+        type: (parsed.type as TaskType) || 'task',
         impl_progress: implProgress,
     };
 
-    if (fm.priority !== undefined) {
-        frontmatter.priority = fm.priority;
+    if (parsed.priority !== undefined) {
+        frontmatter.priority = parsed.priority as string;
     }
 
-    const estimatedHours = parseOptionalNumber(fm.estimated_hours);
+    const estimatedHours = parseOptionalNumber(parsed.estimated_hours as string | undefined);
     if (estimatedHours !== undefined) {
         frontmatter.estimated_hours = estimatedHours;
     }
 
-    const tags = parseOptionalArray(fm.tags);
+    const tags = parseOptionalArray(parsed.tags as string | undefined);
     if (tags !== undefined) {
         frontmatter.tags = tags;
     }
 
-    const dependencies = parseOptionalArray(fm.dependencies);
+    const dependencies = parseOptionalArray(parsed.dependencies as string | undefined);
     if (dependencies !== undefined) {
         frontmatter.dependencies = dependencies;
     }
 
-    const presetValue = fm.preset ?? fm.profile;
+    const presetValue = (parsed.preset ?? parsed.profile) as string | undefined;
     if (presetValue !== undefined) {
         const normalizedPreset = stripWrappingQuotes(presetValue);
         if (isValidProfile(normalizedPreset)) {
