@@ -29,7 +29,7 @@ describe('markdown-frontmatter shared utilities', () => {
 
     it('serializes frontmatter while omitting undefined values', () => {
         const output = serializeMarkdownFrontmatter({ name: 'test', description: undefined }, 'Body');
-        expect(output).toContain('name: "test"');
+        expect(output).toContain('name: test');
         expect(output).not.toContain('description');
         expect(output).toContain('\n---\n\nBody');
     });
