@@ -48,7 +48,9 @@ export function buildKanbanFromFolder(folder: string, projectRoot: string): Kanb
 
     if (!existsSync(fullPath)) return columns;
 
-    const files = readdirSync(fullPath).filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'kanban.md');
+    const files = readdirSync(fullPath).filter(
+        (f) => f.endsWith('.md') && f.toLowerCase() !== 'kanban.md' && !f.startsWith('.'),
+    );
 
     for (const file of files) {
         const filePath = resolve(fullPath, file);
@@ -74,7 +76,7 @@ export function buildKanbanFromFolder(folder: string, projectRoot: string): Kanb
 
         columns[idx].tasks.push({
             wbs,
-            name: fm.name || file.replace(/\.md$/, ''),
+            name: (typeof fm.name === 'string' && fm.name) || file.replace(/\.md$/, ''),
             status,
             folder,
             checkbox,
