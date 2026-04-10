@@ -6,6 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from './fs';
 import { basename, dirname, join, resolve } from 'node:path';
+import { parseMarkdownFrontmatter, serializeMarkdownFrontmatter } from './markdown-frontmatter';
 
 // ============================================================================
 // Types
@@ -163,147 +164,40 @@ export function isFile(path: string): boolean {
 // ============================================================================
 
 /**
- * Parse YAML frontmatter from markdown content
+ * Parse YAML frontmatter from markdown content.
+ * Delegates to the shared `markdown-frontmatter` module.
  */
 export function parseFrontmatter(content: string): ParsedSkill | null {
-    const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-
-    if (!match) {
+    const parsed = parseMarkdownFrontmatter(content);
+    if (!parsed.frontmatter) {
         return null;
     }
-
-    const rawFrontmatter = match[1];
-    const body = match[2];
-
-    // Simple YAML parsing for basic structures
-    const frontmatter: SkillFrontmatter = {
-        name: '',
-        description: '',
-    };
-
-    const lines = rawFrontmatter.split('\n');
-    let inMetadata = false;
-    let metadataObj: Record<string, unknown> = {};
-
-    for (const line of lines) {
-        // Skip empty lines
-        if (!line.trim()) continue;
-
-        // Handle nested metadata
-        if (inMetadata && line.startsWith('  ')) {
-            const nestedMatch = line.match(/^\s+([a-zA-Z0-9_-]+):\s*(.*)$/);
-            if (nestedMatch) {
-                metadataObj[nestedMatch[1]] = parseYamlValue(nestedMatch[2]);
-            }
-            continue;
-        }
-
-        inMetadata = false;
-
-        // Parse key: value
-        const kvMatch = line.match(/^([a-zA-Z0-9_-]+):\s*(.*)$/);
-        if (kvMatch) {
-            const key = kvMatch[1];
-            const value = kvMatch[2];
-
-            if (key === 'metadata') {
-                inMetadata = true;
-                metadataObj = {};
-                continue;
-            }
-
-            const parsedValue = parseYamlValue(value);
-
-            if (key === 'name' || key === 'description') {
-                frontmatter[key] = typeof parsedValue === 'string' ? parsedValue : String(parsedValue);
-            } else {
-                frontmatter[key] = parsedValue;
-            }
-        }
-    }
-
-    if (Object.keys(metadataObj).length > 0) {
-        frontmatter.metadata = metadataObj;
-    }
-
+    const fm = parsed.frontmatter;
     return {
-        frontmatter,
-        body,
-        raw: content,
+        frontmatter: {
+            name: (fm.name as string) || '',
+            description: (fm.description as string) || '',
+            ...fm,
+        } as SkillFrontmatter,
+        body: parsed.body,
+        raw: parsed.raw,
     };
 }
 
 /**
- * Parse a YAML value (string, number, boolean, quoted string)
- */
-function parseYamlValue(value: string): unknown {
-    // Handle empty value
-    if (!value || value.trim() === '') {
-        return '';
-    }
-
-    // Handle quoted strings
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-        return value.slice(1, -1);
-    }
-
-    // Handle booleans
-    if (value.toLowerCase() === 'true') return true;
-    if (value.toLowerCase() === 'false') return false;
-
-    // Handle numbers
-    const num = Number(value);
-    if (!Number.isNaN(num)) return num;
-
-    // Return as string
-    return value;
-}
-
-/**
- * Generate YAML frontmatter string
+ * Generate YAML frontmatter string.
+ * Delegates to the shared `markdown-frontmatter` module.
  */
 export function generateFrontmatter(frontmatter: SkillFrontmatter): string {
-    const lines: string[] = ['---'];
-
-    // Required fields first
-    lines.push(`name: ${frontmatter.name}`);
-    lines.push(`description: ${frontmatter.description}`);
-
-    // Metadata block
-    if (frontmatter.metadata && Object.keys(frontmatter.metadata).length > 0) {
-        lines.push('metadata:');
-        for (const [key, value] of Object.entries(frontmatter.metadata)) {
-            lines.push(`  ${key}: ${formatYamlValue(value)}`);
-        }
-    }
-
-    // Other fields
-    for (const [key, value] of Object.entries(frontmatter)) {
-        if (key === 'name' || key === 'description' || key === 'metadata') continue;
-        lines.push(`${key}: ${formatYamlValue(value)}`);
-    }
-
-    lines.push('---');
-    return lines.join('\n');
-}
-
-/**
- * Format a value for YAML output
- */
-function formatYamlValue(value: unknown): string {
-    if (typeof value === 'string') {
-        // Quote if contains special characters
-        if (value.includes(':') || value.includes('#') || value.includes('\n')) {
-            return `"${value.replace(/"/g, '\\"')}"`;
-        }
-        return value;
-    }
-
-    if (typeof value === 'boolean') return value ? 'true' : 'false';
-    if (typeof value === 'number') return String(value);
-    if (value === null || value === undefined) return '""';
-
-    return String(value);
+    const { name, description, metadata, ...rest } = frontmatter;
+    const record: Record<string, unknown> = {
+        name,
+        description,
+        ...(metadata && Object.keys(metadata).length > 0 ? { metadata } : {}),
+        ...rest,
+    };
+    // Use serializeMarkdownFrontmatter with an empty body, then strip the trailing newlines
+    return serializeMarkdownFrontmatter(record, '').trimEnd();
 }
 
 /**
