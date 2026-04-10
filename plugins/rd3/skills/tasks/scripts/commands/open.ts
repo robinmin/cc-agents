@@ -2,7 +2,7 @@
 
 import { existsSync } from 'node:fs';
 import { spawnSync as defaultSpawnSync, type SpawnSyncOptions, type SpawnSyncReturns } from 'node:child_process';
-import { err, ok, type Result } from '../lib/result';
+import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
 import { logger } from '../../../../scripts/logger';
