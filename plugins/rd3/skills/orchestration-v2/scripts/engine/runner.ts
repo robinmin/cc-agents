@@ -810,7 +810,8 @@ export class PipelineRunner {
     ): Promise<
         { success: true; evidence: PhaseEvidence } | { success: false; errorCode?: string; errorMessage?: string }
     > {
-        const maxRework = phaseDef.gate?.rework?.max_iterations ?? 0;
+        const reworkCfg = phaseDef.gate?.rework ?? phaseDef.rework;
+        const maxRework = reworkCfg?.max_iterations ?? 0;
         let iteration = 0;
         let feedback: string | undefined;
         const executionTarget = this.resolveExecutionTarget(phaseDef.executor, options.channel);
@@ -1272,9 +1273,10 @@ export class PipelineRunner {
         _gateResult: ChainState,
         options: RunOptions,
     ): Promise<{ status: 'reworked'; evidence: PhaseEvidence } | { status: 'pause' } | { status: 'failed' }> {
-        const maxRework = phaseDef.gate?.rework?.max_iterations ?? 0;
+        const reworkCfg = phaseDef.gate?.rework ?? phaseDef.rework;
+        const maxRework = reworkCfg?.max_iterations ?? 0;
         if (maxRework === 0) {
-            return phaseDef.gate?.rework?.escalation === 'pause' ? { status: 'pause' } : { status: 'failed' };
+            return reworkCfg?.escalation === 'pause' ? { status: 'pause' } : { status: 'failed' };
         }
 
         // Get current rework iteration
@@ -1282,7 +1284,7 @@ export class PipelineRunner {
         const currentIteration = phase?.rework_iteration ?? 0;
 
         if (currentIteration >= maxRework) {
-            const escalation = phaseDef.gate?.rework?.escalation ?? 'fail';
+            const escalation = reworkCfg?.escalation ?? 'fail';
             if (escalation === 'pause') {
                 return { status: 'pause' };
             }
@@ -1385,20 +1387,16 @@ Evaluate each checklist item against the evidence above.`;
 
     private parseTimeout(timeout?: string): number {
         if (!timeout) return 30 * 60 * 1000; // Default 30 minutes
-        const match = timeout.match(/^(\d+)(m|h|s)?$/);
+        const match = timeout.match(/^(\d+h)?(\d+m)?(\d+s)?$/);
         if (!match) return 30 * 60 * 1000;
-        const value = Number.parseInt(match[1], 10);
-        const unit = match[2] ?? 'm';
-        switch (unit) {
-            case 'h':
-                return value * 60 * 60 * 1000;
-            case 'm':
-                return value * 60 * 1000;
-            case 's':
-                return value * 1000;
-            default:
-                return value * 60 * 1000;
-        }
+        let ms = 0;
+        const hourMatch = match[1];
+        const minMatch = match[2];
+        const secMatch = match[3];
+        if (hourMatch) ms += Number.parseInt(hourMatch, 10) * 60 * 60 * 1000;
+        if (minMatch) ms += Number.parseInt(minMatch, 10) * 60 * 1000;
+        if (secMatch) ms += Number.parseInt(secMatch, 10) * 1000;
+        return ms;
     }
 
     private generateRunId(): string {
