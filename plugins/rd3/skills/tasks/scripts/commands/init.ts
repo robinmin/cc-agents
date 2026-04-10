@@ -2,7 +2,7 @@
 
 import { existsSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { err, ok, type Result } from '../lib/result';
+import { err, ok, type Result } from '../../../../scripts/libs/result';
 import {
     getMetaDir,
     getConfigPath,
