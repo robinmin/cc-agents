@@ -18,7 +18,7 @@ function jsonSchemaConditional(
 
 const VALID_GATE_TYPES = new Set(['command', 'auto', 'human']);
 const VALID_ESCALATIONS = new Set(['pause', 'fail']);
-const VALID_EXECUTOR_MODES = new Set(['auto', 'local', 'direct']);
+const VALID_EXECUTOR_MODES = new Set(['auto', 'local', 'direct', 'inline', 'subprocess']);
 const TIMEOUT_REGEX = /^(\d+h)?(\d+m)?(\d+s)?$/;
 
 /**
@@ -97,7 +97,7 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
                         if (mode != null && !VALID_EXECUTOR_MODES.has(mode as string)) {
                             errors.push({
                                 rule: 'executor_mode',
-                                message: `Phase "${name}" executor mode must be "auto", "local", or "direct", got "${mode}"`,
+                                message: `Phase "${name}" executor mode must be "auto", "local", "direct", "inline", or "subprocess", got "${mode}"`,
                             });
                         }
 
@@ -241,13 +241,34 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
                         }
                     }
                 }
-                if (p.timeout && typeof p.timeout === 'string') {
-                    if (!TIMEOUT_REGEX.test(p.timeout) || p.timeout === '') {
+                // Phase-level rework (sibling of gate)
+                if (p.rework && typeof p.rework === 'object') {
+                    const rework = p.rework as Record<string, unknown>;
+                    if (typeof rework.max_iterations !== 'number') {
+                        errors.push({
+                            rule: 'rework',
+                            message: `Phase "${name}" rework.max_iterations must be a number`,
+                        });
+                    }
+                    if (rework.escalation && !VALID_ESCALATIONS.has(rework.escalation as string)) {
+                        errors.push({
+                            rule: 'escalation',
+                            message: `Phase "${name}" rework escalation must be "pause" or "fail"`,
+                        });
+                    }
+                }
+                if (typeof p.timeout === 'string') {
+                    if (p.timeout === '' || !TIMEOUT_REGEX.test(p.timeout)) {
                         errors.push({
                             rule: 'timeout',
                             message: `Phase "${name}" timeout "${p.timeout}" is not a valid duration (e.g., "30m", "1h", "2h30m")`,
                         });
                     }
+                } else if (p.timeout !== undefined) {
+                    errors.push({
+                        rule: 'timeout',
+                        message: `Phase "${name}" timeout must be a string, got ${typeof p.timeout}`,
+                    });
                 }
                 if (p.after && !Array.isArray(p.after)) {
                     errors.push({
@@ -260,30 +281,37 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
     }
 
     // presets
-    if (raw.presets && typeof raw.presets === 'object' && !Array.isArray(raw.presets)) {
-        const presets = raw.presets as Record<string, unknown>;
-        const phaseNames = new Set(Object.keys((raw.phases as Record<string, unknown>) ?? {}));
-        for (const [name, preset] of Object.entries(presets)) {
-            if (typeof preset === 'object' && preset !== null) {
-                const p = preset as Record<string, unknown>;
-                if (!Array.isArray(p.phases)) {
-                    errors.push({
-                        rule: 'preset_phases',
-                        message: `Preset "${name}" must have a phases array`,
-                    });
-                } else {
-                    for (const phase of p.phases as string[]) {
-                        if (!phaseNames.has(phase)) {
-                            errors.push({
-                                rule: 'preset_phase_ref',
-                                message: `Preset "${name}" references undefined phase "${phase}"`,
-                            });
+    if (raw.presets !== undefined) {
+        if (Array.isArray(raw.presets)) {
+            errors.push({
+                rule: 'presets',
+                message: 'presets must be an object, not an array',
+            });
+        } else if (typeof raw.presets === 'object' && raw.presets !== null) {
+            const presets = raw.presets as Record<string, unknown>;
+            const phaseNames = new Set(Object.keys((raw.phases as Record<string, unknown>) ?? {}));
+            for (const [name, preset] of Object.entries(presets)) {
+                if (typeof preset === 'object' && preset !== null) {
+                    const p = preset as Record<string, unknown>;
+                    if (!Array.isArray(p.phases)) {
+                        errors.push({
+                            rule: 'preset_phases',
+                            message: `Preset "${name}" must have a phases array`,
+                        });
+                    } else {
+                        for (const phase of p.phases as string[]) {
+                            if (!phaseNames.has(phase)) {
+                                errors.push({
+                                    rule: 'preset_phase_ref',
+                                    message: `Preset "${name}" references undefined phase "${phase}"`,
+                                });
+                            }
                         }
                     }
                 }
             }
-        }
-    }
+        } // end else if (typeof raw.presets === 'object')
+    } // end if (raw.presets !== undefined)
 
     return {
         valid: errors.length === 0,
