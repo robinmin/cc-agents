@@ -57,10 +57,7 @@ export class ExecutorPool {
         // Load config and register ACP executors for each configured channel.
         const config = resolveConfig();
         this.configuredChannels = config.executorChannels;
-        this.routingPolicy = materializePolicyChannels(
-            loadRoutingPolicy(inline.id),
-            this.configuredChannels,
-        );
+        this.routingPolicy = materializePolicyChannels(loadRoutingPolicy(inline.id), this.configuredChannels);
 
         for (const channel of config.executorChannels) {
             const oneshot = new AcpOneshotExecutor(channel);
