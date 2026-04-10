@@ -9,6 +9,9 @@
         "build": "bun build",
         "check": "bun run lint && bun run typecheck && bun run test",
         "check:rd3": "bun run lint && bun run typecheck && bun run test:coverage",
+        "check:ftree": "bun run lint:ftree && bun run typecheck:ftree && bun run test:ftree",
+        "lint:ftree": "biome lint ./skills/feature-tree/scripts",
+        "typecheck:ftree": "tsc --noEmit --project ../../tsconfig.json",
         "lint": "biome lint .",
         "lint:fix": "biome lint --write .",
         "format": "biome format --write .",
@@ -17,9 +20,11 @@
         "test:watch": "bun test ./tests ./skills/*/tests --watch",
         "test:coverage": "bun test ./tests ./skills/*/tests --coverage",
         "test:coverage:watch": "bun test ./tests ./skills/*/tests --coverage --watch",
-        "tasks": "bun ./skills/tasks/scripts/tasks.ts"
+        "test:ftree": "bun test ./skills/feature-tree/tests --reporter=dots",
+        "tasks": "bun ./skills/tasks/scripts/tasks.ts",
+        "ftree": "bun ./skills/feature-tree/scripts/ftree.ts"
     },
     "dependencies": {
-        "yaml": "^2.6.1"
+        "yaml": "2.8.3"
     }
 }
