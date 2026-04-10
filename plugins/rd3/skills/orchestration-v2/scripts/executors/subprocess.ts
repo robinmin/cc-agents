@@ -180,9 +180,7 @@ export class SubprocessExecutor implements Executor {
      * - SKILL.md only → { type: 'skill-only' } (fallback to ACP)
      * - not found → null
      */
-    resolveSkillScript(
-        skillRef: string,
-    ): { type: 'script'; path: string } | { type: 'skill-only' } | null {
+    resolveSkillScript(skillRef: string): { type: 'script'; path: string } | { type: 'skill-only' } | null {
         const [plugin, skillName] = skillRef.split(':');
         if (!plugin || !skillName) {
             logger.warn(`[subprocess] Invalid skill ref format: ${skillRef}`);
@@ -212,7 +210,7 @@ export class SubprocessExecutor implements Executor {
         logger.warn(`[subprocess] Skill not found: ${skillRef}`);
         logger.warn(`[subprocess] Looked in: ${scriptPath}`);
         return null;
-    };
+    }
 
     /**
      * Execute a SKILL-only phase via ACP transport fallback.
@@ -290,7 +288,7 @@ export class SubprocessExecutor implements Executor {
         }
 
         return args;
-    };
+    }
 
     /**
      * Spawn a skill script and wait for completion.
