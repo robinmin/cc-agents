@@ -18,7 +18,7 @@ import { refreshKanbanBoards } from '../commands/refresh';
 import { showConfig, setActiveFolder, addFolder } from '../commands/config';
 import { batchCreate } from '../commands/batchCreate';
 import { loadConfig, resolveFolderPath } from '../lib/config';
-import { isErr } from '../lib/result';
+import { isErr } from '../../../../scripts/libs/result';
 import { readTaskFile } from '../lib/taskFile';
 import { findTaskByWbs } from '../lib/wbs';
 import { normalizeStatus, type TaskStatus } from '../types';
