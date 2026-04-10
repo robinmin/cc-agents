@@ -6,6 +6,7 @@
  */
 
 import type { FSMState, OrchestratorEvent } from '../model';
+import { logger } from '../../../../scripts/logger';
 
 export type FSMTransition =
     | 'run'
@@ -60,7 +61,11 @@ export class FSMEngine {
             },
         };
 
-        const toState = transitionMap[this.state]?.[transition] ?? this.state;
+        const validTransition = transitionMap[this.state]?.[transition];
+        if (validTransition === undefined) {
+            logger.warn(`[fsm] Invalid transition "${transition}" from state "${this.state}" — no-op`);
+        }
+        const toState = validTransition ?? this.state;
 
         const result: FSMTransitionResult = {
             fromState: this.state,
