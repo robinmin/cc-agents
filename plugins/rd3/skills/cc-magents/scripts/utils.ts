@@ -12,6 +12,7 @@
 
 import { existsSync, statSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
+import { parseYaml } from '../../../scripts/markdown-frontmatter';
 import type {
     MagentHierarchy,
     MagentMetadata,
@@ -384,8 +385,7 @@ export function extractMetadata(content: string): { metadata: MagentMetadata | n
     const fmMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
     if (fmMatch) {
         try {
-            // Dynamic import would be needed for YAML, use simple parsing
-            const metadata = parseSimpleYaml(fmMatch[1]);
+            const metadata = parseYaml(fmMatch[1]);
             const body = content.slice(fmMatch[0].length).trim();
             return { metadata: metadata as MagentMetadata, body };
         } catch {
@@ -396,43 +396,12 @@ export function extractMetadata(content: string): { metadata: MagentMetadata | n
     // Try HTML comment metadata
     const commentMatch = content.match(/^<!--\s*([\s\S]*?)\s*-->/);
     if (commentMatch) {
-        const metadata = parseSimpleYaml(commentMatch[1]);
+        const metadata = parseYaml(commentMatch[1]);
         const body = content.slice(commentMatch[0].length).trim();
         return { metadata: metadata as MagentMetadata, body };
     }
 
     return { metadata: null, body: content };
-}
-
-/**
- * Simple YAML-like key: value parser for metadata.
- * Does not handle nested objects or arrays -- just flat key-value pairs.
- */
-function parseSimpleYaml(text: string): Record<string, unknown> {
-    const result: Record<string, unknown> = {};
-    const lines = text.split('\n');
-
-    for (const line of lines) {
-        const match = line.match(/^\s*([a-zA-Z_-]+)\s*:\s*(.+?)\s*$/);
-        if (match) {
-            const key = match[1];
-            let value: unknown = match[2];
-
-            // Parse booleans
-            if (value === 'true') value = true;
-            else if (value === 'false') value = false;
-            // Parse numbers
-            else if (/^\d+$/.test(value as string)) value = Number.parseInt(value as string, 10);
-            // Strip quotes
-            else if (typeof value === 'string' && /^['"](.*)['"]$/.test(value)) {
-                value = value.slice(1, -1);
-            }
-
-            result[key] = value;
-        }
-    }
-
-    return result;
 }
 
 // ============================================================================
