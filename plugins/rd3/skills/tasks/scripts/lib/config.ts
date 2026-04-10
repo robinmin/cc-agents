@@ -96,11 +96,15 @@ export function getProjectRoot(): string {
     // Stage 3: Normal discovery (not in temp)
     if (taskRoot) return taskRoot;
 
-    // Stage 4: Fallback to walking up from the script's location for docs/.tasks
-    // This allows commands run inside plugins/rd3 to find the repo root.
+    // Stage 4: Only fallback to script location if we're actually inside cc-agents.
+    // This prevents misidentifying cc-agents as the project root when running
+    // `tasks` from a different project that lacks docs/.tasks.
     const scriptDir = dirname(import.meta.dir);
-    const scriptTaskRoot = findMarker(scriptDir, 'docs/.tasks');
-    if (scriptTaskRoot) return scriptTaskRoot;
+    const ccAgentsRoot = findMarker(scriptDir, '.git') || findMarker(scriptDir, 'package.json');
+    if (ccAgentsRoot && realCwd.startsWith(ccAgentsRoot)) {
+        const scriptTaskRoot = findMarker(scriptDir, 'docs/.tasks');
+        if (scriptTaskRoot) return scriptTaskRoot;
+    }
 
     // Stage 5: Fallback to generic repo markers (.git, package.json)
     for (const marker of ['.git', 'package.json', 'bun.lockb']) {
