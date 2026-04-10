@@ -41,7 +41,7 @@ describe('InlineExecutor', () => {
 
     test('runs a dedicated scripts/local.ts entrypoint in-process', async () => {
         const rootDir = mkdtempSync(join(tmpdir(), 'orch-v2-inline-'));
-        const skillDir = join(rootDir, 'rd3', 'demo-skill', 'scripts');
+        const skillDir = join(rootDir, 'demo-skill', 'scripts');
         mkdirSync(skillDir, { recursive: true });
         writeFileSync(join(skillDir, 'local.ts'), '// dummy\n');
 
