@@ -22,6 +22,14 @@ import {
 } from './logger';
 import { AsyncFileAppender } from './logger';
 
+// --- Test-only typed access to AsyncFileAppender internals ---
+
+/** Exposes private members for test coverage without `any` casts. */
+interface AsyncFileAppenderInternals {
+    rotate(newDate: string): Promise<void>;
+    currentDate: string;
+}
+
 // --- Helpers ---
 
 /** Capture calls to console methods during a test */
@@ -862,8 +870,7 @@ describe('AsyncFileAppender', () => {
         const appender = new AsyncFileAppender(config);
 
         await appender.append('info', 'before rotation', new Date('2024-01-01T00:00:00.000Z'));
-        // biome-ignore lint/suspicious/noExplicitAny: private method access for regression coverage
-        await (appender as any).rotate('2024-01-02');
+        await (appender as unknown as AsyncFileAppenderInternals).rotate('2024-01-02');
         await appender.append('info', 'after rotation', new Date('2024-01-02T00:00:00.000Z'));
         await appender.close();
 
@@ -889,8 +896,7 @@ describe('AsyncFileAppender', () => {
         }
 
         // Force rotation by setting currentDate to an old date, then appending with today
-        // biome-ignore lint/suspicious/noExplicitAny: accessing private field for test coverage
-        (appender as any).currentDate = '2020-01-01';
+        (appender as unknown as AsyncFileAppenderInternals).currentDate = '2020-01-01';
         const today = new Date().toISOString().split('T')[0];
         await appender.append('info', 'today log', new Date());
         await appender.close();
@@ -936,8 +942,7 @@ describe('AsyncFileAppender', () => {
         const appender = new AsyncFileAppender(config);
 
         // Trigger rotation to create today's file (tests listRotatedFiles indirectly via cleanupOldFiles)
-        // biome-ignore lint/suspicious/noExplicitAny: accessing private field for test coverage
-        (appender as any).currentDate = '2020-01-01';
+        (appender as unknown as AsyncFileAppenderInternals).currentDate = '2020-01-01';
         await appender.append('info', 'trigger rotation', new Date());
         await appender.close();
 
