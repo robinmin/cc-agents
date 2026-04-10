@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { batchCreate } from '../scripts/commands/batchCreate';
 import { setGlobalSilent } from '../../../scripts/logger';
 import type { BatchCreateItem } from '../scripts/types';
-import type { Result } from '../scripts/lib/result';
+import type { Result } from '../../../scripts/libs/result';
 
 type CreateResult = Result<{ wbs: string; path: string }>;
 
