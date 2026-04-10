@@ -44,14 +44,10 @@ function cleanupTempDir(): void {
  */
 function createDummyEntry(
     skillBase: string,
-    plugin: string,
     skillName: string,
     location: 'scripts/local' | 'local' | 'index' = 'scripts/local',
 ): string {
-    const dir =
-        location === 'scripts/local'
-            ? join(skillBase, plugin, skillName, 'scripts')
-            : join(skillBase, plugin, skillName);
+    const dir = location === 'scripts/local' ? join(skillBase, skillName, 'scripts') : join(skillBase, skillName);
     mkdirSync(dir, { recursive: true });
     const fileName = location === 'scripts/local' ? 'local.ts' : location === 'local' ? 'local.ts' : 'index.ts';
     const filePath = join(dir, fileName);
@@ -145,14 +141,14 @@ describe('InlineExecutor', () => {
 
         it('resolves scripts/local.ts when it exists', () => {
             const exec = new InlineExecutor(tempDir);
-            const created = createDummyEntry(tempDir, 'rd3', 'my-skill');
+            const created = createDummyEntry(tempDir, 'my-skill');
             const resolved = exec.resolveLocalEntrypoint('rd3:my-skill');
             expect(resolved).toBe(created);
         });
 
         it('resolves local.ts at skill root when scripts/local.ts missing', () => {
             const exec = new InlineExecutor(tempDir);
-            const dir = join(tempDir, 'rd3', 'root-skill');
+            const dir = join(tempDir, 'root-skill');
             mkdirSync(dir, { recursive: true });
             const filePath = join(dir, 'local.ts');
             writeFileSync(
@@ -166,7 +162,7 @@ describe('InlineExecutor', () => {
 
         it('resolves index.ts as last candidate', () => {
             const exec = new InlineExecutor(tempDir);
-            const dir = join(tempDir, 'rd3', 'index-skill');
+            const dir = join(tempDir, 'index-skill');
             mkdirSync(dir, { recursive: true });
             const filePath = join(dir, 'index.ts');
             writeFileSync(
@@ -180,7 +176,7 @@ describe('InlineExecutor', () => {
 
         it('prefers scripts/local.ts over local.ts and index.ts', () => {
             const exec = new InlineExecutor(tempDir);
-            const dir = join(tempDir, 'rd3', 'priority-skill');
+            const dir = join(tempDir, 'priority-skill');
             mkdirSync(join(dir, 'scripts'), { recursive: true });
 
             // Create all three
@@ -195,7 +191,7 @@ describe('InlineExecutor', () => {
 
         it('handles multi-segment plugin names', () => {
             const exec = new InlineExecutor(tempDir);
-            const dir = join(tempDir, 'my-plugin', 'complex-skill', 'scripts');
+            const dir = join(tempDir, 'complex-skill', 'scripts');
             mkdirSync(dir, { recursive: true });
             const filePath = join(dir, 'local.ts');
             writeFileSync(filePath, `export const x = 1;`);
@@ -228,7 +224,7 @@ describe('InlineExecutor', () => {
         });
 
         it('returns failure when entrypoint has no valid handler export', async () => {
-            createDummyEntry(tempDir, 'rd3', 'bad-export');
+            createDummyEntry(tempDir, 'bad-export');
             const loader = mockModuleLoader({ 'bad-export': {} });
             const exec = new InlineExecutor(tempDir, loader);
 
@@ -243,7 +239,7 @@ describe('InlineExecutor', () => {
         });
 
         it('executes runLocalPhase handler and returns success', async () => {
-            createDummyEntry(tempDir, 'rd3', 'good-skill');
+            createDummyEntry(tempDir, 'good-skill');
             const loader = mockModuleLoader({
                 'good-skill': {
                     runLocalPhase: async () => ({
@@ -267,7 +263,7 @@ describe('InlineExecutor', () => {
         });
 
         it('executes executeLocal handler when runLocalPhase is absent', async () => {
-            createDummyEntry(tempDir, 'rd3', 'alt-skill');
+            createDummyEntry(tempDir, 'alt-skill');
             const loader = mockModuleLoader({
                 'alt-skill': {
                     executeLocal: async () => ({
@@ -290,7 +286,7 @@ describe('InlineExecutor', () => {
         });
 
         it('executes default export handler when others are absent', async () => {
-            createDummyEntry(tempDir, 'rd3', 'default-skill');
+            createDummyEntry(tempDir, 'default-skill');
             const loader = mockModuleLoader({
                 'default-skill': {
                     default: async () => ({
@@ -313,7 +309,7 @@ describe('InlineExecutor', () => {
         });
 
         it('catches exceptions from handler and returns failure', async () => {
-            createDummyEntry(tempDir, 'rd3', 'thrower');
+            createDummyEntry(tempDir, 'thrower');
             const loader = mockModuleLoader({
                 thrower: {
                     runLocalPhase: async () => {
@@ -333,7 +329,7 @@ describe('InlineExecutor', () => {
         });
 
         it('catches non-Error throws and stringifies them', async () => {
-            createDummyEntry(tempDir, 'rd3', 'str-thrower');
+            createDummyEntry(tempDir, 'str-thrower');
             const loader = mockModuleLoader({
                 'str-thrower': {
                     runLocalPhase: async () => {
@@ -351,7 +347,7 @@ describe('InlineExecutor', () => {
         });
 
         it('preserves durationMs from handler when provided', async () => {
-            createDummyEntry(tempDir, 'rd3', 'dur-skill');
+            createDummyEntry(tempDir, 'dur-skill');
             const loader = mockModuleLoader({
                 'dur-skill': {
                     runLocalPhase: async () => ({
@@ -379,7 +375,7 @@ describe('InlineExecutor', () => {
 
         it('loads and executes a real module via dynamic import', async () => {
             // Create a real JS entrypoint that the default loader can import
-            const dir = join(tempDir, 'rd3', 'real-skill', 'scripts');
+            const dir = join(tempDir, 'real-skill', 'scripts');
             mkdirSync(dir, { recursive: true });
             const entryPath = join(dir, 'local.ts');
             writeFileSync(
