@@ -14,7 +14,7 @@ import {
     appendArtifactRow,
     validateTaskForTransition,
 } from '../scripts/lib/taskFile';
-import { isErr } from '../scripts/lib/result';
+import { isErr } from '../../../scripts/libs/result';
 
 describe('parseFrontmatter', () => {
     test('parses basic frontmatter', () => {
