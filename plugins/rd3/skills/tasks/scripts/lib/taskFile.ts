@@ -12,7 +12,7 @@ import type {
     ValidationIssue,
 } from '../types';
 import { VALID_PHASES, VALID_PROFILES, VALID_STATUSES, normalizeStatus } from '../types';
-import { err, ok, type Result } from './result';
+import { err, ok, type Result } from '../../../../scripts/libs/result';
 
 const FRONTMATTER_REGEX = /^---\n([\s\S]*?)\n---\n/;
 
