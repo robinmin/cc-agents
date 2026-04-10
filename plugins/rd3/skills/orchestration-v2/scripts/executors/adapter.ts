@@ -401,7 +401,9 @@ export const isLocalAdapter = isInlineAdapter;
 const LEGACY_ACP_PATTERN = /^acp-(?:stateless|sessioned):(.+)$/;
 
 export function isAcpAdapter(adapterId: string): boolean {
-    return ACP_ONESHOT_PATTERN.test(adapterId) || ACP_SESSION_PATTERN.test(adapterId) || LEGACY_ACP_PATTERN.test(adapterId);
+    return (
+        ACP_ONESHOT_PATTERN.test(adapterId) || ACP_SESSION_PATTERN.test(adapterId) || LEGACY_ACP_PATTERN.test(adapterId)
+    );
 }
 
 /**
