@@ -47,11 +47,11 @@ Read the default profile from task frontmatter; fall back to `standard`.
 | `--phases <a,b>` | No | Run a specific DAG-valid subset of named phases |
 | `--coverage <n>` | No | Override project coverage threshold for phase 6 |
 | `--dry-run` | No | Preview execution plan without executing |
-| `--channel <name>` | No | Execution target: `local` (default), `direct`, `auto`, `current` (deprecated alias), or an explicit external channel such as `codex`, `openclaw`, `opencode`, or `pi` |
+| `--channel <name>` | No | Execution target: `pi` (default ACP channel), `inline` (in-process, same as legacy `local`), `subprocess` (explicit Bun subprocess, same as legacy `direct`), `auto` (orchestrator default routing), or an explicit external channel such as `codex`, `openclaw`, `opencode`. Legacy aliases `local`/`current` → `inline`, `direct` → `subprocess` |
 
 ## Workflow
 
-Run **rd3:orchestration-v2** with the requested task reference, profile, and overrides. Route `--channel` through the orchestrator as-is; `local` is the default interactive executor, `direct` is the explicit subprocess transport, and external ACP channels remain opt-in. `auto` means "use the orchestrator default", while `current` remains a deprecated alias. Pause review runs at the Phase 7 human gate unless `--auto` is set.
+Run **rd3:orchestration-v2** with the requested task reference, profile, and overrides. Route `--channel` through the orchestrator as-is; `pi` is the default ACP channel, `inline` is the in-process executor (canonical name for legacy `local`), `subprocess` is the explicit Bun-subprocess transport (canonical name for legacy `direct`), and external ACP channels remain opt-in. `auto` means "use the orchestrator default routing policy". Legacy aliases `local`/`current` normalize to `inline`; `direct` normalizes to `subprocess`. Pause review runs at the Phase 7 human gate unless `--auto` is set.
 
 ```
 Skill(skill="rd3:orchestration-v2", args="$ARGUMENTS")
