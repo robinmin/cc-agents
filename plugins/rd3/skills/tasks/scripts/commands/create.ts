@@ -2,7 +2,7 @@
 
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { err, ok, type Result } from '../lib/result';
+import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { loadConfig, resolveFolderPath, getMetaDir } from '../lib/config';
 import { getNextWbs, formatWbs } from '../lib/wbs';
 import { getTemplateVars, substituteTemplateVars, stripInputTips } from '../lib/template';
