@@ -1,7 +1,7 @@
 // show command — display task content (for agents)
 
 import { existsSync, readFileSync } from 'node:fs';
-import { err, ok, type Result } from '../lib/result';
+import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
 import { logger } from '../../../../scripts/logger';
