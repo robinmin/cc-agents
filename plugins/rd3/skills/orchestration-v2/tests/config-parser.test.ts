@@ -200,7 +200,12 @@ presets:
 
     test('throws on invalid YAML syntax', () => {
         expect(() => parseYamlString('invalid: yaml: syntax:')).toThrow();
-        expect(() => parseYamlString('- invalid\n  indentation')).toThrow();
+    });
+
+    test('parses multiline array items as concatenated strings', () => {
+        // Indented continuation lines after array items are valid YAML — joined as a single string
+        const result = parseYamlString('- invalid\n  indentation');
+        expect(result as unknown as unknown[]).toEqual(['invalid indentation']);
     });
 
     test('handles edge cases with whitespace and formatting', () => {
@@ -263,12 +268,12 @@ phases:
     });
 
     test('parses top-level array with inline key:value items', () => {
-        // When array items contain 'key: value', parseInlineValue processes them
+        // In standard YAML, '- beta: gamma' is a mapping entry, not a scalar
         const yaml = `- alpha
 - beta: gamma
 `;
         const result = parseYamlString(yaml) as unknown as unknown[];
-        expect(result).toEqual(['alpha', 'beta: gamma']);
+        expect(result).toEqual(['alpha', { beta: 'gamma' }]);
     });
 
     test('parses array items with key-hint nested object', () => {
@@ -331,26 +336,30 @@ other: value
         expect(result.other).toBe('value');
     });
 
-    test('throws on orphaned indented content in array', () => {
+    test('concatenates continuation lines in array items', () => {
+        // Standard YAML treats indented continuation as part of the scalar value
         const yaml = `- item1
   orphaned_indent`;
-        expect(() => parseYamlString(yaml)).toThrow('Invalid YAML');
+        const result = parseYamlString(yaml);
+        expect(result as unknown as unknown[]).toEqual(['item1 orphaned_indent']);
     });
 
-    test('throws on orphaned indented content in parseArrayLines', () => {
+    test('concatenates continuation lines in array items under key', () => {
         const yaml = `
 items:
   - valid
     bad_indent_no_dash`;
-        expect(() => parseYamlString(yaml)).toThrow('Invalid YAML');
+        const result = parseYamlString(yaml);
+        expect((result as Record<string, unknown[]>).items).toEqual(['valid bad_indent_no_dash']);
     });
 
-    test('throws on orphaned indented content in array item continuation', () => {
+    test('throws on invalid YAML in array item continuation', () => {
+        // 'no_colon_line' as a continuation of a mapping value is invalid YAML
         const yaml = `
 items:
   - key: value
     no_colon_line`;
-        expect(() => parseYamlString(yaml)).toThrow('Invalid YAML');
+        expect(() => parseYamlString(yaml)).toThrow();
     });
 
     test('parses number and float edge cases', () => {
@@ -749,6 +758,147 @@ describe('config/parser — validatePipeline skill existence', () => {
         // No plugin prefix — skill existence check is skipped
         expect(result.errors.some((e) => e.rule === 'skill_not_found')).toBe(false);
         expect(result.warnings.some((e) => e.rule === 'skill_not_found')).toBe(false);
+    });
+});
+
+/* ── Object-form executor normalization ── */
+
+describe('config/parser — normalizePhaseExecutor object form', () => {
+    // Object-form executor normalization is exercised through parsePipelineYaml
+    // which calls rawToPipelineDefinition → normalizePhaseExecutor.
+
+    async function parseExecutor(executorYaml: string) {
+        const dir = mkdtempSync(join(tmpdir(), 'orch-v2-exec-'));
+        const file = join(dir, 'pipeline.yaml');
+        writeFileSync(
+            file,
+            `
+schema_version: 1
+name: exec-obj-test
+phases:
+  step:
+    skill: rd3:code-implement-common
+    executor: ${executorYaml}
+`,
+        );
+        try {
+            const [pipeline] = await parsePipelineYaml(file);
+            return pipeline.phases.step.executor;
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    }
+
+    test('normalizes object executor with mode: inline', async () => {
+        const exec = await parseExecutor('{ mode: inline }');
+        expect(exec).toEqual({ mode: 'inline' });
+    });
+
+    test('normalizes object executor with mode: subprocess', async () => {
+        const exec = await parseExecutor('{ mode: subprocess }');
+        expect(exec).toEqual({ mode: 'subprocess' });
+    });
+
+    test('normalizes object executor with legacy mode: auto → inline', async () => {
+        const exec = await parseExecutor('{ mode: auto }');
+        expect(exec).toEqual({ mode: 'inline' });
+    });
+
+    test('normalizes object executor with legacy mode: local → inline', async () => {
+        const exec = await parseExecutor('{ mode: local }');
+        expect(exec).toEqual({ mode: 'inline' });
+    });
+
+    test('normalizes object executor with legacy mode: current → inline', async () => {
+        const exec = await parseExecutor('{ mode: current }');
+        expect(exec).toEqual({ mode: 'inline' });
+    });
+
+    test('normalizes object executor with legacy mode: direct → subprocess', async () => {
+        const exec = await parseExecutor('{ mode: direct }');
+        expect(exec).toEqual({ mode: 'subprocess' });
+    });
+
+    test('normalizes object executor with channel', async () => {
+        const exec = await parseExecutor('{ channel: codex }');
+        expect(exec).toEqual({ channel: 'codex' });
+    });
+
+    test('normalizes object executor with adapter', async () => {
+        const exec = await parseExecutor('{ adapter: "acp-session:pi" }');
+        expect(exec).toEqual({ adapter: 'acp-session:pi' });
+    });
+
+    test('normalizes object executor with mode + channel + adapter', async () => {
+        const exec = await parseExecutor('{ mode: inline, channel: codex, adapter: "acp:pi" }');
+        expect(exec).toEqual({ mode: 'inline', channel: 'codex', adapter: 'acp:pi' });
+    });
+
+    test('returns undefined for object executor with empty values', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'orch-v2-exec-'));
+        const file = join(dir, 'pipeline.yaml');
+        writeFileSync(
+            file,
+            `
+schema_version: 1
+name: exec-empty-obj
+phases:
+  step:
+    skill: rd3:code-implement-common
+    executor: { mode: "" }
+`,
+        );
+        try {
+            const [pipeline] = await parsePipelineYaml(file);
+            expect(pipeline.phases.step.executor).toBeUndefined();
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    test('returns undefined for array executor', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'orch-v2-exec-'));
+        const file = join(dir, 'pipeline.yaml');
+        writeFileSync(
+            file,
+            `
+schema_version: 1
+name: exec-array
+phases:
+  step:
+    skill: rd3:code-implement-common
+    executor:
+      - inline
+`,
+        );
+        try {
+            const [pipeline] = await parsePipelineYaml(file);
+            expect(pipeline.phases.step.executor).toBeUndefined();
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    test('returns undefined for empty string executor', async () => {
+        const dir = mkdtempSync(join(tmpdir(), 'orch-v2-exec-'));
+        const file = join(dir, 'pipeline.yaml');
+        writeFileSync(
+            file,
+            `
+schema_version: 1
+name: exec-empty-str
+phases:
+  step:
+    skill: rd3:code-implement-common
+    executor: ""
+`,
+        );
+        try {
+            const [pipeline] = await parsePipelineYaml(file);
+            expect(pipeline.phases.step.executor).toBeUndefined();
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 });
 
