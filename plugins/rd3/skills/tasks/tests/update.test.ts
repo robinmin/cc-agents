@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { updateTask, type UpdateOptions } from '../scripts/commands/update';
-import type { Err } from '../scripts/lib/result';
+import type { Err } from '../../../scripts/libs/result';
 import { setGlobalSilent } from '../../../scripts/logger';
 
 function writeConfig(tempDir: string, folder = 'docs/tasks'): void {
