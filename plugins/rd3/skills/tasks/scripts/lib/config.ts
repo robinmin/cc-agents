@@ -4,7 +4,7 @@ import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import type { TasksConfig } from '../types';
-import { err, ok, type Result } from './result';
+import { err, ok, type Result } from '../../../../scripts/libs/result';
 
 export const LEGACY_DIR = 'docs/prompts';
 export const LEGACY_META_DIR = 'docs/.tasks';
