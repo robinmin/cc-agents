@@ -1,7 +1,7 @@
-// put command — copy a file to docs/tasks/<wbs>/
+// put command — copy a file to <task-folder>/<wbs>/ (alongside the task file)
 
 import { existsSync, copyFileSync, mkdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
@@ -65,8 +65,9 @@ export function putArtifact(
         return err(`Source file does not exist: ${sourcePath}`);
     }
 
-    // Determine target directory and filename
-    const targetDir = resolve(projectRoot, 'docs/tasks', wbs);
+    // Determine target directory (alongside the task file) and filename
+    const taskDir = dirname(taskPath);
+    const artifactSubDir = resolve(taskDir, wbs);
     const rawDisplayName = options.name || sourcePath.split('/').pop() || 'artifact';
     const displayNameResult = validateArtifactDisplayName(rawDisplayName);
     if (!displayNameResult.ok) {
@@ -74,13 +75,14 @@ export function putArtifact(
     }
 
     const displayName = displayNameResult.value;
-    const targetPath = resolve(targetDir, displayName);
+    const targetPath = resolve(artifactSubDir, displayName);
+    const artifactRelativePath = relative(projectRoot, targetPath);
 
     // Lazily create directory
-    if (!existsSync(targetDir)) {
-        mkdirSync(targetDir, { recursive: true });
+    if (!existsSync(artifactSubDir)) {
+        mkdirSync(artifactSubDir, { recursive: true });
         if (!options.quiet) {
-            logger.info(`Created directory: docs/tasks/${wbs}/`);
+            logger.info(`Created directory: ${artifactRelativePath.replace(`/${displayName}`, '')}/`);
         }
     }
 
@@ -94,7 +96,7 @@ export function putArtifact(
     // Append to Artifacts table
     const artifact: ArtifactEntry = {
         type: inferArtifactType(displayName),
-        path: `docs/tasks/${wbs}/${displayName}`,
+        path: artifactRelativePath,
         ...(options.agent ? { agent: options.agent } : {}),
         date: new Date().toISOString().split('T')[0],
     };
@@ -106,7 +108,7 @@ export function putArtifact(
         }
     } else {
         if (!options.quiet) {
-            logger.success(`Stored artifact: docs/tasks/${wbs}/${displayName}`);
+            logger.success(`Stored artifact: ${artifactRelativePath}`);
         }
     }
 
