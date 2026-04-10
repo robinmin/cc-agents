@@ -2,7 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { err, isErr, ok, type Result } from '../lib/result';
+import { err, isErr, ok, type Result } from '../../../../scripts/libs/result';
 import { getMetaDir, loadConfig } from '../lib/config';
 import { parseFrontmatter } from '../lib/taskFile';
 import type { TaskListItem, TaskStatus } from '../types';
