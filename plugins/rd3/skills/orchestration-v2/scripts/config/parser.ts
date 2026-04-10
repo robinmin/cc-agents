@@ -543,7 +543,7 @@ function normalizePhaseExecutor(raw: unknown): PhaseExecutorDefinition | undefin
             trimmed.startsWith('acp-oneshot:') ||
             trimmed.startsWith('acp-session:') ||
             trimmed.startsWith('acp-stateless:') || // legacy compat
-            trimmed.startsWith('acp-sessioned:')    // legacy compat
+            trimmed.startsWith('acp-sessioned:') // legacy compat
         ) {
             return { adapter: trimmed };
         }
@@ -556,7 +556,8 @@ function normalizePhaseExecutor(raw: unknown): PhaseExecutorDefinition | undefin
     }
 
     const value = raw as Record<string, unknown>;
-    let mode = value.mode === 'inline' || value.mode === 'subprocess' ? value.mode as 'inline' | 'subprocess' : undefined;
+    let mode =
+        value.mode === 'inline' || value.mode === 'subprocess' ? (value.mode as 'inline' | 'subprocess') : undefined;
     // Legacy compat: normalize old executor mode names in object form
     if (!mode && typeof value.mode === 'string') {
         const trimmedMode = (value.mode as string).trim();
