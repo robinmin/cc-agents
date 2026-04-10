@@ -111,6 +111,7 @@ export interface SessionLifecycle {
  */
 export class DefaultSessionLifecycle implements SessionLifecycle {
     private readonly sessions: Map<string, SessionHealth & { ttlMs: number }> = new Map();
+    private readonly recoveryTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
     async ensure(config: SessionConfig): Promise<SessionHealth> {
         const existing = this.sessions.get(config.name);
@@ -185,8 +186,9 @@ export class DefaultSessionLifecycle implements SessionLifecycle {
         };
         this.sessions.set(sessionName, cancelled);
 
-        // Quick recovery to active
-        setTimeout(() => {
+        // Quick recovery to active — track timer so close() can cancel it
+        const handle = setTimeout(() => {
+            this.recoveryTimers.delete(sessionName);
             const current = this.sessions.get(sessionName);
             if (current?.state === 'cancelled') {
                 this.sessions.set(sessionName, {
@@ -197,6 +199,7 @@ export class DefaultSessionLifecycle implements SessionLifecycle {
                 });
             }
         }, 100);
+        this.recoveryTimers.set(sessionName, handle);
     }
 
     async markStale(sessionName: string): Promise<void> {
@@ -242,6 +245,13 @@ export class DefaultSessionLifecycle implements SessionLifecycle {
     }
 
     async close(sessionName: string): Promise<void> {
+        // Cancel any pending recovery timer so a cancelled session can't re-activate after close
+        const pending = this.recoveryTimers.get(sessionName);
+        if (pending !== undefined) {
+            clearTimeout(pending);
+            this.recoveryTimers.delete(sessionName);
+        }
+
         const session = this.sessions.get(sessionName);
 
         if (!session) {
