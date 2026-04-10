@@ -47,7 +47,7 @@ import { getArtifacts } from './commands/get';
 import { showTree } from './commands/tree';
 import { runWriteGuardStdin } from './commands/writeGuard';
 import { runServer } from './commands/server';
-import { isErr } from './lib/result';
+import { isErr } from '../../../scripts/libs/result';
 import { VALID_STATUSES, VALID_PHASES, normalizeStatus, type TaskStatus } from './types';
 import { logger } from '../../../scripts/logger';
 
