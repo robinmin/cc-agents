@@ -19,6 +19,7 @@
 import type { Executor, ExecutorHealth, ExecutionRequest, ExecutionResult } from '../model';
 import { logger } from '../../../../scripts/logger';
 import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 import { spawn } from 'bun';
 import { executeStateless as executeAcpTransport } from '../integrations/acp/transport';
 import { buildPromptFromRequest } from '../integrations/acp/prompts';
@@ -187,21 +188,21 @@ export class SubprocessExecutor implements Executor {
             return null;
         }
 
-        // Try scripts/run.ts first (standard skill entry point)
-        const scriptPath = resolve(this.skillBaseDir, plugin, skillName, 'scripts', 'run.ts');
-        const { existsSync } = require('node:fs');
+        // skillBaseDir already includes the plugin path (e.g. plugins/rd3/skills),
+        // so only append skillName to avoid double-nesting.
+        const scriptPath = resolve(this.skillBaseDir, skillName, 'scripts', 'run.ts');
         if (existsSync(scriptPath)) {
             return { type: 'script', path: scriptPath };
         }
 
         // Fall back to index.ts
-        const indexPath = resolve(this.skillBaseDir, plugin, skillName, 'index.ts');
+        const indexPath = resolve(this.skillBaseDir, skillName, 'index.ts');
         if (existsSync(indexPath)) {
             return { type: 'script', path: indexPath };
         }
 
         // Check for SKILL.md (SKILL-only package)
-        const skillPath = resolve(this.skillBaseDir, plugin, skillName, 'SKILL.md');
+        const skillPath = resolve(this.skillBaseDir, skillName, 'SKILL.md');
         if (existsSync(skillPath)) {
             // SKILL-only package: no runnable script, will use ACP fallback
             return { type: 'skill-only' };
@@ -337,6 +338,9 @@ export class SubprocessExecutor implements Executor {
             const stdoutPromise = readStream(stdoutStream);
             const stderrPromise = readStream(stderrStream);
 
+            // Manual timeout as backup to Bun's native timeout. The native timeout
+            // handles the actual kill, but this ensures timedOut is set synchronously
+            // with the kill even if proc.exited fires before the flag is observed.
             const timeoutHandle =
                 timeoutMs > 0
                     ? setTimeout(() => {
