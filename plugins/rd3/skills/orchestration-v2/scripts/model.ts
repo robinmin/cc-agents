@@ -4,6 +4,29 @@
  * Single source of truth for all shared types across the engine.
  */
 
+import {
+    EXIT_SUCCESS,
+    EXIT_PIPELINE_FAILED,
+    EXIT_PIPELINE_PAUSED,
+    EXIT_INVALID_ARGS,
+    EXIT_VALIDATION_FAILED,
+    EXIT_TASK_NOT_FOUND,
+    EXIT_STATE_ERROR,
+    EXIT_EXECUTOR_UNAVAILABLE,
+} from './config/consts';
+
+// Re-export for backward compatibility
+export {
+    EXIT_SUCCESS,
+    EXIT_PIPELINE_FAILED,
+    EXIT_PIPELINE_PAUSED,
+    EXIT_INVALID_ARGS,
+    EXIT_VALIDATION_FAILED,
+    EXIT_TASK_NOT_FOUND,
+    EXIT_STATE_ERROR,
+    EXIT_EXECUTOR_UNAVAILABLE,
+};
+
 // ─── FSM States ────────────────────────────────────────────────────────────────
 
 export type FSMState = 'IDLE' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED';
@@ -91,6 +114,7 @@ export interface PhaseExecutorDefinition {
 export interface PhaseDefinition {
     readonly skill: string;
     readonly gate?: GateConfig;
+    readonly rework?: ReworkConfig;
     readonly timeout?: string;
     readonly after?: readonly string[];
     readonly payload?: Record<string, unknown>;
@@ -339,15 +363,6 @@ export interface ResourceUsageRecord {
 // ─── Error Codes ───────────────────────────────────────────────────────────────
 
 export type ErrorCategory = 'config' | 'state' | 'execution' | 'verification';
-
-export const EXIT_SUCCESS = 0;
-export const EXIT_PIPELINE_FAILED = 1;
-export const EXIT_PIPELINE_PAUSED = 2;
-export const EXIT_INVALID_ARGS = 10;
-export const EXIT_VALIDATION_FAILED = 11;
-export const EXIT_TASK_NOT_FOUND = 12;
-export const EXIT_STATE_ERROR = 13;
-export const EXIT_EXECUTOR_UNAVAILABLE = 20;
 
 export type ErrorCode =
     | 'PIPELINE_NOT_FOUND'
