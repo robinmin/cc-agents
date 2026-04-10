@@ -1,7 +1,7 @@
 // batch-create command — create multiple tasks from a JSON file
 
 import { existsSync, readFileSync } from 'node:fs';
-import { err, ok, type Result } from '../lib/result';
+import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { createTask as defaultCreateTask } from './create';
 import { logger } from '../../../../scripts/logger';
 import type { BatchCreateItem } from '../types';
