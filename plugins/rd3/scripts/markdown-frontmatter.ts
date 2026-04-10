@@ -1,5 +1,21 @@
 import YAML from 'yaml';
 
+// ============================================================================
+// Raw YAML Parsing
+// ============================================================================
+
+/**
+ * Parse a raw YAML string into a JS object using the `yaml` package.
+ * Returns `{}` for empty, null, or non-object content.
+ */
+export function parseYaml(text: string): Record<string, unknown> {
+    const parsed = YAML.parse(text);
+    if (parsed == null || typeof parsed !== 'object') {
+        return {} as Record<string, unknown>;
+    }
+    return parsed as Record<string, unknown>;
+}
+
 export interface ParsedMarkdownFrontmatter {
     frontmatter: Record<string, unknown> | null;
     body: string;
@@ -77,8 +93,6 @@ export function serializeMarkdownFrontmatter(frontmatter: Record<string, unknown
 
     const yamlStr = YAML.stringify(cleanFrontmatter, {
         lineWidth: 0,
-        defaultKeyType: 'PLAIN',
-        defaultStringType: 'QUOTE_DOUBLE',
     }).trim();
 
     return `---\n${yamlStr}\n---\n\n${body}`;
