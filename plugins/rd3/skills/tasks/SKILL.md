@@ -1,10 +1,10 @@
 ---
 name: tasks
-description: "Markdown-based task management with WBS numbering and kanban boards. Use when: creating tasks, updating task status, listing tasks, managing task artifacts (put/get), validating task content, or refreshing kanban boards. Triggers: 'create task', 'new task', 'update task status', 'list tasks', 'show task', 'task artifacts', 'put file for task', 'get task artifacts', 'refresh kanban'. NOT for: requirement decomposition or scope analysis."
+description: "Markdown-based task management with WBS numbering and kanban boards. Use when: creating tasks, updating task status, listing tasks, managing task artifacts (put/get), validating task content, refreshing kanban boards, extracting WBS from file paths, or resolving task file paths from WBS numbers. Triggers: 'create task', 'new task', 'update task status', 'list tasks', 'show task', 'task artifacts', 'put file for task', 'get task artifacts', 'refresh kanban', 'get WBS', 'get task file', 'find task path'. NOT for: requirement decomposition or scope analysis."
 license: Apache-2.0
 version: 1.0.0
 created_at: 2026-03-21
-updated_at: 2026-04-02
+updated_at: 2026-04-10
 platform: rd3
 tags: [tasks, kanban, wbs, task-management, markdown]
 metadata:
@@ -87,12 +87,26 @@ tasks batch-create --from-json /tmp/tasks.json
 # Batch create from an agent <!-- TASKS: [...] --> footer
 tasks batch-create --from-agent-output /tmp/analysis.md
 
-# Store artifact for a task (lazy-creates docs/tasks/<wbs>/)
+# Store artifact for a task (lazy-creates <task-dir>/<wbs>/)
 tasks put 0047 /tmp/design.png --name design.png
 
 # List or tree artifacts for a task
 tasks get 0047
 tasks tree 0047
+```
+
+### Path & ID Lookup
+
+```bash
+# Extract WBS number from a task file path
+tasks get-wbs docs/tasks/0047_my-task.md    # → 0047
+tasks get-wbs 0047_my-task.md              # → 0047
+tasks get-wbs /path/to/0123_task.md        # → 0123
+tasks get-wbs invalid.md                    # → (blank)
+
+# Get full file path for a WBS (searches all configured folders)
+tasks get-file 0047    # → /path/to/docs/tasks/0047_my-task.md
+tasks get-file 0001    # → /path/to/docs/prompts/0001_legacy-task.md
 ```
 
 ### Admin
@@ -211,6 +225,8 @@ Activate rd3:tasks when you encounter:
 | "store artifact", "put file for task" | `tasks put <wbs> <file>` |
 | "get task artifacts", "list task files" | `tasks get <wbs>` |
 | "task tree", "task directory" | `tasks tree <wbs>` |
+| "extract WBS", "get WBS from path" | `tasks get-wbs <file-path>` |
+| "find task file", "get file for WBS", "resolve task path" | `tasks get-file <wbs>` |
 
 ### Scope Boundary
 
@@ -295,6 +311,8 @@ tasks list --json
 tasks show 0047 --json
 tasks check 0047 --json
 tasks get 0047 --json
+tasks get-wbs docs/tasks/0047_my-task.md --json
+tasks get-file 0047 --json
 
 # Parse result in scripts
 if tasks show 47 --json | jq '.ok' | grep -q true; then
