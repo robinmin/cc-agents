@@ -191,6 +191,9 @@ export class ExecutorPool {
             return undefined;
         }
 
+        // 'auto' and 'current' must fall through to policy routing (not resolve to
+        // a specific executor). Check the original value since normalizeExecutorId
+        // already maps them to ADAPTER_INLINE.
         if (channel === 'auto' || channel === 'current') {
             return undefined;
         }
