@@ -51,13 +51,8 @@ function cleanupTempDir(): void {
 /**
  * Create a fake skill directory with scripts/run.ts
  */
-function createRunScript(
-    skillBase: string,
-    plugin: string,
-    skillName: string,
-    content = `console.log("ran");`,
-): string {
-    const dir = join(skillBase, plugin, skillName, 'scripts');
+function createRunScript(skillBase: string, skillName: string, content = `console.log("ran");`): string {
+    const dir = join(skillBase, skillName, 'scripts');
     mkdirSync(dir, { recursive: true });
     const filePath = join(dir, 'run.ts');
     writeFileSync(filePath, content);
@@ -67,8 +62,8 @@ function createRunScript(
 /**
  * Create an index.ts-only skill (no scripts/run.ts, no scripts/local.ts)
  */
-function createIndexScript(skillBase: string, plugin: string, skillName: string): string {
-    const dir = join(skillBase, plugin, skillName);
+function createIndexScript(skillBase: string, skillName: string): string {
+    const dir = join(skillBase, skillName);
     mkdirSync(dir, { recursive: true });
     const filePath = join(dir, 'index.ts');
     writeFileSync(filePath, `export const x = 1;`);
@@ -78,8 +73,8 @@ function createIndexScript(skillBase: string, plugin: string, skillName: string)
 /**
  * Create a SKILL.md-only skill (no runnable scripts)
  */
-function createSkillOnly(skillBase: string, plugin: string, skillName: string): string {
-    const dir = join(skillBase, plugin, skillName);
+function createSkillOnly(skillBase: string, skillName: string): string {
+    const dir = join(skillBase, skillName);
     mkdirSync(dir, { recursive: true });
     const filePath = join(dir, 'SKILL.md');
     writeFileSync(filePath, `# ${skillName}\n`);
@@ -168,37 +163,37 @@ describe('SubprocessExecutor', () => {
 
         it('resolves scripts/run.ts when it exists', () => {
             const exec = new SubprocessExecutor(tempDir);
-            const created = createRunScript(tempDir, 'rd3', 'my-skill');
+            const created = createRunScript(tempDir, 'my-skill');
             const resolved = exec.resolveSkillScript('rd3:my-skill');
             expect(resolved).toEqual({ type: 'script', path: created });
         });
 
         it('resolves index.ts when scripts/run.ts is missing', () => {
             const exec = new SubprocessExecutor(tempDir);
-            const created = createIndexScript(tempDir, 'rd3', 'index-skill');
+            const created = createIndexScript(tempDir, 'index-skill');
             const resolved = exec.resolveSkillScript('rd3:index-skill');
             expect(resolved).toEqual({ type: 'script', path: created });
         });
 
         it('returns skill-only for SKILL.md-only package', () => {
             const exec = new SubprocessExecutor(tempDir);
-            createSkillOnly(tempDir, 'rd3', 'skill-only-pkg');
+            createSkillOnly(tempDir, 'skill-only-pkg');
             const resolved = exec.resolveSkillScript('rd3:skill-only-pkg');
             expect(resolved).toEqual({ type: 'skill-only' });
         });
 
         it('prefers scripts/run.ts over index.ts', () => {
             const exec = new SubprocessExecutor(tempDir);
-            const runPath = createRunScript(tempDir, 'rd3', 'priority-skill');
-            createIndexScript(tempDir, 'rd3', 'priority-skill');
+            const runPath = createRunScript(tempDir, 'priority-skill');
+            createIndexScript(tempDir, 'priority-skill');
             const resolved = exec.resolveSkillScript('rd3:priority-skill');
             expect(resolved).toEqual({ type: 'script', path: runPath });
         });
 
         it('prefers scripts/run.ts over SKILL.md', () => {
             const exec = new SubprocessExecutor(tempDir);
-            const runPath = createRunScript(tempDir, 'rd3', 'mixed-skill');
-            createSkillOnly(tempDir, 'rd3', 'mixed-skill');
+            const runPath = createRunScript(tempDir, 'mixed-skill');
+            createSkillOnly(tempDir, 'mixed-skill');
             const resolved = exec.resolveSkillScript('rd3:mixed-skill');
             expect(resolved).toEqual({ type: 'script', path: runPath });
         });
@@ -307,7 +302,6 @@ describe('SubprocessExecutor', () => {
             // Create a simple script that exits 0 with stdout
             createRunScript(
                 tempDir,
-                'rd3',
                 'success-skill',
                 `process.stdout.write("hello from subprocess"); process.exit(0);`,
             );
@@ -324,7 +318,7 @@ describe('SubprocessExecutor', () => {
 
         it('captures subprocess failure exit code', async () => {
             const exec = new SubprocessExecutor(tempDir);
-            createRunScript(tempDir, 'rd3', 'fail-skill', `process.stderr.write("script error"); process.exit(1);`);
+            createRunScript(tempDir, 'fail-skill', `process.stderr.write("script error"); process.exit(1);`);
 
             const req = makeRequest({ skill: 'rd3:fail-skill', timeoutMs: 10_000 });
             const result = await exec.execute(req);
@@ -337,7 +331,7 @@ describe('SubprocessExecutor', () => {
         it('handles subprocess timeout', async () => {
             const exec = new SubprocessExecutor(tempDir);
             // Create a script that sleeps forever
-            createRunScript(tempDir, 'rd3', 'timeout-skill', `setTimeout(() => {}, 60000);`);
+            createRunScript(tempDir, 'timeout-skill', `setTimeout(() => {}, 60000);`);
 
             const req = makeRequest({ skill: 'rd3:timeout-skill', timeoutMs: 500 });
             const result = await exec.execute(req);
@@ -350,7 +344,7 @@ describe('SubprocessExecutor', () => {
 
         it('executes index.ts when no scripts/run.ts exists', async () => {
             const exec = new SubprocessExecutor(tempDir);
-            const dir = join(tempDir, 'rd3', 'index-runner');
+            const dir = join(tempDir, 'index-runner');
             mkdirSync(dir, { recursive: true });
             writeFileSync(join(dir, 'index.ts'), `process.stdout.write("from index"); process.exit(0);`);
 
@@ -366,7 +360,6 @@ describe('SubprocessExecutor', () => {
             const exec = new SubprocessExecutor(tempDir);
             createRunScript(
                 tempDir,
-                'rd3',
                 'env-skill',
                 `process.stdout.write("ORCH_PHASE=" + process.env.ORCH_PHASE); process.exit(0);`,
             );
@@ -387,7 +380,7 @@ describe('SubprocessExecutor', () => {
 
         it('calls ACP transport for SKILL.md-only package and returns result', async () => {
             const exec = new SubprocessExecutor(tempDir);
-            createSkillOnly(tempDir, 'rd3', 'skill-only-test');
+            createSkillOnly(tempDir, 'skill-only-test');
 
             // Break PATH so acpx fails fast with ENOENT instead of launching
             const origPath = process.env.PATH;
@@ -408,7 +401,7 @@ describe('SubprocessExecutor', () => {
 
         it('passes prompt with skill name to ACP transport', async () => {
             const exec = new SubprocessExecutor(tempDir);
-            createSkillOnly(tempDir, 'rd3', 'my-skill-md');
+            createSkillOnly(tempDir, 'my-skill-md');
 
             const origPath = process.env.PATH;
             process.env.PATH = '/nonexistent';
@@ -432,7 +425,7 @@ describe('SubprocessExecutor', () => {
 
         it('uses default timeout when timeoutMs is not specified', async () => {
             const exec = new SubprocessExecutor(tempDir);
-            createSkillOnly(tempDir, 'rd3', 'timeout-default');
+            createSkillOnly(tempDir, 'timeout-default');
 
             // Without timeoutMs, the default is 30 min. PATH break forces
             // immediate failure so we don't actually wait.
