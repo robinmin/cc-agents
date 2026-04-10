@@ -58,5 +58,4 @@ From task 0369 — R4 (Read-Only Queries P1). Create: scripts/commands/context.t
 | ---- | ---- | ----- | ---- |
 
 ### References
-
-
+- [task 0369](docs/tasks2/0369_Implement_feature-tree_ftree_skill.md)

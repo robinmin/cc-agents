@@ -58,5 +58,4 @@ From task 0369 — R9 (Skill Integration). Update SKILL.md to match all implemen
 | ---- | ---- | ----- | ---- |
 
 ### References
-
-
+- [task 0369](docs/tasks2/0369_Implement_feature-tree_ftree_skill.md)
