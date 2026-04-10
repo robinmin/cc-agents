@@ -1,7 +1,7 @@
-// tree command — show directory structure of docs/tasks/<wbs>/
+// tree command — show directory structure of <task-dir>/<wbs>/
 
 import { existsSync, readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
@@ -15,11 +15,13 @@ export function showTree(projectRoot: string, wbs: string, quiet = false): Resul
         return err(`Task ${wbs} not found`);
     }
 
-    const artifactDir = resolve(projectRoot, 'docs/tasks', wbs);
+    const taskDir = dirname(taskPath);
+    const artifactDir = resolve(taskDir, wbs);
+    const artifactRelativeDir = artifactDir.replace(`${projectRoot}/`, '');
 
     if (!existsSync(artifactDir)) {
         if (!quiet) {
-            logger.log(`No files stored for ${wbs} (docs/tasks/${wbs}/ does not exist)`);
+            logger.log(`No files stored for ${wbs} (${artifactRelativeDir}/ does not exist)`);
         }
         return ok({ wbs, files: [] });
     }
@@ -27,11 +29,11 @@ export function showTree(projectRoot: string, wbs: string, quiet = false): Resul
     const files = readdirSync(artifactDir);
     const treeLines: string[] = [];
     for (const file of files) {
-        treeLines.push(`docs/tasks/${wbs}/${file}`);
+        treeLines.push(`${artifactRelativeDir}/${file}`);
     }
 
     if (!quiet) {
-        logger.log(`docs/tasks/${wbs}/`);
+        logger.log(`${artifactRelativeDir}/`);
         for (const file of files) {
             logger.log(`  └── ${file}`);
         }
