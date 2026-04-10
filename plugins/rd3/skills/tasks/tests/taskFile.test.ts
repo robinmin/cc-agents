@@ -85,11 +85,11 @@ status: WIP
 name: Task with Impl
 status: WIP
 impl_progress:
-planning: completed
-design: in_progress
-implementation: completed
-review: pending
-testing: pending
+  planning: completed
+  design: in_progress
+  implementation: completed
+  review: pending
+  testing: pending
 ---
 `;
         const fm = parseFrontmatter(content);
