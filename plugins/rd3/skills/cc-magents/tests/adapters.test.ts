@@ -467,7 +467,7 @@ I am Claude Code.`;
             const content = `---
 name: windsurf-agent
 description: A Windsurf agent
-version: 1.0
+version: "1.0"
 ---
 # Rules
 
@@ -493,7 +493,7 @@ Be helpful.`;
             const content = `---
 name: cursor-agent
 description: A Cursor agent
-version: 1.0
+version: "1.0"
 ---
 # Rules
 
