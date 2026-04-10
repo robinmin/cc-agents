@@ -1,0 +1,38 @@
+[
+  {
+    "title": "API Layer",
+    "status": "backlog",
+    "children": [
+      { "title": "Router / Middleware", "status": "backlog" },
+      { "title": "Request Validation", "status": "backlog" },
+      { "title": "Response Formatting", "status": "backlog" }
+    ]
+  },
+  {
+    "title": "Business Logic",
+    "status": "backlog",
+    "children": [
+      { "title": "Domain Models", "status": "backlog" },
+      { "title": "Service Layer", "status": "backlog" },
+      { "title": "Event Bus", "status": "backlog" }
+    ]
+  },
+  {
+    "title": "Data Access",
+    "status": "backlog",
+    "children": [
+      { "title": "Database Schema", "status": "backlog" },
+      { "title": "Repository Pattern", "status": "backlog" },
+      { "title": "Migrations", "status": "backlog" }
+    ]
+  },
+  {
+    "title": "Infrastructure",
+    "status": "backlog",
+    "children": [
+      { "title": "Health Checks", "status": "backlog" },
+      { "title": "Logging", "status": "backlog" },
+      { "title": "Metrics", "status": "backlog" }
+    ]
+  }
+]

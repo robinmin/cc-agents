@@ -1,0 +1,28 @@
+[
+  {
+    "title": "Core Commands",
+    "status": "backlog",
+    "children": [
+      { "title": "Main Entry Point", "status": "backlog" },
+      { "title": "Command Parser", "status": "backlog" },
+      { "title": "Help System", "status": "backlog" }
+    ]
+  },
+  {
+    "title": "Operations",
+    "status": "backlog",
+    "children": [
+      { "title": "File Operations", "status": "backlog" },
+      { "title": "Configuration", "status": "backlog" },
+      { "title": "Output Formatting", "status": "backlog" }
+    ]
+  },
+  {
+    "title": "Platform Integration",
+    "status": "backlog",
+    "children": [
+      { "title": "Environment Detection", "status": "backlog" },
+      { "title": "Cross-platform Support", "status": "backlog" }
+    ]
+  }
+]
