@@ -556,17 +556,15 @@ describe('validateSchema', () => {
         expect(result.errors).toContainEqual(expect.objectContaining({ rule: 'timeout' }));
     });
 
-    test('empty string timeout is accepted by validateSchema (schema bug — dead code path)', () => {
-        // The condition is: if (p.timeout && typeof p.timeout === 'string')
-        // Empty string is falsy → the entire block is skipped
-        // So empty timeout silently passes — this is a bug in the schema
+    test('empty string timeout is rejected by validateSchema', () => {
         const result = validateSchema({
             schema_version: 1,
             name: 'test',
             phases: { implement: { skill: 'rd3:test', timeout: '' } },
         });
-        // Currently passes due to schema bug; `|| p.timeout === ''` in the inner guard is dead code
-        expect(result.valid).toBe(true);
+        // Empty string is a valid timeout format and should be rejected
+        expect(result.valid).toBe(false);
+        expect(result.errors).toContainEqual(expect.objectContaining({ rule: 'timeout' }));
     });
 
     test('accepts valid timeout with hours', () => {
@@ -640,19 +638,16 @@ describe('validateSchema', () => {
         expect(result.valid).toBe(true);
     });
 
-    test('passes when presets is an array (type check catches it as invalid)', () => {
-        // The validation: if (raw.presets && typeof raw.presets === 'object' && !Array.isArray(raw.presets))
-        // When presets is an array, Array.isArray() returns true → the whole condition is false
-        // So no error is added — this is a schema bug (should reject array presets)
-        // We test the actual behavior, not the expected behavior
+    test('rejects presets as an array', () => {
         const result = validateSchema({
             schema_version: 1,
             name: 'test',
             phases: { implement: { skill: 'rd3:test' } },
             presets: [],
         });
-        // Currently passes because the type guard doesn't catch array presets
-        expect(result.valid).toBe(true);
+        // Array presets are invalid — presets must be an object
+        expect(result.valid).toBe(false);
+        expect(result.errors).toContainEqual(expect.objectContaining({ rule: 'presets' }));
     });
 
     test('returns error when preset is missing phases array', () => {
