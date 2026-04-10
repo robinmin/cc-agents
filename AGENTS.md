@@ -70,12 +70,19 @@ Pre-commit: `bun run check` (runs lint, typecheck, test in sequence)
 
 Code style conventions: 2-space indent, semicolons, double quotes, trailing commas.
 
-**V8 function coverage quirk**: Bun uses V8's function coverage which does NOT count implicit class constructors as function entry points. This causes `% Funcs` to drop below the 90% `coverageThreshold` even with 100% line coverage. Fix: add an explicit empty constructor with a biome suppression:
+**V8 function coverage quirks**: Bun uses V8's function coverage with two known limitations:
+
+1. **Implicit constructors not counted**: V8 does NOT count implicit class constructors as function entry points. This causes `% Funcs` to drop below the 90% `coverageThreshold` even with 100% line coverage. Fix: add an explicit empty constructor with a biome suppression:
 
 ```typescript
 // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
 constructor() {}
 ```
+
+2. **`import()` worker leak**: Dynamic `import()` spawns worker threads; V8 tracks their coverage globally. `coverageExclude` in `bunfig.toml` does NOT apply to workers. **Mitigations** (prefer mock loader pattern — see `inline.test.ts` for example):
+   - Mock the module loader to avoid `import()` entirely
+   - Use `afterAll` instead of `afterEach` for cleanup
+   - Accept temp paths in output if tests pass (0 failures)
 
 **`biome-ignore` policy**: NEVER add `biome-ignore` comments to bypass lint errors. Fix the underlying code instead. Use proper type casts rather than suppressing `noExplicitAny`. The only permitted exception is `biome-ignore lint/complexity/noUselessConstructor` for the V8 function coverage workaround above.
 
