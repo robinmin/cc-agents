@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { err, ok, type Result } from '../../tasks/scripts/lib/result';
+import { err, ok, type Result } from '../../../scripts/libs/result';
 import { runInit } from '../../tasks/scripts/commands/init';
 import { logger } from '../../../scripts/logger';
 
