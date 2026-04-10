@@ -143,6 +143,7 @@ Command-specific options:
     --channel <name>        Execution target (default: local; external: claude-code, pi, codex, gemini, kilocode, openclaw, opencode)
     --session <name>        Use persistent session for faster reuse (uses prompt --session)
     --ttl <seconds>        Session TTL in seconds (keeps session alive, use with --session)
+    --timeout <ms>         Timeout in milliseconds (default: 300000)
     --dry-run               Preview transformation without executing
     <slash-command>        Claude Code style slash command (e.g., "/rd3:dev-fixall 'bun run test'")
 
@@ -979,7 +980,7 @@ async function handleExec(options: Record<string, unknown>): Promise<void> {
     }
 
     // Get timeout (default: 5 minutes)
-    const timeoutMs = (options.coverage as number | undefined) ?? 300_000;
+    const timeoutMs = (options.timeout as number | undefined) ?? 300_000;
 
     const result = runSlashCommand(slashCommand, {
         channel: channel as ExecutionChannel,
