@@ -1,0 +1,8 @@
+name: feature-tree
+description: "Manage feature trees with WBS-linked task states. Use when
+  organizing work into hierarchical feature trees, tracking feature status
+  roll-up (backlog → validated → executing → done), or linking features to task
+  IDs. Triggers: show features, feature tree, link WBS to feature, check feature
+  status, digest feature."
+version: 1.0.0
+emoji: 🛠️
