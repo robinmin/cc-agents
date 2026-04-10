@@ -370,29 +370,83 @@ describe('InlineExecutor', () => {
     });
 
     describe('execute with default module loader', () => {
+        // NOTE: We set up a temp skill directory so resolveLocalEntrypoint succeeds,
+        // but we use a custom module loader that intercepts the import call.
+        // This avoids dynamic import() on temp .ts files which leak into V8 coverage
+        // reports. coverageExclude in bunfig.toml is not effective in Bun 1.3.11.
         beforeEach(() => setupTempDir());
         afterEach(() => cleanupTempDir());
 
-        it('loads and executes a real module via dynamic import', async () => {
-            // Create a real JS entrypoint that the default loader can import
-            const dir = join(tempDir, 'real-skill', 'scripts');
-            mkdirSync(dir, { recursive: true });
-            const entryPath = join(dir, 'local.ts');
+        it('calls module loader with resolved entry path and propagates result', async () => {
+            let capturedPath: string | null = null;
+            const loader: (entryPath: string) => Promise<LocalEntryModule> = async (entryPath) => {
+                capturedPath = entryPath;
+                return {
+                    runLocalPhase: async () => ({
+                        success: true,
+                        exitCode: 0,
+                        durationMs: 1,
+                        timedOut: false,
+                        stdout: 'mocked',
+                    }),
+                };
+            };
+
+            // Create the skill dir so resolveLocalEntrypoint finds the entry point
+            createDummyEntry(tempDir, 'test-skill', 'scripts/local');
+
+            const exec = new InlineExecutor(tempDir, loader);
+            const req = makeRequest({ skill: 'rd3:test-skill' });
+            const result = await exec.execute(req);
+
+            expect(capturedPath).not.toBeNull();
+            expect(result.success).toBe(true);
+            expect(result.stdout).toBe('mocked');
+        });
+
+        it('returns failure when module loader throws', async () => {
+            const loader: (entryPath: string) => Promise<LocalEntryModule> = async () => {
+                throw new Error('Module load failed');
+            };
+
+            // Create the skill dir so resolveLocalEntrypoint succeeds (returns a path)
+            createDummyEntry(tempDir, 'test-skill', 'scripts/local');
+
+            const exec = new InlineExecutor(tempDir, loader);
+            const req = makeRequest({ skill: 'rd3:test-skill' });
+            const result = await exec.execute(req);
+
+            expect(result.success).toBe(false);
+            expect(result.stderr).toContain('Module load failed');
+        });
+    });
+
+    // ─── defaultModuleLoader (real import) ────────────────────────────────────
+
+    describe('defaultModuleLoader via real import', () => {
+        beforeEach(() => setupTempDir());
+        afterEach(() => cleanupTempDir());
+
+        it('uses dynamic import to load a real skill module with runLocalPhase', async () => {
+            // Create a real .ts entrypoint that Bun can import
+            const skillDir = join(tempDir, 'real-skill', 'scripts');
+            mkdirSync(skillDir, { recursive: true });
             writeFileSync(
-                entryPath,
-                `export function runLocalPhase(req) {
-					return { success: true, exitCode: 0, durationMs: 1, timedOut: false, stdout: "real-module" };
-				}`,
+                join(skillDir, 'local.ts'),
+                `import type { ExecutionRequest, ExecutionResult } from '../model';\n` +
+                    `export async function runLocalPhase(req: ExecutionRequest): Promise<ExecutionResult> {\n` +
+                    `  return { success: true, exitCode: 0, durationMs: 7, timedOut: false, stdout: 'real-import' };\n` +
+                    `}\n`,
             );
 
-            // No custom moduleLoader — uses defaultModuleLoader
+            // Use default constructor (no mock loader) so defaultModuleLoader runs
             const exec = new InlineExecutor(tempDir);
             const req = makeRequest({ skill: 'rd3:real-skill' });
             const result = await exec.execute(req);
 
             expect(result.success).toBe(true);
             expect(result.exitCode).toBe(0);
-            expect(result.stdout).toBe('real-module');
+            expect(result.stdout).toBe('real-import');
         });
     });
 
