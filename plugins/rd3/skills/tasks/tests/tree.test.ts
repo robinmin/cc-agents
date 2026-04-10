@@ -269,15 +269,15 @@ describe('showTree', () => {
                 '---\nname: Custom Task\nstatus: Todo\n---\n',
             );
 
-            // Create artifact directory (always uses docs/tasks/<wbs>/ regardless of active folder)
-            mkdirSync(join(tempDir, 'docs/tasks/0001'), { recursive: true });
-            writeFileSync(join(tempDir, 'docs/tasks/0001', 'artifact.txt'), 'content');
+            // Create artifact directory alongside the task file
+            mkdirSync(join(tempDir, customFolder, '0001'), { recursive: true });
+            writeFileSync(join(tempDir, customFolder, '0001', 'artifact.txt'), 'content');
 
             const result = showTree(tempDir, '0001');
 
             expect(result.ok).toBe(true);
             if (result.ok) {
-                expect(result.value.files).toEqual(['docs/tasks/0001/artifact.txt']);
+                expect(result.value.files).toEqual(['custom/tasks/0001/artifact.txt']);
             }
         });
 
@@ -304,15 +304,15 @@ describe('showTree', () => {
                 '---\nname: Cross Folder Task\nstatus: Todo\n---\n',
             );
 
-            // Create artifact directory
-            mkdirSync(join(tempDir, 'docs/tasks/0050'), { recursive: true });
-            writeFileSync(join(tempDir, 'docs/tasks/0050', 'cross-artifact.txt'), 'content');
+            // Create artifact directory alongside the task file (not hardcoded docs/tasks/)
+            mkdirSync(join(tempDir, 'docs/other/0050'), { recursive: true });
+            writeFileSync(join(tempDir, 'docs/other/0050', 'cross-artifact.txt'), 'content');
 
             const result = showTree(tempDir, '0050');
 
             expect(result.ok).toBe(true);
             if (result.ok) {
-                expect(result.value.files).toEqual(['docs/tasks/0050/cross-artifact.txt']);
+                expect(result.value.files).toEqual(['docs/other/0050/cross-artifact.txt']);
             }
         });
     });
