@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { listTasks } from '../scripts/commands/list';
-import type { Err } from '../scripts/lib/result';
+import type { Err } from '../../../scripts/libs/result';
 import { logger, setGlobalSilent } from '../../../scripts/logger';
 
 function writeConfig(tempDir: string, active = 'docs/tasks'): void {
