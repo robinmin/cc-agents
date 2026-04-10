@@ -122,11 +122,11 @@ status: WIP
 name: Progress Task
 status: WIP
 impl_progress:
-planning: completed
-design: pending
-implementation: in_progress
-review: pending
-testing: pending
+  planning: completed
+  design: pending
+  implementation: in_progress
+  review: pending
+  testing: pending
 ---
 
 ### Background
@@ -138,11 +138,11 @@ testing: pending
 name: Testing Task
 status: Testing
 impl_progress:
-planning: completed
-design: completed
-implementation: completed
-review: completed
-testing: in_progress
+  planning: completed
+  design: completed
+  implementation: completed
+  review: completed
+  testing: in_progress
 ---
 
 ### Background
