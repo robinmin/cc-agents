@@ -115,10 +115,13 @@ export class InlineExecutor implements Executor {
             return null;
         }
 
+        // skillBaseDir already includes the plugin path (e.g. plugins/rd3/skills),
+        // so only append skillName to avoid double-nesting: rd3:code-implement-common
+        // → plugins/rd3/skills/code-implement-common/scripts/local.ts
         const candidates = [
-            resolve(this.skillBaseDir, plugin, skillName, 'scripts', 'local.ts'),
-            resolve(this.skillBaseDir, plugin, skillName, 'local.ts'),
-            resolve(this.skillBaseDir, plugin, skillName, 'index.ts'),
+            resolve(this.skillBaseDir, skillName, 'scripts', 'local.ts'),
+            resolve(this.skillBaseDir, skillName, 'local.ts'),
+            resolve(this.skillBaseDir, skillName, 'index.ts'),
         ];
 
         for (const candidate of candidates) {
