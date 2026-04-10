@@ -24,7 +24,7 @@ type ModuleLoader = (entryPath: string) => Promise<LocalEntryModule>;
  * Default module loader — uses dynamic import with cache-busting query param.
  */
 const defaultModuleLoader: ModuleLoader = async (entryPath: string) => {
-	return (await import(`${pathToFileURL(entryPath).href}?t=${Date.now()}`)) as LocalEntryModule;
+    return (await import(`${pathToFileURL(entryPath).href}?t=${Date.now()}`)) as LocalEntryModule;
 };
 
 /**
