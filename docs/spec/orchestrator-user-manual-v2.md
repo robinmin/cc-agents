@@ -1,11 +1,11 @@
 # Orchestration v2 — User Manual
 
-**Version:** 1.1.0
-**Date:** 2026-04-07
+**Version:** 1.2.0
+**Date:** 2026-04-09
 **Authors:** Robin Min, Lord Robb
 **Status:** Current
-**Architecture:** [Architecture v1.0.0](./orchestrator-architecture-v2.md)
-**Functional Spec:** [FSD v1.0.0](./orchestrator-fsd-v2.md)
+**Architecture:** [Architecture v1.1.0](./orchestrator-architecture-v2.md)
+**Functional Spec:** [FSD v1.1.0](./orchestrator-fsd-v2.md)
 
 ---
 
@@ -63,7 +63,7 @@ orchestrator status
 
 Pipeline state is stored in SQLite at:
 ```
-.rdinstate/orchestrator.db
+docs/.workflow-runs/state.db
 ```
 
 Override with `--state-dir` or `ORCHESTRATOR_STATE_DIR` env var.
@@ -112,7 +112,8 @@ IDLE → RUNNING → COMPLETED
 ### Gates
 
 Gates verify phase output before advancing:
-- **Auto gate**: Runs automated checks (CLI commands, content matching) via the CoV driver
+- **Command gate**: Runs a shell command — exit code 0 = pass, non-zero = fail. Deterministic and fast.
+- **Auto gate**: Runs LLM-based checks via the verification-chain. Each checklist item must pass.
 - **Human gate**: Pauses the pipeline and waits for `orchestrator resume --approve` or `--reject`
 
 ### Rework
@@ -766,7 +767,7 @@ Your working tree has uncommitted changes. Either:
 | `PRESET_NOT_FOUND` | Check preset names with `orchestrator validate` |
 | `PIPELINE_VALIDATION_FAILED` | Run `orchestrator validate` to see errors |
 | `DAG_CYCLE_DETECTED` | Remove circular `after:` dependencies |
-| `STATE_CORRUPT` | Delete `.rdinstate/orchestrator.db` and re-run |
+| `STATE_CORRUPT` | Delete `docs/.workflow-runs/state.db` and re-run |
 | `STATE_LOCKED` | Wait or kill stale processes |
 | `EXECUTOR_UNAVAILABLE` | Check channel, verify Bun is available |
 | `EXECUTOR_TIMEOUT` | Increase timeout in pipeline YAML |
@@ -783,7 +784,7 @@ Your working tree has uncommitted changes. Either:
 
 | Flag | Env Variable | Default | Description |
 |------|-------------|---------|-------------|
-| `--state-dir <path>` | `ORCHESTRATOR_STATE_DIR` | `.rdinstate` | SQLite database directory |
+| `--state-dir <path>` | `ORCHESTRATOR_STATE_DIR` | `docs/.workflow-runs` | SQLite database directory |
 | `--pipeline <path>` | — | Auto-resolved | Pipeline YAML path (alias: `--file`) |
 | `--verbose` | — | false | Verbose logging |
 | `--quiet` | — | false | Suppress non-essential output |
@@ -797,7 +798,7 @@ Your working tree has uncommitted changes. Either:
 |------|------|---------|-------------|
 | `--preset <name>` | string | — | Named preset from pipeline YAML |
 | `--phases <a,b>` | string[] | all | Comma-separated phase names |
-| `--channel <name>` | string | `auto` | Execution channel (`current` is a deprecated alias) |
+| `--channel <name>` | string | `inline` | Execution channel: `inline`, `subprocess`, `acp-oneshot:<ch>`, `acp-session:<ch>` |
 | `--coverage <n>` | number | preset default | Coverage threshold (1-100) |
 | `--auto` | bool | false | Auto-approve human gates |
 | `--dry-run` | bool | false | Show plan only |
@@ -856,11 +857,29 @@ Your working tree has uncommitted changes. Either:
 | `--keep-last <n>` | number | — | Keep N most recent |
 | `--dry-run` | bool | false | Preview only |
 
+#### `events`
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--run <id>` | string | latest | Show events for specific run ID |
+| `--type <t1,t2>` | string | — | Comma-separated event types (e.g., `run.paused,run.resumed`) |
+| `--phase <name>` | string | — | Filter events by phase name |
+| `--json` | bool | false | JSON output |
+
+#### `exec`
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--channel <name>` | string | `local` | Execution target (default: `local`; external: `claude-code`, `pi`, `codex`, etc.) |
+| `--session <name>` | string | — | Use persistent session for faster reuse |
+| `--ttl <seconds>` | number | — | Session TTL for keepalive |
+| `--dry-run` | bool | false | Preview transformation without executing |
+
+Execute a slash command (Claude Code style, e.g., `/rd3:dev-fixall 'bun run test'`).
+
 #### `migrate`
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--from-v1 [dir]` | bool | false | Enable v1 migration |
-| `--dir <path>` | string | `docs/.workflow-runs/rd3-orchestration-dev` | Source directory |
+| `--dir <path>` | string | `docs/.workflow-runs/rd3-orchestration-v1` | Source directory |
 
 ---
 
@@ -993,7 +1012,7 @@ hooks:
 | `phases` | ✅ | object | Phase definitions keyed by name |
 | `phases.<name>.skill` | ✅ | string | Skill reference (e.g., `rd3:request-intake`) |
 | `phases.<name>.gate` | | object | Gate configuration |
-| `phases.<name>.gate.type` | | `auto` \| `human` | Gate type |
+| `phases.<name>.gate.type` | | `command` \| `auto` \| `human` | Gate type |
 | `phases.<name>.gate.rework.max_iterations` | | number | Max rework attempts |
 | `phases.<name>.gate.rework.escalation` | | `pause` \| `fail` | Exhaustion behavior |
 | `phases.<name>.timeout` | | string | Duration (e.g., `30m`, `1h`, `2h30m`) |
@@ -1049,7 +1068,7 @@ The `dev-*` slash command family provides Claude Code-native shortcuts for the 9
 
 **Mixed command-family approach.** Task-centric phases delegate to `rd3:orchestration-v2`, while standalone utilities run independently. This keeps wrappers thin and avoids forcing unrelated workflows through orchestration.
 
-**Channel routing is owned by orchestration.** For orchestration-backed commands, `--channel` is passed directly to the orchestrator (default: `auto`). The `current` value is a deprecated alias preserved for backward compatibility.
+**Channel routing is owned by orchestration.** For orchestration-backed commands, `--channel` is passed directly to the orchestrator (default: `inline`).
 
 **Task-scoped review.** `dev-review` reviews a specific task scope, not arbitrary paths. This aligns with the pipeline's task-centric model.
 
@@ -1103,10 +1122,13 @@ Use orchestration-backed for anything tied to task lifecycle, quality gates, or 
 
 | Channel Value | Behavior |
 |--------------|----------|
-| `auto` | Use configured default backend (recommended) |
-| `current` | Deprecated alias for `auto` |
-| `claude-code`, `codex`, `openclaw`, `opencode`, `antigravity`, `pi` | ACP agent name |
+| `inline` (default) | In-process execution in current Bun process |
+| `subprocess` | Explicit Bun subprocess isolation |
+| `acp-oneshot:<ch>` | ACP fire-and-forget to channel (pi, codex, etc.) |
+| `acp-session:<ch>` | ACP persistent session to channel |
+
+Legacy aliases (deprecated, normalized with warning): `local`→`inline`, `direct`→`subprocess`, `auto`→`inline`, `current`→`inline`, `acp-stateless:<x>`→`acp-oneshot:<x>`, `acp-sessioned:<x>`→`acp-session:<x>`
 
 ---
 
-*End of User Manual. v1.1.0 — Generated by Lord Robb — 2026-04-07.*
+*End of User Manual. v1.2.0 — Lord Robb — 2026-04-09.*
