@@ -21,6 +21,8 @@
  *   put <WBS> <file> [--name <name>]
  *   get <WBS> [--artifact-type <type>]
  *   tree <WBS>
+ *   get-wbs <file-path>       Extract WBS number from a task file path
+ *   get-file <WBS>            Get the full file path for a task given its WBS
  *   write-guard --stdin      (hook integration)
  *
  * Global flags:
@@ -44,6 +46,8 @@ import { showConfig, setActiveFolder, addFolder } from './commands/config';
 import { batchCreate } from './commands/batchCreate';
 import { putArtifact } from './commands/put';
 import { getArtifacts } from './commands/get';
+import { getWbs } from './commands/getWbs';
+import { getFile } from './commands/getFile';
 import { showTree } from './commands/tree';
 import { runWriteGuardStdin } from './commands/writeGuard';
 import { runServer } from './commands/server';
@@ -92,6 +96,8 @@ Commands:
   get <WBS> [--artifact-type <type>]
                                  List stored artifacts for a task
   tree <WBS>                    Show directory tree for a task's artifacts
+  get-wbs <file-path>          Extract WBS number from a task file path
+  get-file <WBS>               Get the full file path for a task given its WBS
   server [--port <port>] [--host <addr>]
                                 Start HTTP server for task operations
   write-guard --stdin           PreToolUse hook integration (internal)
@@ -758,6 +764,54 @@ async function main() {
                 break;
             }
             const result = showTree(projectRoot, rest[0], json);
+            if (isErr(result)) {
+                if (json) {
+                    emitJsonError(result.error);
+                } else {
+                    logger.error(result.error);
+                }
+                exitCode = 1;
+            } else if (json) {
+                emitJsonSuccess(result.value);
+            }
+            break;
+        }
+
+        case 'get-wbs': {
+            if (!rest[0]) {
+                if (json) {
+                    emitJsonError('Usage: tasks get-wbs <file-path>');
+                } else {
+                    logger.error('Usage: tasks get-wbs <file-path>');
+                }
+                exitCode = 1;
+                break;
+            }
+            const result = getWbs(rest[0], json);
+            if (isErr(result)) {
+                if (json) {
+                    emitJsonError(result.error);
+                } else {
+                    logger.error(result.error);
+                }
+                exitCode = 1;
+            } else if (json) {
+                emitJsonSuccess(result.value);
+            }
+            break;
+        }
+
+        case 'get-file': {
+            if (!rest[0]) {
+                if (json) {
+                    emitJsonError('Usage: tasks get-file <WBS>');
+                } else {
+                    logger.error('Usage: tasks get-file <WBS>');
+                }
+                exitCode = 1;
+                break;
+            }
+            const result = getFile(projectRoot, rest[0], json);
             if (isErr(result)) {
                 if (json) {
                     emitJsonError(result.error);
