@@ -21,7 +21,12 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
     const match = content.match(FRONTMATTER_REGEX);
     if (!match) return null;
 
-    const parsed = parseYaml(match[1]);
+    let parsed: Record<string, unknown>;
+    try {
+        parsed = parseYaml(match[1]);
+    } catch {
+        return null;
+    }
 
     const implProgress: TaskFrontmatter['impl_progress'] = {
         planning: 'pending',
