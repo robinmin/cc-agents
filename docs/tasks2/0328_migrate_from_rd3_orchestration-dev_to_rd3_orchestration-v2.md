@@ -1,11 +1,19 @@
 ---
-name: migrate from rd3:orchestration-dev to rd3:orchestration-v2
-description: migrate from rd3:orchestration-dev to rd3:orchestration-v2
+name: migrate from rd3orchestration-dev to rd3orchestration-v2
+description: migrate from rd3orchestration-dev to rd3orchestration-v2
 status: Completed
 created_at: 2026-04-04T23:25:17.800Z
 updated_at: 2026-04-04T23:25:17.800Z
 folder: docs/tasks2
 type: task
+impl_progress:
+  planning: pending
+  design: pending
+  implementation: pending
+  review: pending
+  testing: pending
+---
+
 ### Implementation Summary
 
 | Phase | Status | Files Changed |
