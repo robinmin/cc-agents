@@ -64,6 +64,7 @@ export class PipelineRunner {
     private readonly state: StateManager;
     private readonly eventBus: EventBus;
     private readonly verificationDriver: VerificationDriver;
+    private presetDefaults: Record<string, unknown> = {};
 
     constructor(
         stateManager: StateManager,
@@ -97,6 +98,7 @@ export class PipelineRunner {
         }
 
         this.initializePipeline(pipeline);
+        this.resolvePresetDefaults(options, pipeline);
         const requestedPhases = this.getRequestedPhases(options, pipeline);
 
         // Validate that requested phases form a valid subgraph (ss3.2)
@@ -183,6 +185,7 @@ export class PipelineRunner {
 
         const pipeline = run.config_snapshot as unknown as PipelineDefinition;
         this.initializePipeline(pipeline);
+        this.resolvePresetDefaults({ preset: run.preset }, pipeline);
 
         const requestedPhases = this.getRequestedPhasesFromRun(run);
         await this.rehydrateDag(run.id, requestedPhases);
@@ -385,6 +388,9 @@ export class PipelineRunner {
 
                     await this.emitEvent(runId, 'phase.started', { phase: phaseName });
 
+                    // Update impl_progress to in_progress
+                    await this.updateImplProgress(options.taskRef, phaseName, 'in_progress');
+
                     await this.hooks.execute('on-phase-start', {
                         phase: phaseName,
                         task_ref: options.taskRef,
@@ -512,6 +518,9 @@ export class PipelineRunner {
                     // Finalize snapshot after phase completion
                     await this.finalizeSnapshot(runId, phaseName);
 
+                    // Update impl_progress to completed
+                    await this.updateImplProgress(options.taskRef, phaseName, 'completed');
+
                     await this.hooks.execute('on-phase-complete', {
                         phase: phaseName,
                         task_ref: options.taskRef,
@@ -553,6 +562,24 @@ export class PipelineRunner {
     private initializePipeline(pipeline: PipelineDefinition): void {
         this.dag.buildFromPhases(pipeline.phases);
         this.hooks.loadFromPipeline(pipeline.hooks);
+    }
+
+    /**
+     * Resolve preset defaults (e.g. coverage_threshold) and merge CLI overrides.
+     * These defaults are injected into phase payloads during execution.
+     */
+    private resolvePresetDefaults(
+        options: { preset?: string | undefined; coverage?: number | undefined },
+        pipeline: PipelineDefinition,
+    ): void {
+        const preset = options.preset ? pipeline.presets?.[options.preset] : undefined;
+        const defaults = (preset?.defaults as Record<string, unknown> | undefined) ?? {};
+        this.presetDefaults = { ...defaults };
+
+        // CLI --coverage overrides preset default
+        if (options.coverage != null) {
+            this.presetDefaults.coverage_threshold = options.coverage;
+        }
     }
 
     private getRequestedPhases(
@@ -822,6 +849,7 @@ export class PipelineRunner {
                 phase: phaseName,
                 prompt: `Execute ${phaseName} for ${options.taskRef}`,
                 payload: {
+                    ...this.presetDefaults,
                     task_ref: options.taskRef,
                     phase: phaseName,
                     ...(feedback && { feedback }),
@@ -922,6 +950,63 @@ export class PipelineRunner {
         return {
             channel: requestedChannel ?? 'auto',
         };
+    }
+
+    /**
+     * Map pipeline phase names to impl_progress field names.
+     * Returns undefined for phases that don't map to impl_progress.
+     */
+    private mapPhaseToImplProgress(
+        phaseName: string,
+    ): 'planning' | 'design' | 'implementation' | 'review' | 'testing' | undefined {
+        // Strip subtask suffix (e.g., "implement:0002.1" → "implement")
+        const baseName = phaseName.split(':')[0];
+        switch (baseName) {
+            case 'intake':
+            case 'decompose':
+                return 'planning';
+            case 'arch':
+            case 'design':
+                return 'design';
+            case 'implement':
+                return 'implementation';
+            case 'review':
+                return 'review';
+            case 'test':
+                return 'testing';
+            default:
+                return undefined;
+        }
+    }
+
+    /**
+     * Update impl_progress in task frontmatter via tasks CLI.
+     */
+    private async updateImplProgress(
+        taskRef: string,
+        phaseName: string,
+        phaseStatus: 'in_progress' | 'completed',
+    ): Promise<void> {
+        const implPhase = this.mapPhaseToImplProgress(phaseName);
+        if (!implPhase) return;
+
+        const wbs = extractWbsFromPath(taskRef);
+        if (!wbs) return;
+
+        try {
+            const proc = Bun.spawnSync(['tasks', 'update', wbs, '--phase', implPhase, '--phase-status', phaseStatus], {
+                cwd: process.cwd(),
+                stdout: 'pipe',
+                stderr: 'pipe',
+            });
+            if (proc.exitCode !== 0) {
+                logger.warn(
+                    `[runner] Failed to update impl_progress ${implPhase}→${phaseStatus}: ${new TextDecoder().decode(proc.stderr).trim()}`,
+                );
+            }
+        } catch (err) {
+            logger.warn(`[runner] Error updating impl_progress:`, err);
+        }
     }
 
     /**
