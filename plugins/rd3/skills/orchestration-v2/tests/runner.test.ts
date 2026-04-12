@@ -630,8 +630,8 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
                         gate: { type: 'human' },
                         after: ['implement'],
                     },
-                    docs: {
-                        skill: 'rd3:code-docs',
+                    'verify-bdd': {
+                        skill: 'rd3:bdd-workflow',
                         gate: { type: 'auto' },
                         after: ['review'],
                     },
@@ -642,7 +642,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             const runRecord = await stateManager.createRun({
                 id: 'test-run-resume-001',
                 task_ref: 'resume-001',
-                phases_requested: 'implement,review,docs',
+                phases_requested: 'implement,review,verify-bdd',
                 status: 'PAUSED',
                 config_snapshot: pipeline as unknown as Record<string, unknown>,
                 pipeline_name: 'test-pipeline',
@@ -666,9 +666,9 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
 
             await stateManager.createPhase({
                 run_id: runRecord,
-                name: 'docs',
+                name: 'verify-bdd',
                 status: 'pending',
-                skill: 'rd3:code-docs',
+                skill: 'rd3:bdd-workflow',
                 rework_iteration: 0,
             });
 
@@ -679,14 +679,14 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
 
             const result = await runner.resume(resumeOptions);
             const resumedRun = await stateManager.getRun(runRecord);
-            const docsPhase = await stateManager.getPhase(runRecord, 'docs');
+            const verifyPhase = await stateManager.getPhase(runRecord, 'verify-bdd');
             const reviewPhase = await stateManager.getPhase(runRecord, 'review');
 
             expect(result.status).toBe('COMPLETED');
             expect(result.exitCode).toBe(0);
             expect(resumedRun?.status).toBe('COMPLETED');
             expect(reviewPhase?.status).toBe('completed');
-            expect(docsPhase?.status).toBe('completed');
+            expect(verifyPhase?.status).toBe('completed');
         });
 
         test('should handle resume with rejection', async () => {
@@ -2442,6 +2442,201 @@ body
             // Undo should succeed (or fail gracefully if no git repo)
             expect(undoResult).toBeDefined();
             expect(typeof undoResult.success).toBe('boolean');
+        });
+    });
+
+    // ─── Preset Defaults Passthrough ──────────────────────────────────────────
+
+    describe('Preset Defaults Passthrough', () => {
+        test('should inject preset defaults into phase payload', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'preset-test',
+                phases: {
+                    test: {
+                        skill: 'rd3:sys-testing',
+                        gate: { type: 'auto' },
+                    },
+                },
+                presets: {
+                    standard: {
+                        phases: ['test'],
+                        defaults: { coverage_threshold: 80 },
+                    },
+                },
+            };
+
+            const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
+            const pool = new ExecutorPool();
+            pool.register(testMock);
+            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+
+            await testRunner.run({ taskRef: 'preset-001', preset: 'standard' }, pipeline);
+
+            const calls = testMock.getCallLog();
+            expect(calls.length).toBeGreaterThan(0);
+            expect(calls[0].payload.coverage_threshold).toBe(80);
+        });
+
+        test('should override preset default with CLI --coverage flag', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'coverage-override-test',
+                phases: {
+                    test: {
+                        skill: 'rd3:sys-testing',
+                        gate: { type: 'auto' },
+                    },
+                },
+                presets: {
+                    standard: {
+                        phases: ['test'],
+                        defaults: { coverage_threshold: 80 },
+                    },
+                },
+            };
+
+            const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
+            const pool = new ExecutorPool();
+            pool.register(testMock);
+            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+
+            await testRunner.run({ taskRef: 'coverage-001', preset: 'standard', coverage: 95 }, pipeline);
+
+            const calls = testMock.getCallLog();
+            expect(calls.length).toBeGreaterThan(0);
+            expect(calls[0].payload.coverage_threshold).toBe(95);
+        });
+
+        test('should have empty defaults when no preset specified', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'no-preset-test',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
+            const pool = new ExecutorPool();
+            pool.register(testMock);
+            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+
+            await testRunner.run({ taskRef: 'no-preset-001' }, pipeline);
+
+            const calls = testMock.getCallLog();
+            expect(calls.length).toBeGreaterThan(0);
+            expect(calls[0].payload.coverage_threshold).toBeUndefined();
+        });
+    });
+
+    // ─── impl_progress Auto-Update ────────────────────────────────────────────
+
+    describe('impl_progress Auto-Update', () => {
+        test('should call tasks CLI to update impl_progress on phase start and complete', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'impl-progress-test',
+                phases: {
+                    implement: {
+                        skill: 'rd3:code-implement',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            // Track Bun.spawnSync calls for tasks update
+            const spawnCalls: string[][] = [];
+            const origSpawnSync = Bun.spawnSync;
+            const spawnSpy = spyOn(Bun, 'spawnSync').mockImplementation((...args: unknown[]) => {
+                const cmd = args[0] as string[];
+                if (Array.isArray(cmd) && cmd[0] === 'tasks' && cmd[1] === 'update') {
+                    spawnCalls.push(cmd);
+                    return { exitCode: 0, stdout: new Uint8Array(), stderr: new Uint8Array() } as ReturnType<
+                        typeof origSpawnSync
+                    >;
+                }
+                // Pass through non-tasks calls (e.g. git)
+                return origSpawnSync(...(args as Parameters<typeof origSpawnSync>));
+            });
+
+            try {
+                const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
+                const pool = new ExecutorPool();
+                pool.register(testMock);
+                const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+
+                // Use a WBS-style task ref so extractWbsFromPath works
+                await testRunner.run({ taskRef: '0099' }, pipeline);
+
+                // Should have called tasks update for impl_progress
+                const implCalls = spawnCalls.filter((c) => c.includes('--phase'));
+                expect(implCalls.length).toBe(2); // in_progress + completed
+                expect(implCalls[0]).toEqual([
+                    'tasks',
+                    'update',
+                    '0099',
+                    '--phase',
+                    'implementation',
+                    '--phase-status',
+                    'in_progress',
+                ]);
+                expect(implCalls[1]).toEqual([
+                    'tasks',
+                    'update',
+                    '0099',
+                    '--phase',
+                    'implementation',
+                    '--phase-status',
+                    'completed',
+                ]);
+            } finally {
+                spawnSpy.mockRestore();
+            }
+        });
+
+        test('should not call tasks CLI for phases without impl_progress mapping', async () => {
+            const pipeline: PipelineDefinition = {
+                schema_version: 1,
+                name: 'no-mapping-test',
+                phases: {
+                    'verify-bdd': {
+                        skill: 'rd3:bdd-workflow',
+                        gate: { type: 'auto' },
+                    },
+                },
+            };
+
+            const spawnCalls: string[][] = [];
+            const origSpawnSync = Bun.spawnSync;
+            const spawnSpy = spyOn(Bun, 'spawnSync').mockImplementation((...args: unknown[]) => {
+                const cmd = args[0] as string[];
+                if (Array.isArray(cmd) && cmd[0] === 'tasks' && cmd[1] === 'update') {
+                    spawnCalls.push(cmd);
+                    return { exitCode: 0, stdout: new Uint8Array(), stderr: new Uint8Array() } as ReturnType<
+                        typeof origSpawnSync
+                    >;
+                }
+                return origSpawnSync(...(args as Parameters<typeof origSpawnSync>));
+            });
+
+            try {
+                const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
+                const pool = new ExecutorPool();
+                pool.register(testMock);
+                const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+
+                await testRunner.run({ taskRef: '0100' }, pipeline);
+
+                // "verify-bdd" phase has no impl_progress mapping — no calls expected
+                const implCalls = spawnCalls.filter((c) => c.includes('--phase'));
+                expect(implCalls.length).toBe(0);
+            } finally {
+                spawnSpy.mockRestore();
+            }
         });
     });
 });
