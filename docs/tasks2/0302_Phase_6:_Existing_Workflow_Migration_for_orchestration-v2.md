@@ -1,6 +1,6 @@
 ---
-name: Phase 6: Existing Workflow Migration for orchestration-v2
-description: Phase 6: Existing Workflow Migration for orchestration-v2
+name: Phase 6 Existing Workflow Migration for orchestration-v2
+description: Phase 6 Existing Workflow Migration for orchestration-v2
 status: Done
 created_at: 2026-03-31T23:38:18.528Z
 updated_at: 2026-04-01T21:49:14.876Z
