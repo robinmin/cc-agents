@@ -552,7 +552,6 @@ describe('history command', () => {
         expect(result.stdout).toContain('review');
         expect(result.stdout).toContain('verify-bdd');
         expect(result.stdout).toContain('verify-func');
-        expect(result.stdout).toContain('docs');
     });
 
     test('--preset simple --dry-run loads default.yaml (named preset, not simple.yaml)', () => {
@@ -562,10 +561,10 @@ describe('history command', () => {
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('Pipeline valid');
         expect(result.stdout).toContain('intake');
-        expect(result.stdout).toContain('decompose');
         expect(result.stdout).toContain('implement');
         expect(result.stdout).toContain('test');
-        expect(result.stdout).not.toContain('review');
+        expect(result.stdout).toContain('review');
+        expect(result.stdout).not.toContain('decompose');
     });
 
     test('--preset complex --dry-run loads default.yaml (named preset)', () => {
@@ -672,11 +671,10 @@ impl_progress:
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('Pipeline valid');
         expect(result.stdout).toContain('intake');
-        expect(result.stdout).toContain('decompose');
         expect(result.stdout).toContain('implement');
         expect(result.stdout).toContain('test');
-        expect(result.stdout).not.toContain('review');
-        expect(result.stdout).not.toContain('docs');
+        expect(result.stdout).toContain('review');
+        expect(result.stdout).not.toContain('decompose');
     });
 
     test('legacy task frontmatter profile still resolves when preset is absent', () => {
@@ -710,9 +708,10 @@ impl_progress:
 
         expect(result.exitCode).toBe(0);
         expect(result.stdout).toContain('intake');
-        expect(result.stdout).toContain('decompose');
         expect(result.stdout).toContain('implement');
         expect(result.stdout).toContain('test');
+        expect(result.stdout).toContain('review');
+        expect(result.stdout).not.toContain('decompose');
     });
 
     test('unknown flags fail loudly instead of falling through to the default pipeline', () => {
