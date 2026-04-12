@@ -1,15 +1,15 @@
-# Default 9-phase pipeline for rd3
-#
-# Faithfully maps the rd3 9-phase workflow into v2 DAG format.
-# See: plugins/rd3/skills/orchestration-v1/references/phase-matrix.md
+# Default 7-phase pipeline for rd3
 #
 # DAG structure:
 #   intake ──> arch ──> design ──┐
-#        └──────────────────────> decompose ──> implement ──> test ──> review ──┬─> verify-bdd ─┬─> docs
-#                                                                                └─> verify-func ┘
+#        └──────────────────────> decompose ──> implement ──> test ──> review ──┬─> verify-bdd
+#                                                                                └─> verify-func
 #
 # Key: decompose depends on intake directly so the standard preset (which skips
 # arch+design) remains a valid subgraph.
+#
+# Note: docs generation is handled by a separate slash command (rd3:code-docs),
+# not as a pipeline phase. PR creation is also out-of-band.
 
 schema_version: 1
 name: default
@@ -24,34 +24,29 @@ stack:
 phases:
   intake:
     skill: rd3:request-intake
-
     gate: { type: auto }
     timeout: 30m
 
   arch:
     skill: rd3:backend-architect
-
     gate: { type: auto }
     timeout: 1h
     after: [intake]
 
   design:
     skill: rd3:backend-design
-
     gate: { type: auto }
     timeout: 1h
     after: [arch]
 
   decompose:
     skill: rd3:task-decomposition
-
     gate: { type: auto }
     timeout: 30m
     after: [intake]
 
   implement:
     skill: rd3:code-implement-common
-
     gate:
       type: command
       command: "bun run check"
@@ -59,33 +54,36 @@ phases:
     timeout: 2h
     after: [decompose]
     payload:
-      tdd: true
-      sandbox: git-worktree
+      # Advisory hints — passed to the skill but not engine-enforced.
+      tdd: true                # Hint: write tests before implementation
+      sandbox: git-worktree    # Hint: use worktree isolation
 
   test:
     skill: rd3:sys-testing
-
     gate:
       type: command
-      command: "bun test --coverage"
+      command: "bun run test"
       rework: { max_iterations: 3, escalation: pause }
     timeout: 1h
     after: [implement]
     payload:
+      # coverage_threshold is also set in preset defaults and can be
+      # overridden via CLI --coverage flag.
       coverage_threshold: 80
 
   review:
     skill: rd3:code-review-common
-
-    gate: { type: human }
+    gate:
+      type: human
+      blocking: false # Advisory — LLM review sufficient, human optional
     after: [test]
     payload:
+      # Advisory hints for review depth and focus.
       depth: thorough
       focus_areas: [security, performance]
 
   verify-bdd:
     skill: rd3:bdd-workflow
-
     gate: { type: auto }
     timeout: 30m
     after: [review]
@@ -94,49 +92,44 @@ phases:
 
   verify-func:
     skill: rd3:functional-review
-
     gate: { type: auto }
     timeout: 30m
     after: [review]
     payload:
       depth: standard
 
-  docs:
-    skill: rd3:code-docs
-
-    gate:
-      type: command
-      command: "bun run typecheck"
-    timeout: 30m
-    after: [verify-bdd, verify-func]
-
-# ── Task profiles (match v1 phase-matrix.md) ──────────────────────────────────
+# ── Task presets ────────────────────────────────────────────────────────────────
 #
-# | Profile   | v1 phases        | v2 preset phases                                        |
-# |-----------|------------------|---------------------------------------------------------|
-# | simple    | 1,4,5,6          | intake, decompose, implement, test                      |
-# | standard  | 1,4,5,6,7,8a,8b,9 | intake, decompose, implement, test, review, verify-bdd, verify-func, docs |
-# | complex   | 1-9 (all)        | all 10 phases                                           |
-# | research  | 1-9 (all, 60%)   | all 10 phases, lower coverage                           |
+# | Preset    | Phases                                                          |
+# |-----------|-----------------------------------------------------------------|
+# | default   | intake, decompose, implement, test, review, verify-bdd, verify-func |
+# | simple    | intake, implement, test, review                                |
+# | standard  | intake, decompose, implement, test, review, verify-bdd, verify-func |
+# | complex   | arch, design + standard                                        |
+# | research  | same as complex, lower coverage (60%)                          |
 
 presets:
+  default:
+    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func]
+    defaults: { coverage_threshold: 80 }
+
   simple:
-    phases: [intake, decompose, implement, test]
+    phases: [intake, implement, test, review]
     defaults: { coverage_threshold: 60 }
 
   standard:
-    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 80 }
 
   complex:
-    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 80 }
 
   research:
-    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 60 }
 
-  # ── Phase profiles (match v1 convenience commands) ────────────────────────────
+  # ── Phase profiles (single-phase convenience presets) ─────────────────────────
 
   refine:
     phases: [intake]
@@ -150,6 +143,3 @@ presets:
 
   review-only:
     phases: [review]
-
-  docs-only:
-    phases: [docs]
