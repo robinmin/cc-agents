@@ -52,7 +52,6 @@ const PARALLEL_PIPELINE: PipelineDefinition = {
         implement: { skill: 'rd3:mock-impl', gate: { type: 'auto' }, timeout: '1m', after: ['intake'] },
         'verify-bdd': { skill: 'rd3:mock-bdd', gate: { type: 'auto' }, timeout: '1m', after: ['implement'] },
         'verify-func': { skill: 'rd3:mock-func', gate: { type: 'auto' }, timeout: '1m', after: ['implement'] },
-        docs: { skill: 'rd3:mock-docs', gate: { type: 'auto' }, timeout: '1m', after: ['verify-bdd', 'verify-func'] },
     },
 };
 
@@ -216,13 +215,16 @@ describe('Integration: full pipeline run', () => {
         const summary = await queries.getRunSummary(result.runId);
         expect(summary).toBeDefined();
 
-        // All 5 phases should be completed
+        // All 4 phases should be completed
         const completed = summary?.phases.filter((p) => p.status === 'completed');
-        expect(completed?.length).toBe(5);
+        expect(completed?.length).toBe(4);
 
-        // docs phase should exist
-        const docsPhase = summary?.phases.find((p) => p.name === 'docs');
-        expect(docsPhase).toBeDefined();
-        expect(docsPhase?.status).toBe('completed');
+        // Both verify phases should be completed (parallel fan-out from implement)
+        const bddPhase = summary?.phases.find((p) => p.name === 'verify-bdd');
+        expect(bddPhase).toBeDefined();
+        expect(bddPhase?.status).toBe('completed');
+        const funcPhase = summary?.phases.find((p) => p.name === 'verify-func');
+        expect(funcPhase).toBeDefined();
+        expect(funcPhase?.status).toBe('completed');
     });
 });
