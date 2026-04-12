@@ -1,6 +1,6 @@
 ---
-name: enhance rd3:task-decomposition
-description: Add decomposition decision rules, simplify output format, add Decomposed status, and rewrite Phase 4 prompt to fix task-decomposition being skipped
+name: enhance rd3task-decomposition
+description: Add decomposition decision rules simplify output format add Decomposed status and rewrite Phase 4 prompt to fix task-decomposition being skipped
 status: Done
 profile: standard
 created_at: 2026-04-04T06:08:51.358Z
