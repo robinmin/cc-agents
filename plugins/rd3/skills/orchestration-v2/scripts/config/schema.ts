@@ -165,6 +165,12 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
                                 message: `Phase "${name}" gate type "command" must not have a "prompt_template" field`,
                             });
                         }
+                        if (gate.blocking != null) {
+                            errors.push({
+                                rule: 'gate_blocking',
+                                message: `Phase "${name}" gate type "command" must not have a "blocking" field`,
+                            });
+                        }
                     } else if (gate.type === 'auto') {
                         // auto gate must not have command or prompt
                         if (gate.command != null) {
@@ -177,6 +183,12 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
                             errors.push({
                                 rule: 'gate_prompt',
                                 message: `Phase "${name}" gate type "auto" must not have a "prompt" field`,
+                            });
+                        }
+                        if (gate.blocking != null) {
+                            errors.push({
+                                rule: 'gate_blocking',
+                                message: `Phase "${name}" gate type "auto" must not have a "blocking" field`,
                             });
                         }
                         // checklist must be array of strings if provided
@@ -228,6 +240,13 @@ export function validateSchema(raw: Record<string, unknown>): ValidationResult {
                             errors.push({
                                 rule: 'gate_severity',
                                 message: `Phase "${name}" gate type "human" must not have a "severity" field`,
+                            });
+                        }
+                        // blocking must be boolean if provided
+                        if (gate.blocking != null && typeof gate.blocking !== 'boolean') {
+                            errors.push({
+                                rule: 'gate_blocking',
+                                message: `Phase "${name}" human gate "blocking" must be a boolean, got ${typeof gate.blocking}`,
                             });
                         }
                     }
@@ -363,6 +382,7 @@ export function getPipelineJsonSchema(): Record<string, unknown> {
                                     },
                                     prompt_template: { type: 'string' },
                                     severity: { enum: ['blocking', 'advisory'] },
+                                    blocking: { type: 'boolean' },
                                     prompt: { type: 'string' },
                                     rework: {
                                         type: 'object',
@@ -383,6 +403,7 @@ export function getPipelineJsonSchema(): Record<string, unknown> {
                                                     { required: ['prompt_template'] },
                                                     { required: ['severity'] },
                                                     { required: ['prompt'] },
+                                                    { required: ['blocking'] },
                                                 ],
                                             },
                                         },
@@ -391,7 +412,11 @@ export function getPipelineJsonSchema(): Record<string, unknown> {
                                         { properties: { type: { const: 'auto' } }, required: ['type'] },
                                         {
                                             not: {
-                                                anyOf: [{ required: ['command'] }, { required: ['prompt'] }],
+                                                anyOf: [
+                                                    { required: ['command'] },
+                                                    { required: ['prompt'] },
+                                                    { required: ['blocking'] },
+                                                ],
                                             },
                                         },
                                     ),
