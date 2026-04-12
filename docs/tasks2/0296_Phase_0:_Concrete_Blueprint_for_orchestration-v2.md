@@ -1,6 +1,6 @@
 ---
-name: Phase 0: Concrete Blueprint for orchestration-v2
-description: Phase 0: Concrete Blueprint for orchestration-v2
+name: Phase 0 Concrete Blueprint for orchestration-v2
+description: Phase 0 Concrete Blueprint for orchestration-v2
 status: Done
 created_at: 2026-03-31T23:36:58.352Z
 updated_at: 2026-03-31T23:37:15.184Z
