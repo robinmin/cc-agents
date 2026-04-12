@@ -1,6 +1,6 @@
 ---
-name: Purify executor layer: remove legacy executors, rename inline/subprocess/acp
-description: Remove AutoExecutor/AcpExecutor, unify Executor interface, rename local→inline, direct→subprocess, acp-stateless→acp-oneshot, acp-sessioned→acp-session
+name: Purify executor layer remove legacy executors rename inline/subprocess/acp
+description: Remove AutoExecutor/AcpExecutor unify Executor interface rename local→inline direct→subprocess acp-stateless→acp-oneshot acp-sessioned→acp-session
 status: Done
 created_at: 2026-04-09T19:23:06.895Z
 updated_at: 2026-04-09T23:27:29.364Z
