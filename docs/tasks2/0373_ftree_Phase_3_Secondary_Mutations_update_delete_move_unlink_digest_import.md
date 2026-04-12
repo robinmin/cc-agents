@@ -1,6 +1,6 @@
 ---
-name: ftree Phase 3: Secondary Mutations — update, delete, move, unlink, digest, import
-description: ftree Phase 3: Secondary Mutations — update, delete, move, unlink, digest, import
+name: ftree Phase 3 Secondary Mutations — update delete move unlink digest import
+description: ftree Phase 3 Secondary Mutations — update delete move unlink digest import
 status: Backlog
 created_at: 2026-04-10T05:28:38.699Z
 updated_at: 2026-04-10T05:28:38.699Z
