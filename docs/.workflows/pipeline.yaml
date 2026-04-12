@@ -1,15 +1,15 @@
-# Default 9-phase pipeline for rd3
-#
-# Faithfully maps the rd3 9-phase workflow into v2 DAG format.
-# See: plugins/rd3/skills/orchestration-v1/references/phase-matrix.md
+# Default 7-phase pipeline for rd3
 #
 # DAG structure:
 #   intake ──> arch ──> design ──┐
-#        └──────────────────────> decompose ──> implement ──> test ──> review ──┬─> verify-bdd ─┬─> docs
-#                                                                                └─> verify-func ┘
+#        └──────────────────────> decompose ──> implement ──> test ──> review ──┬─> verify-bdd
+#                                                                                └─> verify-func
 #
 # Key: decompose depends on intake directly so the standard preset (which skips
 # arch+design) remains a valid subgraph.
+#
+# Note: docs generation is handled by a separate slash command (rd3:code-docs),
+# not as a pipeline phase. PR creation is also out-of-band.
 
 schema_version: 1
 name: default
@@ -49,13 +49,16 @@ phases:
     skill: rd3:code-implement-common
     gate:
       type: command
-      command: "bun run format && bun run lint && bun run typecheck"
+      command: "bun run check"
       rework: { max_iterations: 2, escalation: pause }
     timeout: 2h
     after: [decompose]
     payload:
-      tdd: true
-      sandbox: git-worktree
+      # Advisory hints — passed to the skill but not engine-enforced.
+      # The skill decides whether to follow these. The engine enforces
+      # only gates and DAG dependencies.
+      tdd: true                # Hint: write tests before implementation
+      sandbox: git-worktree    # Hint: use worktree isolation (not enforced by runner)
 
   test:
     skill: rd3:sys-testing
@@ -66,15 +69,20 @@ phases:
     timeout: 1h
     after: [implement]
     payload:
+      # coverage_threshold is also set in preset defaults and can be
+      # overridden via CLI --coverage flag. The runner merges preset
+      # defaults into the payload automatically.
       coverage_threshold: 80
 
   review:
     skill: rd3:code-review-common
     gate:
       type: human
-      blocking: false # Advisory - LLM review sufficient, human optional
+      blocking: false # Advisory — LLM review sufficient, human optional
     after: [test]
     payload:
+      # Advisory hints — the skill should produce a structured review
+      # artifact, but the engine does not enforce artifact presence.
       depth: thorough
       focus_areas: [security, performance]
 
@@ -84,6 +92,9 @@ phases:
     timeout: 30m
     after: [review]
     payload:
+      # Advisory — the skill should produce Gherkin scenarios or an
+      # acceptance checklist. For simple tasks, a lightweight checklist
+      # mapped to task requirements is sufficient.
       depth: standard
 
   verify-func:
@@ -92,60 +103,23 @@ phases:
     timeout: 30m
     after: [review]
     payload:
+      # Advisory — the skill should produce a traceability matrix or
+      # structured verification output.
       depth: standard
 
-  docs:
-    skill: rd3:code-docs
-    gate:
-      type: command
-      command: "bun run typecheck"
-    timeout: 30m
-    after: [verify-bdd, verify-func]
-    payload:
-      architecture: docs/spec/orchestrator-architecture-v2.md
-      spec: docs/spec/orchestrator-fsd-v2.md
-      user_manual: docs/spec/orchestrator-user-manual-v2.md
-
-  pr:
-    skill: rd3:git-workflow
-    gate:
-      type: human
-      blocking: true
-      prompt: "Review PR, approve merge, or reject with feedback"
-    timeout: 30m
-    after: [docs]
-
-# ── Task profiles ───────────────────────────────────────────────────────────────
+# ── Task presets ────────────────────────────────────────────────────────────────
 #
-# | Profile          | Phases (no docs/pr)                                     |
-# |------------------|--------------------------------------------------------|
-# | default          | intake, decompose, implement, test, review, verify-bdd, verify-func |
-# | default+docs     | default + docs                                         |
-# | simple           | intake, decompose, implement, test                    |
-# | standard         | default + docs, pr                                     |
-# | complex          | arch, design + standard                                |
-# | research         | arch, design + standard (60% coverage)                 |
+# | Preset    | Phases                                                          |
+# |-----------|-----------------------------------------------------------------|
+# | default   | intake, decompose, implement, test, review, verify-bdd, verify-func |
+# | simple    | intake, implement, test, review                                |
+# | standard  | intake, decompose, implement, test, review, verify-bdd, verify-func |
+# | complex   | arch, design + standard                                        |
+# | research  | same as complex, lower coverage (60%)                          |
 
 presets:
-  # Default for most tasks: standard workflow without docs/pr (manual opt-in)
   default:
-    phases:
-      [intake, decompose, implement, test, review, verify-bdd, verify-func]
-    defaults: { coverage_threshold: 80 }
-
-  # Include docs phase (no pr - pr is always human-gated)
-  default+docs:
-    phases:
-      [
-        intake,
-        decompose,
-        implement,
-        test,
-        review,
-        verify-bdd,
-        verify-func,
-        docs,
-      ]
+    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 80 }
 
   simple:
@@ -153,55 +127,18 @@ presets:
     defaults: { coverage_threshold: 60 }
 
   standard:
-    phases:
-      [
-        intake,
-        decompose,
-        implement,
-        test,
-        review,
-        verify-bdd,
-        verify-func,
-        docs,
-        pr,
-      ]
+    phases: [intake, decompose, implement, test, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 80 }
 
   complex:
-    phases:
-      [
-        intake,
-        arch,
-        design,
-        decompose,
-        implement,
-        test,
-        review,
-        verify-bdd,
-        verify-func,
-        docs,
-        pr,
-      ]
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 80 }
 
   research:
-    phases:
-      [
-        intake,
-        arch,
-        design,
-        decompose,
-        implement,
-        test,
-        review,
-        verify-bdd,
-        verify-func,
-        docs,
-        pr,
-      ]
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 60 }
 
-  # ── Phase profiles (match v1 convenience commands) ────────────────────────────
+  # ── Phase profiles (single-phase convenience presets) ─────────────────────────
 
   refine:
     phases: [intake]
@@ -215,6 +152,3 @@ presets:
 
   review-only:
     phases: [review]
-
-  docs-only:
-    phases: [docs]
