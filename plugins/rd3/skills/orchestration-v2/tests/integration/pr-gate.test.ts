@@ -157,59 +157,43 @@ describe('Gate Bypass Logic with --auto Flag', () => {
     });
 });
 
-describe('PR Pipeline Gate Verification', () => {
+describe('Pipeline Gate Verification', () => {
     const pipelinePath = resolve(process.cwd(), 'docs/.workflows/pipeline.yaml');
 
-    test('pipeline.yaml contains pr phase definition', () => {
+    test('pipeline.yaml contains review phase with human gate', () => {
         if (!existsSync(pipelinePath)) {
             return; // Skip if pipeline.yaml doesn't exist
         }
 
         const content = readFileSync(pipelinePath, 'utf-8');
-        expect(content).toContain('pr:');
-        expect(content).toContain('blocking: true');
+        expect(content).toContain('review:');
         expect(content).toContain('type: human');
+        // Review gate is advisory (blocking: false)
+        expect(content).toContain('blocking: false');
     });
 
-    test('pr phase depends on docs phase', () => {
+    test('pipeline.yaml does not contain pr or docs phases', () => {
         if (!existsSync(pipelinePath)) {
             return;
         }
 
         const content = readFileSync(pipelinePath, 'utf-8');
-        // Check that pr has 'after: [docs]' or similar dependency
-        expect(content).toMatch(/pr:[\s\S]*?after:.*docs/);
+        // pr and docs were removed — PR creation and docs are independent slash commands
+        expect(content).not.toMatch(/^\s+pr:\s*$/m);
+        expect(content).not.toMatch(/^\s+docs:\s*$/m);
     });
 
-    test('standard preset includes pr phase', () => {
+    test('standard preset does not include pr or docs phases', () => {
         if (!existsSync(pipelinePath)) {
             return;
         }
 
         const content = readFileSync(pipelinePath, 'utf-8');
-        expect(content).toMatch(/standard:[\s\S]*?phases:[\s\S]*?\bpr\b/);
-    });
-
-    test('complex preset includes pr phase', () => {
-        if (!existsSync(pipelinePath)) {
-            return;
-        }
-
-        const content = readFileSync(pipelinePath, 'utf-8');
-        expect(content).toMatch(/complex:[\s\S]*?phases:[\s\S]*?\bpr\b/);
-    });
-
-    test('simple preset does NOT include pr phase', () => {
-        if (!existsSync(pipelinePath)) {
-            return;
-        }
-
-        const content = readFileSync(pipelinePath, 'utf-8');
-        // Extract simple preset phases
-        const simpleMatch = content.match(/simple:\s*\n\s*phases:\s*\[(.*?)\]/s);
-        if (simpleMatch) {
-            const phases = simpleMatch[1];
+        const standardMatch = content.match(/standard:\s*\n\s*phases:\s*\[(.*?)\]/s);
+        if (standardMatch) {
+            const phases = standardMatch[1];
             expect(phases).not.toContain('pr');
+            expect(phases).not.toContain('docs');
         }
     });
 });
@@ -291,20 +275,20 @@ describe('Complete Pipeline Gate Scenarios', () => {
         'review',
         'verify-bdd',
         'verify-func',
-        'docs',
-        'pr',
     ];
 
     test('standard pipeline has correct phase order', () => {
         expect(STANDARD_PIPELINE_PHASES[0]).toBe('intake');
-        expect(STANDARD_PIPELINE_PHASES[STANDARD_PIPELINE_PHASES.length - 1]).toBe('pr');
-        expect(STANDARD_PIPELINE_PHASES).toContain('docs');
-        expect(STANDARD_PIPELINE_PHASES).toContain('pr');
+        expect(STANDARD_PIPELINE_PHASES[STANDARD_PIPELINE_PHASES.length - 1]).toBe('verify-func');
+        expect(STANDARD_PIPELINE_PHASES).not.toContain('docs');
+        expect(STANDARD_PIPELINE_PHASES).not.toContain('pr');
     });
 
-    test('pr phase is last in standard pipeline', () => {
-        const prIndex = STANDARD_PIPELINE_PHASES.indexOf('pr');
-        const lastIndex = STANDARD_PIPELINE_PHASES.length - 1;
-        expect(prIndex).toBe(lastIndex);
+    test('verify phases are last in standard pipeline', () => {
+        const bddIndex = STANDARD_PIPELINE_PHASES.indexOf('verify-bdd');
+        const funcIndex = STANDARD_PIPELINE_PHASES.indexOf('verify-func');
+        const reviewIndex = STANDARD_PIPELINE_PHASES.indexOf('review');
+        expect(bddIndex).toBeGreaterThan(reviewIndex);
+        expect(funcIndex).toBeGreaterThan(reviewIndex);
     });
 });
