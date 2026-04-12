@@ -29,7 +29,6 @@ see_also:
   - rd3:code-review-common
   - rd3:bdd-workflow
   - rd3:functional-review
-  - rd3:code-docs
   - rd3:verification-chain
 ---
 
@@ -39,12 +38,50 @@ FSM-supervised DAG scheduler with event-sourced SQLite state, pluggable executor
 
 ## When to Use
 
-- Run a multi-phase development pipeline (implement → test → review → docs)
+- Run a multi-phase development pipeline (implement → test → review → verify)
 - Resume a paused or failed pipeline from the last successful phase
 - Execute pipeline phases in parallel where dependencies allow
 - Customize pipeline definitions per-project via YAML
 - Generate pipeline reports with timing and coverage metrics
 - Migrate from v1 orchestration-dev state to v2
+
+## Enforcement — MUST use `orchestrator run`
+
+**CRITICAL**: Agents MUST execute phases through `orchestrator run`, NOT by manually invoking phase skills inline.
+
+When phases are executed outside the runner:
+- **No state is persisted** — the SQLite state DB stays empty (runs, phases, events, gate_results tables are all 0 rows)
+- **No resume capability** — a crashed session loses all progress
+- **No audit trail** — no record of which phases passed/failed or what was evaluated
+- **No gate enforcement** — human gates are skipped, rework loops don't trigger, command gates aren't checked
+- **No artifact tracking** — phase evidence, rollback snapshots, and resource usage are not recorded
+
+The runner (`PipelineRunner`) handles all state persistence, FSM transitions, DAG scheduling, gate checks, rework loops, and event sourcing automatically. Treating this skill as reference documentation and manually executing phases defeats its purpose.
+
+**Correct usage:**
+```bash
+# Always use the CLI — this persists state, enforces gates, and enables resume
+orchestrator run 0266 --preset standard
+
+# Never do this — executing skills manually bypasses all enforcement
+# ❌ Skill(skill="rd3:code-implement-common", args="0266")
+# ❌ Skill(skill="rd3:sys-testing", args="0266")
+```
+
+## What the Engine Enforces vs. What Is Advisory
+
+The engine enforces **structural** constraints; phase **payload** fields are advisory hints.
+
+| Enforced by engine | Advisory (passed to skill) |
+|--------------------|---------------------------|
+| DAG dependencies (`after:`) | `tdd: true` |
+| Gate checks (command/auto/human) | `sandbox: git-worktree` |
+| Rework loops and escalation | `depth: thorough` |
+| FSM state transitions | `focus_areas: [...]` |
+| State persistence (runs, phases, events) | `coverage_threshold` (also set via preset defaults / `--coverage`) |
+| Timeouts | |
+
+Advisory payload fields are passed to the executing skill, which decides whether and how to act on them. The engine does not validate or enforce payload contents.
 
 ## Overview
 
@@ -118,7 +155,7 @@ Named aliases for common `--phases` combinations. Not a core concept — the DAG
 
 ```bash
 orchestrator run 0266 --preset simple    # ≡ --phases intake,decompose,implement,test
-orchestrator run 0266 --preset complex   # ≡ --phases intake,arch,...,docs
+orchestrator run 0266 --preset complex   # ≡ --phases intake,arch,...,verify-func
 ```
 
 When `--preset` is omitted, the engine resolves it in this order:
@@ -127,7 +164,7 @@ When `--preset` is omitted, the engine resolves it in this order:
 3. Legacy task frontmatter `profile`
 4. Project `defaultPreset`
 
-Legacy task aliases `review` and `docs` remain accepted and are normalized to `review-only` and `docs-only`.
+Legacy task alias `review` remains accepted and is normalized to `review-only`.
 
 ### Execution Channels
 
@@ -185,25 +222,6 @@ Full CLI documentation: → `references/cli-reference.md`
 | `orchestrator prune` | Compact event store |
 | `orchestrator migrate` | Migrate v1 state to v2 |
 
-### Docs Preset Arguments
-
-When using `--preset docs`, the following arguments customize canonical doc paths:
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--source <path>` | `.` | Source code path to scan for changes |
-| `--architecture <path>` | `docs/01_ARCHITECTURE_SPEC.md` | Architecture document path |
-| `--spec <path>` | `docs/02_DEVELOPER_SPEC.md` | Developer spec document path |
-| `--user-manual <path>` | `docs/03_USER_MANUAL.md` | User manual document path |
-
-```bash
-# Default paths
-orchestrator run 0274 --preset docs
-
-# Custom doc paths
-orchestrator run 0274 --preset docs --source ./src --architecture docs/ARCH.md --spec docs/SPEC.md --user-manual docs/MANUAL.md
-```
-
 ## Pipeline YAML Guide
 
 How to write and customize pipeline definitions: → `references/pipeline-yaml-guide.md`
@@ -218,9 +236,10 @@ Error taxonomy with recovery strategies: → `references/error-codes.md`
 
 ## Example Pipelines
 
-- `references/examples/default.yaml` — Full 9-phase pipeline
+- `references/examples/default.yaml` — Full 7-phase pipeline (9 with arch+design)
 - `references/examples/quick-fix.yaml` — Simple 2-phase pipeline
 - `references/examples/security-first.yaml` — Pipeline with security scan
+- `references/examples/review.yaml` — Review-only single-phase pipeline
 
 ## Architecture
 
