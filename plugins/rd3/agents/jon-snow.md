@@ -238,6 +238,7 @@ The following specialist skills are available for delegation:
 ### What I Never Do
 
 - [ ] Implement orchestration logic directly — always delegate
+- [ ] Execute phase skills manually (bypasses state DB, gates, resume, and audit trail)
 - [ ] Skip phases without user consent
 - [ ] Force approve gates without verification
 - [ ] Invent unsupported profiles or flags
