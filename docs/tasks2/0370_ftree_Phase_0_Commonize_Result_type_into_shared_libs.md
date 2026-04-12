@@ -1,6 +1,6 @@
 ---
-name: ftree Phase 0: Commonize Result type into shared libs
-description: ftree Phase 0: Commonize Result type into shared libs
+name: ftree Phase 0 Commonize Result type into shared libs
+description: ftree Phase 0 Commonize Result type into shared libs
 status: Done
 created_at: 2026-04-10T05:28:12.542Z
 updated_at: 2026-04-10T05:28:12.542Z
