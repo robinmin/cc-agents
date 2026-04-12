@@ -421,32 +421,23 @@ describe('InlineExecutor', () => {
         });
     });
 
-    // ─── defaultModuleLoader (real import) ────────────────────────────────────
+    // ─── defaultModuleLoader (real import via project fixture) ──────────────
+    // Exercises the real defaultModuleLoader (dynamic import) by pointing at a
+    // fixture file inside the project tree. Project-relative imports don't leak
+    // into V8 coverage because they're already tracked. Temp-dir imports DO leak
+    // (coverageExclude doesn't apply to worker-spawned modules).
 
-    describe('defaultModuleLoader via real import', () => {
-        beforeEach(() => setupTempDir());
-        afterEach(() => cleanupTempDir());
-
-        it('uses dynamic import to load a real skill module with runLocalPhase', async () => {
-            // Create a real .ts entrypoint that Bun can import
-            const skillDir = join(tempDir, 'real-skill', 'scripts');
-            mkdirSync(skillDir, { recursive: true });
-            writeFileSync(
-                join(skillDir, 'local.ts'),
-                `import type { ExecutionRequest, ExecutionResult } from '../model';\n` +
-                    `export async function runLocalPhase(req: ExecutionRequest): Promise<ExecutionResult> {\n` +
-                    `  return { success: true, exitCode: 0, durationMs: 7, timedOut: false, stdout: 'real-import' };\n` +
-                    `}\n`,
-            );
-
-            // Use default constructor (no mock loader) so defaultModuleLoader runs
-            const exec = new InlineExecutor(tempDir);
-            const req = makeRequest({ skill: 'rd3:real-skill' });
+    describe('defaultModuleLoader via project fixture', () => {
+        it('loads a real project-relative module via dynamic import', async () => {
+            // tests/fixtures/inline-test-skill/scripts/local.ts exports runLocalPhase
+            const fixtureBase = join(import.meta.dir, '..', '..', 'tests', 'fixtures');
+            const exec = new InlineExecutor(fixtureBase); // no mock loader → uses defaultModuleLoader
+            const req = makeRequest({ skill: 'rd3:inline-test-skill' });
             const result = await exec.execute(req);
 
             expect(result.success).toBe(true);
             expect(result.exitCode).toBe(0);
-            expect(result.stdout).toBe('real-import');
+            expect(result.stdout).toBe('fixture-ok');
         });
     });
 
