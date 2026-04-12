@@ -1,6 +1,6 @@
 ---
-name: ftree Phase 4: Polish + Skill Integration
-description: ftree Phase 4: Polish + Skill Integration
+name: ftree Phase 4 Polish + Skill Integration
+description: ftree Phase 4 Polish + Skill Integration
 status: Backlog
 created_at: 2026-04-10T05:28:46.368Z
 updated_at: 2026-04-10T05:28:46.368Z
