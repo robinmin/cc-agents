@@ -30,10 +30,6 @@ Run a pipeline for a task.
 | `--channel` | string | `local` | Execution target for phases. `auto` means "use the orchestrator default"; `current` is a deprecated alias. |
 | `--dry-run` | boolean | false | Show execution plan without running |
 | `--coverage` | number | from preset/phase | Override coverage threshold |
-| `--source` | path | `.` | Source code path for docs phase |
-| `--architecture` | path | `docs/01_ARCHITECTURE_SPEC.md` | Architecture doc path (docs preset) |
-| `--spec` | path | `docs/02_DEVELOPER_SPEC.md` | Developer spec path (docs preset) |
-| `--user-manual` | path | `docs/03_USER_MANUAL.md` | User manual path (docs preset) |
 
 ### Phase Selection Precedence
 
@@ -86,7 +82,7 @@ orchestrator run 0266 --channel codex
 
 ```
 ▶ Pipeline: complex | Task: 0266
-▶ Phases: intake → arch → design → decompose → implement → test → review → verify → docs
+▶ Phases: intake → arch → design → decompose → implement → test → review → verify-bdd → verify-func
 
   [1/9] intake        ━━━━━━━━━━━━━━━━━━ 100%  ✅  2m 34s
   [5/9] implement     ━━━━━━━━━━━━░░░░░░  60%  🔄  12m 22s...
@@ -245,7 +241,7 @@ List available pipelines.
 ┌──────────────────┬───────────┬──────────┬──────────┬──────────────┐
 │ Pipeline         │ Location  │ Phases   │ Presets  │ Last Used    │
 ├──────────────────┼───────────┼──────────┼──────────┼──────────────┤
- docs/.workflows/     │ docs/.workflows/     │ 9        │ 4        │ 2 hours ago  │
+ docs/.workflows/     │ docs/.workflows/     │ 7        │ 4        │ 2 hours ago  │
 │ quick-fix        │ docs/.workflows/     │ 2        │ 1        │ 5 days ago   │
 │ rd3:base         │ built-in  │ 9        │ 4        │ —            │
 └──────────────────┴───────────┴──────────┴──────────┴──────────────┘
