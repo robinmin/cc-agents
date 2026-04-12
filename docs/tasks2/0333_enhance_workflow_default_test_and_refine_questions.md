@@ -1,6 +1,6 @@
 ---
 name: enhance workflow default test and refine questions
-description: Enhance workflow: (1) use bun run check as default test cmd, (2) add recommended answers to refine questions
+description: Enhance workflow (1) use bun run check as default test cmd (2) add recommended answers to refine questions
 status: Completed
 profile: standard
 created_at: 2026-04-06T00:30:00.000Z
