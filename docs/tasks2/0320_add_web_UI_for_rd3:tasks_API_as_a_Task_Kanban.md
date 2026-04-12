@@ -1,6 +1,6 @@
 ---
-name: add web UI for rd3:tasks API as a Task Kanban
-description: add web UI for rd3:tasks API as a Task Kanban
+name: add web UI for rd3tasks API as a Task Kanban
+description: add web UI for rd3tasks API as a Task Kanban
 status: Done
 created_at: 2026-04-03T03:41:49.939Z
 updated_at: 2026-04-03T17:15:00.000Z
