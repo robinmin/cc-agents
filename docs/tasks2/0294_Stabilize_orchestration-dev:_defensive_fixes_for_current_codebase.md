@@ -1,6 +1,6 @@
 ---
-name: "Stabilize orchestration-dev: defensive fixes for current codebase"
-description: "Minimal-effort defensive fixes to keep orchestration-dev operational while v2 is built. No new features, no architectural changes."
+name: Stabilize orchestration-dev defensive fixes for current codebase
+description: Minimal-effort defensive fixes to keep orchestration-dev operational while v2 is built. No new features no architectural changes.
 status: Done
 profile: simple
 created_at: 2026-03-31T19:00:34.963Z
