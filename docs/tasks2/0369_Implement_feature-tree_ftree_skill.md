@@ -1,6 +1,6 @@
 ---
 name: Implement feature-tree (ftree) skill
-description: "Implement ftree CLI — single source of truth for product/project scope with hierarchical features, status state machine, WBS linking, and agent-optimized context output. Reuses shared libs (parseCli, Result, DAO pattern, logger)."
+description: Implement ftree CLI — single source of truth for product/project scope with hierarchical features status state machine WBS linking and agent-optimized context output. Reuses shared libs (parseCli Result DAO pattern logger).
 status: Done
 created_at: 2026-04-10T00:14:39.907Z
 updated_at: 2026-04-10T05:30:11.945Z
