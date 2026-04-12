@@ -1,6 +1,6 @@
 ---
-name: Phase 1: System Design for orchestration-v2
-description: Phase 1: System Design for orchestration-v2
+name: Phase 1 System Design for orchestration-v2
+description: Phase 1 System Design for orchestration-v2
 status: Done
 created_at: 2026-03-31T23:37:23.951Z
 updated_at: 2026-04-01T21:49:14.735Z
