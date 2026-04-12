@@ -1,6 +1,6 @@
 ---
-name: ftree Phase 1: Core Operations — init, add, link, ls, templates
-description: ftree Phase 1: Core Operations — init, add, link, ls, templates
+name: ftree Phase 1 Core Operations — init add link ls templates
+description: ftree Phase 1 Core Operations — init add link ls templates
 status: Backlog
 created_at: 2026-04-10T05:28:21.908Z
 updated_at: 2026-04-10T05:28:21.908Z
