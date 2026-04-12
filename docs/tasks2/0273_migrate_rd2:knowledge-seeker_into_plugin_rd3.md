@@ -1,6 +1,6 @@
 ---
-name: migrate rd2:knowledge-seeker into plugin rd3
-description: Absorb rd2:knowledge-seeker capabilities into rd3:knowledge-extraction skill, then create thin wrapper agent and update wt:info-seek command
+name: migrate rd2knowledge-seeker into plugin rd3
+description: Absorb rd2knowledge-seeker capabilities into rd3knowledge-extraction skill then create thin wrapper agent and update wtinfo-seek command
 status: Done
 created_at: 2026-03-28T00:01:29.820Z
 updated_at: 2026-03-27T00:00:00.000Z
