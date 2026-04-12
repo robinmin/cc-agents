@@ -1,9 +1,9 @@
 ---
 name: ftree Phase 4 Polish + Skill Integration
 description: ftree Phase 4 Polish + Skill Integration
-status: Backlog
+status: Canceled
 created_at: 2026-04-10T05:28:46.368Z
-updated_at: 2026-04-10T05:28:46.368Z
+updated_at: 2026-04-12T05:31:33.588Z
 folder: docs/tasks2
 type: task
 dependencies: ["0372","0373"]

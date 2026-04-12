@@ -1,9 +1,9 @@
 ---
 name: ftree Phase 2 Read-Only Queries — context wbs check-done export
 description: ftree Phase 2 Read-Only Queries — context wbs check-done export
-status: Backlog
+status: Canceled
 created_at: 2026-04-10T05:28:28.682Z
-updated_at: 2026-04-10T05:28:28.682Z
+updated_at: 2026-04-12T05:31:23.580Z
 folder: docs/tasks2
 type: task
 dependencies: ["0371"]

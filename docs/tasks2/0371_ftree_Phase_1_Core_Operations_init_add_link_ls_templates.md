@@ -1,9 +1,9 @@
 ---
 name: ftree Phase 1 Core Operations — init add link ls templates
 description: ftree Phase 1 Core Operations — init add link ls templates
-status: Backlog
+status: Canceled
 created_at: 2026-04-10T05:28:21.908Z
-updated_at: 2026-04-10T05:28:21.908Z
+updated_at: 2026-04-12T05:31:18.610Z
 folder: docs/tasks2
 type: task
 dependencies: ["0370"]
