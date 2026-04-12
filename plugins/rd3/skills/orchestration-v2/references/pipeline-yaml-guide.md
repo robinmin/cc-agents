@@ -239,13 +239,9 @@ phases:
     skill: rd3:functional-review
     gate: { type: auto }
     after: [review]
-  docs:
-    skill: rd3:code-docs
-    gate: { type: auto }
-    after: [verify-bdd, verify-func]
 ```
 
-`verify-bdd` and `verify-func` run in parallel after `review` completes. `docs` waits for both.
+`verify-bdd` and `verify-func` run in parallel after `review` completes.
 
 ### Cycle Detection
 
@@ -271,7 +267,7 @@ presets:
     defaults:
       coverage_threshold: 60
   complex:
-    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func, docs]
+    phases: [intake, arch, design, decompose, implement, test, review, verify-bdd, verify-func]
     defaults:
       coverage_threshold: 80
 ```
