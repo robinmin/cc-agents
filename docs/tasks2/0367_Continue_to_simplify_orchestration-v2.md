@@ -10,7 +10,7 @@ impl_progress:
   planning: completed
   design: completed
   implementation: completed
-  review: completed
+  review: in_progress
   testing: completed
 ---
 
