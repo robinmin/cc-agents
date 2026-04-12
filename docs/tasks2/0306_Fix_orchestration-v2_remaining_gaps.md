@@ -1,6 +1,6 @@
 ---
 name: Fix orchestration-v2 remaining gaps
-description: Fix missing hook executions, validation, history filters, and other review findings
+description: Fix missing hook executions validation history filters and other review findings
 status: Done
 created_at: 2026-04-01T15:00:00.000Z
 updated_at: 2026-04-01T23:49:49.218Z
