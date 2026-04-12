@@ -356,7 +356,7 @@ orchestrator report <task> --format json | jq '.gates[] | select(.advisory==true
 Update example YAML files to annotate placeholder `auto` gates:
 - `default.yaml` — add comment that `auto` is placeholder, will use verification-chain
 - `security-first.yaml` — same
-- `quick-fix.yaml`, `unit.yaml`, `docs.yaml` — already use `command` only, no change needed
+- `quick-fix.yaml`, `unit.yaml` — already use `command` only, no change needed
 
 ### Phase 3: Runtime Implementation (0319)
 
