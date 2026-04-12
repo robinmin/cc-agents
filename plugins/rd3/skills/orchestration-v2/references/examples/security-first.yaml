@@ -93,19 +93,13 @@ phases:
     payload:
       depth: standard
 
-  docs:
-    skill: rd3:code-docs
-    gate: { type: command, command: "bun run typecheck" }
-    timeout: 30m
-    after: [verify-bdd, verify-func]
-
 presets:
   simple:
     phases: [intake, arch, design, decompose, implement, test]
     defaults: { coverage_threshold: 60 }
   standard:
-    phases: [intake, arch, design, decompose, implement, test, security-scan, review, verify-bdd, verify-func, docs]
+    phases: [intake, arch, design, decompose, implement, test, security-scan, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 80 }
   complex:
-    phases: [intake, arch, design, decompose, implement, test, security-scan, review, verify-bdd, verify-func, docs]
+    phases: [intake, arch, design, decompose, implement, test, security-scan, review, verify-bdd, verify-func]
     defaults: { coverage_threshold: 80 }
