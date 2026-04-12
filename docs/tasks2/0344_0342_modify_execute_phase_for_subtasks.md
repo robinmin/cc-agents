@@ -1,6 +1,6 @@
 ---
 name: Modify executePhaseWithRework() for subtask iteration
-description: Update executePhaseWithRework() in runner.ts to detect subtasks and execute them sequentially, updating status as each completes
+description: Update executePhaseWithRework() in runner.ts to detect subtasks and execute them sequentially updating status as each completes
 status: Done
 created_at: 2026-04-06T18:00:00.000Z
 updated_at: 2026-04-06T18:00:00.000Z
