@@ -1,6 +1,6 @@
 ---
-name: Phase 3: Common Parts Implementation for orchestration-v2
-description: Phase 3: Common Parts Implementation for orchestration-v2
+name: Phase 3 Common Parts Implementation for orchestration-v2
+description: Phase 3 Common Parts Implementation for orchestration-v2
 status: Done
 created_at: 2026-03-31T23:37:44.452Z
 updated_at: 2026-04-01T21:49:14.791Z
