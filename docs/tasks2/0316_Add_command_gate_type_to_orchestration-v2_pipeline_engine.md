@@ -1,6 +1,6 @@
 ---
 name: Add command gate type to orchestration-v2 pipeline engine
-description: "Add a new `command` gate type to the orchestration-v2 that runs a single shell command as a deterministic gate check. Simplify the gate model to three clear types: command (deterministic CLI), auto (LLM-based verification), human (pause for approval). Update model, schema, parser, runner, examples, docs, and tests."
+description: Add a new command gate type to the orchestration-v2 that runs a single shell command as a deterministic gate check. Simplify the gate model to three clear types command (deterministic CLI) auto (LLM-based verification) human (pause for approval). Update model schema parser runner examples docs and tests.
 status: Done
 created_at: 2026-04-02T07:25:09.600Z
 updated_at: 2026-04-02T10:30:00.000Z
