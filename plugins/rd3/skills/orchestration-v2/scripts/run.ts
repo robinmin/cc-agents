@@ -50,7 +50,6 @@ type PipelineSource = {
 
 const TASK_PROFILE_PRESET_ALIASES: Readonly<Record<string, string>> = {
     review: 'review-only',
-    docs: 'docs-only',
 };
 
 function printHelp(): void {
