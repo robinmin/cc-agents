@@ -70,10 +70,18 @@ export function getTemplateVars(name: string, wbs: string, folder: string, descr
     const now = new Date().toISOString();
     return {
         WBS: wbs,
-        PROMPT_NAME: name,
-        DESCRIPTION: description,
+        PROMPT_NAME: stripYamlUnsafeChars(name),
+        DESCRIPTION: stripYamlUnsafeChars(description),
         CREATED_AT: now,
         UPDATED_AT: now,
         FOLDER: folder,
     };
+}
+
+/**
+ * Remove characters from a string that would break YAML parsing
+ * when used as an unquoted value (colons, braces, brackets, etc.).
+ */
+export function stripYamlUnsafeChars(value: string): string {
+    return value.replace(/[:{}[\],&*?|>!%@`#"'\\]/g, '');
 }
