@@ -30,7 +30,6 @@ export interface FSMTransitionResult {
 export type FSMTransitionHandler = (result: FSMTransitionResult) => void;
 
 export class FSMEngine {
-    // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
     constructor() {}
     private state: FSMState = 'IDLE';
     private handlers: FSMTransitionHandler[] = [];
