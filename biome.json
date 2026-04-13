@@ -1,53 +1,57 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.3.13/schema.json",
-    "vcs": {
-        "enabled": false,
-        "clientKind": "git",
-        "useIgnoreFile": false
-    },
-    "files": {
-        "ignoreUnknown": false,
-        "includes": [
-            "**",
-            "!**/dist/**",
-            "!**/node_modules/**",
-            "!**/build/**",
-            "!**/vendors/**",
-            "!**/.mypy_cache/**",
-            "!**/htmlcov/**",
-            "!**/examples/**",
-            "!**/demo/**",
-            "!**/wt/**",
-            "!**/templates/**",
-            "!**/tests/test_hooks/invalid-json.json",
-            "!**/ui/node_modules/**",
-            "!**/scripts/static/**"
-        ]
-    },
-    "assist": {
-        "enabled": true,
-        "actions": {
-            "source": {
-                "organizeImports": {}
-            }
-        }
-    },
-    "formatter": {
-        "enabled": true,
-        "indentStyle": "space",
-        "indentWidth": 4,
-        "lineWidth": 120
-    },
-    "linter": {
-        "enabled": true,
-        "rules": {
-            "recommended": true
-        }
-    },
-    "javascript": {
-        "formatter": {
-            "quoteStyle": "single",
-            "trailingCommas": "all"
-        }
+  "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
+  "vcs": {
+    "enabled": false,
+    "clientKind": "git",
+    "useIgnoreFile": false
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "**",
+      "!**/dist/**",
+      "!**/node_modules/**",
+      "!**/build/**",
+      "!**/vendors/**",
+      "!**/.mypy_cache/**",
+      "!**/htmlcov/**",
+      "!**/examples/**",
+      "!**/demo/**",
+      "!**/wt/**",
+      "!**/templates/**",
+      "!**/tests/test_hooks/invalid-json.json",
+      "!**/ui/node_modules/**",
+      "!**/scripts/static/**"
+    ]
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": {}
+      }
     }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineWidth": 120
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  }
 }
