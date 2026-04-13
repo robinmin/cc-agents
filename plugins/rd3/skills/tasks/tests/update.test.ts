@@ -264,6 +264,30 @@ Requirements content for testing purposes.
         });
     });
 
+    describe('frontmatter field update', () => {
+        test('adds feature-id frontmatter when missing from older tasks', () => {
+            const taskPath = writeTask(tempDir, folder, '0007');
+            const original = readFileSync(taskPath, 'utf8').replace('profile: "standard"\n', '');
+            writeFileSync(taskPath, original);
+
+            const result = updateTask(tempDir, '0007', {
+                field: 'feature-id',
+                value: 'feat_auth_magic_link',
+                quiet: true,
+            });
+
+            expect(result.ok).toBe(true);
+            if (result.ok) {
+                expect(result.value.action).toBe('field');
+                expect(result.value.oldValue).toBeUndefined();
+                expect(result.value.newValue).toBe('feat_auth_magic_link');
+            }
+
+            const updated = readFileSync(taskPath, 'utf8');
+            expect(updated).toContain('feature-id: "feat_auth_magic_link"');
+        });
+    });
+
     describe('field update', () => {
         test('updates profile field successfully', () => {
             const taskPath = writeTask(tempDir, folder, '0001', 'Backlog', 'standard');
