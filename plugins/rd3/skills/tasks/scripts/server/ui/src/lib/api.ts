@@ -34,6 +34,7 @@ export async function createTask(data: {
     priority?: string;
     tags?: string[];
     content?: string;
+    featureId?: string;
 }): Promise<TaskListItem> {
     const res = await fetch(`${BASE}/tasks`, {
         method: 'POST',
