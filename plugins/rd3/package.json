@@ -21,6 +21,7 @@
         "test:coverage": "bun test ./tests ./skills/*/tests --coverage",
         "test:coverage:watch": "bun test ./tests ./skills/*/tests --coverage --watch",
         "test:ftree": "bun test ./skills/feature-tree/scripts/packages/core/tests --reporter=dots",
+        "build:tasks": "bun build ./skills/tasks/scripts/tasks.ts --target bun --outfile ./skills/tasks/scripts/dist/tasks.js",
         "tasks": "bun ./skills/tasks/scripts/tasks.ts",
         "ftree": "bun ./skills/feature-tree/scripts/apps/cli/src/index.ts"
     },
