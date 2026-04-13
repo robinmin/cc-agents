@@ -174,17 +174,22 @@ A: Templates (`--template web-app`) give agents an immediate structure to work w
 
 ### Design
 
-**Architecture:** Thin CLI → Command modules → DAO layer → Database
+**Architecture:** Monorepo from `@gobing-ai/typescript-bun-starter` — packages/core + apps/cli
 
 ```
-ftree.ts (CLI entry, subcommand routing via parseCli())
-  → commands/*.ts (one module per command)
-    → dao/sql.ts (centralized SQL constants)
-    → dao/parsers.ts (row → typed object)
-    → db.ts (connection factory, PRAGMA setup, migrations)
-      → bun:sqlite (embedded)
-  → lib/result.ts (imported from plugins/rd3/scripts/libs/result.ts)
-  → lib/state-machine.ts (TRANSITION_MAP + validateTransition())
+apps/cli/src/index.ts (clipanion CLI, registers all commands)
+  → apps/cli/src/commands/feature-*.ts (clipanion Command classes)
+    → packages/core/src/services/feature-service.ts (business logic)
+      → packages/core/src/lib/dao/sql.ts (centralized SQL constants + CTEs)
+      → packages/core/src/lib/dao/parsers.ts (row → typed object)
+      → packages/core/src/db/ (adapter pattern: bun-sqlite adapter, Drizzle ORM, PRAGMA setup)
+        → bun:sqlite (embedded)
+  → packages/core/src/lib/state-machine.ts (TRANSITION_MAP + validateTransition())
+  → packages/core/src/lib/tree-utils.ts (buildFeatureTree + renderTree + roll-up)
+  → packages/core/src/types/result.ts (own Result<T,E> — independent from rd3 shared)
+  → packages/core/src/errors.ts (AppError hierarchy: NotFound, Validation, Conflict, Internal)
+  → packages/core/src/config.ts (CORE_CONFIG — db path, pragmas, constraints)
+  → packages/core/src/logger.ts + logging.ts (@logtape/logtape)
 ```
 
 **Key types (types.ts):**
@@ -234,59 +239,63 @@ ftree.ts (CLI entry, subcommand routing via parseCli())
 **Priority principle:** The two core operations (add leaf node, link WBS) land first. After Phase 1, the skill is *usable* — agents can build trees, link tasks, and verify via `ls`. Subsequent phases add queries, secondary mutations, and polish.
 
 #### Phase 0: Shared Library Prep
-- [ ] 0.1 Commonize Result type: copy `plugins/rd3/skills/tasks/scripts/lib/result.ts` → `plugins/rd3/scripts/libs/result.ts`
-- [ ] 0.2 Update tasks skill imports to use `plugins/rd3/scripts/libs/result.ts` (find/replace `../lib/result` → shared path)
-- [ ] 0.3 Verify `bun run check` passes after Result type move
+- [x] 0.1 Commonize Result type: `plugins/rd3/scripts/libs/result.ts` (rd3 shared, shape: `{ ok: true; value }`)
+- [x] 0.2 Feature-tree has its own Result at `packages/core/src/types/result.ts` (shape: `{ ok: true; data }`)
+- [x] 0.3 Verify `bun run check` passes after Result type move
 
 #### Phase 1: Core Operations (P0 — minimum viable skill)
 
 After this phase: `ftree init`, `ftree add`, `ftree link`, `ftree ls` all work. Agents can build feature trees and link WBS.
 
-- [ ] 1.1 Create `scripts/types.ts` — FeatureStatus, Feature, FeatureNode, ContextView, TransitionMap, WbsLink
-- [ ] 1.2 Create `scripts/lib/state-machine.ts` — TRANSITION_MAP constant + `validateTransition()` pure function
-- [ ] 1.3 Create `scripts/dao/sql.ts` — centralized SQL constants (FEATURE_SQL, WBS_LINK_SQL)
-- [ ] 1.4 Create `scripts/dao/parsers.ts` — row parsers (parseFeature, parseWbsLink)
-- [ ] 1.5 Create `scripts/db.ts` — connection factory, PRAGMA setup, schema DDL, migrations
-- [ ] 1.6 Create `scripts/ftree.ts` — CLI entry point with subcommand routing via `parseCli()` and --db resolution
-- [ ] 1.7 Create `scripts/commands/init.ts` — with `--template <name>` support
-- [ ] 1.8 Create `scripts/commands/add.ts` — **core op 1**: auto depth/position
-- [ ] 1.9 Create `scripts/commands/link.ts` — **core op 2**: idempotent WBS linking
-- [ ] 1.10 Create `scripts/utils.ts` — tree rendering (Unicode box-drawing), roll-up computation
-- [ ] 1.11 Create `scripts/commands/ls.ts` — human + JSON output (verify tree after add/link)
-- [ ] 1.12 Create `templates/web-app.json`, `templates/cli-tool.json`, `templates/api-service.json`
-- [ ] 1.13 Write `tests/db.test.ts` — schema creation, idempotent init, PRAGMA verification
-- [ ] 1.14 Write `tests/core-ops.test.ts` — add + link happy paths and errors, template seeding
-- [ ] 1.15 Write `tests/state-machine.test.ts` — every valid/invalid transition
-- [ ] 1.16 Register bin in package.json, verify `bun run check` passes
+- [x] 1.1 Create `packages/core/src/types/feature.ts` — FeatureStatus, Feature, FeatureNode, ContextView, TransitionMap, WbsLink, TemplateNode
+- [x] 1.2 Create `packages/core/src/lib/state-machine.ts` — TRANSITION_MAP constant + `validateTransition()` pure function
+- [x] 1.3 Create `packages/core/src/lib/dao/sql.ts` — centralized SQL constants (SCHEMA_SQL, FEATURE_SQL, TEMPLATE_SQL)
+- [x] 1.4 Create `packages/core/src/lib/dao/parsers.ts` — row parsers (parseFeature, parseWbsLink, parseMetadata)
+- [x] 1.5 Create `packages/core/src/db/` — adapter pattern (adapter.ts, adapters/bun-sqlite.ts, client.ts, schema.ts)
+- [x] 1.6 Create `packages/core/src/services/feature-service.ts` — FeatureService class + initSchema()
+- [x] 1.7 Create `apps/cli/src/commands/feature-init.ts` — with `--template <name>` support (clipanion Command)
+- [x] 1.8 Create `apps/cli/src/commands/feature-add.ts` — **core op 1**: auto depth/position
+- [x] 1.9 Create `apps/cli/src/commands/feature-link.ts` — **core op 2**: idempotent WBS linking
+- [x] 1.10 Create `packages/core/src/lib/tree-utils.ts` — tree rendering (Unicode box-drawing), roll-up computation
+- [x] 1.11 Create `apps/cli/src/commands/feature-list.ts` — human + JSON output (verify tree after add/link)
+- [x] 1.12 Create `templates/web-app.json`, `templates/cli-tool.json`, `templates/api-service.json`
+- [x] 1.13 Write `packages/core/tests/` — 10 test files (db, state-machine, tree-utils, parsers, errors, config, logging, feature-service)
+- [ ] 1.14 Fix ftree bin registration in `plugins/rd3/package.json` (points to non-existent file)
+- [ ] 1.15 Verify `bun run check` passes globally
 
 #### Phase 2: Read-Only Queries (P1)
 
 After this phase: agents can query focused context, check done eligibility, export trees.
 
-- [ ] 2.1 Create `scripts/commands/context.ts` — agent-optimized view with `--format brief|full`
-- [ ] 2.2 Create `scripts/commands/wbs.ts` — list linked WBS IDs
-- [ ] 2.3 Create `scripts/commands/check-done.ts` — done eligibility check
-- [ ] 2.4 Create `scripts/commands/export.ts` — JSON export to STDOUT or file
-- [ ] 2.5 Write `tests/queries.test.ts` — context brief/full, wbs listing, check-done, export
+- [ ] 2.1 Add context/wbs/check-done/export methods to FeatureService
+- [ ] 2.2 Create `apps/cli/src/commands/feature-context.ts` — agent-optimized view with `--format brief|full`
+- [ ] 2.3 Create `apps/cli/src/commands/feature-wbs.ts` — list linked WBS IDs
+- [ ] 2.4 Create `apps/cli/src/commands/feature-check-done.ts` — done eligibility check
+- [ ] 2.5 Create `apps/cli/src/commands/feature-export.ts` — JSON export to STDOUT or file
+- [ ] 2.6 Register commands in `apps/cli/src/index.ts`
+- [ ] 2.7 Write query tests
 
 #### Phase 3: Secondary Mutations (P2)
 
 After this phase: full CRUD + convenience wrappers. Less frequent operations.
 
-- [ ] 3.1 Create `scripts/commands/update.ts` — with state machine validation
-- [ ] 3.2 Create `scripts/commands/delete.ts` — with cascade protection
-- [ ] 3.3 Create `scripts/commands/move.ts` — with circular reference detection
-- [ ] 3.4 Create `scripts/commands/unlink.ts` — silent on missing links
-- [ ] 3.5 Create `scripts/commands/digest.ts` — atomic link + status transition
-- [ ] 3.6 Create `scripts/commands/import.ts` — bulk-create from JSON tree
-- [ ] 3.7 Write `tests/mutations.test.ts` — update, delete, move (circular detection), unlink, digest (atomic), import (round-trip)
-- [ ] 3.8 Write `tests/tree-rendering.test.ts` — Unicode rendering, roll-up accuracy, depth limits
+- [ ] 3.1 Add mutation SQL to `packages/core/src/lib/dao/sql.ts`
+- [ ] 3.2 Add update/delete/move/unlink/digest/import to FeatureService
+- [ ] 3.3 Create `apps/cli/src/commands/feature-update.ts` — with state machine validation
+- [ ] 3.4 Create `apps/cli/src/commands/feature-delete.ts` — with cascade protection
+- [ ] 3.5 Create `apps/cli/src/commands/feature-move.ts` — with circular reference detection
+- [ ] 3.6 Create `apps/cli/src/commands/feature-unlink.ts` — silent on missing links
+- [ ] 3.7 Create `apps/cli/src/commands/feature-digest.ts` — atomic link + status transition
+- [ ] 3.8 Create `apps/cli/src/commands/feature-import.ts` — bulk-create from JSON tree
+- [ ] 3.9 Register commands in `apps/cli/src/index.ts`
+- [ ] 3.10 Write mutation tests
 
 #### Phase 4: Polish + Skill Integration
 
-- [ ] 4.1 Update SKILL.md: match implementation, document agent workflow (PM → architect → engineer → orchestrator), add per-role examples
-- [ ] 4.2 Final coverage check — ≥ 90% functions, ≥ 90% lines
-- [ ] 4.3 Final `bun run check` pass (lint + typecheck + test)
+- [ ] 4.1 Update SKILL.md: remove daemon refs, document all CLI commands, add per-role examples
+- [ ] 4.2 Fix ftree bin registration in `plugins/rd3/package.json`
+- [ ] 4.3 Final coverage check — ≥ 90% functions, ≥ 90% lines
+- [ ] 4.4 Final `bun run check` pass (lint + typecheck + test)
 
 
 ### Review
