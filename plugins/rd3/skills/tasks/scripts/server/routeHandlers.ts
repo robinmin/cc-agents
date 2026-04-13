@@ -178,7 +178,7 @@ interface CreateBody {
 
 export const createTaskHandler: RouteHandler = async (projectRoot, request, _params, broadcaster) => {
     const body = await readJsonBody<CreateBody>(request);
-    if (!body || !body.name) {
+    if (!body?.name) {
         return jsonErr('Missing required field: name');
     }
 
