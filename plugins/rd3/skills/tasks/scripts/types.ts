@@ -44,6 +44,7 @@ export interface TaskFrontmatter {
     dependencies?: string[];
     preset?: TaskProfile;
     profile?: TaskProfile;
+    'feature-id'?: string;
     impl_progress: ImplProgress;
 }
 
@@ -109,6 +110,7 @@ export interface CliArgs {
     dependencies?: string[];
     preset?: string;
     profile?: string;
+    featureId?: string;
     phase?: ImplPhase;
     phaseStatus?: string;
     baseCounter?: number;
@@ -135,6 +137,8 @@ export interface BatchCreateItem {
     dependencies?: string[];
     tags?: string[];
     folder?: string;
+    feature_id?: string;
+    'feature-id'?: string;
 }
 
 export interface ArtifactEntry {
