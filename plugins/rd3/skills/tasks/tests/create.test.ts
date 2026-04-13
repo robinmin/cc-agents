@@ -258,6 +258,32 @@ impl_progress:
         expect(content).not.toContain('profile: ');
     });
 
+    test('persists feature-id when provided during task creation', () => {
+        writeFileSync(
+            join(tempDir, 'docs', '.tasks', 'config.jsonc'),
+            JSON.stringify(
+                {
+                    $schema_version: 1,
+                    active_folder: 'docs/tasks',
+                    folders: {
+                        'docs/tasks': { base_counter: 0 },
+                    },
+                },
+                null,
+                2,
+            ),
+        );
+
+        const result = createTask(tempDir, 'Feature Linked Task', undefined, {
+            featureId: 'feat_auth_google_oauth',
+            quiet: true,
+        });
+        expect(result.ok).toBe(true);
+
+        const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_Feature_Linked_Task.md'), 'utf-8');
+        expect(content).toContain('feature-id: "feat_auth_google_oauth"');
+    });
+
     test('accepts all valid preset values during task creation', () => {
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),
