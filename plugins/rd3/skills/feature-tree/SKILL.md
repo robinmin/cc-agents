@@ -4,151 +4,371 @@ description: "Manage feature trees with WBS-linked task states. Use when organiz
 license: Apache-2.0
 metadata:
   author: rd3
-  version: "1.0"
-  platforms: "claude-code,codex,openclaw,opencode,antigravity"
+  version: "2.0"
+  platforms: "claude-code,codex,openclaw,opencode,antigravity,pi"
   interactions:
     - pipeline
 openclaw:
   emoji: "🌲"
 ---
 
-# Feature Tree
+# Feature Tree (ftree)
 
-Manage hierarchical feature trees with automatic status roll-up and WBS task linking. The ftree CLI is a thin client; all logic runs in a Bun daemon with SQLite persistence.
+Manage hierarchical feature trees with automatic status roll-up and WBS task linking. CLI-only architecture — opens SQLite, runs command, exits. No daemon.
 
-## When to use
+## When to Use
 
-Use this skill when You must:
+Use this skill when you need to:
 - Organize work into hierarchical feature trees
 - Track feature status roll-up (backlog → validated → executing → done)
 - Link features to WBS task IDs for traceability
 - Query a focused subtree view for LLM context (minimizes token bloat)
+- Check done-eligibility before closing a feature
+- Export tree state for reporting or cross-tool integration
 
-## Workflow
+## Installation
 
-Follow these steps to work with feature trees:
-
-### Step 1: Start the daemon
-
-Ensure the ftree daemon is running with WAL mode enabled.
+The `ftree` CLI is registered as a bin in `plugins/rd3/package.json`:
 
 ```bash
-ftree serve
+# Run from project root (via plugins/rd3)
+bun run ftree <command> [options]
+
+# Or directly
+bun ./plugins/rd3/skills/feature-tree/scripts/apps/cli/src/index.ts <command>
 ```
 
-### Step 2: List the feature tree
+## Database Path Resolution
 
-View the hierarchical tree with status indicators.
+1. `--db <path>` flag (highest priority)
+2. `FTREE_DB` environment variable
+3. Default: `docs/.ftree/db.sqlite`
+
+## Commands Reference
+
+### Core Operations (Phase 1)
+
+#### `ftree init [--template <name>] [--db <path>]`
+
+Initialize a feature tree database. Idempotent — safe to re-run.
 
 ```bash
-ftree ls
+ftree init                              # Create DB at default path
+ftree init --template web-app           # Seed with template
+ftree init --db /tmp/ftree.db           # Custom path
 ```
 
-**Output format:**
-```
-[ROOT] ftree-v1 (Executing)
-├── [f_12a] Auth System (Executing)
-│   ├── [f_12b] OAuth2 integration (Done) -> [WBS-101]
-│   └── [f_12c] Magic Links (Backlog)
-└── [f_45d] Database Schema (Validated)
-```
+Built-in templates: `web-app`, `cli-tool`, `api-service`.
 
-### Step 3: Digest a feature
+#### `ftree add --title <t> [--parent <id>] [--status <s>] [--metadata <json>] [--db <path>]`
 
-Link WBS IDs and flip status to `executing` atomically.
+Add a feature to the tree. Auto-generates UUID, computes depth and position.
 
 ```bash
-ftree digest --feature-id f1 --wbs-ids WBS-101,WBS-102
+ftree add --title "User Auth"                        # Root feature
+ftree add --title "OAuth2" --parent <id>             # Child feature
+ftree add --title "API" --status executing            # With status
+ftree add --title "Search" --metadata '{"pri":"hi"}' # With metadata
 ```
 
-### Step 4: Query a subtree
+Output: new feature UUID to stdout.
 
-Get focused context for an LLM, including node, parent, children, and linked WBS.
+#### `ftree link <feature-id> --wbs <id1,id2,...> [--db <path>]`
+
+Link a feature to WBS task IDs. Idempotent — duplicates ignored.
 
 ```bash
-ftree tree <feature-id>
+ftree link abc123 --wbs 001
+ftree link abc123 --wbs 001,002,003
 ```
 
-**Response payload:**
+#### `ftree ls [--root <id>] [--depth <n>] [--status <s>] [--json] [--db <path>]`
+
+List features in Unicode tree view or JSON.
+
+```bash
+ftree ls                          # Full tree
+ftree ls --root abc123            # Subtree
+ftree ls --depth 2                # Depth limit
+ftree ls --status executing       # Filter by status
+ftree ls --json                   # JSON output
+```
+
+**Tree output:**
+```
+├── [abc123] User Auth (validated)
+│   ├── [def456] OAuth2 (done) → 001, 002
+│   └── [ghi789] Magic Links (backlog)
+└── [jkl012] Database Schema (validated)
+```
+
+### Read-Only Queries (Phase 2)
+
+#### `ftree context <feature-id> [--format brief|full] [--db <path>]`
+
+Agent-optimized context view. Always JSON. Minimizes token usage.
+
+- `brief` (default): id, title, status, parent, child_count, linked_wbs
+- `full`: complete node, parent, children nodes, linked WBS
+
+```bash
+ftree context abc123              # Brief — minimal tokens
+ftree context abc123 --format full  # Full detail
+```
+
+**Brief output:**
 ```json
 {
-  "node": { "id": "f1", "title": "Auth", "status": "executing", "metadata": {} },
-  "parent": { "id": "root", "title": "Core Platform" },
-  "children": [
-    { "id": "f2", "title": "OAuth", "status": "backlog" }
-  ],
-  "linked_wbs": ["WBS-101", "WBS-102"]
+  "id": "abc123",
+  "title": "Auth System",
+  "status": "executing",
+  "parent": null,
+  "child_count": 2,
+  "linked_wbs": ["001", "002"]
 }
 ```
 
-## Behavior
+#### `ftree wbs <feature-id> [--db <path>]`
 
-**Pipeline with state machine:**
-1. Features start in `backlog`
-2. PM/Architect agent confirms design → status becomes `validated`
-3. `digest` command links WBS and sets status to `executing`
-4. When all linked WBS tasks are done → status rolls up to `done`
-5. Manual `blocked` flag when WBS is stalled
-
-**Status transitions:**
-```
-backlog → validated → executing → done
-                    ↘ blocked ↗
-```
-
-## Code Examples
-
-### Basic Usage
+List linked WBS IDs, one per line.
 
 ```bash
-# Start daemon
-ftree serve
-
-# List tree
-ftree ls
-
-# Query subtree
-ftree tree f_12a
+ftree wbs abc123
+# Output:
+# 001
+# 002
 ```
 
-### Advanced Usage
+#### `ftree check-done <feature-id> [--db <path>]`
+
+Check done-eligibility. Exit 0 if eligible, exit 1 with reasons if not.
+
+- Leaf node: always eligible
+- Branch: all children must be `done`
 
 ```bash
-# Digest with multiple WBS links
-ftree digest --feature-id f_12b --wbs-ids WBS-101,WBS-102,WBS-103
+ftree check-done abc123
+# {"eligible":true,"reasons":[]}
+# Exit 0
 
-# Query with full ancestry
-ftree tree f_12b --ancestry
+ftree check-done abc123
+# {"eligible":false,"reasons":["Child \"OAuth2\" (def456) has status \"executing\", expected \"done\""]}
+# Exit 1
 ```
+
+#### `ftree export [--root <id>] [--output <file>] [--db <path>]`
+
+Export tree as JSON. Default: stdout. Use `--output` to write to file.
+
+```bash
+ftree export                       # Full tree to stdout
+ftree export --root abc123         # Subtree
+ftree export --output tree.json    # Write to file
+```
+
+### Secondary Mutations (Phase 3)
+
+#### `ftree update <id> [--title <t>] [--status <s>] [--metadata <json>] [--db <path>]`
+
+Update feature fields. Validates status transitions per state machine.
+
+```bash
+ftree update abc123 --title "New Title"
+ftree update abc123 --status validated
+ftree update abc123 --metadata '{"pri":"critical"}'
+```
+
+Exit 1 if status transition is invalid (e.g., `backlog → done` is not allowed).
+
+#### `ftree delete <id> [--force] [--db <path>]`
+
+Delete a feature. Without `--force`: rejects if children or WBS links exist. With `--force`: cascades delete to children and removes WBS links.
+
+```bash
+ftree delete abc123                # Fails if has children/links
+ftree delete abc123 --force        # Cascade delete
+```
+
+#### `ftree move <id> --parent <new-parent-id> [--db <path>]`
+
+Move a feature to a new parent. Use `"null"` for root level. Detects circular references.
+
+```bash
+ftree move abc123 --parent def456  # Move under new parent
+ftree move abc123 --parent null    # Move to root
+```
+
+Exit 1 if moving would create a circular reference.
+
+#### `ftree unlink <feature-id> --wbs <id1,id2,...> [--db <path>]`
+
+Unlink specific WBS IDs. Silent on missing links.
+
+```bash
+ftree unlink abc123 --wbs 001,002
+```
+
+#### `ftree digest <id> --wbs <ids> [--status <s>] [--db <path>]`
+
+Atomic operation: link WBS IDs + transition status. Default target: `executing`. Validates transition before executing — rolls back on failure.
+
+```bash
+ftree digest abc123 --wbs 001,002
+ftree digest abc123 --wbs 001 --status validated
+```
+
+#### `ftree import <file.json> [--parent <id>] [--db <path>]`
+
+Bulk-import from JSON tree file. Uses same schema as templates. Reports count.
+
+```bash
+ftree import features.json
+ftree import features.json --parent abc123  # Import under parent
+```
+
+## State Machine
+
+### Status Transitions
+
+```
+backlog  → validated, blocked
+validated → executing, backlog, blocked
+executing → done, blocked
+blocked  → backlog, validated, executing
+done     → blocked
+```
+
+### Roll-up Rules
+
+Parent status is computed from children using worst-case wins:
+
+```
+blocked > executing > validated > done > backlog
+```
+
+Display shows `stored → rollup` when they differ (e.g., `backlog → validated` means the stored status is `backlog` but all children are `validated`).
+
+## Agent Workflow
+
+### PM Agent — Planning & Decomposition
+
+```bash
+# 1. Initialize tree for a project
+ftree init --template web-app
+
+# 2. Add top-level features from requirements
+ftree add --title "User Management"
+ftree add --title "Payment System"
+
+# 3. Decompose into sub-features
+PM_ID=$(ftree add --title "User Management")
+ftree add --title "Registration" --parent "$PM_ID"
+ftree add --title "Profile" --parent "$PM_ID"
+ftree add --title "Auth" --parent "$PM_ID"
+```
+
+### Architect Agent — Design & Validation
+
+```bash
+# 1. Review tree structure
+ftree ls --json
+
+# 2. Get focused context for a sub-tree
+ftree context <feature-id> --format full
+
+# 3. Add children for design components
+ftree add --title "OAuth2 Provider" --parent <auth-id>
+
+# 4. Mark validated after design review
+ftree update <feature-id> --status validated
+```
+
+### Engineer Agent — Implementation & Tracking
+
+```bash
+# 1. Pick up a validated feature
+ftree context <feature-id>
+
+# 2. Link to WBS task and start executing
+ftree digest <feature-id> --wbs 0371,0372 --status executing
+
+# 3. Check done-eligibility after implementation
+ftree check-done <feature-id>
+
+# 4. Update status when complete
+ftree update <feature-id> --status done
+```
+
+### Orchestrator Agent — Status & Reporting
+
+```bash
+# 1. Export full tree state
+ftree export --output status.json
+
+# 2. Check a feature's WBS links
+ftree wbs <feature-id>
+
+# 3. List features by status
+ftree ls --status blocked
+
+# 4. Move misplaced features
+ftree move <id> --parent <new-parent-id>
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Validation error, not found, or logic error |
+| 2 | Database / internal error |
 
 ## Gotchas
 
-1. **Daemon unreachable (Exit 2):** The ftree server is not running. Start with `ftree serve`.
-2. **WAL mode not enabled:** Ensure `PRAGMA journal_mode = WAL` is set on startup — prevents lock contention.
-3. **Invalid feature ID on digest:** The `digest` command validates feature existence before linking; returns exit 1 if feature not found.
+1. **WAL mode:** PRAGMA `journal_mode = WAL` is set automatically on init. No manual setup needed.
+2. **Idempotent init:** `ftree init` is safe to re-run — uses `CREATE TABLE IF NOT EXISTS`.
+3. **Circular move detection:** `ftree move` rejects if the target parent is a descendant of the source node.
+4. **State machine enforcement:** `ftree update` and `ftree digest` reject invalid transitions with descriptive error messages.
+5. **Template paths:** Built-in templates resolve relative to CWD. Run from project root for correct path resolution.
+6. **Depth recalculation:** `ftree move` recalculates depth for the entire moved subtree.
 
-## Resources
+## Project Structure
 
-### scripts/
-
-- `ftree.ts` — Main CLI entry point
-- `daemon.ts` — Bun server with SQLite WAL mode
-- `db.ts` — Database schema and trigger definitions
-
-### references/
-
-- `state-machine.md` — Full status transition rules and triggers
-- `api.md` — API endpoint documentation
+```
+plugins/rd3/skills/feature-tree/
+├── SKILL.md                          ← This file
+├── scripts/                          ← Monorepo root (@ftree/core + @ftree/cli)
+│   ├── packages/core/src/
+│   │   ├── types/feature.ts          ← FeatureStatus, Feature, FeatureNode, ContextView, WbsLink, TemplateNode, DoneCheckResult
+│   │   ├── types/result.ts           ← Result<T, E>
+│   │   ├── db/                       ← Adapter, BunSqliteAdapter, client singleton, Drizzle schema
+│   │   ├── lib/
+│   │   │   ├── dao/sql.ts            ← SQL constants (schema DDL, recursive CTEs, mutation queries)
+│   │   │   ├── dao/parsers.ts        ← Row parsers
+│   │   │   ├── state-machine.ts      ← TRANSITION_MAP, validateTransition, computeRollupStatus
+│   │   │   └── tree-utils.ts         ← buildFeatureTree, renderTree, findNode, findParent
+│   │   ├── services/feature-service.ts ← FeatureService class (all business logic)
+│   │   ├── errors.ts                 ← AppError hierarchy
+│   │   ├── config.ts                 ← CORE_CONFIG
+│   │   ├── logger.ts + logging.ts    ← logtape logger
+│   │   └── index.ts                  ← Barrel export
+│   ├── packages/core/tests/          ← 176 tests, 99%+ coverage
+│   ├── apps/cli/src/
+│   │   ├── index.ts                  ← clipanion CLI setup, registers all commands
+│   │   └── commands/                 ← 14 command files (init, add, link, ls, context, wbs, check-done, export, update, delete, move, unlink, digest, import)
+│   └── templates/                    ← web-app.json, cli-tool.json, api-service.json
+└── metadata.openclaw                  ← OpenClaw metadata
+```
 
 ## Platform Notes
 
 ### Claude Code
-Use `!ftree` for live command execution. Use `$ARGUMENTS` for parameter references.
+Use `!ftree` for live command execution or `bun run ftree` from `plugins/rd3`. Use `$ARGUMENTS` for parameter references.
 
-### Codex / OpenClaw / OpenCode / Antigravity
-Run commands via Bash tool. Arguments provided in chat.
+### Codex / OpenClaw / OpenCode / Antigravity / Pi
+Run commands via Bash tool: `bun ./plugins/rd3/skills/feature-tree/scripts/apps/cli/src/index.ts <command>`.
 
 ---
 
 **Template type**: technique
-**Purpose**: Step-by-step workflows with concrete instructions
+**Purpose**: Step-by-step workflows with concrete instructions for agent-driven feature tree management
