@@ -9,7 +9,6 @@ import type { OrchestratorEvent, EventType } from '../model';
 export type EventHandler = (event: OrchestratorEvent) => void;
 
 export class EventBus {
-    // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
     constructor() {}
     private handlers: Map<EventType, Set<EventHandler>> = new Map();
     private globalHandlers: Set<EventHandler> = new Set();
