@@ -19,7 +19,6 @@ export class ValidationRunner {
     readonly errors: string[] = [];
     readonly warnings: string[] = [];
 
-    // biome-ignore lint/complexity/noUselessConstructor: explicit constructor required for V8 function coverage tracking (implicit constructor is not counted as a separate function entry)
     constructor() {}
 
     addError(message: string): void {
