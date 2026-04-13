@@ -1,0 +1,12 @@
+{
+    "name": "@ftree/cli",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "dependencies": {
+        "@ftree/core": "workspace:*",
+        "@logtape/logtape": "^2.0.5",
+        "@paralleldrive/cuid2": "^2.2.0",
+        "clipanion": "^4.0.0-rc.4"
+    }
+}
