@@ -6,6 +6,7 @@ created_at: {{ CREATED_AT }}
 updated_at: {{ UPDATED_AT }}
 folder: {{ FOLDER }}
 type: task
+feature-id: ""
 impl_progress:
   planning: pending
   design: pending
