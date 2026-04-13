@@ -148,6 +148,75 @@ describe('tasks CLI contracts', () => {
         expect(content).not.toContain('profile: ');
     });
 
+    test('create accepts feature-id and update can backfill it later', () => {
+        expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+
+        const createResult = runCli(tempDir, [
+            'create',
+            'Feature Linked Task',
+            '--feature-id',
+            'feat_auth_google_oauth',
+            '--json',
+        ]);
+        expect(createResult.exitCode).toBe(0);
+
+        const createPayload = JSON.parse(createResult.stdout) as {
+            ok: boolean;
+            data: { path: string };
+        };
+        expect(createPayload.ok).toBe(true);
+
+        let content = readFileSync(createPayload.data.path, 'utf-8');
+        expect(content).toContain('feature-id: "feat_auth_google_oauth"');
+
+        const legacyPath = join(tempDir, 'docs/tasks/0002_Legacy_Task.md');
+        writeFileSync(
+            legacyPath,
+            `---
+name: Legacy Task
+description: Legacy task without feature mapping
+status: Backlog
+created_at: 2026-01-01T00:00:00Z
+updated_at: 2026-01-01T00:00:00Z
+folder: docs/tasks
+type: task
+impl_progress:
+  planning: pending
+  design: pending
+  implementation: pending
+  review: pending
+  testing: pending
+---
+
+### Background
+
+Legacy background.
+`,
+        );
+
+        const updateResult = runCli(tempDir, [
+            'update',
+            '0002',
+            '--field',
+            'feature-id',
+            '--value',
+            'feat_auth_magic_link',
+            '--json',
+        ]);
+        expect(updateResult.exitCode).toBe(0);
+
+        const updatePayload = JSON.parse(updateResult.stdout) as {
+            ok: boolean;
+            data: { action: string; newValue: string };
+        };
+        expect(updatePayload.ok).toBe(true);
+        expect(updatePayload.data.action).toBe('field');
+        expect(updatePayload.data.newValue).toBe('feat_auth_magic_link');
+
+        content = readFileSync(legacyPath, 'utf-8');
+        expect(content).toContain('feature-id: "feat_auth_magic_link"');
+    });
+
     test('phase-only profiles round-trip through the CLI', () => {
         expect(runCli(tempDir, ['init']).exitCode).toBe(0);
 
