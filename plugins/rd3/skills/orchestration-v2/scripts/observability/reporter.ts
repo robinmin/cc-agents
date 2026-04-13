@@ -9,7 +9,6 @@ import type { RunSummary } from '../state/queries';
 import { formatDuration, formatTokenCount } from './metrics';
 
 export class Reporter {
-    // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
     constructor() {}
 
     formatStatusTable(summary: RunSummary): string {
