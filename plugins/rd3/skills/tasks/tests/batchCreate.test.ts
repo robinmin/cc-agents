@@ -233,6 +233,26 @@ describe('batchCreate', () => {
                 quiet: false,
             });
         });
+
+        test('forwards feature mapping metadata when present', () => {
+            const tasks: BatchCreateItem[] = [
+                {
+                    name: 'Feature scoped task',
+                    feature_id: 'feat_auth_google_oauth',
+                },
+            ];
+
+            writeFileSync(jsonFilePath, JSON.stringify(tasks));
+            mockCreateTask.mockReturnValueOnce({ ok: true, value: { wbs: 'PROJ-011', path: '/path/11' } });
+
+            const result = batchCreate(projectRoot, jsonFilePath, 'cli-folder', true, 'json', mockCreateTask);
+
+            expect(result.ok).toBe(true);
+            expect(mockCreateTask).toHaveBeenCalledWith(projectRoot, 'Feature scoped task', 'cli-folder', {
+                featureId: 'feat_auth_google_oauth',
+                quiet: true,
+            });
+        });
     });
 
     describe('Agent output mode', () => {
