@@ -72,6 +72,8 @@ Commands:
                                  Attach structured planning metadata
   create <name> --preset <preset>
                                  Persist orchestration preset in task frontmatter (\`--profile\` is a legacy alias)
+  create <name> --feature-id <id>
+                                 Persist the owning ftree feature id in task frontmatter
   list [stage]                  List all tasks, optionally filtered by stage
   update <WBS> <stage>          Update task status (Backlog|Todo|WIP|Testing|Blocked|Done|Canceled)
   update <WBS> --section <name> --from-file <path>
@@ -80,6 +82,8 @@ Commands:
                                  Update impl_progress phase
   update <WBS> --field preset --value <preset>
                                  Update the orchestration preset field (\`profile\` is also accepted)
+  update <WBS> --field feature-id --value <id>
+                                 Backfill or change the owning ftree feature id
   show <WBS>                    Show task content (for agents)
   open <WBS>                    Open task in default editor (for humans)
   refresh                       Regenerate kanban boards
@@ -114,6 +118,7 @@ Examples:
   tasks create "Implement user auth"
   tasks create "Implement user auth" --background "Why this exists" --requirements "What success looks like"
   tasks create "Implement user auth" --preset standard
+  tasks create "Implement user auth" --feature-id feat_auth_google_oauth
   tasks list
   tasks list --all
   tasks list wip
@@ -121,6 +126,7 @@ Examples:
   tasks show 47 --json
   tasks update 47 --section Solution --from-file /tmp/solution.md
   tasks update 47 --field preset --value complex
+  tasks update 47 --field feature-id --value feat_auth_google_oauth
   tasks refresh
   tasks check 47
   tasks put 47 /tmp/design.png --name design.png
@@ -231,6 +237,7 @@ async function main() {
                 tags?: string[];
                 preset?: string;
                 profile?: string;
+                featureId?: string;
                 quiet: boolean;
             } = { quiet: json };
             const nameParts: string[] = [];
@@ -270,6 +277,8 @@ async function main() {
                     }
                 } else if ((arg === '--profile' || arg === '--preset') && i + 1 < cmdArgs.length) {
                     createOptions.preset = cmdArgs[++i];
+                } else if (arg === '--feature-id' && i + 1 < cmdArgs.length) {
+                    createOptions.featureId = cmdArgs[++i];
                 } else if (arg.startsWith('--')) {
                     const error = `Unknown create flag: ${arg}`;
                     if (json) {
@@ -292,11 +301,11 @@ async function main() {
             if (!taskName) {
                 if (json) {
                     emitJsonError(
-                        'Usage: tasks create <name> [--background TEXT] [--requirements TEXT] [--solution TEXT]',
+                        'Usage: tasks create <name> [--background TEXT] [--requirements TEXT] [--solution TEXT] [--feature-id ID]',
                     );
                 } else {
                     logger.error(
-                        'Usage: tasks create <name> [--background TEXT] [--requirements TEXT] [--solution TEXT]',
+                        'Usage: tasks create <name> [--background TEXT] [--requirements TEXT] [--solution TEXT] [--feature-id ID]',
                     );
                 }
                 exitCode = 1;
@@ -362,11 +371,11 @@ async function main() {
             if (!rest[0]) {
                 if (json) {
                     emitJsonError(
-                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --field preset --value <preset>',
+                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --field <preset|profile|feature-id> --value <value>',
                     );
                 } else {
                     logger.error(
-                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --field preset --value <preset>',
+                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --field <preset|profile|feature-id> --value <value>',
                     );
                 }
                 exitCode = 1;
@@ -458,7 +467,7 @@ async function main() {
                     const field = cmdArgs[fieldIdx + 1];
                     const value = cmdArgs[valueIdx + 1];
                     const result = updateTask(projectRoot, wbs, {
-                        field: field as 'profile' | 'preset',
+                        field: field as 'profile' | 'preset' | 'feature-id',
                         value,
                         dryRun,
                         json,
@@ -476,7 +485,7 @@ async function main() {
                     }
                 } else {
                     const error =
-                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --section <name> --from-file <path> OR tasks update <WBS> --field preset --value <preset>';
+                        'Usage: tasks update <WBS> <stage> OR tasks update <WBS> --section <name> --from-file <path> OR tasks update <WBS> --field <preset|profile|feature-id> --value <value>';
                     if (json) {
                         emitJsonError(error);
                     } else {
