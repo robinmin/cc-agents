@@ -54,6 +54,7 @@ export function batchCreate(
             ...(item.estimated_hours !== undefined ? { estimatedHours: item.estimated_hours } : {}),
             ...(item.dependencies ? { dependencies: item.dependencies } : {}),
             ...(item.tags ? { tags: item.tags } : {}),
+            ...((item.feature_id ?? item['feature-id']) ? { featureId: item.feature_id ?? item['feature-id'] } : {}),
             quiet,
         });
 
