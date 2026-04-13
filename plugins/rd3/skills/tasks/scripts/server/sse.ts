@@ -16,7 +16,6 @@ export class EventBroadcaster implements Broadcaster {
     private clients = new Set<SseClient>();
     private encoder = new TextEncoder();
 
-    // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
     constructor() {}
 
     broadcast(event: TaskEvent): void {
