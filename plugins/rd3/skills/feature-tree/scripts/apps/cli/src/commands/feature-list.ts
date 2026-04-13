@@ -7,12 +7,26 @@ import {
     FeatureService,
     type FeatureStatus,
     initSchema,
+    isAppError,
     renderTree,
 } from '@ftree/core';
 import { Command, Option } from 'clipanion';
 
+function serializeNode(node: FeatureNode): Record<string, unknown> {
+    return {
+        id: node.id,
+        title: node.title,
+        status: node.storedStatus,
+        ...(node.storedStatus !== node.status ? { rollup_status: node.status } : {}),
+        metadata: node.metadata,
+        depth: node.depth,
+        position: node.position,
+        children: node.children.map(serializeNode),
+        wbs_ids: node.wbsIds,
+    };
+}
+
 export class FeatureListCommand extends Command {
-    // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
     constructor() {
         super();
     }
@@ -122,19 +136,9 @@ export class FeatureListCommand extends Command {
             }
 
             if (this.json) {
-                const serializeNode = (node: FeatureNode): Record<string, unknown> => ({
-                    id: node.id,
-                    title: node.title,
-                    status: node.storedStatus,
-                    ...(node.storedStatus !== node.status ? { rollup_status: node.status } : {}),
-                    metadata: node.metadata,
-                    depth: node.depth,
-                    position: node.position,
-                    children: node.children.map(serializeNode),
-                    wbs_ids: node.wbsIds,
-                });
-
-                this.context.stdout.write(`${JSON.stringify(serializeNode(tree), null, 2)}\n`);
+                const output =
+                    tree.id === '__virtual_root__' ? tree.children.map(serializeNode) : [serializeNode(tree)];
+                this.context.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
             } else {
                 this.context.stdout.write(`${renderTree(tree, { color: true })}\n`);
             }
@@ -142,6 +146,7 @@ export class FeatureListCommand extends Command {
             return 0;
         } catch (e) {
             this.context.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
+            if (isAppError(e) && e.code === 'INTERNAL') return 2;
             return 1;
         } finally {
             adapter.close();
