@@ -1,9 +1,15 @@
 import { resolve } from 'node:path';
-import { createDbAdapter, FEATURE_STATUSES, FeatureService, type FeatureStatus, initSchema } from '@ftree/core';
+import {
+    createDbAdapter,
+    FEATURE_STATUSES,
+    FeatureService,
+    type FeatureStatus,
+    initSchema,
+    isAppError,
+} from '@ftree/core';
 import { Command, Option } from 'clipanion';
 
 export class FeatureAddCommand extends Command {
-    // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
     constructor() {
         super();
     }
@@ -96,6 +102,7 @@ export class FeatureAddCommand extends Command {
             return 0;
         } catch (e) {
             this.context.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
+            if (isAppError(e) && e.code === 'INTERNAL') return 2;
             return 1;
         } finally {
             adapter.close();
