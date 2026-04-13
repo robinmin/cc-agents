@@ -43,6 +43,7 @@ export function createTask(
         tags?: string[];
         preset?: string;
         profile?: string;
+        featureId?: string;
         quiet?: boolean;
         content?: string;
     } = {},
@@ -97,6 +98,7 @@ export function createTask(
                 content = removeFrontmatterField(content, 'profile');
                 content = upsertFrontmatterField(content, 'preset', resolvedPreset);
             }
+            content = upsertFrontmatterField(content, 'feature-id', options.featureId);
         } else {
             const vars = getTemplateVars(name, wbs, folder, name);
             content = substituteTemplateVars(templateContent, vars);
@@ -118,6 +120,7 @@ export function createTask(
             content = upsertFrontmatterField(content, 'tags', options.tags);
             content = removeFrontmatterField(content, 'profile');
             content = upsertFrontmatterField(content, 'preset', resolvedPreset);
+            content = upsertFrontmatterField(content, 'feature-id', options.featureId);
         }
 
         const safeName = sanitizeTaskFileNameSegment(name);
@@ -284,6 +287,7 @@ created_at: {{ CREATED_AT }}
 updated_at: {{ UPDATED_AT }}
 folder: {{ FOLDER }}
 type: task
+feature-id: ""
 impl_progress:
   planning: pending
   design: pending
