@@ -50,6 +50,7 @@ tasks create "Implement user authentication"
 tasks create "Implement user authentication" \
   --background "Why this work exists" \
   --requirements $'- Requirement 1\n- Requirement 2'
+tasks create "Implement user authentication" --feature-id f_auth_google_oauth
 tasks create "Implement user authentication" --preset standard
 tasks create "Implement user authentication" --profile standard   # legacy alias
 
@@ -80,6 +81,7 @@ tasks update 0047 --phase planning --phase-status completed
 tasks update 0047 --phase design --phase-status in_progress
 tasks update 0047 --field preset --value complex
 tasks update 0047 --field profile --value complex   # legacy alias
+tasks update 0047 --field feature-id --value f_auth_google_oauth
 
 # Batch create from JSON array
 tasks batch-create --from-json /tmp/tasks.json
