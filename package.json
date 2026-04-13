@@ -34,7 +34,8 @@
     "test-bats": "bats plugins/rd3/skills/cc-hooks/tests/*.bats && bats tests",
     "build:ui": "cd plugins/rd3/skills/tasks/scripts/server/ui && bun run build",
     "ui:dev": "cd plugins/rd3/skills/tasks/scripts/server/ui && bun run dev",
-    "build:tasks": "cd plugins/rd3 && bun run build:tasks && cd ../.."
+    "build:tasks": "cd plugins/rd3 && bun run build:tasks && cd ../..",
+    "build:ftree": "cd plugins/rd3 && bun run build:ftree && cd ../.."
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.11",
