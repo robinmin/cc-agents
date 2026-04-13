@@ -20,9 +20,9 @@
         "test:watch": "bun test ./tests ./skills/*/tests --watch",
         "test:coverage": "bun test ./tests ./skills/*/tests --coverage",
         "test:coverage:watch": "bun test ./tests ./skills/*/tests --coverage --watch",
-        "test:ftree": "bun test ./skills/feature-tree/tests --reporter=dots",
+        "test:ftree": "bun test ./skills/feature-tree/scripts/packages/core/tests --reporter=dots",
         "tasks": "bun ./skills/tasks/scripts/tasks.ts",
-        "ftree": "bun ./skills/feature-tree/scripts/ftree.ts"
+        "ftree": "bun ./skills/feature-tree/scripts/apps/cli/src/index.ts"
     },
     "dependencies": {
         "yaml": "2.8.3"
