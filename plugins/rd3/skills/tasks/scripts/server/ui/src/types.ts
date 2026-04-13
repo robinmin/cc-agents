@@ -55,6 +55,7 @@ export interface TaskFrontmatter {
     dependencies?: string[];
     preset?: string;
     profile?: string;
+    'feature-id'?: string;
     impl_progress?: ImplProgress;
 }
 
