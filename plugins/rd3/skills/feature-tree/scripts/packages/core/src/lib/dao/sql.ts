@@ -83,6 +83,46 @@ export const FEATURE_SQL = {
     hasWbsLinks: `
         SELECT EXISTS(SELECT 1 FROM feature_wbs_links WHERE feature_id = ?) AS found
     `,
+
+    /** Update feature fields (null args keep existing value via COALESCE) */
+    updateFeature: `
+        UPDATE features
+        SET title    = COALESCE(?, title),
+            status   = COALESCE(?, status),
+            metadata = COALESCE(?, metadata),
+            updated_at = datetime('now')
+        WHERE id = ?
+    `,
+
+    /** Re-parent a feature (used by move) */
+    updateParent: `
+        UPDATE features
+        SET parent_id  = ?,
+            depth      = ?,
+            updated_at = datetime('now')
+        WHERE id = ?
+    `,
+
+    /** Delete a single feature by id */
+    deleteFeature: `
+        DELETE FROM features WHERE id = ?
+    `,
+
+    /** Delete WBS links for a feature — optionally filtered by specific wbs_ids */
+    deleteWbsLinks: `
+        DELETE FROM feature_wbs_links WHERE feature_id = ? AND wbs_id IN (
+    `,
+
+    /** Check whether candidateAncestorId is an ancestor of featureId (recursive CTE) */
+    isAncestor: `
+        WITH RECURSIVE ancestors AS (
+            SELECT * FROM features WHERE id = ?
+            UNION ALL
+            SELECT f.* FROM features f
+            INNER JOIN ancestors a ON f.id = a.parent_id
+        )
+        SELECT EXISTS(SELECT 1 FROM ancestors WHERE id = ?) AS found
+    `,
 } as const;
 
 // ─── Template Seeding SQL ──────────────────────────────────────────────────
