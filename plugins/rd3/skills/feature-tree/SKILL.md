@@ -26,6 +26,78 @@ Use this skill when you need to:
 - Check done-eligibility before closing a feature
 - Export tree state for reporting or cross-tool integration
 
+## Modeling Rules
+
+`ftree` models **product/project scope**, not execution mechanics. Treat features as capability boundaries that compose the system. Treat WBS tasks as delivery work packages derived from that scope.
+
+### Feature vs. Sub-Feature
+
+Split one feature into multiple sub-features when the children represent **real capability boundaries**, not just implementation steps.
+
+Create sub-features when:
+- The parent contains multiple distinct capabilities or user-meaningful concerns
+- The children could reasonably be planned, discussed, or validated independently
+- The structure is likely to remain useful after the current implementation cycle
+- You need separate status roll-up for enduring parts of the product or project
+
+Do **not** create sub-features when:
+- The work is still one coherent capability and only needs several implementation tasks
+- The split is just investigation/design/implementation/testing phases
+- The split exists only to satisfy a one-feature-per-task bookkeeping rule
+- The child nodes would not make sense to a PM/architect after the current task is done
+
+Rule of thumb:
+- **One capability, many work packages** → keep one leaf feature and link multiple WBS tasks
+- **Several enduring capabilities** → split into sub-features, then link WBS tasks at the leaves
+
+### Feature-to-Task Mapping
+
+Default mapping discipline:
+- One feature may link to many WBS tasks
+- One WBS task should usually belong to one **primary** feature
+- Prefer linking WBS tasks to **leaf features**, not branch features
+- Avoid linking the same WBS task to both a parent and its child unless you explicitly want ambiguous ownership
+
+Branch features may have direct WBS links only as an exception, for example:
+- Cross-cutting coordination work owned at the parent level
+- Temporary migration or rollout tasks spanning multiple child features
+
+### Anti-Patterns
+
+Avoid these modeling mistakes:
+- Forcing `1 feature = 1 task`
+- Turning every implementation step into a sub-feature
+- Using `ftree` as a duplicate kanban board for task execution
+- Creating tiny ephemeral child nodes that only exist because there are multiple files to edit
+
+## Advisory Operating Mode
+
+`ftree` is an **advisory/project-scope context layer**. It should improve planning, traceability, and progress review without becoming a hard dependency of orchestration.
+
+### What Advisory Means
+
+- `ftree` is the scope graph
+- `rd3:task-decomposition` translates scope into executable tasks
+- `rd3:tasks` stores the document-first execution records
+- Orchestration and workflow execution remain agnostic to `ftree`
+
+The agent is responsible for keeping `ftree` and WBS tasks aligned. There is no required auto-sync, no mandatory hook, and no execution gate based on `ftree`.
+
+### Minimal Discipline for Advisory Use
+
+To keep advisory mode useful and avoid drift:
+- Decompose from a selected feature or subtree when possible, not from the entire project
+- Link newly created WBS tasks back to the owning leaf feature
+- Update feature status deliberately as planning and implementation progress
+- Use `ftree check-done` before declaring a feature complete
+- Use subtree context for planning and review, not as a substitute for task docs
+
+Optional traceability metadata in task files:
+- `feature_id`
+- `feature_path`
+
+These are helpful for agents, but they are advisory metadata rather than required orchestration inputs.
+
 ## Installation
 
 The `ftree` CLI is registered as a bin in `plugins/rd3/package.json`:
@@ -267,6 +339,8 @@ ftree add --title "Profile" --parent "$PM_ID"
 ftree add --title "Auth" --parent "$PM_ID"
 ```
 
+**Decision rule:** Create child features only when they are real capability boundaries. If "Auth" is one coherent capability that needs multiple implementation tasks, keep it as one leaf feature and link multiple WBS tasks to it later.
+
 ### Architect Agent — Design & Validation
 
 ```bash
@@ -299,6 +373,8 @@ ftree check-done <feature-id>
 ftree update <feature-id> --status done
 ```
 
+**Linking rule:** Prefer linking WBS IDs to the leaf feature being implemented. A single leaf feature may link to multiple WBS tasks when those tasks together deliver the same capability.
+
 ### Orchestrator Agent — Status & Reporting
 
 ```bash
@@ -314,6 +390,8 @@ ftree ls --status blocked
 # 4. Move misplaced features
 ftree move <id> --parent <new-parent-id>
 ```
+
+**Scope rule:** Use `ftree` for advisory reporting and scope review. Do not make orchestration depend on `ftree` state to execute normal task workflows.
 
 ## Exit Codes
 
