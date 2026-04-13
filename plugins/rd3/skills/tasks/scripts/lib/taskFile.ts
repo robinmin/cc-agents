@@ -61,6 +61,14 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
         frontmatter.priority = parsed.priority as string;
     }
 
+    const featureId = parsed['feature-id'];
+    if (typeof featureId === 'string') {
+        const normalizedFeatureId = stripWrappingQuotes(featureId).trim();
+        if (normalizedFeatureId.length > 0) {
+            frontmatter['feature-id'] = normalizedFeatureId;
+        }
+    }
+
     const estimatedHours = parseOptionalNumber(parsed.estimated_hours as string | undefined);
     if (estimatedHours !== undefined) {
         frontmatter.estimated_hours = estimatedHours;
@@ -171,9 +179,9 @@ export function updateFrontmatterField(path: string, field: string, value: strin
         }
 
         const frontmatterBlock = frontmatterMatch[1];
-        const fieldPattern = new RegExp(`^${field}: .*$`, 'm');
+        const fieldPattern = new RegExp(`^${escapeRegex(field)}:\\s*.*$`, 'm');
         const nextContent = fieldPattern.test(frontmatterBlock)
-            ? content.replace(new RegExp(`^(${field}: ).+$`, 'm'), `$1${value}`)
+            ? content.replace(new RegExp(`^(${escapeRegex(field)}:\\s*).*$`, 'm'), `$1${value}`)
             : content.replace(FRONTMATTER_REGEX, `---\n${frontmatterBlock}\n${field}: ${value}\n---\n`);
         writeFileSync(path, nextContent, 'utf-8');
         return ok(true);
