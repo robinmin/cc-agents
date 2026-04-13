@@ -25,7 +25,7 @@ export interface UpdateOptions {
     fromFile?: string;
     phase?: ImplPhase;
     phaseStatus?: string;
-    field?: 'profile' | 'preset';
+    field?: 'profile' | 'preset' | 'feature-id';
     value?: string;
     force?: boolean;
     dryRun?: boolean;
@@ -187,6 +187,11 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
             return err(`Invalid preset: ${options.value}. Valid: ${VALID_PROFILES.join(', ')}`);
         }
 
+        const oldFieldValue =
+            options.field === 'feature-id'
+                ? task.frontmatter['feature-id']
+                : task.frontmatter.preset ?? task.frontmatter.profile;
+
         if (options.dryRun) {
             if (!options.quiet) {
                 logger.log(
@@ -197,9 +202,7 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
                 wbs,
                 action: 'field',
                 dryRun: true,
-                ...((task.frontmatter.preset ?? task.frontmatter.profile)
-                    ? { oldValue: task.frontmatter.preset ?? task.frontmatter.profile }
-                    : {}),
+                ...(oldFieldValue ? { oldValue: oldFieldValue } : {}),
                 newValue: options.value,
             });
         }
@@ -217,9 +220,7 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
             wbs,
             action: 'field',
             dryRun: false,
-            ...((task.frontmatter.preset ?? task.frontmatter.profile)
-                ? { oldValue: task.frontmatter.preset ?? task.frontmatter.profile }
-                : {}),
+            ...(oldFieldValue ? { oldValue: oldFieldValue } : {}),
             newValue: options.value,
         });
     }
