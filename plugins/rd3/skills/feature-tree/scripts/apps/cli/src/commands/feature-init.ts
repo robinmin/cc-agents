@@ -1,10 +1,15 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { createDbAdapter, FeatureService, initSchema } from '@ftree/core';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { createDbAdapter, FeatureService, initSchema, isAppError } from '@ftree/core';
 import { Command, Option } from 'clipanion';
+import {
+    BUILTIN_TEMPLATES,
+    isBuiltinTemplateName,
+    loadBuiltinTemplate,
+    resolveBuiltinTemplatePath,
+} from '../lib/template-loader';
 
 export class FeatureInitCommand extends Command {
-    // biome-ignore lint/complexity/noUselessConstructor: V8 function coverage requires explicit constructor
     constructor() {
         super();
     }
@@ -42,28 +47,28 @@ export class FeatureInitCommand extends Command {
             initSchema(adapter);
 
             if (this.template) {
-                const BUILTIN_TEMPLATES = ['web-app', 'cli-tool', 'api-service'] as const;
-                if (!BUILTIN_TEMPLATES.includes(this.template as (typeof BUILTIN_TEMPLATES)[number])) {
+                if (!isBuiltinTemplateName(this.template)) {
                     this.context.stderr.write(
                         `Unknown template "${this.template}". Available: ${BUILTIN_TEMPLATES.join(', ')}\n`,
                     );
                     return 1;
                 }
 
-                const templatesDir = resolve(process.cwd(), 'plugins', 'rd3', 'skills', 'feature-tree', 'templates');
-                const templatePath = join(templatesDir, `${this.template}.json`);
+                const templatePath = resolveBuiltinTemplatePath(this.template);
                 if (!existsSync(templatePath)) {
                     this.context.stderr.write(`Template file not found: ${templatePath}\n`);
                     return 1;
                 }
 
-                const content = readFileSync(templatePath, 'utf-8');
-                const nodes = JSON.parse(content);
-
                 const service = new FeatureService(adapter);
-                const count = service.seedFromTemplate(Array.isArray(nodes) ? nodes : [nodes], null, 0);
+                const nodes = loadBuiltinTemplate(this.template);
+                const result = await service.importTree(nodes);
+                if (!result.ok) {
+                    this.context.stderr.write(`Error: ${result.error.message}\n`);
+                    return isAppError(result.error) && result.error.code === 'INTERNAL' ? 2 : 1;
+                }
 
-                this.context.stdout.write(`Seeded ${count} features from template "${this.template}"\n`);
+                this.context.stdout.write(`Seeded ${result.data.count} features from template "${this.template}"\n`);
             }
 
             if (!dbExists) {
@@ -75,6 +80,7 @@ export class FeatureInitCommand extends Command {
             return 0;
         } catch (e) {
             this.context.stderr.write(`Error: ${e instanceof Error ? e.message : String(e)}\n`);
+            if (isAppError(e) && e.code === 'INTERNAL') return 2;
             return 1;
         } finally {
             adapter.close();
