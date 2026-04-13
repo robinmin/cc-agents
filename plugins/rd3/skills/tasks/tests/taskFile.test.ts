@@ -134,6 +134,28 @@ profile: "complex"
         expect(fm?.preset).toBe('simple');
         expect(fm?.profile).toBe('simple');
     });
+
+    test('parses feature-id only when populated', () => {
+        const content = `---
+name: Feature Task
+status: Todo
+feature-id: "feat_auth_google_oauth"
+---
+`;
+        const fm = parseFrontmatter(content);
+        expect(fm?.['feature-id']).toBe('feat_auth_google_oauth');
+    });
+
+    test('ignores empty feature-id placeholders in frontmatter', () => {
+        const content = `---
+name: Feature Task
+status: Todo
+feature-id: ""
+---
+`;
+        const fm = parseFrontmatter(content);
+        expect(fm?.['feature-id']).toBeUndefined();
+    });
 });
 
 describe('parseSection', () => {
