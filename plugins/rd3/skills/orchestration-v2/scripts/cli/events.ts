@@ -108,7 +108,7 @@ export async function handleEvents(
     if (!resolvedRunId && taskRef) {
         const history = await queries.getHistory(100);
         const match = history.find((h) => normalizeTaskRef(h.taskRef) === taskRef);
-        if (!match || !match.runId) {
+        if (!match?.runId) {
             logger.error(`No run found for task ref: ${taskRef}`);
             process.exit(EXIT_TASK_NOT_FOUND);
         }
