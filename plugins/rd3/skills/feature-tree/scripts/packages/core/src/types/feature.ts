@@ -57,6 +57,12 @@ export interface ContextView {
     readonly linkedWbs: string[];
 }
 
+/** Result of checking if a feature is eligible for done status */
+export interface DoneCheckResult {
+    readonly eligible: boolean;
+    readonly reasons: string[];
+}
+
 // ─── Status transition types ───────────────────────────────────────────────
 
 /** Status transition map: from -> allowed to[] */
