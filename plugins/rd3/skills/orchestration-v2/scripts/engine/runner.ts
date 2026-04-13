@@ -230,7 +230,7 @@ export class PipelineRunner {
     ): Promise<{ success: boolean; error?: string; exitCode: number }> {
         // Load the rollback snapshot for the given phase
         const snapshot = await this.state.getRollbackSnapshot(runId, phaseName);
-        if (!snapshot || !snapshot.files_before) {
+        if (!snapshot?.files_before) {
             return {
                 success: false,
                 error: `STATE_CORRUPT: No rollback snapshot found for phase "${phaseName}"`,
@@ -1633,7 +1633,7 @@ Evaluate each checklist item against the evidence above.`;
         try {
             const content = readFileSync(skillPath, 'utf-8');
             const match = content.match(/^---\n([\s\S]*?)\n---/);
-            if (!match || !match[1]) {
+            if (!match?.[1]) {
                 return null;
             }
 
