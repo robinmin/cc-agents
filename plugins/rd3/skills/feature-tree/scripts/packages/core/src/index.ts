@@ -52,6 +52,7 @@ export {
 export { FeatureService, initSchema } from './services/feature-service';
 export type {
     ContextView,
+    DoneCheckResult,
     Feature,
     FeatureNode,
     FeatureStatus,
