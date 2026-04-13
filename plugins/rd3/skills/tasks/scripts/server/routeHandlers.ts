@@ -172,6 +172,7 @@ interface CreateBody {
     tags?: string[];
     preset?: string;
     profile?: string;
+    featureId?: string;
     folder?: string;
     content?: string;
 }
@@ -198,6 +199,7 @@ export const createTaskHandler: RouteHandler = async (projectRoot, request, _par
         ...(body.dependencies ? { dependencies: body.dependencies } : {}),
         ...(body.tags ? { tags: body.tags } : {}),
         ...(body.preset || body.profile ? { preset: body.preset ?? body.profile } : {}),
+        ...(body.featureId ? { featureId: body.featureId } : {}),
         ...(body.content ? { content: body.content } : {}),
         quiet: true,
     });
@@ -368,7 +370,7 @@ export const updateTaskHandler: RouteHandler = async (projectRoot, request, para
         // Field update
         if (body.field && body.value) {
             const result = updateTask(projectRoot, wbs, {
-                field: body.field as 'profile' | 'preset',
+                field: body.field as 'profile' | 'preset' | 'feature-id',
                 value: body.value,
                 quiet: true,
             });
