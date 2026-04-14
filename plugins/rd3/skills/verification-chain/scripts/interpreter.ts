@@ -3,7 +3,9 @@
  *
  * Orchestrates chain execution: runs makers, dispatches checkers,
  * handles retry logic, manages pause/resume for human checks,
- * persists state to <stateDir>/cov/<chain_id>-<wbs>-cov-state.json.
+ * persists state to the SQLite-backed CoV store while keeping
+ * JSON snapshots under <stateDir>/cov/<chain_id>-<wbs>-cov-state.json
+ * for compatibility and inspection.
  */
 
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -30,6 +32,7 @@ import { runContentMatchCheck } from './methods/content_match';
 import { runLlmCheck } from './methods/llm';
 import { runHumanCheck } from './methods/human';
 import { runCompoundCheck } from './methods/compound';
+import { loadChain, saveChain } from './store';
 import { logger } from '../../../scripts/logger';
 
 // ----------------------------------------------------------------
@@ -45,13 +48,24 @@ function loadState(statePath: string): ChainState | null {
     }
 }
 
-function saveState(state: ChainState, statePath: string): void {
+function stateDirFromPath(statePath: string): string {
+    return dirname(dirname(statePath));
+}
+
+function loadPersistedState(statePath: string, chainId: string, taskWbs: string): ChainState | null {
+    return loadChain(stateDirFromPath(statePath), chainId, taskWbs) ?? loadState(statePath);
+}
+
+function saveState(state: ChainState, statePath: string, manifest?: ChainManifest): void {
     try {
         mkdirSync(dirname(statePath), { recursive: true });
         writeFileSync(statePath, JSON.stringify(state, null, 2), 'utf-8');
+        saveChain(stateDirFromPath(statePath), state, manifest);
         logger.debug(`Saved chain state to ${statePath}`);
     } catch (err) {
-        logger.error(`Failed to save chain state: ${err}`);
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error(`Failed to save chain state: ${message}`);
+        throw new Error(`Failed to persist chain state to disk/store: ${message}`);
     }
 }
 
@@ -558,7 +572,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
     const statePath = join(stateDir, 'cov', `${manifest.chain_id}-${manifest.task_wbs}-cov-state.json`);
 
     // Load existing state or create new
-    let _state = loadState(statePath);
+    let _state = loadPersistedState(statePath, manifest.chain_id, manifest.task_wbs);
     if (!_state) {
         _state = getDefaultState(manifest);
     } else {
@@ -572,7 +586,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
     }
     // state is guaranteed non-null after above block
     const state = _state;
-    saveState(state, statePath);
+    saveState(state, statePath, manifest);
 
     logger.log(`Starting chain ${manifest.chain_name} (${manifest.chain_id})`);
 
@@ -613,14 +627,14 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                         // Maker succeeded — keep maker_output, re-run checker only
                     }
                 }
-                saveState(state, statePath);
+                saveState(state, statePath, manifest);
                 continue;
             }
 
             if (hasFailed) {
                 state.status = 'failed';
                 state.updated_at = new Date().toISOString();
-                saveState(state, statePath);
+                saveState(state, statePath, manifest);
                 const failedNodes = state.nodes.filter((n) => n.status === 'failed').map((n) => n.name);
                 const reason = `Failed nodes: ${failedNodes.join(', ')}`;
                 logger.error(`Chain failed: ${reason}`);
@@ -631,7 +645,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
             // All completed successfully
             state.status = 'completed';
             state.updated_at = new Date().toISOString();
-            saveState(state, statePath);
+            saveState(state, statePath, manifest);
             logger.success(`Chain ${manifest.chain_name} completed successfully`);
             onChainComplete?.(state);
             return state;
@@ -640,7 +654,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
         // Execute next node
         state.current_node = nextNode.name;
         state.updated_at = new Date().toISOString();
-        saveState(state, statePath);
+        saveState(state, statePath, manifest);
 
         logger.log(`Executing node: ${nextNode.name} (${nextNode.type})`);
         onNodeStart?.(nextNode);
@@ -688,7 +702,7 @@ export async function runChain(options: RunChainOptions): Promise<ChainState> {
                 logger.error(`Chain halted at node ${nextNode.name}: ${haltReason}`);
                 state.status = 'failed';
                 state.updated_at = new Date().toISOString();
-                saveState(state, statePath);
+                saveState(state, statePath, manifest);
                 onChainFail?.(state, haltReason ?? 'unknown');
             }
             return state;
@@ -730,7 +744,7 @@ export async function resumeChain(options: ResumeChainOptions): Promise<ChainSta
     } = options;
 
     const statePath = join(stateDir, 'cov', `${manifest.chain_id}-${manifest.task_wbs}-cov-state.json`);
-    const state = loadState(statePath);
+    const state = loadPersistedState(statePath, manifest.chain_id, manifest.task_wbs);
 
     if (!state) {
         throw new Error(`No chain state found at ${statePath}`);
@@ -752,7 +766,7 @@ export async function resumeChain(options: ResumeChainOptions): Promise<ChainSta
     if ('paused_node' in state) delete (state as Partial<ChainState>).paused_node;
     if ('paused_at' in state) delete (state as Partial<ChainState>).paused_at;
     state.updated_at = new Date().toISOString();
-    saveState(state, statePath);
+    saveState(state, statePath, manifest);
 
     logger.log(`Chain resumed from node ${state.current_node}`);
 
