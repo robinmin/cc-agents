@@ -1,291 +1,364 @@
 /**
  * orchestration-v2 — CoV Driver
  *
- * Adapter over the verification-chain interpreter.
- * Runs chain checks via CLI commands and aggregates results.
+ * Delegates gate execution to the verification-chain CLI/runtime so
+ * orchestration-v2 does not duplicate checker logic.
  */
 
-import type { VerificationDriver, ChainManifest, ChainState, ChainCheck, GateResult } from '../model';
-import { logger } from '../../../../scripts/logger';
-import { runLlmCheck } from '../../../verification-chain/scripts/methods/llm';
-import type { LlmCheckerConfig } from '../../../verification-chain/scripts/types';
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { CheckMethod, ChainCheck, ChainManifest, ChainState, GateResult, VerificationDriver } from "../model";
+import type {
+  ChainManifest as VerificationChainManifest,
+  ChainState as VerificationRuntimeState,
+  CheckerEvidence,
+  CheckerMethod,
+  SingleNode,
+} from "../../../verification-chain/scripts/types";
+
+interface CliSuccessPayload {
+  ok: true;
+  state?: VerificationRuntimeState;
+  chains?: Array<{
+    chain_id: string;
+    chain_name: string;
+    task_wbs: string;
+    status: string;
+    current_node: string;
+    updated_at: string;
+    paused_node?: string | null;
+  }>;
+  count?: number;
+}
+
+interface CliErrorPayload {
+  ok: false;
+  error: string;
+  details?: unknown;
+  state?: VerificationRuntimeState;
+}
+
+type CliPayload = CliSuccessPayload | CliErrorPayload;
+
+interface DefaultCoVDriverOptions {
+  stateDir?: string;
+  cliPath?: string;
+}
+
+const CLI_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../verification-chain/scripts/cli.ts",
+);
 
 export class DefaultCoVDriver implements VerificationDriver {
-    async runChain(manifest: ChainManifest): Promise<ChainState> {
-        const results: GateResult[] = [];
+  private readonly stateDir: string;
+  private readonly cliPath: string;
 
-        for (const check of manifest.checks) {
-            const result = await this.runCheck(manifest.run_id, manifest.phase_name, check);
-            results.push(result);
-        }
+  constructor(options: DefaultCoVDriverOptions = {}) {
+    this.stateDir = options.stateDir ?? process.env.COV_STATE_DIR ?? process.cwd();
+    this.cliPath = options.cliPath ?? CLI_PATH;
+  }
 
-        const allPassed = results.every((r) => r.passed);
-        return {
-            status: allPassed ? 'pass' : 'fail',
-            results,
-        };
-    }
+  async runChain(manifest: ChainManifest): Promise<ChainState> {
+    const verificationManifest = this.toVerificationManifest(manifest);
+    const manifestPath = this.writeManifestFile(verificationManifest);
+    const payload = await this.runCovCli(["run", manifestPath]);
 
-    async resumeChain(stateDir: string, action?: 'approve' | 'reject'): Promise<ChainState> {
-        logger.info(`[cov] Resuming chain from ${stateDir} with action: ${action ?? 'none'}`);
-
-        // For human-approval gates: approve passes, reject fails
-        if (action === 'approve') {
-            return {
-                status: 'pass',
-                results: [
-                    {
-                        run_id: '',
-                        phase_name: '',
-                        step_name: 'human-approval',
-                        checker_method: 'human',
-                        passed: true,
-                    },
-                ],
-            };
-        }
-
-        if (action === 'reject') {
-            return {
-                status: 'fail',
-                results: [
-                    {
-                        run_id: '',
-                        phase_name: '',
-                        step_name: 'human-approval',
-                        checker_method: 'human',
-                        passed: false,
-                    },
-                ],
-            };
-        }
-
-        // Default: re-run the chain from state directory
-        try {
-            const proc = Bun.spawn(
-                [
-                    'bun',
-                    'run',
-                    'plugins/rd3/skills/verification-chain/scripts/interpreter.ts',
-                    'resume',
-                    '--state-dir',
-                    stateDir,
-                ],
-                {
-                    stdout: 'pipe',
-                    stderr: 'pipe',
-                },
-            );
-
-            const exitCode = await proc.exited;
-            const stdout = await new Response(proc.stdout).text();
-
-            if (exitCode === 0) {
-                const parsed = JSON.parse(stdout) as ChainState;
-                return parsed;
-            }
-        } catch (err) {
-            logger.error(`[cov] Resume failed: ${err instanceof Error ? err.message : String(err)}`);
-        }
-
-        return {
-            status: 'pending',
-            results: [],
-        };
-    }
-
-    private async runCheck(runId: string, phaseName: string, check: ChainCheck): Promise<GateResult> {
-        const startTime = Date.now();
-
-        try {
-            // Dispatch based on method
-            switch (check.method) {
-                case 'cli':
-                    return await this.runCliCheck(runId, phaseName, check, startTime);
-                case 'content_match':
-                    return await this.runContentMatchCheck(runId, phaseName, check, startTime);
-                case 'llm':
-                    return await this.runLlmCheckDriver(runId, phaseName, check, startTime);
-                case 'human':
-                    return {
-                        run_id: runId,
-                        phase_name: phaseName,
-                        step_name: check.name,
-                        checker_method: check.method,
-                        passed: false,
-                        duration_ms: Date.now() - startTime,
-                        created_at: new Date(),
-                    };
-                default:
-                    logger.warn(`[cov] Unknown check method: ${check.method}`);
-                    return {
-                        run_id: runId,
-                        phase_name: phaseName,
-                        step_name: check.name,
-                        checker_method: check.method,
-                        passed: false,
-                        duration_ms: Date.now() - startTime,
-                        created_at: new Date(),
-                    };
-            }
-        } catch (err) {
-            return {
-                run_id: runId,
-                phase_name: phaseName,
-                step_name: check.name,
-                checker_method: check.method,
-                passed: false,
-                evidence: {
-                    error: err instanceof Error ? err.message : String(err),
-                },
-                duration_ms: Date.now() - startTime,
-                created_at: new Date(),
-            };
-        }
-    }
-
-    private async runCliCheck(
-        runId: string,
-        phaseName: string,
-        check: ChainCheck,
-        startTime: number,
-    ): Promise<GateResult> {
-        const command = (check.params?.command as string) ?? '';
-        if (!command) {
-            return {
-                run_id: runId,
-                phase_name: phaseName,
-                step_name: check.name,
-                checker_method: check.method,
-                passed: false,
-                evidence: { error: 'No command specified for CLI check' },
-                duration_ms: Date.now() - startTime,
-                created_at: new Date(),
-            };
-        }
-
-        const proc = Bun.spawn(['sh', '-c', command], {
-            stdout: 'pipe',
-            stderr: 'pipe',
-        });
-        const exitCode = await proc.exited;
-        const stdout = await new Response(proc.stdout).text();
-        const durationMs = Date.now() - startTime;
-
-        return {
-            run_id: runId,
-            phase_name: phaseName,
-            step_name: check.name,
-            checker_method: check.method,
-            passed: exitCode === 0,
+    if (!payload.state) {
+      const cliError = this.payloadError(payload);
+      return {
+        status: "fail",
+        results: [
+          {
+            run_id: manifest.run_id,
+            phase_name: manifest.phase_name,
+            step_name: "verification-chain",
+            checker_method: "cov-cli",
+            passed: false,
             evidence: {
-                exitCode,
-                ...(stdout.trim().length > 0 && { output: stdout.slice(0, 1000) }),
+              error: cliError.error,
+              ...(cliError.details !== undefined ? { details: cliError.details } : {}),
             },
-            duration_ms: durationMs,
             created_at: new Date(),
-        };
+          },
+        ],
+      };
     }
 
-    private async runContentMatchCheck(
-        runId: string,
-        phaseName: string,
-        check: ChainCheck,
-        startTime: number,
-    ): Promise<GateResult> {
-        const file = (check.params?.file as string) ?? '';
-        const pattern = (check.params?.pattern as string) ?? '';
+    return this.toDriverState(manifest, payload.state);
+  }
 
-        if (!file || !pattern) {
-            return {
-                run_id: runId,
-                phase_name: phaseName,
-                step_name: check.name,
-                checker_method: check.method,
-                passed: false,
-                evidence: { error: 'Missing file or pattern for content_match' },
-                duration_ms: Date.now() - startTime,
-                created_at: new Date(),
-            };
-        }
+  async resumeChain(stateDir: string, action?: "approve" | "reject"): Promise<ChainState> {
+    const payload = await this.runCovCli(["list"], stateDir);
 
-        try {
-            const content = await Bun.file(file).text();
-            const regex = new RegExp(pattern);
-            const matched = regex.test(content);
-
-            return {
-                run_id: runId,
-                phase_name: phaseName,
-                step_name: check.name,
-                checker_method: check.method,
-                passed: matched,
-                evidence: { file, pattern, matched },
-                duration_ms: Date.now() - startTime,
-                created_at: new Date(),
-            };
-        } catch (err) {
-            return {
-                run_id: runId,
-                phase_name: phaseName,
-                step_name: check.name,
-                checker_method: check.method,
-                passed: false,
-                evidence: {
-                    file,
-                    error: err instanceof Error ? err.message : String(err),
-                },
-                duration_ms: Date.now() - startTime,
-                created_at: new Date(),
-            };
-        }
+    if (!payload.ok) {
+      const cliError = this.payloadError(payload);
+      return {
+        status: "fail",
+        results: [
+          {
+            run_id: "",
+            phase_name: "",
+            step_name: "verification-chain",
+            checker_method: "cov-cli",
+            passed: false,
+            evidence: {
+              error: cliError.error,
+              ...(cliError.details !== undefined ? { details: cliError.details } : {}),
+            },
+            created_at: new Date(),
+          },
+        ],
+      };
     }
 
-    private async runLlmCheckDriver(
-        runId: string,
-        phaseName: string,
-        check: ChainCheck,
-        startTime: number,
-    ): Promise<GateResult> {
-        const checklist = (check.params?.checklist as string[]) ?? [];
-        if (!checklist || checklist.length === 0) {
-            return {
-                run_id: runId,
-                phase_name: phaseName,
-                step_name: check.name,
-                checker_method: check.method,
-                passed: false,
-                evidence: { error: 'No checklist specified for LLM check' },
-                duration_ms: Date.now() - startTime,
-                created_at: new Date(),
-            };
-        }
+    const pausedChains = (payload.chains ?? []).filter((chain) => chain.status === "paused");
+    if (pausedChains.length === 0) {
+      return {
+        status: "pending",
+        results: [],
+      };
+    }
 
-        const config: LlmCheckerConfig = {
-            checklist,
-        };
-        if (check.params?.prompt_template) {
-            config.prompt_template = check.params.prompt_template as string;
-        }
+    if (pausedChains.length > 1) {
+      return {
+        status: "fail",
+        results: [
+          {
+            run_id: "",
+            phase_name: "",
+            step_name: "verification-chain",
+            checker_method: "cov-cli",
+            passed: false,
+            evidence: {
+              error: "Multiple paused verification chains found; resume is ambiguous.",
+            },
+            created_at: new Date(),
+          },
+        ],
+      };
+    }
 
-        const result = await runLlmCheck(config);
-        const durationMs = Date.now() - startTime;
+    const pausedChain = pausedChains[0];
+    const resumeArgs = ["resume", pausedChain.chain_id, "--task", pausedChain.task_wbs];
+    if (action) {
+      resumeArgs.push("--response", action);
+    }
 
-        const gateEvidence: Record<string, unknown> = {
-            checklist: result.evidence.llm_results ?? [],
-            llm_raw_output: result.evidence,
-            ...(result.error && { error: result.error }),
-        };
+    const resumePayload = await this.runCovCli(resumeArgs, stateDir);
+    if (!resumePayload.state) {
+      const cliError = this.payloadError(resumePayload);
+      return {
+        status: "fail",
+        results: [
+          {
+            run_id: pausedChain.chain_id,
+            phase_name: pausedChain.task_wbs,
+            step_name: pausedChain.paused_node ?? pausedChain.current_node,
+            checker_method: "cov-cli",
+            passed: false,
+            evidence: {
+              error: cliError.error,
+              ...(cliError.details !== undefined ? { details: cliError.details } : {}),
+            },
+            created_at: new Date(),
+          },
+        ],
+      };
+    }
 
+    return this.toDriverState(
+      {
+        run_id: pausedChain.chain_id,
+        phase_name: pausedChain.task_wbs,
+        checks: resumePayload.state.nodes.map((node) => ({
+          name: node.name,
+          method: (node.evidence.at(-1)?.method ?? "human") as CheckMethod,
+        })),
+      },
+      resumePayload.state,
+    );
+  }
+
+  private toVerificationManifest(manifest: ChainManifest): VerificationChainManifest {
+    return {
+      chain_id: manifest.run_id,
+      task_wbs: manifest.phase_name,
+      chain_name: `${manifest.run_id}:${manifest.phase_name}`,
+      on_node_fail: "halt",
+      nodes: manifest.checks.map((check) => this.toVerificationNode(check)),
+    };
+  }
+
+  private toVerificationNode(check: ChainCheck): SingleNode {
+    return {
+      name: check.name,
+      type: "single",
+      maker: { command: "true" },
+      checker: {
+        method: this.toVerificationMethod(check.method),
+        config: this.toVerificationConfig(check),
+      },
+    };
+  }
+
+  private toVerificationMethod(method: CheckMethod): CheckerMethod {
+    switch (method) {
+      case "cli":
+        return "cli";
+      case "content-match":
+        return "content-match";
+      case "file-exists":
+        return "file-exists";
+      case "llm":
+        return "llm";
+      case "human":
+        return "human";
+      case "compound":
+        return "compound";
+    }
+  }
+
+  private toVerificationConfig(check: ChainCheck): SingleNode["checker"]["config"] {
+    const params = check.params ?? {};
+
+    switch (check.method) {
+      case "cli":
         return {
-            run_id: runId,
-            phase_name: phaseName,
-            step_name: check.name,
-            checker_method: check.method,
-            passed: result.result === 'pass',
-            evidence: gateEvidence,
-            duration_ms: durationMs,
-            created_at: new Date(),
-        };
+          command: params.command,
+          ...(Array.isArray(params.exit_codes) ? { exit_codes: params.exit_codes } : {}),
+          ...(typeof params.timeout === "number" ? { timeout: params.timeout } : {}),
+        } as SingleNode["checker"]["config"];
+      case "content-match":
+        return {
+          file: params.file,
+          pattern: params.pattern,
+          must_exist: typeof params.must_exist === "boolean" ? params.must_exist : true,
+        } as SingleNode["checker"]["config"];
+      case "llm":
+        return {
+          checklist: params.checklist,
+          ...(typeof params.prompt_template === "string"
+            ? { prompt_template: params.prompt_template }
+            : {}),
+        } as SingleNode["checker"]["config"];
+      case "human":
+        return {
+          prompt: (params.prompt as string | undefined) ?? check.name,
+          ...(Array.isArray(params.choices) ? { choices: params.choices } : {}),
+        } as SingleNode["checker"]["config"];
+      default:
+        return params as unknown as SingleNode["checker"]["config"];
     }
+  }
+
+  private writeManifestFile(manifest: VerificationChainManifest): string {
+    const tempDir = mkdtempSync(join(tmpdir(), "orchestration-cov-driver-"));
+    mkdirSync(tempDir, { recursive: true });
+    const manifestPath = join(tempDir, `${manifest.chain_id}-${manifest.task_wbs}-cov-manifest.json`);
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), "utf-8");
+    return manifestPath;
+  }
+
+  private async runCovCli(args: string[], stateDir = this.stateDir): Promise<CliPayload> {
+    const proc = Bun.spawn(["bun", "run", this.cliPath, ...args], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        COV_STATE_DIR: stateDir,
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    const exitCode = await proc.exited;
+    const stdout = await new Response(proc.stdout).text();
+    const stderr = await new Response(proc.stderr).text();
+    const payload = this.parseCliPayload(stdout, stderr);
+
+    if (exitCode !== 0 && payload.ok) {
+      return {
+        ok: false,
+        error: "verification-chain CLI exited non-zero without an error payload",
+        details: stderr || stdout,
+      };
+    }
+
+    return payload;
+  }
+
+  private parseCliPayload(stdout: string, stderr: string): CliPayload {
+    const trimmed = stdout.trim();
+    if (!trimmed) {
+      return {
+        ok: false,
+        error: "verification-chain CLI returned no JSON payload",
+        details: stderr,
+      };
+    }
+
+    try {
+      return JSON.parse(trimmed) as CliPayload;
+    } catch (err) {
+      return {
+        ok: false,
+        error: "verification-chain CLI returned invalid JSON",
+        details: err instanceof Error ? err.message : `${stderr}\n${trimmed}`,
+      };
+    }
+  }
+
+  private payloadError(payload: CliPayload): { error: string; details?: unknown } {
+    if ("error" in payload) {
+      return {
+        error: payload.error,
+        ...(payload.details !== undefined ? { details: payload.details } : {}),
+      };
+    }
+
+    return {
+      error: "verification-chain CLI did not return a runtime state",
+    };
+  }
+
+  private toDriverState(manifest: ChainManifest, runtimeState: VerificationRuntimeState): ChainState {
+    const results: GateResult[] = manifest.checks.map((check, index) => {
+      const node = runtimeState.nodes[index];
+      const evidence = node?.evidence.at(-1);
+
+      return {
+        run_id: manifest.run_id,
+        phase_name: manifest.phase_name,
+        step_name: check.name,
+        checker_method: typeof check.method === "string" ? check.method : `${check.method}`,
+        passed: node?.status === "completed" && evidence?.result !== "fail",
+        ...(evidence ? { evidence: this.toGateEvidence(evidence) } : {}),
+        ...(evidence?.timestamp ? { created_at: new Date(evidence.timestamp) } : {}),
+      };
+    });
+
+    return {
+      status: this.toDriverStatus(runtimeState.status),
+      results,
+    };
+  }
+
+  private toDriverStatus(status: VerificationRuntimeState["status"]): ChainState["status"] {
+    switch (status) {
+      case "completed":
+        return "pass";
+      case "paused":
+        return "pending";
+      default:
+        return "fail";
+    }
+  }
+
+  private toGateEvidence(evidence: CheckerEvidence): Record<string, unknown> {
+    return {
+      ...evidence,
+    };
+  }
 }
