@@ -85,7 +85,7 @@ Advisory payload fields are passed to the executing skill, which decides whether
 
 ## Overview
 
-The orchestration-v2 engine is a micro-kernel with six pluggable subsystems: FSM lifecycle, DAG scheduler, event bus, state manager, executor pool, and verification driver. Pipelines are declared in YAML and executed as a directed acyclic graph with automatic dependency resolution.
+The orchestration-v2 engine is a scheduling kernel whose primary responsibilities are run lifecycle, DAG scheduling, state persistence, and executor dispatch. Verification is delegated to `rd3:verification-chain` via a `VerificationDriver` adapter — the engine requests verification, consumes normalized pass/fail/pause results, and reacts accordingly without reimplementing checker logic. Gate evaluation (command, auto, human) is handled by a dedicated `GateEvaluator` that coordinates with the verification driver. Pipelines are declared in YAML and executed as a directed acyclic graph with automatic dependency resolution.
 
 ## Quick Start
 
@@ -166,9 +166,9 @@ When `--preset` is omitted, the engine resolves it in this order:
 
 Legacy task alias `review` remains accepted and is normalized to `review-only`.
 
-### Execution Channels
+### Executor Routing
 
-`local` is the default execution mode for v2 and means in-process execution in the current Bun process. `direct` is the explicit Bun-subprocess transport. `auto` means "use the orchestrator default" and currently resolves to `local` unless routing config overrides it. Explicit agent names such as `pi`, `codex`, or `opencode` stay external ACP-backed channels. `current` remains accepted as a deprecated compatibility alias for `auto`.
+Execution channel is a routing detail handled by the executor pool and adapter layer — it determines **where** a phase runs, not **how** the engine schedules or verifies it. The engine resolves an executor for each phase via `PhaseExecutorDefinition` and passes the request to the pool. Built-in modes: `inline` (in-process), `subprocess` (Bun child process). External backends (e.g., `codex`, `pi`, `opencode`) route through ACP adapters. Legacy aliases (`local` → `inline`, `direct` → `subprocess`, `auto`/`current` → `inline`) are normalized transparently.
 
 ### FSM Lifecycle
 
@@ -243,14 +243,15 @@ Error taxonomy with recovery strategies: → `references/error-codes.md`
 
 ## Architecture
 
-The engine is a micro-kernel with pluggable subsystems:
+The engine is a scheduling kernel with clear subsystem boundaries:
 
 - **FSM Engine** — 5-state lifecycle machine (IDLE, RUNNING, PAUSED, COMPLETED, FAILED)
 - **DAG Scheduler** — Dependency resolution, topological sort, parallel dispatch
+- **Gate Evaluator** — Delegates command, auto, and human gate checks; coordinates with verification driver
 - **Event Bus** — Typed event emitter, all subsystems produce
 - **State Manager** — SQLite with event sourcing (6 tables)
-- **Executor Pool** — Auto/default-backend, ACP, and Mock executors
-- **CoV Driver** — Verification chain adapter
+- **Executor Pool** — Inline, subprocess, and ACP-backed executors (channel is a routing detail)
+- **Verification Driver** — Adapter to `rd3:verification-chain`; the engine consumes pass/fail/pause results without owning checker logic
 - **Pipeline Compiler** — YAML → validated PipelineDefinition → DAG + FSM config
 
 Blueprint document: `docs/orchestration-v2-blueprint.md`
@@ -297,16 +298,16 @@ orchestrator run <task-ref> --preset unit
 orchestrator run <task-ref> --channel codex
 ```
 
-**Channel behavior**:
+**Executor routing** (channel is a routing detail, not a core concept):
 
 | Channel | Executor | Use Case |
 |---------|---------|---------|
-| `local` (default) | in-process local executor | Interactive/default path for skills with local entrypoints |
-| `direct` | Bun subprocess executor | Explicit process isolation |
-| `auto` | orchestrator default | Compatibility alias for the configured default executor |
-| `current` | same as `auto` | Deprecated compatibility alias |
-| `codex` | acp-oneshot:codex | Explicit external ACP execution |
-| `opencode` | acp-oneshot:opencode | Explicit external ACP execution |
+| `inline` (default) | In-process Bun executor | Default path for skills with local entrypoints |
+| `subprocess` | Bun child process executor | Explicit process isolation |
+| `codex` | acp-oneshot:codex | External ACP execution |
+| `opencode` | acp-oneshot:opencode | External ACP execution |
+| `local`, `auto`, `current` | Normalized to `inline` | Legacy aliases (accepted, transparent) |
+| `direct` | Normalized to `subprocess` | Legacy alias |
 
 ### Dogfood Test
 
