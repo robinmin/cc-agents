@@ -2,6 +2,7 @@
 
 import { existsSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
 import {
     getMetaDir,
@@ -37,10 +38,19 @@ export function runInit(projectRoot: string): Result<boolean> {
         }
 
         // Copy template files if not already present
-        // Resolve templates relative to the script's location (skill directory)
-        const scriptsDir = dirname(import.meta.dir);
-        const skillDir = resolve(scriptsDir, '..');
-        const skillTemplates = resolve(skillDir, 'templates');
+        // Try process.cwd() first (works when CLI is run from project root in dev)
+        // Fall back to dist/templates/ (populated by the build step for production installs)
+        // Fall back to source templates (works in source TS execution via import.meta.dir)
+        const scriptsDir = dirname(fileURLToPath(import.meta.url));
+        let skillTemplates = resolve(process.cwd(), 'plugins/rd3/skills/tasks/templates');
+        if (!existsSync(skillTemplates)) {
+            // Bundled production: dist/tasks.js → dist/templates/
+            skillTemplates = resolve(scriptsDir, 'templates');
+        }
+        if (!existsSync(skillTemplates)) {
+            // Source dev: scripts/commands/ → scripts/ → skills/tasks/ → templates
+            skillTemplates = resolve(scriptsDir, '../../templates');
+        }
 
         // Task template
         const taskTemplateDest = resolve(metaDir, 'task.md');
