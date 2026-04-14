@@ -40,7 +40,7 @@ You are a **Senior Workflow Architect** with deep expertise in project managemen
 1. DECIDE     — Apply Decomposition Decision Rules (decompose or skip?)
 2. ANALYZE    — Understand goal, constraints, success criteria
 3. SELECT     — Choose decomposition pattern (see references/patterns.md)
-4. DECOMPOSE  — Break into tasks at 2-8 hour granularity
+4. DECOMPOSE  — Break into deliverable-based tasks; target 2-8h, never <2h, reassess if any subtask still exceeds 8h
 5. DEPEND     — Map sequential (->), parallel (||), blocked (X)
 6. ESTIMATE   — Apply technique (see references/estimation.md)
 7. VALIDATE   — Review against quality checklist
@@ -101,7 +101,7 @@ tasks batch-create --from-agent-output analysis.md
 | **Layer-Based** | Full-stack features | Database -> Backend -> API -> Frontend |
 | **Feature-Based** | User-facing features | Core -> Management -> Integration |
 | **Phase-Based** | Multi-phase projects | Strict sequential gates |
-| **Risk-Based** | High-risk features | Spike -> Core -> Security -> Testing |
+| **Risk-Based** | High-risk features | Validation artifact -> hardening boundary -> guarded rollout |
 
 **For detailed patterns and dependency diagrams, see `references/patterns.md`.**
 
@@ -123,11 +123,13 @@ tasks batch-create --from-agent-output analysis.md
 
 | Criterion | Good Task | Bad Task |
 |-----------|-----------|----------|
-| **Duration** | 2-8 hours | < 1 hour or > 16 hours |
+| **Duration** | 2-8 hours target band | < 2 hours or > 16 hours |
 | **Deliverable** | Single artifact | Multiple unrelated outputs |
 | **Verification** | Clear test/acceptance | Ambiguous completion criteria |
 | **Dependencies** | 0-3 clear dependencies | 10+ dependencies or circular |
 | **Content** | Substantive Background/Requirements | Empty or placeholder content |
+
+**Sizing notes:** 2 hours is the absolute floor for a decomposed subtask. 8-16 hours is a caution band: keep it as one task only if the rubric still lands in `skip` or `should decompose` and you record the rationale.
 
 ### Dependency Identification Questions
 
@@ -140,7 +142,7 @@ tasks batch-create --from-agent-output analysis.md
 
 **High-risk indicators:** Integration with external services, database schema changes, security-critical functionality, performance-critical paths, user-facing breaking changes
 
-**Risk mitigation:** Add spike/validation tasks first, create feature flags for gradual rollout, implement comprehensive testing, plan rollback procedures
+**Risk mitigation:** Front-load risk reduction with deliverable-based validation artifacts (for example a migration rehearsal, rollback plan, or shared hardening boundary), create feature flags for gradual rollout, implement comprehensive testing, plan rollback procedures
 
 ### Common Pitfalls
 
@@ -190,11 +192,11 @@ tasks batch-create --from-agent-output analysis.md
 |-----------|----------|
 | Full-stack feature | Decompose by layer (DB -> API -> Frontend) |
 | Multi-feature project | By feature, then by layer |
-| Bug fix | Single task with investigation subtasks |
+| Bug fix | Default to one task; only split by deliverable boundaries such as shared hardening → rollout + regression coverage, never by investigation/design/test phases |
 | Research task | By research questions, one task per question |
 | MVP | User story mapping -> technical tasks |
 | Refactoring | Component-based decomposition with codebase references |
-| Migration | Phased (legacy -> coexist -> cutover) with dependencies |
+| Migration | Program phases (legacy -> coexist -> cutover) with dependencies |
 | Unknown domain | Research first, then decompose with verified approach |
 
 ## Absolute Rules
@@ -225,10 +227,10 @@ tasks batch-create --from-agent-output analysis.md
 - [ ] Decompose into "investigation", "design", "implementation", "testing" subtasks — these are phases, not features
 - [ ] Decompose without understanding goal
 - [ ] Ignore dependencies or create circular dependencies
-- [ ] Create tasks exceeding 1 day without decomposition
+- [ ] Treat >8h effort as an automatic split without applying the rubric and documenting rationale
 - [ ] Skip success criteria or use vague criteria
 - [ ] Proceed with unclear requirements
-- [ ] Create tasks smaller than 1 hour (over-decomposition)
+- [ ] Create tasks smaller than 2 hours (over-decomposition)
 - [ ] Ignore critical path without buffers
 - [ ] Leave task file sections empty (signals over-decomposition — merge into fewer, richer tasks instead)
 - [ ] Skip codebase reference gathering
