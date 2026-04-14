@@ -6,7 +6,7 @@ import { ExecutorPool } from '../scripts/executors/pool';
 import { MockExecutor } from '../scripts/executors/mock';
 import { EventBus } from '../scripts/observability/event-bus';
 import { HookRegistry } from '../scripts/engine/hooks';
-import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent } from '../scripts/model';
+import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent, VerificationDriver } from '../scripts/model';
 import { setGlobalSilent } from '../../../scripts/logger';
 import * as llmModule from '../../verification-chain/scripts/methods/llm';
 import type { LlmCheckerConfig } from '../../verification-chain/scripts/types';
@@ -51,6 +51,88 @@ function createTestPipeline(): PipelineDefinition {
     };
 }
 
+function createVerificationDriver(): VerificationDriver {
+    return {
+        runChain: async (manifest) => {
+            const results = await Promise.all(
+                manifest.checks.map(async (check) => {
+                    if (check.method === 'llm') {
+                        const llmResult = await llmModule.runLlmCheck(
+                            (check.params ?? {}) as unknown as LlmCheckerConfig,
+                        );
+                        return {
+                            run_id: manifest.run_id,
+                            phase_name: manifest.phase_name,
+                            step_name: check.name,
+                            checker_method: check.method,
+                            passed: llmResult.result === 'pass',
+                            evidence: {
+                                ...llmResult.evidence,
+                                ...(llmResult.error ? { error: llmResult.error } : {}),
+                            },
+                            created_at: new Date(),
+                        };
+                    }
+
+                    return {
+                        run_id: manifest.run_id,
+                        phase_name: manifest.phase_name,
+                        step_name: check.name,
+                        checker_method: check.method,
+                        passed: true,
+                        created_at: new Date(),
+                    };
+                }),
+            );
+
+            return {
+                status: results.every((result) => result.passed) ? 'pass' : 'fail',
+                results,
+            };
+        },
+        resumeChain: async (_stateDir, action) => {
+            if (action === 'approve') {
+                return {
+                    status: 'pass',
+                    results: [
+                        {
+                            run_id: '',
+                            phase_name: '',
+                            step_name: 'human-review',
+                            checker_method: 'human',
+                            passed: true,
+                            evidence: { human_response: 'approve' },
+                            created_at: new Date(),
+                        },
+                    ],
+                };
+            }
+
+            if (action === 'reject') {
+                return {
+                    status: 'fail',
+                    results: [
+                        {
+                            run_id: '',
+                            phase_name: '',
+                            step_name: 'human-review',
+                            checker_method: 'human',
+                            passed: false,
+                            evidence: { error: 'Human review rejected', human_response: 'reject' },
+                            created_at: new Date(),
+                        },
+                    ],
+                };
+            }
+
+            return {
+                status: 'pending',
+                results: [],
+            };
+        },
+    };
+}
+
 describe('engine/runner — PipelineRunner', () => {
     let stateManager: StateManager;
     let pool: ExecutorPool;
@@ -63,7 +145,7 @@ describe('engine/runner — PipelineRunner', () => {
         pool = new ExecutorPool();
         mockExecutor = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
         pool.register(mockExecutor);
-        runner = new PipelineRunner(stateManager, pool);
+        runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
     });
 
     test('constructor initializes with required dependencies', () => {
@@ -72,7 +154,13 @@ describe('engine/runner — PipelineRunner', () => {
 
     test('constructor with event bus initializes correctly', () => {
         const eventBus = new EventBus();
-        const runnerWithEvents = new PipelineRunner(stateManager, pool, undefined, eventBus);
+        const runnerWithEvents = new PipelineRunner(
+            stateManager,
+            pool,
+            undefined,
+            eventBus,
+            createVerificationDriver(),
+        );
         expect(runnerWithEvents).toBeDefined();
     });
 
@@ -462,7 +550,7 @@ describe('engine/runner — PipelineRunner', () => {
         };
 
         // Need a runner that has initialized the DAG
-        const undoRunner = new PipelineRunner(stateManager, pool);
+        const undoRunner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         // Access private method via initializePipeline (called in run)
         // We'll use a small trick: run with dry-run to init the DAG
         await undoRunner.run({ taskRef: 'undo-task-dry', dryRun: true } as RunOptions, pipelineDef);
@@ -531,7 +619,13 @@ describe('engine/runner — PipelineRunner', () => {
             events.push(event);
         });
 
-        const runnerWithEvents = new PipelineRunner(stateManager, pool, undefined, eventBus);
+        const runnerWithEvents = new PipelineRunner(
+            stateManager,
+            pool,
+            undefined,
+            eventBus,
+            createVerificationDriver(),
+        );
         const pipeline = createTestPipeline();
 
         mockExecutor.setResponses([
@@ -667,7 +761,7 @@ describe('engine/runner — command gate', () => {
     });
 
     test('command gate passes when command exits 0', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'command-gate-pass',
@@ -688,7 +782,7 @@ describe('engine/runner — command gate', () => {
     }, 10000);
 
     test('command gate fails when command exits non-zero', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'command-gate-fail',
@@ -709,7 +803,7 @@ describe('engine/runner — command gate', () => {
     }, 10000);
 
     test('command gate substitutes template variables', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'command-gate-template',
@@ -730,7 +824,7 @@ describe('engine/runner — command gate', () => {
     }, 10000);
 
     test('command gate with rework retries on failure then succeeds', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const tempDir = mkdtempSync(join(tmpdir(), 'orch-v2-gate-rework-'));
         const gateFlag = join(tempDir, 'gate-fixed');
 
@@ -766,7 +860,7 @@ describe('engine/runner — command gate', () => {
     }, 10000);
 
     test('command gate pause escalation pauses the run after retries are exhausted', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'command-gate-pause',
@@ -796,7 +890,7 @@ describe('engine/runner — command gate', () => {
     }, 10000);
 
     test('command gate results are persisted for inspection', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'command-gate-persist',
@@ -839,7 +933,7 @@ describe('engine/runner — auto gate evidence', () => {
     });
 
     test('auto gate receives phase evidence and persists gate results', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         llmSpy.mockImplementationOnce(async (config: LlmCheckerConfig) => {
             expect(config.prompt_template).toContain('stdout from phase');
             expect(config.prompt_template).toContain('stderr from phase');
@@ -898,7 +992,7 @@ describe('engine/runner — auto gate evidence', () => {
     }, 10000);
 
     test('auto gate resolves checklist defaults from skill metadata before engine defaults', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const skillDir = join(process.cwd(), 'plugins', 'rd3', 'skills', 'tmp-auto-default-skill');
 
         mkdirSync(skillDir, { recursive: true });
@@ -968,7 +1062,7 @@ describe('engine/runner — human gate evidence', () => {
     });
 
     test('human gate persists prompt evidence for inspect and approval flows', async () => {
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'human-gate-prompt',
@@ -1021,7 +1115,7 @@ describe('engine/runner — hook execution', () => {
             await originalExecute(name, ctx);
         };
 
-        const runner = new PipelineRunner(stateManager, pool, hookRegistry);
+        const runner = new PipelineRunner(stateManager, pool, hookRegistry, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'hook-test',
@@ -1050,7 +1144,7 @@ describe('engine/runner — hook execution', () => {
             await originalExecute(name, ctx);
         };
 
-        const runner = new PipelineRunner(stateManager, pool, hookRegistry);
+        const runner = new PipelineRunner(stateManager, pool, hookRegistry, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'failure-hook-test',
@@ -1078,7 +1172,7 @@ describe('engine/runner — hook execution', () => {
             await originalExecute(name, ctx);
         };
 
-        const runner = new PipelineRunner(stateManager, pool, hookRegistry);
+        const runner = new PipelineRunner(stateManager, pool, hookRegistry, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'pause-hook-test',
@@ -1108,7 +1202,7 @@ describe('engine/runner — hook execution', () => {
             await originalExecute(name, ctx);
         };
 
-        const runner = new PipelineRunner(stateManager, pool, hookRegistry);
+        const runner = new PipelineRunner(stateManager, pool, hookRegistry, undefined, createVerificationDriver());
         const pipeline: PipelineDefinition = {
             schema_version: 1,
             name: 'pause-escalation-test',
