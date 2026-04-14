@@ -460,7 +460,7 @@ export interface ChainManifest {
 
 export interface ChainCheck {
     readonly name: string;
-    readonly method: string;
+    readonly method: CheckMethod;
     readonly params?: Record<string, unknown>;
 }
 
@@ -473,6 +473,15 @@ export interface VerificationDriver {
     runChain(manifest: ChainManifest): Promise<ChainState>;
     resumeChain(stateDir: string, action?: 'approve' | 'reject'): Promise<ChainState>;
 }
+
+// ─── Gate Evaluation ───────────────────────────────────────────────────────────
+
+/**
+ * Canonical check methods for ChainCheck.
+ * Use kebab-case naming consistently.
+ * Aligned with verification-chain's CheckerMethod type.
+ */
+export type CheckMethod = "cli" | "content-match" | "file-exists" | "llm" | "human" | "compound";
 
 // ─── Report ────────────────────────────────────────────────────────────────────
 
