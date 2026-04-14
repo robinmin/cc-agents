@@ -34,8 +34,9 @@ see_also:
 
 Before finalizing task decomposition:
 
-Before finalizing task decomposition:
-- [ ] Each task is 2-8 hours
+- [ ] Each task targets 2-8 hours
+- [ ] No task is smaller than 2 hours
+- [ ] Any 8-16 hour task has written rationale
 - [ ] Each task has single responsibility
 - [ ] Each task has clear deliverable
 - [ ] Each task has verifiable outcome
