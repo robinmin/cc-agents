@@ -26,16 +26,14 @@
     "typecheck:rd3": "bun run --cwd plugins/rd3 typecheck",
     "test:rd3": "bun run --cwd plugins/rd3 test --coverage --reporter=dots",
     "test:coverage:rd3": "bun run --cwd plugins/rd3 test:coverage",
-    "setup-all": "./scripts/setup-all.sh",
-    "tasks": "bun run --cwd plugins/rd3 tasks",
-    "ftree": "bun run --cwd plugins/rd3 ftree",
-    "tasks:check": "bun run --cwd plugins/rd3 check",
-    "tasks:test": "bun run --cwd plugins/rd3 test",
     "test-bats": "bats plugins/rd3/skills/cc-hooks/tests/*.bats && bats tests",
-    "build:ui": "cd plugins/rd3/skills/tasks/scripts/server/ui && bun run build",
-    "ui:dev": "cd plugins/rd3/skills/tasks/scripts/server/ui && bun run dev",
-    "build:tasks": "cd plugins/rd3 && bun run build:tasks && cd ../..",
-    "build:ftree": "cd plugins/rd3 && bun run build:ftree && cd ../.."
+    "setup-all": "./scripts/setup-all.sh",
+    "build-all-rd3": "bun run --cwd plugins/rd3 build-all",
+    "symblink-all-rd3": "bun run --cwd plugins/rd3 symblink-all",
+    "tasks": "bun ./plugins/rd3/skills/tasks/scripts/dist/tasks.js",
+    "ftree": "bun ./plugins/rd3/skills/feature-tree/scripts/dist/ftree.js",
+    "orchestrator": "bun ./plugins/rd3/skills/orchestration-v2/scripts/dist/orchestrator.js",
+    "cov": "bun ./plugins/rd3/skills/verification-chain/scripts/dist/cov.js"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.11",
