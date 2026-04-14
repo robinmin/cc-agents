@@ -2,6 +2,84 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.6] - 2026-04-14
+
+### New Features
+
+- **rd3:feature-tree**: New agent skill for feature management
+  - CLI tool with commands: `feature-add`, `feature-list`, `feature-digest`, `feature-context`, `feature-link`, `feature-unlink`, `feature-move`, `feature-update`, `feature-delete`, `feature-import`, `feature-export`, `feature-check-done`, `feature-wbs`
+  - Core package with feature service, DAO layer, and SQLite adapter
+  - Tree utilities for hierarchical feature operations
+  - Kanban-style web UI with drag-and-drop
+
+- **rd3:super-brain**: New subagent for brainstorming and ideation
+  - Structured ideation workflows
+  - Confidence scoring and trade-off analysis
+
+- **rd3:orchestration-v2**: Major simplification and stability improvements
+  - Simplified architecture with cleaner DAG-based execution
+  - Profile-driven execution (simple, standard, complex, research)
+  - Direct skill execution without ACP overhead
+  - Enhanced gate architecture with better error discrimination
+
+- **rd3:tasks Web UI**: Visual Kanban board with enhanced features
+  - Drag-and-drop task reordering within columns
+  - Sort by creation date, WBS order, or custom order
+  - Relative timestamps on task cards
+  - Toast notifications for user actions
+  - Move to Todo button for Backlog tasks
+
+- **rd3:tasks Server**: New CLI commands
+  - `server` command for launching HTTP server
+  - `write` subcommand for creating/updating tasks
+  - `open` subcommand for opening task files in editor
+  - `put` subcommand for batch updates
+  - `refresh` subcommand for reloading from disk
+
+- **Slash Commands**: New developer productivity commands
+  - `rd3:dev-changelog` - Generate changelog from git history
+  - `rd3:dev-verify` - Task verification with requirements traceability
+  - `rd3:dev-refine` - Requirements refinement
+  - `rd3:dev-reverse` - HLD generation from codebase
+
+- **Platform Migration**: Skills migrated from rd2 to rd3
+  - rd3:tdd-workflow, rd3:sys-testing, rd3:sys-debugging, rd3:sys-developing
+  - rd3:pl-typescript, rd3:frontend-architect, rd3:backend-architect
+  - rd3:knowledge-extraction, rd3:reverse-engineering
+
+### Improvements
+
+- **rd3:cc-skills**: Added ADK behavior support for Gemini integration
+- **rd3:cc-magents**: Enhanced with more platform adapters
+- **rd3:deep-research**: Improved output folder handling and report validation
+- **rd3:pl-golang & rd3:pl-python**: Enhanced language-specific planning patterns
+- **Meta-agent Skills**: Refactored LLM Checklist pattern to LLM Content Improvements
+- **Installation Scripts**: Refactored for cleaner cross-platform support
+
+### Bug Fixes
+
+- **rd3:orchestration-v2**: 100+ architecture review fixes
+  - Gate architecture refinements
+  - Workflow control improvements
+  - Execution state management
+  - Run lock and rollback safety
+
+- **rd3:tasks**: Multiple fixes
+  - Fixed WBS collision on delete
+  - Fixed invalid status handling
+  - Fixed ':' character in task file frontmatter
+  - Fixed Kanban UI issues
+  - Fixed description truncation
+
+- **rd3:feature-tree**: Various fixes for CLI and web UI
+
+### Internal Changes
+
+- Migration from plugin rd2 to plugin rd3 complete
+- Architecture review and refactoring for orchestration-v2
+- Enhanced subagent integration (super-coder, super-tester, super-reviewer)
+- 255,434 insertions across 983 files
+
 ## [0.5.0] - 2026-04-09
 
 ### New Features

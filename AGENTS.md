@@ -84,7 +84,7 @@ constructor() {}
    - Use `afterAll` instead of `afterEach` for cleanup
    - Accept temp paths in output if tests pass (0 failures)
 
-**`biome-ignore` policy**: NEVER add `biome-ignore` comments to bypass lint errors. Fix the underlying code instead. Use proper type casts rather than suppressing `noExplicitAny`. The only permitted exception is `biome-ignore lint/complexity/noUselessConstructor` for the V8 function coverage workaround above.
+   **`biome-ignore` policy**: NEVER add `biome-ignore` comments to bypass lint errors. Fix the underlying code instead. Use proper type casts rather than suppressing `noExplicitAny`. The only permitted exception is `biome-ignore lint/complexity/noUselessConstructor` for the V8 function coverage workaround above.
 
 ### Package Priority: Bun.js First, Node.js Only as Fallback
 
@@ -220,6 +220,29 @@ Response format for different output types:
 - **Documentation**: markdown with language-tagged code blocks
 - **Task completion**: report outcome: "Added 3 tests in `skills/foo/tests/` -- all passing"
 - No stack traces to stdout; they belong in logs
+
+## Default values for slash command `/rd3:dev-docs`
+As current project contained several things, it's hard to specify every argument when we invoke to slash command `/rd3:dev-docs` with specified `<folder-path>` aragument. In this section, we will provide a set of default value if end user do not specify a proper one
+
+### When argument folder-path is `plugins/rd3/skills/tasks`
+- **architecture:** docs/spec/tasks-architecture-v2.md
+- **spec:** docs/spec/tasks-fsd-v2.md
+- **user-manual:** docs/spec/tasks-user-manual-v2.md
+
+### Whenargument  folder-path is `plugins/rd3/skills/orchestration-v2`
+- **architecture:** docs/spec/orchestrator-architecture-v2.md
+- **spec:** docs/spec/orchestrator-fsd-v2.md
+- **user-manual:** docs/spec/orchestrator-user-manual-v2.md
+
+### When argument folder-path is `plugins/rd3/skills/feature-tree`
+- **architecture:** docs/spec/ftree-architecture.md
+- **spec:** docs/spec/ftree-fsd.md
+- **user-manual:** docs/spec/ftree-user-manual.md
+
+### When argument folder-path is `plugins/rd3/skills/verification-chain`
+- **architecture:** docs/spec/cov-architecture.md
+- **spec:** docs/spec/cov-fsd.md
+- **user-manual:** docs/spec/cov-user-manual.md
 
 ---
 

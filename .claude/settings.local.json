@@ -7,7 +7,6 @@
       "Read(//tmp/**)",
       "Write(//tmp/**)",
       "Edit(//tmp/**)",
-
       "Skill(rd3:anti-hallucination)",
       "Skill(rd3:cc-skills)",
       "Skill(rd3:cc-agents)",
@@ -19,7 +18,6 @@
       "Skill(rd3:dev-fixall)",
       "Skill(wt:info-seek)",
       "Skill(migrate-to-rd3)",
-
       "mcp__auggie-mcp__codebase-retrieval",
       "mcp__ref__ref_read_url",
       "mcp__ref__ref_search_documentation",
@@ -36,7 +34,6 @@
       "mcp__plugin_playwright_playwright__browser_snapshot",
       "mcp__plugin_playwright_playwright__browser_console_messages",
       "mcp__plugin_playwright_playwright__browser_take_screenshot",
-
       "WebSearch",
       "WebFetch(domain:docs.ref.tools)",
       "WebFetch(domain:github.com)",
@@ -49,7 +46,6 @@
       "WebFetch(domain:developers.openai.com)",
       "WebFetch(domain:ast-grep.github.io)",
       "WebFetch(domain:biomejs.dev)",
-
       "Bash(ast-grep:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
@@ -67,12 +63,12 @@
       "Bash(echo:*)",
       "Bash(ls:*)",
       "Bash(bats:*)",
-
       "Bash(rtk find:*)",
       "Bash(rtk tasks:*)",
       "Bash(rtk orchestrator:*)",
       "Bash(rtk bun:*)",
-      "Bash(rtk biome:*)"
+      "Bash(rtk biome:*)",
+      "Skill(rd3:dev-changelog)"
     ],
     "deny": [],
     "ask": []
