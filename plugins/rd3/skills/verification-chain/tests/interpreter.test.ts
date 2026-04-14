@@ -20,6 +20,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    delete process.env.COV_STORE_PATH;
     rmSync(TEST_DIR, { recursive: true, force: true });
     TEST_DIR = '';
 });
@@ -99,6 +100,12 @@ describe('runChain', () => {
         expect(state.status).toBe('failed');
         expect(state.nodes[0].status).toBe('completed');
         expect(state.nodes[1].status).toBe('failed');
+    });
+
+    test('throws when chain state cannot be persisted to the SQLite store', async () => {
+        process.env.COV_STORE_PATH = TEST_DIR;
+        const manifest = makeManifest([makeSingleNode('node1', 'echo hello', 'echo ok')]);
+        await expect(runChain({ manifest, stateDir: TEST_DIR })).rejects.toThrow('Failed to open chain store');
     });
 });
 
