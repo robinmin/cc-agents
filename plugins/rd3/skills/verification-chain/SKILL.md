@@ -246,6 +246,24 @@ type MethodResult = {
 
 ## Usage
 
+### CLI-first Contract
+
+```bash
+bun run scripts/cli.ts run <manifest.json>
+bun run scripts/cli.ts resume <chain-id> [--task <task_wbs>] [--response approve|reject]
+bun run scripts/cli.ts show <chain-id> [--task <task_wbs>]
+bun run scripts/cli.ts inspect <chain-id> [--task <task_wbs>]   # alias of show
+bun run scripts/cli.ts list [--task <task_wbs>]
+bun run scripts/cli.ts results [--task <task_wbs>]              # alias of list
+```
+
+All CLI commands return a single JSON payload on stdout for machine consumption.
+Use environment variables to control the runtime namespace:
+
+- `COV_STATE_DIR` — base runtime directory for compatibility JSON snapshots
+- `COV_STORE_PATH` — SQLite database path, absolute or relative to `COV_STATE_DIR`
+- `COV_STORE_TABLE` — SQLite table namespace; creates `<base>`, `<base>_nodes`, `<base>_evidence`, and `<base>_checkpoints`
+
 ```typescript
 import { runChain, resumeChain } from './interpreter';
 import type { ChainManifest } from './types';
@@ -274,7 +292,14 @@ const resumedState = await resumeChain({
 
 ## State Persistence
 
-Chain state is saved to `<stateDir>/cov/<chain_id>-<task_wbs>-cov-state.json` after every node transition. Resume reads this file to continue from where the chain left off. Orchestrators can choose a project root, a per-run artifact directory, or any other runtime namespace by passing the appropriate `stateDir`.
+The authoritative runtime state is stored in SQLite. Each save updates:
+
+- chain header/state rows
+- node execution rows
+- checker evidence rows
+- pause/resume checkpoint rows
+
+Compatibility JSON snapshots are still written to `<stateDir>/cov/<chain_id>-<task_wbs>-cov-state.json` so existing tooling can inspect state directly and older callers can recover from transitional runs.
 
 ## CheckerEvidence Fields
 
