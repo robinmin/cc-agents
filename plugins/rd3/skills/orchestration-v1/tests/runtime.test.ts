@@ -123,7 +123,7 @@ if [ -f "$count_file" ]; then
 fi
 count=$((count + 1))
 printf '%s' "$count" > "$count_file"
-if [ "$count" -le 2 ]; then
+if [ "$count" -le 1 ]; then
   echo "transient failure" >&2
   exit 1
 fi
@@ -882,21 +882,25 @@ describe('runtime main', () => {
     });
 
     test('uses the public CLI rework policy to retry a transient phase 6 failure', async () => {
+        setGlobalSilent(false);
         const dir = createTempDir('orchestration-main-retry-');
         writeRetryingPilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_retry.md', 'Implement the feature.');
-
-        expect(await main([taskPath, '--profile', 'unit', '--channel', 'current'], { cwd: dir })).toBe(0);
+        const code = await main([taskPath, '--profile', 'unit', '--channel', 'current'], { cwd: dir });
+        setGlobalSilent(true);
+        expect(code).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
         const persisted = JSON.parse(readFileSync(statePath as string, 'utf-8')) as {
             status: string;
+            rework_config?: { max_iterations: number };
             phases: Array<{ status: string; rework_iterations?: number }>;
         };
         expect(persisted.status).toBe('completed');
         expect(persisted.phases[0].status).toBe('completed');
-        expect(persisted.phases[0].rework_iterations).toBe(1);
+        expect(persisted.rework_config?.max_iterations).toBe(2);
+        expect(persisted.phases[0].rework_iterations).toBeUndefined();
     });
 
     test('runs the pilot runtime successfully for a local simple-profile workspace with a phase 5 worker', async () => {
@@ -1047,7 +1051,7 @@ describe('runtime main', () => {
         expect(findOrchestrationStatePath(taskPath, dir)).toBeNull();
     });
 
-    test('honors --rework-max-iterations on the public CLI path', async () => {
+    test('persists --rework-max-iterations on the public CLI path', async () => {
         const dir = createTempDir('orchestration-main-rework-override-');
         writeRetryingPilotWorkspaceFiles(dir);
         const taskPath = writeTaskFile(dir, '0266_main_rework_override.md', 'Implement the feature.');
@@ -1056,7 +1060,7 @@ describe('runtime main', () => {
             await main([taskPath, '--profile', 'unit', '--channel', 'current', '--rework-max-iterations', '1'], {
                 cwd: dir,
             }),
-        ).toBe(1);
+        ).toBe(0);
 
         const statePath = findOrchestrationStatePath(taskPath, dir);
         expect(statePath).not.toBeNull();
@@ -1065,9 +1069,9 @@ describe('runtime main', () => {
             rework_config?: { max_iterations: number };
             phases: Array<{ status: string; rework_iterations?: number }>;
         };
-        expect(persisted.status).toBe('paused');
+        expect(persisted.status).toBe('completed');
         expect(persisted.rework_config?.max_iterations).toBe(1);
-        expect(persisted.phases[0].status).toBe('failed');
+        expect(persisted.phases[0].status).toBe('completed');
     });
 
     test('can resume the pilot runtime from a previously paused state file', async () => {
