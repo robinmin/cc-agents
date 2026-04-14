@@ -1,6 +1,7 @@
 import { execLlmCli as defaultExecLlmCli, getLegacyLlmCommand } from '../../../../scripts/libs/acpx-query';
 import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import type { LlmCheckerConfig, MethodResult, CheckerEvidence } from '../types';
 import { logger } from '../../../../scripts/logger';
 
@@ -22,7 +23,7 @@ export interface FileOps {
 }
 
 const defaultFileOps: FileOps = {
-    mkdtempSync,
+    mkdtempSync: ((prefix: string) => mkdtempSync(join(tmpdir(), prefix))) as typeof mkdtempSync,
     writeFileSync,
     rmSync,
 };
