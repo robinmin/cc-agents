@@ -7,7 +7,7 @@ import { ExecutorPool } from '../scripts/executors/pool';
 import { MockExecutor } from '../scripts/executors/mock';
 import { PipelineRunner } from '../scripts/engine/runner';
 import { Reporter } from '../scripts/observability/reporter';
-import type { PipelineDefinition, RunOptions } from '../scripts/model';
+import type { PipelineDefinition, RunOptions, VerificationDriver } from '../scripts/model';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { mkdirSync, rmSync } from 'node:fs';
@@ -69,6 +69,60 @@ beforeAll(() => {
     });
 });
 
+function createVerificationDriver(): VerificationDriver {
+    return {
+        runChain: async (manifest) => ({
+            status: 'pass',
+            results: manifest.checks.map((check) => ({
+                run_id: manifest.run_id,
+                phase_name: manifest.phase_name,
+                step_name: check.name,
+                checker_method: check.method,
+                passed: true,
+                created_at: new Date(),
+            })),
+        }),
+        resumeChain: async (_stateDir, action) => {
+            if (action === 'approve') {
+                return {
+                    status: 'pass',
+                    results: [
+                        {
+                            run_id: '',
+                            phase_name: '',
+                            step_name: 'human-review',
+                            checker_method: 'human',
+                            passed: true,
+                            created_at: new Date(),
+                        },
+                    ],
+                };
+            }
+
+            if (action === 'reject') {
+                return {
+                    status: 'fail',
+                    results: [
+                        {
+                            run_id: '',
+                            phase_name: '',
+                            step_name: 'human-review',
+                            checker_method: 'human',
+                            passed: false,
+                            created_at: new Date(),
+                        },
+                    ],
+                };
+            }
+
+            return {
+                status: 'pending',
+                results: [],
+            };
+        },
+    };
+}
+
 describe('Integration: full pipeline run', () => {
     let tempDir: string;
     let stateManager: StateManager;
@@ -91,7 +145,7 @@ describe('Integration: full pipeline run', () => {
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const options: RunOptions = { taskRef: '0400' };
 
         const result = await runner.run(options, MOCK_PIPELINE);
@@ -108,7 +162,7 @@ describe('Integration: full pipeline run', () => {
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const options: RunOptions = { taskRef: '0401' };
 
         const result = await runner.run(options, PARALLEL_PIPELINE);
@@ -124,7 +178,7 @@ describe('Integration: full pipeline run', () => {
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         await runner.run({ taskRef: '0402' }, MOCK_PIPELINE);
 
         const run = await stateManager.getRunByTaskRef('0402');
@@ -139,7 +193,7 @@ describe('Integration: full pipeline run', () => {
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const result = await runner.run({ taskRef: '0403' }, MOCK_PIPELINE);
 
         const queries = new Queries(stateManager.getDb());
@@ -159,7 +213,7 @@ describe('Integration: full pipeline run', () => {
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const result = await runner.run({ taskRef: '0404' }, MOCK_PIPELINE);
 
         const queries = new Queries(stateManager.getDb());
@@ -193,7 +247,13 @@ describe('Integration: full pipeline run', () => {
             events.push({ type: event.event_type, payload: event.payload as Record<string, unknown> });
         });
 
-        const runner = new PipelineRunner(stateManager, pool, undefined, eventBus);
+        const runner = new PipelineRunner(
+            stateManager,
+            pool,
+            undefined,
+            eventBus,
+            createVerificationDriver(),
+        );
         await runner.run({ taskRef: '0405' }, MOCK_PIPELINE);
 
         expect(events.length).toBeGreaterThan(0);
@@ -208,7 +268,7 @@ describe('Integration: full pipeline run', () => {
         const pool = new ExecutorPool();
         pool.register(mockExecutor);
 
-        const runner = new PipelineRunner(stateManager, pool);
+        const runner = new PipelineRunner(stateManager, pool, undefined, undefined, createVerificationDriver());
         const result = await runner.run({ taskRef: '0406' }, PARALLEL_PIPELINE);
 
         const queries = new Queries(stateManager.getDb());
