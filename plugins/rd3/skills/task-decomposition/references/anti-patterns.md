@@ -184,7 +184,7 @@ Task 0352: Add events CLI command
 
 > **Minimum task size: 2 hours.**
 >
-> If a task is smaller than a half-day, consider merging it with related tasks.
+> If a task is smaller than 2 hours, merge it with the adjacent deliverable or keep it as a Plan step.
 
 ### Correct Approach
 
@@ -240,9 +240,9 @@ Keeping a large, complex task as a monolith when it should be split.
 
 ### Prevention Rule
 
-> **Maximum task size: 8 hours.**
+> **Target task size: 2-8 hours.**
 >
-> If a task exceeds a full day, decompose by layer or by provider.
+> If a task lands in the 8-16 hour caution band, re-run the rubric. Keep it whole only when the work is still one deliverable and you record the rationale. If it exceeds 16 hours, decompose.
 
 ### Correct Approach
 
@@ -253,14 +253,13 @@ Keeping a large, complex task as a monolith when it should be split.
 
 #### Subtasks
 
-- [ ] [0401 - Design OAuth2 architecture and constraints](0401_oauth2_design.md)
 - [ ] [0402 - Implement OAuth2 service layer with provider abstraction](0402_oauth2_service.md)
 - [ ] [0403 - Add Google OAuth2 provider](0403_google_oauth.md)
 - [ ] [0404 - Add GitHub OAuth2 provider](0404_github_oauth.md)
 - [ ] [0405 - Implement session management and token refresh](0405_session_management.md)
 - [ ] [0406 - Add frontend OAuth2 login flow](0406_frontend_oauth.md)
 
-**Dependency order:** 0401 → (0402 → (0403 || 0404) → 0405 → 0406)
+**Dependency order:** 0402 → (0403 || 0404) → 0405 → 0406
 **Estimated total effort:** 40-60 hours
 ```
 
@@ -273,4 +272,4 @@ Keeping a large, complex task as a monolith when it should be split.
 | Phase Decomposition | Subtask names = pipeline phases | Decompose by deliverable, not phase |
 | Skeleton Tasks | Empty Background/Requirements | Min 50 chars, self-contained |
 | Over-Decomposition | 30-min subtasks | Min 2 hours per task |
-| Under-Decomposition | 80-hour monolithic tasks | Max 8 hours per task |
+| Under-Decomposition | 80-hour monolithic tasks | Re-score at 8h, must decompose above 16h |
