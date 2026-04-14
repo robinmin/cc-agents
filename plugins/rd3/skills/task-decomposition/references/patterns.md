@@ -208,7 +208,7 @@ Task 2: Integrate with backend selection
 **Better yet — don't decompose at all if it fits in one task:**
 
 ```yaml
-# If the feature is < 8 hours, keep it as ONE task
+# If the rubric lands in skip/should and the work is still one deliverable, keep it as ONE task
 Feature: "Add Antigravity adapter to acpx-query.ts"
 
 ### Plan
@@ -231,64 +231,66 @@ Feature: "Add Antigravity adapter to acpx-query.ts"
 
 ## Risk-Based Decomposition
 
-**Best for:** High-risk features requiring validation before full commitment
+**Best for:** High-risk features that need early risk reduction, explicit rollback planning, or staged rollout guardrails without breaking the work into investigation/design/test phases
 
 ### Pattern Structure
 
 ```
 Feature: "Payment processing integration"
 
-1. Spike/Validation
-   |-- Research payment processor APIs
-   |-- Validate compliance requirements
-   +-- Prototype critical path
+1. Validation artifact + sandbox contract
+   |-- Build sandbox payment harness
+   |-- Lock PCI/compliance assumptions
+   +-- Record go/no-go and rollback criteria
 
-2. Core Implementation
+2. Core payment path + transaction ledger
    |-- Implement payment service
    |-- Add transaction logging
-   +-- Create error handling
+   +-- Add fail-safe error handling
 
-3. Security & Compliance
-   |-- Add PCI-DSS compliance
+3. Fraud/compliance boundary
+   |-- Add PCI-DSS controls
    |-- Implement fraud detection
-   +-- Add audit logging
+   +-- Add audit logging and operator visibility
 
-4. Testing & Rollout
-   |-- Create mock payment mode
-   |-- Test with sandbox environment
-   +-- Gradual rollout to production
+4. Rollout guardrails + rollback path
+   |-- Add feature flag / kill switch
+   |-- Rehearse sandbox-to-prod enablement
+   +-- Document rollback path for failed transactions
 ```
 
 ### Dependency Diagram
 
 ```
-+--------------+
-| Spike/Valid  |
-+------+-------+
-       | (Validation gate)
-       v
-+--------------+
-|    Core      |
-+------+-------+
-       |
-       v
-+--------------+
-|   Security   |
-+------+-------+
-       |
-       v
-+--------------+
-| Testing &    |
-|   Rollout    |
-+--------------+
++---------------------------+
+| Validation artifact +     |
+| sandbox contract          |
++-------------+-------------+
+              | (Go/no-go gate)
+              v
++---------------------------+
+| Core payment path +       |
+| transaction ledger        |
++-------------+-------------+
+              |
+              v
++---------------------------+
+| Fraud/compliance boundary |
++-------------+-------------+
+              |
+              v
++---------------------------+
+| Rollout guardrails +      |
+| rollback path             |
++---------------------------+
 ```
 
 ### Dependencies
 
-- **Each phase validates before next begins** (strict gates)
-- **Spike must confirm viability** before committing to implementation
-- **Security must be validated** before testing with real data
-- **Gradual rollout** reduces risk exposure
+- **Validation artifact must lock the provider/compliance contract** before core implementation relies on it
+- **Core payment path must exist before fraud/compliance controls can be exercised realistically**
+- **Rollout guardrails depend on both the hardened core and the compliance boundary**
+- **Rollback rehearsal is part of the rollout guardrails deliverable**, not a separate "testing" phase task
 
 ---
 
