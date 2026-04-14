@@ -13,9 +13,9 @@ This skill has a precise scope. Understanding what belongs here versus adjacent 
 
 Transform understood, scoped work into actionable tasks:
 
-- Break requirements into implementable pieces (2-8 hour granularity)
+- Break requirements into implementable pieces (target 2-8 hours, absolute floor 2 hours)
 - Identify dependencies, sequencing, and parallel opportunities
-- Apply decomposition patterns (layer-based, feature-based, phase-based, risk-based)
+- Apply decomposition patterns (layer-based, feature-based, project-phase-based, risk-based)
 - Estimate effort using structured techniques (PERT, T-shirt, time-boxing, historical)
 - Generate structured JSON output compatible with batch task creation
 - Define success criteria and verification methods for each task
