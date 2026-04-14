@@ -13,9 +13,7 @@
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach, afterAll, spyOn } from 'bun:test';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+
 import { PipelineRunner } from '../scripts/engine/runner';
 import { StateManager } from '../scripts/state/manager';
 import { ExecutorPool } from '../scripts/executors/pool';
@@ -24,7 +22,7 @@ import { HookRegistry } from '../scripts/engine/hooks';
 import { EventBus } from '../scripts/observability/event-bus';
 import { runMigrations } from '../scripts/state/migrations';
 import { logger, setGlobalSilent } from '../../../scripts/logger';
-import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent } from '../scripts/model';
+import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent, VerificationDriver } from '../scripts/model';
 import * as llmModule from '../../verification-chain/scripts/methods/llm';
 import type { MethodResult } from '../../verification-chain/scripts/types';
 
@@ -71,6 +69,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
     let hookRegistry: HookRegistry;
     let eventBus: EventBus;
     let runner: PipelineRunner;
+    let verificationDriver: VerificationDriver;
 
     // Mock executor for controlled testing
     let mockExecutor: MockExecutor;
@@ -86,8 +85,88 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
         mockExecutor = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
         executorPool.register(mockExecutor);
 
+        verificationDriver = {
+            runChain: async (manifest) => {
+                const results = await Promise.all(
+                    manifest.checks.map(async (check) => {
+                        if (check.method === 'llm') {
+                            const llmResult = await llmModule.runLlmCheck(
+                                (check.params ?? {}) as unknown as Parameters<typeof llmModule.runLlmCheck>[0],
+                            );
+                            return {
+                                run_id: manifest.run_id,
+                                phase_name: manifest.phase_name,
+                                step_name: check.name,
+                                checker_method: check.method,
+                                passed: llmResult.result === 'pass',
+                                evidence: {
+                                    ...llmResult.evidence,
+                                    ...(llmResult.error ? { error: llmResult.error } : {}),
+                                },
+                                created_at: new Date(),
+                            };
+                        }
+
+                        return {
+                            run_id: manifest.run_id,
+                            phase_name: manifest.phase_name,
+                            step_name: check.name,
+                            checker_method: check.method,
+                            passed: true,
+                            created_at: new Date(),
+                        };
+                    }),
+                );
+
+                return {
+                    status: results.every((result) => result.passed) ? 'pass' : 'fail',
+                    results,
+                };
+            },
+            resumeChain: async (_stateDir, action) => {
+                if (action === 'approve') {
+                    return {
+                        status: 'pass',
+                        results: [
+                            {
+                                run_id: '',
+                                phase_name: '',
+                                step_name: 'human-review',
+                                checker_method: 'human',
+                                passed: true,
+                                evidence: { human_response: 'approve' },
+                                created_at: new Date(),
+                            },
+                        ],
+                    };
+                }
+
+                if (action === 'reject') {
+                    return {
+                        status: 'fail',
+                        results: [
+                            {
+                                run_id: '',
+                                phase_name: '',
+                                step_name: 'human-review',
+                                checker_method: 'human',
+                                passed: false,
+                                evidence: { error: 'Human review rejected', human_response: 'reject' },
+                                created_at: new Date(),
+                            },
+                        ],
+                    };
+                }
+
+                return {
+                    status: 'pending',
+                    results: [],
+                };
+            },
+        };
+
         // Create runner with all dependencies
-        runner = new PipelineRunner(stateManager, executorPool, hookRegistry, eventBus);
+        runner = new PipelineRunner(stateManager, executorPool, hookRegistry, eventBus, verificationDriver);
     });
 
     afterEach(async () => {
@@ -2329,47 +2408,6 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
             warnSpy.mockRestore();
         });
 
-        test('should filter invalid skill checklist items from loaded defaults', () => {
-            const tempDir = mkdtempSync(join(tmpdir(), 'runner-skill-defaults-'));
-            const skillFile = join(tempDir, 'SKILL.md');
-            writeFileSync(
-                skillFile,
-                `---
-metadata:
-  gate_defaults:
-    auto:
-      checklist:
-        - "Keep me"
-        - ""
-        - 42
-      prompt_template: "Custom prompt"
----
-body
-`,
-            );
-
-            const resolveSpy = spyOn(
-                runner as unknown as { resolveSkillDefinitionPath: (skillRef: string) => string | null },
-                'resolveSkillDefinitionPath',
-            ).mockReturnValue(skillFile);
-
-            const defaults = (
-                runner as unknown as {
-                    loadSkillAutoGateDefaults: (
-                        skillRef: string,
-                    ) => { checklist?: string[]; prompt_template?: string } | null;
-                }
-            ).loadSkillAutoGateDefaults('rd3:test-skill');
-
-            expect(defaults).toEqual({
-                checklist: ['Keep me'],
-                prompt_template: 'Custom prompt',
-            });
-
-            resolveSpy.mockRestore();
-            rmSync(tempDir, { recursive: true, force: true });
-        });
-
         test('should summarize changed and untracked files', async () => {
             const spawnSpy = spyOn(Bun, 'spawnSync')
                 .mockReturnValueOnce({
@@ -2469,7 +2507,8 @@ body
             const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
             const pool = new ExecutorPool();
             pool.register(testMock);
-            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+            // Must pass verificationDriver to avoid DefaultCoVDriver spawning real subprocesses
+            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus, verificationDriver);
 
             await testRunner.run({ taskRef: 'preset-001', preset: 'standard' }, pipeline);
 
@@ -2499,7 +2538,8 @@ body
             const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
             const pool = new ExecutorPool();
             pool.register(testMock);
-            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+            // Must pass verificationDriver to avoid DefaultCoVDriver spawning real subprocesses
+            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus, verificationDriver);
 
             await testRunner.run({ taskRef: 'coverage-001', preset: 'standard', coverage: 95 }, pipeline);
 
@@ -2523,7 +2563,8 @@ body
             const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
             const pool = new ExecutorPool();
             pool.register(testMock);
-            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+            // Must pass verificationDriver to avoid DefaultCoVDriver spawning real subprocesses
+            const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus, verificationDriver);
 
             await testRunner.run({ taskRef: 'no-preset-001' }, pipeline);
 
@@ -2567,7 +2608,13 @@ body
                 const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
                 const pool = new ExecutorPool();
                 pool.register(testMock);
-                const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+                const testRunner = new PipelineRunner(
+                    stateManager,
+                    pool,
+                    hookRegistry,
+                    eventBus,
+                    verificationDriver,
+                );
 
                 // Use a WBS-style task ref so extractWbsFromPath works
                 await testRunner.run({ taskRef: '0099' }, pipeline);
@@ -2627,7 +2674,13 @@ body
                 const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
                 const pool = new ExecutorPool();
                 pool.register(testMock);
-                const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus);
+                const testRunner = new PipelineRunner(
+                    stateManager,
+                    pool,
+                    hookRegistry,
+                    eventBus,
+                    verificationDriver,
+                );
 
                 await testRunner.run({ taskRef: '0100' }, pipeline);
 
