@@ -19,7 +19,7 @@ see_also:
 
 - Unclear success criteria or deliverables
 - Vague acceptance criteria (cannot be objectively verified)
-- Tasks exceeding 1 day of effort (needs further decomposition)
+- Tasks above 16 hours of effort (must decompose) or 8-16 hour tasks without written rationale
 - Conflicting or circular dependencies
 - Missing context about constraints
 - External dependencies without clear ownership
@@ -37,7 +37,7 @@ see_also:
 
 ### Decomposition Quality Checklist
 
-- [ ] Each task has proper sizing (2-8 hours)
+- [ ] Each task targets 2-8 hours, with no task below 2 hours
 - [ ] Each task has substantive Background content (> 50 chars)
 - [ ] Each task has substantive Requirements content (> 50 chars)
 - [ ] Each task has success criteria
