@@ -33,7 +33,7 @@ Decomposition is NOT necessary when:
 - The work has a single review/approval gate
 - The work is a single deliverable with one rollback boundary
 
-### The 2-Hour Rule
+### Deliverable Test
 
 As a practical heuristic: if you cannot describe a subtask in one sentence that a non-technical person would understand, it is probably an implementation step, not a deliverable.
 
@@ -56,33 +56,60 @@ Planning creates a structured implementation order within ONE task file.
 
 If your "subtasks" are just the steps of your implementation plan, write them in the **Plan** section of the parent task's Solution — do NOT create separate task files.
 
-### Decompose When ALL of These Are True (Multi-person/agent context)
+## Rubric-First Protocol
 
-| # | Condition | Rationale |
-|---|-----------|------------|
-| D1 | Work can be split into **2+ parallel streams** that different people/agents can execute independently without blocking each other | Parallel execution is the primary benefit of decomposition |
-| D2 | Each stream has a **distinct deliverable** that can be **reviewed independently** | If everything needs to be reviewed together, decomposition adds overhead |
-| D3 | Each stream has a **distinct rollback boundary** | If one part fails, only that part should be rolled back |
+`references/rubric-model.md` is the source of truth for decomposition decisions. This file explains how to apply it consistently.
 
-### Decompose When ANY of These Is True (Single-person/agent context)
+### Step 1: Gather Signals
 
-Even for single-agent work, decompose if:
+Estimate the five rubric signals before deciding:
 
-| # | Condition | Rationale |
-|---|-----------|------------|
-| D4 | Estimated effort exceeds **8 hours** (full day) | Requires intermediate checkpoints for resume after interruption |
-| D5 | Task spans **multiple layers** requiring different expertise (e.g., backend + frontend, DB + API) | Each layer may need different verification approach |
-| D6 | One part is **safety-critical** and requires separate review | Security/financial/critical paths need independent sign-off |
+- **E** — Estimated effort in hours
+- **D** — Independently reviewable deliverables
+- **L** — Layers/modules touched
+- **C** — Coordination complexity (`none`, `moderate`, `high`)
+- **R** — Risk class (`low`, `medium`, `high`)
 
-### Do NOT Decompose When ALL of These Are True
+### Step 2: Compute the Composite Score
 
-| # | Condition |
-|---|-----------|
-| S1 | One person/agent can hold the entire scope in context |
-| S2 | All work goes into the same module, same PR |
-| S3 | Single review/approval gate |
-| S4 | One rollback boundary |
-| S5 | Estimated effort under 8 hours |
+```
+score = E + D + L + C + R
+```
+
+### Step 3: Apply Overrides in Precedence Order
+
+Apply overrides in this exact order:
+
+1. **Force must** if `R = high`
+2. **Force must** if `E > 16 hours`
+3. **Force skip** only if no force-must rule applied **and** all of the following are true:
+   - one file/module
+   - one deliverable
+   - one layer
+   - zero coordination
+   - one review/rollback boundary
+
+This precedence is mandatory. High-risk work wins over force-skip even when the change is small and localized.
+
+### Step 4: Read the Decision Band
+
+| Score | Decision | Meaning |
+|-------|----------|---------|
+| 0-2 | `skip` | Keep as one task. Write skip justification. |
+| 3-4 | `should decompose` | Decomposition is recommended, but a single-task plan is still allowed with written rationale. |
+| 5+ | `must decompose` | Decomposition is mandatory. Create deliverable-based subtasks. |
+
+### Practical Interpretation
+
+These are not extra triggers; they are ways to estimate the rubric signals accurately:
+
+| Situation | Rubric Effect |
+|-----------|---------------|
+| 2+ parallel streams with independent review | Usually increases `D` and/or `C`, often landing in `should` or `must` |
+| Distinct rollback boundaries | Usually increases `D` and `C` |
+| Cross-layer work (DB + API + UI) | Increases `L`; may still stay `should` if it is one deliverable |
+| Security/financial/safety-critical change | Sets `R = high`, which forces `must` |
+| Single-file/single-module change with no coordination | Usually lands in `skip`; may force-skip a raw score of 3-4 |
 
 ### Minimum Subtask Size (Absolute Floor)
 
@@ -102,6 +129,8 @@ Examples of bad decomposition (0335 over-decomposed into 6 subtasks):
 Task 0341 ("Run bun run check") is not a deliverable — it is what you do at the end of every task. This is over-decomposition.
 
 Rule: if the subtask name ends with a file name or describes a step in an implementation plan, it is NOT a subtask — write it in the **Plan** section instead.
+
+Target 2-8 hours when you do decompose. If a proposed subtask lands in the 8-16 hour caution band, re-run the rubric and keep it whole only with written rationale. If it exceeds 16 hours, decompose further.
 
 ### ⚠️ Critical: Do NOT Decompose by Implementation Phases
 
@@ -143,7 +172,7 @@ Rule: if the subtask name ends with a file name or describes a step in an implem
 **Or better yet — don't decompose at all:**
 
 ```yaml
-# If the feature fits in one head (< 8 hours), keep it as ONE task
+# If the rubric lands in skip/should and the work is still one deliverable, keep it as ONE task
 0352: Add Antigravity adapter
 
 ### Solution
@@ -181,7 +210,7 @@ If unsure whether to create a subtask, write the work breakdown in the **Plan** 
 When deciding NOT to decompose, write a brief justification in the parent task's **Solution** section:
 
 ```
-No decomposition needed: single-file change in `src/auth/tokens.ts`, ~2h estimated effort, no cross-module dependencies.
+No decomposition needed: single-file change in `src/auth/tokens.ts`, score 0 (`E=0,D=0,L=0,C=0,R=0`), one deliverable, no cross-module coordination.
 ```
 
 This makes the skip decision auditable and reversible.
