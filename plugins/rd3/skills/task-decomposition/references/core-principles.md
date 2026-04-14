@@ -11,8 +11,9 @@ see_also:
 
 **Ideal task size:** 2-8 hours of implementable work
 
-- Too small (< 1 hour): Consider combining related tasks
-- Too large (> 16 hours): Needs further decomposition
+- Too small (< 2 hours): Consider combining related tasks
+- Caution band (8-16 hours): Re-run the rubric and keep it whole only with written rationale
+- Too large (> 16 hours): Must decompose
 - Just right: Can be completed in a single focused work session
 
 ### Dependency Management
