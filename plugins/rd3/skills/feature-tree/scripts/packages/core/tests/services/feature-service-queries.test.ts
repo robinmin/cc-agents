@@ -8,6 +8,16 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { BunSqliteAdapter } from '../../src/db/adapters/bun-sqlite';
 import { FeatureService, initSchema } from '../../src/services/feature-service';
 
+/**
+ * Type assertion helper that narrows `T | null | undefined` to `T`.
+ * Use after `expect(val).toBeDefined()` to satisfy noNonNullAssertion rule.
+ */
+function assertDefined<T>(val: T | null | undefined, context: string): asserts val is T {
+    if (val === null || val === undefined) {
+        throw new Error(`${context} should be defined but was ${val}`);
+    }
+}
+
 describe('FeatureService — Query Methods', () => {
     let service: FeatureService;
     let adapter: BunSqliteAdapter;
@@ -63,11 +73,10 @@ describe('FeatureService — Query Methods', () => {
             if (!result.ok) return;
 
             expect(result.data.node.id).toBe(child.data.id);
-            expect(result.data.parent).not.toBeNull();
-            // biome-ignore lint/style/noNonNullAssertion: test assertion after null check
-            expect(result.data.parent!.id).toBe(parent.data.id);
-            // biome-ignore lint/style/noNonNullAssertion: test assertion after null check
-            expect(result.data.parent!.title).toBe('Parent for Context');
+            expect(result.data.parent).toBeDefined();
+            assertDefined(result.data.parent, 'parent');
+            expect(result.data.parent.id).toBe(parent.data.id);
+            expect(result.data.parent.title).toBe('Parent for Context');
         });
 
         test('returns context with children', async () => {
@@ -248,8 +257,8 @@ describe('FeatureService — Query Methods', () => {
             const children = data.children as Record<string, unknown>[];
             const rootChild = children.find((c) => c.title === 'Export Root');
             expect(rootChild).toBeDefined();
-            // biome-ignore lint/style/noNonNullAssertion: test assertion after defined check
-            expect(rootChild!.children).toHaveLength(1);
+            assertDefined(rootChild, 'rootChild');
+            expect(rootChild.children).toHaveLength(1);
         });
 
         test('exports subtree with rootId', async () => {
