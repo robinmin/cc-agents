@@ -39,11 +39,11 @@ describe('InlineExecutor', () => {
         expect(result.stderr).toContain('does not expose a local in-process entrypoint');
     });
 
-    test('runs a dedicated scripts/local.ts entrypoint in-process', async () => {
+    test('runs a dedicated scripts/run.ts entrypoint in-process', async () => {
         const rootDir = mkdtempSync(join(tmpdir(), 'orch-v2-inline-'));
         const skillDir = join(rootDir, 'demo-skill', 'scripts');
         mkdirSync(skillDir, { recursive: true });
-        writeFileSync(join(skillDir, 'local.ts'), '// dummy\n');
+        writeFileSync(join(skillDir, 'run.ts'), '// dummy\n');
 
         try {
             // Use mock module loader to avoid V8 coverage leak from temp .ts imports
