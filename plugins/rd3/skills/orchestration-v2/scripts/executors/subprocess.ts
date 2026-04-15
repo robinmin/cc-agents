@@ -177,7 +177,6 @@ export class SubprocessExecutor implements Executor {
      *
      * Resolution:
      * - scripts/run.ts → { type: 'script', path: ... }
-     * - index.ts → { type: 'script', path: ... }
      * - SKILL.md only → { type: 'skill-only' } (fallback to ACP)
      * - not found → null
      */
@@ -193,12 +192,6 @@ export class SubprocessExecutor implements Executor {
         const scriptPath = resolve(this.skillBaseDir, skillName, 'scripts', 'run.ts');
         if (existsSync(scriptPath)) {
             return { type: 'script', path: scriptPath };
-        }
-
-        // Fall back to index.ts
-        const indexPath = resolve(this.skillBaseDir, skillName, 'index.ts');
-        if (existsSync(indexPath)) {
-            return { type: 'script', path: indexPath };
         }
 
         // Check for SKILL.md (SKILL-only package)
