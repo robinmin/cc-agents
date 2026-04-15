@@ -168,11 +168,13 @@ describe('SubprocessExecutor', () => {
             expect(resolved).toEqual({ type: 'script', path: created });
         });
 
-        it('resolves index.ts when scripts/run.ts is missing', () => {
+        it('returns skill-only when scripts/run.ts is missing but index.ts exists', () => {
+            // index.ts is no longer a valid entry point - should fall back to SKILL.md
             const exec = new SubprocessExecutor(tempDir);
-            const created = createIndexScript(tempDir, 'index-skill');
+            createIndexScript(tempDir, 'index-skill');
+            createSkillOnly(tempDir, 'index-skill'); // Also create SKILL.md
             const resolved = exec.resolveSkillScript('rd3:index-skill');
-            expect(resolved).toEqual({ type: 'script', path: created });
+            expect(resolved).toEqual({ type: 'skill-only' });
         });
 
         it('returns skill-only for SKILL.md-only package', () => {
@@ -180,14 +182,6 @@ describe('SubprocessExecutor', () => {
             createSkillOnly(tempDir, 'skill-only-pkg');
             const resolved = exec.resolveSkillScript('rd3:skill-only-pkg');
             expect(resolved).toEqual({ type: 'skill-only' });
-        });
-
-        it('prefers scripts/run.ts over index.ts', () => {
-            const exec = new SubprocessExecutor(tempDir);
-            const runPath = createRunScript(tempDir, 'priority-skill');
-            createIndexScript(tempDir, 'priority-skill');
-            const resolved = exec.resolveSkillScript('rd3:priority-skill');
-            expect(resolved).toEqual({ type: 'script', path: runPath });
         });
 
         it('prefers scripts/run.ts over SKILL.md', () => {
@@ -342,18 +336,16 @@ describe('SubprocessExecutor', () => {
             expect(result.stderr).toContain('TIMEOUT');
         });
 
-        it('executes index.ts when no scripts/run.ts exists', async () => {
+        it('falls back to SKILL.md via ACP when no scripts/run.ts exists', () => {
+            // Verify resolveSkillScript returns skill-only for SKILL-only packages
             const exec = new SubprocessExecutor(tempDir);
-            const dir = join(tempDir, 'index-runner');
+            const dir = join(tempDir, 'skill-only-runner');
             mkdirSync(dir, { recursive: true });
-            writeFileSync(join(dir, 'index.ts'), `process.stdout.write("from index"); process.exit(0);`);
+            writeFileSync(join(dir, 'SKILL.md'), '# SKILL\n');
 
-            const req = makeRequest({ skill: 'rd3:index-runner', timeoutMs: 10_000 });
-            const result = await exec.execute(req);
-
-            expect(result.success).toBe(true);
-            expect(result.exitCode).toBe(0);
-            expect(result.stdout).toContain('from index');
+            const resolved = exec.resolveSkillScript('rd3:skill-only-runner');
+            // Should resolve to skill-only type (ACP fallback)
+            expect(resolved).toEqual({ type: 'skill-only' });
         });
 
         it('includes environment variables in subprocess', async () => {
