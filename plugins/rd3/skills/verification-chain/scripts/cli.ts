@@ -8,6 +8,7 @@
  *                                        — Resume a paused chain (optionally with human response)
  *   cov show   <chain-id> [--task WBS]   — Display the current state of a chain
  *   cov list   [--task <wbs>]             — List chains, optionally filtered by task_wbs
+ *   cov help   [command]                  — Show usage text (use --help after command for help)
  *
  * All output is structured JSON written to stdout.
  */
@@ -36,26 +37,64 @@ interface ParsedArgs {
 function parseArgs(argv: string[]): ParsedArgs {
     // argv[0] = bun, argv[1] = cli.ts, argv[2] = command, argv[3..] = args
     const raw = argv.slice(2);
-    const command = raw[0] ?? '';
     const positional: string[] = [];
     const flags: Record<string, string> = {};
 
-    let i = 1; // start after command
-    while (i < raw.length) {
-        const token = raw[i];
-        if (token.startsWith('--')) {
-            const key = token.slice(2);
-            const next = raw[i + 1];
-            if (next !== undefined && !next.startsWith('--')) {
-                flags[key] = next;
-                i += 2;
+    // Check if first element is a flag (e.g., `cov --help`)
+    let command = '';
+    let startIndex = 0;
+    if (raw.length > 0 && raw[0].startsWith('-')) {
+        // It's a flag, not a command - parse flags first
+        let i = 0;
+        while (i < raw.length) {
+            const token = raw[i];
+            if (token.startsWith('--')) {
+                const key = token.slice(2);
+                const next = raw[i + 1];
+                if (next !== undefined && !next.startsWith('--')) {
+                    flags[key] = next;
+                    i += 2;
+                } else {
+                    flags[key] = 'true';
+                    i += 1;
+                }
+            } else if (token.startsWith('-') && !token.startsWith('--')) {
+                // Handle single-dash flags like -h
+                const key = token.slice(1);
+                const next = raw[i + 1];
+                if (next !== undefined && !next.startsWith('-')) {
+                    flags[key] = next;
+                    i += 2;
+                } else {
+                    flags[key] = 'true';
+                    i += 1;
+                }
             } else {
-                flags[key] = 'true';
+                positional.push(token);
                 i += 1;
             }
-        } else {
-            positional.push(token);
-            i += 1;
+        }
+    } else {
+        // First element is a command
+        command = raw[0] ?? '';
+        startIndex = 1;
+        let i = startIndex;
+        while (i < raw.length) {
+            const token = raw[i];
+            if (token.startsWith('--')) {
+                const key = token.slice(2);
+                const next = raw[i + 1];
+                if (next !== undefined && !next.startsWith('--')) {
+                    flags[key] = next;
+                    i += 2;
+                } else {
+                    flags[key] = 'true';
+                    i += 1;
+                }
+            } else {
+                positional.push(token);
+                i += 1;
+            }
         }
     }
 
@@ -442,11 +481,125 @@ function cmdList(flags: Record<string, string>): void {
 }
 
 // ----------------------------------------------------------------
+// Help output
+// ----------------------------------------------------------------
+
+const USAGE = `cov — Chain-of-Verification CLI
+
+Usage:
+  cov <command> [options]
+
+Commands:
+  run <manifest.json>             Execute a chain from a manifest file
+  resume <chain-id> [options]     Resume a paused chain
+  show <chain-id> [options]       Display the current state of a chain
+  list [options]                  List chains (alias: results)
+  help [command]                  Show this usage text or command-specific help
+
+Global Options:
+  --help                           Show command-specific help
+
+Environment:
+  COV_STATE_DIR=<path>            Base runtime directory (default: docs/.workflow-runs)
+  COV_STORE_PATH=<path>           SQLite database path
+  COV_STORE_TABLE=<name>           Table namespace (default: chain_state)
+
+Examples:
+  cov run chain.json
+  cov resume build-verify --task TASK-001 --response approve
+  cov show build-verify --task TASK-001
+  cov list --task TASK-001
+
+For detailed documentation, see docs/spec/cov-user-manual.md`;
+
+const COMMAND_HELP: Record<string, string> = {
+    run: `cov run — Execute a chain from a manifest file
+
+Usage:
+  cov run <manifest.json>
+
+Arguments:
+  manifest.json          Path to chain manifest JSON file
+
+Examples:
+  cov run chain.json
+  cov run /path/to/my-chain.json
+`,
+    resume: `cov resume — Resume a paused chain
+
+Usage:
+  cov resume <chain-id> [options]
+
+Arguments:
+  chain-id               Unique chain identifier
+
+Options:
+  --task <wbs>          Task WBS ID (required if multiple chains share the same ID)
+  --manifest <path>     Path to manifest JSON (required if not in store)
+  --response <choice>    Human response to apply immediately (approve/reject/request_changes)
+
+Examples:
+  cov resume build-verify --task TASK-001
+  cov resume build-verify --task TASK-001 --response approve
+`,
+    show: `cov show — Display the current state of a chain
+
+Usage:
+  cov show <chain-id> [options]
+
+Arguments:
+  chain-id               Unique chain identifier
+
+Options:
+  --task <wbs>          Task WBS ID (required if multiple chains share the same ID)
+
+Aliases:
+  inspect
+
+Examples:
+  cov show build-verify --task TASK-001
+`,
+    list: `cov list — List chains
+
+Usage:
+  cov list [options]
+
+Options:
+  --task <wbs>          Filter by task WBS ID
+
+Aliases:
+  results
+
+Examples:
+  cov list
+  cov list --task TASK-001
+`,
+};
+
+function showHelp(command?: string): void {
+    if (command && COMMAND_HELP[command]) {
+        process.stdout.write(`${COMMAND_HELP[command]}\n`);
+    } else {
+        process.stdout.write(`${USAGE}\n`);
+    }
+}
+
+// ----------------------------------------------------------------
 // Main
 // ----------------------------------------------------------------
 
 async function main(): Promise<void> {
     const { command, positional, flags } = parseArgs(process.argv);
+
+    // Handle --help flag early (before command routing)
+    // Also triggers for `cov --help` (no command yet) or `cov help` (command = 'help')
+    if (flags.help !== undefined || command === 'help') {
+        // When --help is parsed as a flag (e.g., `cov --help`), command may be the flag itself
+        // In that case, treat it as general help
+        const helpTarget = command === 'help' ? positional[0] : command?.startsWith('-') ? undefined : command;
+        showHelp(helpTarget);
+        process.exit(0);
+    }
 
     switch (command) {
         case 'run':
@@ -464,7 +617,7 @@ async function main(): Promise<void> {
             cmdList(flags);
             break;
         default:
-            outputError(`Unknown command: "${command}"`, 'Available commands: run, resume, show, inspect, list, results');
+            outputError(`Unknown command: "${command}"`, 'Available commands: run, resume, show, inspect, list, results, help');
             process.exit(1);
     }
 }
