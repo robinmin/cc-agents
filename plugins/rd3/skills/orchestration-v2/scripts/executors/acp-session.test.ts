@@ -4,8 +4,11 @@
  * Tests for ACP session executor.
  */
 
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import type { ExecutionRequest } from '../model';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 type MockExecResult = {
     ok: boolean;
@@ -214,6 +217,75 @@ describe('AcpSessionExecutor', () => {
         it('uses custom TTL from constructor', () => {
             const customExecutor = new AcpSessionExecutor('pi', 600);
             expect(customExecutor).toBeDefined();
+        });
+    });
+
+    describe('scripts/run.ts execution', () => {
+        let tempDir: string;
+
+        afterEach(() => {
+            if (tempDir) {
+                rmSync(tempDir, { recursive: true, force: true });
+            }
+        });
+
+        it('executes scripts/run.ts when present', async () => {
+            tempDir = mkdtempSync(join(tmpdir(), 'acp-sest-'));
+            const skillDir = join(tempDir, 'test-skill');
+            mkdirSync(join(skillDir, 'scripts'), { recursive: true });
+            writeFileSync(join(skillDir, 'scripts', 'run.ts'), `console.log("from run script"); process.exit(0);`);
+
+            const exec = new AcpSessionExecutor('pi', 300, 1, tempDir, tempDir);
+            const req = createRequest({ skill: 'rd3:test-skill' });
+            const result = await exec.execute(req);
+
+            expect(result.success).toBe(true);
+            expect(result.stdout).toContain('from run script');
+        });
+
+        it('falls back to ACP when scripts/run.ts does not exist', async () => {
+            tempDir = mkdtempSync(join(tmpdir(), 'acp-sest-'));
+            // No scripts/run.ts - should fall back to ACP (mocked)
+            const skillDir = join(tempDir, 'no-run-skill');
+            mkdirSync(skillDir, { recursive: true });
+
+            const exec = new AcpSessionExecutor('pi', 300, 1, tempDir, tempDir);
+            const req = createRequest({ skill: 'rd3:no-run-skill' });
+            const result = await exec.execute(req);
+
+            // Falls back to ACP transport (mocked)
+            expect(result).toBeDefined();
+            expect(result.success).toBe(true);
+        });
+
+        it('handles scripts/run.ts timeout correctly', async () => {
+            tempDir = mkdtempSync(join(tmpdir(), 'acp-sest-timeout-'));
+            const skillDir = join(tempDir, 'timeout-skill');
+            mkdirSync(join(skillDir, 'scripts'), { recursive: true });
+            // Script that blocks indefinitely (sync block, no timers)
+            writeFileSync(join(skillDir, 'scripts', 'run.ts'), `await new Promise(() => {});`);
+
+            const exec = new AcpSessionExecutor('pi', 300, 1, tempDir, tempDir);
+            const req = createRequest({ skill: 'rd3:timeout-skill', timeoutMs: 100 });
+            const result = await exec.execute(req);
+
+            expect(result.success).toBe(false);
+            expect(result.timedOut).toBe(true);
+            expect(result.exitCode).toBe(124);
+        });
+
+        it('handles scripts/run.ts exit code correctly', async () => {
+            tempDir = mkdtempSync(join(tmpdir(), 'acp-sest-exit-'));
+            const skillDir = join(tempDir, 'exit-skill');
+            mkdirSync(join(skillDir, 'scripts'), { recursive: true });
+            writeFileSync(join(skillDir, 'scripts', 'run.ts'), `process.exit(42);`);
+
+            const exec = new AcpSessionExecutor('pi', 300, 1, tempDir, tempDir);
+            const req = createRequest({ skill: 'rd3:exit-skill' });
+            const result = await exec.execute(req);
+
+            expect(result.success).toBe(false);
+            expect(result.exitCode).toBe(42);
         });
     });
 
