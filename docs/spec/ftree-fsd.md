@@ -15,7 +15,7 @@
 | Runtime | Bun (latest) | Project standard |
 | Database | `bun:sqlite` (SQLite 3, WAL mode) | Zero-config, embedded, no daemon needed |
 | Linter/Formatter | Biome | Project standard |
-| ID Strategy | `cuid2` | Short, secure, collision-resistant, agent-friendly |
+| ID Strategy | `crypto.randomUUID()` | Bun native, no external dependency, collision-resistant |
 | Output | STDOUT (tree text or JSON via `--json` flag) | Dual-mode for human and agent consumption |
 
 ---
@@ -132,7 +132,7 @@ All commands follow the pattern: `ftree <command> [options]`
 ftree init [--db <path>]
 ```
 - Creates the SQLite database with schema, indexes, and triggers.
-- Default path: `.ftree/db.sqlite` relative to CWD.
+- Default path: `docs/.ftree/db.sqlite` relative to CWD.
 - Creates `.ftree/` directory if needed.
 - Idempotent — safe to run on existing DB.
 
@@ -303,7 +303,7 @@ ftree export [--root <id>] [--output <file>]
 
 | Flag | Description |
 |:---|:---|
-| `--db <path>` | Override database path (default: `.ftree/db.sqlite`) |
+| `--db <path>` | Override database path (default: `docs/.ftree/db.sqlite`) |
 | `--json` | Output in JSON format (for `ls`, `tree`) |
 | `--quiet` | Suppress non-essential output |
 | `--help` | Show command help |
@@ -328,42 +328,76 @@ ftree export [--root <id>] [--output <file>]
 
 ```
 plugins/rd3/skills/feature-tree/
-├── SKILL.md                    # Agent-facing skill definition
-├── metadata.openclaw           # OpenClaw platform metadata
-├── agents/                     # Subagent definitions
+├── SKILL.md                           # Skill definition (read-only source of truth)
 ├── scripts/
-│   ├── ftree.ts                # CLI entry point (bin), subcommand routing via parseCli()
-│   ├── db.ts                   # Connection factory, PRAGMA setup, schema DDL, migrations
-│   ├── dao/
-│   │   ├── sql.ts              # Centralized SQL constants (FEATURE_SQL, WBS_LINK_SQL)
-│   │   └── parsers.ts          # Row parsers (parseFeature, parseWbsLink)
-│   ├── lib/
-│   │   └── state-machine.ts    # TRANSITION_MAP + validateTransition() pure function
-│   ├── commands/
-│   │   ├── init.ts             # ftree init
-│   │   ├── add.ts              # ftree add
-│   │   ├── update.ts           # ftree update
-│   │   ├── delete.ts           # ftree delete
-│   │   ├── move.ts             # ftree move
-│   │   ├── ls.ts               # ftree ls
-│   │   ├── context.ts           # ftree context
-│   │   ├── link.ts             # ftree link/unlink
-│   │   ├── digest.ts           # ftree digest
-│   │   ├── check-done.ts       # ftree check-done
-│   │   └── import-export.ts    # ftree import/export
-│   ├── types.ts                # TypeScript types and status machine
-│   └── utils.ts                # Shared helpers (tree rendering, validation)
-├── references/
-│   ├── state-machine.md        # Status transition reference
-│   └── api-examples.md         # JSON output examples
-├── tests/
-│   ├── db.test.ts              # Database schema, triggers, CRUD
-│   ├── commands.test.ts        # CLI command tests
-│   ├── state-machine.test.ts   # Status transition validation
-│   ├── tree-operations.test.ts # Move, depth, position, roll-up
-│   └── import-export.test.ts   # Import/export round-trip tests
-└── templates/
-    └── feature-tree.json       # Example import template
+│   ├── package.json                   # Workspace root
+│   ├── tsconfig.json                  # Base TypeScript config
+│   ├── drizzle.config.ts             # Drizzle config
+│   │
+│   ├── packages/
+│   │   └── core/                     # @ftree/core — domain logic
+│   │       ├── package.json
+│   │       ├── tsconfig.json
+│   │       └── src/
+│   │           ├── index.ts          # Barrel export
+│   │           ├── config.ts         # CORE_CONFIG (pragmas, paths)
+│   │           ├── logger.ts         # logtape logger
+│   │           ├── logging.ts
+│   │           ├── errors.ts         # AppError hierarchy
+│   │           │
+│   │           ├── types/
+│   │           │   ├── feature.ts     # FeatureStatus, Feature, FeatureNode, etc.
+│   │           │   └── result.ts     # Result<T, E>
+│   │           │
+│   │           ├── db/
+│   │           │   ├── adapter.ts    # DbAdapter interface
+│   │           │   ├── client.ts      # getDefaultAdapter(), singleton
+│   │           │   ├── schema.ts     # Drizzle schema
+│   │           │   └── adapters/
+│   │           │       └── bun-sqlite.ts  # BunSqliteAdapter
+│   │           │
+│   │           ├── lib/
+│   │           │   ├── dao/
+│   │           │   │   ├── sql.ts     # SQL constants (DDL, CTEs)
+│   │           │   │   └── parsers.ts  # Row parsers
+│   │           │   ├── state-machine.ts  # TRANSITION_MAP, validateTransition
+│   │           │   └── tree-utils.ts  # buildFeatureTree, renderTree
+│   │           │
+│   │           └── services/
+│   │               └── feature-service.ts  # FeatureService class
+│   │
+│   ├── apps/
+│   │   └── cli/                     # ftree CLI — clipanion commands
+│   │       ├── package.json
+│   │       ├── tsconfig.json
+│   │       └── src/
+│   │           ├── index.ts         # CLI entry, command registration
+│   │           ├── config.ts         # CLI_CONFIG
+│   │           ├── lib/
+│   │           │   └── template-loader.ts  # BUILTIN_TEMPLATES
+│   │           └── commands/
+│   │               ├── feature-init.ts
+│   │               ├── feature-add.ts
+│   │               ├── feature-update.ts
+│   │               ├── feature-delete.ts
+│   │               ├── feature-move.ts
+│   │               ├── feature-list.ts
+│   │               ├── feature-context.ts
+│   │               ├── feature-link.ts
+│   │               ├── feature-unlink.ts
+│   │               ├── feature-unlink-wbs.ts
+│   │               ├── feature-digest.ts
+│   │               ├── feature-check-done.ts
+│   │               ├── feature-export.ts
+│   │               └── feature-import.ts
+│   │
+│   └── templates/
+│       ├── web-app.json
+│       ├── cli-tool.json
+│       └── api-service.json
+│
+└── agents/
+    └── openai.yaml
 ```
 
 ---
@@ -387,25 +421,19 @@ plugins/rd3/skills/feature-tree/
 
 | Package | Purpose | Version |
 |:---|:---|:---|
-| `cuid2` | ID generation | latest |
-
 No other external dependencies. Uses `bun:sqlite`, `bun:fs`, `bun:path` natively.
 
 ---
 
 ## 10. CLI Registration
 
-Register `ftree` as a bin in the project's `package.json`:
+Run via `bun run ftree` from `plugins/rd3` or directly:
 
-```json
-{
-  "bin": {
-    "ftree": "./plugins/rd3/skills/feature-tree/scripts/ftree.ts"
-  }
-}
+```bash
+bun ./plugins/rd3/skills/feature-tree/scripts/apps/cli/src/index.ts <command>
 ```
 
-Or as a workspace-level bin in `plugins/rd3/package.json`.
+The CLI is registered as a workspace bin in `plugins/rd3/package.json`.
 
 ---
 

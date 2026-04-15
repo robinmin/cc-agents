@@ -31,10 +31,10 @@
 
         "build-all": "bun run build:tasks && bun run build:tasks-ui && bun run build:ftree && bun run build:orchestrator && bun run build:cov",
 
-        "add-symblink-tasks": "[ -L ~/.bun/bin/tasks ] || ln -sf ./skills/tasks/scripts/dist/tasks.js ~/.bun/bin/tasks",
-        "add-symblink-ftree": "[ -L ~/.bun/bin/ftree ] || ln -sf ./skills/feature-tree/scripts/dist/ftree.js ~/.bun/bin/ftree",
-        "add-symblink-orchestrator": "[ -L ~/.bun/bin/orchestrator ] || ln -sf ./skills/orchestration-v2/scripts/dist/orchestrator.js ~/.bun/bin/orchestrator",
-        "add-symblink-cov": "[ -L ~/.bun/bin/cov ] || ln -sf ./skills/verification-chain/scripts/dist/cov.js ~/.bun/bin/cov",
+        "add-symblink-tasks": "[ -L ~/.bun/bin/tasks ] || ln -sf ~/projects/cc-agents/plugins/rd3/skills/tasks/scripts/dist/tasks.js ~/.bun/bin/tasks",
+        "add-symblink-ftree": "[ -L ~/.bun/bin/ftree ] || ln -sf ~/projects/cc-agents/plugins/rd3/skills/feature-tree/scripts/dist/ftree.js ~/.bun/bin/ftree",
+        "add-symblink-orchestrator": "[ -L ~/.bun/bin/orchestrator ] || ln -sf ~/projects/cc-agents/plugins/rd3/skills/orchestration-v2/scripts/dist/orchestrator.js ~/.bun/bin/orchestrator",
+        "add-symblink-cov": "[ -L ~/.bun/bin/cov ] || ln -sf ~/projects/cc-agents/plugins/rd3/skills/verification-chain/scripts/dist/cov.js ~/.bun/bin/cov",
 
         "symblink-all": "bun run add-symblink-tasks && bun run add-symblink-ftree && bun run add-symblink-orchestrator && bun run add-symblink-cov"
     },
