@@ -255,6 +255,8 @@ bun run scripts/cli.ts show <chain-id> [--task <task_wbs>]
 bun run scripts/cli.ts inspect <chain-id> [--task <task_wbs>]   # alias of show
 bun run scripts/cli.ts list [--task <task_wbs>]
 bun run scripts/cli.ts results [--task <task_wbs>]              # alias of list
+bun run scripts/cli.ts help [command]                            # show help
+bun run scripts/cli.ts <command> --help                         # command-specific help
 ```
 
 All CLI commands return a single JSON payload on stdout for machine consumption.
