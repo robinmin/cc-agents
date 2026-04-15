@@ -103,11 +103,8 @@ These are helpful for agents, but they are advisory metadata rather than require
 The `ftree` CLI is registered as a bin in `plugins/rd3/package.json`:
 
 ```bash
-# Run from project root (via plugins/rd3)
-bun run ftree <command> [options]
-
-# Or directly
-bun ./plugins/rd3/skills/feature-tree/scripts/apps/cli/src/index.ts <command>
+# Run from project root
+ftree <command> [options]
 ```
 
 ## Database Path Resolution
@@ -441,10 +438,10 @@ plugins/rd3/skills/feature-tree/
 ## Platform Notes
 
 ### Claude Code
-Use `!ftree` for live command execution or `bun run ftree` from `plugins/rd3`. Use `$ARGUMENTS` for parameter references.
+Use `!ftree` for live command execution. Use `$ARGUMENTS` for parameter references.
 
 ### Codex / OpenClaw / OpenCode / Antigravity / Pi
-Run commands via Bash tool: `bun ./plugins/rd3/skills/feature-tree/scripts/apps/cli/src/index.ts <command>`.
+Run commands via Bash tool: `ftree <command>`.
 
 ---
 

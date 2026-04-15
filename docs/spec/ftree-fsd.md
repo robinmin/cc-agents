@@ -427,10 +427,8 @@ No other external dependencies. Uses `bun:sqlite`, `bun:fs`, `bun:path` natively
 
 ## 10. CLI Registration
 
-Run via `bun run ftree` from `plugins/rd3` or directly:
-
 ```bash
-bun ./plugins/rd3/skills/feature-tree/scripts/apps/cli/src/index.ts <command>
+ftree <command>
 ```
 
 The CLI is registered as a workspace bin in `plugins/rd3/package.json`.

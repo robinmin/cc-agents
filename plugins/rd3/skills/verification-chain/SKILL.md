@@ -249,14 +249,14 @@ type MethodResult = {
 ### CLI-first Contract
 
 ```bash
-bun run scripts/cli.ts run <manifest.json>
-bun run scripts/cli.ts resume <chain-id> [--task <task_wbs>] [--response approve|reject]
-bun run scripts/cli.ts show <chain-id> [--task <task_wbs>]
-bun run scripts/cli.ts inspect <chain-id> [--task <task_wbs>]   # alias of show
-bun run scripts/cli.ts list [--task <task_wbs>]
-bun run scripts/cli.ts results [--task <task_wbs>]              # alias of list
-bun run scripts/cli.ts help [command]                            # show help
-bun run scripts/cli.ts <command> --help                         # command-specific help
+cov run <manifest.json>
+cov resume <chain-id> [--task <task_wbs>] [--response approve|reject]
+cov show <chain-id> [--task <task_wbs>]
+cov inspect <chain-id> [--task <task_wbs>]   # alias of show
+cov list [--task <task_wbs>]
+cov results [--task <task_wbs>]              # alias of list
+cov help [command]                            # show help
+cov <command> --help                         # command-specific help
 ```
 
 All CLI commands return a single JSON payload on stdout for machine consumption.

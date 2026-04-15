@@ -3,26 +3,23 @@
 ## Quick Start
 
 ```bash
-# Navigate to the ftree scripts directory
-cd plugins/rd3/skills/feature-tree/scripts
-
 # Initialize database with a template
-bun run ftree init --template web-app
+ftree init --template web-app
 
 # List all features
-bun run ftree ls
+ftree ls
 
 # Add a new feature
-bun run ftree add --title "User Authentication"
+ftree add --title "User Authentication"
 
 # Link WBS tasks and start execution
-bun run ftree digest <feature-id> --wbs 001,002 --status executing
+ftree digest <feature-id> --wbs 001,002 --status executing
 
 # Check if ready to mark done
-bun run ftree check-done <feature-id>
+ftree check-done <feature-id>
 
 # Export tree as JSON
-bun run ftree export --output tree.json
+ftree export --output tree.json
 ```
 
 ---
@@ -32,13 +29,6 @@ bun run ftree export --output tree.json
 ### CLI Entry Point
 
 ```bash
-# Via bun run (recommended)
-bun run ftree <command> [options]
-
-# Direct execution
-bun ./plugins/rd3/skills/feature-tree/scripts/apps/cli/src/index.ts <command> [options]
-
-# Global bin (if installed)
 ftree <command> [options]
 ```
 
