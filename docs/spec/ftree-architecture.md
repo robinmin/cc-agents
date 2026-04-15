@@ -10,47 +10,43 @@
 
 ## System Boundaries
 
+```mermaid
+flowchart TD
+    subgraph CLI["ftree CLI (clipanion)"]
+        Init["init"]
+        Ls["ls"]
+        CheckDone["check-done"]
+        Move["move"]
+        Add["add"]
+        Context["context"]
+        Update["update"]
+        Delete["delete"]
+        Link["link / unlink"]
+        Digest["digest"]
+        ImportExport["import / export"]
+        Wbs["wbs"]
+    end
+
+    CLI --> FeatureService
+
+    subgraph FeatureService["FeatureService"]
+        StateMachine["State Machine<br/>validateTransition<br/>computeRollupStatus"]
+        DAOLayer["DAO Layer<br/>raw SQL for CTEs<br/>Drizzle for CRUD"]
+    end
+
+    FeatureService --> BunSqliteAdapter
+
+    subgraph Adapter["BunSqliteAdapter"]
+        Pragmas["PRAGMA: WAL, foreign_keys=ON<br/>busy_timeout=5000, synchronous=NORMAL"]
+    end
+
+    Adapter --> SQLite["SQLite Database<br/>docs/.ftree/db.sqlite"]
+
+    FeatureService --> StateMachine
+    FeatureService --> DAOLayer
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         ftree CLI                               │
-│  (clipanion + typanion)                                         │
-│                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐  │
-│  │  init        │  │  add         │  │  link / unlink       │  │
-│  │  ls          │  │  context     │  │  digest              │  │
-│  │  check-done  │  │  update      │  │  import / export     │  │
-│  │  move        │  │  delete      │  │  wbs                 │  │
-│  └──────────────┘  └──────────────┘  └──────────────────────┘  │
-│                                                                 │
-│  Commands interact only with FeatureService — no direct DB     │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     FeatureService                               │
-│  (Business logic layer — all state transitions validated)       │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ State Machine (validateTransition, computeRollupStatus) │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ DAO Layer (raw SQL for CTEs, Drizzle for simple CRUD)   │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   BunSqliteAdapter                              │
-│  (bun:sqlite + Drizzle ORM)                                     │
-│                                                                 │
-│  PRAGMA: journal_mode=WAL, foreign_keys=ON, busy_timeout=5000  │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    SQLite Database
-                    (docs/.ftree/db.sqlite)
-```
+
+Commands interact only with FeatureService — no direct database access from CLI layer.
 
 ---
 
