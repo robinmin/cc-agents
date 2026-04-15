@@ -11,6 +11,16 @@ import { isAppError } from '../../src/errors';
 import { FeatureService, initSchema } from '../../src/services/feature-service';
 import type { TemplateNode } from '../../src/types/feature';
 
+/**
+ * Type assertion helper that narrows `T | null | undefined` to `T`.
+ * Use after `expect(val).toBeDefined()` to satisfy noNonNullAssertion rule.
+ */
+function assertDefined<T>(val: T | null | undefined, context: string): asserts val is T {
+    if (val === null || val === undefined) {
+        throw new Error(`${context} should be defined but was ${val}`);
+    }
+}
+
 describe('FeatureService — Mutations', () => {
     let service: FeatureService;
     let adapter: BunSqliteAdapter;
@@ -650,8 +660,8 @@ describe('FeatureService — Mutations', () => {
             if (!listResult.ok) return;
             const l3 = listResult.data.find((f) => f.title === 'L3');
             expect(l3).toBeDefined();
-            // biome-ignore lint/style/noNonNullAssertion: test assertion after defined check
-            expect(l3!.depth).toBe(3);
+            assertDefined(l3, 'l3');
+            expect(l3.depth).toBe(3);
         });
 
         test('uses default backlog status when not specified', async () => {
@@ -665,8 +675,8 @@ describe('FeatureService — Mutations', () => {
             if (!listResult.ok) return;
             const imported = listResult.data.find((f) => f.title === 'Default Status');
             expect(imported).toBeDefined();
-            // biome-ignore lint/style/noNonNullAssertion: test assertion after defined check
-            expect(imported!.status).toBe('backlog');
+            assertDefined(imported, 'imported');
+            expect(imported.status).toBe('backlog');
         });
 
         test('re-imports by title path without duplicating branches', async () => {
