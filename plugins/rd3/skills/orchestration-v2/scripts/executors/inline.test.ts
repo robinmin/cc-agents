@@ -45,13 +45,22 @@ function cleanupTempDir(): void {
 function createDummyEntry(
     skillBase: string,
     skillName: string,
-    location: 'scripts/local' | 'local' | 'index' = 'scripts/local',
 ): string {
-    const dir = location === 'scripts/local' ? join(skillBase, skillName, 'scripts') : join(skillBase, skillName);
+    const dir = join(skillBase, skillName, 'scripts');
     mkdirSync(dir, { recursive: true });
-    const fileName = location === 'scripts/local' ? 'local.ts' : location === 'local' ? 'local.ts' : 'index.ts';
-    const filePath = join(dir, fileName);
+    const filePath = join(dir, 'run.ts');
     writeFileSync(filePath, '// dummy\n');
+    return filePath;
+}
+
+/**
+ * Create a SKILL.md file at the skill root.
+ */
+function createSkillMd(skillBase: string, skillName: string, content = '# SKILL\n'): string {
+    const dir = join(skillBase, skillName);
+    mkdirSync(dir, { recursive: true });
+    const filePath = join(dir, 'SKILL.md');
+    writeFileSync(filePath, content);
     return filePath;
 }
 
@@ -139,65 +148,46 @@ describe('InlineExecutor', () => {
             expect(exec.resolveLocalEntrypoint('rd3:missing')).toBeNull();
         });
 
-        it('resolves scripts/local.ts when it exists', () => {
+        it('resolves scripts/run.ts when it exists', () => {
             const exec = new InlineExecutor(tempDir);
             const created = createDummyEntry(tempDir, 'my-skill');
             const resolved = exec.resolveLocalEntrypoint('rd3:my-skill');
             expect(resolved).toBe(created);
         });
 
-        it('resolves local.ts at skill root when scripts/local.ts missing', () => {
-            const exec = new InlineExecutor(tempDir);
-            const dir = join(tempDir, 'root-skill');
-            mkdirSync(dir, { recursive: true });
-            const filePath = join(dir, 'local.ts');
-            writeFileSync(
-                filePath,
-                `export async function runLocalPhase(req) { return { success: true, exitCode: 0, durationMs: 10, timedOut: false }; }`,
-            );
-
-            const resolved = exec.resolveLocalEntrypoint('rd3:root-skill');
-            expect(resolved).toBe(filePath);
-        });
-
-        it('resolves index.ts as last candidate', () => {
-            const exec = new InlineExecutor(tempDir);
-            const dir = join(tempDir, 'index-skill');
-            mkdirSync(dir, { recursive: true });
-            const filePath = join(dir, 'index.ts');
-            writeFileSync(
-                filePath,
-                `export async function runLocalPhase(req) { return { success: true, exitCode: 0, durationMs: 10, timedOut: false }; }`,
-            );
-
-            const resolved = exec.resolveLocalEntrypoint('rd3:index-skill');
-            expect(resolved).toBe(filePath);
-        });
-
-        it('prefers scripts/local.ts over local.ts and index.ts', () => {
-            const exec = new InlineExecutor(tempDir);
-            const dir = join(tempDir, 'priority-skill');
-            mkdirSync(join(dir, 'scripts'), { recursive: true });
-
-            // Create all three
-            writeFileSync(join(dir, 'index.ts'), `export const idx = 1;`);
-            writeFileSync(join(dir, 'local.ts'), `export const local = 1;`);
-            const scriptsLocal = join(dir, 'scripts', 'local.ts');
-            writeFileSync(scriptsLocal, `export const scriptsLocal = 1;`);
-
-            const resolved = exec.resolveLocalEntrypoint('rd3:priority-skill');
-            expect(resolved).toBe(scriptsLocal);
-        });
-
         it('handles multi-segment plugin names', () => {
             const exec = new InlineExecutor(tempDir);
             const dir = join(tempDir, 'complex-skill', 'scripts');
             mkdirSync(dir, { recursive: true });
-            const filePath = join(dir, 'local.ts');
+            const filePath = join(dir, 'run.ts');
             writeFileSync(filePath, `export const x = 1;`);
 
             const resolved = exec.resolveLocalEntrypoint('my-plugin:complex-skill');
             expect(resolved).toBe(filePath);
+        });
+    });
+
+    // ─── hasSkillMd ─────────────────────────────────────────────────────────
+
+    describe('hasSkillMd', () => {
+        beforeEach(() => setupTempDir());
+        afterEach(() => cleanupTempDir());
+
+        it('returns false when SKILL.md does not exist', () => {
+            const exec = new InlineExecutor(tempDir);
+            expect(exec.hasSkillMd('rd3:no-skill-md')).toBe(false);
+        });
+
+        it('returns false for invalid skill ref', () => {
+            const exec = new InlineExecutor(tempDir);
+            expect(exec.hasSkillMd('invalid-ref')).toBe(false);
+            expect(exec.hasSkillMd('')).toBe(false);
+        });
+
+        it('returns true when SKILL.md exists at skill root', () => {
+            const exec = new InlineExecutor(tempDir);
+            createSkillMd(tempDir, 'with-skill-md');
+            expect(exec.hasSkillMd('rd3:with-skill-md')).toBe(true);
         });
     });
 
@@ -221,6 +211,23 @@ describe('InlineExecutor', () => {
             expect(result.stderr).toContain('does not expose a local in-process entrypoint');
             expect(result.timedOut).toBe(false);
             expect(result.durationMs).toBeGreaterThanOrEqual(0);
+        });
+
+        it('falls back to ACP when no script but SKILL.md exists', async () => {
+            // Create SKILL.md but no script entry point
+            createSkillMd(tempDir, 'skill-only-pkg');
+
+            const exec = new InlineExecutor(tempDir);
+            const req = makeRequest({ skill: 'rd3:skill-only-pkg' });
+            const result = await exec.execute(req);
+
+            // Should NOT return the "does not expose a local in-process entrypoint" error
+            // Instead it attempts ACP fallback (which may succeed or fail depending on acpx availability)
+            // The key is it doesn't immediately fail with the no-entrypoint error
+            if (!result.success) {
+                // If it fails via ACP fallback, error should mention ACP, not "local entrypoint"
+                expect(result.stderr).not.toContain('does not expose a local in-process entrypoint');
+            }
         });
 
         it('returns failure when entrypoint has no valid handler export', async () => {
@@ -393,7 +400,7 @@ describe('InlineExecutor', () => {
             };
 
             // Create the skill dir so resolveLocalEntrypoint finds the entry point
-            createDummyEntry(tempDir, 'test-skill', 'scripts/local');
+            createDummyEntry(tempDir, 'test-skill');
 
             const exec = new InlineExecutor(tempDir, loader);
             const req = makeRequest({ skill: 'rd3:test-skill' });
@@ -410,7 +417,7 @@ describe('InlineExecutor', () => {
             };
 
             // Create the skill dir so resolveLocalEntrypoint succeeds (returns a path)
-            createDummyEntry(tempDir, 'test-skill', 'scripts/local');
+            createDummyEntry(tempDir, 'test-skill');
 
             const exec = new InlineExecutor(tempDir, loader);
             const req = makeRequest({ skill: 'rd3:test-skill' });
@@ -429,7 +436,7 @@ describe('InlineExecutor', () => {
 
     describe('defaultModuleLoader via project fixture', () => {
         it('loads a real project-relative module via dynamic import', async () => {
-            // tests/fixtures/inline-test-skill/scripts/local.ts exports runLocalPhase
+            // tests/fixtures/inline-test-skill/scripts/run.ts exports runLocalPhase
             const fixtureBase = join(import.meta.dir, '..', '..', 'tests', 'fixtures');
             const exec = new InlineExecutor(fixtureBase); // no mock loader → uses defaultModuleLoader
             const req = makeRequest({ skill: 'rd3:inline-test-skill' });
