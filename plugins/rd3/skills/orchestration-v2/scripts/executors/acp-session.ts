@@ -27,6 +27,9 @@ import { logger } from '../../../../scripts/logger';
 import * as transport from '../integrations/acp/transport';
 import * as prompts from '../integrations/acp/prompts';
 import { DefaultSessionLifecycle, type SessionConfig } from '../integrations/acp/sessions';
+import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { spawn } from 'bun';
 
 /**
  * ACP Session Executor.
@@ -55,6 +58,8 @@ export class AcpSessionExecutor implements Executor {
     private readonly agentName: string;
     private readonly sessionLifecycle: DefaultSessionLifecycle;
     private readonly defaultSessionTtlSeconds: number;
+    readonly skillBaseDir: string;
+    private readonly projectRoot: string;
 
     /**
      * Create a session ACP executor.
@@ -62,8 +67,10 @@ export class AcpSessionExecutor implements Executor {
      * @param agentName - ACP agent name (e.g., "pi", "codex"). Default: "pi"
      * @param defaultSessionTtlSeconds - Default TTL for sessions. Default: 300 (5 min)
      * @param maxConcurrency - Maximum concurrent executions. Default: 1
+     * @param skillBaseDir - Base directory for skills (for testing). Default: project/plugins/rd3/skills
+     * @param projectRoot - Project root directory (for testing). Default: cwd
      */
-    constructor(agentName = 'pi', defaultSessionTtlSeconds = 300, maxConcurrency = 1) {
+    constructor(agentName = 'pi', defaultSessionTtlSeconds = 300, maxConcurrency = 1, skillBaseDir?: string, projectRoot?: string) {
         this.agentName = agentName;
         this.id = `acp-session:${agentName}`;
         this.name = `ACP Session (${agentName})`;
@@ -71,13 +78,16 @@ export class AcpSessionExecutor implements Executor {
         this.maxConcurrency = maxConcurrency;
         this.sessionLifecycle = new DefaultSessionLifecycle();
         this.defaultSessionTtlSeconds = defaultSessionTtlSeconds;
+        this.skillBaseDir = skillBaseDir ?? resolve(process.cwd(), 'plugins', 'rd3', 'skills');
+        this.projectRoot = projectRoot ?? process.cwd();
     }
 
     /**
      * Execute a phase using session ACP.
      *
-     * Requires session name from request. If no session name is provided,
-     * falls back to stateless execution with a warning.
+     * Resolution order:
+     * 1. Check for scripts/run.ts → execute via bun spawn
+     * 2. Otherwise → SKILL.md via acpx prompt (sessioned or stateless)
      *
      * Session semantics:
      * - Uses `prompt --session <name>` for execution
@@ -87,64 +97,205 @@ export class AcpSessionExecutor implements Executor {
     async execute(req: ExecutionRequest): Promise<ExecutionResult> {
         const startTime = Date.now();
 
+        // Check for scripts/run.ts first
+        const runScriptPath = this.resolveRunScript(req.skill);
+        if (runScriptPath) {
+            return this.executeRunScript(req, runScriptPath, startTime);
+        }
+
         // Session execution REQUIRES a session name
         if (!req.session) {
             logger.warn(
                 `[${this.id}] Session executor called without session name. ` +
-                    'Falling back to stateless execution. ' +
+                    'Falling back to stateless ACP execution. ' +
                     'Set session field in ExecutionRequest for session mode.',
             );
-            // Fall back to stateless
-            return this.executeStateless(req, startTime);
+            // Fall back to stateless ACP
+            return this.executeViaACP(req, startTime, false);
         }
 
-        try {
-            // Build prompt using ACP prompt shaping
-            const prompt = prompts.buildPromptFromRequest(req);
+        return this.executeSessionedACP(req, startTime);
+    }
 
-            // Get TTL from request or use default
-            const ttlSeconds = req.sessionTtlSeconds ?? this.defaultSessionTtlSeconds;
+    /**
+     * Resolve scripts/run.ts path for a skill.
+     */
+    private resolveRunScript(skillRef: string): string | null {
+        const [plugin, skillName] = skillRef.split(':');
+        if (!plugin || !skillName) {
+            return null;
+        }
+        const runScriptPath = resolve(this.skillBaseDir, skillName, 'scripts', 'run.ts');
+        if (existsSync(runScriptPath)) {
+            return runScriptPath;
+        }
+        return null;
+    }
+
+    /**
+     * Execute scripts/run.ts via bun spawn.
+     */
+    private async executeRunScript(req: ExecutionRequest, scriptPath: string, startTime: number): Promise<ExecutionResult> {
+        const timeoutMs = req.timeoutMs ?? 30 * 60 * 1000;
+        const args = this.buildArgs(req);
+
+        logger.info(`[${this.id}] Executing ${req.skill} via scripts/run.ts`);
+
+        try {
+            const result = await this.spawnRunScript(scriptPath, args, timeoutMs, req.phase);
+            return {
+                ...result,
+                durationMs: Date.now() - startTime,
+            };
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            logger.error(`[${this.id}] scripts/run.ts execution failed for ${req.skill}: ${message}`);
+            return {
+                success: false,
+                exitCode: 1,
+                stderr: message,
+                durationMs: Date.now() - startTime,
+                timedOut: false,
+            };
+        }
+    }
+
+    /**
+     * Spawn a skill script and wait for completion.
+     */
+    private spawnRunScript(
+        scriptPath: string,
+        args: string[],
+        timeoutMs: number,
+        phase?: string,
+    ): Promise<Omit<ExecutionResult, 'durationMs'>> {
+        return new Promise((resolve) => {
+            let timedOut = false;
+
+            const proc = spawn({
+                cmd: ['bun', scriptPath, ...args],
+                cwd: this.projectRoot,
+                stdout: 'pipe',
+                stderr: 'pipe',
+                env: {
+                    ...process.env,
+                    ORCH_EXECUTOR: this.id,
+                    ORCH_PHASE: phase ?? '',
+                },
+                ...(timeoutMs > 0 ? { timeout: timeoutMs } : {}),
+            });
+
+            const readStream = async (stream: ReadableStream<Uint8Array> | undefined): Promise<string> => {
+                if (!stream) return '';
+                try {
+                    return await new Response(stream).text();
+                } catch {
+                    return '';
+                }
+            };
+
+            const stdoutPromise = readStream(proc.stdout as unknown as ReadableStream<Uint8Array> | undefined);
+            const stderrPromise = readStream(proc.stderr as unknown as ReadableStream<Uint8Array> | undefined);
+
+            const timeoutHandle =
+                timeoutMs > 0
+                    ? setTimeout(() => {
+                          timedOut = true;
+                          proc.kill();
+                      }, timeoutMs)
+                    : undefined;
+
+            proc.exited.then(async (exitCode: number) => {
+                if (timeoutHandle) clearTimeout(timeoutHandle);
+
+                const stdout = await stdoutPromise;
+                let stderr = await stderrPromise;
+
+                const success = exitCode === 0 && !timedOut;
+
+                if (timedOut) {
+                    logger.warn(`[${this.id}] Execution timed out after ${timeoutMs}ms`);
+                    stderr = stderr ? `${stderr}\n[TIMEOUT]` : '[TIMEOUT]';
+                }
+
+                resolve({
+                    success,
+                    exitCode: timedOut ? 124 : exitCode,
+                    stdout: stdout.slice(0, 4096),
+                    stderr: stderr.slice(0, 4096),
+                    timedOut,
+                });
+            });
+        });
+    }
+
+    /**
+     * Build command arguments for skill execution.
+     */
+    private buildArgs(req: ExecutionRequest): string[] {
+        const args: string[] = [];
+        if (req.taskRef) args.push('--task-ref', req.taskRef);
+        if (req.phase) args.push('--phase', req.phase);
+        if (req.reworkIteration !== undefined) args.push('--rework-iteration', String(req.reworkIteration));
+        if (req.payload && typeof req.payload === 'object') {
+            for (const [key, value] of Object.entries(req.payload)) {
+                if (value !== undefined && value !== null) {
+                    const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+                    args.push(`--${key}`, serialized);
+                }
+            }
+        }
+        if (req.feedback) args.push('--feedback', req.feedback);
+        return args;
+    }
+
+    /**
+     * Execute via sessioned ACP transport.
+     */
+    private async executeSessionedACP(req: ExecutionRequest, startTime: number): Promise<ExecutionResult> {
+        const timeoutMs = req.timeoutMs ?? 30 * 60 * 1000;
+        const ttlSeconds = req.sessionTtlSeconds ?? this.defaultSessionTtlSeconds;
+        const session = req.session as string; // Guard: caller ensures session exists
+
+        try {
+            const prompt = prompts.buildPromptFromRequest(req);
 
             // Ensure session exists
             const sessionConfig: SessionConfig = {
-                name: req.session,
+                name: session,
                 agent: this.agentName,
                 ttlSeconds,
             };
             await this.sessionLifecycle.ensure(sessionConfig);
 
             // Check session health before execution
-            const sessionHealth = await this.sessionLifecycle.status(req.session);
+            const sessionHealth = await this.sessionLifecycle.status(session);
             if (!sessionHealth.healthy) {
                 if (sessionHealth.state === 'stale') {
-                    logger.warn(`[${this.id}] Session ${req.session} is stale, recovering...`);
-                    await this.sessionLifecycle.recover(req.session);
+                    logger.warn(`[${this.id}] Session ${session} is stale, recovering...`);
+                    await this.sessionLifecycle.recover(session);
                 } else {
-                    logger.warn(`[${this.id}] Session ${req.session} is ${sessionHealth.state}, proceeding anyway...`);
+                    logger.warn(`[${this.id}] Session ${session} is ${sessionHealth.state}, proceeding anyway...`);
                 }
             }
 
             // Execute via transport with session
-            const result = transport.executeSessioned(prompt, req.timeoutMs, req.session, ttlSeconds, {
+            const result = transport.executeSessioned(prompt, timeoutMs, session, ttlSeconds, {
                 agent: this.agentName,
             });
 
             // Update session health based on result
-            if (!result.success) {
-                if (result.timedOut) {
-                    await this.sessionLifecycle.markStale(req.session);
-                    logger.warn(`[${this.id}] Session ${req.session} marked as stale due to timeout`);
-                }
+            if (!result.success && result.timedOut) {
+                await this.sessionLifecycle.markStale(session);
+                logger.warn(`[${this.id}] Session ${session} marked as stale due to timeout`);
             }
 
-            // Map to ExecutionResult
             return this.mapResult(result, req, startTime);
         } catch (err) {
             const durationMs = Date.now() - startTime;
 
-            // Mark session as stale on unexpected errors
-            if (req.session) {
-                await this.sessionLifecycle.markStale(req.session);
+            if (session) {
+                await this.sessionLifecycle.markStale(session);
             }
 
             return {
@@ -158,16 +309,23 @@ export class AcpSessionExecutor implements Executor {
     }
 
     /**
-     * Fallback to stateless execution.
+     * Fallback to stateless ACP execution.
      */
-    private async executeStateless(req: ExecutionRequest, startTime: number): Promise<ExecutionResult> {
-        // Build prompt using ACP prompt shaping
-        const prompt = prompts.buildPromptFromRequest(req);
-
-        // Execute via transport (stateless fallback)
-        const result = transport.executeStateless(prompt, req.timeoutMs, { agent: this.agentName });
-
-        return this.mapResult(result, req, startTime);
+    private async executeViaACP(req: ExecutionRequest, startTime: number, _sessioned = false): Promise<ExecutionResult> {
+        try {
+            const prompt = prompts.buildPromptFromRequest(req);
+            const result = transport.executeStateless(prompt, req.timeoutMs, { agent: this.agentName });
+            return this.mapResult(result, req, startTime);
+        } catch (err) {
+            const durationMs = Date.now() - startTime;
+            return {
+                success: false,
+                exitCode: 1,
+                stderr: err instanceof Error ? err.message : String(err),
+                durationMs,
+                timedOut: false,
+            };
+        }
     }
 
     /**
