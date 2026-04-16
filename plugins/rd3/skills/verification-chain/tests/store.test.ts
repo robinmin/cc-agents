@@ -338,15 +338,13 @@ describe('saveChain / loadChain', () => {
                      FROM "chain_state"
                      WHERE chain_id = ? AND task_wbs = ?`,
                 )
-                .get(state.chain_id, state.task_wbs) as
-                | {
-                      chain_name: string;
-                      status: string;
-                      current_node: string;
-                      paused_node: string | null;
-                      paused_response: string | null;
-                  }
-                | null;
+                .get(state.chain_id, state.task_wbs) as {
+                chain_name: string;
+                status: string;
+                current_node: string;
+                paused_node: string | null;
+                paused_response: string | null;
+            } | null;
             expect(chainRow).not.toBeNull();
             expect(chainRow?.status).toBe('paused');
             expect(chainRow?.paused_node).toBe('node-2');
@@ -409,14 +407,12 @@ describe('saveChain / loadChain', () => {
                      FROM "chain_state_checkpoints"
                      WHERE chain_id = ? AND task_wbs = ?`,
                 )
-                .get(state.chain_id, state.task_wbs) as
-                | {
-                      status: string;
-                      paused_node: string | null;
-                      paused_at: string | null;
-                      paused_response: string | null;
-                  }
-                | null;
+                .get(state.chain_id, state.task_wbs) as {
+                status: string;
+                paused_node: string | null;
+                paused_at: string | null;
+                paused_response: string | null;
+            } | null;
             expect(checkpointRow).toEqual({
                 status: 'paused',
                 paused_node: 'node-2',
