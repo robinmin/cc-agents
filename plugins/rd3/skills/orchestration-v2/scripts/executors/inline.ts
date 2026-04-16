@@ -123,7 +123,7 @@ export class InlineExecutor implements Executor {
         // so only append skillName to avoid double-nesting: rd3:code-implement-common
         // → plugins/rd3/skills/code-implement-common/scripts/run.ts
         const candidates = [
-            resolve(this.skillBaseDir, skillName, 'scripts', 'run.ts'),    // Universal entry point
+            resolve(this.skillBaseDir, skillName, 'scripts', 'run.ts'), // Universal entry point
         ];
 
         for (const candidate of candidates) {
