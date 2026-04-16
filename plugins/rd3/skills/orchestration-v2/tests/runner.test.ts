@@ -22,7 +22,13 @@ import { HookRegistry } from '../scripts/engine/hooks';
 import { EventBus } from '../scripts/observability/event-bus';
 import { runMigrations } from '../scripts/state/migrations';
 import { logger, setGlobalSilent } from '../../../scripts/logger';
-import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent, VerificationDriver } from '../scripts/model';
+import type {
+    PipelineDefinition,
+    RunOptions,
+    ResumeOptions,
+    OrchestratorEvent,
+    VerificationDriver,
+} from '../scripts/model';
 import * as llmModule from '../../verification-chain/scripts/methods/llm';
 import type { MethodResult } from '../../verification-chain/scripts/types';
 
@@ -2608,13 +2614,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
                 const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
                 const pool = new ExecutorPool();
                 pool.register(testMock);
-                const testRunner = new PipelineRunner(
-                    stateManager,
-                    pool,
-                    hookRegistry,
-                    eventBus,
-                    verificationDriver,
-                );
+                const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus, verificationDriver);
 
                 // Use a WBS-style task ref so extractWbsFromPath works
                 await testRunner.run({ taskRef: '0099' }, pipeline);
@@ -2674,13 +2674,7 @@ describe('PipelineRunner - Comprehensive Coverage', () => {
                 const testMock = new MockExecutor({ channels: ['inline', 'auto', 'current'] });
                 const pool = new ExecutorPool();
                 pool.register(testMock);
-                const testRunner = new PipelineRunner(
-                    stateManager,
-                    pool,
-                    hookRegistry,
-                    eventBus,
-                    verificationDriver,
-                );
+                const testRunner = new PipelineRunner(stateManager, pool, hookRegistry, eventBus, verificationDriver);
 
                 await testRunner.run({ taskRef: '0100' }, pipeline);
 
