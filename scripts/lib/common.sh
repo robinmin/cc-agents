@@ -162,3 +162,163 @@ feature_enabled() {
         *) return 1 ;;
     esac
 }
+
+# =============================================================================
+# Pi Tool Normalization
+# =============================================================================
+
+trim_value() {
+    local value="$1"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    printf "%s" "$value"
+}
+
+strip_wrapping_quotes() {
+    local value
+    value=$(trim_value "$1")
+
+    case "$value" in
+        \"*\") value="${value#\"}"; value="${value%\"}" ;;
+        \'*\') value="${value#\'}"; value="${value%\'}" ;;
+    esac
+
+    printf "%s" "$value"
+}
+
+expand_pi_tool_name() {
+    local tool_name
+    tool_name=$(strip_wrapping_quotes "$1")
+
+    case "$tool_name" in
+        Read|read) echo "read" ;;
+        Write|write) echo "write" ;;
+        Edit|edit) echo "edit" ;;
+        Bash|bash|Bash\(*|bash\(*) echo "bash" ;;
+        Grep|grep) echo "grep" ;;
+        Glob|glob) echo "find ls" ;;
+        Find|find) echo "find" ;;
+        Ls|LS|ls) echo "ls" ;;
+        Agent|agent|subagent) echo "subagent" ;;
+        WebSearch|WebFetch|ref_search_documentation|ref_read_url)
+            echo "web_search fetch_content get_search_content"
+            ;;
+        web_search) echo "web_search" ;;
+        fetch_content) echo "fetch_content" ;;
+        get_search_content) echo "get_search_content" ;;
+        mcp__*|mcp:*) echo "mcp" ;;
+        mcp) echo "mcp" ;;
+        Skill|skill|Task|task|AskUserQuestion|askuserquestion) echo "" ;;
+        *) echo "" ;;
+    esac
+}
+
+normalize_pi_tool_list() {
+    local raw_value="$1"
+    local format="${2:-csv}"
+    local normalized_value="$raw_value"
+    local parts=()
+    local mapped=()
+    local part expanded_token existing joined first
+
+    normalized_value="${normalized_value#[}"
+    normalized_value="${normalized_value%]}"
+    normalized_value="${normalized_value//$'\n'/,}"
+
+    IFS=',' read -r -a parts <<< "$normalized_value"
+
+    for part in "${parts[@]}"; do
+        part=$(trim_value "$part")
+        [ -z "$part" ] && continue
+
+        for expanded_token in $(expand_pi_tool_name "$part"); do
+            [ -z "$expanded_token" ] && continue
+
+            local seen=false
+            for existing in "${mapped[@]}"; do
+                if [ "$existing" = "$expanded_token" ]; then
+                    seen=true
+                    break
+                fi
+            done
+
+            if [ "$seen" = "false" ]; then
+                mapped+=("$expanded_token")
+            fi
+        done
+    done
+
+    joined=""
+    first=true
+    for existing in "${mapped[@]}"; do
+        if [ "$first" = "true" ]; then
+            joined="$existing"
+            first=false
+        else
+            joined="${joined}, ${existing}"
+        fi
+    done
+
+    if [ "$format" = "yaml" ]; then
+        printf "[%s]" "$joined"
+    else
+        printf "%s" "$joined"
+    fi
+}
+
+rewrite_allowed_tools_for_pi() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+
+    local current_value
+    current_value=$(awk '
+        BEGIN { in_frontmatter = 0 }
+
+        NR == 1 && /^---[[:space:]]*$/ {
+            in_frontmatter = 1
+            next
+        }
+
+        in_frontmatter && /^---[[:space:]]*$/ { exit }
+        !in_frontmatter { next }
+
+        /^allowed-tools:[[:space:]]*/ {
+            sub(/^allowed-tools:[[:space:]]*/, "", $0)
+            print
+            exit
+        }
+    ' "$file")
+
+    [ -n "$current_value" ] || return 0
+
+    local normalized_value
+    normalized_value=$(normalize_pi_tool_list "$current_value" "yaml")
+
+    local tmp_file
+    tmp_file="$(mktemp "${TMPDIR:-/tmp}/pi-allowed-tools.XXXXXX")"
+
+    awk -v value="$normalized_value" '
+        BEGIN { in_frontmatter = 0 }
+
+        NR == 1 && /^---[[:space:]]*$/ {
+            in_frontmatter = 1
+            print
+            next
+        }
+
+        in_frontmatter && /^---[[:space:]]*$/ {
+            print
+            in_frontmatter = 0
+            next
+        }
+
+        in_frontmatter && /^allowed-tools:[[:space:]]*/ {
+            print "allowed-tools: " value
+            next
+        }
+
+        { print }
+    ' "$file" > "$tmp_file"
+
+    mv "$tmp_file" "$file"
+}
