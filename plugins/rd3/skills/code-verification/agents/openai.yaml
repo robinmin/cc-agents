@@ -1,0 +1,13 @@
+name: code-verification
+description: Unified code verification skill — combines Phase 7 SECU code review
+  + Phase 8 requirements traceability with findings management. Supports both
+  source-oriented (rd3:dev-review) and task-oriented (rd3:dev-verify) modes.
+version: 1.0.0
+icon: 🛠️
+category: debugging
+tags:
+  - verification
+  - review
+  - secu
+  - requirements
+  - traceability
