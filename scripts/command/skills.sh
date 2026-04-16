@@ -451,6 +451,13 @@ copy_to_targets() {
         fi
     }
 
+    is_pi_skill_dir() {
+        case "$1" in
+            "$HOME/.pi/agent/skills"|".pi/agent/skills"|*/.pi/agent/skills) return 0 ;;
+            *) return 1 ;;
+        esac
+    }
+
     # Shared personal skills root for globally installed agent-skills-compatible platforms.
     # Codex still keeps bundled/system skills under ~/.codex/skills, but user-installed
     # shared skills default to ~/.agents/skills to avoid duplication across tools.
@@ -512,12 +519,12 @@ copy_to_targets() {
         add_target_dir "$antigravity_path"; print_info "Antigravity skills directory: $antigravity_path"
     fi
 
-    # Pi: use shared personal skills root for global installs.
+    # Pi: use native personal skill path so Pi-specific metadata can diverge safely.
     if [[ "$targets" == *"pi"* ]]; then
         if [ "$GLOBAL" = "true" ]; then
-            local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
-            add_target_dir "$agents_path"
-            print_info "Pi personal skills directory: $agents_path"
+            local pi_path; pi_path=$(get_path ".pi/agent/skills" "$HOME/.pi/agent/skills")
+            add_target_dir "$pi_path"
+            print_info "Pi personal skills directory: $pi_path"
         else
             local pi_path; pi_path=$(get_path ".pi/agent/skills" "$HOME/.pi/agent/skills")
             add_target_dir "$pi_path"; print_info "Pi skills directory: $pi_path"
@@ -544,6 +551,9 @@ copy_to_targets() {
                     local dest_dir="${target_dir}/${skill_name}"
                     mkdir -p "$dest_dir"
                     cp -r "$skill_dir"* "$dest_dir/" 2>/dev/null || true
+                    if is_pi_skill_dir "$target_dir"; then
+                        rewrite_allowed_tools_for_pi "$dest_dir/SKILL.md"
+                    fi
                     print_success "Copied: $skill_name -> $target_dir"
                 done
             fi
