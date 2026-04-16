@@ -62,31 +62,33 @@ Append to analysis output:
 - `estimated_hours`: Numeric estimate
 - `dependencies`: Array of WBS IDs or task names
 - `tags`: Array of category tags
-- `parent_wbs`: Parent task WBS (for subtasks only) — used to embed parent WBS in filename
+- `feature_id`: Feature linkage when the subtasks belong to a known feature
 
 ### Subtask Naming Convention
 
-When decomposing a task into subtasks, the `name` field in JSON output must follow the subtask naming convention so rd3:tasks can construct the correct filename:
+When decomposing a task into subtasks, the `name` field in JSON output must follow the normal task naming convention used by `rd3:tasks`.
 
-**Format:** `{name}` → rd3:tasks produces `{new_wbs}_{parent_wbs}_{name}.md`
+**Format:** `{name}` → `rd3:tasks` produces `{new_wbs}_{name}.md`
 
 **Example — Parent task WBS 0253 decomposed:**
 ```json
 [
   {
     "name": "create-rd3-anti-hallucination-skill",
-    "parent_wbs": "0253",
+    "feature_id": "anti-hallucination",
     "background": "...",
     "requirements": "..."
   },
   {
     "name": "convert-ah-guard-to-typescript",
-    "parent_wbs": "0253",
+    "feature_id": "anti-hallucination",
     "background": "...",
     "requirements": "..."
   }
 ]
 ```
+
+If parent/child traceability is required, record it in the parent task's decomposition handoff and in the child tasks' body content. Do not rely on filename embedding or a `parent_wbs` batch-create field, because the current `rd3:tasks` batch-create path does not support that contract.
 
 rd3:tasks will produce:
 - `0254_0253_create-rd3-anti-hallucination-skill.md`
