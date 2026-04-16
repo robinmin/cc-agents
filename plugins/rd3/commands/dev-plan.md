@@ -8,8 +8,6 @@ allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 
 Execute phases 2-4 of the 9-phase pipeline: Architecture, Design, and Task Decomposition.
 
-**Shortcut for:** `/rd3:dev-run {task-ref} --preset plan`
-
 ## When to Use
 
 - After requirements are refined (via `/rd3:dev-refine`)
