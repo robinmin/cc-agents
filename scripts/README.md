@@ -40,7 +40,7 @@ Claude Code is handled differently from the other platforms:
 | `antigravity` | command installers | `~/.gemini/antigravity/skills/` |
 | `opencode` | command installers | `~/.agents/skills/` |
 | `openclaw` | command installers | `~/.agents/skills/` |
-| `pi` | command installers | `~/.agents/skills/` |
+| `pi` | command installers | `~/.pi/agent/skills/` for skills/commands, `~/.pi/agent/agents/` for subagents |
 
 ### Global Skill Policy
 
@@ -50,7 +50,6 @@ For global installs, this codebase uses a shared personal skill pool at `~/.agen
 - Gemini CLI
 - OpenCode
 - OpenClaw
-- Pi
 
 This avoids duplicating the same skill set into several tool-specific folders.
 
@@ -58,7 +57,12 @@ This avoids duplicating the same skill set into several tool-specific folders.
 
 - `~/.gemini/antigravity/skills/`
 
-Tool-native locations may still exist and may still be discovered by the tool, but the installer default is the shared personal pool above.
+`pi` uses its native paths:
+
+- `~/.pi/agent/skills/` for skills and command wrappers
+- `~/.pi/agent/agents/` for `pi-subagents` agents
+
+Tool-native locations may still exist and may still be discovered by the tool. This installer prefers the shared pool above for Codex/Gemini/OpenCode/OpenClaw, while Pi and Antigravity use their native paths.
 
 ## Usage
 
@@ -139,7 +143,10 @@ Notes:
 
 ### `subagents.sh`
 
-Installs subagent definitions from `plugins/<plugin>/agents/*.md` as skill directories.
+Installs subagent definitions from `plugins/<plugin>/agents/*.md`.
+
+- Most targets receive Skills 2.0 skill directories.
+- Pi receives native `pi-subagents` agent files under `~/.pi/agent/agents/` or `.pi/agents/`.
 
 ```bash
 ./scripts/command/subagents.sh rd3 codexcli,openclaw,pi --global
@@ -172,7 +179,7 @@ Installs or adapts the main agent config for the target platform.
 | `antigravity` | `~/.gemini/antigravity/skills/` |
 | `opencode` | `~/.agents/skills/` |
 | `openclaw` | `~/.agents/skills/` |
-| `pi` | `~/.agents/skills/` |
+| `pi` | `~/.pi/agent/skills/` for skills/commands, `~/.pi/agent/agents/` for subagents |
 
 ### Project installs
 
@@ -183,7 +190,7 @@ Installs or adapts the main agent config for the target platform.
 | `antigravity` | `.gemini/antigravity/skills/` |
 | `opencode` | `.opencode/skills/` and `.agents/skills/` |
 | `openclaw` | `skills/` |
-| `pi` | `.pi/agent/skills/` |
+| `pi` | `.pi/agent/skills/` for skills/commands, `.pi/agents/` for subagents |
 
 ## Requirements
 
