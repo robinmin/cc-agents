@@ -23,7 +23,7 @@ Refine task requirements by analyzing existing content for quality issues and im
 |----------|----------|---------|-------------|
 | `task-ref` | Yes | — | WBS number or file path |
 | `--description` | No | — | Additional context to guide Q&A synthesis |
-| `--focus` | No | `all` | Q&A category focus (see below) |
+| `--focus` | No | `all` | Predefined hint bundle that expands into `request-intake` `domain_hints` (see below) |
 | `--auto` | No | `false` | Skip interactive Q&A, use AI synthesis only |
 
 ### Smart Positional Detection
@@ -35,23 +35,25 @@ Refine task requirements by analyzing existing content for quality issues and im
 
 ### `--focus` Values
 
-Controls which Q&A categories to ask about:
+Selects a predefined **hint bundle** that this wrapper expands into `rd3:request-intake` `domain_hints`.
 
-| Value | Q&A Categories | When to Use |
-|-------|---------------|-------------|
-| `all` | All 6 categories (default) | Complete refinement |
-| `requirements` | Scope + Acceptance + Purpose | Standard refinement |
-| `background` | Purpose only | Brief tasks needing context |
-| `constraints` | Constraints + Dependencies + Timeline | Technical depth needed |
-| `acceptance` | Acceptance Criteria + Users | Focus on verification |
-| `quick` | Scope + Acceptance only | Fast refinement |
+These are wrapper-level convenience values, not native `request-intake` modes.
+
+| Value | Expanded `domain_hints` bundle | When to Use |
+|-------|-------------------------------|-------------|
+| `all` | `purpose,scope,constraints,dependencies,acceptance_criteria,users,timeline` | Complete refinement |
+| `requirements` | `purpose,scope,acceptance_criteria` | Standard refinement |
+| `background` | `purpose,scope` | Brief tasks needing context |
+| `constraints` | `constraints,dependencies,timeline` | Technical depth needed |
+| `acceptance` | `acceptance_criteria,users` | Focus on verification |
+| `quick` | `scope,acceptance_criteria` | Fast refinement |
 
 ## Delegation
 
 This command delegates all work to the `rd3:request-intake` skill with `--mode refine`.
 
 ```
-Skill(skill="rd3:request-intake", args="--mode refine --task_ref $TASK_REF --description $DESCRIPTION --domain_hints $FOCUS")
+Skill(skill="rd3:request-intake", args="--mode refine --task_ref $TASK_REF --description $DESCRIPTION --domain_hints $DOMAIN_HINTS")
 ```
 
 ### Argument Mapping
@@ -60,7 +62,7 @@ Skill(skill="rd3:request-intake", args="--mode refine --task_ref $TASK_REF --des
 |--------------|-------------|-------|
 | `task-ref` | `task_ref` | WBS number or path |
 | `--description` | `description` | Optional context |
-| `--focus` | `domain_hints` | Maps to category filter |
+| `--focus` | `domain_hints` | Expands to a predefined hint bundle before delegation |
 | `--auto` | — | Skips AskUserQuestion, uses synthesis only |
 
 ## Examples
@@ -80,7 +82,7 @@ Skill(skill="rd3:request-intake", args="--mode refine --task_ref $TASK_REF --des
 
 1. **Resolve task-ref** → Load task file from WBS or path
 2. **Analyze** → Check content for gaps and ambiguities
-3. **Question** → Generate targeted Q&A based on `--focus`
+3. **Question** → Generate targeted Q&A based on the expanded `domain_hints` bundle
 4. **Synthesize** → Update Background, Requirements, Constraints
 5. **Assign** → Auto-set preset based on scope
 
@@ -89,7 +91,7 @@ Skill(skill="rd3:request-intake", args="--mode refine --task_ref $TASK_REF --des
 This command intentionally delegates to `rd3:request-intake` (not `orchestration-v2`) because:
 - Refinement is a single-agent interactive workflow
 - Interactive Q&A cannot be cleanly delegated to another agent via `--channel`
-- `--focus` limits questions to relevant categories (not all 18)
+- `--focus` gives this wrapper a stable shorthand that expands into `request-intake` `domain_hints`
 
 ## See Also
 
