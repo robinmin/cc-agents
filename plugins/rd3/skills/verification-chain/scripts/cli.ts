@@ -617,7 +617,10 @@ async function main(): Promise<void> {
             cmdList(flags);
             break;
         default:
-            outputError(`Unknown command: "${command}"`, 'Available commands: run, resume, show, inspect, list, results, help');
+            outputError(
+                `Unknown command: "${command}"`,
+                'Available commands: run, resume, show, inspect, list, results, help',
+            );
             process.exit(1);
     }
 }
