@@ -6,7 +6,13 @@ import { ExecutorPool } from '../scripts/executors/pool';
 import { MockExecutor } from '../scripts/executors/mock';
 import { EventBus } from '../scripts/observability/event-bus';
 import { HookRegistry } from '../scripts/engine/hooks';
-import type { PipelineDefinition, RunOptions, ResumeOptions, OrchestratorEvent, VerificationDriver } from '../scripts/model';
+import type {
+    PipelineDefinition,
+    RunOptions,
+    ResumeOptions,
+    OrchestratorEvent,
+    VerificationDriver,
+} from '../scripts/model';
 import { setGlobalSilent } from '../../../scripts/logger';
 import * as llmModule from '../../verification-chain/scripts/methods/llm';
 import type { LlmCheckerConfig } from '../../verification-chain/scripts/types';
