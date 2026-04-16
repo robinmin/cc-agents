@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.8] - 2026-04-16
+
+### New Features
+
+- **rd3:dev-brainstorm**: New slash command for solution ideation and option exploration
+  - Structured brainstorming workflow for technical tasks
+  - Better support for comparing approaches before implementation
+
+### Improvements
+
+- **Standalone developer workflows**: `rd3:dev-run`, `rd3:dev-review`, and `rd3:dev-verify` now work independently of `rd3:orchestration-v2`
+  - More reliable direct task execution without the orchestrator dependency
+  - Clearer task-status ownership and verification flow for implementation work
+
+- **Command contract alignment**: Improved consistency across developer command wrappers
+  - `rd3:dev-run` now uses a workflow-owned implement, test, and verify loop with explicit decomposition handoff
+  - `rd3:dev-unit`, `rd3:dev-refine`, `rd3:task-decomposition`, and verification docs now align with the current `tasks` and skill contracts
+
+### Bug Fixes
+
+- **PI installation**: Fixed PI platform installation customization issues
+- **Developer command wrappers**: Fixed wrapper behavior that still assumed `rd3:orchestration-v2` ownership in direct-use workflows
+
 ## [0.5.6] - 2026-04-14
 
 ### New Features
