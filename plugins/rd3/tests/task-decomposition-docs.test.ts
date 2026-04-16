@@ -184,10 +184,7 @@ describe('task-decomposition docs contract', () => {
             expect(result.override).toBe(corpusCase.expectedOverride);
             expect(section).toContain(`**Expected Decision:** \`${corpusCase.expectedDecision}\``);
 
-            for (const subtask of [
-                ...(corpusCase.requiredSubtasks ?? []),
-                ...(corpusCase.optionalSubtasks ?? []),
-            ]) {
+            for (const subtask of [...(corpusCase.requiredSubtasks ?? []), ...(corpusCase.optionalSubtasks ?? [])]) {
                 expect(startsWithForbiddenPhaseLabel(subtask)).toBe(false);
             }
         }
