@@ -97,7 +97,11 @@ export class AcpOneshotExecutor implements Executor {
     /**
      * Execute scripts/run.ts via bun spawn.
      */
-    private async executeRunScript(req: ExecutionRequest, scriptPath: string, startTime: number): Promise<ExecutionResult> {
+    private async executeRunScript(
+        req: ExecutionRequest,
+        scriptPath: string,
+        startTime: number,
+    ): Promise<ExecutionResult> {
         const timeoutMs = req.timeoutMs ?? 30 * 60 * 1000;
         const args = this.buildArgs(req);
 
