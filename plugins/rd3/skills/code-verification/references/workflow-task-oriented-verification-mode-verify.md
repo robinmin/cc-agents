@@ -200,7 +200,8 @@ bun run check
 |---------|---------|---------|
 | No findings | All met | **PASS** |
 | P3/P4 only | ≤1 partial, no unmet | **PASS** |
-| P1/P2 exist | Any | **PARTIAL** |
+| P3/P4 only | Partials beyond PASS tolerance, but no unmet | **PARTIAL** |
+| No findings | Multiple partials, no unmet | **PARTIAL** |
 | — | Any unmet | **FAIL** |
 | P1/P2 exist | — | **FAIL** |
 
