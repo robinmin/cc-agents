@@ -45,7 +45,7 @@ You are a **Senior Workflow Architect** with deep expertise in project managemen
 6. ESTIMATE   — Apply technique (see references/estimation.md)
 7. VALIDATE   — Review against quality checklist
 8. OUTPUT     — Write subtask list to parent task's Solution section
-9. STATUS     — Update parent task: `tasks update <WBS> decomposed`
+9. STATUS     — Keep the parent task non-terminal and hand execution off to the created child tasks
 ```
 
 **For detailed patterns, domain-specific guidance, and examples, see `references/`.**
@@ -76,7 +76,7 @@ This skill provides the **knowledge** for decomposition with **structured output
 3. If decomposing: analyze requirements and create task breakdown
 4. Create subtask files via `tasks create` CLI
 5. Write subtask checklist to parent task's Solution section
-6. Update parent status: `tasks update <WBS> decomposed`
+6. Keep the parent task non-terminal after child creation; do not mark it done via a decomposition alias
 ```
 
 ### Consumption Examples
@@ -183,7 +183,7 @@ tasks batch-create --from-agent-output analysis.md
 6. REFERENCE  -> Search codebase, link relevant files
 7. VALIDATE   -> Review against quality checklist, verify dependencies
 8. OUTPUT     -> Write subtask list to parent task's Solution section
-9. STATUS     -> Update parent: `tasks update <WBS> decomposed`
+9. STATUS     -> Keep the parent task non-terminal after child creation
 ```
 
 ### Decision Framework
@@ -218,7 +218,7 @@ tasks batch-create --from-agent-output analysis.md
 - [ ] Provide substantive Background content (min 50 chars)
 - [ ] Provide substantive Requirements content (min 50 chars)
 - [ ] Write subtask list to parent task's Solution section (see Output Format)
-- [ ] Update parent task status via `tasks update <WBS> decomposed`
+- [ ] Keep the parent task non-terminal after child creation; do not use `tasks update <WBS> decomposed`
 
 ### Never Do
 
@@ -252,7 +252,7 @@ After decomposition, write the subtask list directly into the parent task's **So
 
 - [ ] [0323 - Add decomposition rules](0323_0322_add_decomposition_rules.md)
 - [ ] [0324 - Simplify output format](0324_0322_simplify_output_format.md)
-- [ ] [0325 - Add Decomposed status](0325_0322_add_decomposed_status.md)
+- [ ] [0325 - Add parent/child handoff handling](0325_0322_add_parent_child_handoff_handling.md)
 
 **Dependency order:** (0323 || 0324 || 0325) → 0326
 **Estimated total effort:** 8-12 hours
@@ -260,11 +260,11 @@ After decomposition, write the subtask list directly into the parent task's **So
 
 **Rules:**
 - Each subtask is a markdown checkbox linking to its task file
-- Subtask filenames follow convention: `{new_wbs}_{parent_wbs}_{task_name}.md`
+- Subtask filenames follow normal `rd3:tasks` convention: `{new_wbs}_{task_name}.md`
 - Dependencies expressed inline: `→` (sequential), `||` (parallel)
 - Total effort estimate with range
 - Subtask files created via `tasks create` CLI (not Write tool)
-- After writing subtasks, update parent status: `tasks update <WBS> decomposed` (alias for Done)
+- After writing subtasks, keep the parent task non-terminal and record that execution continues on the created child tasks
 
 ### Secondary Output: Decomposition Report
 
@@ -298,7 +298,7 @@ When creating subtask files programmatically, use structured JSON compatible wit
     "name": "descriptive-task-name",
     "background": "Context (min 50 chars)",
     "requirements": "Criteria (min 50 chars)",
-    "parent_wbs": "0322"
+    "feature_id": "feature-id-if-available"
   }
 ]
 ```
@@ -346,7 +346,7 @@ See `references/structured-output-protocol.md` for the full JSON schema.
 
 **Use action verbs:** implement, add, create, update, refactor, fix, design, test, document
 
-**Subtask naming (WBS embedding):** When decomposing into subtasks, use the format `{new_wbs}_{parent_wbs}_{task_name}.md` — embed the parent WBS for traceability. See `references/task-template.md` for the full convention including examples of correct vs. incorrect subtask filenames. The WBS system already assigns sequential numbers — do NOT append `.1`, `.2` etc. after the parent WBS.
+**Subtask naming:** When decomposing into subtasks, use normal `rd3:tasks` naming: `{new_wbs}_{task_name}.md`. Preserve parent/child traceability in the task content and decomposition handoff record rather than by embedding the parent WBS in filenames. The WBS system already assigns sequential numbers — do NOT append `.1`, `.2` etc. after the parent WBS.
 
 ### Task Content Quality
 
