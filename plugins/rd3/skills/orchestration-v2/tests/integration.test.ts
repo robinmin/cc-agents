@@ -247,13 +247,7 @@ describe('Integration: full pipeline run', () => {
             events.push({ type: event.event_type, payload: event.payload as Record<string, unknown> });
         });
 
-        const runner = new PipelineRunner(
-            stateManager,
-            pool,
-            undefined,
-            eventBus,
-            createVerificationDriver(),
-        );
+        const runner = new PipelineRunner(stateManager, pool, undefined, eventBus, createVerificationDriver());
         await runner.run({ taskRef: '0405' }, MOCK_PIPELINE);
 
         expect(events.length).toBeGreaterThan(0);
