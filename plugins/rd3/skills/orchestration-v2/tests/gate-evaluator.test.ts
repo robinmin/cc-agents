@@ -32,7 +32,10 @@ type ExposedEvaluator = {
     resolveSkillDefinitionPath: (skillRef: string) => string | null;
     loadSkillAutoGateDefaults: (skillRef: string) => { checklist?: string[]; prompt_template?: string } | null;
     substituteTemplate: (template: string, vars: Record<string, string>) => string;
-    buildAutoGatePromptTemplate: (promptTemplate: string | undefined, phaseEvidence?: PhaseEvidence) => string | undefined;
+    buildAutoGatePromptTemplate: (
+        promptTemplate: string | undefined,
+        phaseEvidence?: PhaseEvidence,
+    ) => string | undefined;
     emitEvent: (runId: string, eventType: string, payload: Record<string, unknown>) => Promise<void>;
 };
 
@@ -380,7 +383,10 @@ body
                 const result = await evaluator.evaluate(
                     'run-command-1',
                     'verify',
-                    { type: 'command', command: 'test "{{task_ref}} {{phase}} {{run_id}}" = "TASK-77 verify run-command-1"' },
+                    {
+                        type: 'command',
+                        command: 'test "{{task_ref}} {{phase}} {{run_id}}" = "TASK-77 verify run-command-1"',
+                    },
                     'TASK-77',
                 );
 
