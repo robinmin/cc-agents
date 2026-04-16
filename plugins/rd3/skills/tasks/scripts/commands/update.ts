@@ -190,7 +190,7 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
         const oldFieldValue =
             options.field === 'feature-id'
                 ? task.frontmatter['feature-id']
-                : task.frontmatter.preset ?? task.frontmatter.profile;
+                : (task.frontmatter.preset ?? task.frontmatter.profile);
 
         if (options.dryRun) {
             if (!options.quiet) {
