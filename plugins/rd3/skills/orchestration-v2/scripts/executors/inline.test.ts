@@ -42,10 +42,7 @@ function cleanupTempDir(): void {
  * Create a dummy file at the expected entrypoint path.
  * Used for resolveLocalEntrypoint tests (file existence only, never imported).
  */
-function createDummyEntry(
-    skillBase: string,
-    skillName: string,
-): string {
+function createDummyEntry(skillBase: string, skillName: string): string {
     const dir = join(skillBase, skillName, 'scripts');
     mkdirSync(dir, { recursive: true });
     const filePath = join(dir, 'run.ts');
