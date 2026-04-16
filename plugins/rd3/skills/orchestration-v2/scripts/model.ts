@@ -481,7 +481,7 @@ export interface VerificationDriver {
  * Use kebab-case naming consistently.
  * Aligned with verification-chain's CheckerMethod type.
  */
-export type CheckMethod = "cli" | "content-match" | "file-exists" | "llm" | "human" | "compound";
+export type CheckMethod = 'cli' | 'content-match' | 'file-exists' | 'llm' | 'human' | 'compound';
 
 // ─── Report ────────────────────────────────────────────────────────────────────
 
