@@ -70,7 +70,13 @@ export class AcpSessionExecutor implements Executor {
      * @param skillBaseDir - Base directory for skills (for testing). Default: project/plugins/rd3/skills
      * @param projectRoot - Project root directory (for testing). Default: cwd
      */
-    constructor(agentName = 'pi', defaultSessionTtlSeconds = 300, maxConcurrency = 1, skillBaseDir?: string, projectRoot?: string) {
+    constructor(
+        agentName = 'pi',
+        defaultSessionTtlSeconds = 300,
+        maxConcurrency = 1,
+        skillBaseDir?: string,
+        projectRoot?: string,
+    ) {
         this.agentName = agentName;
         this.id = `acp-session:${agentName}`;
         this.name = `ACP Session (${agentName})`;
@@ -135,7 +141,11 @@ export class AcpSessionExecutor implements Executor {
     /**
      * Execute scripts/run.ts via bun spawn.
      */
-    private async executeRunScript(req: ExecutionRequest, scriptPath: string, startTime: number): Promise<ExecutionResult> {
+    private async executeRunScript(
+        req: ExecutionRequest,
+        scriptPath: string,
+        startTime: number,
+    ): Promise<ExecutionResult> {
         const timeoutMs = req.timeoutMs ?? 30 * 60 * 1000;
         const args = this.buildArgs(req);
 
@@ -311,7 +321,11 @@ export class AcpSessionExecutor implements Executor {
     /**
      * Fallback to stateless ACP execution.
      */
-    private async executeViaACP(req: ExecutionRequest, startTime: number, _sessioned = false): Promise<ExecutionResult> {
+    private async executeViaACP(
+        req: ExecutionRequest,
+        startTime: number,
+        _sessioned = false,
+    ): Promise<ExecutionResult> {
         try {
             const prompt = prompts.buildPromptFromRequest(req);
             const result = transport.executeStateless(prompt, req.timeoutMs, { agent: this.agentName });
