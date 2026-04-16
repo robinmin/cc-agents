@@ -92,7 +92,7 @@ usage() {
     printf "    antigravity   Google Antigravity CLI (~/.gemini/antigravity/skills/)\n"
     printf "    opencode      OpenCode CLI (~/.agents/skills/ for global shared installs)\n"
     printf "    openclaw      OpenClaw (~/.agents/skills/ for global shared installs)\n"
-    printf "    pi            Pi CLI (~/.agents/skills/ for global shared installs)\n"
+    printf "    pi            Pi CLI (~/.pi/agent/skills/ for skills/commands, ~/.pi/agent/agents/ for subagents)\n"
     printf "    all           All supported platforms (default)\n\n"
     printf "${GREEN}EXAMPLES:${NC}\n"
     printf "    ./scripts/setup-all.sh\n"
@@ -412,7 +412,7 @@ main() {
                 antigravity) target_display="~/.gemini/antigravity/skills/" ;;
                 opencode)    target_display="~/.agents/skills/" ;;
                 openclaw)    target_display="~/.agents/skills/" ;;
-                pi)          target_display="~/.agents/skills/" ;;
+                pi)          target_display="~/.pi/agent/skills/ + ~/.pi/agent/agents/" ;;
             esac
             echo "   ${target}: ${target_display}"
         done
