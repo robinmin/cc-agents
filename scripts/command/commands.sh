@@ -229,7 +229,7 @@ get_target_skills_dir() {
             opencode)    echo "$HOME/.agents/skills" ;;
             openclaw)    echo "$HOME/.agents/skills" ;;
             antigravity) echo "$HOME/.gemini/antigravity/skills" ;;
-            pi)          echo "$HOME/.agents/skills" ;;
+            pi)          echo "$HOME/.pi/agent/skills" ;;
         esac
     else
         case "$target" in
@@ -241,6 +241,13 @@ get_target_skills_dir() {
             pi)          echo ".pi/agent/skills" ;;
         esac
     fi
+}
+
+is_pi_skill_dir() {
+    case "$1" in
+        "$HOME/.pi/agent/skills"|".pi/agent/skills"|*/.pi/agent/skills) return 0 ;;
+        *) return 1 ;;
+    esac
 }
 
 get_all_target_dirs() {
@@ -316,6 +323,9 @@ install_commands() {
             local dest_dir="${target_dir}/${skill_name}"
             mkdir -p "$dest_dir"
             adapt_command_to_skill "$cmd_file" "$dest_dir/SKILL.md" "$skill_name"
+            if is_pi_skill_dir "$target_dir"; then
+                rewrite_allowed_tools_for_pi "$dest_dir/SKILL.md"
+            fi
             print_success "Installed: ${skill_name} -> ${target_dir}"
         done
         installed=$((installed + 1))
