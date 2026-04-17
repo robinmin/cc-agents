@@ -219,7 +219,7 @@ This makes the skip decision auditable and reversible.
 
 After decomposition, update the parent task:
 1. Write subtask list into the parent task's **Solution** section (see Output Format)
-2. Update parent task status to `Done` via `tasks update <WBS> decomposed` (alias for Done)
+2. Keep parent task in `WIP` — do NOT transition to `Done`. Parent remains non-terminal until all subtasks complete and the parent's own acceptance criteria are verified.
 3. **Only decompose if committed to executing the subtasks.** Orphaned subtasks in Backlog are a sign of over-decomposition.
 
-This signals: "This task has been decomposed into subtasks — track progress via the subtasks."
+This signals: "This task has been decomposed into subtasks — track progress via the subtasks while the parent waits on their completion."

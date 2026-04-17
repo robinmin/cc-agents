@@ -120,8 +120,8 @@ const DIRECT_SKILL_PROMPTS: Record<DirectSkillPhase, DirectSkillPromptConfig> = 
                 '',
                 '## Step 3: Update Parent Status',
                 '',
-                'After writing subtasks, run: `tasks update <parent-WBS> decomposed` (maps to Done).',
-                'This signals the task has been decomposed into subtasks.',
+                'After writing subtasks, keep the parent in `WIP` (do NOT transition to `Done`).',
+                'Parent remains non-terminal until its subtasks complete and its own acceptance criteria are verified.',
                 '',
                 context.rework_feedback ? `## Rework Feedback\n${context.rework_feedback}` : '',
             ]

@@ -189,8 +189,6 @@ export const STATUS_ALIASES: Record<string, TaskStatus> = {
     removed: 'Canceled',
     nope: 'Canceled',
     deleted: 'Canceled',
-    decomposed: 'Done',
-    split: 'Done',
 };
 
 export interface NormalizedStatus {

@@ -75,6 +75,17 @@ describe('normalizeStatus', () => {
         expect(result.original).toBe('GarbageStatus');
     });
 
+    test('rejects legacy decomposed/split aliases (decomposed parents stay WIP)', () => {
+        // Removed in task 0387 PR4: decomposed parents must remain non-terminal.
+        const decomposed = normalizeStatus('decomposed');
+        expect(decomposed.recognized).toBe(false);
+        expect(decomposed.status).toBe('Backlog');
+
+        const split = normalizeStatus('split');
+        expect(split.recognized).toBe(false);
+        expect(split.status).toBe('Backlog');
+    });
+
     test('recognized=true for valid and alias matches', () => {
         expect(normalizeStatus('WIP').recognized).toBe(true);
         expect(normalizeStatus('wip').recognized).toBe(true);
