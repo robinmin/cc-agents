@@ -1,5 +1,5 @@
 ---
-description: Reliable task execution workflow with optional quality gates and staged execution.
+description: Run a task through the workflow loop with optional gates.
 argument-hint: "<task-ref> [--preset <simple|standard|complex|research>] [--channel <current|codex|openclaw|opencode|antigravity|pi|claude-code>] [--auto] [--coverage <n>] [--dry-run] [--verify] [--preflight-verify] [--postflight-verify] [--stage <all|plan-only|implement-only>] [--max-loop-iterations <n>]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
@@ -8,7 +8,7 @@ allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 
 Execute a task through a **workflow-owned execution loop** with optional pre/post-flight quality gates and staged execution.
 
-Thin wrapper over the `rd3:task-runner` skill. All workflow logic lives in the skill.
+Delegate to the `rd3:task-runner` skill. Keep all workflow logic in the skill.
 
 ## When to Use
 
@@ -35,10 +35,10 @@ Thin wrapper over the `rd3:task-runner` skill. All workflow logic lives in the s
 
 ## Delegation
 
-This command delegates all work to the `rd3:task-runner` skill:
+Forward `$ARGUMENTS` to the `rd3:task-runner` skill:
 
 ```
-Skill(skill="rd3:task-runner", args="<task-ref> [...forwarded flags]")
+Skill(skill="rd3:task-runner", args="$ARGUMENTS")
 ```
 
 ## Examples
@@ -85,8 +85,8 @@ Skill(skill="rd3:task-runner", args="<task-ref> [...forwarded flags]")
 
 ### Claude Code (primary)
 
-Run the command directly; it invokes the skill via `Skill()`. Do not route through `rd3:orchestration-v2`.
+Run the command directly; it invokes the skill via `Skill()` with `$ARGUMENTS` substitution. Do not route through `rd3:orchestration-v2`.
 
 ### Other Platforms
 
-See `rd3:task-runner` SKILL.md for platform-agnostic workflow contract.
+Replace `$ARGUMENTS` with the raw invocation arguments — the `$ARGUMENTS` placeholder is Claude-specific. Read `rd3:task-runner` SKILL.md for the platform-agnostic workflow contract and invoke the skill directly.
