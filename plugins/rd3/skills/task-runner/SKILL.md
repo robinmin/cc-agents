@@ -1,6 +1,6 @@
 ---
 name: task-runner
-description: "Workflow-owned task execution loop with optional refine, plan, implement/test cycle, verification, and pre/post-flight quality gates. Use when: running a task from refinement through completion; executing presets (simple/standard/complex/research); needing staged execution (plan-only, implement-only); needing pre-flight task file validation or post-flight completion-proof gate. Triggers: 'run task', 'execute task', 'dev-run', 'task workflow', 'implement task end-to-end'. NOT for: DAG scheduling (use orchestration-v2), source-only code review (use dev-review), docs refresh (use dev-docs)."
+description: "Workflow-owned task execution loop with refine, plan, implement/test cycling, and verification gates. Triggers: 'run task', 'execute task', 'dev-run', 'task workflow'. NOT for: DAG scheduling, source-only review, docs refresh."
 license: Apache-2.0
 version: 1.0.0
 created_at: 2026-04-16
@@ -13,23 +13,36 @@ metadata:
   platforms: "claude-code,codex,opencode,openclaw,antigravity,pi"
   category: orchestration
   interactions:
-    - workflow
+    - pipeline
     - tool-wrapper
-see_also:
-  - rd3:request-intake
-  - rd3:task-decomposition
-  - rd3:code-implement-common
-  - rd3:sys-testing
-  - rd3:code-verification
-  - rd3:run-acp
-  - rd3:tasks
+  pipeline_steps:
+    - preflight
+    - preflight-verify
+    - refine
+    - plan
+    - implement-test-loop
+    - verify
+    - postflight-verify
+    - done-transition
 ---
 
 # rd3:task-runner — Workflow-Owned Task Execution
 
-Execute a task through a **workflow-owned execution loop** with bounded implement ↔ test cycling, explicit status ownership, and optional pre/post-flight quality gates.
+## Overview
 
-This skill is intentionally **not** a wrapper over `rd3:orchestration-v2`. It defines a smaller, more reliable workflow using stable skills plus explicit task-status rules.
+`task-runner` executes a task through a **workflow-owned loop** with bounded implement ↔ test cycling, explicit status ownership, and optional pre/post-flight quality gates. It is intentionally **not** a wrapper over `rd3:orchestration-v2` — it defines a smaller, more reliable workflow using stable skills plus explicit task-status rules.
+
+## Quick Start
+
+```text
+Skill(skill="rd3:task-runner", args="0274 --preset standard")
+```
+
+For a preview without execution:
+
+```text
+Skill(skill="rd3:task-runner", args="0274 --preset standard --dry-run")
+```
 
 ## When to Use
 
@@ -79,7 +92,9 @@ Default preset resolution: task frontmatter `preset` → legacy `profile` → `s
 - **Plan required when:** spans multiple modules, likely needs decomposition, architecture open, preset is `complex` or `research`
 - **Verify mandatory for every preset** — never skip before `done`
 
-## Stages
+## Workflow
+
+The workflow executes as a sequence of stages. Each stage delegates to a stable skill or runs a deterministic script; status transitions are owned by `task-runner`, not delegated.
 
 ```
 Stage 0:    Preflight (always)
@@ -116,7 +131,7 @@ Final:      tasks update <WBS> done (guarded)
 
 Active when `--preflight-verify` or `--verify` is set.
 
-Purpose: ensure the task file is structurally runnable before execution starts. This is a **lightweight structural gate**, not full SECU review (use `/rd3:dev-verify` for that).
+Purpose: ensure the task file is structurally runnable before execution starts. This is a **lightweight structural gate**, not full SECU review — use the dedicated verification skill for that.
 
 1. Run `tasks check <WBS>` for structural completeness (Background, Requirements, acceptance criteria)
 2. If sections are missing or weak:
@@ -297,7 +312,7 @@ Both deterministic, testable, CI-reusable. Invoked from agent workflow with reso
 ## Reliability Rules
 
 - Prefer `standard` unless task clearly fits `simple` or requires `complex`/`research`
-- Keep `docs` out of this workflow — use `/rd3:dev-docs` independently
+- Keep `docs` out of this workflow — run documentation refresh independently
 - Treat implement/test as a loop, not isolated phases
 - Stop parent execution when decomposition requires splitting
 - `task-runner` owns task status transitions when delegated skill doesn't
@@ -311,53 +326,53 @@ When executing a task that modifies `rd3:run-acp`, `rd3:code-verification`, or `
 
 ### Standard run
 
-```bash
-/rd3:dev-run 0274 --preset standard
+```text
+Skill(skill="rd3:task-runner", args="0274 --preset standard")
 ```
 
 ### Compact run for localized change
 
-```bash
-/rd3:dev-run 0274 --preset simple
+```text
+Skill(skill="rd3:task-runner", args="0274 --preset simple")
 ```
 
 ### Complex run with delegation
 
-```bash
-/rd3:dev-run 0274 --preset complex --channel codex --auto
+```text
+Skill(skill="rd3:task-runner", args="0274 --preset complex --channel codex --auto")
 ```
 
 ### Preview workflow shape as JSON
 
-```bash
-/rd3:dev-run 0274 --preset standard --dry-run
+```text
+Skill(skill="rd3:task-runner", args="0274 --preset standard --dry-run")
 ```
 
 ### Run with quality gates
 
-```bash
-/rd3:dev-run 0274 --verify
+```text
+Skill(skill="rd3:task-runner", args="0274 --verify")
 ```
 
 ### Scheduled decomposition only
 
-```bash
-/rd3:dev-run 0274 --stage plan-only --auto
+```text
+Skill(skill="rd3:task-runner", args="0274 --stage plan-only --auto")
 ```
 
 ### Scheduled implementation after decomposition
 
-```bash
-/rd3:dev-run 0274 --stage implement-only --auto
+```text
+Skill(skill="rd3:task-runner", args="0274 --stage implement-only --auto")
 ```
 
 ### Cap retry iterations
 
-```bash
-/rd3:dev-run 0274 --max-loop-iterations 5
+```text
+Skill(skill="rd3:task-runner", args="0274 --max-loop-iterations 5")
 ```
 
-## Reference Files
+## Additional Resources
 
 - **`references/status-transitions.md`** — Guards, backfill templates, state machine, lifecycle bundles
 - **`references/decomposition-handoff.md`** — Paths A/B, batch JSON schema, parent-task contract, stage exit envelope
@@ -370,7 +385,7 @@ When executing a task that modifies `rd3:run-acp`, `rd3:code-verification`, or `
 
 ### Claude Code (primary)
 
-Invoked via `/rd3:dev-run` thin command wrapper which calls `Skill(skill="rd3:task-runner", ...)`.
+Invoked via a thin command wrapper that calls `Skill(skill="rd3:task-runner", ...)`.
 
 ### Other Platforms
 
