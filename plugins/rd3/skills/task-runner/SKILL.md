@@ -116,13 +116,17 @@ Final:      tasks update <WBS> done (guarded)
 
 Active when `--preflight-verify` or `--verify` is set.
 
-1. Run `tasks check <WBS>` for structural completeness
-2. If sections are missing, auto-backfill using guards helper (see `references/status-transitions.md`)
-3. If validation still fails:
-   - `--auto` set → halt with actionable error
-   - `--auto` absent → prompt user
+Purpose: ensure the task file is structurally runnable before execution starts. This is a **lightweight structural gate**, not full SECU review (use `/rd3:dev-verify` for that).
 
-Purpose: ensure the task file is runnable before execution starts. See `references/status-transitions.md` for guard details.
+1. Run `tasks check <WBS>` for structural completeness (Background, Requirements, acceptance criteria)
+2. If sections are missing or weak:
+   - Attempt auto-backfill using guards helper (see `references/status-transitions.md`)
+   - On `complex` or `research` preset, auto-backfill is not sufficient — route to `rd3:request-intake --mode refine` instead
+3. If validation still fails after backfill/refine:
+   - `--auto` set → halt with actionable error listing failed checks
+   - `--auto` absent → prompt user with remediation options
+
+See `references/status-transitions.md` for guard details and backfill templates.
 
 ### Stage 1: Optional Refine
 
@@ -149,7 +153,7 @@ See `references/decomposition-handoff.md` for full handoff contract, batch JSON 
 
 ### Stage 3: Implement ↔ Test Loop
 
-**Skipped upstream when `--stage implement-only` is set** — wait, inverted: `--stage implement-only` skips Stages 1-2 and enters here directly. Design and Plan must be present.
+With `--stage implement-only`, Stages 1-2 are skipped and execution enters this loop directly. Design and Plan sections must already be present in the task file.
 
 **Loop body:**
 
@@ -196,16 +200,22 @@ Purpose: SECU review + requirements traceability + go/no-go signal before `done`
 
 Active when `--postflight-verify` or `--verify` is set.
 
-1. Invoke `scripts/postflight-check.ts <WBS>`
-2. Parse verdict JSON
-3. If `verdict === "PASS"`: proceed to `done`
-4. If `verdict === "BLOCKED"`:
-   - write `## Completion Blockers` section to task file
+1. Invoke `scripts/postflight-check.ts <WBS> [--coverage <n>] [--start-commit <sha>] [--delegation-used]`
+   - Pass `--coverage` when `--coverage <n>` was supplied to `task-runner`
+   - Pass `--delegation-used` when any stage ran via `--channel` other than `current`
+2. Parse verdict JSON from stdout
+3. If `verdict === "PASS"` (exit code 0): proceed to `done`
+4. If `verdict === "BLOCKED"` (exit code 1):
+   - write `## Completion Blockers` section to task file listing each entry from `blockers[]`
    - keep task in `Testing`
    - do NOT transition to `Done`
    - exit non-zero if `--auto`
+5. If the script errors (exit code 2):
+   - treat as script failure, not verdict
+   - keep task in `Testing`
+   - surface stderr to user and halt
 
-See `references/postflight-checks.md` for check catalog and verdict schema.
+See `references/postflight-checks.md` for the seven-check catalog and `PostflightVerdict` schema.
 
 ### Final: Transition to `done`
 
