@@ -1026,17 +1026,25 @@ export function parseCliArgs(): {
         verbose: boolean;
     };
 } {
-    const args = parseArgs({
-        args: process.argv.slice(2),
-        allowPositionals: true,
-        options: {
-            scope: { type: 'string', default: 'full' },
-            platform: { type: 'string', default: 'all' },
-            json: { type: 'boolean', default: false },
-            verbose: { type: 'boolean', short: 'v', default: false },
-            help: { type: 'boolean', short: 'h', default: false },
-        },
-    });
+    let args: ReturnType<typeof parseArgs>;
+    try {
+        args = parseArgs({
+            args: process.argv.slice(2),
+            allowPositionals: true,
+            options: {
+                scope: { type: 'string', default: 'full' },
+                platform: { type: 'string', default: 'all' },
+                json: { type: 'boolean', default: false },
+                verbose: { type: 'boolean', short: 'v', default: false },
+                help: { type: 'boolean', short: 'h', default: false },
+            },
+        });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error(`Invalid arguments: ${message}`);
+        printUsage();
+        process.exit(1);
+    }
 
     if (args.values.help) {
         printUsage();
