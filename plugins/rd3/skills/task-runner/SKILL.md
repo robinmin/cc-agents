@@ -55,7 +55,7 @@ This skill is intentionally **not** a wrapper over `rd3:orchestration-v2`. It de
 | `--preset` | No | from task frontmatter or `standard` | Workflow preset: `simple`, `standard`, `complex`, `research` |
 | `--channel <name>` | No | `current` | Execution channel override |
 | `--auto` | No | `false` | Skip confirmations where delegated skill supports it |
-| `--coverage <n>` | No | — | Coverage target for testing phase |
+| `--coverage <n>` | No | — | Coverage target. Forwarded to `rd3:sys-testing` (Stage 3) and to `postflight-check.ts` (Stage 5) for threshold enforcement. Not forwarded to `rd3:code-verification`. |
 | `--dry-run` | No | `false` | Emit structured JSON workflow plan and exit |
 | `--preflight-verify` | No | `false` | Run Stage 0.5 task file structural validation |
 | `--postflight-verify` | No | `false` | Run Stage 5 completion-proof gate before `done` |
@@ -302,6 +302,10 @@ Both deterministic, testable, CI-reusable. Invoked from agent workflow with reso
 - Stop parent execution when decomposition requires splitting
 - `task-runner` owns task status transitions when delegated skill doesn't
 - Always prefer honest backfill over `tasks update --force`
+
+## Dogfood Rule
+
+When executing a task that modifies `rd3:run-acp`, `rd3:code-verification`, or `rd3:task-runner` itself, force `--channel current` to avoid circular delegation. Without this rule, the skill-under-change could be invoked via ACP routing through its own in-progress modifications, producing unpredictable results.
 
 ## Examples
 
