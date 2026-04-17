@@ -4,14 +4,7 @@ import { existsSync, mkdirSync, writeFileSync, copyFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
-import {
-    getMetaDir,
-    getConfigPath,
-    LEGACY_DIR,
-    LEGACY_META_DIR,
-    LEGACY_TEMPLATE,
-    PRIMARY_TASKS_DIR,
-} from '../lib/config';
+import { getMetaDir, getConfigPath, LEGACY_META_DIR, PRIMARY_TASKS_DIR } from '../lib/config';
 import { logger } from '../../../../scripts/logger';
 
 export function runInit(projectRoot: string): Result<boolean> {
@@ -28,13 +21,6 @@ export function runInit(projectRoot: string): Result<boolean> {
         if (!existsSync(primaryDir)) {
             mkdirSync(primaryDir, { recursive: true });
             logger.info(`Created ${PRIMARY_TASKS_DIR}/`);
-        }
-
-        // Ensure docs/prompts/ exists (legacy folder)
-        const legacyDir = resolve(projectRoot, LEGACY_DIR);
-        if (!existsSync(legacyDir)) {
-            mkdirSync(legacyDir, { recursive: true });
-            logger.info(`Created ${LEGACY_DIR}/`);
         }
 
         // Copy template files if not already present
@@ -72,16 +58,6 @@ export function runInit(projectRoot: string): Result<boolean> {
             }
         }
 
-        // Legacy template
-        const legacyTemplateDest = resolve(legacyDir, LEGACY_TEMPLATE);
-        if (!existsSync(legacyTemplateDest)) {
-            const legacyTemplateSrc = resolve(skillTemplates, 'prompts.md');
-            if (existsSync(legacyTemplateSrc)) {
-                copyFileSync(legacyTemplateSrc, legacyTemplateDest);
-                logger.success(`Copied legacy template: ${LEGACY_DIR}/.template.md`);
-            }
-        }
-
         // Create config.jsonc if not present
         const configPath = getConfigPath(projectRoot);
         if (!existsSync(configPath)) {
@@ -90,7 +66,6 @@ export function runInit(projectRoot: string): Result<boolean> {
                 active_folder: PRIMARY_TASKS_DIR,
                 folders: {
                     [PRIMARY_TASKS_DIR]: { base_counter: 0, label: 'Primary' },
-                    [LEGACY_DIR]: { base_counter: 0, label: 'Legacy' },
                 },
             };
             writeFileSync(configPath, `${JSON.stringify(defaultConfig, null, 2)}\n`, 'utf-8');

@@ -37,6 +37,11 @@ export function openTask(
     options?: OpenTaskOptions,
 ): Result<{ wbs: string; path: string }> {
     const spawnSync = options?.spawnSync ?? defaultSpawnSync;
+
+    if (!/^\d{1,4}$/.test(wbs)) {
+        return err(`Invalid WBS format: ${wbs}`);
+    }
+
     const config = loadConfig(projectRoot);
     const taskPath = findTaskByWbs(wbs, config, projectRoot);
 

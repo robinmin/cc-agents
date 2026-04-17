@@ -7,6 +7,20 @@ import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
 import { logger } from '../../../../scripts/logger';
 
+function walkDir(dir: string, prefix: string, lines: string[]): void {
+    const entries = readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const isLast = i === entries.length - 1;
+        const connector = isLast ? '└── ' : '├── ';
+        lines.push(`${prefix}${connector}${entry.name}`);
+        if (entry.isDirectory()) {
+            const childPrefix = prefix + (isLast ? '    ' : '│   ');
+            walkDir(resolve(dir, entry.name), childPrefix, lines);
+        }
+    }
+}
+
 export function showTree(projectRoot: string, wbs: string, quiet = false): Result<{ wbs: string; files: string[] }> {
     const config = loadConfig(projectRoot);
     const taskPath = findTaskByWbs(wbs, config, projectRoot);
@@ -26,19 +40,18 @@ export function showTree(projectRoot: string, wbs: string, quiet = false): Resul
         return ok({ wbs, files: [] });
     }
 
-    const files = readdirSync(artifactDir);
     const treeLines: string[] = [];
-    for (const file of files) {
-        treeLines.push(`${artifactRelativeDir}/${file}`);
-    }
+    walkDir(artifactDir, '', treeLines);
+
+    const flatFiles = treeLines.map((line) => `${artifactRelativeDir}/${line.replace(/^[├└│─\s]+/, '')}`);
 
     if (!quiet) {
         logger.log(`${artifactRelativeDir}/`);
-        for (const file of files) {
-            logger.log(`  └── ${file}`);
+        for (const line of treeLines) {
+            logger.log(line);
         }
-        logger.log(`${files.length} file(s)`);
+        logger.log(`${treeLines.length} file(s)`);
     }
 
-    return ok({ wbs, files: treeLines });
+    return ok({ wbs, files: flatFiles });
 }

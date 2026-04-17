@@ -36,11 +36,11 @@ describe('buildPatterns', () => {
     });
 
     test('builds patterns for multiple folders', () => {
-        const folders = ['docs/tasks', 'docs/tasks2', 'docs/prompts'];
+        const folders = ['docs/tasks', 'docs/archive'];
         const { protected: prot, exempt: exc } = buildPatterns(folders);
 
-        expect(prot).toHaveLength(3);
-        expect(exc).toHaveLength(3);
+        expect(prot).toHaveLength(2);
+        expect(exc).toHaveLength(2);
     });
 
     test('protected pattern matches direct .md files', () => {
@@ -85,7 +85,6 @@ describe('checkWriteGuard', () => {
         beforeEach(() => {
             fs.rmSync(testDirTool, { recursive: true, force: true });
             fs.mkdirSync(join(testDirTool, 'docs/tasks'), { recursive: true });
-            fs.mkdirSync(join(testDirTool, 'docs/tasks2'), { recursive: true });
         });
 
         afterEach(() => {
@@ -103,12 +102,6 @@ describe('checkWriteGuard', () => {
             expect(result.allowed).toBe(false);
             expect(result.code).toBe(2);
         });
-
-        test('blocks Edit tool on protected path (docs/tasks2)', () => {
-            const result = checkWriteGuard('Edit', 'docs/tasks2/file.md', testDirTool);
-            expect(result.allowed).toBe(false);
-            expect(result.code).toBe(2);
-        });
     });
 
     describe('pattern matching - protected patterns', () => {
@@ -117,8 +110,6 @@ describe('checkWriteGuard', () => {
         beforeEach(() => {
             fs.rmSync(testDirProt, { recursive: true, force: true });
             fs.mkdirSync(join(testDirProt, 'docs/tasks'), { recursive: true });
-            fs.mkdirSync(join(testDirProt, 'docs/tasks2'), { recursive: true });
-            fs.mkdirSync(join(testDirProt, 'docs/prompts'), { recursive: true });
         });
 
         afterEach(() => {
@@ -130,18 +121,6 @@ describe('checkWriteGuard', () => {
             expect(result.allowed).toBe(false);
             expect(result.code).toBe(2);
         });
-
-        test('blocks direct .md files in docs/tasks2', () => {
-            const result = checkWriteGuard('Write', 'docs/tasks2/another_file.md', testDirProt);
-            expect(result.allowed).toBe(false);
-            expect(result.code).toBe(2);
-        });
-
-        test('blocks direct .md files in docs/prompts', () => {
-            const result = checkWriteGuard('Edit', 'docs/prompts/cmd_template.md', testDirProt);
-            expect(result.allowed).toBe(false);
-            expect(result.code).toBe(2);
-        });
     });
 
     describe('pattern matching - exempt patterns', () => {
@@ -150,7 +129,6 @@ describe('checkWriteGuard', () => {
         beforeEach(() => {
             fs.rmSync(testDirExempt, { recursive: true, force: true });
             fs.mkdirSync(join(testDirExempt, 'docs/tasks'), { recursive: true });
-            fs.mkdirSync(join(testDirExempt, 'docs/tasks2'), { recursive: true });
         });
 
         afterEach(() => {
@@ -159,12 +137,6 @@ describe('checkWriteGuard', () => {
 
         test('allows subdirectory paths docs/tasks/<wbs>/...', () => {
             const result = checkWriteGuard('Write', 'docs/tasks/0001/some_file.md', testDirExempt);
-            expect(result.allowed).toBe(true);
-            expect(result.code).toBe(0);
-        });
-
-        test('allows subdirectory paths docs/tasks2/<wbs>/...', () => {
-            const result = checkWriteGuard('Write', 'docs/tasks2/0042/nested.md', testDirExempt);
             expect(result.allowed).toBe(true);
             expect(result.code).toBe(0);
         });
@@ -182,12 +154,9 @@ describe('checkWriteGuard', () => {
             fs.rmSync(testDirBoundary, { recursive: true, force: true });
             fs.mkdirSync(testDirBoundary, { recursive: true });
 
-            // Handlers should only match docs/tasks/ and docs/tasks2/ strictly
+            // Handlers should only match docs/tasks/ strictly
             const result1 = checkWriteGuard('Edit', 'docs/tasks/file.md', testDirBoundary);
             expect(result1.allowed).toBe(false);
-
-            const result2 = checkWriteGuard('Edit', 'docs/tasks2/file.md', testDirBoundary);
-            expect(result2.allowed).toBe(false);
 
             fs.rmSync(testDirBoundary, { recursive: true, force: true });
         });

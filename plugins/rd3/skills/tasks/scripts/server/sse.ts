@@ -39,18 +39,28 @@ export class EventBroadcaster implements Broadcaster {
      * The readable is NOT consumed until the HTTP client reads the response body,
      * so it stays available for the Response constructor.
      */
-    createStream(statusFilter?: TaskStatus): Response {
+    createStream(statusFilter?: TaskStatus, origin?: string): Response {
         const transform = new TransformStream<Uint8Array, Uint8Array>();
         const writer = transform.writable.getWriter();
 
         this.clients.add(statusFilter ? { writer, statusFilter } : { writer });
 
+        const isLocalhost =
+            !origin ||
+            (() => {
+                try {
+                    const u = new URL(origin);
+                    return u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+                } catch {
+                    return false;
+                }
+            })();
         return new Response(transform.readable, {
             headers: {
                 'Content-Type': 'text/event-stream',
                 'Cache-Control': 'no-cache',
                 Connection: 'keep-alive',
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': isLocalhost ? origin || '' : '',
             },
         });
     }

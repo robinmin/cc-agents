@@ -179,7 +179,7 @@ describe('refreshKanban', () => {
 
     beforeEach(() => {
         mkdirSync(join(tempDir, 'docs', 'tasks'), { recursive: true });
-        mkdirSync(join(tempDir, 'docs', 'prompts'), { recursive: true });
+        mkdirSync(join(tempDir, 'docs', 'archive'), { recursive: true });
     });
 
     afterEach(() => {
@@ -201,14 +201,14 @@ status: Todo
             $schema_version: 1,
             folders: {
                 'docs/tasks': { base_counter: 0 },
-                'docs/prompts': { base_counter: 100 },
+                'docs/archive': { base_counter: 100 },
             },
             active_folder: 'docs/tasks',
         };
         const result = refreshKanban(tempDir, config);
         expect(result.ok).toBe(true);
         expect(result.foldersRefreshed).toContain('docs/tasks');
-        expect(result.foldersRefreshed).toContain('docs/prompts');
+        expect(result.foldersRefreshed).toContain('docs/archive');
     });
 
     test('writes kanban.md to each folder', () => {

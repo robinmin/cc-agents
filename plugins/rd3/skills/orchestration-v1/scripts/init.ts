@@ -51,7 +51,6 @@ const TASKS_INFRA_FILES = [
     { name: 'docs/.tasks/config.jsonc', path: 'docs/.tasks/config.jsonc' },
     { name: 'docs/.tasks/task.md', path: 'docs/.tasks/task.md' },
     { name: 'docs/tasks/', path: 'docs/tasks' },
-    { name: 'docs/prompts/', path: 'docs/prompts' },
 ];
 
 export function validateTasksInfra(projectRoot: string): {

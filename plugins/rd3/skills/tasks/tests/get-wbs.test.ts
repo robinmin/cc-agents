@@ -5,8 +5,8 @@ import { setGlobalSilent } from '../../../scripts/logger';
 describe('extractWbsFromPath', () => {
     test('extracts WBS from standard task file path', () => {
         expect(extractWbsFromPath('docs/tasks/0047_my-task.md')).toBe('0047');
-        expect(extractWbsFromPath('docs/prompts/0001_legacy-task.md')).toBe('0001');
-        expect(extractWbsFromPath('docs/tasks2/9999_final-task.md')).toBe('9999');
+        expect(extractWbsFromPath('docs/archive/0001_legacy-task.md')).toBe('0001');
+        expect(extractWbsFromPath('docs/archive/9999_final-task.md')).toBe('9999');
     });
 
     test('extracts WBS from file name only', () => {
@@ -16,7 +16,7 @@ describe('extractWbsFromPath', () => {
 
     test('extracts WBS from absolute path', () => {
         expect(extractWbsFromPath('/Users/robin/project/docs/tasks/0047_my-task.md')).toBe('0047');
-        expect(extractWbsFromPath('/home/user/project/docs/prompts/0123_other-task.md')).toBe('0123');
+        expect(extractWbsFromPath('/home/user/project/docs/archive/0123_other-task.md')).toBe('0123');
     });
 
     test('returns null for invalid WBS format', () => {

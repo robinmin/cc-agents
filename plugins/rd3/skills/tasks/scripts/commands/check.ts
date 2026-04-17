@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
-import { readTaskFile, validateTaskForTransition } from '../lib/taskFile';
+import { readTaskFile, validateTaskForTransition, validateTaskContent } from '../lib/taskFile';
 import { logger } from '../../../../scripts/logger';
 
 export function checkTask(
@@ -27,9 +27,11 @@ export function checkTask(
             issues.push('Task file is invalid or missing frontmatter');
             valid = false;
         } else {
-            const validation = validateTaskForTransition(task, task.status);
+            const validation =
+                task.status === 'Backlog' || task.status === 'Todo'
+                    ? validateTaskContent(task)
+                    : validateTaskForTransition(task, task.status);
             if (validation.hasErrors) valid = false;
-            if (validation.hasWarnings) valid = false;
             issues.push(...validation.errors.map((i) => `[ERROR] ${i.message}`));
             issues.push(...validation.warnings.map((i) => `[WARN] ${i.message}`));
             issues.push(...validation.suggestions.map((i) => `[SUGGEST] ${i.message}`));
@@ -50,7 +52,10 @@ export function checkTask(
                     valid = false;
                     continue;
                 }
-                const validation = validateTaskForTransition(task, task.status);
+                const validation =
+                    task.status === 'Backlog' || task.status === 'Todo'
+                        ? validateTaskContent(task)
+                        : validateTaskForTransition(task, task.status);
                 if (validation.hasErrors) {
                     valid = false;
                     issues.push(
@@ -58,7 +63,6 @@ export function checkTask(
                     );
                 }
                 if (validation.warnings.length > 0) {
-                    valid = false;
                     issues.push(
                         `[WARN] ${task.wbs} ${task.name}: ${validation.warnings.map((i) => i.message).join(', ')}`,
                     );

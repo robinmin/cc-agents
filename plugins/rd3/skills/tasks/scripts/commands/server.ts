@@ -55,7 +55,15 @@ const defaultServerRuntime: ServerRuntime = {
 function parseServerArgs(args: string[]): ServerConfig {
     const config: ServerConfig = {
         host: process.env.TASKS_HOST ?? DEFAULT_HOST,
-        port: process.env.TASKS_PORT ? Number.parseInt(process.env.TASKS_PORT, 10) : DEFAULT_PORT,
+        port: (() => {
+            if (!process.env.TASKS_PORT) return DEFAULT_PORT;
+            const parsed = Number.parseInt(process.env.TASKS_PORT, 10);
+            if (!Number.isFinite(parsed) || parsed < 1 || parsed > 65535) {
+                logger.error(`Invalid TASKS_PORT: ${process.env.TASKS_PORT}. Must be 1-65535.`);
+                process.exit(1);
+            }
+            return parsed;
+        })(),
     };
 
     for (let i = 0; i < args.length; i++) {

@@ -108,7 +108,7 @@ tasks get-wbs invalid.md                    # → (blank)
 
 # Get full file path for a WBS (searches all configured folders)
 tasks get-file 0047    # → /path/to/docs/tasks/0047_my-task.md
-tasks get-file 0001    # → /path/to/docs/prompts/0001_legacy-task.md
+tasks get-file 0001    # → /path/to/docs/tasks/0001_another-task.md
 ```
 
 ### Admin
@@ -126,7 +126,7 @@ tasks check 0047
 # Multi-folder config
 tasks config                              # show current config
 tasks config set-active docs/tasks        # switch active folder
-tasks config add-folder docs/prompts --base-counter 100 --label legacy
+tasks config add-folder docs/archive --base-counter 100 --label archive
 tasks server
 TASKS_PORT=4567 tasks server --host 127.0.0.1
 ```
@@ -245,7 +245,6 @@ These rules are enforced by the skill instructions. Violations will produce erro
 ```typescript
 // ❌ NEVER do this
 Edit tool → "docs/tasks/0047_my-task.md"   // direct task file edit
-Write tool → "docs/prompts/something.md"    // direct prompt file edit
 Edit tool → "docs/tasks/0047/some-file.md"  // artifact subdir bypass
 ```
 
@@ -254,7 +253,6 @@ Edit tool → "docs/tasks/0047/some-file.md"  // artifact subdir bypass
 ```typescript
 // ❌ NEVER do this
 Edit/Create tool → "docs/tasks/new-feature-idea.md"   // not via tasks CLI
-Edit/Create tool → "docs/prompts/0001_todo.md"        // not via tasks CLI
 ```
 
 ### Forbidden: Ad-Hoc Todos
@@ -446,16 +444,4 @@ Use `--force` to bypass Tier 2 warnings: `tasks update 0047 done --force`
 
 ## Configuration
 
-Tasks use dual-mode config:
-
-**Legacy mode** (no `docs/.tasks/config.jsonc`):
-- Active folder: `docs/prompts/` (rd2 default)
-- WBS counter: global, starts from 1
-
-**Config mode** (with `docs/.tasks/config.jsonc`):
-- Default active folder: `docs/tasks/`
-- Multiple folders with independent base counters
-- Config stored in `docs/.tasks/config.jsonc`
-- Project templates stored in `docs/.tasks/task.md` and `docs/.tasks/kanban.md`
-
-Run `tasks init` to migrate to config mode.
+Task configuration is stored in `docs/.tasks/config.jsonc`. Run `tasks init` to bootstrap the directory structure and default config. The config defines the active folder, additional folders with independent base counters, and project templates stored in `docs/.tasks/task.md` and `docs/.tasks/kanban.md`.

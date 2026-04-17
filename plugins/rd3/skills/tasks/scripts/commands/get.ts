@@ -1,7 +1,7 @@
 // get command — list artifacts for a task
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
 import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
@@ -38,7 +38,7 @@ export function getArtifacts(
         const cells = row
             .split('|')
             .map((c) => c.trim())
-            .filter((c) => c && c !== 'Type');
+            .filter((c) => c);
         if (cells.length >= 2 && !isDividerRow(cells)) {
             const [type, path, agent, date] = cells;
             if (options.artifactType && type !== options.artifactType) continue;
@@ -54,15 +54,13 @@ export function getArtifacts(
     // Also check for files in <task-dir>/<wbs>/ directory (alongside the task file)
     const taskDir = dirname(taskPath);
     const artifactDir = resolve(taskDir, wbs);
-    const storedFiles: string[] = [];
+    const storedFiles = new Set<string>();
     if (existsSync(artifactDir)) {
         const files = readdirSync(artifactDir);
         for (const file of files) {
             const filePath = resolve(artifactDir, file);
             const relativePath = filePath.replace(`${projectRoot}/`, '');
-            if (!storedFiles.includes(relativePath)) {
-                storedFiles.push(relativePath);
-            }
+            storedFiles.add(relativePath);
         }
     }
 
@@ -78,8 +76,9 @@ export function getArtifacts(
             for (const artifact of artifacts) {
                 logger.log(`  [${artifact.type}] ${artifact.path} ${artifact.date ? `(${artifact.date})` : ''}`);
             }
-            if (storedFiles.length > 0) {
-                logger.log(`Stored files in docs/tasks/${wbs}/:`);
+            if (storedFiles.size > 0) {
+                const artifactRelDir = relative(projectRoot, artifactDir);
+                logger.log(`Stored files in ${artifactRelDir}/:`);
                 for (const file of storedFiles) {
                     logger.log(`  ${file}`);
                 }

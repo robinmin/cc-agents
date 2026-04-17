@@ -222,8 +222,8 @@ describe('showTree', () => {
 
             expect(result.ok).toBe(true);
             expect(loggerSpy).toHaveBeenCalledWith('docs/tasks/0001/');
-            expect(loggerSpy).toHaveBeenCalledWith('  └── file1.txt');
-            expect(loggerSpy).toHaveBeenCalledWith('  └── file2.md');
+            expect(loggerSpy).toHaveBeenCalledWith('├── file1.txt');
+            expect(loggerSpy).toHaveBeenCalledWith('└── file2.md');
             expect(loggerSpy).toHaveBeenCalledWith('2 file(s)');
         });
 

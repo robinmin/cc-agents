@@ -15,6 +15,7 @@ import {
     validateTaskForTransition,
 } from '../lib/taskFile';
 import { logger } from '../../../../scripts/logger';
+import { stripYamlUnsafeChars } from '../lib/template';
 import type { TaskStatus, ImplPhase } from '../types';
 import { VALID_PROFILES, VALID_STATUSES } from '../types';
 
@@ -207,11 +208,11 @@ export function updateTask(projectRoot: string, wbs: string, options: UpdateOpti
             });
         }
 
-        const serializedValue = JSON.stringify(options.value);
-        const result =
-            options.field === 'profile' || options.field === 'preset'
-                ? updatePresetFrontmatterField(taskPath, serializedValue)
-                : updateFrontmatterField(taskPath, options.field, serializedValue);
+        const isPresetField = options.field === 'profile' || options.field === 'preset';
+        const serializedValue = isPresetField ? stripYamlUnsafeChars(options.value) : options.value;
+        const result = isPresetField
+            ? updatePresetFrontmatterField(taskPath, serializedValue)
+            : updateFrontmatterField(taskPath, options.field, serializedValue);
         if (!result.ok) return result;
         if (!options.quiet) {
             logger.success(`Updated frontmatter field '${options.field}' in ${wbs}`);

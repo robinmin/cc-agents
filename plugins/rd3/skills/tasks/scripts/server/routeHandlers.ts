@@ -4,8 +4,8 @@
  * Each handler receives (projectRoot, request, params, broadcaster) and returns a Response.
  * No HTTP server dependency — testable via direct function invocation.
  */
-import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve, basename } from 'node:path';
+import { writeFileSync, mkdirSync, unlinkSync, existsSync, readdirSync } from 'node:fs';
+import { join, resolve, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 import { createTask } from '../commands/create';
 import { listTasks } from '../commands/list';
@@ -26,6 +26,7 @@ import { acquire } from './writeLock';
 import { EventBroadcaster } from './sse';
 import type { Broadcaster, JsonResponse, RouteHandler, TaskEvent } from './types';
 import { logger } from '../../../../scripts/logger';
+import { isPathWithinRoot } from '../lib/path';
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -52,7 +53,8 @@ const TEMP_DIR = join(tmpdir(), 'tasks-server');
 /** Write content to a temp file and return its path */
 function writeToTempFile(content: string, prefix: string): string {
     mkdirSync(TEMP_DIR, { recursive: true });
-    const path = join(TEMP_DIR, `${prefix}-${Date.now()}.md`);
+    const safePrefix = prefix.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const path = join(TEMP_DIR, `${safePrefix}-${Date.now()}.md`);
     writeFileSync(path, content, 'utf-8');
     return path;
 }
@@ -71,7 +73,6 @@ function cleanupTempFile(path: string): void {
 /** Purge all temp files in the managed temp directory */
 export function purgeTempDir(): void {
     try {
-        const { readdirSync } = require('node:fs');
         const files = readdirSync(TEMP_DIR);
         for (const file of files) {
             cleanupTempFile(join(TEMP_DIR, file));
@@ -83,11 +84,6 @@ export function purgeTempDir(): void {
 
 function emitEvent(broadcaster: Broadcaster, event: TaskEvent): void {
     broadcaster.broadcast(event);
-}
-
-function isPathWithinRoot(projectRoot: string, targetPath: string): boolean {
-    const relativePath = relative(projectRoot, targetPath);
-    return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath));
 }
 
 function validateManagedFolder(projectRoot: string, folder: string): string | null {
@@ -638,13 +634,15 @@ export const eventsHandler: RouteHandler = async (_projectRoot, request, _params
             return jsonErr(`Invalid status: ${statusFilter}`);
         }
 
-        return broadcaster.createStream(normalized.status);
+        return broadcaster.createStream(normalized.status, request.headers.get('Origin') ?? undefined);
     }
 
-    return broadcaster.createStream();
+    return broadcaster.createStream(undefined, request.headers.get('Origin') ?? undefined);
 };
 
 // ── Actions ──────────────────────────────────────────────────────────────
+
+const ALLOWED_CHANNELS = new Set(['claude', 'codex', 'opencode', 'antigravity', 'openclaw', 'pi']);
 
 export const taskActionHandler: RouteHandler = async (projectRoot, request, params, broadcaster) => {
     const wbs = params.wbs;
@@ -653,6 +651,7 @@ export const taskActionHandler: RouteHandler = async (projectRoot, request, para
     const body = (await request.json().catch(() => ({}))) as { action?: string; channel?: string; skipDeps?: boolean };
     const { action, channel, skipDeps } = body;
     if (!action || !channel) return jsonErr('Missing action or channel field');
+    if (!ALLOWED_CHANNELS.has(channel)) return jsonErr(`Invalid channel: ${channel}`);
 
     // Mapping logic for orchestrator-v2
     const actionArgs: string[] = [];

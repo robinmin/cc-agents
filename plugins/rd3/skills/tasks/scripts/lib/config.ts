@@ -1,4 +1,4 @@
-// Config loading — dual-mode: legacy (no config.jsonc) and config mode
+// Config loading — single-mode: config.jsonc required, minimal fallback for new projects
 
 import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -6,7 +6,6 @@ import { dirname, join, resolve } from 'node:path';
 import type { TasksConfig } from '../types';
 import { err, ok, type Result } from '../../../../scripts/libs/result';
 
-export const LEGACY_DIR = 'docs/prompts';
 export const LEGACY_META_DIR = 'docs/.tasks';
 export const PRIMARY_TASKS_DIR = 'docs/tasks';
 export const LEGACY_TEMPLATE = '.template.md';
@@ -127,10 +126,6 @@ export function getTemplatePath(projectRoot: string): string {
     return resolve(projectRoot, LEGACY_META_DIR, LEGACY_TEMPLATE);
 }
 
-export function getLegacyTemplatePath(projectRoot: string): string {
-    return resolve(projectRoot, LEGACY_DIR, LEGACY_TEMPLATE);
-}
-
 export function loadConfig(projectRoot?: string): TasksConfig {
     const root = projectRoot || getProjectRoot();
     const configPath = getConfigPath(root);
@@ -146,17 +141,14 @@ export function loadConfig(projectRoot?: string): TasksConfig {
             const parsed = JSON.parse(stripped) as TasksConfig;
             return parsed;
         } catch {
-            // Fall through to legacy mode
+            // Fall through to minimal defaults
         }
     }
 
-    // Legacy mode: no config.jsonc — use defaults
-    const active = existsSync(resolve(root, PRIMARY_TASKS_DIR)) ? PRIMARY_TASKS_DIR : LEGACY_DIR;
     return {
         $schema_version: 1,
-        active_folder: active,
+        active_folder: PRIMARY_TASKS_DIR,
         folders: {
-            [LEGACY_DIR]: { base_counter: 0 },
             [PRIMARY_TASKS_DIR]: { base_counter: 0 },
         },
     };
@@ -181,7 +173,7 @@ export function saveConfig(config: TasksConfig, projectRoot: string): Result<boo
 
 export function resolveActiveFolder(config: TasksConfig, cliFolder?: string): string {
     if (cliFolder) return cliFolder;
-    return config.active_folder || LEGACY_DIR;
+    return config.active_folder || PRIMARY_TASKS_DIR;
 }
 
 export function resolveFolderPath(config: TasksConfig, projectRoot: string, cliFolder?: string): string {

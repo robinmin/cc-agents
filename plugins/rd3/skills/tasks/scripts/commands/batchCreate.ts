@@ -40,9 +40,10 @@ export function batchCreate(
     const created: string[] = [];
     const errors: string[] = [];
 
-    for (const item of items) {
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         if (!item.name) {
-            errors.push(`Task missing 'name': ${JSON.stringify(item)}`);
+            errors.push(`Item ${i + 1}: Task missing 'name': ${JSON.stringify(item)}`);
             continue;
         }
 
@@ -61,7 +62,7 @@ export function batchCreate(
         if (result.ok) {
             created.push(result.value.wbs);
         } else {
-            errors.push(`${item.name}: ${result.error}`);
+            errors.push(`Item ${i + 1} (${item.name}): ${result.error}`);
         }
     }
 

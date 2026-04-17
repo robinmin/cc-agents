@@ -4,6 +4,12 @@ import { existsSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { TasksConfig } from '../types';
 
+/**
+ * Get the next available WBS number.
+ * Scans ALL configured folders and returns `max(all WBS numbers, all base_counters) + 1`.
+ * WBS numbers are globally unique — base_counter only seeds the starting value, it does
+ * NOT segregate WBS ranges per folder.
+ */
 export function getNextWbs(config: TasksConfig, projectRoot: string): number {
     let maxWbs = 0;
 

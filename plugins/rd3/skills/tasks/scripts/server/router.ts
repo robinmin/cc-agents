@@ -8,6 +8,16 @@ import { existsSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { getProjectRoot, getStaticDir } from '../lib/config';
 import type { EventBroadcaster } from './sse';
+
+function isLocalhostOrigin(origin: string): boolean {
+    if (!origin) return true;
+    try {
+        const url = new URL(origin);
+        return url.hostname === 'localhost' || url.hostname === '127.0.0.1';
+    } catch {
+        return false;
+    }
+}
 import type { RouteHandler } from './types';
 
 const MIME_TYPES: Record<string, string> = {
@@ -195,12 +205,14 @@ export function createRequestHandler(broadcaster: EventBroadcaster, projectRootO
         const method = request.method;
         const pathname = url.pathname;
 
-        // CORS preflight
+        // CORS preflight — restrict to localhost origins only
         if (method === 'OPTIONS') {
+            const origin = request.headers.get('Origin') || '';
+            const isLocalhost = isLocalhostOrigin(origin);
             return new Response(null, {
                 status: 204,
                 headers: {
-                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Origin': isLocalhost ? origin : '',
                     'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
                     'Access-Control-Allow-Headers': 'Content-Type',
                 },

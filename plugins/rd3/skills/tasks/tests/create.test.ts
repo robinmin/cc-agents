@@ -145,7 +145,7 @@ impl_progress:
         expect(result.ok).toBe(true);
 
         const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_Rich_Metadata.md'), 'utf-8');
-        expect(content).toContain('priority: "high"');
+        expect(content).toContain('priority: high');
         expect(content).toContain('estimated_hours: 6');
         expect(content).toContain('dependencies: ["0001","0002"]');
         expect(content).toContain('tags: ["planning","workflow-core"]');
@@ -254,7 +254,7 @@ impl_progress:
         expect(result.ok).toBe(true);
 
         const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_Profile_Test.md'), 'utf-8');
-        expect(content).toContain('preset: "complex"');
+        expect(content).toContain('preset: complex');
         expect(content).not.toContain('profile: ');
     });
 
@@ -281,7 +281,7 @@ impl_progress:
         expect(result.ok).toBe(true);
 
         const content = readFileSync(join(tempDir, 'docs', 'tasks', '0001_Feature_Linked_Task.md'), 'utf-8');
-        expect(content).toContain('feature-id: "feat_auth_google_oauth"');
+        expect(content).toContain('feature-id: feat_auth_google_oauth');
     });
 
     test('accepts all valid preset values during task creation', () => {
@@ -319,7 +319,7 @@ impl_progress:
             });
             expect(result.ok).toBe(true);
             const content = readFileSync(join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`), 'utf-8');
-            expect(content).toContain(`preset: "${profileVal}"`);
+            expect(content).toContain(`preset: ${profileVal}`);
             expect(content).not.toContain('profile: ');
             // Clean up for next iteration
             rmSync(join(tempDir, 'docs', 'tasks', `0001_Profile_${profileVal}.md`), { force: true });
@@ -425,8 +425,8 @@ impl_progress:
         const unchanged = upsertFrontmatterField('---\nname: test\n---\n', 'profile', undefined);
         expect(unchanged).toBe('---\nname: test\n---\n');
 
-        const replaced = upsertFrontmatterField('---\npriority: "low"\n---\n', 'priority', 'high');
-        expect(replaced).toContain('priority: "high"');
+        const replaced = upsertFrontmatterField('---\npriority: low\n---\n', 'priority', 'high');
+        expect(replaced).toContain('priority: high');
 
         const insertedBeforeProgress = upsertFrontmatterField(
             '---\nname: test\nimpl_progress:\n  planning: pending\n---\n',
@@ -438,7 +438,7 @@ impl_progress:
         const insertedBeforeClose = upsertFrontmatterField('---\nname: test\n---\n', 'estimated_hours', 3);
         expect(insertedBeforeClose).toContain('estimated_hours: 3\n---');
 
-        expect(renderFrontmatterValue('value')).toBe('"value"');
+        expect(renderFrontmatterValue('value')).toBe('value');
         expect(renderFrontmatterValue(7)).toBe('7');
         expect(renderFrontmatterValue(['a', 'b'])).toBe('["a","b"]');
         expect(sanitizeTaskFileNameSegment(' foo/../../bar "; ')).toBe('foo_.._.._bar');

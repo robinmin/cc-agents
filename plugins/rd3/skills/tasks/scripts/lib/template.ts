@@ -27,7 +27,6 @@ export function substituteTemplateVars(content: string, vars: TemplateVars): str
     }
 
     // Clean up any remaining placeholders
-    rendered = rendered.replace(/\{\{[^}]+\}\}/g, '');
     rendered = rendered.replace(/\{\s*\{[^}]+\}\s*\}/g, '');
 
     return rendered;
@@ -79,9 +78,12 @@ export function getTemplateVars(name: string, wbs: string, folder: string, descr
 }
 
 /**
- * Remove characters from a string that would break YAML parsing
- * when used as an unquoted value (colons, braces, brackets, etc.).
+ * Sanitize a value for safe YAML frontmatter usage.
+ * Strips characters that break YAML when used as unquoted values,
+ * but preserves quotes by wrapping the value in double quotes with escaping.
  */
 export function stripYamlUnsafeChars(value: string): string {
-    return value.replace(/[:{}[\],&*?|>!%@`#"'\\]/g, '');
+    const needsQuoting = /[:{}[\],&*?|>!%@`#"'\\\n\r]/.test(value);
+    if (!needsQuoting) return value;
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r')}"`;
 }

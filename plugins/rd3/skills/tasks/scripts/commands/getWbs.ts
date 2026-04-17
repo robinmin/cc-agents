@@ -3,7 +3,7 @@
 import { ok, type Result } from '../../../../scripts/libs/result';
 import { logger } from '../../../../scripts/logger';
 
-const WBS_REGEX = /^(\d{4})/;
+const WBS_REGEX = /^(\d{4})(?=_|\.|$)/;
 
 /**
  * Extract WBS number from a task file path.

@@ -48,9 +48,14 @@ describe('router', () => {
 
     test('returns CORS headers for OPTIONS preflight', async () => {
         const handler = createRequestHandler(broadcaster);
-        const response = await handler(new Request('http://localhost:8080/tasks', { method: 'OPTIONS' }));
+        const response = await handler(
+            new Request('http://localhost:8080/tasks', {
+                method: 'OPTIONS',
+                headers: { Origin: 'http://localhost:8080' },
+            }),
+        );
         expect(response.status).toBe(204);
-        expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+        expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:8080');
         expect(response.headers.get('Access-Control-Allow-Methods')).toContain('GET');
     });
 

@@ -81,12 +81,12 @@ describe('setActiveFolder', () => {
             active_folder: 'docs/tasks',
             folders: {
                 'docs/tasks': { base_counter: 0 },
-                'docs/prompts': { base_counter: 100 },
+                'docs/archive': { base_counter: 100 },
             },
         });
         mkdirSync(join(tempDir, 'docs', '.tasks'), { recursive: true });
         mkdirSync(join(tempDir, 'docs', 'tasks'), { recursive: true });
-        mkdirSync(join(tempDir, 'docs', 'prompts'), { recursive: true });
+        mkdirSync(join(tempDir, 'docs', 'archive'), { recursive: true });
         writeFileSync(join(tempDir, 'docs', '.tasks', 'config.jsonc'), config);
         setGlobalSilent(true);
         successSpy = spyOn(logger, 'success');
@@ -105,18 +105,18 @@ describe('setActiveFolder', () => {
     });
 
     test('sets active folder to a configured folder', () => {
-        const result = setActiveFolder(tempDir, 'docs/prompts', true);
+        const result = setActiveFolder(tempDir, 'docs/archive', true);
         expect(result.ok).toBe(true);
-        expect(result.activeFolder).toBe('docs/prompts');
+        expect(result.activeFolder).toBe('docs/archive');
 
         const saved = JSON.parse(readFileSync(join(tempDir, 'docs', '.tasks', 'config.jsonc'), 'utf-8'));
-        expect(saved.active_folder).toBe('docs/prompts');
+        expect(saved.active_folder).toBe('docs/archive');
     });
 
     test('logs success when quiet=false', () => {
-        const result = setActiveFolder(tempDir, 'docs/prompts', false);
+        const result = setActiveFolder(tempDir, 'docs/archive', false);
         expect(result.ok).toBe(true);
-        expect(successSpy).toHaveBeenCalledWith('Set active folder: docs/prompts');
+        expect(successSpy).toHaveBeenCalledWith('Set active folder: docs/archive');
     });
 
     test('returns error when config cannot be saved', () => {

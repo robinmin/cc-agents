@@ -131,7 +131,7 @@ type: kanban
     });
 
     test('lists from multiple folders when includeAll=true', () => {
-        const folder2 = 'docs/prompts';
+        const folder2 = 'docs/archive';
         mkdirSync(join(tempDir, folder2), { recursive: true });
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),

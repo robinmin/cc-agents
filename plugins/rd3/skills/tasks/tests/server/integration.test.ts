@@ -8,14 +8,14 @@ describe('server integration', () => {
     beforeAll(() => {
         // Set up temp project with config so handlers resolve correctly
         mkdirSync(join(tempDir, 'docs', '.tasks'), { recursive: true });
-        mkdirSync(join(tempDir, 'docs', 'tasks2'), { recursive: true });
+        mkdirSync(join(tempDir, 'docs', 'tasks'), { recursive: true });
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),
             JSON.stringify(
                 {
                     $schema_version: 1,
-                    active_folder: 'docs/tasks2',
-                    folders: { 'docs/tasks2': { base_counter: 300 } },
+                    active_folder: 'docs/tasks',
+                    folders: { 'docs/tasks': { base_counter: 300 } },
                 },
                 null,
                 2,
@@ -33,9 +33,14 @@ describe('server integration', () => {
         const broadcaster = new EventBroadcaster();
         const handler = createRequestHandler(broadcaster, tempDir);
 
-        const res = await handler(new Request('http://localhost/tasks', { method: 'OPTIONS' }));
+        const res = await handler(
+            new Request('http://localhost:3456/tasks', {
+                method: 'OPTIONS',
+                headers: { Origin: 'http://localhost:3456' },
+            }),
+        );
         expect(res.status).toBe(204);
-        expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+        expect(res.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:3456');
         broadcaster.closeAll();
         broadcaster.closeAll();
     });

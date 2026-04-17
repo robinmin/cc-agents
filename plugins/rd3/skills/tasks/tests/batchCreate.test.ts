@@ -131,7 +131,7 @@ describe('batchCreate', () => {
             expect(result.ok).toBe(true);
             if (result.ok) {
                 expect(result.value.created).toEqual(['PROJ-006', 'PROJ-007']);
-                expect(result.value.errors).toEqual(['Bad task: Creation failed']);
+                expect(result.value.errors).toEqual(['Item 2 (Bad task): Creation failed']);
             }
         });
 
@@ -152,7 +152,9 @@ describe('batchCreate', () => {
             expect(result.ok).toBe(true);
             if (result.ok) {
                 expect(result.value.created).toEqual(['PROJ-008', 'PROJ-009']);
-                expect(result.value.errors).toEqual(['Task missing \'name\': {"background":"Task without name"}']);
+                expect(result.value.errors).toEqual([
+                    'Item 2: Task missing \'name\': {"background":"Task without name"}',
+                ]);
             }
 
             expect(mockCreateTask).toHaveBeenCalledTimes(2);
@@ -450,8 +452,8 @@ Agent response.
             if (result.ok) {
                 expect(result.value.created).toEqual(['SUC-001', 'SUC-002', 'SUC-003']);
                 expect(result.value.errors).toEqual([
-                    "Task missing 'name': {}",
-                    'Failure Task: Task creation failed due to validation error',
+                    "Item 2: Task missing 'name': {}",
+                    'Item 4 (Failure Task): Task creation failed due to validation error',
                 ]);
             }
 

@@ -109,4 +109,24 @@ describe('EventBroadcaster', () => {
         broadcaster.closeAll();
         expect(broadcaster.clientCount).toBe(0);
     });
+
+    test('createStream sets ACAO header for localhost origin', () => {
+        const response = broadcaster.createStream(undefined, 'http://localhost:3000');
+        expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:3000');
+    });
+
+    test('createStream sets ACAO header for 127.0.0.1 origin', () => {
+        const response = broadcaster.createStream(undefined, 'http://127.0.0.1:3000');
+        expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://127.0.0.1:3000');
+    });
+
+    test('createStream sets empty ACAO for non-localhost origin', () => {
+        const response = broadcaster.createStream(undefined, 'https://evil.example.com');
+        expect(response.headers.get('Access-Control-Allow-Origin')).toBe('');
+    });
+
+    test('createStream sets empty ACAO for invalid origin', () => {
+        const response = broadcaster.createStream(undefined, 'not-a-url');
+        expect(response.headers.get('Access-Control-Allow-Origin')).toBe('');
+    });
 });

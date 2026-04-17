@@ -68,7 +68,7 @@ export function loadPatterns(projectRoot?: string): { protected: RegExp[]; exemp
 
     if (!configLoaded) {
         // Fallback: cover the three standard folders if config missing
-        folders = ['docs/tasks', 'docs/tasks2', 'docs/prompts'];
+        folders = ['docs/tasks'];
         logger.warn('[GUARD] Could not load config.jsonc — using folder-based fallback');
     }
 

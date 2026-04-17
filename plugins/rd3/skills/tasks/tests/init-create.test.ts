@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { runInit } from '../scripts/commands/init';
 import { createTask } from '../scripts/commands/create';
-import { PRIMARY_TASKS_DIR, LEGACY_DIR, LEGACY_META_DIR } from '../scripts/lib/config';
+import { PRIMARY_TASKS_DIR, LEGACY_META_DIR } from '../scripts/lib/config';
 import { setGlobalSilent } from '../../../scripts/logger';
 
 const repoRoot = resolve(import.meta.dir, '../../../../..');
@@ -36,7 +36,6 @@ describe('init/create folder layout', () => {
         expect(result.ok).toBe(true);
         expect(existsSync(join(tempDir, LEGACY_META_DIR))).toBe(true);
         expect(existsSync(join(tempDir, PRIMARY_TASKS_DIR))).toBe(true);
-        expect(existsSync(join(tempDir, LEGACY_DIR))).toBe(true);
 
         const configPath = join(tempDir, LEGACY_META_DIR, 'config.jsonc');
         const config = JSON.parse(readFileSync(configPath, 'utf-8')) as {
@@ -46,7 +45,6 @@ describe('init/create folder layout', () => {
 
         expect(config.active_folder).toBe(PRIMARY_TASKS_DIR);
         expect(config.folders[PRIMARY_TASKS_DIR]?.base_counter).toBe(0);
-        expect(config.folders[LEGACY_DIR]?.base_counter).toBe(0);
         expect(config.folders[LEGACY_META_DIR]).toBeUndefined();
     });
 

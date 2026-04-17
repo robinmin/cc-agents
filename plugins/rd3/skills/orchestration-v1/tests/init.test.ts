@@ -83,12 +83,11 @@ describe('validateTasksInfra', () => {
         dir = makeTempDir();
         mkdirSync(join(dir, 'docs', '.tasks'), { recursive: true });
         mkdirSync(join(dir, 'docs', 'tasks'), { recursive: true });
-        mkdirSync(join(dir, 'docs', 'prompts'), { recursive: true });
         writeFileSync(join(dir, 'docs', '.tasks', 'config.jsonc'), '{}');
         writeFileSync(join(dir, 'docs', '.tasks', 'task.md'), '# template');
         const result = validateTasksInfra(dir);
         expect(result.ready).toBe(true);
-        expect(result.checks).toHaveLength(4);
+        expect(result.checks).toHaveLength(3);
         expect(result.checks.every((c) => c.present)).toBe(true);
     });
 

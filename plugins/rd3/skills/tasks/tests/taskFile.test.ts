@@ -98,7 +98,7 @@ impl_progress:
         expect(fm?.impl_progress?.implementation).toBe('completed');
     });
 
-    test('parses optional profile frontmatter', () => {
+    test('parses optional profile frontmatter as preset', () => {
         const content = `---
 name: Profiled Task
 status: Todo
@@ -106,7 +106,6 @@ profile: "research"
 ---
 `;
         const fm = parseFrontmatter(content);
-        expect(fm?.profile).toBe('research');
         expect(fm?.preset).toBe('research');
     });
 
@@ -118,7 +117,6 @@ profile: "review-only"
 ---
 `;
         const fm = parseFrontmatter(content);
-        expect(fm?.profile).toBe('review-only');
         expect(fm?.preset).toBe('review-only');
     });
 
@@ -132,7 +130,6 @@ profile: "complex"
 `;
         const fm = parseFrontmatter(content);
         expect(fm?.preset).toBe('simple');
-        expect(fm?.profile).toBe('simple');
     });
 
     test('parses feature-id only when populated', () => {

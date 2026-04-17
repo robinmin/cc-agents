@@ -108,7 +108,7 @@ describe('tasks CLI contracts', () => {
 
         const content = readFileSync(payload.data.path, 'utf-8');
         expect(content).toContain('description: Rich CLI Contract');
-        expect(content).toContain('priority: "high"');
+        expect(content).toContain('priority: high');
         expect(content).toContain('estimated_hours: 5');
         expect(content).toContain('dependencies: ["0001","0002"]');
         expect(content).toContain('tags: ["planning","workflow-core"]');
@@ -129,7 +129,7 @@ describe('tasks CLI contracts', () => {
         expect(createPayload.ok).toBe(true);
 
         let content = readFileSync(createPayload.data.path, 'utf-8');
-        expect(content).toContain('preset: "simple"');
+        expect(content).toContain('preset: simple');
         expect(content).not.toContain('profile: ');
 
         const updateResult = runCli(tempDir, ['update', '0001', '--field', 'profile', '--value', 'research', '--json']);
@@ -144,7 +144,7 @@ describe('tasks CLI contracts', () => {
         expect(updatePayload.data.newValue).toBe('research');
 
         content = readFileSync(createPayload.data.path, 'utf-8');
-        expect(content).toContain('preset: "research"');
+        expect(content).toContain('preset: research');
         expect(content).not.toContain('profile: ');
     });
 
@@ -167,7 +167,7 @@ describe('tasks CLI contracts', () => {
         expect(createPayload.ok).toBe(true);
 
         let content = readFileSync(createPayload.data.path, 'utf-8');
-        expect(content).toContain('feature-id: "feat_auth_google_oauth"');
+        expect(content).toContain('feature-id: feat_auth_google_oauth');
 
         const legacyPath = join(tempDir, 'docs/tasks/0002_Legacy_Task.md');
         writeFileSync(
@@ -214,7 +214,7 @@ Legacy background.
         expect(updatePayload.data.newValue).toBe('feat_auth_magic_link');
 
         content = readFileSync(legacyPath, 'utf-8');
-        expect(content).toContain('feature-id: "feat_auth_magic_link"');
+        expect(content).toContain('feature-id: feat_auth_magic_link');
     });
 
     test('phase-only profiles round-trip through the CLI', () => {
@@ -229,7 +229,7 @@ Legacy background.
         };
         expect(createPayload.ok).toBe(true);
         let content = readFileSync(createPayload.data.path, 'utf-8');
-        expect(content).toContain('preset: "review-only"');
+        expect(content).toContain('preset: review-only');
         expect(content).not.toContain('profile: ');
 
         const updateResult = runCli(tempDir, ['update', '0001', '--field', 'preset', '--value', 'docs-only', '--json']);
@@ -242,7 +242,7 @@ Legacy background.
         expect(updatePayload.ok).toBe(true);
         expect(updatePayload.data.newValue).toBe('docs-only');
         content = readFileSync(createPayload.data.path, 'utf-8');
-        expect(content).toContain('preset: "docs-only"');
+        expect(content).toContain('preset: docs-only');
         expect(content).not.toContain('profile: ');
     });
 
@@ -427,7 +427,7 @@ Legacy background.
         expect(payload.data.errors).toEqual([]);
 
         const content = readFileSync(join(tempDir, 'docs/tasks/0001_Agent_Footer_One.md'), 'utf-8');
-        expect(content).toContain('priority: "medium"');
+        expect(content).toContain('priority: medium');
         expect(content).toContain('estimated_hours: 3');
         expect(content).toContain('dependencies: ["0007"]');
         expect(content).toContain('tags: ["agent-output"]');
@@ -499,21 +499,25 @@ Legacy background.
 
     test('list --all includes tasks from every configured folder while default stays focused', () => {
         expect(runCli(tempDir, ['init']).exitCode).toBe(0);
+        expect(
+            runCli(tempDir, ['config', 'add-folder', 'docs/archive', '--base-counter', '100', '--label', 'Archive'])
+                .exitCode,
+        ).toBe(0);
         expect(runCli(tempDir, ['create', 'Current Phase Task']).exitCode).toBe(0);
-        expect(runCli(tempDir, ['create', 'Legacy Phase Task', '--folder', 'docs/prompts']).exitCode).toBe(0);
+        expect(runCli(tempDir, ['create', 'Archive Phase Task', '--folder', 'docs/archive']).exitCode).toBe(0);
 
         const focused = runCli(tempDir, ['list']);
         expect(focused.exitCode).toBe(0);
         expect(focused.stdout).toContain('# Kanban Board - Primary');
         expect(focused.stdout).toContain('[ ] 0001_Current_Phase_Task');
-        expect(focused.stdout).not.toContain('Legacy_Phase_Task');
-        expect(focused.stdout).not.toContain('# Kanban Board - Legacy');
+        expect(focused.stdout).not.toContain('Archive_Phase_Task');
+        expect(focused.stdout).not.toContain('# Kanban Board - Archive');
 
         const allFolders = runCli(tempDir, ['list', '--all']);
         expect(allFolders.exitCode).toBe(0);
         expect(allFolders.stdout).toContain('# Kanban Board - Primary');
-        expect(allFolders.stdout).toContain('# Kanban Board - Legacy');
+        expect(allFolders.stdout).toContain('# Kanban Board - Archive');
         expect(allFolders.stdout).toContain('[ ] 0001_Current_Phase_Task');
-        expect(allFolders.stdout).toContain('[ ] 0002_Legacy_Phase_Task');
+        expect(allFolders.stdout).toContain('[ ] 0101_Archive_Phase_Task');
     });
 });

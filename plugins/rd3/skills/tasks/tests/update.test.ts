@@ -284,7 +284,7 @@ Requirements content for testing purposes.
             }
 
             const updated = readFileSync(taskPath, 'utf8');
-            expect(updated).toContain('feature-id: "feat_auth_magic_link"');
+            expect(updated).toContain('feature-id: feat_auth_magic_link');
         });
     });
 
@@ -294,7 +294,7 @@ Requirements content for testing purposes.
             const result = updateTask(tempDir, '0001', { field: 'profile', value: 'complex', quiet: false });
             expect(result.ok).toBe(true);
             const content = readFileSync(taskPath, 'utf8');
-            expect(content).toContain('preset: "complex"');
+            expect(content).toContain('preset: complex');
             expect(content).not.toContain('profile: ');
         });
 
@@ -303,7 +303,7 @@ Requirements content for testing purposes.
             const result = updateTask(tempDir, '0001', { field: 'profile', value: 'review-only', quiet: false });
             expect(result.ok).toBe(true);
             const content = readFileSync(taskPath, 'utf8');
-            expect(content).toContain('preset: "review-only"');
+            expect(content).toContain('preset: review-only');
             expect(content).not.toContain('profile: ');
         });
 
@@ -312,7 +312,7 @@ Requirements content for testing purposes.
             const result = updateTask(tempDir, '0001', { field: 'preset', value: 'docs-only', quiet: false });
             expect(result.ok).toBe(true);
             const content = readFileSync(taskPath, 'utf8');
-            expect(content).toContain('preset: "docs-only"');
+            expect(content).toContain('preset: docs-only');
             expect(content).not.toContain('profile: ');
         });
 

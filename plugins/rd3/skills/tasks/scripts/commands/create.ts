@@ -8,6 +8,7 @@ import { getNextWbs, formatWbs } from '../lib/wbs';
 import { getTemplateVars, substituteTemplateVars, stripInputTips } from '../lib/template';
 import { VALID_PROFILES } from '../types';
 import { logger } from '../../../../scripts/logger';
+import { stripYamlUnsafeChars } from '../lib/template';
 
 const CREATE_LOCK_RETRY_MS = 10;
 const CREATE_LOCK_TIMEOUT_MS = 5_000;
@@ -214,8 +215,10 @@ export function isStaleLock(lockPath: string, staleMs = CREATE_LOCK_STALE_MS): b
     }
 }
 
+const SLEEP_BUFFER = new Int32Array(new SharedArrayBuffer(4));
+
 export function sleepSync(durationMs: number): void {
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, durationMs);
+    Atomics.wait(SLEEP_BUFFER, 0, 0, durationMs);
 }
 
 export function getErrorCode(error: unknown): string | undefined {
@@ -266,7 +269,7 @@ export function renderFrontmatterValue(value: string | number | string[]): strin
         return String(value);
     }
 
-    return JSON.stringify(value);
+    return stripYamlUnsafeChars(value);
 }
 
 export function getTaskTemplate(projectRoot: string): string {

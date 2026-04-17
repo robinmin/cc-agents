@@ -89,7 +89,6 @@ export function parseFrontmatter(content: string): TaskFrontmatter | null {
         const normalizedPreset = stripWrappingQuotes(presetValue);
         if (isValidProfile(normalizedPreset)) {
             frontmatter.preset = normalizedPreset;
-            frontmatter.profile = normalizedPreset;
         }
     }
 
@@ -313,6 +312,30 @@ const STATUS_GUARD: Record<string, { required: string[]; warning: string[] }> = 
     },
 };
 
+function checkSections(
+    content: string,
+    sections: string[],
+    level: 'error' | 'warning',
+    issues: ValidationIssue[],
+): void {
+    for (const section of sections) {
+        const parsed = parseSection(content, section);
+        if (!parsed || parsed.startsWith('[')) {
+            issues.push({ type: level, message: `${section} section is empty or placeholder-only` });
+        }
+    }
+}
+
+function buildValidationResult(issues: ValidationIssue[]): ValidationResult {
+    return {
+        errors: issues.filter((i) => i.type === 'error'),
+        warnings: issues.filter((i) => i.type === 'warning'),
+        suggestions: issues.filter((i) => i.type === 'suggestion'),
+        hasErrors: issues.some((i) => i.type === 'error'),
+        hasWarnings: issues.some((i) => i.type === 'warning'),
+    };
+}
+
 export function validateTaskForTransition(task: TaskFile, newStatus: TaskStatus): ValidationResult {
     const issues: ValidationIssue[] = [];
 
@@ -324,18 +347,8 @@ export function validateTaskForTransition(task: TaskFile, newStatus: TaskStatus)
     // Phase-aware section validation
     const guard = STATUS_GUARD[newStatus];
     if (guard) {
-        for (const section of guard.required) {
-            const content = parseSection(task.content, section);
-            if (!content || content.startsWith('[')) {
-                issues.push({ type: 'error', message: `${section} section is empty or placeholder-only` });
-            }
-        }
-        for (const section of guard.warning) {
-            const content = parseSection(task.content, section);
-            if (!content || content.startsWith('[')) {
-                issues.push({ type: 'warning', message: `${section} section is empty or placeholder-only` });
-            }
-        }
+        checkSections(task.content, guard.required, 'error', issues);
+        checkSections(task.content, guard.warning, 'warning', issues);
     }
 
     // Tier 3: suggestions (informational)
@@ -344,11 +357,28 @@ export function validateTaskForTransition(task: TaskFile, newStatus: TaskStatus)
         issues.push({ type: 'suggestion', message: 'References section is empty' });
     }
 
-    return {
-        errors: issues.filter((i) => i.type === 'error'),
-        warnings: issues.filter((i) => i.type === 'warning'),
-        suggestions: issues.filter((i) => i.type === 'suggestion'),
-        hasErrors: issues.some((i) => i.type === 'error'),
-        hasWarnings: issues.some((i) => i.type === 'warning'),
-    };
+    return buildValidationResult(issues);
+}
+
+const CONTENT_REQUIRED_SECTIONS = ['Background', 'Requirements'];
+const CONTENT_WARNING_SECTIONS = ['Solution', 'Design', 'Plan'];
+
+export function validateTaskContent(task: TaskFile): ValidationResult {
+    const issues: ValidationIssue[] = [];
+
+    // Tier 1: structural errors
+    if (!VALID_STATUSES.includes(task.status)) {
+        issues.push({ type: 'error', message: 'Missing or invalid frontmatter status' });
+    }
+
+    checkSections(task.content, CONTENT_REQUIRED_SECTIONS, 'error', issues);
+    checkSections(task.content, CONTENT_WARNING_SECTIONS, 'warning', issues);
+
+    // Tier 3: suggestions
+    const refs = parseSection(task.content, 'References');
+    if (!refs || refs.startsWith('[')) {
+        issues.push({ type: 'suggestion', message: 'References section is empty' });
+    }
+
+    return buildValidationResult(issues);
 }

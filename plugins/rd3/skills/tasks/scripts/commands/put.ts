@@ -7,6 +7,7 @@ import { loadConfig } from '../lib/config';
 import { findTaskByWbs } from '../lib/wbs';
 import { appendArtifactRow } from '../lib/taskFile';
 import { logger } from '../../../../scripts/logger';
+import { isPathWithinRoot } from '../lib/path';
 import type { ArtifactEntry } from '../types';
 
 function inferArtifactType(fileName: string): string {
@@ -54,6 +55,10 @@ export function putArtifact(
     sourcePath: string,
     options: { name?: string; agent?: string; quiet?: boolean } = {},
 ): Result<{ path: string; artifact: ArtifactEntry }> {
+    if (!/^\d{1,4}$/.test(wbs)) {
+        return err(`Invalid WBS format: ${wbs}`);
+    }
+
     const config = loadConfig(projectRoot);
     const taskPath = findTaskByWbs(wbs, config, projectRoot);
 
@@ -76,6 +81,11 @@ export function putArtifact(
 
     const displayName = displayNameResult.value;
     const targetPath = resolve(artifactSubDir, displayName);
+
+    if (!isPathWithinRoot(projectRoot, targetPath)) {
+        return err('Artifact path resolves outside the project root');
+    }
+
     const artifactRelativePath = relative(projectRoot, targetPath);
 
     // Lazily create directory

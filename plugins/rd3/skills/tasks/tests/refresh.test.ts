@@ -99,7 +99,7 @@ describe('refreshKanbanBoards', () => {
     });
 
     test('handles multiple folders', () => {
-        const secondFolder = 'docs/prompts';
+        const secondFolder = 'docs/archive';
         mkdirSync(join(tempDir, secondFolder), { recursive: true });
         writeFileSync(
             join(tempDir, 'docs', '.tasks', 'config.jsonc'),

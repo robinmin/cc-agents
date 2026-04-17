@@ -11,11 +11,9 @@ import {
     getMetaDir,
     getConfigPath,
     getTemplatePath,
-    getLegacyTemplatePath,
     saveConfig,
     resetConfigCache,
     LEGACY_META_DIR,
-    LEGACY_DIR,
     PRIMARY_TASKS_DIR,
 } from '../scripts/lib/config';
 import type { TasksConfig } from '../scripts/types';
@@ -120,7 +118,7 @@ describe('loadConfig', () => {
   "$schema_version": 1,
   "active_folder": "docs/tasks",
   "folders": {
-    "docs/prompts": {
+    "docs/archive": {
       "base_counter": 0,
       "label": "Phase 1",
     },
@@ -135,20 +133,20 @@ describe('loadConfig', () => {
 
         const config = loadConfig(tempDir);
         expect(config.active_folder).toBe('docs/tasks');
-        expect(config.folders['docs/prompts']?.label).toBe('Phase 1');
+        expect(config.folders['docs/archive']?.label).toBe('Phase 1');
         expect(config.folders['docs/tasks']?.base_counter).toBe(184);
     });
 
-    test('returns legacy config when no config.jsonc exists', () => {
+    test('returns minimal config when no config.jsonc exists', () => {
         const config = loadConfig(tempDir);
         expect(config.active_folder).toBe(PRIMARY_TASKS_DIR);
-        expect(config.folders[LEGACY_DIR]).toBeTruthy();
+        expect(config.folders[PRIMARY_TASKS_DIR]).toBeTruthy();
     });
 
     test('loadConfig handles malformed config.jsonc gracefully', () => {
         const configPath = join(tempDir, LEGACY_META_DIR, 'config.jsonc');
         writeFileSync(configPath, '{ invalid json ');
-        // Should fall back to legacy mode
+        // Should fall back to minimal defaults
         const config = loadConfig(tempDir);
         expect(config.active_folder).toBe(PRIMARY_TASKS_DIR);
     });
@@ -193,19 +191,19 @@ describe('resolveActiveFolder', () => {
     test('prefers cli folder override', () => {
         const config: TasksConfig = {
             $schema_version: 1,
-            active_folder: LEGACY_DIR,
-            folders: { [LEGACY_DIR]: { base_counter: 0 } },
+            active_folder: 'docs/tasks',
+            folders: { 'docs/tasks': { base_counter: 0 } },
         };
-        expect(resolveActiveFolder(config, 'docs/tasks2')).toBe('docs/tasks2');
+        expect(resolveActiveFolder(config, 'docs/archive')).toBe('docs/archive');
     });
 
-    test('falls back to legacy folder when config has no active folder', () => {
+    test('falls back to primary folder when config has no active folder', () => {
         const config = {
             $schema_version: 1,
             active_folder: '',
-            folders: { [LEGACY_DIR]: { base_counter: 0 } },
+            folders: { 'docs/tasks': { base_counter: 0 } },
         } as TasksConfig;
-        expect(resolveActiveFolder(config)).toBe(LEGACY_DIR);
+        expect(resolveActiveFolder(config)).toBe(PRIMARY_TASKS_DIR);
     });
 });
 
@@ -230,13 +228,6 @@ describe('getTemplatePath', () => {
     });
 });
 
-describe('getLegacyTemplatePath', () => {
-    test('returns resolved legacy template path', () => {
-        const legacyPath = getLegacyTemplatePath('/project/root');
-        expect(legacyPath).toBe('/project/root/docs/prompts/.template.md');
-    });
-});
-
 describe('saveConfig', () => {
     const tempDir = join(Bun.env.TEMP_DIR ?? '/tmp', `save-config-test-${Date.now()}`);
 
@@ -251,8 +242,8 @@ describe('saveConfig', () => {
     test('saves config to config.jsonc', () => {
         const config = {
             $schema_version: 1,
-            active_folder: LEGACY_DIR,
-            folders: { [LEGACY_DIR]: { base_counter: 0 } },
+            active_folder: PRIMARY_TASKS_DIR,
+            folders: { [PRIMARY_TASKS_DIR]: { base_counter: 0 } },
         };
         const result = saveConfig(config, tempDir);
         expect(result.ok).toBe(true);
@@ -263,7 +254,7 @@ describe('saveConfig', () => {
 
     test('saveConfig returns err on write failure', () => {
         // Write to a path where parent dir does not exist — should fail
-        const config = { $schema_version: 1, active_folder: LEGACY_DIR, folders: {} };
+        const config = { $schema_version: 1, active_folder: PRIMARY_TASKS_DIR, folders: {} };
         const result = saveConfig(config, '/nonexistent/root');
         expect(result.ok).toBe(false);
     });

@@ -73,7 +73,8 @@ describe('router', () => {
     it('handles CORS preflight', async () => {
         const res = await fetch('OPTIONS', '/tasks');
         expect(res.status).toBe(204);
-        expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
+        // No Origin header → empty ACAO (only localhost origins allowed)
+        expect(res.headers.get('Access-Control-Allow-Origin')).toBe('');
     });
 
     it('lists tasks', async () => {

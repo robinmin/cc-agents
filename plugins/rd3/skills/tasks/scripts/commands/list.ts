@@ -77,7 +77,8 @@ function loadKanbanTemplate(projectRoot: string): string | null {
 function renderKanbanFromTemplate(template: string, tasks: TaskListItem[], phaseLabel: string): string {
     let content = template;
 
-    // Substitute PHASE_LABEL
+    // Substitute PHASE_LABEL — handled here rather than in template.ts because
+    // it's kanban-specific context (the folder label), not a generic template variable.
     content = content.replace(/\{\{\s*PHASE_LABEL\s*\}\}/g, phaseLabel || '');
 
     // Substitute status task placeholders: {{ BACKLOG_TASKS }}, {{ TODO_TASKS }}, etc.

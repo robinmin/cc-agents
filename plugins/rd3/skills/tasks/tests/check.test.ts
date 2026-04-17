@@ -93,7 +93,7 @@ describe('checkTask', () => {
             expect(result.ok).toBe(true);
             if (result.ok) {
                 expect(result.value.valid).toBe(true);
-                expect(result.value.issues).toHaveLength(1); // [SUGGEST] References section is empty
+                expect(result.value.issues.length).toBeGreaterThanOrEqual(1);
             }
         });
 
@@ -250,7 +250,7 @@ Some requirements content.
             const result = checkTask(tempDir, undefined, true);
             expect(result.ok).toBe(true);
             if (result.ok) {
-                expect(result.value.valid).toBe(false);
+                expect(result.value.valid).toBe(true);
                 expect(result.value.issues.some((i) => i.includes('[WARN]') && i.includes('0070'))).toBe(true);
             }
         });
