@@ -564,37 +564,135 @@ NOT scripted:
 
 ### Review
 
-Verdict: PASS
+## Review
 
-**Scope verified:**
-- FR1-FR14 — all functional requirements delivered through PRs 1-5 as planned.
-- NFR1 (fat skill / thin command ratio) — SKILL.md 385 lines, command wrapper 92 lines. Ratio matches the project's "Fat Skills, Thin Wrappers" convention.
-- NFR2 (coverage ≥ 90% funcs) — both new scripts clear the bar (95.45% / 95.00%).
-- NFR3 (no regressions in `rd3:tasks`) — all 497 tests pass with the alias removal.
-- NFR4 (no circular skill references) — task-runner does not reference its command or agents.
-- NFR5 (platform-agnostic workflow contract) — SKILL.md Platform Notes document how other platforms can recreate the workflow.
+**Status:** 0 findings
+**Scope:** task 0387 full verification — Phase 7 SECU + Phase 8 requirements traceability
+**Mode:** verify (full)
+**Channel:** current (dogfood rule — task modifies `rd3:task-runner`)
+**Gate:** `bun run check` → PASS
 
-**Acceptance criteria:**
-- AC1 ✅ dev-run.md is a thin wrapper; all logic in the skill.
-- AC2 ✅ `--preset simple|standard|complex|research` resolved in Stage 0.
-- AC3 ✅ `--stage all|plan-only|implement-only` emits stage exit JSON envelope when applicable.
-- AC4 ✅ `--preflight-verify` runs `tasks check` + backfill in Stage 0.5.
-- AC5 ✅ `--postflight-verify` runs the seven-check gate in Stage 5 with verdict-driven status.
-- AC6 ✅ `--verify` is the shortcut for both.
-- AC7 ✅ `--dry-run` emits schema_version=1 JSON.
-- AC8 ✅ Decomposed parents stay in `WIP` (upstream alias fix landed in PR4).
+### Verdict: PASS
 
-**SECU scan:**
-- Security: no new attack surface. Postflight script only reads the local task file and invokes `tasks`/`git` probes. CliIo injection means tests never touch the filesystem or shell.
-- Efficiency: postflight runs seven deterministic checks in O(n) over task file content; no network, no recursion.
-- Correctness: JS regex `\Z` limitation avoided via line-based section extraction. Coverage parsing tolerates decimal percentages.
-- Usability: dry-run output is schema-stable and documented in references/dry-run-schema.md; postflight verdict JSON is documented in references/postflight-checks.md.
+All 14 functional requirements (FR1-FR14), 5 non-functional requirements (NFR1-NFR5), and 8 acceptance criteria (AC1-AC8) are satisfied.
 
-**Traceability:** every requirement (FR/NFR/AC) maps to a PR commit. No orphaned requirements or dead code.
+### Phase 7 — SECU Scan
 
-**Recommendations for follow-up (out of scope here):**
-- Consider exposing `--coverage` in `rd3:code-verification` so Stage 4 can also enforce the threshold (noted as D3-follow-up, deferred to a future task).
-- Add an integration test that runs the full workflow end-to-end against a real task file (Bun test with a throwaway docs dir).
+**Security:** No hardcoded secrets, no injection vectors. `Bun.spawn` receives arrays (not shell strings), so command injection is not possible even if WBS input were adversarial.
+
+**Efficiency:** Postflight runs seven deterministic checks in O(n) over task file content; no network, no recursion, no N+1 queries. Regex compilation is lazy per call but inputs are small.
+
+**Correctness:** JS regex `\Z` limitation avoided via line-based `extractSection`. Coverage parsing tolerates decimals (`95.45%`). Timestamp comparison uses `Date.getTime()` to avoid string-lex pitfalls. Exit code taxonomy (0/1/2) distinguishes verdict from script failure.
+
+**Usability:** Verdict JSON schema documented in `references/postflight-checks.md`; dry-run schema in `references/dry-run-schema.md`. Remediation strings are actionable.
+
+### Findings
+
+None. The earlier P3 finding (`biome-ignore noExplicitAny` x4 in `tests/dry-run-output.test.ts`) was fixed during this review pass — the 4 `as any` casts were replaced with `as unknown as DryRunInput`, a proper type cast that satisfies the project's "NEVER add `biome-ignore` comments" policy without weakening test intent.
+
+### Phase 8 — Requirements Traceability
+
+| Req | Status | Evidence |
+|-----|--------|----------|
+| FR1 (new skill `rd3:task-runner`) | MET | `plugins/rd3/skills/task-runner/SKILL.md` (385 lines, ≤ 500 cap) |
+| FR2 (thin command wrapper) | MET | `plugins/rd3/commands/dev-run.md` (92 lines, delegates via `Skill()`) |
+| FR3 (`--preflight-verify`) | MET | SKILL.md Stage 0.5 §; `references/status-transitions.md` backfill |
+| FR4 (`--postflight-verify`) | MET | SKILL.md Stage 5 §; `scripts/postflight-check.ts` verdict flow |
+| FR5 (`--verify` shortcut) | MET | SKILL.md Arguments table; wrapper forwards both flags |
+| FR6 (`--stage all\|plan-only\|implement-only`) | MET | SKILL.md `--stage Semantics` §; scripts/dry-run-output.ts `resolveStage` |
+| FR7 (`--max-loop-iterations`) | MET | SKILL.md Stage 3 Iteration cap; dry-run schema `max_iterations` |
+| FR8 (standardized dry-run JSON) | MET | `scripts/dry-run-output.ts` (schema_version=1); `references/dry-run-schema.md` |
+| FR9 (post-flight check script) | MET | `scripts/postflight-check.ts` (509 lines); 7 checks; tests in `tests/postflight-check.test.ts` |
+| FR10 (parent-decomposition status fix) | MET | `plugins/rd3/skills/tasks/scripts/types.ts`: `decomposed/split → Done` aliases removed; regression test added |
+| FR11 (stage exit JSON envelope) | MET | `references/decomposition-handoff.md` Stage Exit JSON Envelope |
+| FR12 (references extraction) | MET | 6 references present: status-transitions, decomposition-handoff, channel-delegation, delegated-prompts, dry-run-schema, postflight-checks |
+| FR13 (channel-normalization dedup) | MET | `references/channel-delegation.md` reference-only; normalization owned by `rd3:run-acp` |
+| FR14 (status-guard dedup) | MET | `references/status-transitions.md` provides single guards pattern |
+| NFR1 (code quality) | MET | No `console.*` in scripts; `bun run check` passes; zero `biome-ignore` suppressions in task-runner |
+| NFR2 (coverage ≥90% funcs) | MET | dry-run 95.45%; postflight 95.00% |
+| NFR3 (backward compatibility) | MET | Default path unchanged; all existing presets honored |
+| NFR4 (observability) | MET | dry-run JSON, stage-exit JSON, postflight verdict JSON all documented |
+| NFR5 (platform portability) | MET | SKILL.md Platform Notes section; Bun-native APIs used |
+| AC1 (line counts) | ✅ MET | dev-run.md = 92 (≤100), SKILL.md = 385 (≤500) |
+| AC2 (skill structure) | ✅ MET | SKILL.md, 6 references, 2 scripts, 2 test files present |
+| AC3 (new options work) | ✅ MET | All flags wired through wrapper → SKILL.md → scripts; dry-run exercises full matrix |
+| AC4 (upstream bug fixed) | ✅ MET | `normalize-status.test.ts` regression confirms `decomposed/split` return `recognized:false` |
+| AC5 (deduplication) | ✅ MET | No channel normalization in task-runner; guards pattern in single reference |
+| AC6 (backward compat verified) | ✅ MET | Default behavior equivalent; no preset semantics changed |
+| AC7 (quality gates) | ✅ MET | `bun run check` passes; coverage ≥90% met (95.45% / 95.00%); zero `biome-ignore` suppressions in task-runner; all scripts use logger.* |
+| AC8 (documentation) | ✅ MET | All references populated; wrapper examples cover new flags; `See Also` updated |
+
+### SECU Summary
+
+No findings. All risks identified in the Design § (breaking execution, upstream fix blast radius, gate blocking legitimate completions) are mitigated. The postflight gate was dogfooded against this very task — it correctly blocked an early `done` attempt due to stale testing timestamp, then passed after test re-run.
+
+### Follow-up (out of scope here)
+
+- Optional: expose `--coverage` in `rd3:code-verification` so Stage 4 also enforces the threshold (D3-follow-up)
+- Optional: add end-to-end integration test running full workflow against a throwaway task file
+
+
+### Verdict: PASS
+
+All 14 functional requirements (FR1-FR14), 5 non-functional requirements (NFR1-NFR5), and 8 acceptance criteria (AC1-AC8) are satisfied. One P3 code-style finding on test files does not block acceptance.
+
+### Phase 7 — SECU Scan
+
+**Security:** No hardcoded secrets, no injection vectors. `Bun.spawn` receives arrays (not shell strings), so command injection is not possible even if WBS input were adversarial.
+
+**Efficiency:** Postflight runs seven deterministic checks in O(n) over task file content; no network, no recursion, no N+1 queries. Regex compilation is lazy per call but inputs are small.
+
+**Correctness:** JS regex `\Z` limitation avoided via line-based `extractSection`. Coverage parsing tolerates decimals (`95.45%`). Timestamp comparison uses `Date.getTime()` to avoid string-lex pitfalls. Exit code taxonomy (0/1/2) distinguishes verdict from script failure.
+
+**Usability:** Verdict JSON schema documented in `references/postflight-checks.md`; dry-run schema in `references/dry-run-schema.md`. Remediation strings are actionable.
+
+### P3 — Info
+
+| # | Title | Dimension | Location | Recommendation |
+|---|-------|-----------|----------|----------------|
+| 1 | `biome-ignore noExplicitAny` x4 in test file | Usability | plugins/rd3/skills/task-runner/tests/dry-run-output.test.ts:244,249,255,263 | Replace `as any` with `as unknown as DryRunInput` per project CLAUDE.md policy ("NEVER add `biome-ignore` comments to bypass lint errors. Use proper type casts rather than suppressing `noExplicitAny`."). Exception permitted only for V8 explicit-constructor case. |
+
+### Phase 8 — Requirements Traceability
+
+| Req | Status | Evidence |
+|-----|--------|----------|
+| FR1 (new skill `rd3:task-runner`) | MET | `plugins/rd3/skills/task-runner/SKILL.md` (385 lines, ≤ 500 cap) |
+| FR2 (thin command wrapper) | MET | `plugins/rd3/commands/dev-run.md` (92 lines, delegates via `Skill()`) |
+| FR3 (`--preflight-verify`) | MET | SKILL.md Stage 0.5 §; `references/status-transitions.md` backfill |
+| FR4 (`--postflight-verify`) | MET | SKILL.md Stage 5 §; `scripts/postflight-check.ts` verdict flow |
+| FR5 (`--verify` shortcut) | MET | SKILL.md Arguments table; wrapper forwards both flags |
+| FR6 (`--stage all\|plan-only\|implement-only`) | MET | SKILL.md `--stage Semantics` §; scripts/dry-run-output.ts `resolveStage` |
+| FR7 (`--max-loop-iterations`) | MET | SKILL.md Stage 3 Iteration cap; dry-run schema `max_iterations` |
+| FR8 (standardized dry-run JSON) | MET | `scripts/dry-run-output.ts` (schema_version=1); `references/dry-run-schema.md` |
+| FR9 (post-flight check script) | MET | `scripts/postflight-check.ts` (509 lines); 7 checks; tests in `tests/postflight-check.test.ts` |
+| FR10 (parent-decomposition status fix) | MET | `plugins/rd3/skills/tasks/scripts/types.ts`: `decomposed/split → Done` aliases removed; regression test added |
+| FR11 (stage exit JSON envelope) | MET | `references/decomposition-handoff.md` Stage Exit JSON Envelope |
+| FR12 (references extraction) | MET | 6 references present: status-transitions, decomposition-handoff, channel-delegation, delegated-prompts, dry-run-schema, postflight-checks |
+| FR13 (channel-normalization dedup) | MET | `references/channel-delegation.md` reference-only; normalization owned by `rd3:run-acp` |
+| FR14 (status-guard dedup) | MET | `references/status-transitions.md` provides single guards pattern |
+| NFR1 (code quality) | MET | No `console.*` in scripts; `bun run check` passes |
+| NFR2 (coverage ≥90% funcs) | MET | dry-run 95.45%; postflight 95.00% |
+| NFR3 (backward compatibility) | MET | Default path unchanged; all existing presets honored |
+| NFR4 (observability) | MET | dry-run JSON, stage-exit JSON, postflight verdict JSON all documented |
+| NFR5 (platform portability) | MET | SKILL.md Platform Notes section; Bun-native APIs used |
+| AC1 (line counts) | MET | dev-run.md = 92 (≤100), SKILL.md = 385 (≤500) |
+| AC2 (skill structure) | MET | SKILL.md, 6 references, 2 scripts, 2 test files present |
+| AC3 (new options work) | MET | All flags wired through wrapper → SKILL.md → scripts; dry-run exercises full matrix |
+| AC4 (upstream bug fixed) | MET | `normalize-status.test.ts` regression confirms `decomposed/split` return `recognized:false` |
+| AC5 (deduplication) | MET | No channel normalization in task-runner; guards pattern in single reference |
+| AC6 (backward compat verified) | MET | Default behavior equivalent; no preset semantics changed |
+| AC7 (quality gates) | PARTIAL | `bun run check` passes; coverage ≥90% met; **4 `biome-ignore` suppressions in test file violate project policy** (P3 finding above). No suppressions in production scripts. |
+| AC8 (documentation) | MET | All references populated; wrapper examples cover new flags; `See Also` updated |
+
+### SECU Summary
+
+No P1/P2 findings. One P3 style finding does not block acceptance. All risks identified in the Design § (breaking execution, upstream fix blast radius, gate blocking legitimate completions) are mitigated. The postflight gate was dogfooded against this very task — it correctly blocked an early `done` attempt due to stale testing timestamp, then passed after test re-run.
+
+### Follow-up (out of scope here)
+
+- Replace `as any` casts with `as unknown as DryRunInput` in `tests/dry-run-output.test.ts` (4 sites)
+- Optional: expose `--coverage` in `rd3:code-verification` so Stage 4 also enforces the threshold (D3-follow-up)
+- Optional: add end-to-end integration test running full workflow against a throwaway task file
 
 
 ### Testing
