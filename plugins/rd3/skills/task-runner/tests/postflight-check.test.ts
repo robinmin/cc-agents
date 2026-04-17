@@ -648,7 +648,20 @@ describe('liveIo — smoke', () => {
     });
 
     it('writeStdout and writeStderr forward to process streams without throwing', () => {
-        expect(() => liveIo.writeStdout('')).not.toThrow();
-        expect(() => liveIo.writeStderr('')).not.toThrow();
+        // Isolate from other tests that may have swapped process.stdout.write /
+        // process.stderr.write with recursive capture closures and failed to
+        // restore cleanly. Without this guard, a sibling test's leaked closure
+        // can cause infinite recursion when we invoke the real writer.
+        const origStdoutWrite = process.stdout.write;
+        const origStderrWrite = process.stderr.write;
+        process.stdout.write = (() => true) as typeof process.stdout.write;
+        process.stderr.write = (() => true) as typeof process.stderr.write;
+        try {
+            expect(() => liveIo.writeStdout('')).not.toThrow();
+            expect(() => liveIo.writeStderr('')).not.toThrow();
+        } finally {
+            process.stdout.write = origStdoutWrite;
+            process.stderr.write = origStderrWrite;
+        }
     });
 });
