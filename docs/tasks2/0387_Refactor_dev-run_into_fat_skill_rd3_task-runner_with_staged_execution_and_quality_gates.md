@@ -1,9 +1,9 @@
 ---
 name: "Refactor dev-run into fat skill rd3:task-runner with staged execution and quality gates"
 description: "Refactor dev-run into fat skill rd3:task-runner with staged execution and quality gates"
-status: WIP
+status: Done
 created_at: 2026-04-17T06:08:10.948Z
-updated_at: 2026-04-17T06:16:57.413Z
+updated_at: 2026-04-17T15:13:26.517Z
 folder: docs/tasks2
 type: task
 tags: ["refactor","architecture","dev-run","task-runner","fat-skill"]
@@ -318,50 +318,38 @@ Refactor `plugins/rd3/commands/dev-run.md` (619-line monolith) into a fat skill 
 
 ### Solution
 
-## High-Level Approach
+Delivered in 5 PRs on branch `main`:
 
-Single fat skill `rd3:task-runner` with scripts for deterministic checks, plus thin command wrapper `dev-run.md`. Verbose contract details extracted to `references/`. Upstream bug in `rd3:tasks` fixed to eliminate decomposition workarounds.
+**PR1 (`8289c205`)** — Mechanical extraction. Created the fat skill `rd3:task-runner` at `plugins/rd3/skills/task-runner/` with `SKILL.md` plus six references (status-transitions, decomposition-handoff, channel-delegation, delegated-prompts, dry-run-schema, postflight-checks). Collapsed `plugins/rd3/commands/dev-run.md` from 619 lines to 92 lines, now a thin wrapper that delegates via `Skill(skill="rd3:task-runner", ...)`.
 
-## Directory Layout
+**PR2 (`6f1dee5c`)** — Added two deterministic scripts with 128 tests:
+- `scripts/dry-run-output.ts` — emits `DryRunOutput` (schema_version=1) describing the resolved workflow shape. CLI uses `runCli(argv, io: CliIo)` pattern so mocked IO can exercise CLI paths in-process; `liveIo` wraps `Bun.file`, `Bun.stdin`, `process.stdout/stderr`.
+- `scripts/postflight-check.ts` — seven-check completion gate (task-sections-populated, verification-verdict-pass, code-changes-exist, no-uncommitted-drift, coverage-threshold, testing-evidence-fresh, delegated-evidence-reconciled). Returns `PostflightVerdict` with exit code 0 (PASS), 1 (BLOCKED), or 2 (script error). Same `CliIo` injection pattern for testability.
+- Coverage: 95.45% funcs / 98.54% lines (dry-run), 95.00% funcs / 98.60% lines (postflight). Combined 128 tests.
 
-```
-plugins/rd3/skills/task-runner/
-├── SKILL.md                              (~450 lines — contract, stages, decision trees)
-├── scripts/
-│   ├── dry-run-output.ts                 (~60 lines — emit standardized dry-run JSON)
-│   └── postflight-check.ts               (~120 lines — deterministic completion checks)
-├── tests/
-│   ├── dry-run-output.test.ts
-│   └── postflight-check.test.ts
-└── references/
-    ├── status-transitions.md             (guards, backfill templates, state machine)
-    ├── decomposition-handoff.md          (paths A/B, batch JSON, parent-task contract)
-    ├── channel-delegation.md             (reference-only alias table)
-    ├── delegated-prompts.md              (plan/implement/verify prompt contracts)
-    ├── dry-run-schema.md                 (JSON output contract for CI)
-    └── postflight-checks.md              (enumerates each check + failure handling)
+**PR3 (`81f15766`)** — Tightened Stage 0.5 (preflight verify is a lightweight structural gate, not full SECU review; complex/research presets escalate to `rd3:request-intake --mode refine`) and Stage 5 (document exact invocation with `--coverage`/`--start-commit`/`--delegation-used` flags, handle exit codes 0/1/2, write `## Completion Blockers` on BLOCKED).
 
-plugins/rd3/commands/dev-run.md           (~80 lines — thin wrapper)
-```
+**PR4 (`362f1f12`)** — Upstream bug fix in `rd3:tasks`: removed `decomposed → Done` and `split → Done` aliases from `STATUS_ALIASES` in `plugins/rd3/skills/tasks/scripts/types.ts`. Decomposed parents now stay non-terminal (`WIP`) until their subtasks complete. Added regression test. Updated `rd3:task-decomposition` guidance and legacy `rd3:orchestration-v1` prompt text to match.
 
-## Workflow Stages (Updated)
+**PR5 (`2628abdc`)** — Deduplication/cleanup:
+- D1 (guards helper) — already consolidated in `references/status-transitions.md` by PR1
+- D2 (channel normalization) — already owned by `rd3:run-acp` per `references/channel-delegation.md`
+- D3 — documented `--coverage` routes to `rd3:sys-testing` (Stage 3) and `postflight-check.ts` (Stage 5), not to `rd3:code-verification`
+- D4 (delegated prompts) — already in `references/delegated-prompts.md`
+- D5 — added top-level **Dogfood Rule** section: tasks modifying `rd3:run-acp`, `rd3:code-verification`, or `rd3:task-runner` itself must use `--channel current`
 
-```
-Stage 0:    Preflight (always)
-Stage 0.5:  Pre-flight Verify  ← NEW (when --preflight-verify or --verify)
-Stage 1:    Optional Refine
-Stage 2:    Optional Plan + Decomposition
-            ├─ EXIT POINT for --stage plan-only
-            │   └─ emit JSON envelope → stop
-            └─ continue (default) or skip (--stage implement-only)
-Stage 3:    Implement ↔ Test Loop (bounded by --max-loop-iterations)
-Stage 4:    Verification Gate
-Stage 5:    Post-flight Verify  ← NEW (when --postflight-verify or --verify)
-            └─ Completion Blockers written if fails
-Final:      tasks update <WBS> done (only if Stage 5 passes or is skipped)
-```
+**New capabilities:**
+- `--preflight-verify` / `--postflight-verify` / `--verify` (shortcut) — pre/post-flight quality gates
+- `--stage all|plan-only|implement-only` — scheduler-friendly staged execution
+- `--max-loop-iterations <n>` — explicit cap on implement↔test loop (default 3)
+- `--dry-run` — standardized JSON envelope (schema_version=1)
 
-## Key Design Decisions
+**Final file sizes:**
+- `plugins/rd3/skills/task-runner/SKILL.md` — 385 lines
+- `plugins/rd3/commands/dev-run.md` — 92 lines (down from 619)
+- 2 scripts (~850 lines total) + 2 test files (~1100 lines total)
+- 6 reference files (~650 lines total)
+
 
 ### DD1 — Skill Naming: `rd3:task-runner`
 Avoid `rd3:dev-run` collision with `/rd3:dev-run` command. `task-runner` matches naming cadence of `sys-testing`, `code-implement-common`. Verb-led, no confusion with `rd3:orchestration-v2`.
@@ -576,10 +564,53 @@ NOT scripted:
 
 ### Review
 
+Verdict: PASS
+
+**Scope verified:**
+- FR1-FR14 — all functional requirements delivered through PRs 1-5 as planned.
+- NFR1 (fat skill / thin command ratio) — SKILL.md 385 lines, command wrapper 92 lines. Ratio matches the project's "Fat Skills, Thin Wrappers" convention.
+- NFR2 (coverage ≥ 90% funcs) — both new scripts clear the bar (95.45% / 95.00%).
+- NFR3 (no regressions in `rd3:tasks`) — all 497 tests pass with the alias removal.
+- NFR4 (no circular skill references) — task-runner does not reference its command or agents.
+- NFR5 (platform-agnostic workflow contract) — SKILL.md Platform Notes document how other platforms can recreate the workflow.
+
+**Acceptance criteria:**
+- AC1 ✅ dev-run.md is a thin wrapper; all logic in the skill.
+- AC2 ✅ `--preset simple|standard|complex|research` resolved in Stage 0.
+- AC3 ✅ `--stage all|plan-only|implement-only` emits stage exit JSON envelope when applicable.
+- AC4 ✅ `--preflight-verify` runs `tasks check` + backfill in Stage 0.5.
+- AC5 ✅ `--postflight-verify` runs the seven-check gate in Stage 5 with verdict-driven status.
+- AC6 ✅ `--verify` is the shortcut for both.
+- AC7 ✅ `--dry-run` emits schema_version=1 JSON.
+- AC8 ✅ Decomposed parents stay in `WIP` (upstream alias fix landed in PR4).
+
+**SECU scan:**
+- Security: no new attack surface. Postflight script only reads the local task file and invokes `tasks`/`git` probes. CliIo injection means tests never touch the filesystem or shell.
+- Efficiency: postflight runs seven deterministic checks in O(n) over task file content; no network, no recursion.
+- Correctness: JS regex `\Z` limitation avoided via line-based section extraction. Coverage parsing tolerates decimal percentages.
+- Usability: dry-run output is schema-stable and documented in references/dry-run-schema.md; postflight verdict JSON is documented in references/postflight-checks.md.
+
+**Traceability:** every requirement (FR/NFR/AC) maps to a PR commit. No orphaned requirements or dead code.
+
+**Recommendations for follow-up (out of scope here):**
+- Consider exposing `--coverage` in `rd3:code-verification` so Stage 4 can also enforce the threshold (noted as D3-follow-up, deferred to a future task).
+- Add an integration test that runs the full workflow end-to-end against a real task file (Bun test with a throwaway docs dir).
 
 
 ### Testing
 
+- **Ran at:** 2026-04-17T15:13:13Z
+- **Command:** `bun test plugins/rd3/skills/task-runner/tests/ plugins/rd3/skills/tasks/tests/ --coverage`
+- **Scope:** new task-runner scripts + regression sweep over modified tasks CLI
+- **Result:** 625 pass / 0 fail / 1504 expect() calls across 35 files
+- **Coverage (task-runner scripts):**
+  - `scripts/dry-run-output.ts` — 95.45% funcs / 98.54% lines
+  - `scripts/postflight-check.ts` — 95.00% funcs / 98.60% lines
+- **Coverage strategy:** subprocess-based CLI tests don't propagate V8 coverage to workers; replaced with `CliIo` dependency-injection pattern so `runCli(argv, mockIo)` runs in-process. Contributed ~15pp of funcs coverage for each script.
+- **Regression check:** `plugins/rd3/skills/tasks/tests/` — 497 pass (including new regression for the removed `decomposed`/`split` aliases).
+- **Typecheck:** `bun run typecheck` → clean.
+- **Lint:** `bunx biome lint plugins/rd3/skills/task-runner/` → no issues.
+- **Next action:** none — all five PRs merged and validated.
 
 
 ### Artifacts
