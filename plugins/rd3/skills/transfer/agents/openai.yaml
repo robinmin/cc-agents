@@ -1,0 +1,13 @@
+name: transfer
+description: Generate structured transfer documents for strategic work
+  reallocation without blockers. Used for token limits, expertise mismatch,
+  capacity, or timezone changes.
+version: 1.0.0
+icon: 🔄
+category: documentation
+tags:
+  - transfer
+  - handover
+  - context
+  - documentation
+  - engineering-core

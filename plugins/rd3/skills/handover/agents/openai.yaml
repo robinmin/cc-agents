@@ -1,0 +1,13 @@
+name: handover
+description: Generate structured handover documents for agent-to-agent work
+  transfer when blocked by issues. Captures goal, progress, blocker, rejected
+  approaches, and next steps.
+version: 1.0.0
+icon: 📋
+category: debugging
+tags:
+  - handover
+  - transfer
+  - context
+  - documentation
+  - engineering-core

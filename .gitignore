@@ -183,3 +183,4 @@ test-output-*.md
 /.claude/skills/ui-ux-pro-max
 /.playwright-mcp
 /docs/.ftree
+.claudeignore
