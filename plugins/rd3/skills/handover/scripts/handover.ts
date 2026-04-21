@@ -72,8 +72,8 @@ async function getGitDiff(): Promise<GitDiff> {
                 const statusChar = parts[0].charAt(parts[0].length - 1);
 
                 const isBinary = parts[0].includes('-');
-                const ins = isBinary ? 0 : parseInt(parts[0].split(' ')[0]) || 0;
-                const del = isBinary ? 0 : parseInt(parts[1].split(' ')[0]) || 0;
+                const ins = isBinary ? 0 : parseInt(parts[0].split(' ')[0], 10) || 0;
+                const del = isBinary ? 0 : parseInt(parts[1].split(' ')[0], 10) || 0;
 
                 let status: 'added' | 'modified' | 'deleted' | 'renamed' = 'modified';
                 if (file.includes('=>')) status = 'renamed';
