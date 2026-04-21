@@ -1,29 +1,29 @@
 [
-  {
-    "title": "User Interface",
-    "status": "backlog",
-    "children": [
-      { "title": "Authentication UI", "status": "backlog" },
-      { "title": "Dashboard", "status": "backlog" },
-      { "title": "Navigation", "status": "backlog" }
-    ]
-  },
-  {
-    "title": "API Integration",
-    "status": "backlog",
-    "children": [
-      { "title": "REST Client", "status": "backlog" },
-      { "title": "WebSocket Support", "status": "backlog" },
-      { "title": "Error Handling", "status": "backlog" }
-    ]
-  },
-  {
-    "title": "Data Layer",
-    "status": "backlog",
-    "children": [
-      { "title": "State Management", "status": "backlog" },
-      { "title": "Local Storage", "status": "backlog" },
-      { "title": "Caching", "status": "backlog" }
-    ]
-  }
+    {
+        "title": "User Interface",
+        "status": "backlog",
+        "children": [
+            { "title": "Authentication UI", "status": "backlog" },
+            { "title": "Dashboard", "status": "backlog" },
+            { "title": "Navigation", "status": "backlog" }
+        ]
+    },
+    {
+        "title": "API Integration",
+        "status": "backlog",
+        "children": [
+            { "title": "REST Client", "status": "backlog" },
+            { "title": "WebSocket Support", "status": "backlog" },
+            { "title": "Error Handling", "status": "backlog" }
+        ]
+    },
+    {
+        "title": "Data Layer",
+        "status": "backlog",
+        "children": [
+            { "title": "State Management", "status": "backlog" },
+            { "title": "Local Storage", "status": "backlog" },
+            { "title": "Caching", "status": "backlog" }
+        ]
+    }
 ]
