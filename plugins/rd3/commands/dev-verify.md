@@ -1,6 +1,6 @@
 ---
 description: Task-oriented verification combining Phase 7 SECU review + Phase 8 requirements traceability.
-argument-hint: "<task-ref> [--mode <full|review-only|func-only>] [--focus <all|security|efficiency|correctness|usability>] [--bdd] [--auto] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--mode <full|review-only|func-only>] [--focus <all|security|efficiency|correctness|usability>] [--fix <none|blockers-first|all>] [--bdd] [--auto] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
@@ -14,6 +14,7 @@ Task-oriented verification combining **Phase 7 SECU code review** and **Phase 8 
 - Task implementation verification against task requirements
 - Combined Phase 7 (SECU review) + Phase 8 (requirements traceability)
 - Alignment check between task file and source code
+- Optional: auto-fix pass after verdict (with `--fix`)
 - Findings written back to the original task file
 
 **Activate `rd3:dev-review` instead for:**
@@ -24,7 +25,7 @@ Task-oriented verification combining **Phase 7 SECU code review** and **Phase 8 
 ## Usage
 
 ```
-/rd3:dev-verify <task-ref> [--mode <full|review-only|func-only>] [--bdd] [--auto] [--channel <channel>]
+/rd3:dev-verify <task-ref> [--mode <full|review-only|func-only>] [--focus <all|security|efficiency|correctness|usability>] [--fix <none|blockers-first|all>] [--bdd] [--auto] [--channel <channel>]
 ```
 
 ## Arguments
@@ -34,6 +35,7 @@ Task-oriented verification combining **Phase 7 SECU code review** and **Phase 8 
 | `task-ref` | **Yes** | — | WBS number or `.md` file path |
 | `--mode` | No | `full` | `full` (Phase 7 + 8), `review-only` (Phase 7), `func-only` (Phase 8) |
 | `--focus` | No | `all` | SECU dimensions for Phase 7: `all`, `security`, `efficiency`, `correctness`, `usability`, or comma-separated |
+| `--fix` | No | `none` | Auto-fix strategy after verdict: `none`, `blockers-first`, `all` |
 | `--bdd` | No | `false` | Enable BDD scenario check if feature list exists in task |
 | `--auto` | No | `false` | Skip confirmations (for CI/scripting) |
 | `--channel` | No | `auto` | Execution channel: `auto`, `current`, or remote agent |
@@ -43,7 +45,7 @@ Task-oriented verification combining **Phase 7 SECU code review** and **Phase 8 
 This command delegates all work to the `rd3:code-verification` skill.
 
 ```
-Skill(skill="rd3:code-verification", args="--mode verify --task-ref $TASK_REF --mode-verify $MODE --focus $FOCUS --bdd $BDD --auto $AUTO --channel $CHANNEL")
+Skill(skill="rd3:code-verification", args="--mode verify --task-ref $TASK_REF --mode-verify $MODE --focus $FOCUS --fix $FIX --bdd $BDD --auto $AUTO --channel $CHANNEL")
 ```
 
 ### Channel Resolution
@@ -62,6 +64,12 @@ Skill(skill="rd3:code-verification", args="--mode verify --task-ref $TASK_REF --
 
 # Security audit on task scope
 /rd3:dev-verify 0274 --mode review-only --focus security
+
+# With auto-fix after verdict (fix blockers + warnings)
+/rd3:dev-verify 0274 --fix blockers-first
+
+# Fix all findings after verdict
+/rd3:dev-verify 0274 --fix all
 
 # Efficiency review on task scope
 /rd3:dev-verify 0274 --mode review-only --focus efficiency
