@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, spyOn, test } from 'bun:test';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { enableLogger } from '../../../scripts/logger';
@@ -388,16 +388,75 @@ describe('writeSummary and ensureDir', () => {
 
 // ───────── getCcusageData ─────────
 
+function installFakeCcusage(dir: string, body: string): void {
+    const path = join(dir, 'ccusage');
+    writeFileSync(path, `#!/bin/sh\n${body}\n`, 'utf-8');
+    chmodSync(path, 0o755);
+}
+
 describe('getCcusageData', () => {
+    let shimDir: string;
+    let originalPath: string | undefined;
+
+    beforeEach(() => {
+        shimDir = mkdtempSync(join(tmpdir(), 'daily-summary-shim-'));
+        originalPath = process.env.PATH;
+    });
+
+    afterEach(() => {
+        process.env.PATH = originalPath;
+        rmSync(shimDir, { recursive: true, force: true });
+    });
+
     test('returns null when ccusage binary is missing', async () => {
-        const originalPath = process.env.PATH;
         process.env.PATH = '/nonexistent';
-        try {
-            const result = await getCcusageData('2026-04-17');
-            expect(result).toBeNull();
-        } finally {
-            process.env.PATH = originalPath;
-        }
+        const result = await getCcusageData('2026-04-17');
+        expect(result).toBeNull();
+    });
+
+    test('returns parsed data on success', async () => {
+        const payload = {
+            totals: {
+                inputTokens: 100,
+                outputTokens: 50,
+                cacheCreationTokens: 10,
+                cacheReadTokens: 20,
+                totalTokens: 180,
+                totalCost: 0.5,
+            },
+        };
+        installFakeCcusage(
+            shimDir,
+            `if [ "$1" = "--version" ]; then echo "1.0.0"; exit 0; fi\ncat <<'JSON'\n${JSON.stringify(payload)}\nJSON`,
+        );
+        process.env.PATH = `${shimDir}:${originalPath}`;
+
+        const result = await getCcusageData('2026-04-17');
+        expect(result).not.toBeNull();
+        expect(result?.totals.totalTokens).toBe(180);
+        expect(result?.totals.totalCost).toBe(0.5);
+    });
+
+    test('returns null when ccusage exits non-zero', async () => {
+        installFakeCcusage(
+            shimDir,
+            `if [ "$1" = "--version" ]; then echo "1.0.0"; exit 0; fi\necho "boom" 1>&2\nexit 1`,
+        );
+        process.env.PATH = `${shimDir}:${originalPath}`;
+
+        const result = await getCcusageData('2026-04-17');
+        expect(result).toBeNull();
+    });
+
+    test('returns null when ccusage produces invalid JSON', async () => {
+        installFakeCcusage(
+            shimDir,
+            `if [ "$1" = "--version" ]; then echo "1.0.0"; exit 0; fi\necho "not json"`,
+        );
+        process.env.PATH = `${shimDir}:${originalPath}`;
+
+        const result = await getCcusageData('2026-04-17');
+        expect(result).toBeNull();
     });
 });
 
@@ -512,6 +571,42 @@ describe('git-backed integration', () => {
         expect(summary.platforms).not.toContain('Git');
     });
 
+    test('buildDailySummary populates tokenUsage when ccusage returns data', async () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const shimDir = mkdtempSync(join(tmpdir(), 'daily-summary-bds-shim-'));
+        const payload = {
+            totals: {
+                inputTokens: 200,
+                outputTokens: 100,
+                cacheCreationTokens: 30,
+                cacheReadTokens: 70,
+                totalTokens: 400,
+                totalCost: 1.25,
+            },
+        };
+        installFakeCcusage(
+            shimDir,
+            `if [ "$1" = "--version" ]; then echo "1.0.0"; exit 0; fi\ncat <<'JSON'\n${JSON.stringify(payload)}\nJSON`,
+        );
+        const originalPath = process.env.PATH;
+        process.env.PATH = `${shimDir}:${originalPath}`;
+        try {
+            const summary = await buildDailySummary({
+                date: today,
+                dryRun: true,
+                skipGit: true,
+                skipCcusage: false,
+            });
+            expect(summary.tokenUsage).toBeDefined();
+            expect(summary.tokenUsage?.totalTokens).toBe(400);
+            expect(summary.tokenUsage?.cacheTokens).toBe(100);
+            expect(summary.platforms).toContain('Claude Code');
+        } finally {
+            process.env.PATH = originalPath;
+            rmSync(shimDir, { recursive: true, force: true });
+        }
+    });
+
     test('buildDailySummary handles missing ccusage gracefully (skipCcusage=false)', async () => {
         const today = new Date().toISOString().slice(0, 10);
         const originalPath = process.env.PATH;
@@ -592,6 +687,38 @@ describe('main entrypoint (in-process)', () => {
         ];
         await main();
         expect(existsSync(outPath)).toBe(true);
+    });
+
+    test('prints token usage stats when ccusage returns data', async () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const shimDir = mkdtempSync(join(tmpdir(), 'daily-summary-main-shim-'));
+        const payload = {
+            totals: {
+                inputTokens: 5,
+                outputTokens: 7,
+                cacheCreationTokens: 1,
+                cacheReadTokens: 2,
+                totalTokens: 15,
+                totalCost: 0.0123,
+            },
+        };
+        installFakeCcusage(
+            shimDir,
+            `if [ "$1" = "--version" ]; then echo "1.0.0"; exit 0; fi\ncat <<'JSON'\n${JSON.stringify(payload)}\nJSON`,
+        );
+        const originalPath = process.env.PATH;
+        process.env.PATH = `${shimDir}:${originalPath}`;
+        process.argv = ['bun', 'script', '--date', today, '--dry-run', '--no-git'];
+        try {
+            await main();
+            const output = consoleLogSpy.mock.calls.flat().join('\n');
+            expect(output).toContain('Tokens: 15');
+            expect(output).toContain('Cost: $0.0123');
+            expect(output).toContain('Claude Code');
+        } finally {
+            process.env.PATH = originalPath;
+            rmSync(shimDir, { recursive: true, force: true });
+        }
     });
 
     test('includes git activity in stats when commits exist', async () => {
