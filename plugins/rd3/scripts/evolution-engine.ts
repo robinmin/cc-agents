@@ -927,8 +927,7 @@ function buildProposalMetadata(
 
 export function detectDataSourceAvailability(targetPath: string): Record<EvolutionDataSource, boolean> {
     const resolvedTarget = resolve(targetPath);
-    const startDir =
-        existsSync(resolvedTarget) && !resolvedTarget.endsWith('.md') ? resolvedTarget : dirname(resolvedTarget);
+    const startDir = !resolvedTarget.endsWith('.md') ? resolvedTarget : dirname(resolvedTarget);
     const workspaceRoot = findWorkspaceRoot(startDir);
 
     return {
