@@ -40,6 +40,7 @@ Activate `rd3:code-verification` (via `rd3:dev-review` or `rd3:dev-verify` comma
 - Running Phase 7 (SECU) + Phase 8 (requirements traceability) in one pass
 - Checking scope drift between requirements and implementation
 - Optional: BDD scenario check if feature list exists in task
+- Optional: auto-fix pass after verdict (with `--fix`)
 
 **Trigger phrases:** "code review", "verify task", "SECU analysis", "review findings", "requirements traceability", "check implementation"
 
@@ -54,6 +55,9 @@ Skill(skill="rd3:code-verification", args="--mode source --input src/auth/ --foc
 
 # Task-oriented verification (via rd3:dev-verify)
 Skill(skill="rd3:code-verification", args="--mode verify --task-ref 0274 --mode-verify full")
+
+# Verify with auto-fix after verdict
+Skill(skill="rd3:code-verification", args="--mode verify --task-ref 0274 --fix blockers-first")
 
 # Verify with BDD
 Skill(skill="rd3:code-verification", args="--mode verify --task-ref 0274 --bdd true")
@@ -90,7 +94,7 @@ Two workflow modes. See reference files for full step-by-step details:
 
 **Interaction steps:**
 - Source mode: `Step 1` (input) → `Step 2` (task create) → `Step 3` (SECU) → `Step 4` (findings) → `Step 5` (fix pass) → `Step 6` (gate) → `Step 7` (verdict) → `Step 8` (status)
-- Verify mode: `Step 1` (load task) → `Step 2` (Phase 7 SECU) → `Step 3` (Phase 8 traceability) → `Step 4` (BDD) → `Step 5` (merge) → `Step 6` (write findings) → `Step 7` (gate) → `Step 8` (verdict) → `Step 9` (status)
+- Verify mode: `Step 1` (load task) → `Step 2` (Phase 7 SECU) → `Step 3` (Phase 8 traceability) → `Step 4` (BDD) → `Step 5` (merge) → `Step 6` (write findings) → `Step 7` (gate) → `Step 8` (verdict) → `Step 9` (show conclusion) → `Step 10` (fix pass if --fix) → `Step 11` (post-fix status)
 
 ## Arguments
 
@@ -100,7 +104,7 @@ Two workflow modes. See reference files for full step-by-step details:
 | `--mode` | Yes | — | `source` (code review only) or `verify` (review + traceability) |
 | `--input` | No | `src/` | For source mode: directory path or file path (no task-ref) |
 | `--task-ref` | No | — | For verify mode: WBS or .md file path |
-| `--fix` | No | `none` | For source mode: `none`, `blockers-first`, `all` |
+| `--fix` | No | `none` | Fix strategy: `none`, `blockers-first`, `all` (both modes; in verify mode runs after verdict) |
 | `--mode-verify` | No | `full` | For verify mode: `full`, `review-only`, `func-only` |
 | `--bdd` | No | `false` | For verify mode: enable BDD scenario check |
 | `--auto` | No | `false` | Skip confirmations |
