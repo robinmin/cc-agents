@@ -184,12 +184,12 @@ test_channel_current_unset() {
     exit_code=$?
     set -e
     TOTAL=$((TOTAL + 1))
-    if echo "$output" | grep -qi "AIRUNNER_CHANNEL.*not set"; then
+    if [ "$exit_code" = "2" ] && echo "$output" | grep -qi "AIRUNNER_CHANNEL.*not set"; then
         PASS=$((PASS + 1))
-        printf "  ✓ current channel error message correct\n"
+        printf "  ✓ current channel exits 2 with message\n"
     else
         FAIL=$((FAIL + 1))
-        printf "  ✗ current channel error message missing\n  got: %s\n" "$output"
+        printf "  ✗ current channel: expected exit 2 + missing env message\n  got exit %d: %s\n" "$exit_code" "$output"
     fi
 }
 
@@ -298,6 +298,43 @@ exit 0'
     assert_contains "doctor row carries tier2 usable marker" "$output" "yes*"
 }
 
+test_codex_auth_negative_beats_stale_file() {
+    printf "auth: codex explicit negative status\n"
+    local tmpdir home output
+    tmpdir="$(mktemp -d)"
+    home="$(mktemp -d)"
+    mkdir -p "${home}/.codex"
+    touch "${home}/.codex/auth.json"
+    make_stub "$tmpdir" "codex" 'if [ "$1 $2" = "login status" ]; then echo "Not authenticated"; exit 0; fi
+exit 0'
+
+    output=$(PATH="$tmpdir:/usr/bin:/bin" HOME="$home" AIRUNNER_SOURCE_ONLY=1 bash -c 'source "$1"; if agent_authenticated codex; then echo yes; else echo no; fi' _ "$AIRUNNER")
+    assert_eq "negative codex status wins over stale auth file" "no" "$output"
+}
+
+test_doctor_version_failure_continues() {
+    printf "doctor: version failure stability\n"
+    local tmpdir output exit_code
+    tmpdir="$(mktemp -d)"
+    make_stub "$tmpdir" "claude" 'if [ "$1" = "--version" ]; then exit 42; fi
+if [ "$1 $2" = "auth status" ]; then echo "Authenticated"; exit 0; fi
+exit 0'
+
+    set +e
+    output=$(PATH="$tmpdir:/usr/bin:/bin" "$AIRUNNER" doctor 2>&1)
+    exit_code=$?
+    set -e
+
+    TOTAL=$((TOTAL + 1))
+    if [ "$exit_code" = "0" ] && echo "$output" | grep -q "claude.*yes.*-.*yes.*yes"; then
+        PASS=$((PASS + 1))
+        printf "  ✓ doctor shows '-' version and continues\n"
+    else
+        FAIL=$((FAIL + 1))
+        printf "  ✗ doctor should continue after version failure\n  got exit %d: %s\n" "$exit_code" "$output"
+    fi
+}
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -320,6 +357,8 @@ main() {
     test_channel_unknown
     test_doctor_output
     test_doctor_tier2_usable_marker
+    test_codex_auth_negative_beats_stale_file
+    test_doctor_version_failure_continues
 
     printf "\n${BOLD}Results: %d/%d passed, %d failed${NC}\n" "$PASS" "$TOTAL" "$FAIL"
 
