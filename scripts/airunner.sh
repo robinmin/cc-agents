@@ -108,13 +108,13 @@ agent_version() {
     local ver=""
 
     case "$agent" in
-        claude)      ver=$("$cmd" --version 2>/dev/null | head -1) ;;
-        codex)       ver=$("$cmd" --version 2>/dev/null | head -1) ;;
-        gemini)      ver=$("$cmd" --version 2>/dev/null | head -1) ;;
-        pi)          ver=$("$cmd" --version 2>/dev/null | head -1) ;;
-        opencode)    ver=$("$cmd" --version 2>/dev/null | head -1) ;;
-        antigravity) ver=$("$cmd" --version 2>/dev/null | head -1) ;;
-        openclaw)    ver=$("$cmd" --version 2>/dev/null | head -1) ;;
+        claude|codex|gemini|pi|opencode|antigravity|openclaw)
+            if ver=$("$cmd" --version 2>/dev/null); then
+                ver="${ver%%$'\n'*}"
+            else
+                ver=""
+            fi
+            ;;
     esac
 
     echo "${ver:--}"
@@ -130,11 +130,16 @@ agent_authenticated() {
                 'not[[:space:]_-]*authenticated|not[[:space:]_-]*logged[[:space:]_-]*in|logged[[:space:]_-]*out|unauthenticated|"loggedIn"[[:space:]]*:[[:space:]]*false' \
                 claude auth status ;;
         codex)
-            probe_output_matches \
-                'logged[[:space:]_-]*in|authenticated' \
-                'not[[:space:]_-]*authenticated|not[[:space:]_-]*logged[[:space:]_-]*in|logged[[:space:]_-]*out|unauthenticated' \
-                codex login status || \
-                [ -f "${HOME}/.codex/auth.json" ] || [ -f "${HOME}/.codex/auth" ] ;;
+            local output=""
+            if output=$(codex login status 2>&1); then
+                if printf "%s\n" "$output" | grep -Eqi 'not[[:space:]_-]*authenticated|not[[:space:]_-]*logged[[:space:]_-]*in|logged[[:space:]_-]*out|unauthenticated'; then
+                    return 1
+                fi
+                if printf "%s\n" "$output" | grep -Eqi 'logged[[:space:]_-]*in|authenticated'; then
+                    return 0
+                fi
+            fi
+            [ -f "${HOME}/.codex/auth.json" ] || [ -f "${HOME}/.codex/auth" ] ;;
         gemini)
             [ -f "${HOME}/.gemini/settings.json" ] && grep -qi "auth\|token\|key" "${HOME}/.gemini/settings.json" 2>/dev/null ;;
         pi)
@@ -311,7 +316,7 @@ resolve_channel() {
         current)
             if [ -z "${AIRUNNER_CHANNEL:-}" ]; then
                 error "AIRUNNER_CHANNEL env var is not set"
-                exit 1
+                exit 2
             fi
             channel=$(normalize_alias "$AIRUNNER_CHANNEL")
             case "$channel" in
