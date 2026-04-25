@@ -229,7 +229,10 @@ get_target_skills_dir() {
             opencode)    echo "$HOME/.agents/skills" ;;
             openclaw)    echo "$HOME/.agents/skills" ;;
             antigravity) echo "$HOME/.gemini/antigravity/skills" ;;
-            pi)          echo "$HOME/.pi/agent/skills" ;;
+            # Pi reads skills from both ~/.agents/skills/ and ~/.pi/agent/skills/.
+            # Writing to the latter duplicates everything already shared via ~/.agents/skills/
+            # and confuses pi at runtime. Route pi global commands to the shared dir.
+            pi)          echo "$HOME/.agents/skills" ;;
         esac
     else
         case "$target" in
