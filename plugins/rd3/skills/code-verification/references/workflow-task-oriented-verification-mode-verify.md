@@ -16,6 +16,7 @@ BDD_MODE="${BDD_MODE:-false}"
 AUTO="${AUTO:-false}"
 CHANNEL="${CHANNEL:-auto}"
 FOCUS="${FOCUS:-all}"
+FIX_MODE="${FIX_MODE:-none}"
 
 # Normalize focus: split by comma, lowercase, trim
 if [[ "$FOCUS" == "all" ]]; then
@@ -205,10 +206,67 @@ bun run check
 | — | Any unmet | **FAIL** |
 | P1/P2 exist | — | **FAIL** |
 
-### Step 9 — Task Status Update
+### Step 9 — Show Verdict Conclusion
 
-| Verdict | Status | Next Action |
-|---------|--------|-------------|
-| PASS | Keep current | — |
+Display the verdict table with counts:
+
+```
+Verdict: {PASS|PARTIAL|FAIL}
+- P1 blockers: {n}
+- P2 warnings: {n}
+- P3 info: {n}
+- P4 suggestions: {n}
+- Unmet requirements: {n}
+- Partial requirements: {n}
+```
+
+### Step 10 — Fix Pass (verify mode, only if `--fix` is not `none`)
+
+This step runs **after** the verdict is displayed. If `--fix` is set and the verdict is not PASS, begin fixing findings one by one.
+
+**Pre-condition**: `$FIX_MODE != "none"` and verdict is PARTIAL or FAIL.
+
+#### `--fix blockers-first`
+
+```
+1. Extract all P1 findings from the Review section
+2. For each P1 finding (in order):
+   → Apply the specific fix recommendation
+   → Run: bun run check
+   → If check fails: log the blocker and STOP fix pass
+3. If all P1 fixes pass check:
+   → Fix P2 findings in order
+   → Run: bun run check after each
+   → If check fails: STOP, note breaking fix
+4. Encoding fix results in the task file:
+   → Append "**Fix-pass {timestamp}:** {n} fixed, {n} failed, {n} skipped" to Review section
+```
+
+#### `--fix all`
+
+```
+1. Apply all fixes (P1 → P2 → P3 → P4) in order
+2. After each batch, run: bun run check
+3. Stop on first failure; note breaking fix
+4. On success: mark all as FIXED in Review section
+5. Encoding fix results in the task file:
+   → Append "**Fix-pass {timestamp}:** {n} fixed, {n} failed, {n} skipped" to Review section
+```
+
+### Step 11 — Post-Fix Verdict Re-evaluation + Status Update
+
+After fix pass, re-evaluate the verdict using the same matrix from Step 8, then update status:
+
+| Post-fix Verdict | Status | Command |
+|------------------|--------|---------|
+| PASS (all fixed) | `Done` | `tasks update "$WBS" done` |
+| PARTIAL (partial fix) | `In Progress` | `tasks update "$WBS" wip` — "Fix-pass completed with unresolved findings" |
+| FAIL (fix broke things) | `In Progress` | `tasks update "$WBS" wip` — "Fix-pass failures block completion" |
+
+**No-fix case** (when `--fix` is `none` or verdict was PASS): apply status update directly:
+
+| Verdict | Status | Command |
+|---------|--------|---------|
+| PASS | `Done` | `tasks update "$WBS" done` |
 | PARTIAL | `In Progress` | `tasks update "$WBS" wip` — "Address P1/P2 findings + partial requirements" |
 | FAIL | `In Progress` | `tasks update "$WBS" wip` — "Blockers + unmet requirements prevent completion" |
