@@ -52,19 +52,6 @@ export interface GitCommit {
     deletions: number;
 }
 
-interface GitDiff {
-    files: Array<{
-        file: string;
-        insertions: number;
-        deletions: number;
-    }>;
-    summary: {
-        filesChanged: number;
-        insertions: number;
-        deletions: number;
-    };
-}
-
 export interface UserAnnotations {
     learnings: string;
     issuesFixed: string;
@@ -138,7 +125,7 @@ export function parseArgs(argv: string[] = process.argv.slice(2)): CliOptions {
     return options;
 }
 
-function printUsage(): void {
+export function printUsage(): void {
     console.log(`
 rd3:daily-summary — Generate daily summary reports
 
@@ -173,7 +160,7 @@ export function getDateRange(dateStr: string): { start: string; end: string } {
 
 // ─── Ccusage Integration ─────────────────────────────────────────────────────
 
-async function getCcusageData(date: string): Promise<CcusageData | null> {
+export async function getCcusageData(date: string): Promise<CcusageData | null> {
     try {
         // Check if ccusage is available
         const ccusageCheck = Bun.spawn(['ccusage', '--version'], {
@@ -211,7 +198,7 @@ async function getCcusageData(date: string): Promise<CcusageData | null> {
 
 // ─── Git Integration ─────────────────────────────────────────────────────────
 
-async function getGitCommits(date: string): Promise<GitCommit[]> {
+export async function getGitCommits(date: string): Promise<GitCommit[]> {
     try {
         const { start, end } = getDateRange(date);
 
@@ -279,74 +266,32 @@ async function getGitCommits(date: string): Promise<GitCommit[]> {
     }
 }
 
-async function _getGitDiff(): Promise<GitDiff> {
-    try {
-        const proc = Bun.spawn(['git', 'diff', '--stat', '--numstat'], {
-            stdout: 'pipe',
-            stderr: 'pipe',
-        });
-
-        const output = await new Response(proc.stdout).text();
-        const exitCode = await proc.exited;
-
-        if (exitCode !== 0) {
-            return { files: [], summary: { filesChanged: 0, insertions: 0, deletions: 0 } };
-        }
-
-        const files: GitDiff['files'] = [];
-        let filesChanged = 0;
-        let insertions = 0;
-        let deletions = 0;
-
-        for (const line of output.trim().split('\n')) {
-            if (!line || line.includes('files changed')) continue;
-            const parts = line.split('\t');
-            if (parts.length >= 3) {
-                const ins = parseInt(parts[0], 10) || 0;
-                const del = parseInt(parts[1], 10) || 0;
-                files.push({ file: parts[2], insertions: ins, deletions: del });
-                filesChanged++;
-                insertions += ins;
-                deletions += del;
-            }
-        }
-
-        return {
-            files,
-            summary: { filesChanged, insertions, deletions },
-        };
-    } catch (error) {
-        logger.warn(`Failed to get git diff: ${error}`);
-        return { files: [], summary: { filesChanged: 0, insertions: 0, deletions: 0 } };
-    }
-}
-
-async function _getGitStatus(): Promise<string[]> {
-    try {
-        const proc = Bun.spawn(['git', 'status', '--porcelain'], {
-            stdout: 'pipe',
-            stderr: 'pipe',
-        });
-        const output = await new Response(proc.stdout).text();
-        const exitCode = await proc.exited;
-
-        if (exitCode !== 0) return [];
-
-        return output
-            .trim()
-            .split('\n')
-            .filter((line) => line.trim())
-            .map((line) => line.slice(3).trim());
-    } catch {
-        return [];
-    }
-}
-
 // ─── User Input ─────────────────────────────────────────────────────────────
 
-async function promptUser(): Promise<UserAnnotations> {
-    const readline = await import('node:readline');
+export async function promptUser(): Promise<UserAnnotations> {
+    if (process.env.RD3_DAILY_SUMMARY_NO_PROMPT === '1') {
+        return { learnings: '', issuesFixed: '', pending: '' };
+    }
 
+    console.log(`\n📊 Daily Summary — ${new Date().toISOString().slice(0, 10)}`);
+    console.log('═'.repeat(50));
+    console.log('\nPlease provide the following (press Enter to skip):\n');
+
+    if (!process.stdin.isTTY) {
+        const chunks: Buffer[] = [];
+        for await (const chunk of process.stdin) {
+            chunks.push(chunk as Buffer);
+        }
+        const buffered = Buffer.concat(chunks).toString('utf-8');
+        const [learnings = '', issuesFixed = '', pending = ''] = buffered.split('\n');
+        return {
+            learnings: learnings.trim(),
+            issuesFixed: issuesFixed.trim(),
+            pending: pending.trim(),
+        };
+    }
+
+    const readline = await import('node:readline');
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
@@ -358,10 +303,6 @@ async function promptUser(): Promise<UserAnnotations> {
                 resolve(answer.trim());
             });
         });
-
-    console.log(`\n📊 Daily Summary — ${new Date().toISOString().slice(0, 10)}`);
-    console.log('═'.repeat(50));
-    console.log('\nPlease provide the following (press Enter to skip):\n');
 
     const learnings = await question('1. What did you learn today? (optional)\n   > ');
     const issuesFixed = await question('\n2. What issues did you fix? (optional)\n   > ');
@@ -478,13 +419,13 @@ export function generateMarkdown(summary: DailySummary): string {
 
 // ─── File Output ─────────────────────────────────────────────────────────────
 
-function ensureDir(path: string): void {
+export function ensureDir(path: string): void {
     if (!existsSync(path)) {
         mkdirSync(path, { recursive: true });
     }
 }
 
-function writeSummary(markdown: string, options: CliOptions): string {
+export function writeSummary(markdown: string, options: CliOptions): string {
     const filename = `summary_${options.date.replace(/-/g, '')}.md`;
     const outputPath = options.outputPath || join(DAILY_DIR, filename);
 
