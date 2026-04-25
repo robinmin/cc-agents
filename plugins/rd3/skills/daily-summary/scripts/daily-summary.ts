@@ -163,9 +163,11 @@ export function getDateRange(dateStr: string): { start: string; end: string } {
 export async function getCcusageData(date: string): Promise<CcusageData | null> {
     try {
         // Check if ccusage is available
+        const env = { ...process.env };
         const ccusageCheck = Bun.spawn(['ccusage', '--version'], {
             stdout: 'pipe',
             stderr: 'pipe',
+            env,
         });
         await new Response(ccusageCheck.stdout).text();
         await ccusageCheck.exited;
@@ -177,6 +179,7 @@ export async function getCcusageData(date: string): Promise<CcusageData | null> 
         const proc = Bun.spawn(['ccusage', 'daily', '--since', since, '--until', until, '--json'], {
             stdout: 'pipe',
             stderr: 'pipe',
+            env,
         });
 
         const output = await new Response(proc.stdout).text();
