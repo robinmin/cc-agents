@@ -519,12 +519,14 @@ copy_to_targets() {
         add_target_dir "$antigravity_path"; print_info "Antigravity skills directory: $antigravity_path"
     fi
 
-    # Pi: use native personal skill path so Pi-specific metadata can diverge safely.
+    # Pi: in global mode, pi reads skills from ~/.agents/skills/ (same as codex/gemini/opencode/openclaw).
+    # Writing to ~/.pi/agent/skills/ would duplicate those skills and confuse pi at runtime.
+    # In project mode, fall back to .pi/agent/skills since there is no shared project-level path.
     if [[ "$targets" == *"pi"* ]]; then
         if [ "$GLOBAL" = "true" ]; then
-            local pi_path; pi_path=$(get_path ".pi/agent/skills" "$HOME/.pi/agent/skills")
-            add_target_dir "$pi_path"
-            print_info "Pi personal skills directory: $pi_path"
+            local agents_path; agents_path=$(get_path ".agents/skills" "$HOME/.agents/skills")
+            add_target_dir "$agents_path"
+            print_info "Pi personal skills directory (shared): $agents_path"
         else
             local pi_path; pi_path=$(get_path ".pi/agent/skills" "$HOME/.pi/agent/skills")
             add_target_dir "$pi_path"; print_info "Pi skills directory: $pi_path"
