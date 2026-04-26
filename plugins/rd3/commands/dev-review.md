@@ -1,105 +1,103 @@
 ---
-description: Source-oriented code review. Reviews code quality via SECU framework on a path or directory.
-argument-hint: "[<path>] [--focus <all|security|efficiency|correctness|usability>] [--fix <none|blockers-first|all>] [--auto] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+description: Review code on a path across SECU + architecture lenses.
+argument-hint: "[<path>] [--focus <dims>] [--depth <level>] [--fix <mode>] [--auto] [--channel <ch>]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
 # Dev Review
 
-Source-oriented code review using the **SECU framework** (Security, Efficiency, Correctness, Usability). This command is a thin wrapper that delegates to the `rd3:code-verification` skill.
+Review source code on a path across **five peer dimensions**. Set `--focus` to pick any subset.
 
-**No task-reference input.** Provide a path or directory. If none given, defaults to `src/`. Findings are always written to a newly created task file.
+| Dimension | Surfaces | Skill |
+|-----------|----------|-------|
+| `security` | Vulnerabilities, unsafe patterns, secrets | `rd3:code-verification` |
+| `efficiency` | Performance issues, hot-path costs | `rd3:code-verification` |
+| `correctness` | Logic bugs, wrong invariants, edge gaps | `rd3:code-verification` |
+| `usability` | API ergonomics, readability, DX friction | `rd3:code-verification` |
+| `architecture` | Shallow modules, refactor candidates, deepening | `rd3:code-improvement` |
+
+Run `--focus all` (default) for all five. Comma-separate to mix (e.g. `security,architecture`). Read this command as a thin wrapper; logic lives in the delegated skills.
 
 ## When to Use
 
-**Activate `rd3:dev-review` for:**
-- Code quality review of a specific path or directory
-- Full project SECU scan (no arguments)
-- Findings written to a new task file
-- Optional auto-fix pass (blockers-first or all)
+- Run a quick PR-style review on a path → omit flags
+- Run a targeted audit → `--focus security` / `--focus efficiency`
+- Find refactor opportunities → `--focus architecture`
+- Run a pre-merge sweep → omit flags or `--focus all`
 
-**Activate `rd3:dev-verify` instead for:**
-- Task-oriented verification (Phase 7 + Phase 8 combined)
-- Requirements traceability against a task file
-- BDD scenario checking
+Run `/rd3:dev-verify` instead for task-driven verification (Phase 7 + 8 + BDD).
 
 ## Usage
 
 ```
-/rd3:dev-review <path>              # Review a path or directory
-/rd3:dev-review                     # Review entire src/
-/rd3:dev-review <path> --fix all   # Review with auto-fix
+/rd3:dev-review [<path>] [--focus <dims>] [--depth <level>] [--fix <mode>] [--auto] [--channel <ch>]
 ```
+
+Set `<path>` or omit to default to `src/`. Pass the full argument string through as `$ARGUMENTS` to the underlying skill(s).
 
 ## Arguments
 
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `path` | No | `src/` | Directory or file path to review |
-| `--focus` | No | `all` | SECU dimensions: `all`, `security`, `efficiency`, `correctness`, `usability`, or comma-separated |
-| `--fix` | No | `none` | Fix strategy: `none`, `blockers-first`, `all` |
-| `--auto` | No | `false` | Skip all confirmations |
-| `--channel` | No | `auto` | Execution channel: `auto`, `current`, or remote agent |
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `<path>` | `src/` | File or directory to review |
+| `--focus` | `all` | Subset of `security`, `efficiency`, `correctness`, `usability`, `architecture` (comma-separated), or `all` |
+| `--depth` | `survey` | Set `survey` to list architecture candidates; set `deep` to enter grilling loop on top candidate. Applies only when `architecture` is in `--focus`. |
+| `--fix` | `none` | Set auto-fix strategy: `none`, `blockers-first`, `all`. Applies only to non-architecture dimensions. |
+| `--auto` | off | Skip confirmations and grilling loops |
+| `--channel` | `auto` | Set execution channel: `auto`, `current`, or remote agent (`codex`, `openclaw`, ...) |
+
+Ignore flags that do not apply to the active focus set silently. Raise no errors.
 
 ## Delegation
 
-This command delegates all work to the `rd3:code-verification` skill.
+Split `--focus` into two skill invocations and run them in order. Run architecture first so its proposals inform the SECU pass.
 
 ```
-Skill(skill="rd3:code-verification", args="--mode source --input $INPUT --focus $FOCUS --fix $FIX_MODE --auto $AUTO --channel $CHANNEL")
+# When --focus contains "architecture":
+Skill(skill="rd3:code-improvement", args="$ARGUMENTS")
+
+# When --focus contains any of security|efficiency|correctness|usability|all:
+Skill(skill="rd3:code-verification", args="--mode source $ARGUMENTS")
 ```
 
-### Input Resolution
-
-| Input | Action |
-|-------|--------|
-| `src/auth/` or `src/auth` | Review that directory |
-| `plugins/rd3/skills/` | Review that directory |
-| A specific file (`src/config.ts`) | Review that file |
-| Empty | Default to `src/` |
+Let the skills parse `<path>`, `--focus`, `--depth`, `--fix`, `--auto`, `--channel` from `$ARGUMENTS`. Do not pre-parse in the command.
 
 ## Examples
 
 ```bash
-# Review a directory (full SECU scan)
+# Full review on src/auth/ — all five dimensions
 /rd3:dev-review src/auth/
 
-# Security audit only
-/rd3:dev-review src/auth/ --focus security
+# Security audit, fix blockers automatically
+/rd3:dev-review src/auth/ --focus security --fix blockers-first
 
-# Security + Correctness (logic bugs)
-/rd3:dev-review src/auth/ --focus security,correctness
+# Architectural deepening with interactive grilling loop
+/rd3:dev-review src/auth/ --focus architecture --depth deep
 
-# Performance review
-/rd3:dev-review src/api/ --focus efficiency
+# Mix: security holes plus refactor opportunities
+/rd3:dev-review src/auth/ --focus security,architecture
 
-# Review specific file
-/rd3:dev-review src/config.ts
-
-# Review with auto-fix
+# Pre-merge sweep, fix everything fixable, fully automated
 /rd3:dev-review src/auth/ --fix all --auto
 
-# Review + fix blockers first
-/rd3:dev-review src/auth/ --fix blockers-first
-
-# Delegate heavy review to Codex
+# Delegate a heavy review to Codex
 /rd3:dev-review src/api/ --channel codex --auto
 ```
 
 ## See Also
 
-- **rd3:code-verification**: Skill implementing SECU analysis, findings management, and verdict logic
-- **rd3:dev-fixall**: Systematic lint/type/test fixer (used in fix pass)
-- **rd3:run-acp**: Cross-channel delegation
-- **rd3:dev-verify**: Task-oriented verification (Phase 7 + Phase 8)
+- `rd3:code-verification` — SECU analysis, findings, verdict logic
+- `rd3:code-improvement` — Architectural deepening, shallow-module detection, ADR drafting
+- `rd3:dev-verify` — Task-oriented Phase 7 + Phase 8 verification
+- `rd3:dev-fixall` — Drives lint/type/test repair under `--fix`
 
 ## Platform Notes
 
-| Platform | Skill() | acpx | Recommended |
-|----------|---------|------|-------------|
+| Platform | `Skill()` | `acpx` | Recommended |
+|----------|-----------|--------|-------------|
 | Claude Code | ✅ | ✅ | `Skill()` |
-| pi | ❌ | ✅ | `acpx <agent> exec` |
-| Codex/OpenCode | ❌ | ✅ | `acpx <agent> exec` |
-| OpenClaw | ❌ | ✅ | `acpx <agent> exec` |
+| Codex / OpenCode / OpenClaw / pi | ❌ | ✅ | `acpx <agent> exec` |
 
-**Dogfood rule**: When reviewing code that includes `rd3:code-verification` or `rd3:run-acp`, use `--channel current` to avoid circular delegation.
+Read `$ARGUMENTS` as Claude Code-specific. Replace it with direct argument passing under `acpx` on other platforms; the skills consume the same flags either way.
+
+**Dogfood rule**: when reviewing code that includes `rd3:code-verification`, `rd3:code-improvement`, or `rd3:run-acp`, set `--channel current` to avoid circular delegation.
