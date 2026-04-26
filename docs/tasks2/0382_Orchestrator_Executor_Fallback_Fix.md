@@ -1,9 +1,9 @@
 ---
 name: Orchestrator Executor Fallback Fix
 description: Fix orchestrator executor fallback mechanism to gracefully handle skills without local/subprocess entry points by falling back to SKILL.md via ACP
-status: Backlog
+status: Canceled
 created_at: 2026-04-15T01:30:00.000Z
-updated_at: 2026-04-15T01:30:00.000Z
+updated_at: 2026-04-26T04:23:44.602Z
 folder: docs/tasks
 type: task
 preset: "standard"

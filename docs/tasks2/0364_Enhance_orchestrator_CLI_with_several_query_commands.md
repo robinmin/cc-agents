@@ -1,9 +1,9 @@
 ---
 name: Enhance orchestrator CLI with several query commands
 description: Enhance orchestrator CLI with several query commands
-status: Backlog
+status: Canceled
 created_at: 2026-04-07T21:24:31.018Z
-updated_at: 2026-04-07T21:24:31.018Z
+updated_at: 2026-04-26T04:23:36.926Z
 folder: docs/tasks2
 type: task
 impl_progress:
