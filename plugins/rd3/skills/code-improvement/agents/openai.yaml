@@ -1,0 +1,16 @@
+name: code-improvement
+description: Surface architectural friction and propose deepening opportunities
+  — refactors that turn shallow, tightly-coupled modules into deep, testable,
+  AI-navigable ones. Trigger when user wants to improve architecture, find
+  refactoring opportunities, consolidate pass-through modules, reduce coupling,
+  or improve testability. Uses CONTEXT.md domain vocabulary and docs/adr/
+  decisions when present; proceeds without them if absent.
+version: 1.0.0
+icon: 🏗️
+category: debugging
+tags:
+  - architecture
+  - refactoring
+  - testability
+  - deep-modules
+  - code-quality
