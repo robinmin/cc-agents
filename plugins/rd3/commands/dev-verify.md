@@ -1,6 +1,6 @@
 ---
 description: Task-oriented verification combining Phase 7 SECU review + Phase 8 requirements traceability.
-argument-hint: "<task-ref> [--mode <full|review-only|func-only>] [--focus <all|security|efficiency|correctness|usability>] [--fix <none|blockers-first|all>] [--bdd] [--auto] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
+argument-hint: "<task-ref> [--mode <full|review-only|func-only>] [--focus <all|security|efficiency|correctness|usability>] [--fix <none|blockers-first|all>] [--bdd] [--auto] [--force] [--channel <auto|current|claude-code|codex|openclaw|opencode|antigravity|pi>]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
@@ -38,6 +38,7 @@ Task-oriented verification combining **Phase 7 SECU code review** and **Phase 8 
 | `--fix` | No | `none` | Auto-fix strategy after verdict: `none`, `blockers-first`, `all` |
 | `--bdd` | No | `false` | Enable BDD scenario check if feature list exists in task |
 | `--auto` | No | `false` | Skip confirmations (for CI/scripting) |
+| `--force` | No | `false` | Bypass task status guard. Run full verification even if task is `Done` or other terminal status. Use for re-auditing completed tasks, post-merge verification, or compliance reviews |
 | `--channel` | No | `auto` | Execution channel: `auto`, `current`, or remote agent |
 
 ## Delegation
@@ -45,7 +46,7 @@ Task-oriented verification combining **Phase 7 SECU code review** and **Phase 8 
 This command delegates all work to the `rd3:code-verification` skill.
 
 ```
-Skill(skill="rd3:code-verification", args="--mode verify --task-ref $TASK_REF --mode-verify $MODE --focus $FOCUS --fix $FIX --bdd $BDD --auto $AUTO --channel $CHANNEL")
+Skill(skill="rd3:code-verification", args="--mode verify --task-ref $TASK_REF --mode-verify $MODE --focus $FOCUS --fix $FIX --bdd $BDD --auto $AUTO --force $FORCE --channel $CHANNEL")
 ```
 
 ### Channel Resolution
@@ -82,6 +83,12 @@ Skill(skill="rd3:code-verification", args="--mode verify --task-ref $TASK_REF --
 
 # CI mode
 /rd3:dev-verify 0274 --mode full --auto
+
+# Re-verify a completed task (bypass status guard)
+/rd3:dev-verify 0274 --force
+
+# Force re-verify with auto-fix
+/rd3:dev-verify 0274 --force --fix blockers-first
 
 # Delegate heavy review to Codex
 /rd3:dev-verify 0274 --channel codex --auto
