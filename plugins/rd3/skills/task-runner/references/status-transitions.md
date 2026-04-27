@@ -10,11 +10,11 @@ Task status ownership rules for `task-runner`, including pre-transition guards a
 
 | State | Meaning | Allowed Next State |
 |-------|---------|--------------------|
-| `ready` | Preconditions satisfied for coding | `implementing` |
-| `implementing` | Code changes in progress | `testing`, `blocked` |
-| `testing` | Tests and coverage running | `implementing`, `verifying`, `blocked` |
-| `verifying` | Ready for review + traceability gate | `done`, `implementing`, `blocked` |
-| `blocked` | Needs debugging or intervention | `implementing` after unblock |
+| `Todo` | Preconditions satisfied for coding | `WIP` |
+| `WIP` | Code changes in progress | `Testing`, `Blocked` |
+| `Testing` | Tests and coverage running | `WIP`, `Done`, `Blocked` |
+| `Done` | All completion guards passed | — (terminal) |
+| `Blocked` | Needs debugging or intervention | `WIP` after unblock |
 
 ## Status Rules Table
 
