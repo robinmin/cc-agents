@@ -10,7 +10,7 @@ description: "Workflow-owned task execution loop with optional refine, plan,
   dev-docs)."
 version: 1.0.0
 icon: 🛠️
-category: debugging
+category: orchestration
 tags:
   - task-execution
   - workflow
