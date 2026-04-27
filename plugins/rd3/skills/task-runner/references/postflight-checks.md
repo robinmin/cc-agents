@@ -21,7 +21,7 @@ Stage 5: Post-Flight Gate  ← this reference
 
 | # | Check | Source of Truth | Blocker on Fail |
 |---|-------|-----------------|-----------------|
-| 1 | All required task sections populated | `tasks validate <WBS>` | YES |
+| 1 | All required task sections populated | `tasks check <WBS> --json` | YES |
 | 2 | Testing evidence not stale | Test timestamp vs last code mtime | YES |
 | 3 | Verification verdict equals `PASS` (not `PARTIAL`) | Stage 4 output | YES |
 | 4 | Code changes exist since task start | `git diff <start-commit>..HEAD` non-empty | YES |
