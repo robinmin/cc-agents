@@ -14,6 +14,7 @@ TASK_REF="${TASK_REF:-$1}"
 MODE="${MODE:-full}"
 BDD_MODE="${BDD_MODE:-false}"
 AUTO="${AUTO:-false}"
+FORCE="${FORCE:-false}"
 CHANNEL="${CHANNEL:-auto}"
 FOCUS="${FOCUS:-all}"
 FIX_MODE="${FIX_MODE:-none}"
@@ -48,6 +49,29 @@ fi
 
 echo "Focus dimensions: ${FOCUS_DIMS:-all}"
 ```
+
+### Step 1.5 — Status Guard (verify mode)
+
+After loading the task file, check task status. This guard prevents unnecessary token consumption on terminal-status tasks.
+
+**Terminal statuses:** `Done`, `Done*`, `done`, `DONE`, `Completed`, `completed`, `Canceled`, `Canceled*`
+
+```
+IF $FORCE == "true":
+  → Log: "--force: bypassing status guard (current status: {status})"
+  → Proceed to Step 2 (full verification)
+
+ELSE:
+  Read task status from frontmatter or `tasks show` output
+  IF status matches any terminal status (case-insensitive):
+    → Log: "Task {WBS} has terminal status '{status}'. Verification skipped."
+    → Log: "Use --force to re-verify a completed task."
+    → EXIT with code 0 (not an error, deliberate skip)
+  ELSE:
+    → Proceed to Step 2 (full verification)
+```
+
+**Rationale:** Re-verifying a `Done` task without explicit intent wastes tokens and may produce confusing findings that conflict with a previously accepted verdict. The `--force` flag makes the intent explicit.
 
 Extract from task:
 - `modified_files`, `source_dir` from frontmatter → Phase 7 scope
