@@ -64,6 +64,11 @@ describe('parseVerdictFromReview', () => {
         const md = '## Review\n\nPending review.\n';
         expect(parseVerdictFromReview(md)).toBe(null);
     });
+
+    it('returns PASS when ## Review contains ### Verdict sub-section with PASS', () => {
+        const md = '## Review\n\nSome review text.\n\n### Verdict\n\nPASS\n\n## Next Section\n';
+        expect(parseVerdictFromReview(md)).toBe('PASS');
+    });
 });
 
 describe('checkVerificationVerdict', () => {
@@ -94,6 +99,11 @@ describe('checkCodeChangesExist', () => {
     it('fails when no changes', () => {
         const r = checkCodeChangesExist(false);
         expect(r.status).toBe('fail');
+        expect(r.severity).toBe('blocker');
+    });
+    it('skips when hasChanges is null (no start-commit)', () => {
+        const r = checkCodeChangesExist(null);
+        expect(r.status).toBe('skip');
         expect(r.severity).toBe('blocker');
     });
 });
@@ -176,7 +186,7 @@ describe('checkTestingEvidenceFreshness', () => {
         expect(r.status).toBe('warn');
     });
     it('skips when no code mtime available', () => {
-        const r = checkTestingEvidenceFreshness('## Testing\n2026-04-16T12:00:00Z\n', null);
+        const r = checkTestingEvidenceFreshness('## Testing\nRan at 2026-04-16T12:00:00Z\n', null);
         expect(r.status).toBe('skip');
     });
     it('passes when testing ts >= code mtime', () => {
@@ -229,7 +239,7 @@ function makeProbes(overrides: Partial<ExternalProbes> = {}): ExternalProbes {
         tasksCheck: async () => ({ ok: true, errors: [] }),
         gitDiffHasChanges: async () => true,
         gitStatusPaths: async () => [],
-        codeMtime: async () => new Date('2026-04-16T10:00:00Z'),
+        codeMtime: async (_startCommit: string | null) => new Date('2026-04-16T10:00:00Z'),
         ...overrides,
     };
 }
@@ -393,13 +403,13 @@ describe('liveProbes — integration', () => {
         }
     });
 
-    it('gitDiffHasChanges returns boolean', async () => {
+    it('gitDiffHasChanges(null) returns null (no startCommit)', async () => {
         const result = await liveProbes.gitDiffHasChanges(null);
-        expect(typeof result).toBe('boolean');
+        expect(result).toBe(null);
     });
 
     it('codeMtime returns a Date or null', async () => {
-        const result = await liveProbes.codeMtime();
+        const result = await liveProbes.codeMtime(null);
         expect(result === null || result instanceof Date).toBe(true);
     });
 });
@@ -501,7 +511,7 @@ function makeMockIo(overrides: Partial<CliIo> = {}): CliIo & {
             tasksCheck: async () => ({ ok: true, errors: [] }),
             gitDiffHasChanges: async () => true,
             gitStatusPaths: async () => [],
-            codeMtime: async () => new Date('2026-04-16T10:00:00Z'),
+            codeMtime: async (_startCommit: string | null) => new Date('2026-04-16T10:00:00Z'),
         },
         stdoutText: () => stdout,
         stderrText: () => stderr,
