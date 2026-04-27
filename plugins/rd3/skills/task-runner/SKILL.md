@@ -6,7 +6,7 @@ version: 1.0.0
 created_at: 2026-04-16
 updated_at: 2026-04-16
 platform: rd3
-type: workflow
+type: technique
 tags: [task-execution, workflow, implement-test-loop, verification, staged-execution]
 metadata:
   author: cc-agents
@@ -65,8 +65,8 @@ Skill(skill="rd3:task-runner", args="0274 --preset standard --dry-run")
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `task-ref` | Yes | — | WBS number or task file path |
-| `--preset` | No | from task frontmatter or `standard` | Workflow preset: `simple`, `standard`, `complex`, `research` |
-| `--channel <name>` | No | `current` | Execution channel override |
+| `--preset` | No | task frontmatter preset → legacy profile → standard | Workflow preset: `simple`, `standard`, `complex`, `research` |
+| `--channel <name>` | No | `current` | Execution channel override. Use `auto` to let `rd3:run-acp` choose the channel based on task metadata. |
 | `--auto` | No | `false` | Skip confirmations where delegated skill supports it |
 | `--coverage <n>` | No | — | Coverage target. Forwarded to `rd3:sys-testing` (Stage 3) and to `postflight-check.ts` (Stage 5) for threshold enforcement. Not forwarded to `rd3:code-verification`. |
 | `--dry-run` | No | `false` | Emit structured JSON workflow plan and exit |
@@ -75,8 +75,6 @@ Skill(skill="rd3:task-runner", args="0274 --preset standard --dry-run")
 | `--verify` | No | `false` | Shortcut for `--preflight-verify --postflight-verify` |
 | `--stage <value>` | No | `all` | Execution stage: `all`, `plan-only`, `implement-only` |
 | `--max-loop-iterations <n>` | No | `3` | Cap for implement ↔ test loop iterations |
-
-Default preset resolution: task frontmatter `preset` → legacy `profile` → `standard`.
 
 ## Presets
 
@@ -133,13 +131,15 @@ Active when `--preflight-verify` or `--verify` is set.
 
 Purpose: ensure the task file is structurally runnable before execution starts. This is a **lightweight structural gate**, not full SECU review — use the dedicated verification skill for that.
 
-1. Run `tasks check <WBS>` for structural completeness (Background, Requirements, acceptance criteria)
-2. If sections are missing or weak:
-   - Attempt auto-backfill using guards helper (see `references/status-transitions.md`)
-   - On `complex` or `research` preset, auto-backfill is not sufficient — route to `rd3:request-intake --mode refine` instead
-3. If validation still fails after backfill/refine:
-   - `--auto` set → halt with actionable error listing failed checks
-   - `--auto` absent → prompt user with remediation options
+**LLM-mediated — no script.** Stage 0.5 is executed by the agent (LLM), not by a deterministic script. The contract below defines what triggers which path.
+
+| Condition | Path |
+|-----------|------|
+| `tasks check <WBS>` exits 0 | Proceed to Stage 1 |
+| Missing Background / Requirements / acceptance criteria | Attempt auto-backfill using guards helper (see `references/status-transitions.md`) |
+| `complex` or `research` preset with weak sections | Route to `rd3:request-intake --mode refine` (auto-backfill not sufficient) |
+| Validation still fails after backfill/refine + `--auto` | Halt with actionable error listing failed checks |
+| Validation still fails after backfill/refine, no `--auto` | Prompt user with remediation options |
 
 See `references/status-transitions.md` for guard details and backfill templates.
 
@@ -159,6 +159,8 @@ Purpose: tighten ambiguous requirements, improve acceptance criteria, ensure tas
 ```text
 Skill(skill="rd3:task-decomposition", args="<task-ref>")
 ```
+
+**Note:** When `rd3:task-decomposition` emits a structured decomposition output, use the `structured-output-protocol` invocation pattern — pass the decomposition JSON directly to the child-creation step rather than re-parsing the human-readable summary. See `rd3:task-decomposition` SKILL.md for the structured output contract.
 
 **`rd3:task-decomposition` is analysis-only.** It does NOT create child task files. If decomposition is required, `task-runner` must create children through `rd3:tasks` before stopping parent execution.
 
@@ -189,12 +191,16 @@ Skill(skill="rd3:sys-testing", args="<task-ref> [--coverage <n>]")
 
 6. Write testing evidence back to task file (see `references/status-transitions.md` Minimum Testing Structure)
 7. If tests fail, coverage misses, or requirements not met → back to step 1
+**Pre-testing guard:** Before `tasks update <WBS> testing`, run `tasks check <WBS>`. If it returns non-zero, backfill missing sections (see `references/status-transitions.md` Minimum Structures) before retrying the transition. Do not use `--force` as a substitute for honest backfill.
+
 8. **Loop exit:** all of below true:
    - implementation present
    - tests pass
    - coverage met or explicitly accepted
    - no unresolved blocker
    - task can transition to `Testing` without `--force`
+
+See `references/delegated-prompts.md` for the full prompt contract for each delegated stage.
 
 **Iteration cap:** `--max-loop-iterations <n>` (default `3`). On exhaustion:
 - keep status `wip`
@@ -204,7 +210,7 @@ Skill(skill="rd3:sys-testing", args="<task-ref> [--coverage <n>]")
 ### Stage 4: Verification Gate
 
 ```text
-Skill(skill="rd3:code-verification", args="--mode verify --task-ref <task-ref> --mode-verify full [--bdd true for complex] [--auto] [--channel <current|normalized-channel>]")
+Skill(skill="rd3:code-verification", args="--mode verify --task-ref <task-ref> --mode-verify full [--bdd] [--auto] [--channel <current|normalized-channel>]")
 ```
 
 Purpose: SECU review + requirements traceability + go/no-go signal before `done`.
