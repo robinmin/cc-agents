@@ -58,12 +58,12 @@ export interface TaskContext {
 export interface ExternalProbes {
     /** Runs `tasks check <WBS> --json` and returns ok/errors. */
     tasksCheck: (wbs: string) => Promise<{ ok: boolean; errors: string[] }>;
-    /** Returns true if git diff vs startCommit has non-empty output. */
-    gitDiffHasChanges: (startCommit: string | null) => Promise<boolean>;
+    /** Returns true/false when startCommit is set; null when startCommit is null (check will skip). */
+    gitDiffHasChanges: (startCommit: string | null) => Promise<boolean | null>;
     /** Returns the list of paths in `git status --porcelain`. */
     gitStatusPaths: () => Promise<string[]>;
-    /** Returns mtime timestamps for code changes (most recent) vs test evidence. */
-    codeMtime: () => Promise<Date | null>;
+    /** Returns mtime of most recently changed code file since startCommit; null when startCommit is null. */
+    codeMtime: (startCommit: string | null) => Promise<Date | null>;
 }
 
 // ============================================================================
@@ -89,21 +89,26 @@ export function checkTaskSectionsPopulated(probeResult: { ok: boolean; errors: s
 }
 
 function extractSection(content: string, heading: string): string | null {
+    const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const lines = content.split('\n');
-    const headingPattern = new RegExp(`^#{2,3}\\s+${heading}\\s*$`);
+    const headingPattern = new RegExp(`^(#{2,3})\\s+${escapedHeading}\\s*$`);
     let start = -1;
+    let depth = 2;
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i] ?? '';
-        if (headingPattern.test(line)) {
+        const m = headingPattern.exec(line);
+        if (m) {
+            depth = (m[1] ?? '##').length;
             start = i + 1;
             break;
         }
     }
     if (start === -1) return null;
+    const endPattern = new RegExp(`^#{1,${depth}}\\s+`);
     let end = lines.length;
     for (let i = start; i < lines.length; i++) {
         const line = lines[i] ?? '';
-        if (/^#{2,3}\s+/.test(line)) {
+        if (endPattern.test(line)) {
             end = i;
             break;
         }
@@ -148,7 +153,15 @@ export function checkVerificationVerdict(taskContent: string): CheckResult {
     };
 }
 
-export function checkCodeChangesExist(hasChanges: boolean): CheckResult {
+export function checkCodeChangesExist(hasChanges: boolean | null): CheckResult {
+    if (hasChanges === null) {
+        return {
+            name: 'code-changes-exist',
+            status: 'skip',
+            evidence: 'No start-commit provided; code-changes check skipped',
+            severity: 'blocker',
+        };
+    }
     if (hasChanges) {
         return {
             name: 'code-changes-exist',
@@ -231,7 +244,9 @@ export function checkCoverageThreshold(threshold: number | null, taskContent: st
 export function parseTestingTimestamp(taskContent: string): Date | null {
     const section = extractSection(taskContent, 'Testing');
     if (section === null) return null;
-    const isoMatch = section.match(/(\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?)/);
+    const isoMatch = section.match(
+        /(?:Ran(?:\s+at)?|Date:|Run:|Result:|Evidence:)[^\n]*?(\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?)/i,
+    );
     if (!isoMatch) return null;
     const parsed = new Date(isoMatch[1] ?? '');
     return Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -312,7 +327,7 @@ export async function runPostflightChecks(context: TaskContext, probes: External
     const probeResult = await probes.tasksCheck(extractWbs(context.taskPath));
     const hasChanges = await probes.gitDiffHasChanges(context.startCommit);
     const gitStatusPaths = await probes.gitStatusPaths();
-    const codeMtime = await probes.codeMtime();
+    const codeMtime = await probes.codeMtime(context.startCommit);
 
     const checks: CheckResult[] = [
         checkTaskSectionsPopulated(probeResult),
@@ -368,10 +383,8 @@ export const liveProbes: ExternalProbes = {
         return { ok: false, errors };
     },
     async gitDiffHasChanges(startCommit: string | null) {
-        const args = startCommit
-            ? ['git', 'diff', '--stat', `${startCommit}..HEAD`]
-            : ['git', 'diff', '--stat', 'HEAD'];
-        const { stdout } = await runCommand(args);
+        if (startCommit === null) return null;
+        const { stdout } = await runCommand(['git', 'diff', '--stat', `${startCommit}..HEAD`]);
         return stdout.trim().length > 0;
     },
     async gitStatusPaths() {
@@ -380,14 +393,32 @@ export const liveProbes: ExternalProbes = {
             .split('\n')
             .map((line) => line.trim())
             .filter((line) => line.length > 0)
-            .map((line) => line.slice(3).trim());
+            .map((line) => {
+                const path = line.slice(3).trim();
+                const arrowIdx = path.indexOf(' -> ');
+                return arrowIdx === -1 ? path : path.slice(arrowIdx + 4);
+            })
+            .filter((p) => p.length > 0);
     },
-    async codeMtime() {
-        const { stdout } = await runCommand(['git', 'log', '-1', '--format=%cI']);
-        const iso = stdout.trim();
-        if (!iso) return null;
-        const parsed = new Date(iso);
-        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    async codeMtime(startCommit: string | null) {
+        if (startCommit === null) return null;
+        const { stdout: fileList } = await runCommand(['git', 'diff', '--name-only', `${startCommit}..HEAD`]);
+        const files = fileList
+            .trim()
+            .split('\n')
+            .filter((f) => f.length > 0);
+        if (files.length === 0) return null;
+        let latest: Date | null = null;
+        for (const file of files) {
+            const { stdout } = await runCommand(['git', 'log', '-1', '--format=%cI', '--', file]);
+            const iso = stdout.trim();
+            if (!iso) continue;
+            const d = new Date(iso);
+            if (!Number.isNaN(d.getTime())) {
+                if (latest === null || d.getTime() > latest.getTime()) latest = d;
+            }
+        }
+        return latest;
     },
 };
 
