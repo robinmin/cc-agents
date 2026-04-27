@@ -108,6 +108,7 @@ Two workflow modes. See reference files for full step-by-step details:
 | `--mode-verify` | No | `full` | For verify mode: `full`, `review-only`, `func-only` |
 | `--bdd` | No | `false` | For verify mode: enable BDD scenario check |
 | `--auto` | No | `false` | Skip confirmations |
+| `--force` | No | `false` | Bypass task status guard in verify mode. Run full verification even if task status is `Done` or other terminal status |
 | `--channel` | No | `auto` | Execution channel: `auto`, `current`, or remote agent |
 
 ## Shared Reference: Focus Filter (`--focus`)
