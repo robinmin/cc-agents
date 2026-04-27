@@ -214,9 +214,10 @@ function buildExitConditions(input: DryRunInput): DryRunExitConditions {
     const stage = resolveStage(input);
 
     if (stage === 'plan-only') {
+        const hasActiveStages = refineEnabled(input) || planEnabled(input);
         return {
             early_exit_at_stage: 'plan-only',
-            expected_final_status: 'WIP',
+            expected_final_status: hasActiveStages ? 'WIP' : 'Todo',
         };
     }
 
