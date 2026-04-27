@@ -75,6 +75,7 @@ Skill(skill="rd3:task-runner", args="0274 --preset standard --dry-run")
 | `--verify` | No | `false` | Shortcut for `--preflight-verify --postflight-verify` |
 | `--stage <value>` | No | `all` | Execution stage: `all`, `plan-only`, `implement-only` |
 | `--max-loop-iterations <n>` | No | `3` | Cap for implement ↔ test loop iterations |
+| `--force` | No | `false` | Bypass task status guard in Stage 4. Passed through to `rd3:code-verification`. Allows re-verification of `Done` tasks |
 
 ## Presets
 
@@ -210,8 +211,10 @@ See `references/delegated-prompts.md` for the full prompt contract for each dele
 ### Stage 4: Verification Gate
 
 ```text
-Skill(skill="rd3:code-verification", args="--mode verify --task-ref <task-ref> --mode-verify full [--bdd] [--auto] [--channel <current|normalized-channel>]")
+Skill(skill="rd3:code-verification", args="--mode verify --task-ref <task-ref> --mode-verify full [--bdd] [--auto] [--force] [--channel <current|normalized-channel>]")
 ```
+
+**Note:** `--force` is passed through when the task-runner itself is invoked with `--force`, allowing re-verification of tasks that have already transitioned to `Done`.
 
 Purpose: SECU review + requirements traceability + go/no-go signal before `done`.
 
