@@ -1,0 +1,16 @@
+name: indexed-context
+description: >
+  Always-on agent intelligence layer powered by OpenWolf. Provides file index
+  awareness, learning memory, token tracking, bug history, Design QC, Reframe
+  framework selection, and daemon/cron management. Activates at session start to
+  give coding agents project context before any action. Works across all
+  rd3-supported platforms.
+version: 1.0.0
+icon: 🛠️
+category: debugging
+tags:
+  - context
+  - file-index
+  - token-tracking
+  - cerebrum
+  - openwolf
