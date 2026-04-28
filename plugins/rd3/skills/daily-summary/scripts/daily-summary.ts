@@ -115,11 +115,9 @@ export function parseArgs(argv: string[] = process.argv.slice(2)): CliOptions {
 
     // Resolve date
     if (options.date === 'today') {
-        options.date = new Date().toISOString().slice(0, 10);
+        options.date = todayLocal();
     } else if (options.date === 'yesterday') {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        options.date = yesterday.toISOString().slice(0, 10);
+        options.date = yesterdayLocal();
     }
 
     return options;
@@ -147,6 +145,28 @@ Examples:
 }
 
 // ─── Date Helpers ─────────────────────────────────────────────────────────────
+
+/** Return today's date as YYYY-MM-DD in the system (git) timezone. */
+export function todayLocal(): string {
+    // Spawn 'date' to get system timezone date, since JS runtime
+    // may have a different TZ (e.g. bun test forces UTC).
+    const proc = Bun.spawnSync(['date', '+%Y-%m-%d']);
+    return proc.stdout.toString().trim();
+}
+
+/** Return yesterday's date as YYYY-MM-DD in the system (git) timezone. */
+export function yesterdayLocal(): string {
+    // Use portable epoch math via date command
+    const epochProc = Bun.spawnSync(['date', '+%s']);
+    const epoch = parseInt(epochProc.stdout.toString().trim(), 10);
+    const yesterdayEpoch = epoch - 86400;
+    // Try BSD -r first, then GNU -d @
+    let proc = Bun.spawnSync(['date', '-r', String(yesterdayEpoch), '+%Y-%m-%d']);
+    if (proc.exitCode !== 0) {
+        proc = Bun.spawnSync(['date', '-d', `@${yesterdayEpoch}`, '+%Y-%m-%d']);
+    }
+    return proc.stdout.toString().trim();
+}
 
 export function getDateRange(dateStr: string): { start: string; end: string } {
     // Date is YYYY-MM-DD format
@@ -276,7 +296,7 @@ export async function promptUser(): Promise<UserAnnotations> {
         return { learnings: '', issuesFixed: '', pending: '' };
     }
 
-    console.log(`\n📊 Daily Summary — ${new Date().toISOString().slice(0, 10)}`);
+    console.log(`\n📊 Daily Summary — ${todayLocal()}`);
     console.log('═'.repeat(50));
     console.log('\nPlease provide the following (press Enter to skip):\n');
 
