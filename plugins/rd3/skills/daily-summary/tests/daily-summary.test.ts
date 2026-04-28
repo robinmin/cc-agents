@@ -16,6 +16,7 @@ import {
     parseArgs,
     printUsage,
     promptUser,
+    todayLocal,
     writeSummary,
 } from '../scripts/daily-summary';
 
@@ -549,7 +550,7 @@ describe('git-backed integration', () => {
     });
 
     test('getGitCommits returns parsed commits with numstat', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         const commits = await getGitCommits(today);
         expect(commits.length).toBeGreaterThan(0);
         const c = commits[0];
@@ -585,7 +586,7 @@ describe('git-backed integration', () => {
         Bun.spawnSync(['git', 'add', '.'], { cwd: tmpRepo });
         Bun.spawnSync(['git', 'commit', '-q', '-m', 'feat: add c'], { cwd: tmpRepo });
 
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         const commits = await getGitCommits(today);
         expect(commits.length).toBeGreaterThanOrEqual(3);
         const messages = commits.map((c) => c.message);
@@ -594,7 +595,7 @@ describe('git-backed integration', () => {
     });
 
     test('buildDailySummary aggregates git activity with skipCcusage', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         const summary = await buildDailySummary({
             date: today,
             dryRun: true,
@@ -611,7 +612,7 @@ describe('git-backed integration', () => {
     });
 
     test('buildDailySummary respects skipGit and skipCcusage', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         const summary = await buildDailySummary({
             date: today,
             dryRun: true,
@@ -636,7 +637,7 @@ describe('git-backed integration', () => {
     });
 
     test('buildDailySummary populates tokenUsage when ccusage returns data', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         const shimDir = mkdtempSync(join(tmpdir(), 'daily-summary-bds-shim-'));
         const payload = {
             totals: {
@@ -672,7 +673,7 @@ describe('git-backed integration', () => {
     });
 
     test('buildDailySummary handles missing ccusage gracefully (skipCcusage=false)', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         const originalPath = process.env.PATH;
         process.env.PATH = '/nonexistent';
         try {
@@ -718,7 +719,7 @@ describe('main entrypoint (in-process)', () => {
     });
 
     test('runs end-to-end with --dry-run', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         process.argv = ['bun', 'script', '--date', today, '--dry-run', '--no-ccusage', '--no-git'];
         await main();
         const output = consoleLogSpy.mock.calls.flat().join('\n');
@@ -727,7 +728,7 @@ describe('main entrypoint (in-process)', () => {
     });
 
     test('writes summary to default docs/daily path when not in dry-run', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         process.argv = ['bun', 'script', '--date', today, '--no-ccusage', '--no-git'];
         await main();
         const expected = join(tmpRepo, 'docs', 'daily', `summary_${today.replace(/-/g, '')}.md`);
@@ -737,7 +738,7 @@ describe('main entrypoint (in-process)', () => {
     });
 
     test('writes summary to --output path with token usage path skipped', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         const outPath = join(tmpRepo, 'custom.md');
         process.argv = ['bun', 'script', '--date', today, '--output', outPath, '--no-ccusage', '--no-git'];
         await main();
@@ -745,7 +746,7 @@ describe('main entrypoint (in-process)', () => {
     });
 
     test('prints token usage stats when ccusage returns data', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         const shimDir = mkdtempSync(join(tmpdir(), 'daily-summary-main-shim-'));
         const payload = {
             totals: {
@@ -777,7 +778,7 @@ describe('main entrypoint (in-process)', () => {
     });
 
     test('includes git activity in stats when commits exist', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         process.argv = ['bun', 'script', '--date', today, '--dry-run', '--no-ccusage'];
         await main();
         const output = consoleLogSpy.mock.calls.flat().join('\n');
@@ -786,7 +787,7 @@ describe('main entrypoint (in-process)', () => {
     });
 
     test('handles errors and calls process.exit(1)', async () => {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = todayLocal();
         process.argv = ['bun', 'script', '--date', today, '--no-ccusage', '--no-git'];
 
         // Make writeSummary fail by setting outputPath into an unwritable location.
