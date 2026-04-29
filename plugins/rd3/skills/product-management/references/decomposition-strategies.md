@@ -1,6 +1,6 @@
 # Decomposition Strategy Profiles
 
-Three profiles that scope how features decompose into tasks. Applied as filters during `rd3:task-decomposition`.
+Four profiles that scope how features decompose into tasks. Applied as filters during `rd3:task-decomposition`.
 
 Each profile has a **core philosophy** — a single principle that guides every decomposition decision. When in doubt, defer to the philosophy.
 
@@ -8,14 +8,75 @@ Each profile has a **core philosophy** — a single principle that guides every 
 
 ## Strategy Selection Guide
 
-| Signal | MVP | Standard | Mature |
-|---|---|---|---|
-| **Stage** | Early validation | Iterating on known need | Production-critical |
-| **Confidence** | Low (hypothesis) | Medium (validated need) | High (proven, scaling) |
-| **Risk tolerance** | High | Medium | Low |
-| **Timeline pressure** | Extreme | Normal | Low |
-| **Compliance** | None | Industry standard | Regulatory required |
-| **User base** | Internal/beta | Growing | Large/enterprise |
+| Signal | Simplify | MVP | Standard | Mature |
+|---|---|---|---|---|
+| **Stage** | Intake / low-risk change | Early validation | Iterating on known need | Production-critical |
+| **Confidence** | Sufficient for task creation | Low (hypothesis) | Medium (validated need) | High (proven, scaling) |
+| **Risk tolerance** | High | High | Medium | Low |
+| **Timeline pressure** | Immediate | Extreme | Normal | Low |
+| **Compliance** | None | None | Industry standard | Regulatory required |
+| **User base** | Internal/local | Internal/beta | Growing | Large/enterprise |
+
+---
+
+## Simplify Profile
+
+**Philosophy: Only the useful core.**
+
+> If a step does not change the task set or prevent obvious failure, skip it. The goal is to turn a clear enough request into a small executable plan without ceremony.
+
+**Core principle:** Preserve just enough product thinking to avoid wrong work. Ask only blocking questions, avoid broad codebase analysis, skip detailed estimation, and create the minimum useful task set.
+
+**Goal:** Convert a straightforward feature request into linked tasks quickly.
+
+### Decision Rules
+
+When decomposing with Simplify, apply these filters in order:
+
+1. **Ask only blocking questions.** If the missing detail does not affect the first task set, defer it.
+2. **Keep scope to the stated feature.** Do not expand into adjacent roadmap or architecture analysis.
+3. **Use brief requirements.** Capture outcome, core behavior, and acceptance signal.
+4. **Skip detailed estimates.** Use rough sizing only when needed to split tasks.
+5. **Create the fewest tasks that remain executable.**
+
+### Scope Rules
+
+| Include | Exclude |
+|---|---|
+| Core behavior | Adjacent nice-to-haves |
+| Blocking assumptions | Comprehensive elicitation |
+| Brief acceptance signals | Full PRD sections |
+| Existing obvious context | Broad reverse engineering |
+
+### Testing Rules
+
+| Include | Exclude |
+|---|---|
+| Manual smoke check | Coverage targets |
+| Existing relevant test command if obvious | New test strategy design |
+
+### Documentation Rules
+
+| Include | Exclude |
+|---|---|
+| Brief task requirements | PRD/user manual/API docs |
+| Key assumption notes | ADRs |
+
+### Decomposition Pattern
+
+```
+Feature: <title>
+├── Task 1: Implement core change (2-6h)
+├── Task 2: Smoke check / minimal verification (1-2h)
+└── Total: 1-2 tasks, 3-8h
+```
+
+### Exit Criteria
+
+- Core behavior is represented by executable tasks
+- Blocking assumptions are stated
+- Feature is linked to the created tasks
+- No broad analysis was needed
 
 ---
 
