@@ -1,5 +1,6 @@
 ---
 description: Bootstrap feature tree from existing codebase (one-time)
+argument-hint: "[--mode full|quick] [--path <project-path>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -49,8 +50,10 @@ Do NOT use when:
 
 ## Delegation
 
+Forward the raw slash-command arguments. Do not expand command-specific wrapper variables before delegation.
+
 ```
-Skill(skill="rd3:product-management", args="init --mode $MODE --path $PATH")
+Skill(skill="rd3:product-management", args="init $ARGUMENTS")
 ```
 
 ## See Also
