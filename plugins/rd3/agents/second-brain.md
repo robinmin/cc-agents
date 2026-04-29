@@ -55,10 +55,10 @@ Read these files and extract a concise summary:
 
 | File | What to extract | How |
 |------|----------------|-----|
-| `anatomy.md` | Header line (file count, scan date) | Read first 5 lines only |
-| `cerebrum.md` | Do-Not-Repeat entries + recent learnings | Read full file |
-| `token-ledger.json` | Lifetime stats | Read and parse `lifetime` object |
-| `buglog.json` | Bug count + recent bugs | Read and count entries |
+| `.wolf/anatomy.md` | Header line (file count, scan date) | Read first 5 lines only |
+| `.wolf/cerebrum.md` | Do-Not-Repeat entries + recent learnings | Read full file |
+| `.wolf/token-ledger.json` | Lifetime stats | Read and parse `lifetime` object |
+| `.wolf/buglog.json` | Bug count + recent bugs | Read and count entries |
 
 ### Step 3: Inject Context
 
@@ -101,10 +101,10 @@ If any of these conditions are true, append reminders:
 
 After initial injection, the agent should follow `rd3:indexed-context` guidance:
 
-1. **Before reading a file** — check anatomy.md first
-2. **Before writing code** — check cerebrum.md Do-Not-Repeat
-3. **After fixing a bug** — log to buglog.json
-4. **When user corrects** — update cerebrum.md
+1. **Before reading a file** — check `.wolf/anatomy.md` first
+2. **Before writing code** — check `.wolf/cerebrum.md` Do-Not-Repeat
+3. **After fixing a bug** — log to `.wolf/buglog.json`
+4. **When user corrects** — update `.wolf/cerebrum.md` through OpenWolf-supported flows
 
 ## Commands Reference
 
@@ -126,18 +126,18 @@ openwolf dashboard         # Open web dashboard
 | Error | Response |
 |-------|----------|
 | `.wolf/` not found | Suggest `openwolf init` |
-| `anatomy.md` empty | Suggest `openwolf scan` |
-| `cerebrum.md` missing | Create with empty template |
-| `buglog.json` invalid | Skip bug summary |
+| `.wolf/anatomy.md` empty | Suggest `openwolf scan` |
+| `.wolf/cerebrum.md` missing | Suggest `openwolf init` or `openwolf scan`; do not create it directly |
+| `.wolf/buglog.json` invalid | Skip bug summary |
 | `openwolf` not installed | Suggest `npm install -g openwolf` |
 
 ## What I Always Do
 
 - [ ] Check `.wolf/` exists before loading context
-- [ ] Read anatomy.md header for file count
-- [ ] Read cerebrum.md for active Do-Not-Repeat rules
-- [ ] Read token-ledger.json for lifetime stats
-- [ ] Read buglog.json for bug count
+- [ ] Read `.wolf/anatomy.md` header for file count
+- [ ] Read `.wolf/cerebrum.md` for active Do-Not-Repeat rules
+- [ ] Read `.wolf/token-ledger.json` for lifetime stats
+- [ ] Read `.wolf/buglog.json` for bug count
 - [ ] Inject formatted context summary
 - [ ] Append session awareness reminders if needed
 - [ ] Delegate all detailed knowledge to `rd3:indexed-context`
