@@ -1,10 +1,10 @@
 ---
 description: "Core PM workflow: intake + elicit + estimate + decompose"
-argument-hint: "\"<description>\" [--strategy mvp|standard|mature] [--auto] OR <feature-id> [--auto]"
+argument-hint: "'<description>' [--strategy simplify|mvp|standard|mature] [--auto] OR <feature-id> [--auto]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
-> **Argument hints:** `"<description>"` `[--strategy mvp|standard|mature]` `[--auto]` OR `<feature-id>` `[--auto]`
+> **Argument hints:** `"<description>"` `[--strategy simplify|mvp|standard|mature]` `[--auto]` OR `<feature-id>` `[--auto]`
 
 # prd-run
 
@@ -32,7 +32,7 @@ Do NOT use when:
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `<description>` | Yes | — | Feature idea — can be vague or detailed |
-| `--strategy` | No | auto-detect | Force decomposition strategy: `mvp`, `standard`, or `mature` |
+| `--strategy` | No | auto-detect | Force decomposition strategy: `simplify`, `mvp`, `standard`, or `mature` |
 | `--auto` | No | `false` | Skip HITL approval after estimation, decompose immediately |
 
 ### Mode B: Readiness Check
@@ -58,6 +58,7 @@ When the first positional argument is a single non-flag token, probe `ftree cont
 |---------|--------|
 | `/rd3:prd-run "add dark mode"` | Add feature, elicit details, estimate, wait for approval |
 | `/rd3:prd-run "add dark mode" --auto` | Same but auto-approve decomposition |
+| `/rd3:prd-run "add dark mode" --strategy simplify` | Add feature and create the minimum useful task set |
 | `/rd3:prd-run "add SSO" --strategy mature` | Force mature strategy |
 | `/rd3:prd-run 0391` | Check if feature 0391 is ready to implement |
 | `/rd3:prd-run 0391 --auto` | Check + auto-fix readiness issues |
@@ -67,6 +68,7 @@ When the first positional argument is a single non-flag token, probe `ftree cont
 1. **Elicit** — If description is vague (no problem statement, no success criteria), run elicitation to flesh it out
 2. **Add to tree** — Create feature node via `ftree add --title "..." --status backlog`
 3. **Auto-select strategy** — Unless `--strategy` is specified:
+   - Sparse request + user asks for speed/minimal ceremony → `simplify`
    - No success criteria → `mvp`
    - Has criteria + personas → `standard`
    - Has compliance/criticality keywords → `mature`
@@ -74,7 +76,7 @@ When the first positional argument is a single non-flag token, probe `ftree cont
 5. **Approval gate:**
    - `--auto`: auto-approve, proceed to step 6
    - No `--auto`: present estimate, wait for user confirmation (go / switch strategy / cancel)
-6. **Decompose** — Create child task files, link to feature via `ftree link`
+6. **Decompose** — Create child task files, link to feature via `ftree link`. With `simplify`, create only the minimum useful task set and skip non-blocking elicitation/estimation detail.
 7. **Output** — Summary: feature ID, tasks created, WBS numbers, total effort
 
 ## Workflow — Mode B (Readiness Check)
