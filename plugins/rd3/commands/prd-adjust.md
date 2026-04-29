@@ -1,5 +1,6 @@
 ---
 description: Adjust feature priorities and status with HITL
+argument-hint: "[--prioritize] [--status <new-status>] [--root <feature-id>] [--method rice|moscow] [--auto]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -61,7 +62,7 @@ Do NOT use when:
 
 ## Workflow
 
-1. Load features from tree (`ftree ls --root $ROOT --json`)
+1. Load features from tree (`ftree ls --root <root-id> --json`)
 2. If `--prioritize`:
    - Run RICE or MoSCoW scoring on loaded features
    - Present scores to user for review
@@ -74,8 +75,10 @@ Do NOT use when:
 
 ## Delegation
 
+Forward the raw slash-command arguments. The product-management skill parses flags and applies defaults.
+
 ```
-Skill(skill="rd3:product-management", args="adjust --prioritize --method $METHOD --status $STATUS --root $ROOT --auto")
+Skill(skill="rd3:product-management", args="adjust $ARGUMENTS")
 ```
 
 ## See Also
