@@ -24,8 +24,12 @@ Always-on agent intelligence layer powered by OpenWolf. Provides file index awar
 indexed-context/
 ├── SKILL.md                        # Main skill definition
 ├── README.md                       # This file
-└── reference/
-    └── hooks-protocol.md           # Hook scripts reference
+├── scripts/
+│   └── session-start.ts             # rd3 SessionStart context loader
+└── references/
+    ├── hooks-protocol.md            # Hook scripts reference
+    ├── daemon-cron.md               # Daemon and scheduled maintenance
+    └── bug-memory-buglog-json.md    # Bug memory format and usage
 ```
 
 ## Platform Support
