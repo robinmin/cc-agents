@@ -1,5 +1,6 @@
 ---
 description: "Core PM workflow: intake + elicit + estimate + decompose"
+argument-hint: "\"<description>\" [--strategy mvp|standard|mature] [--auto] OR <feature-id> [--auto]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -38,15 +39,18 @@ Do NOT use when:
 
 | Argument | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `<feature-id>` | Yes | — | Feature ID (digits) to check |
+| `<feature-id>` | Yes | — | Feature ID to check (UUID/string ids accepted) |
 | `--auto` | No | `false` | Auto-fix issues where possible |
 
 ### Smart Positional Detection
 
 | Input Pattern | Mode | Example |
 |---------------|------|---------|
-| Digits only | B (readiness check) | `prd-run 0391` |
+| Single non-flag token that resolves via `ftree context <token>` | B (readiness check) | `prd-run abc123` |
 | Text with spaces | A (new feature) | `prd-run "add real-time collab"` |
+| Single token that does not resolve as a feature id | A (new feature) | `prd-run search` |
+
+When the first positional argument is a single non-flag token, probe `ftree context <arg>` before selecting a mode. If the feature exists, run Mode B. If the probe fails, treat the token as a new feature description and run Mode A.
 
 ## Examples
 
@@ -87,8 +91,10 @@ Do NOT use when:
 
 ## Delegation
 
+Forward the raw slash-command arguments. The product-management skill parses `run` mode, probes feature ids, and handles flags.
+
 ```
-Skill(skill="rd3:product-management", args="run --description \"$DESCRIPTION\" --feature $FEATURE_ID --strategy $STRATEGY --auto")
+Skill(skill="rd3:product-management", args="run $ARGUMENTS")
 ```
 
 ## See Also
