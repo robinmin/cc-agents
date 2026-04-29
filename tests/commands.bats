@@ -98,9 +98,9 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
-    # Check that command skill directories were created (e.g., rd3-dev-run)
+    # Pi global installs to shared ~/.agents/skills/ (not ~/.pi/agent/skills/)
     local skill_count
-    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^rd3-dev-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.agents/skills/" 2>/dev/null | grep "^rd3-dev-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
 
@@ -108,8 +108,9 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 codexcli --global
     [ "$status" -eq 0 ]
+    # CodexCLI global installs to shared ~/.agents/skills/
     local skill_count
-    skill_count=$(ls "${fake_home}/.codex/skills/" 2>/dev/null | grep "^rd3-dev-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.agents/skills/" 2>/dev/null | grep "^rd3-dev-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
 
@@ -117,7 +118,7 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 geminicli --global
     [ "$status" -eq 0 ]
-    [ -d "${fake_home}/.gemini/skills/" ]
+    # GeminiCLI global installs to shared ~/.agents/skills/
     [ -d "${fake_home}/.agents/skills/" ]
 }
 
@@ -125,7 +126,7 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 opencode --global
     [ "$status" -eq 0 ]
-    [ -d "${fake_home}/.opencode/skills/" ]
+    # OpenCode global installs to shared ~/.agents/skills/
     [ -d "${fake_home}/.agents/skills/" ]
 }
 
@@ -140,7 +141,8 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 openclaw --global
     [ "$status" -eq 0 ]
-    [ -d "${fake_home}/.openclaw/skills/" ]
+    # OpenClaw global installs to shared ~/.agents/skills/
+    [ -d "${fake_home}/.agents/skills/" ]
 }
 
 # --- Multiple Targets ---
@@ -149,8 +151,11 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 pi,codexcli --global
     [ "$status" -eq 0 ]
-    [ -d "${fake_home}/.pi/agent/skills/" ]
-    [ -d "${fake_home}/.codex/skills/" ]
+    # Both pi and codexcli route to shared ~/.agents/skills/ in global mode
+    [ -d "${fake_home}/.agents/skills/" ]
+    local skill_count
+    skill_count=$(ls "${fake_home}/.agents/skills/" 2>/dev/null | grep "^rd3-dev-" | wc -l | tr -d ' ')
+    [ "$skill_count" -ge 2 ]
 }
 
 # --- SKILL.md Content ---
@@ -159,11 +164,11 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
-    # Find a known command skill (e.g., rd3-dev-run)
+    # Pi global installs to shared ~/.agents/skills/
     local first_skill
-    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-dev-" | head -1)
+    first_skill=$(ls "${fake_home}/.agents/skills/" 2>/dev/null | grep "^rd3-dev-" | head -1)
     [ -n "$first_skill" ]
-    local skill_file="${fake_home}/.pi/agent/skills/${first_skill}/SKILL.md"
+    local skill_file="${fake_home}/.agents/skills/${first_skill}/SKILL.md"
     [ -f "$skill_file" ]
     # Frontmatter should have name: matching directory name
     grep -q "^name: ${first_skill}$" "$skill_file"
@@ -173,10 +178,11 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" rd3 pi --global
     [ "$status" -eq 0 ]
+    # Pi global installs to shared ~/.agents/skills/
     local first_skill
-    first_skill=$(ls "${fake_home}/.pi/agent/skills/" | grep "^rd3-dev-" | head -1)
+    first_skill=$(ls "${fake_home}/.agents/skills/" 2>/dev/null | grep "^rd3-dev-" | head -1)
     [ -n "$first_skill" ]
-    local skill_file="${fake_home}/.pi/agent/skills/${first_skill}/SKILL.md"
+    local skill_file="${fake_home}/.agents/skills/${first_skill}/SKILL.md"
     [ -f "$skill_file" ]
 }
 
@@ -193,7 +199,8 @@ teardown() {
     local fake_home="${TEST_DIR}/home"
     run env HOME="$fake_home" bash "$COMMANDS_SH" wt pi --global
     [ "$status" -eq 0 ]
+    # Pi global installs to shared ~/.agents/skills/
     local skill_count
-    skill_count=$(ls "${fake_home}/.pi/agent/skills/" 2>/dev/null | grep "^wt-topic-" | wc -l | tr -d ' ')
+    skill_count=$(ls "${fake_home}/.agents/skills/" 2>/dev/null | grep "^wt-topic-" | wc -l | tr -d ' ')
     [ "$skill_count" -ge 1 ]
 }
