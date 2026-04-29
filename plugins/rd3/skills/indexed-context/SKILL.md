@@ -271,10 +271,27 @@ openwolf dashboard       # Open browser to dashboard
 
 ## Hooks Reference
 
-OpenWolf registers 6 hooks with the coding agent.
-ile_path": "..." } }`
-- **Output:** Warnings/info via stderr
-- **Exit code:** Always 0 (allow action)
+OpenWolf uses six hook scripts under `.wolf/hooks/`, while the rd3 plugin registers a portable `SessionStart` hook that loads `.wolf/` context when present.
+
+| Hook event | Script | Purpose |
+|---|---|---|
+| `SessionStart` | `session-start.js` / rd3 `scripts/session-start.ts` | Load project context and initialize session state |
+| `PreToolUse(Read)` | `pre-read.js` | Warn on repeated reads and surface anatomy summaries |
+| `PostToolUse(Read)` | `post-read.js` | Track file reads and token estimates |
+| `PreToolUse(Write\|Edit\|MultiEdit)` | `pre-write.js` | Check cerebrum Do-Not-Repeat patterns before writes |
+| `PostToolUse(Write\|Edit\|MultiEdit)` | `post-write.js` | Update anatomy/memory after writes |
+| `Stop` | `stop.js` | Final session accounting and reminders |
+
+### Hook Protocol
+
+- **Input:** JSON on stdin from the coding agent, including `hook_event_name`, `tool_name`, and `tool_input` when applicable.
+- **Read input:** `{ "tool_name": "Read", "tool_input": { "file_path": "..." } }`
+- **Write input:** `{ "tool_name": "Write", "tool_input": { "file_path": "...", "content": "..." } }`
+- **Edit input:** `{ "tool_name": "Edit", "tool_input": { "file_path": "...", "old_string": "...", "new_string": "..." } }`
+- **Output:** Warnings/info via stderr for tool hooks; SessionStart may emit a JSON `systemMessage`.
+- **Exit code:** Always 0 for OpenWolf advisory hooks; they warn but do not block.
+
+See `references/hooks-protocol.md` for full payload examples and session state format.
 
 ### Atomic Writes
 
