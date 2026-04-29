@@ -124,6 +124,8 @@ Bootstrap a feature tree from an existing codebase. One-time entry point for pro
    ```
    Store technical metadata:
    ```bash
+   ftree context <feature-id> --format full
+   # Merge existing metadata with the modules/endpoints fields before updating.
    ftree update <feature-id> --metadata '{"modules":["src/auth/login.ts","src/auth/oauth.ts"],"endpoints":["POST /auth/login","GET /auth/oauth/callback"]}'
    ```
 
@@ -196,8 +198,10 @@ Elicit and structure new feature ideas into the feature tree.
    ```bash
    ftree add --title "<title>" [--parent <parent-id>] --status backlog
    ```
-6. **Link metadata** — Store problem statement, success criteria in ftree metadata:
+6. **Link metadata** — Store problem statement, success criteria in ftree metadata. `ftree update --metadata` replaces the metadata blob, so read the existing metadata first and write back a merged object:
    ```bash
+   ftree context <feature-id> --format full
+   # Merge existing metadata with: {"problem":"...","success_criteria":"...","personas":["..."]}
    ftree update <feature-id> --metadata '{"problem":"...","success_criteria":"...","personas":["..."]}'
    ```
 
@@ -224,9 +228,11 @@ Use when a quantitative ranking across many features is needed.
    - **Effort** — How many person-months to build? (number)
    - **Score** = (Reach × Impact × Confidence) / Effort
 3. **Rank features** by RICE score (highest = top priority)
-4. **Store scores** in ftree metadata:
+4. **Store scores** in ftree metadata. Preserve existing metadata fields such as `problem`, `success_criteria`, and `personas`; merge the RICE object into the current metadata before updating:
    ```bash
-   ftree update <feature-id> --metadata '{"rice":{"reach":1000,"impact":2,"confidence":0.8,"effort":2,"score":800}}'
+   ftree context <feature-id> --format full
+   # Write the full merged metadata, including prior fields plus the rice field.
+   ftree update <feature-id> --metadata '{"problem":"...","success_criteria":"...","personas":["..."],"rice":{"reach":1000,"impact":2,"confidence":0.8,"effort":2,"score":800}}'
    ```
 5. **Update status** for top-N features:
    ```bash
@@ -243,9 +249,11 @@ Use when categorical buckets for release scoping are needed.
    - **Should have** — Important but not vital. High value, can slip to next release if needed.
    - **Could have** — Desirable but not necessary. Nice-to-have if capacity allows.
    - **Won't have** — Explicitly out of scope for this release. Document for future.
-3. **Store category** in ftree metadata:
+3. **Store category** in ftree metadata. Preserve existing metadata fields; merge `moscow` into the current metadata before updating:
    ```bash
-   ftree update <feature-id> --metadata '{"moscow":"must"}'
+   ftree context <feature-id> --format full
+   # Write the full merged metadata, including prior fields plus the moscow field.
+   ftree update <feature-id> --metadata '{"problem":"...","success_criteria":"...","personas":["..."],"moscow":"must"}'
    ```
 4. **Validate** — Ensure "Must have" features collectively satisfy the release goal
 5. **Generate release scope** — List all Must + Should features as the release candidate
@@ -317,10 +325,12 @@ See `references/decomposition-strategies.md` for detailed profile definitions.
    ```bash
    ftree link <feature-id> --wbs <task-wbs>
    ```
-6. **Update feature status:**
+6. **Update feature status using legal transitions only.** New features start as `backlog`, and ftree enforces `backlog → validated → executing → done`. If the feature is still `backlog`, validate it first, then move it to `executing`:
    ```bash
+   ftree update <feature-id> --status validated
    ftree update <feature-id> --status executing
    ```
+   If the feature is already `validated`, update directly to `executing`. If it is `blocked` or another non-standard state, resolve the blocked reason and choose the legal transition from the current state.
 
 ## Workflow 5: Requirements Elicitation
 
@@ -352,7 +362,7 @@ Use questions from `references/elicitation.md` organized by category:
 2. **Select 3-7 questions** from taxonomy based on gaps + expertise level
 3. **Ask questions** — batch related questions, don't ask one-at-a-time
 4. **Synthesize answers** into structured feature metadata
-5. **Store** in ftree metadata via `ftree update`
+5. **Store** in ftree metadata via `ftree update` after merging with existing metadata
 6. **Confirm** with user before proceeding
 
 ## Integration Points
@@ -364,7 +374,7 @@ All feature tree operations use `ftree` CLI. This skill does NOT reimplement tre
 | Operation | Command |
 |---|---|
 | Add feature | `ftree add --title "..." [--parent <id>]` |
-| Update metadata | `ftree update <id> --metadata '{...}'` |
+| Update metadata | `ftree update <id> --metadata '{...}'` after merging with existing metadata |
 | Update status | `ftree update <id> --status <status>` |
 | List features | `ftree ls [--status <s>] [--json]` |
 | Get context | `ftree context <id> --format full` |
@@ -382,7 +392,7 @@ Task file creation uses `tasks create` CLI. This skill does NOT manage task file
 
 ## Gotchas
 
-1. **ftree metadata is JSON** — Always pass metadata as valid JSON string. Invalid JSON silently fails.
+1. **ftree metadata is replaced, not merged** — Always read current metadata, merge new fields locally, then pass the full JSON blob to `ftree update --metadata`.
 2. **Feature status transitions are enforced** — `backlog → validated → executing → done`. Cannot skip states.
 3. **PRD export is a workflow, not a script** — The agent reads ftree JSON and fills a template. There is no `ftree export-prd` command.
 4. **Strategy profiles are guidelines** — They inform decomposition scope but don't enforce it programmatically. The agent applies the filters.
