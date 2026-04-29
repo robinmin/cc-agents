@@ -1,5 +1,6 @@
 ---
 description: Generate PRD document from feature tree
+argument-hint: "[--root <feature-id>] [--template standard|onepage|brief] [--output <file>]"
 allowed-tools: ["Read", "Glob", "Bash", "Skill"]
 ---
 
@@ -48,7 +49,7 @@ Do NOT use when:
 
 ## Workflow
 
-1. Load features from tree (`ftree ls --root $ROOT --json`)
+1. Load features from tree (`ftree ls --root <root-id> --json`)
 2. Select template from `templates/prd-{template}.md`
 3. Fill template with feature metadata:
    - Problem section ← feature metadata `problem` field
@@ -63,8 +64,10 @@ Do NOT use when:
 
 ## Delegation
 
+Forward the raw slash-command arguments. The product-management skill parses `--root`, `--template`, and `--output`.
+
 ```
-Skill(skill="rd3:product-management", args="doc --root $ROOT --template $TEMPLATE --output $OUTPUT")
+Skill(skill="rd3:product-management", args="doc $ARGUMENTS")
 ```
 
 ## See Also
