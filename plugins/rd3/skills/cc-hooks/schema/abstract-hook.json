@@ -1,0 +1,116 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://cc-agents.dev/schemas/abstract-hook/v1.0.json",
+    "title": "Abstract Hook Configuration",
+    "description": "Platform-agnostic hook definition for multi-agent hook support. Emitters translate this into platform-specific configs (Claude Code settings.json, Codex hooks.json, Pi settings.json, Gemini settings.json, OpenCode plugin).",
+    "type": "object",
+    "required": ["version", "hooks"],
+    "additionalProperties": false,
+    "properties": {
+        "version": {
+            "type": "string",
+            "enum": ["1.0"],
+            "description": "Schema version. Must be '1.0'."
+        },
+        "hooks": {
+            "type": "object",
+            "description": "Hook definitions keyed by event name. Each key is an event name containing an array of hook groups.",
+            "properties": {
+                "SessionStart": { "$ref": "#/definitions/hookGroups" },
+                "SessionEnd": { "$ref": "#/definitions/hookGroups" },
+                "PreToolUse": { "$ref": "#/definitions/hookGroups" },
+                "PostToolUse": { "$ref": "#/definitions/hookGroups" },
+                "PostToolUseFailure": { "$ref": "#/definitions/hookGroups" },
+                "UserPromptSubmit": { "$ref": "#/definitions/hookGroups" },
+                "Stop": { "$ref": "#/definitions/hookGroups" },
+                "SubagentStop": { "$ref": "#/definitions/hookGroups" },
+                "PreCompact": { "$ref": "#/definitions/hookGroups" },
+                "PostCompact": { "$ref": "#/definitions/hookGroups" },
+                "Notification": { "$ref": "#/definitions/hookGroups" }
+            },
+            "additionalProperties": {
+                "not": true,
+                "description": "Unknown event names are not allowed. Use only the defined event names."
+            }
+        }
+    },
+    "definitions": {
+        "hookGroups": {
+            "type": "array",
+            "description": "Array of hook groups. Each group has an optional matcher and one or more hooks.",
+            "items": {
+                "$ref": "#/definitions/hookGroup"
+            },
+            "minItems": 1
+        },
+        "hookGroup": {
+            "type": "object",
+            "required": ["hooks"],
+            "additionalProperties": false,
+            "properties": {
+                "matcher": {
+                    "type": "string",
+                    "description": "Regex or pipe-separated tool/event names. Empty string or '*' matches all. For tool events, matches against tool_name. For session events, matches against source/reason."
+                },
+                "hooks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/hook"
+                    },
+                    "minItems": 1,
+                    "description": "Array of hooks to execute when the matcher matches."
+                }
+            }
+        },
+        "hook": {
+            "type": "object",
+            "required": ["type"],
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": ["command", "prompt"],
+                    "description": "Hook type. 'command' executes a shell command. 'prompt' uses an LLM for evaluation (Claude Code only)."
+                },
+                "command": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Shell command to execute. Required when type='command'. Use $PROJECT_DIR and $PLUGIN_ROOT as abstract path placeholders — emitters replace them with platform-specific env vars."
+                },
+                "prompt": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Natural language prompt for LLM evaluation. Required when type='prompt'. Only supported on Claude Code; other platforms emit a warning and skip."
+                },
+                "timeout": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 3600,
+                    "description": "Timeout in seconds. Default: 600 for command hooks, 60 for prompt hooks. Platform-specific defaults apply if omitted."
+                },
+                "if": {
+                    "type": "string",
+                    "description": "Optional condition in ToolName(pattern) syntax, e.g. 'Bash(git push*)'. Only supported on Pi (pi-hooks). Other platforms ignore this field with a warning."
+                }
+            },
+            "if": {
+                "properties": {
+                    "type": { "const": "command" }
+                }
+            },
+            "then": {
+                "required": ["command"]
+            },
+            "else": {
+                "if": {
+                    "properties": {
+                        "type": { "const": "prompt" }
+                    }
+                },
+                "then": {
+                    "required": ["prompt"]
+                }
+            }
+        }
+    }
+}

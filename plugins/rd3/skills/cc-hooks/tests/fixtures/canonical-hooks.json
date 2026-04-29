@@ -1,0 +1,68 @@
+{
+    "version": "1.0",
+    "hooks": {
+        "SessionStart": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash $PLUGIN_ROOT/scripts/load-context.sh",
+                        "timeout": 10
+                    }
+                ]
+            }
+        ],
+        "PreToolUse": [
+            {
+                "matcher": "Write|Edit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash $PLUGIN_ROOT/scripts/validate-write.sh",
+                        "timeout": 5
+                    },
+                    {
+                        "type": "prompt",
+                        "prompt": "File: $TOOL_INPUT.file_path. Check: not in /etc, not .env, no '..' traversal. Return approve/deny.",
+                        "timeout": 15
+                    }
+                ]
+            },
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash $PLUGIN_ROOT/scripts/validate-bash.sh",
+                        "timeout": 5
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash $PLUGIN_ROOT/scripts/log-result.sh",
+                        "timeout": 5
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash $PLUGIN_ROOT/scripts/check-tests.sh",
+                        "timeout": 30
+                    }
+                ]
+            }
+        ]
+    }
+}

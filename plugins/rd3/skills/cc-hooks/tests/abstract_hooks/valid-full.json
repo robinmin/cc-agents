@@ -1,0 +1,45 @@
+{
+    "version": "1.0",
+    "hooks": {
+        "SessionStart": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash $PLUGIN_ROOT/scripts/load-context.sh",
+                        "timeout": 10
+                    }
+                ]
+            }
+        ],
+        "PreToolUse": [
+            {
+                "matcher": "Write|Edit",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash $PLUGIN_ROOT/scripts/check.sh",
+                        "timeout": 5
+                    },
+                    {
+                        "type": "prompt",
+                        "prompt": "Deep analysis of file write",
+                        "timeout": 15
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "Verify tests were run after code changes"
+                    }
+                ]
+            }
+        ]
+    }
+}

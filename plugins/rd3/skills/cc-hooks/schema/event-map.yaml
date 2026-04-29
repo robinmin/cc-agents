@@ -1,0 +1,135 @@
+# Event Name Crosswalk — Single source of truth for multi-agent hook event mapping
+# Maps abstract event names to platform-specific event names.
+# null = not supported on that platform.
+#
+# Platforms:
+#   claude-code: Claude Code (settings.json, SDK-level lifecycle)
+#   codex: OpenAI Codex (hooks.json, Rust engine)
+#   opencode: OpenCode (plugin-based, Claude-compatibility bridge)
+#   pi: Pi coding agent (pi-hooks extension, .pi/settings.json)
+#   gemini: Gemini CLI (.gemini/settings.json, synchronous middleware)
+#
+# See also: schema/tool-map.yaml, references/cross-platform.md
+
+events:
+  SessionStart:
+    claude-code: SessionStart
+    codex: session_start
+    opencode: session.start
+    pi: SessionStart
+    gemini: null
+
+  SessionEnd:
+    claude-code: SessionEnd
+    codex: null
+    opencode: session.end
+    pi: SessionEnd
+    gemini: null
+
+  PreToolUse:
+    claude-code: PreToolUse
+    codex: pre_tool_use
+    opencode: tool.execute.before
+    pi: PreToolUse
+    gemini: BeforeTool
+
+  PostToolUse:
+    claude-code: PostToolUse
+    codex: post_tool_use
+    opencode: tool.execute.after
+    pi: PostToolUse
+    gemini: AfterTool
+
+  PostToolUseFailure:
+    claude-code: null
+    codex: null
+    opencode: null
+    pi: PostToolUseFailure
+    gemini: null
+
+  UserPromptSubmit:
+    claude-code: UserPromptSubmit
+    codex: null
+    opencode: null
+    pi: UserPromptSubmit
+    gemini: null
+
+  Stop:
+    claude-code: Stop
+    codex: null
+    opencode: session.idle
+    pi: Stop
+    gemini: AfterAgent
+
+  SubagentStop:
+    claude-code: SubagentStop
+    codex: null
+    opencode: null
+    pi: null
+    gemini: null
+
+  PreCompact:
+    claude-code: PreCompact
+    codex: null
+    opencode: null
+    pi: PreCompact
+    gemini: null
+
+  PostCompact:
+    claude-code: null
+    codex: null
+    opencode: null
+    pi: PostCompact
+    gemini: null
+
+  Notification:
+    claude-code: Notification
+    codex: null
+    opencode: null
+    pi: null
+    gemini: null
+
+# Platform capabilities summary
+capabilities:
+  claude-code:
+    hook_types: [command, prompt, http, agent]
+    matcher: regex
+    env_vars:
+      project_dir: CLAUDE_PROJECT_DIR
+      plugin_root: CLAUDE_PLUGIN_ROOT
+      session_id: CLAUDE_SESSION_ID
+    config_path: ".claude/settings.json"
+    notes: "Full lifecycle support. Prompt hooks are Claude Code-only. Supports agent hooks for sub-agent verification."
+
+  codex:
+    hook_types: [command]
+    matcher: exact
+    env_vars:
+      project_dir: CODEX_PROJECT_DIR
+      plugin_root: CODEX_PLUGIN_ROOT
+    config_path: "codex.json"
+    notes: "Experimental hooks engine. PreToolUse/PostToolUse recently added (2026-03). Focused on Bash tools initially."
+
+  opencode:
+    hook_types: [command]
+    matcher: regex
+    config_path: ".opencode/plugins/"
+    notes: "Plugin-based approach. Maps Claude Code events to OpenCode events. Plugin reads .claude/settings.json at runtime."
+
+  pi:
+    hook_types: [command]
+    matcher: regex
+    if_conditions: true
+    env_vars:
+      project_dir: CWD
+    config_path: ".pi/settings.json"
+    global_config_path: "~/.pi/agent/settings.json"
+    notes: "Uses @hsingjui/pi-hooks extension. Supports 'if' conditions (ToolName(pattern)). No prompt hooks. PascalCase + snake_case event names both accepted."
+
+  gemini:
+    hook_types: [command]
+    matcher: exact
+    env_vars:
+      project_dir: GEMINI_PROJECT_DIR
+    config_path: ".gemini/settings.json"
+    notes: "Synchronous middleware model. Agent loop pauses during hook execution. Communication via stdin/stdout JSON."

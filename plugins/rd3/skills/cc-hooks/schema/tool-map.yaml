@@ -1,0 +1,126 @@
+# Tool Name Crosswalk — Maps tool names across coding agent platforms
+# Pi uses lowercase (bash, write, edit), Claude Code uses PascalCase (Bash, Write, Edit).
+# MCP tools use mcp__<server>__<tool> prefix universally.
+#
+# See also: schema/event-map.yaml, references/cross-platform.md
+
+# Canonical tool names (abstract) → platform-specific names
+tool_names:
+  bash:
+    claude-code: Bash
+    codex: bash
+    opencode: bash
+    pi: bash
+    gemini: bash
+
+  read:
+    claude-code: Read
+    codex: read
+    opencode: read
+    pi: read
+    gemini: read
+
+  write:
+    claude-code: Write
+    codex: write
+    opencode: write
+    pi: write
+    gemini: write
+
+  edit:
+    claude-code: Edit
+    codex: edit
+    opencode: edit
+    pi: edit
+    gemini: edit
+
+  grep:
+    claude-code: Grep
+    codex: grep
+    opencode: grep
+    pi: grep
+    gemini: grep
+
+  glob:
+    claude-code: Glob
+    codex: glob
+    opencode: glob
+    pi: glob
+    gemini: glob
+
+  ls:
+    claude-code: LS
+    codex: ls
+    opencode: ls
+    pi: ls
+    gemini: ls
+
+  web_search:
+    claude-code: WebSearch
+    codex: web_search
+    opencode: web_search
+    pi: web_search
+    gemini: web_search
+
+  web_fetch:
+    claude-code: WebFetch
+    codex: web_fetch
+    opencode: web_fetch
+    pi: web_fetch
+    gemini: web_fetch
+
+  todo:
+    claude-code: TodoWrite
+    codex: todo
+    opencode: todo
+    pi: todo
+    gemini: todo
+
+# Matcher translation rules
+matcher_rules:
+  # Claude Code matcher syntax: "Tool1|Tool2" (pipe-separated, PascalCase)
+  # Pi matcher syntax: regex on lowercase tool names
+  # Codex matcher syntax: exact match on lowercase tool names
+  # Gemini matcher syntax: exact match on tool names
+
+  # When emitting for Claude Code: use PascalCase, pipe-separated
+  claude-code:
+    case: PascalCase
+    separator: "|"
+    regex_supported: true
+
+  # When emitting for Codex: use lowercase, exact match
+  codex:
+    case: lowercase
+    separator: "|"
+    regex_supported: false
+    notes: "Codex uses exact string matching. Pipe-separated values are split and each checked independently."
+
+  # When emitting for Pi: use lowercase, regex supported
+  pi:
+    case: lowercase
+    separator: "|"
+    regex_supported: true
+    notes: "pi-hooks uses RegExp matching on lowercase tool names. Pipe-separated values work as regex alternation."
+
+  # When emitting for OpenCode: use lowercase, regex supported
+  opencode:
+    case: lowercase
+    separator: "|"
+    regex_supported: true
+
+  # When emitting for Gemini: use exact match
+  gemini:
+    case: lowercase
+    separator: null
+    regex_supported: false
+    notes: "Gemini uses exact string matching on tool names."
+
+# MCP tool handling
+mcp_tools:
+  pattern: "mcp__<server>__<tool>"
+  notes: "MCP tool names use the mcp__ prefix universally across platforms. The mcp__ prefix and subsequent segments are case-sensitive. Matcher patterns for MCP tools should use the full mcp__<server>__<tool> name."
+  examples:
+    - "mcp__memory__create_entities"
+    - "mcp__github__search_repos"
+    - "mcp__slack__post_message"

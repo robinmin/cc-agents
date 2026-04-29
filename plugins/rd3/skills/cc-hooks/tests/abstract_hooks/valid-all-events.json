@@ -1,0 +1,65 @@
+{
+    "version": "1.0",
+    "hooks": {
+        "SessionStart": [
+            {
+                "matcher": "*",
+                "hooks": [{ "type": "command", "command": "echo session-start" }]
+            }
+        ],
+        "SessionEnd": [
+            {
+                "matcher": "*",
+                "hooks": [{ "type": "command", "command": "echo session-end" }]
+            }
+        ],
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [{ "type": "command", "command": "echo pre-tool" }]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [{ "type": "command", "command": "echo post-tool" }]
+            }
+        ],
+        "PostToolUseFailure": [
+            {
+                "matcher": "Bash",
+                "hooks": [{ "type": "command", "command": "echo post-tool-failure" }]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "hooks": [{ "type": "command", "command": "echo prompt-submit" }]
+            }
+        ],
+        "Stop": [
+            {
+                "hooks": [{ "type": "command", "command": "echo stop" }]
+            }
+        ],
+        "SubagentStop": [
+            {
+                "hooks": [{ "type": "command", "command": "echo subagent-stop" }]
+            }
+        ],
+        "PreCompact": [
+            {
+                "hooks": [{ "type": "command", "command": "echo pre-compact" }]
+            }
+        ],
+        "PostCompact": [
+            {
+                "hooks": [{ "type": "command", "command": "echo post-compact" }]
+            }
+        ],
+        "Notification": [
+            {
+                "hooks": [{ "type": "command", "command": "echo notification" }]
+            }
+        ]
+    }
+}

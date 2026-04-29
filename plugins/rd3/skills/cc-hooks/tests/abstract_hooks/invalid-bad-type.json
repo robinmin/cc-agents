@@ -1,0 +1,11 @@
+{
+    "version": "1.0",
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [{ "type": "webhook", "url": "https://example.com" }]
+            }
+        ]
+    }
+}
