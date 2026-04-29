@@ -1,15 +1,15 @@
 ---
 name: cc-hooks
-description: "Create Claude Code plugin hooks: PreToolUse, PostToolUse, Stop, SessionStart hooks for validation, automation, and context loading. Covers prompt-based vs command hooks, patterns, migration from basic to advanced hooks."
+description: "Multi-agent hook system: write hooks once in abstract format, deploy to Claude Code, Codex, OpenCode, Pi (pi-hooks), and Gemini CLI. Covers command and prompt hooks, platform-specific emitters, cross-platform patterns, and migration guides."
 license: Apache-2.0
-version: 1.0.0
+version: 2.0.0
 created_at: 2026-03-23
-updated_at: 2026-03-23
+updated_at: 2026-04-28
 type: technique
-tags: [hooks, automation, claude-code, security, validation, plugin-dev]
+tags: [hooks, automation, multi-agent, claude-code, codex, pi, opencode, gemini, security, validation, plugin-dev]
 metadata:
   author: cc-agents
-  platforms: "claude-code,codex,antigravity,opencode,openclaw"
+  platforms: "claude-code,codex,opencode,pi,openclaw,gemini"
   category: plugin-dev
   interactions:
     - knowledge-only
@@ -17,22 +17,56 @@ see_also:
   - rd3:cc-hooks/references/patterns
   - rd3:cc-hooks/references/advanced
   - rd3:cc-hooks/references/migration
+  - rd3:cc-hooks/references/cross-platform
+  - rd3:cc-hooks/references/platform-limits
 ---
 
-# rd3:cc-hooks — Claude Code Hooks
+# rd3:cc-hooks — Multi-Agent Hook System
 
-Event-driven automation with Claude Code hooks for validation, policy enforcement, context loading, and external tool integration.
+Event-driven automation for Claude Code, Codex, OpenCode, Pi, and Gemini CLI. Write hooks once in abstract format, deploy to multiple coding agents.
 
 ## Overview
 
-Hooks execute in response to specific events during a Claude Code session. Use this skill when implementing hooks for security validation, quality enforcement, context loading, or workflow automation.
+Hooks execute in response to specific events during a coding agent session. Use this skill when implementing hooks for security validation, quality enforcement, context loading, or workflow automation across multiple coding agents.
 
 **Key capabilities:**
+- Write hooks once in abstract format, deploy to 5+ agents
 - Validate tool calls before execution (PreToolUse)
 - React to tool results (PostToolUse)
 - Enforce completion standards (Stop, SubagentStop)
 - Load project context (SessionStart)
 - Automate workflows across the development lifecycle
+
+## Multi-Platform Support
+
+| Tier | Agents | Strategy |
+|------|--------|----------|
+| **Tier 1** | Claude Code, Codex, OpenCode | Abstract schema → per-platform JSON config |
+| **Tier 2** | Pi, OpenClaw | Abstract schema → `.pi/settings.json` (via `@hsingjui/pi-hooks`) |
+| **Tier 3** | Gemini CLI | Abstract schema → `.gemini/settings.json` |
+| **Tier 4** | Antigravity | Documentation only (no lifecycle hooks) |
+
+### Cross-Platform Workflow
+
+1. Define hooks in `hooks.yaml` (abstract format)
+2. Run `emit-hooks.sh --all` to generate platform-specific configs
+3. Each agent reads its own config file
+
+```bash
+# Generate for all detected platforms
+bash cc-hooks/scripts/emit-hooks.sh --detect
+
+# Or specify platforms
+bash cc-hooks/scripts/emit-hooks.sh --platform claude-code,pi
+
+# Preview without writing
+bash cc-hooks/scripts/emit-hooks.sh --all --dry-run
+```
+
+**Key portability rule:** Use `type: "command"` hooks for cross-platform portability. `type: "prompt"` hooks are Claude Code-only.
+
+See [cross-platform.md](references/cross-platform.md) for the full event crosswalk and tool name mapping.
+See [platform-limits.md](references/platform-limits.md) for what's NOT portable and why.
 
 ## Hook Events
 
