@@ -1,10 +1,12 @@
 ---
 name: hook-patterns
-description: "10+ proven Claude Code hook patterns: security validation, test enforcement, context loading, notifications, MCP monitoring, build verification, permission confirmation, and code quality checks."
+description: "10+ proven hook patterns for multi-agent support: security validation, test enforcement, context loading, notifications, MCP monitoring, build verification, permission confirmation, and code quality checks. Includes cross-platform examples."
 see_also:
   - rd3:cc-hooks
   - rd3:cc-hooks/references/advanced
   - rd3:cc-hooks/references/migration
+  - rd3:cc-hooks/references/cross-platform
+  - rd3:cc-hooks/references/platform-limits
 ---
 
 # Hook Patterns
@@ -307,3 +309,92 @@ Combine multiple patterns for comprehensive protection:
 ```
 
 This provides multi-layered protection and automation.
+
+---
+
+## Cross-Platform Pattern Examples
+
+The patterns above are shown in Claude Code format. Below are the same patterns in **abstract format** that can be deployed to all platforms.
+
+### Cross-Platform: Security Validation (Abstract)
+
+```yaml
+# hooks.yaml — Abstract format
+version: "1.0"
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "bash $PLUGIN_ROOT/scripts/validate-write.sh"
+          timeout: 5
+```
+
+```bash
+# Generate for all platforms
+bash cc-hooks/scripts/emit-hooks.sh --all
+```
+
+**Result:**
+- Claude Code: `$CLAUDE_PLUGIN_ROOT/scripts/validate-write.sh`
+- Pi: `./scripts/validate-write.sh`
+- Codex: `$CODEX_PLUGIN_ROOT/scripts/validate-write.sh`
+- Gemini: `./scripts/validate-write.sh`
+
+### Cross-Platform: Test Enforcement (Abstract)
+
+```yaml
+version: "1.0"
+hooks:
+  Stop:
+    - matcher: "*"
+      hooks:
+        - type: command
+          command: "bash $PLUGIN_ROOT/scripts/check-tests.sh"
+          timeout: 30
+```
+
+**Platform notes:**
+- Claude Code, Pi: Stop hook prevents agent from stopping if tests haven't run
+- Codex: Skipped (no Stop event)
+- Gemini: Mapped to `AfterAgent`
+
+### Cross-Platform: Context Loading (Abstract)
+
+```yaml
+version: "1.0"
+hooks:
+  SessionStart:
+    - matcher: "*"
+      hooks:
+        - type: command
+          command: "bash $PLUGIN_ROOT/scripts/load-context.sh"
+          timeout: 10
+```
+
+**Platform notes:**
+- Claude Code, Pi: Runs on session start
+- Codex: Mapped to `session_start`
+- Gemini: Skipped (no SessionStart event)
+
+### Cross-Platform: Bash Safety with Pi `if` Condition
+
+```yaml
+version: "1.0"
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: "bash $PLUGIN_ROOT/scripts/validate-bash.sh"
+          timeout: 5
+        - type: command
+          command: "echo 'git push blocked' >&2 && exit 2"
+          if: "Bash(git push*)"
+          timeout: 5
+```
+
+**Platform notes:**
+- Pi: `if` condition activates the git-push-specific block
+- Other platforms: `if` field is ignored; both hooks run for all Bash commands
+- The `matcher: "Bash"` is translated to lowercase for Pi, PascalCase for Claude Code
