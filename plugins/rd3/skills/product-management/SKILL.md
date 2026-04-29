@@ -1,6 +1,6 @@
 ---
 name: product-management
-description: "Product management orchestration skill: feature intake, prioritization (RICE/MoSCoW), PRD export, strategy-driven decomposition (MVP/standard/mature), and adaptive requirements elicitation. Layers product thinking on top of rd3:feature-tree, rd3:tasks, and rd3:task-decomposition. Use when: prioritizing features, generating PRDs, decomposing with strategy profiles, eliciting requirements, or managing product roadmap."
+description: "Product management orchestration skill: feature intake, prioritization (RICE/MoSCoW), PRD export, strategy-driven decomposition (simplify/MVP/standard/mature), and adaptive requirements elicitation. Layers product thinking on top of rd3:feature-tree, rd3:tasks, and rd3:task-decomposition. Use when: prioritizing features, generating PRDs, decomposing with strategy profiles, eliciting requirements, or managing product roadmap."
 license: Apache-2.0
 metadata:
   author: cc-agents
@@ -45,7 +45,7 @@ Orchestrate product-level decisions: feature intake, prioritization, PRD generat
 | "initialize product", "bootstrap feature tree", "analyze this project" | Product Initialization |
 | "prioritize features", "RICE score", "MoSCoW" | Prioritization |
 | "generate PRD", "export PRD", "write requirements doc" | PRD Export |
-| "decompose with MVP strategy", "break down as standard" | Strategy Decomposition |
+| "decompose with simplify strategy", "decompose with MVP strategy", "break down as standard" | Strategy Decomposition |
 | "feature intake", "new feature idea", "add to roadmap" | Feature Intake |
 | "elicit requirements", "flesh out this feature", "interview for requirements" | Requirements Elicitation |
 | "product roadmap", "what should we build next" | Prioritization + Roadmap |
@@ -87,14 +87,17 @@ Bootstrap a feature tree from an existing codebase. One-time entry point for pro
 - Project has code but no feature tree or product documentation
 - User says: "initialize product", "bootstrap feature tree", "analyze this project"
 
-### Two Modes
+### Initialization Modes
 
-| Mode | Analysis | Speed | Depth | Use When |
-|---|---|---|---|---|
-| `full` | `rd3:reverse-engineering` → HLD | Slower | Comprehensive (architecture, quality, tech debt) | Major project, need full understanding |
-| `quick` | Module structure scan → feature candidates | Faster | Surface-level (modules, endpoints, data models) | Well-known project, just need the tree |
+Default mode: `quick`.
 
-### Full Mode Steps
+| Mode | Analysis | Existing task linking | Use When |
+|---|---|---|---|
+| `full` | Comprehensive HLD via reverse-engineering | Yes | Need both source-code feature extraction and existing task-file traceability |
+| `standard` | Comprehensive HLD via reverse-engineering | No | Need source-code feature extraction without task-linking overhead |
+| `quick` | Module structure scan (directories, key files) | No | Need a fast feature tree seed with minimal token usage |
+
+### Standard Mode Steps
 
 1. **Run reverse engineering:**
    ```
@@ -133,6 +136,19 @@ Bootstrap a feature tree from an existing codebase. One-time entry point for pro
    - Run RICE or MoSCoW on the seeded tree (Workflow 2)
    - Helps identify which features need attention first
 
+### Full Mode Additional Steps
+
+Run the Standard Mode steps, then link existing task files to the generated feature tree:
+
+1. **Inspect existing task files** using task metadata, titles, requirements, and WBS numbers.
+2. **Map tasks to feature nodes** by user-facing capability first, then by technical metadata such as modules, endpoints, or package names.
+3. **Ask for confirmation** when a task plausibly maps to multiple feature nodes.
+4. **Link confirmed tasks**:
+   ```bash
+   ftree link <feature-id> --wbs <task-wbs>
+   ```
+5. **Verify traceability** by checking feature context includes the linked WBS ids.
+
 ### Quick Mode Steps
 
 1. **Scan module structure** (no reverse-engineering):
@@ -147,7 +163,7 @@ Bootstrap a feature tree from an existing codebase. One-time entry point for pro
    - Key files (routes, controllers, models) → individual features
    - Package.json / go.mod / requirements.txt → technology context
 
-3. **Present + seed** (same as full mode steps 3-4)
+3. **Present + seed** using the same validation and seeding flow as Standard Mode.
 
 ### Two-Layer Mapping
 
@@ -293,6 +309,7 @@ Decompose features into tasks using strategy profiles.
 
 | Profile | Scope | Testing | Documentation | Edge Cases | When to Use |
 |---------|-------|---------|---------------|------------|-------------|
+| `simplify` | Minimum useful decomposition | Smoke/manual only | Task titles + brief requirements | Skip unless blocking | Fast intake, low-risk requests, minimal ceremony |
 | `mvp` | Minimal viable | Basic happy path | README only | Skip | Validation, speed-to-market |
 | `standard` | Balanced | Unit + integration | User docs + API docs | Cover known cases | Default for most features |
 | `mature` | Full | Unit + integration + E2E + perf | Comprehensive | Exhaustive | Production-critical, regulated |
@@ -306,6 +323,7 @@ See `references/decomposition-strategies.md` for detailed profile definitions.
    ftree context <feature-id> --format full
    ```
 2. **Choose strategy** based on context:
+   - Simplify: low-risk request, user wants speed, or only core task creation is needed
    - MVP: early-stage, uncertain demand, need to learn fast
    - Standard: validated need, normal risk, team capacity available
    - Mature: production-critical, compliance required, high reliability
@@ -314,6 +332,7 @@ See `references/decomposition-strategies.md` for detailed profile definitions.
    Skill(skill="rd3-task-decomposition", args="<task-ref>")
    ```
    Apply the strategy profile's scope filters during decomposition:
+   - **Simplify**: Ask only blocking questions, skip detailed estimation, create the minimum useful task set
    - **MVP**: Strip nice-to-haves, defer edge cases, minimal testing
    - **Standard**: Include proper testing, documentation, known edge cases
    - **Mature**: Add performance testing, accessibility, observability, security hardening
