@@ -230,12 +230,12 @@ teardown() {
 
 @test "setup-all.sh: real install to pi (non-claude) succeeds" {
     local fake_home="${TEST_DIR}/home"
-    run env HOME="$fake_home" bash "$SETUP_ALL_SH" --targets=pi --skip-magents --skip-subagents --skip-commands
+    run env HOME="$fake_home" bash "$SETUP_ALL_SH" --targets=pi --skip-magents --skip-subagents --skip-commands --skip-skills
     [ "$status" -eq 0 ]
 }
 
 @test "setup-all.sh: real install to codex (non-claude) succeeds" {
     local fake_home="${TEST_DIR}/home"
-    run env HOME="$fake_home" bash "$SETUP_ALL_SH" --targets=codex --skip-magents --skip-subagents --skip-commands
+    run env HOME="$fake_home" bash "$SETUP_ALL_SH" --targets=codex --skip-magents --skip-subagents --skip-commands --skip-skills
     [ "$status" -eq 0 ]
 }
