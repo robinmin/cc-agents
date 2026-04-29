@@ -24,11 +24,15 @@ Auto-routing activates based on these keywords/scenarios. Use the Agent tool wit
 | Create/validate/evaluate/refine/adapt subagents | `rd3:expert-agent` | `rd3:expert-agent` |
 | Create/validate/evaluate/refine/adapt slash commands | `rd3:expert-command` | `rd3:expert-command` |
 | Create/evaluate/refine/migrate/package skills | `rd3:expert-skill` | `rd3:expert-skill` |
+| Create/emit/validate/lint/test hooks across multiple agents | `rd3:expert-hook` | `rd3:expert-hook` |
 | Implement features, fix bugs, refactor, hands-on coding | `rd3:super-coder` | `rd3:super-coder` |
 | Write tests, measure coverage, TDD, debug test failures | `rd3:super-tester` | `rd3:super-tester` |
 | Code review, review-only execution, PR review | `rd3:super-reviewer` | `rd3:super-reviewer` |
 | Run pipeline, resume phase, dry-run, plan task, run on codex | `rd3:jon-snow` | `rd3:jon-snow` |
 | Systematic literature review, evidence synthesis, fact-checking, anti-hallucination research | `rd3:knowledge-seeker` | `rd3:knowledge-seeker` |
+| Brainstorming, ideation, research-backed solution exploration, options analysis | `rd3:super-brain` | `rd3:super-brain` |
+| Product management, feature trees, PRDs, roadmaps, prioritization (RICE/MoSCoW) | `rd3:super-pm` | `rd3:super-pm` |
+| Load project context, second brain, OpenWolf intelligence, .wolf/ directory | `rd3:second-brain` | `rd3:second-brain` |
 | Browser automation, screenshot, form fill, web scraping, JS-rendered content, PDF to markdown | `wt:magent-browser` | `wt:magent-browser` |
 | Literature review, meta-analysis, evidence synthesis, source evaluation | `wt:super-researcher` | `wt:super-researcher` |
 | Multi-stage content workflow, research-to-publishing pipeline, writing + illustration + publishing | `wt:tc-writer` | `wt:tc-writer` |
