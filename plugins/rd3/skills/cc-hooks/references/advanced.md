@@ -1,10 +1,12 @@
 ---
 name: hook-advanced-techniques
-description: "Advanced hook techniques: multi-stage validation, conditional execution, hook chaining, dynamic configuration, cross-event workflows, external system integration, rate limiting, audit logging, and secret detection."
+description: "Advanced hook techniques for multi-agent support: multi-stage validation, conditional execution, hook chaining, dynamic configuration, cross-event workflows, external system integration, rate limiting, audit logging, secret detection, and platform-specific patterns for Pi, Gemini, and Codex."
 see_also:
   - rd3:cc-hooks
   - rd3:cc-hooks/references/patterns
   - rd3:cc-hooks/references/migration
+  - rd3:cc-hooks/references/cross-platform
+  - rd3:cc-hooks/references/platform-limits
 ---
 
 # Advanced Hook Techniques
@@ -381,3 +383,135 @@ fi
 5. **Monitor performance** — Track hook execution time
 6. **Version configuration** — Use version control for hook configs
 7. **Provide escape hatches** — Allow users to bypass hooks when needed
+
+---
+
+## Platform-Specific Advanced Patterns
+
+### Pi: `if` Conditions for Granular Control
+
+Pi's `@hsingjui/pi-hooks` supports `if` conditions on individual hooks. This enables tool-specific filtering without complex bash logic:
+
+```json
+{
+  "PreToolUse": [
+    {
+      "matcher": "bash",
+      "hooks": [
+        {
+          "if": "Bash(git push*)",
+          "type": "command",
+          "command": "echo 'BLOCKED: git push requires manual approval' >&2 && exit 2",
+          "timeout": 5
+        },
+        {
+          "if": "Bash(rm *)",
+          "type": "command",
+          "command": "echo 'WARNING: rm command detected' >&2",
+          "timeout": 5
+        }
+      ]
+    }
+  ]
+}
+```
+
+**`if` syntax:** `ToolName(pattern)` where `*` is a wildcard.
+
+**Supported tool fields for matching:**
+- `bash`: matches against `tool_input.command`
+- `read`, `write`, `edit`: matches against `tool_input.path` or `tool_input.file_path`
+- Other tools: matches against JSON string of `tool_input`
+
+### Pi: Stop Continuation
+
+Pi can prevent the agent from stopping (similar to Claude Code's Stop hook blocking):
+
+```json
+{
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ./scripts/check-tests.sh",
+          "timeout": 30
+        }
+      ]
+    }
+  ]
+}
+```
+
+When the hook exits with code 0 and outputs `{"decision": "block"}` in JSON, Pi injects the reason as a hidden message and triggers another agent turn.
+
+### Gemini: Synchronous Stdin/Stdout Protocol
+
+Gemini hooks must read JSON from stdin and write JSON to stdout:
+
+```bash
+#!/bin/bash
+# Gemini-compatible hook
+input=$(cat)
+tool_name=$(echo "$input" | jq -r '.tool_name // empty')
+
+if [[ "$tool_name" == "bash" ]]; then
+  command=$(echo "$input" | jq -r '.tool_input.command // empty')
+  if [[ "$command" == *"rm -rf"* ]]; then
+    echo '{"decision": "deny", "reason": "Dangerous command blocked"}'
+    exit 0
+  fi
+fi
+
+echo '{"decision": "allow"}'
+exit 0
+```
+
+**Critical:** Non-JSON output to stdout causes a parsing failure in Gemini.
+
+### Codex: Concurrent Hook Execution
+
+Codex runs multiple matching hooks for the same event in parallel without blocking each other. Design hooks to be idempotent and thread-safe:
+
+```json
+{
+  "pre_tool_use": [
+    {
+      "matcher": "bash",
+      "hooks": [
+        {"type": "command", "command": "validate-security.sh"},
+        {"type": "command", "command": "check-permissions.sh"},
+        {"type": "command", "command": "audit-log.sh"}
+      ]
+    }
+  ]
+}
+```
+
+All three hooks run concurrently. If any exits with code 2, the tool call is blocked.
+
+### Cross-Platform: Command Hook That Calls LLM
+
+When you need prompt-like behavior on non-Claude platforms, use a command hook that invokes an LLM CLI:
+
+```yaml
+# Abstract format
+version: "1.0"
+hooks:
+  PreToolUse:
+    - matcher: "Bash"
+      hooks:
+        - type: command
+          command: |
+            input=$(cat)
+            cmd=$(echo "$input" | jq -r '.tool_input.command // empty')
+            result=$(claude -p "Is this command safe? $cmd. Answer SAFE or UNSAFE." --max-tokens 50)
+            if echo "$result" | grep -q UNSAFE; then
+              echo '{"permissionDecision": "deny", "permissionDecisionReason": "LLM flagged as unsafe"}'
+              exit 0
+            fi
+            exit 0
+          timeout: 30
+```
+
+**Trade-off:** Adds 2-5s latency per hook invocation. Use sparingly, only for high-risk operations.
