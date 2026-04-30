@@ -1,6 +1,6 @@
 ---
-description: Run a task through the workflow loop with optional gates.
-argument-hint: "<task-ref> [--preset <simple|standard|complex|research>] [--channel <current|codex|openclaw|opencode|antigravity|pi|claude-code>] [--auto] [--coverage <n>] [--dry-run] [--verify] [--preflight-verify] [--postflight-verify] [--stage <all|plan-only|implement-only>] [--max-loop-iterations <n>]"
+description: Run a task through the workflow loop with always-on completion gates.
+argument-hint: "<task-ref> [--preset <simple|standard|complex|research>] [--channel <current|codex|openclaw|opencode|antigravity|pi|claude-code>] [--auto] [--coverage <n>] [--dry-run] [--verify] [--preflight-verify] [--postflight-verify | --no-postflight-verify] [--stage <all|plan-only|implement-only>] [--max-loop-iterations <n>]"
 allowed-tools: ["Read", "Glob", "Bash", "Edit", "Skill"]
 ---
 
@@ -14,7 +14,7 @@ Delegate to the `rd3:task-runner` skill. Keep all workflow logic in the skill.
 
 - Run a task from refinement/planning through implementation, testing, and verification
 - Validate task file quality before execution (`--preflight-verify`)
-- Validate delivery claims before `done` transition (`--postflight-verify`)
+- Validate delivery claims before `done` transition — **default-on**; opt out with `--no-postflight-verify`
 - Run staged workflows for scheduler integration (`--stage plan-only` or `--stage implement-only`)
 
 ## Arguments
@@ -28,8 +28,9 @@ Delegate to the `rd3:task-runner` skill. Keep all workflow logic in the skill.
 | `--coverage <n>` | No | — | Coverage target for testing |
 | `--dry-run` | No | `false` | Emit workflow plan as JSON and exit |
 | `--preflight-verify` | No | `false` | Run Stage 0.5 task file structural validation |
-| `--postflight-verify` | No | `false` | Run Stage 5 completion-proof gate before `done` |
-| `--verify` | No | `false` | Shortcut for `--preflight-verify --postflight-verify` |
+| `--postflight-verify` | No | **`true`** | Run Stage 5 completion-proof full audit (7 checks) before `done`. Default-on. |
+| `--no-postflight-verify` | No | — | Opt out of the Stage 5 full audit. Mandatory pre-`Done` subset still runs (sections populated, verdict `PASS`, code diff non-empty). |
+| `--verify` | No | `false` | Shortcut for `--preflight-verify --postflight-verify` (the latter is default-on; this primarily enables Stage 0.5). |
 | `--stage <value>` | No | `all` | `all`, `plan-only`, `implement-only` |
 | `--max-loop-iterations <n>` | No | `3` | Cap for implement ↔ test loop iterations |
 
@@ -56,8 +57,11 @@ Skill(skill="rd3:task-runner", args="$ARGUMENTS")
 # Preview workflow shape as JSON
 /rd3:dev-run 0274 --preset standard --dry-run
 
-# Run with pre + post-flight quality gates
+# Run with pre + post-flight quality gates (post-flight already default-on; this adds Stage 0.5)
 /rd3:dev-run 0274 --verify
+
+# Opt out of the Stage 5 full audit (mandatory subset still runs before Done)
+/rd3:dev-run 0274 --no-postflight-verify
 
 # Scheduled decomposition only
 /rd3:dev-run 0274 --stage plan-only --auto
