@@ -1,3 +1,4 @@
+---
 id: impure-pipe-javascript
 language: javascript
 message: "Promise chain without catch-based error handling"
@@ -8,7 +9,7 @@ rule:
     - pattern: $PROMISE.then($CB)
     - not:
         inside:
-          pattern: $PROMISE.then($CB).catch($ERR_CB)
+          pattern: $CHAIN.catch($ERR_CB)
           stopBy: end
 ---
 id: impure-pipe-typescript
@@ -21,5 +22,5 @@ rule:
     - pattern: $PROMISE.then($CB)
     - not:
         inside:
-          pattern: $PROMISE.then($CB).catch($ERR_CB)
+          pattern: $CHAIN.catch($ERR_CB)
           stopBy: end

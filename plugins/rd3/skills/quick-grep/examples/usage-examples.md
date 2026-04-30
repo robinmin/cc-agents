@@ -38,15 +38,17 @@ sg run --pattern '$P.then($CB)' --lang javascript
 ```
 
 ### Using pre-built rules
+Resolve `$QUICK_GREP_SKILL_DIR` to the installed `quick-grep` skill directory before running these commands from a project root.
+
 ```bash
-# Find console.log calls
-sg scan --rule references/rules/console-log.yml
+# Find console.* calls
+sg scan --rule "$QUICK_GREP_SKILL_DIR/references/rules/console-log.yml"
 
 # Find hardcoded secrets
-sg scan --rule references/rules/hardcoded-secret.yml
+sg scan --rule "$QUICK_GREP_SKILL_DIR/references/rules/hardcoded-secret.yml"
 
 # Find async without try-catch
-sg scan --rule references/rules/async-no-trycatch.yml
+sg scan --rule "$QUICK_GREP_SKILL_DIR/references/rules/async-no-trycatch.yml"
 ```
 
 The bundled rule files are detection rules. Each one contains JavaScript and TypeScript variants, so a single `sg scan --rule ...` command works for both languages.
@@ -57,7 +59,7 @@ The bundled rule files are detection rules. Each one contains JavaScript and Typ
 sg run --pattern 'console.log($$$)' --rewrite 'logger.log($$$)' --lang javascript --interactive
 
 # Preview files before writing changes
-sg scan --rule references/rules/console-log.yml --files-with-matches
+sg scan --rule "$QUICK_GREP_SKILL_DIR/references/rules/console-log.yml" --files-with-matches
 ```
 
 ## Decision Tree Applied

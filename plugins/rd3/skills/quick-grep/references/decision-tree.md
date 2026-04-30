@@ -88,7 +88,7 @@ rg "pattern" -n -C 3
 
 # ast-grep - structural search
 sg run --pattern 'console.log($$$)' --lang javascript
-sg scan --rule references/rules/console-log.yml
+sg scan --rule "$QUICK_GREP_SKILL_DIR/references/rules/console-log.yml"
 
 # ast-grep rewrite
 sg run --pattern 'console.log($$$)' --rewrite 'logger.log($$$)' --lang javascript

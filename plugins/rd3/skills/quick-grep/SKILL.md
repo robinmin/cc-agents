@@ -114,21 +114,22 @@ When using sg rewrite:
 
 ### Pre-built Rules
 
-Located in `references/rules/`:
-- `console-log.yml` — find console.log/warn/error calls
+Located under this skill's `references/rules/` directory:
+- `console-log.yml` — find console.* calls
 - `todo-no-error.yml` — find FIXME/HACK comments
 - `async-no-trycatch.yml` — find async functions without error handling
 - `impure-pipe.yml` — find promise chains without catch
 - `hardcoded-secret.yml` — find hardcoded API keys/secrets
 
 Each rule file bundles JavaScript and TypeScript variants so the same command works across JavaScript and TypeScript source files supported by `ast-grep`.
+Resolve `$QUICK_GREP_SKILL_DIR` to the installed `quick-grep` skill directory before running these examples from a project root.
 
 ```bash
 # Use a pre-built rule
-sg scan --rule references/rules/console-log.yml
+sg scan --rule "$QUICK_GREP_SKILL_DIR/references/rules/console-log.yml"
 
 # Preview files affected by a rule
-sg scan --rule references/rules/console-log.yml --files-with-matches
+sg scan --rule "$QUICK_GREP_SKILL_DIR/references/rules/console-log.yml" --files-with-matches
 ```
 
 Use `sg run --pattern ... --rewrite ...` for rewrites unless you have authored a dedicated fix rule.

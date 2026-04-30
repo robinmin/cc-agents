@@ -19,6 +19,7 @@ rule:
 If you want one file to cover multiple languages, store multiple YAML documents in the same file:
 
 ```yaml
+---
 id: console-log-javascript
 language: javascript
 rule:
@@ -31,6 +32,7 @@ rule:
 ```
 
 This is how the bundled `references/rules/*.yml` files support both JavaScript and TypeScript.
+Generic YAML tooling should parse these files as YAML streams, for example with `YAML.parseAllDocuments(...)`, not single-document `YAML.parse(...)`.
 
 ## Valid Rule Patterns
 

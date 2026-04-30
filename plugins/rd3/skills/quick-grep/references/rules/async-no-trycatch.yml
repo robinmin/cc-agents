@@ -1,3 +1,4 @@
+---
 id: async-no-trycatch-javascript
 language: javascript
 message: "async function without catch-based error handling"
@@ -5,11 +6,29 @@ severity: warning
 
 rule:
   all:
-    - kind: function_declaration
-    - regex: "^async\\s+function"
+    - kind: await_expression
+    - inside:
+        any:
+          - all:
+              - kind: function_declaration
+              - regex: '^async\s+function'
+          - all:
+              - kind: function_expression
+              - regex: '^async\s+function'
+          - all:
+              - kind: arrow_function
+              - regex: '^async\s*'
+          - all:
+              - kind: method_definition
+              - regex: '^async\s+'
+        stopBy: end
     - not:
-        has:
-          kind: catch_clause
+        inside:
+          all:
+            - kind: try_statement
+            - has:
+                kind: catch_clause
+                stopBy: end
           stopBy: end
 ---
 id: async-no-trycatch-typescript
@@ -19,9 +38,27 @@ severity: warning
 
 rule:
   all:
-    - kind: function_declaration
-    - regex: "^async\\s+function"
+    - kind: await_expression
+    - inside:
+        any:
+          - all:
+              - kind: function_declaration
+              - regex: '^async\s+function'
+          - all:
+              - kind: function_expression
+              - regex: '^async\s+function'
+          - all:
+              - kind: arrow_function
+              - regex: '^async\s*'
+          - all:
+              - kind: method_definition
+              - regex: '^async\s+'
+        stopBy: end
     - not:
-        has:
-          kind: catch_clause
+        inside:
+          all:
+            - kind: try_statement
+            - has:
+                kind: catch_clause
+                stopBy: end
           stopBy: end
