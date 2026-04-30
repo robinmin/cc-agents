@@ -20,6 +20,7 @@
       "!**/wt/**",
       "!**/templates/**",
       "!**/tests/test_hooks/invalid-json.json",
+    "!**/tests/test_configs/invalid.json",
       "!**/ui/node_modules/**",
       "!**/scripts/static/**"
     ]
