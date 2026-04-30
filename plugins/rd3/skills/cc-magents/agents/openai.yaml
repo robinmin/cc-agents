@@ -1,12 +1,3 @@
 name: cc-magents
-description: Use PROACTIVELY for creating AGENTS.md, evaluating config quality,
-  refining CLAUDE.md, evolving agent configs, converting between platforms,
-  adapting AGENTS.md to CLAUDE.md, scoring main agent configs, generating agent
-  rules, creating main agent configurations. Supports 23+ platforms using a
-  Universal Main Agent Model (UMAM) and 5-dimension quality scoring.
-version: 4.0.0
-icon: 🛠️
-category: debugging
-tags:
-  - code
-  - workflow
+description: Capability-aware main agent configuration manager for AGENTS.md, CLAUDE.md, GEMINI.md, and related platform rule systems.
+
