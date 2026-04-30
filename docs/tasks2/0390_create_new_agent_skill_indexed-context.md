@@ -1,7 +1,7 @@
 ---
 name: create new agent skill indexed-context
 description: create new agent skill indexed-context
-status: Refined
+status: Done
 created_at: 2026-04-28T02:19:16.619Z
 updated_at: 2026-04-28T02:19:16.619Z
 folder: docs/tasks2

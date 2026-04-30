@@ -2,7 +2,7 @@
 // See: plugins/rd3/skills/tasks/SKILL.md
 {
   "$schema_version": 1,
-  "active_folder": "docs/tasks2",
+  "active_folder": "docs/tasks3",
   "folders": {
     "docs/prompts": {
       "base_counter": 0,
