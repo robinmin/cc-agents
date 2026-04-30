@@ -1,31 +1,52 @@
 ---
-description: "Evaluate main agent config quality"
-argument-hint: "<config-path> [--profile <standard|minimal|advanced>] [--json]"
+description: "Score a main agent config across 6 quality dimensions"
+argument-hint: "<config-path> [--from <platform>] [--output <path>] [--json]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Magent Evaluate
 
-Wraps **rd3:cc-magents** skill.
+Delegate to the **rd3:cc-magents** skill.
 
-Evaluate the quality of a main agent configuration across 5 MECE dimensions.
+Evaluate a main agent configuration across 6 capability-aware dimensions. Apply weighted aggregation to produce a 0–100 score and an A–F grade. Generate findings that drive follow-up `refine` invocations.
 
 ## When to Use
 
-- After creating or modifying a config
-- Before sharing a config publicly
-- Comparing config quality over time
-- As part of config review workflow
-- Benchmarking configs against each other
+- Score quality after creating or modifying a config
+- Audit a config before sharing it publicly
+- Compare config quality before and after refinement
+- Gate a config-review workflow on a numeric score
 
 ## Arguments
 
 | Argument | Description | Default |
 |---------|-------------|---------|
-| `config-path` | Path to config file (AGENTS.md, CLAUDE.md) | (required) |
-| `--profile` | Weight profile | standard |
-| `--json` | Output results as JSON | false |
-| `--output` | Write results to file | stdout |
+| `<config-path>` | Path to config file (positional, e.g. `AGENTS.md`, `CLAUDE.md`) | (required) |
+| `--from` | Source platform hint | auto-detect |
+| `--output` | Write JSON result to path | (none) |
+| `--json` | Emit JSON to stdout | false |
+
+## Quality Dimensions
+
+| Dimension | Weight | Measures |
+|-----------|--------|----------|
+| **coverage** | 22% | Section breadth and presence of key topics (rules, tools, output) |
+| **scoping** | 14% | Path-scoped rules where the platform supports globs |
+| **safety** | 18% | Approval boundaries, destructive-action handling, secret guidance |
+| **portability** | 16% | `agents-md` compatibility, imports, cross-platform readiness |
+| **evidence** | 14% | Source URLs and verification dates with high-confidence platforms |
+| **maintainability** | 16% | Modular structure and registry/import usage |
+
+Apply these weights exactly. Generate a `0–100` score with a letter grade.
+
+## Output Shape
+
+JSON object with these fields:
+
+- `score` — integer 0–100
+- `grade` — letter A through F
+- `dimensions` — object mapping each dimension name to its 0–100 score
+- `findings` — array of strings (validation issues + capability signals)
 
 ## Implementation
 
@@ -40,45 +61,26 @@ Skill(skill="rd3:cc-magents", args="evaluate $ARGUMENTS")
 bun plugins/rd3/skills/cc-magents/scripts/evaluate.ts $ARGUMENTS
 ```
 
-## Quality Dimensions
-
-| Dimension | Weight | Measures |
-|-----------|--------|----------|
-| **Coverage** | 25% | Core sections and concerns are present and substantive |
-| **Operability** | 25% | Decision trees, executable examples, output contracts |
-| **Grounding** | 20% | Evidence, verification steps, uncertainty handling |
-| **Safety** | 20% | CRITICAL rules, approvals, destructive action warnings |
-| **Maintainability** | 10% | Memory, feedback, steering, version tracking |
-
-## Weight Profiles
-
-| Profile | Best For |
-|---------|----------|
-| `standard` | Balanced evaluation (default) |
-| `minimal` | Simple configs prioritizing coverage/safety |
-| `advanced` | Self-evolving configs prioritizing maintainability/grounding |
-
-## Grade Thresholds
-
-| Grade | Score | Pass? |
-|-------|-------|-------|
-| A | >= 90% | Yes |
-| B | >= 80% | Yes |
-| C | >= 70% | No (warning) |
-| D | >= 60% | No |
-| F | < 60% | No |
-
 ## Examples
 
 ```bash
-# Evaluate AGENTS.md with standard profile
+# Evaluate AGENTS.md
 /rd3:magent-evaluate AGENTS.md
 
-# Evaluate with minimal profile (for simple configs)
-/rd3:magent-evaluate CLAUDE.md --profile minimal
+# Evaluate CLAUDE.md with explicit source platform
+/rd3:magent-evaluate CLAUDE.md --from claude-code
 
 # JSON output for CI integration
 /rd3:magent-evaluate AGENTS.md --json --output evaluation.json
+```
+
+## Next Steps
+
+Apply the findings to drive `refine`:
+
+```bash
+# Get capability-aware suggestions targeting a specific platform
+/rd3:magent-refine AGENTS.md --to claude-code
 ```
 
 ## Platform Notes
