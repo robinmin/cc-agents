@@ -71,8 +71,9 @@ Skill(skill="rd3:task-runner", args="0274 --preset standard --dry-run")
 | `--coverage <n>` | No | — | Coverage target. Forwarded to `rd3:sys-testing` (Stage 3) and to `postflight-check.ts` (Stage 5) for threshold enforcement. Not forwarded to `rd3:code-verification`. |
 | `--dry-run` | No | `false` | Emit structured JSON workflow plan and exit |
 | `--preflight-verify` | No | `false` | Run Stage 0.5 task file structural validation |
-| `--postflight-verify` | No | `false` | Run Stage 5 completion-proof gate before `done` |
-| `--verify` | No | `false` | Shortcut for `--preflight-verify --postflight-verify` |
+| `--postflight-verify` | No | **`true`** | Run Stage 5 completion-proof full audit (7 checks) before `done`. **Default-on as of v1.1** to close the early-report-complete reliability gap. |
+| `--no-postflight-verify` | No | — | Opt out of the Stage 5 full audit (mandatory subset still runs — see Final stage). Use only for known-safe paths (docs-only refresh, dogfood runs modifying `task-runner` itself). |
+| `--verify` | No | `false` | Shortcut for `--preflight-verify --postflight-verify` (the latter is already default-on; this primarily enables Stage 0.5) |
 | `--stage <value>` | No | `all` | Execution stage: `all`, `plan-only`, `implement-only` |
 | `--max-loop-iterations <n>` | No | `3` | Cap for implement ↔ test loop iterations |
 | `--force` | No | `false` | Bypass task status guard in Stage 4. Passed through to `rd3:code-verification`. Allows re-verification of `Done` tasks |
@@ -90,169 +91,6 @@ Skill(skill="rd3:task-runner", args="0274 --preset standard --dry-run")
 - **Refine required when:** Background/Requirements/Constraints incomplete, acceptance criteria weak, preset is `complex` or `research`
 - **Plan required when:** spans multiple modules, likely needs decomposition, architecture open, preset is `complex` or `research`
 - **Verify mandatory for every preset** — never skip before `done`
-
-## Workflow
-
-The workflow executes as a sequence of stages. Each stage delegates to a stable skill or runs a deterministic script; status transitions are owned by `task-runner`, not delegated.
-
-```
-Stage 0:    Preflight (always)
-Stage 0.5:  Pre-flight Verify  ← when --preflight-verify or --verify
-Stage 1:    Optional Refine
-Stage 2:    Optional Plan + Decomposition
-            └─ EXIT POINT for --stage plan-only
-Stage 3:    Implement ↔ Test Loop (bounded)
-            └─ SKIPPED upstream for --stage implement-only
-Stage 4:    Verification Gate
-Stage 5:    Post-flight Verify  ← when --postflight-verify or --verify
-Final:      tasks update <WBS> done (guarded)
-```
-
-### Stage 0: Preflight
-
-1. Resolve `task-ref`
-2. Read task file
-3. Determine preset
-4. Check if task is single or should fork into decomposition
-5. Check if current workspace is acceptable for local implementation
-6. Resolve execution channel (default: `current`; delegate only if `--channel` provided)
-7. Build stage plan (refine? plan? implement/test? verify? pre/post-flight?)
-8. If `--dry-run`: invoke `scripts/dry-run-output.ts` with resolved state and exit
-
-**Preflight must answer:**
-- Will `refine` run?
-- Will `plan` run?
-- Will the task fork into subtasks?
-- Will implementation stay local or use explicit isolation?
-- Will execution stay local or delegate?
-
-### Stage 0.5: Pre-flight Verify (Optional)
-
-Active when `--preflight-verify` or `--verify` is set.
-
-Purpose: ensure the task file is structurally runnable before execution starts. This is a **lightweight structural gate**, not full SECU review — use the dedicated verification skill for that.
-
-**LLM-mediated — no script.** Stage 0.5 is executed by the agent (LLM), not by a deterministic script. The contract below defines what triggers which path.
-
-| Condition | Path |
-|-----------|------|
-| `tasks check <WBS>` exits 0 | Proceed to Stage 1 |
-| Missing Background / Requirements / acceptance criteria | Attempt auto-backfill using guards helper (see `references/status-transitions.md`) |
-| `complex` or `research` preset with weak sections | Route to `rd3:request-intake --mode refine` (auto-backfill not sufficient) |
-| Validation still fails after backfill/refine + `--auto` | Halt with actionable error listing failed checks |
-| Validation still fails after backfill/refine, no `--auto` | Prompt user with remediation options |
-
-See `references/status-transitions.md` for guard details and backfill templates.
-
-### Stage 1: Optional Refine
-
-```text
-Skill(skill="rd3:request-intake", args="--mode refine --task_ref <task-ref> [--auto]")
-```
-
-Purpose: tighten ambiguous requirements, improve acceptance criteria, ensure task is executable.
-
-### Stage 2: Optional Plan + Decomposition
-
-1. Use specialist planning/design skills as needed (e.g., `rd3:backend-architect`, `rd3:frontend-architect`, `rd3:pl-typescript`)
-2. Finish with:
-
-```text
-Skill(skill="rd3:task-decomposition", args="<task-ref>")
-```
-
-**Note:** When `rd3:task-decomposition` emits a structured decomposition output, use the `structured-output-protocol` invocation pattern — pass the decomposition JSON directly to the child-creation step rather than re-parsing the human-readable summary. See `rd3:task-decomposition` SKILL.md for the structured output contract.
-
-**`rd3:task-decomposition` is analysis-only.** It does NOT create child task files. If decomposition is required, `task-runner` must create children through `rd3:tasks` before stopping parent execution.
-
-See `references/decomposition-handoff.md` for full handoff contract, batch JSON paths, and parent-status rules.
-
-**Exit point for `--stage plan-only`:** After Stage 2, emit stage exit JSON envelope and stop. Parent task remains non-terminal.
-
-### Stage 3: Implement ↔ Test Loop
-
-With `--stage implement-only`, Stages 1-2 are skipped and execution enters this loop directly. Design and Plan sections must already be present in the task file.
-
-**Loop body:**
-
-1. Apply pre-implementation guard (see `references/status-transitions.md`), then `tasks update <WBS> wip`
-2. Execute implementation with default review handoff disabled:
-
-```text
-Skill(skill="rd3:code-implement-common", args="implement <resolved-task-file> --no-review")
-```
-
-3. Before testing: ensure `Plan` + `Design` sufficient
-4. `tasks update <WBS> testing`
-5. Execute testing:
-
-```text
-Skill(skill="rd3:sys-testing", args="<task-ref> [--coverage <n>]")
-```
-
-6. Write testing evidence back to task file (see `references/status-transitions.md` Minimum Testing Structure)
-7. If tests fail, coverage misses, or requirements not met → back to step 1
-**Pre-testing guard:** Before `tasks update <WBS> testing`, run `tasks check <WBS>`. If it returns non-zero, backfill missing sections (see `references/status-transitions.md` Minimum Structures) before retrying the transition. Do not use `--force` as a substitute for honest backfill.
-
-8. **Loop exit:** all of below true:
-   - implementation present
-   - tests pass
-   - coverage met or explicitly accepted
-   - no unresolved blocker
-   - task can transition to `Testing` without `--force`
-
-See `references/delegated-prompts.md` for the full prompt contract for each delegated stage.
-
-**Iteration cap:** `--max-loop-iterations <n>` (default `3`). On exhaustion:
-- keep status `wip`
-- document blocker in task file
-- switch to `rd3:sys-debugging` with `blocked` state
-
-### Stage 4: Verification Gate
-
-```text
-Skill(skill="rd3:code-verification", args="--mode verify --task-ref <task-ref> --mode-verify full [--bdd] [--auto] [--force] [--channel <current|normalized-channel>]")
-```
-
-**Note:** `--force` is passed through when the task-runner itself is invoked with `--force`, allowing re-verification of tasks that have already transitioned to `Done`.
-
-Purpose: SECU review + requirements traceability + go/no-go signal before `done`.
-
-**Artifacts required:** `Review` section updated, traceability written, verdict `PASS`/`PARTIAL`/`FAIL`.
-
-### Stage 5: Post-flight Verify (Optional)
-
-Active when `--postflight-verify` or `--verify` is set.
-
-1. Invoke `scripts/postflight-check.ts <WBS> [--coverage <n>] [--start-commit <sha>] [--delegation-used]`
-   - Pass `--coverage` when `--coverage <n>` was supplied to `task-runner`
-   - Pass `--delegation-used` when any stage ran via `--channel` other than `current`
-2. Parse verdict JSON from stdout
-3. If `verdict === "PASS"` (exit code 0): proceed to `done`
-4. If `verdict === "BLOCKED"` (exit code 1):
-   - write `## Completion Blockers` section to task file listing each entry from `blockers[]`
-   - keep task in `Testing`
-   - do NOT transition to `Done`
-   - exit non-zero if `--auto`
-5. If the script errors (exit code 2):
-   - treat as script failure, not verdict
-   - keep task in `Testing`
-   - surface stderr to user and halt
-
-See `references/postflight-checks.md` for the seven-check catalog and `PostflightVerdict` schema.
-
-### Final: Transition to `done`
-
-Apply completion guards (see `references/status-transitions.md`), then `tasks update <WBS> done`.
-
-**`done` requires ALL of:**
-- verification verdict is `PASS`
-- task satisfies `rd3:tasks` `Done` guards
-- testing evidence exists in `Testing`
-- no unresolved blocker
-- delegated evidence reconciled locally
-- post-flight gate passed (if enabled)
-
 ## `--stage` Semantics
 
 | Value | Behavior |
@@ -314,9 +152,25 @@ delegate   -> Skill(skill="rd3:run-acp", args="<normalized-channel> exec \"<phas
 | Script | Purpose |
 |--------|---------|
 | `scripts/dry-run-output.ts` | Emit standardized dry-run JSON (see `references/dry-run-schema.md`) |
-| `scripts/postflight-check.ts` | Run post-flight completion gate (see `references/postflight-checks.md`) |
+| `scripts/postflight-check.ts` | Run completion gate. Two modes: `--mandatory-only` (always-on subset of 3 cheap checks before every `Done`) and full audit (7 checks, default-on via `--postflight-verify`; skip with `--no-postflight-verify`). See `references/postflight-checks.md`. |
 
 Both deterministic, testable, CI-reusable. Invoked from agent workflow with resolved state.
+
+## Workflow
+
+Stages execute in order; status transitions are owned by `task-runner`, not delegated skills.
+
+```
+Stage 0:    Preflight (always)
+Stage 0.5:  Pre-flight Verify  ← when --preflight-verify or --verify
+Stage 1:    Optional Refine
+Stage 2:    Optional Plan + Decomposition  ← exit point for --stage plan-only
+Stage 3:    Implement ↔ Test Loop (bounded)  ← skipped upstream for --stage implement-only
+Stage 4:    Verification Gate
+Stage 5:    Final / Done  ← always-on mandatory subset + default-on full audit
+```
+
+See [`references/workflow.md`](references/workflow.md) for full stage-by-stage semantics, gate thresholds, retry rules, and skip conditions.
 
 ## Reliability Rules
 
@@ -326,6 +180,7 @@ Both deterministic, testable, CI-reusable. Invoked from agent workflow with reso
 - Stop parent execution when decomposition requires splitting
 - `task-runner` owns task status transitions when delegated skill doesn't
 - Always prefer honest backfill over `tasks update --force`
+- **Always-on completion gate**: the mandatory pre-`Done` subset (sections populated, verdict `PASS`, code diff non-empty) runs on every transition regardless of flags. It is the floor, not the ceiling — `--postflight-verify` adds the four remaining checks (testing freshness, drift, coverage, delegation).
 
 ## Dogfood Rule
 
@@ -357,10 +212,18 @@ Skill(skill="rd3:task-runner", args="0274 --preset complex --channel codex --aut
 Skill(skill="rd3:task-runner", args="0274 --preset standard --dry-run")
 ```
 
-### Run with quality gates
+### Run with all quality gates
+
+`--postflight-verify` is default-on; `--verify` adds the optional Stage 0.5 pre-flight check.
 
 ```text
 Skill(skill="rd3:task-runner", args="0274 --verify")
+```
+
+### Opt out of the post-flight full audit (mandatory subset still runs)
+
+```text
+Skill(skill="rd3:task-runner", args="0274 --no-postflight-verify")
 ```
 
 ### Scheduled decomposition only
@@ -383,6 +246,7 @@ Skill(skill="rd3:task-runner", args="0274 --max-loop-iterations 5")
 
 ## Additional Resources
 
+- **`references/workflow.md`** — Full stage-by-stage workflow (Stage 0–5)
 - **`references/status-transitions.md`** — Guards, backfill templates, state machine, lifecycle bundles
 - **`references/decomposition-handoff.md`** — Paths A/B, batch JSON schema, parent-task contract, stage exit envelope
 - **`references/channel-delegation.md`** — Channel routing reference (execution owned by `rd3:run-acp`)
@@ -405,5 +269,8 @@ Recreate the workflow directly with underlying skills or ACP prompts. Contract:
 3. Optional plan (with decomposition handoff)
 4. Implement ↔ test loop
 5. Verification gate
-6. Optional post-flight verify
-7. Task status transitions owned by the workflow
+6. Post-flight full audit (default-on; skip with `--no-postflight-verify`)
+7. Mandatory pre-`Done` subset (always-on; sections, verdict, diff)
+8. Task status transitions owned by the workflow
+
+See [Workflow](references/workflow.md) for detailed content.

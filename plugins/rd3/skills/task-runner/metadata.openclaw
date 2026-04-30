@@ -1,12 +1,7 @@
 name: task-runner
-description: "Workflow-owned task execution loop with optional refine, plan,
-  implement/test cycle, verification, and pre/post-flight quality gates. Use
-  when: running a task from refinement through completion; executing presets
-  (simple/standard/complex/research); needing staged execution (plan-only,
-  implement-only); needing pre-flight task file validation or post-flight
-  completion-proof gate. Triggers: 'run task', 'execute task', 'dev-run', 'task
-  workflow', 'implement task end-to-end'. NOT for: DAG scheduling (use
-  orchestration-v2), source-only code review (use dev-review), docs refresh (use
-  dev-docs)."
+description: "Workflow-owned task execution loop with refine, plan,
+  implement/test cycling, and verification gates. Triggers: 'run task', 'execute
+  task', 'dev-run', 'task workflow'. NOT for: DAG scheduling, source-only
+  review, docs refresh."
 version: 1.0.0
 emoji: 🛠️

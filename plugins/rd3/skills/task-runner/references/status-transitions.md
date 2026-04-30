@@ -34,7 +34,7 @@ Task status ownership rules for `task-runner`, including pre-transition guards a
 
 - implementation completion is not enough
 - passing tests are not enough
-- `done` requires: verification `PASS` + post-flight gate (if enabled) + `rd3:tasks` completion requirements satisfied
+- `done` requires: verification `PASS` + always-on mandatory subset + default-on post-flight full audit (skipped only when `--no-postflight-verify`) + `rd3:tasks` completion requirements satisfied
 
 ## Guards Helper Pattern
 
@@ -96,7 +96,8 @@ Before `done`:
 - testing evidence exists in `Testing`
 - no unresolved blocker remains
 - delegated evidence written back to local task file when delegation was used
-- post-flight gate passed (if `--postflight-verify` or `--verify` enabled)
+- mandatory pre-`Done` subset passed (always-on: sections populated, verdict `PASS`, code diff non-empty)
+- post-flight full audit passed (default-on; skipped only when `--no-postflight-verify` is set)
 
 ## Backfill Templates
 

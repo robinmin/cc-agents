@@ -18,10 +18,10 @@ interface DryRunOutput {
   channel: string;               // Raw channel value; normalization owned by run-acp
   flags: {
     auto: boolean;
-    preflight_verify: boolean;
-    postflight_verify: boolean;
-    coverage: number | null;     // Coverage threshold if set
-    max_loop_iterations: number; // Default 3
+    preflight_verify: boolean;     // Default false
+    postflight_verify: boolean;    // Default true (v1.1+); false only when --no-postflight-verify
+    coverage: number | null;       // Coverage threshold if set
+    max_loop_iterations: number;   // Default 3
   };
   workflow: {
     preflight: { enabled: true };
@@ -65,7 +65,7 @@ interface DryRunOutput {
   "flags": {
     "auto": false,
     "preflight_verify": false,
-    "postflight_verify": false,
+    "postflight_verify": true,
     "coverage": null,
     "max_loop_iterations": 3
   },
@@ -76,7 +76,7 @@ interface DryRunOutput {
     "plan": { "enabled": false, "skipped_reason": "preset=standard, no decomposition needed" },
     "implement_test_loop": { "enabled": true, "max_iterations": 3 },
     "verify": { "enabled": true },
-    "postflight_verify": { "enabled": false }
+    "postflight_verify": { "enabled": true }
   },
   "status_transitions_planned": [
     { "from": "Todo", "to": "WIP", "trigger": "stage:implement-start", "guards": ["pre-implementation"] },

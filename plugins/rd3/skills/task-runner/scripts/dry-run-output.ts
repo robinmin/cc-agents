@@ -128,7 +128,9 @@ function verifyEnabled(input: DryRunInput): boolean {
 }
 
 function postflightVerifyEnabled(input: DryRunInput): boolean {
-    return Boolean(input.postflight_verify) && resolveStage(input) !== 'plan-only';
+    // Default-on as of v1.1: only false when input.postflight_verify === false (i.e. --no-postflight-verify).
+    const requested = input.postflight_verify !== false;
+    return requested && resolveStage(input) !== 'plan-only';
 }
 
 function buildWorkflow(input: DryRunInput): DryRunWorkflow {
@@ -245,7 +247,7 @@ export function renderDryRunOutput(input: DryRunInput): DryRunOutput {
         flags: {
             auto: Boolean(input.auto),
             preflight_verify: Boolean(input.preflight_verify),
-            postflight_verify: Boolean(input.postflight_verify),
+            postflight_verify: input.postflight_verify !== false,
             coverage: input.coverage ?? null,
             max_loop_iterations: input.max_loop_iterations ?? DEFAULT_MAX_LOOP_ITERATIONS,
         },

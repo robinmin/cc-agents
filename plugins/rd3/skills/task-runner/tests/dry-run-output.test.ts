@@ -39,10 +39,16 @@ describe('renderDryRunOutput — flags', () => {
         expect(out.flags).toEqual({
             auto: false,
             preflight_verify: false,
-            postflight_verify: false,
+            // postflight_verify is default-on as of v1.1; only false when --no-postflight-verify is passed.
+            postflight_verify: true,
             coverage: null,
             max_loop_iterations: 3,
         });
+    });
+
+    it('disables postflight_verify when explicitly opted out (--no-postflight-verify)', () => {
+        const out = renderDryRunOutput(baseInput({ postflight_verify: false }));
+        expect(out.flags.postflight_verify).toBe(false);
     });
 
     it('forwards flags verbatim when provided', () => {
@@ -102,12 +108,17 @@ describe('renderDryRunOutput — workflow (stage=all, preset=standard)', () => {
         expect(out.workflow.verify.enabled).toBe(true);
     });
 
-    it('disables postflight_verify by default', () => {
+    it('enables postflight_verify by default (v1.1+)', () => {
         const out = renderDryRunOutput(baseInput());
+        expect(out.workflow.postflight_verify.enabled).toBe(true);
+    });
+
+    it('disables postflight_verify when explicitly opted out', () => {
+        const out = renderDryRunOutput(baseInput({ postflight_verify: false }));
         expect(out.workflow.postflight_verify.enabled).toBe(false);
     });
 
-    it('enables postflight_verify when flag set', () => {
+    it('keeps postflight_verify enabled when flag explicitly true', () => {
         const out = renderDryRunOutput(baseInput({ postflight_verify: true }));
         expect(out.workflow.postflight_verify.enabled).toBe(true);
     });

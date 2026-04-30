@@ -9,8 +9,9 @@
  *   - Mandatory subset (always-on): tasks-sections-populated, verification-verdict-pass,
  *     code-changes-exist. Cheap, high-signal; used by task-runner before every Done
  *     transition regardless of the --postflight-verify flag.
- *   - Full catalog (opt-in via --postflight-verify): 7-check audit including testing
- *     freshness, coverage, drift, and delegated evidence reconciliation.
+ *   - Full catalog (default-on; skipped only when --no-postflight-verify): 7-check
+ *     audit including testing freshness, coverage, drift, and delegated evidence
+ *     reconciliation.
  *
  * Usage (CLI):
  *   bun postflight-check.ts <WBS> [--coverage <n>] [--start-commit <sha>]
@@ -494,7 +495,15 @@ export interface ParsedCliArgs {
     coverageThreshold: number | null;
     startCommit: string | null;
     delegationUsed: boolean;
+    mandatoryOnly: boolean;
+    preset: Preset | null;
     error: string | null;
+}
+
+const VALID_PRESETS: readonly Preset[] = ['simple', 'standard', 'complex', 'research'];
+
+function isPreset(value: string): value is Preset {
+    return (VALID_PRESETS as readonly string[]).includes(value);
 }
 
 export function parseCliArgs(argv: string[]): ParsedCliArgs {
@@ -506,13 +515,17 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
             coverageThreshold: null,
             startCommit: null,
             delegationUsed: false,
-            error: 'Usage: bun postflight-check.ts <WBS> [--coverage <n>] [--start-commit <sha>] [--delegation-used]\n',
+            mandatoryOnly: false,
+            preset: null,
+            error: 'Usage: bun postflight-check.ts <WBS> [--coverage <n>] [--start-commit <sha>] [--delegation-used] [--mandatory-only] [--preset <simple|standard|complex|research>]\n',
         };
     }
 
     let coverageThreshold: number | null = null;
     let startCommit: string | null = null;
     let delegationUsed = false;
+    let mandatoryOnly = false;
+    let preset: Preset | null = null;
 
     for (let i = 1; i < args.length; i++) {
         const arg = args[i];
@@ -525,6 +538,8 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
                     coverageThreshold: null,
                     startCommit: null,
                     delegationUsed: false,
+                    mandatoryOnly: false,
+                    preset: null,
                     error: `Invalid --coverage value: ${next}\n`,
                 };
             }
@@ -535,10 +550,27 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
             i++;
         } else if (arg === '--delegation-used') {
             delegationUsed = true;
+        } else if (arg === '--mandatory-only') {
+            mandatoryOnly = true;
+        } else if (arg === '--preset' && i + 1 < args.length) {
+            const next = args[i + 1] ?? '';
+            if (!isPreset(next)) {
+                return {
+                    wbs,
+                    coverageThreshold: null,
+                    startCommit: null,
+                    delegationUsed: false,
+                    mandatoryOnly: false,
+                    preset: null,
+                    error: `Invalid --preset value: ${next} (expected one of ${VALID_PRESETS.join(', ')})\n`,
+                };
+            }
+            preset = next;
+            i++;
         }
     }
 
-    return { wbs, coverageThreshold, startCommit, delegationUsed, error: null };
+    return { wbs, coverageThreshold, startCommit, delegationUsed, mandatoryOnly, preset, error: null };
 }
 
 export async function runCli(argv: string[], io: CliIo): Promise<number> {
@@ -547,7 +579,7 @@ export async function runCli(argv: string[], io: CliIo): Promise<number> {
         io.writeStderr(parsed.error);
         return 2;
     }
-    const { wbs, coverageThreshold, startCommit, delegationUsed } = parsed;
+    const { wbs, coverageThreshold, startCommit, delegationUsed, mandatoryOnly, preset } = parsed;
     if (wbs === null) {
         io.writeStderr('Usage: bun postflight-check.ts <WBS>\n');
         return 2;
@@ -568,10 +600,17 @@ export async function runCli(argv: string[], io: CliIo): Promise<number> {
         return 2;
     }
 
-    const verdict = await runPostflightChecks(
-        { taskContent, taskPath: path, coverageThreshold, startCommit, delegationUsed },
-        io.probes,
-    );
+    const context: TaskContext = {
+        taskContent,
+        taskPath: path,
+        coverageThreshold,
+        startCommit,
+        delegationUsed,
+        preset,
+    };
+    const verdict = mandatoryOnly
+        ? await runMandatoryChecks(context, io.probes)
+        : await runPostflightChecks(context, io.probes);
 
     io.writeStdout(`${JSON.stringify(verdict, null, 2)}\n`);
     return verdict.verdict === 'PASS' ? 0 : 1;

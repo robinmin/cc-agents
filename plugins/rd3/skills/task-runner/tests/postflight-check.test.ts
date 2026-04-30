@@ -12,11 +12,13 @@ import {
     type ExternalProbes,
     liveIo,
     liveProbes,
+    MANDATORY_CHECK_NAMES,
     parseCliArgs,
     parseCoverageFromTestingSection,
     parseTestingTimestamp,
     parseVerdictFromReview,
     runCli,
+    runMandatoryChecks,
     runPostflightChecks,
     type TaskContext,
 } from '../scripts/postflight-check';
@@ -105,6 +107,21 @@ describe('checkCodeChangesExist', () => {
         const r = checkCodeChangesExist(null);
         expect(r.status).toBe('skip');
         expect(r.severity).toBe('blocker');
+    });
+    it('skips when preset is research, even with no changes', () => {
+        const r = checkCodeChangesExist(false, 'research');
+        expect(r.status).toBe('skip');
+        expect(r.evidence).toContain('research');
+    });
+    it('skips when preset is research, even when changes exist', () => {
+        const r = checkCodeChangesExist(true, 'research');
+        expect(r.status).toBe('skip');
+    });
+    it('still fails for non-research presets when no changes', () => {
+        for (const preset of ['simple', 'standard', 'complex'] as const) {
+            const r = checkCodeChangesExist(false, preset);
+            expect(r.status).toBe('fail');
+        }
     });
 });
 
@@ -256,6 +273,98 @@ function makeContext(overrides: Partial<TaskContext> = {}): TaskContext {
     };
 }
 
+describe('runMandatoryChecks — always-on subset', () => {
+    it('exposes the 3 mandatory check names', () => {
+        expect(MANDATORY_CHECK_NAMES).toEqual([
+            'task-sections-populated',
+            'verification-verdict-pass',
+            'code-changes-exist',
+        ]);
+    });
+
+    it('returns PASS with exactly 3 checks on happy path', async () => {
+        const v = await runMandatoryChecks(makeContext({ startCommit: 'abc' }), makeProbes());
+        expect(v.verdict).toBe('PASS');
+        expect(v.checks).toHaveLength(3);
+        expect(v.checks.map((c) => c.name)).toEqual([...MANDATORY_CHECK_NAMES]);
+    });
+
+    it('BLOCKED when tasks check fails', async () => {
+        const v = await runMandatoryChecks(
+            makeContext(),
+            makeProbes({ tasksCheck: async () => ({ ok: false, errors: ['missing Design'] }) }),
+        );
+        expect(v.verdict).toBe('BLOCKED');
+        expect(v.blockers.some((b) => b.check === 'task-sections-populated')).toBe(true);
+    });
+
+    it('BLOCKED when verdict is PARTIAL (catches early-report-complete)', async () => {
+        const v = await runMandatoryChecks(makeContext({ taskContent: '## Review\nVerdict: PARTIAL\n' }), makeProbes());
+        expect(v.verdict).toBe('BLOCKED');
+        expect(v.blockers.some((b) => b.check === 'verification-verdict-pass')).toBe(true);
+    });
+
+    it('BLOCKED when Review section missing entirely', async () => {
+        const v = await runMandatoryChecks(
+            makeContext({ taskContent: '## Solution\nDid stuff\n## Testing\nran\n' }),
+            makeProbes(),
+        );
+        expect(v.verdict).toBe('BLOCKED');
+        expect(v.blockers.some((b) => b.check === 'verification-verdict-pass')).toBe(true);
+    });
+
+    it('BLOCKED when no code changes since task start', async () => {
+        const v = await runMandatoryChecks(
+            makeContext({ startCommit: 'abc' }),
+            makeProbes({ gitDiffHasChanges: async () => false }),
+        );
+        expect(v.verdict).toBe('BLOCKED');
+        expect(v.blockers.some((b) => b.check === 'code-changes-exist')).toBe(true);
+    });
+
+    it('PASS for research preset even with no code changes', async () => {
+        const v = await runMandatoryChecks(
+            makeContext({ startCommit: 'abc', preset: 'research' }),
+            makeProbes({ gitDiffHasChanges: async () => false }),
+        );
+        expect(v.verdict).toBe('PASS');
+        const codeCheck = v.checks.find((c) => c.name === 'code-changes-exist');
+        expect(codeCheck?.status).toBe('skip');
+    });
+
+    it('does NOT call full-only probes (gitStatusPaths, codeMtime)', async () => {
+        let statusCalled = false;
+        let mtimeCalled = false;
+        await runMandatoryChecks(
+            makeContext({ startCommit: 'abc' }),
+            makeProbes({
+                gitStatusPaths: async () => {
+                    statusCalled = true;
+                    return [];
+                },
+                codeMtime: async () => {
+                    mtimeCalled = true;
+                    return null;
+                },
+            }),
+        );
+        expect(statusCalled).toBe(false);
+        expect(mtimeCalled).toBe(false);
+    });
+
+    it('reports all mandatory blockers, not just the first', async () => {
+        const v = await runMandatoryChecks(
+            makeContext({ startCommit: 'abc', taskContent: '## Solution\nfoo\n' }),
+            makeProbes({
+                tasksCheck: async () => ({ ok: false, errors: ['missing Design'] }),
+                gitDiffHasChanges: async () => false,
+            }),
+        );
+        expect(v.verdict).toBe('BLOCKED');
+        expect(v.blockers.length).toBeGreaterThanOrEqual(3);
+    });
+});
+
 describe('runPostflightChecks — happy path', () => {
     it('returns PASS with empty blockers when all checks pass', async () => {
         const v = await runPostflightChecks(makeContext(), makeProbes());
@@ -267,6 +376,16 @@ describe('runPostflightChecks — happy path', () => {
     it('includes 7 checks in result', async () => {
         const v = await runPostflightChecks(makeContext(), makeProbes());
         expect(v.checks).toHaveLength(7);
+    });
+
+    it('threads preset to checkCodeChangesExist (research → skip even when no diff)', async () => {
+        const v = await runPostflightChecks(
+            makeContext({ startCommit: 'abc', preset: 'research' }),
+            makeProbes({ gitDiffHasChanges: async () => false }),
+        );
+        expect(v.verdict).toBe('PASS');
+        const codeCheck = v.checks.find((c) => c.name === 'code-changes-exist');
+        expect(codeCheck?.status).toBe('skip');
     });
 });
 
@@ -486,6 +605,36 @@ describe('parseCliArgs', () => {
         expect(r.error).toBe(null);
         expect(r.wbs).toBe('0387');
     });
+
+    it('parses --mandatory-only flag', () => {
+        const r = parseCliArgs(['bun', 'postflight-check.ts', '0387', '--mandatory-only']);
+        expect(r.error).toBe(null);
+        expect(r.mandatoryOnly).toBe(true);
+    });
+
+    it('defaults mandatoryOnly to false', () => {
+        const r = parseCliArgs(['bun', 'postflight-check.ts', '0387']);
+        expect(r.mandatoryOnly).toBe(false);
+    });
+
+    it('parses --preset', () => {
+        const r = parseCliArgs(['bun', 'postflight-check.ts', '0387', '--preset', 'research']);
+        expect(r.error).toBe(null);
+        expect(r.preset).toBe('research');
+    });
+
+    it('rejects invalid --preset value', () => {
+        const r = parseCliArgs(['bun', 'postflight-check.ts', '0387', '--preset', 'bogus']);
+        expect(r.error).toContain('--preset');
+    });
+
+    it('accepts all valid presets', () => {
+        for (const p of ['simple', 'standard', 'complex', 'research'] as const) {
+            const r = parseCliArgs(['bun', 'postflight-check.ts', '0387', '--preset', p]);
+            expect(r.error).toBe(null);
+            expect(r.preset).toBe(p);
+        }
+    });
 });
 
 // ============================================================================
@@ -637,6 +786,52 @@ describe('runCli — happy path', () => {
         });
         const code = await runCli(['bun', 'postflight-check.ts', '0387'], io);
         expect(code).toBe(0);
+    });
+});
+
+describe('runCli — mandatory-only mode', () => {
+    it('returns 3 checks when --mandatory-only set', async () => {
+        const io = makeMockIo({
+            resolveTaskPath: async () => '/tmp/docs/tasks2/0387_example.md',
+            readTaskFile: async () => '## Solution\nDone\n## Review\nPASS\n## Testing\nRan 2026-04-16T12:00:00Z\n',
+        });
+        const code = await runCli(['bun', 'postflight-check.ts', '0387', '--mandatory-only'], io);
+        expect(code).toBe(0);
+        const parsed = JSON.parse(io.stdoutText());
+        expect(parsed.checks).toHaveLength(3);
+        expect(parsed.verdict).toBe('PASS');
+    });
+
+    it('exits 1 when mandatory subset blocked (PARTIAL verdict)', async () => {
+        const io = makeMockIo({
+            resolveTaskPath: async () => '/tmp/docs/tasks2/0387_example.md',
+            readTaskFile: async () => '## Review\nPARTIAL — minor\n## Testing\nRan 2026-04-16T12:00:00Z\n',
+        });
+        const code = await runCli(['bun', 'postflight-check.ts', '0387', '--mandatory-only'], io);
+        expect(code).toBe(1);
+        const parsed = JSON.parse(io.stdoutText());
+        expect(parsed.verdict).toBe('BLOCKED');
+        expect(parsed.blockers.some((b: { check: string }) => b.check === 'verification-verdict-pass')).toBe(true);
+    });
+
+    it('PASSes mandatory subset for research preset with no diff', async () => {
+        const io = makeMockIo({
+            resolveTaskPath: async () => '/tmp/docs/tasks2/0387_example.md',
+            readTaskFile: async () => '## Solution\nResearch notes\n## Review\nPASS\n## Testing\nN/A research-only\n',
+            probes: {
+                tasksCheck: async () => ({ ok: true, errors: [] }),
+                gitDiffHasChanges: async () => false,
+                gitStatusPaths: async () => [],
+                codeMtime: async () => null,
+            },
+        });
+        const code = await runCli(
+            ['bun', 'postflight-check.ts', '0387', '--mandatory-only', '--start-commit', 'abc', '--preset', 'research'],
+            io,
+        );
+        expect(code).toBe(0);
+        const parsed = JSON.parse(io.stdoutText());
+        expect(parsed.verdict).toBe('PASS');
     });
 });
 

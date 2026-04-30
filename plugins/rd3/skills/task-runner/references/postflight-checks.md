@@ -2,32 +2,48 @@
 
 Deterministic checks executed by `scripts/postflight-check.ts` before the `done` transition. Closes the "early-report-finish" reliability gap.
 
-## When Active
+## Check Tiers
 
-- `--postflight-verify` flag present, OR
-- `--verify` flag present (shortcut for preflight + postflight)
+| Tier | When Active | Checks | Purpose |
+|------|-------------|--------|---------|
+| **Mandatory** | Always — every `Done` transition | #1, #3, #4 | Cheap defense-in-depth. Cannot be disabled. |
+| **Full audit** | **Default-on** (v1.1+); skip with `--no-postflight-verify` | All 7 | Comprehensive completion gate including testing freshness, coverage, drift, delegation reconciliation. |
+
+The mandatory subset runs even when the operator opts out of the full audit with `--no-postflight-verify`. It exists because the most common early-report-complete failures (hollow sections, `PARTIAL` verdicts, no-diff "fixes") are catchable by three sub-second checks.
 
 ## Gate Position
 
 ```
 Stage 4: Verify (returns PASS)
      ↓
-Stage 5: Post-Flight Gate  ← this reference
+[Default-on, skip with --no-postflight-verify] Stage 5 full audit (#1–#7)
      ↓
-  tasks update <WBS> done  (only if gate passes)
+[Always] Mandatory subset (#1, #3, #4)
+     ↓
+  tasks update <WBS> done  (only if both gates pass)
 ```
 
 ## Check Catalog
 
-| # | Check | Source of Truth | Blocker on Fail |
-|---|-------|-----------------|-----------------|
-| 1 | All required task sections populated | `tasks check <WBS> --json` | YES |
-| 2 | Testing evidence not stale | Test timestamp vs last code mtime | YES |
-| 3 | Verification verdict equals `PASS` (not `PARTIAL`) | Stage 4 output | YES |
-| 4 | Code changes exist since task start | `git diff <start-commit>..HEAD` non-empty | YES |
-| 5 | No uncommitted unrelated drift | `git status` vs expected changed paths | WARN |
-| 6 | Coverage threshold met if `--coverage` set | Re-read test evidence from `## Testing` | YES |
-| 7 | Delegated evidence reconciled locally | Parse delegated outputs in task file | WARN |
+| # | Tier | Check | Source of Truth | Blocker on Fail |
+|---|------|-------|-----------------|-----------------|
+| 1 | **Mandatory** | All required task sections populated | `tasks check <WBS> --json` | YES |
+| 2 | Full audit | Testing evidence not stale | Test timestamp vs last code mtime | YES |
+| 3 | **Mandatory** | Verification verdict equals `PASS` (not `PARTIAL`) | Stage 4 output | YES |
+| 4 | **Mandatory** | Code changes exist since task start | `git diff <start-commit>..HEAD` non-empty (skipped for `research` preset) | YES |
+| 5 | Full audit | No uncommitted unrelated drift | `git status` vs expected changed paths | WARN |
+| 6 | Full audit | Coverage threshold met if `--coverage` set | Re-read test evidence from `## Testing` | YES |
+| 7 | Full audit | Delegated evidence reconciled locally | Parse delegated outputs in task file | WARN |
+
+## Invocation
+
+```bash
+# Mandatory subset only (always run by task-runner before Done)
+bun postflight-check.ts <WBS> --mandatory-only [--start-commit <sha>] [--preset <name>]
+
+# Full audit (Stage 5)
+bun postflight-check.ts <WBS> [--coverage <n>] [--start-commit <sha>] [--delegation-used] [--preset <name>]
+```
 
 ## Verdict Schema
 
@@ -107,7 +123,8 @@ Checks marked `skip` when not applicable (e.g., coverage threshold check when `-
 
 - **Command:** `git diff <task-start-commit>..HEAD --stat`
 - **Pass criteria:** Non-empty diff
-- **Fail remediation:** If task shouldn't be code-change (research-only), skip via preset detection
+- **Skip:** When `--start-commit` is omitted, or when `--preset research` is set
+- **Fail remediation:** Implement the task or use `--preset research` for research-only tasks
 
 ### 5. Uncommitted Drift
 
