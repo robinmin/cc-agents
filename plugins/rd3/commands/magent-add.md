@@ -1,40 +1,48 @@
 ---
-description: "Synthesize a new main agent configuration"
-argument-hint: "<template> [--platform <platform>] [--output <path>]"
+description: "Synthesize a new main agent configuration from a template"
+argument-hint: "[<template>] [--to <platform>] [--output <path>] [--dry-run] [--json]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Magent Add
 
-Wraps **rd3:cc-magents** skill.
+Delegate to the **rd3:cc-magents** skill.
 
-Generate a new main agent configuration file from templates with automatic project detection.
+Generate a new main agent configuration file from one of six built-in templates. Apply the chosen template to any of 15 supported platforms. Run validation after generation to confirm structural correctness.
 
 ## When to Use
 
-- Starting a new project and need a main agent config
-- Creating an AGENTS.md, CLAUDE.md, or other platform config
-- Scaffolding a main agent for a new codebase
-- Converting between template-based and custom agent configs
+- Bootstrap a main agent config for a new project
+- Create an `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, or other platform config
+- Scaffold a main agent for a new codebase
+- Produce a baseline that will be refined or adapted later
 
 ## Arguments
 
 | Argument | Description | Default |
 |---------|-------------|---------|
-| `template` | Domain template (dev-agent, research-agent, content-agent, data-agent, devops-agent, general-agent) | auto-detect |
-| `--platform` | Target platform format | agents-md |
-| `--output` | Output file path | AGENTS.md |
+| `<template>` | Positional template name (see Available Templates below) | `dev-agent` |
+| `--to` | Target platform (see Supported Platforms below) | `agents-md` |
+| `--output` | Output file or directory | (cwd) |
+| `--dry-run` | Generate without writing files | false |
+| `--json` | Emit JSON result | false |
+
+Apply `--platform` interchangeably with `--to` (alias). Convert platform aliases automatically: `claude` → `claude-code`, `gemini` → `gemini-cli`, `cursorrules` → `cursor`, `windsurfrules` → `windsurf`.
 
 ## Available Templates
 
 | Template | Purpose |
 |----------|---------|
-| `dev-agent` | Software development with coding standards |
+| `dev-agent` | Software development with coding standards (default) |
 | `research-agent` | Research and analysis workflows |
 | `content-agent` | Content creation and documentation |
 | `data-agent` | Data science and ML workflows |
 | `devops-agent` | DevOps and infrastructure |
-| `general-agent` | General purpose assistant |
+| `general-agent` | General-purpose assistant |
+
+## Supported Platforms
+
+`agents-md`, `claude-code`, `gemini-cli`, `codex`, `cursor`, `windsurf`, `opencode`, `openclaw`, `copilot`, `cline`, `zed`, `amp`, `aider`, `antigravity` (low confidence), `pi` (low confidence).
 
 ## Implementation
 
@@ -52,14 +60,17 @@ bun plugins/rd3/skills/cc-magents/scripts/synthesize.ts $ARGUMENTS
 ## Examples
 
 ```bash
-# Create AGENTS.md for a Node.js project (auto-detects template)
+# Default dev-agent template, AGENTS.md output
 /rd3:magent-add
 
 # Create CLAUDE.md with dev-agent template
-/rd3:magent-add dev-agent --platform claude-md --output CLAUDE.md
+/rd3:magent-add dev-agent --to claude-code --output CLAUDE.md
 
-# Create from specific template
-/rd3:magent-add data-agent --platform agents-md
+# Data-science template targeting AGENTS.md
+/rd3:magent-add data-agent --to agents-md
+
+# Preview without writing
+/rd3:magent-add devops-agent --to gemini-cli --output GEMINI.md --dry-run
 ```
 
 ## Platform Notes
