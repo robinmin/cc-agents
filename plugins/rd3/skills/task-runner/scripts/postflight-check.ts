@@ -5,8 +5,16 @@
  * Runs deterministic checks before a task can transition to Done.
  * Closes the "early-report-finish" reliability gap.
  *
+ * Two tiers:
+ *   - Mandatory subset (always-on): tasks-sections-populated, verification-verdict-pass,
+ *     code-changes-exist. Cheap, high-signal; used by task-runner before every Done
+ *     transition regardless of the --postflight-verify flag.
+ *   - Full catalog (opt-in via --postflight-verify): 7-check audit including testing
+ *     freshness, coverage, drift, and delegated evidence reconciliation.
+ *
  * Usage (CLI):
  *   bun postflight-check.ts <WBS> [--coverage <n>] [--start-commit <sha>]
+ *                                [--delegation-used] [--mandatory-only] [--preset <name>]
  *
  * Exit codes:
  *   0 = PASS
@@ -42,6 +50,8 @@ export interface PostflightVerdict {
     task_status_recommended: TaskStatus;
 }
 
+export type Preset = 'simple' | 'standard' | 'complex' | 'research';
+
 export interface TaskContext {
     /** Task file content (raw markdown). */
     taskContent: string;
@@ -53,6 +63,8 @@ export interface TaskContext {
     startCommit: string | null;
     /** Whether delegation was used for this task. */
     delegationUsed: boolean;
+    /** Workflow preset; controls preset-aware check skips (e.g., research → skip code-changes-exist). */
+    preset?: Preset | null;
 }
 
 export interface ExternalProbes {
@@ -153,7 +165,15 @@ export function checkVerificationVerdict(taskContent: string): CheckResult {
     };
 }
 
-export function checkCodeChangesExist(hasChanges: boolean | null): CheckResult {
+export function checkCodeChangesExist(hasChanges: boolean | null, preset: Preset | null = null): CheckResult {
+    if (preset === 'research') {
+        return {
+            name: 'code-changes-exist',
+            status: 'skip',
+            evidence: 'Preset is research; code-changes check skipped',
+            severity: 'blocker',
+        };
+    }
     if (hasChanges === null) {
         return {
             name: 'code-changes-exist',
@@ -175,7 +195,7 @@ export function checkCodeChangesExist(hasChanges: boolean | null): CheckResult {
         status: 'fail',
         evidence: 'git diff is empty — no code changes since task start',
         severity: 'blocker',
-        remediation: 'Implement the task or skip this check for research-only tasks',
+        remediation: 'Implement the task or use --preset research for research-only tasks',
     };
 }
 
@@ -320,25 +340,21 @@ export function checkDelegatedEvidenceReconciled(taskContent: string, delegation
 }
 
 // ============================================================================
-// Orchestrator
+// Orchestrators
 // ============================================================================
 
-export async function runPostflightChecks(context: TaskContext, probes: ExternalProbes): Promise<PostflightVerdict> {
-    const probeResult = await probes.tasksCheck(extractWbs(context.taskPath));
-    const hasChanges = await probes.gitDiffHasChanges(context.startCommit);
-    const gitStatusPaths = await probes.gitStatusPaths();
-    const codeMtime = await probes.codeMtime(context.startCommit);
+/**
+ * Names of the mandatory (always-on) check subset. These run before every
+ * `Done` transition regardless of the --postflight-verify flag, providing a
+ * cheap defense against early-report-complete failures.
+ */
+export const MANDATORY_CHECK_NAMES = [
+    'task-sections-populated',
+    'verification-verdict-pass',
+    'code-changes-exist',
+] as const;
 
-    const checks: CheckResult[] = [
-        checkTaskSectionsPopulated(probeResult),
-        checkVerificationVerdict(context.taskContent),
-        checkCodeChangesExist(hasChanges),
-        checkUncommittedDrift(gitStatusPaths),
-        checkCoverageThreshold(context.coverageThreshold, context.taskContent),
-        checkTestingEvidenceFreshness(context.taskContent, codeMtime),
-        checkDelegatedEvidenceReconciled(context.taskContent, context.delegationUsed),
-    ];
-
+function buildVerdict(checks: CheckResult[]): PostflightVerdict {
     const blockers = checks
         .filter((c) => c.status === 'fail' && c.severity === 'blocker')
         .map((c) => ({
@@ -351,6 +367,45 @@ export async function runPostflightChecks(context: TaskContext, probes: External
     const task_status_recommended: TaskStatus = verdict === 'PASS' ? 'Done' : 'Testing';
 
     return { verdict, checks, blockers, task_status_recommended };
+}
+
+/**
+ * Runs only the mandatory subset of checks (3 cheap, high-signal checks).
+ * Always invoked before `tasks update <WBS> done`, regardless of any flag.
+ */
+export async function runMandatoryChecks(context: TaskContext, probes: ExternalProbes): Promise<PostflightVerdict> {
+    const probeResult = await probes.tasksCheck(extractWbs(context.taskPath));
+    const hasChanges = await probes.gitDiffHasChanges(context.startCommit);
+
+    const checks: CheckResult[] = [
+        checkTaskSectionsPopulated(probeResult),
+        checkVerificationVerdict(context.taskContent),
+        checkCodeChangesExist(hasChanges, context.preset ?? null),
+    ];
+
+    return buildVerdict(checks);
+}
+
+/**
+ * Runs the full 7-check audit. Active when --postflight-verify or --verify is set.
+ */
+export async function runPostflightChecks(context: TaskContext, probes: ExternalProbes): Promise<PostflightVerdict> {
+    const probeResult = await probes.tasksCheck(extractWbs(context.taskPath));
+    const hasChanges = await probes.gitDiffHasChanges(context.startCommit);
+    const gitStatusPaths = await probes.gitStatusPaths();
+    const codeMtime = await probes.codeMtime(context.startCommit);
+
+    const checks: CheckResult[] = [
+        checkTaskSectionsPopulated(probeResult),
+        checkVerificationVerdict(context.taskContent),
+        checkCodeChangesExist(hasChanges, context.preset ?? null),
+        checkUncommittedDrift(gitStatusPaths),
+        checkCoverageThreshold(context.coverageThreshold, context.taskContent),
+        checkTestingEvidenceFreshness(context.taskContent, codeMtime),
+        checkDelegatedEvidenceReconciled(context.taskContent, context.delegationUsed),
+    ];
+
+    return buildVerdict(checks);
 }
 
 export function extractWbs(taskPath: string): string {

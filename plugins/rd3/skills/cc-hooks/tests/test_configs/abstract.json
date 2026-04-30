@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $PLUGIN_ROOT/scripts/validate-bash.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash $PLUGIN_ROOT/scripts/log-result.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
