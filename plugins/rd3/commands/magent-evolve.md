@@ -1,33 +1,49 @@
 ---
-description: "Self-evolution analysis and proposals for main agent configs"
-argument-hint: "<config-path> [--analyze|--propose|--apply <id>|--history|--rollback <ver>]"
+description: "Propose longitudinal improvements for a main agent config"
+argument-hint: "<config-path> [--from <platform>] [--output <path>] [--json]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Magent Evolve
 
-Wraps **rd3:cc-magents** skill.
+Delegate to the **rd3:cc-magents** skill.
 
-Analyze patterns and generate self-improvement proposals for main agent configs.
+Generate longitudinal improvement proposals for a main agent configuration. Analyze registry signals and capability gaps. Review every proposal before applying — output is **read-only** and speculative.
 
 ## When to Use
 
-- After collecting feedback on agent behavior
-- Analyzing git history for modification patterns
-- Self-improvement based on interaction logs
-- Periodic config health checks
-- Grade improvement over time
+- Run periodic config health checks
+- Reconcile after registry updates that may invalidate prior assumptions
+- Surface grounding/evidence improvements
+- Plan incremental quality improvements over time
 
 ## Arguments
 
 | Argument | Description | Default |
 |---------|-------------|---------|
-| `config-path` | Path to config file (AGENTS.md, CLAUDE.md) | (required) |
-| `--analyze` | Analyze patterns from data sources | - |
-| `--propose` | Generate improvement proposals | - |
-| `--apply <id>` | Apply an approved proposal | requires --confirm |
-| `--history` | Show version history | - |
-| `--rollback <ver>` | Rollback to version | requires --confirm |
+| `<config-path>` | Path to config file (positional) | (required) |
+| `--from` | Source platform hint | auto-detect |
+| `--output` | Write JSON proposals to path | (none) |
+| `--json` | Emit JSON to stdout | false |
+
+Apply the shared CLI parser (`io.ts::parseCliArgs`). Note that `--analyze`, `--apply`, `--history`, and `--rollback` flags are not supported by the current implementation.
+
+## Output Shape
+
+Generate a JSON array of proposal objects. Each object carries:
+
+- `kind` — proposal category (e.g. `evidence`, `registry`, `coverage`)
+- `message` — human-readable proposal text
+
+## Apply Workflow
+
+Run `evolve` to **propose only**. Apply changes through one of these paths:
+
+1. Review the proposal output (text or JSON)
+2. Edit the config file manually OR re-run with a more specific command:
+   - For platform-specific structural splits → `/rd3:magent-refine <file> --to <platform>`
+   - For cross-platform conversion → `/rd3:magent-adapt <file> --to <platform>`
+3. Re-evaluate to confirm improvement: `/rd3:magent-evaluate <file>`
 
 ## Implementation
 
@@ -42,47 +58,17 @@ Skill(skill="rd3:cc-magents", args="evolve $ARGUMENTS")
 bun plugins/rd3/skills/cc-magents/scripts/evolve.ts $ARGUMENTS
 ```
 
-## Operations
-
-### --analyze
-Scans available data sources for patterns:
-- Git history (commit frequency, section modifications)
-- CI results (test failures, quality trends)
-- User feedback (ratings, explicit signals)
-- Memory files (MEMORY.md, context accumulation)
-
-### --propose
-Generates improvement proposals based on:
-- Evaluation gaps (dimensions below 75%)
-- Detected patterns (successes, failures, gaps)
-
-### --apply <id>
-Applies an approved proposal. Requires `--confirm` for safety.
-
-### --history
-Shows all recorded versions with grades and changes.
-
-### --rollback <ver>
-Reverts to a previous version. Requires `--confirm`.
-
-## CRITICAL Rule Protection
-
-Sections containing `[CRITICAL]` markers can NEVER be auto-modified.
-
 ## Examples
 
 ```bash
-# Analyze patterns without generating proposals
-/rd3:magent-evolve AGENTS.md --analyze
+# Generate proposals for AGENTS.md
+/rd3:magent-evolve AGENTS.md
 
-# Generate improvement proposals
-/rd3:magent-evolve AGENTS.md --propose
+# Hint source platform explicitly
+/rd3:magent-evolve CLAUDE.md --from claude-code
 
-# Apply a specific proposal (with safety confirmation)
-/rd3:magent-evolve AGENTS.md --apply p1abc1234 --confirm
-
-# View version history
-/rd3:magent-evolve AGENTS.md --history
+# JSON output for tracking over time
+/rd3:magent-evolve AGENTS.md --json --output evolve-proposals.json
 ```
 
 ## Platform Notes
