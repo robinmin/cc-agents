@@ -6,7 +6,7 @@
  */
 
 import { afterEach, describe, expect, it } from 'bun:test';
-import { setGlobalSilent } from '../logger';
+import { setGlobalSilent } from '../scripts/logger';
 import {
     buildAgentCommand,
     doctor,
@@ -18,7 +18,7 @@ import {
     resolveChannel,
     translateSlashCommand,
     type AgentName,
-} from '../lib/ai-runner';
+} from '../scripts/lib/ai-runner';
 
 // Suppress logger output during tests
 setGlobalSilent(true);
@@ -579,7 +579,7 @@ exit 0`,
 
 describe('Codex resume mode', () => {
     // Import dynamically to avoid side effects
-    const { executeAgentInput } = require('../lib/ai-runner');
+    const { executeAgentInput } = require('../scripts/lib/ai-runner');
 
     it('rejects codex resume with prompt', async () => {
         try {

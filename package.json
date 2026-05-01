@@ -26,6 +26,8 @@
     "test:rd3": "bun run --cwd plugins/rd3 test --coverage --reporter=dots",
     "test:coverage:rd3": "bun run --cwd plugins/rd3 test:coverage",
     "test-bats": "bats plugins/rd3/skills/cc-hooks/tests/*.bats && bats tests",
+    "test-ai-runner": "bats tests/ai-runner.bats && bun test ./tests/ai-runner.test.ts",
+    "build-ai-runner": "bun build scripts/airunner.ts --outdir dist --target bun",
     "setup-all": "./scripts/setup-all.sh",
     "build-all-rd3": "bun run --cwd plugins/rd3 build-all",
     "symblink-all-rd3": "bun run --cwd plugins/rd3 symblink-all",
