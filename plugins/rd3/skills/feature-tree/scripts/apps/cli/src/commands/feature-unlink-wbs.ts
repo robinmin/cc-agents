@@ -47,7 +47,7 @@ export class FeatureUnlinkWbsCommand extends Command {
             return 1;
         }
 
-        const dbPath = this.db ?? process.env.FTREE_DB ?? 'docs/.ftree/db.sqlite';
+        const dbPath = this.db ?? process.env.FTREE_DB ?? 'docs/.ftree/ftree.db';
         const adapter = await createDbAdapter({ driver: 'bun-sqlite', url: resolve(dbPath) });
 
         try {
