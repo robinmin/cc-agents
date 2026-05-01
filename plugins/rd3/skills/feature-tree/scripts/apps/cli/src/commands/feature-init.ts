@@ -37,7 +37,7 @@ export class FeatureInitCommand extends Command {
     });
 
     async execute() {
-        const dbPath = this.db ?? process.env.FTREE_DB ?? 'docs/.ftree/db.sqlite';
+        const dbPath = this.db ?? process.env.FTREE_DB ?? 'docs/.ftree/ftree.db';
         const resolvedPath = resolve(dbPath);
         const dbExists = existsSync(resolvedPath);
 
