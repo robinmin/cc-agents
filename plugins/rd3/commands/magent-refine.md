@@ -1,31 +1,58 @@
 ---
-description: "Refine and improve main agent config files"
-argument-hint: "<config-path> [--dry-run] [--apply] [--output <path>]"
+description: "Suggest capability-aware improvements for an agent config"
+argument-hint: "<config-path> [--from <platform>] [--to <platform>] [--output <path>] [--json]"
 allowed-tools: ["Read", "Write", "Glob", "Bash", "Skill"]
 ---
 
 # Magent Refine
 
-Wraps **rd3:cc-magents** skill.
+Delegate to the **rd3:cc-magents** skill.
 
-Auto-fix structural issues and suggest quality improvements for main agent configs.
+Generate capability-aware improvement suggestions for a main agent configuration. Apply the suggestions manually — `refine` is **read-only** and never modifies the source file.
 
 ## When to Use
 
-- After evaluation reveals quality issues
-- Cleaning up templates with empty sections
-- Applying best practices automatically
-- Removing forbidden phrases (AI-speak)
-- Adding missing required sections
+- Surface quality gaps after evaluation
+- Get platform-specific suggestions when porting (pass `--to`)
+- Find safety, scope, evidence, or modularity improvements
+- Preview modularity/split opportunities before running adapt
 
 ## Arguments
 
 | Argument | Description | Default |
 |---------|-------------|---------|
-| `config-path` | Path to config file (AGENTS.md, CLAUDE.md) | (required) |
-| `--dry-run` | Preview changes without applying | true |
-| `--apply` | Actually apply fixes | false |
-| `--output` | Output path for refined config | in-place |
+| `<config-path>` | Path to config file (positional) | (required) |
+| `--from` | Source platform hint | auto-detect |
+| `--to` | Target platform — enables platform-specific suggestions (modularity, multi-file split) | (none) |
+| `--output` | Write JSON suggestions to path | (none) |
+| `--json` | Emit JSON to stdout | false |
+
+## Suggestion Kinds
+
+Generate an array of `RefineSuggestion` objects. Each carries a `kind`:
+
+| Kind | Meaning | Trigger |
+|------|---------|---------|
+| `safety` | Add explicit approval boundaries for destructive actions, shell, secrets | No `permissions:` declared |
+| `scope` | Split broad instructions into path-scoped rules | No glob-scoped rules and platform supports globs |
+| `evidence` | Attach platform source URLs and verification dates | No source evidence in workspace |
+| `modularity` | Use config-listed instruction files instead of one big markdown | Target platform supports `config_instructions` |
+| `split` | Generate native multi-file output | Target platform supports `multi_file` |
+
+## Output Shape
+
+Generate a JSON array of `RefineSuggestion` objects. Each object carries:
+
+- `kind` — one of `safety`, `scope`, `evidence`, `modularity`, `split`
+- `message` — human-readable suggestion text
+- `targetPlatform` — present only when `--to` was supplied (kinds `modularity` and `split`)
+
+## Important: No Auto-Apply
+
+Apply suggestions manually — this command **does not modify the source file**. Run `refine` to emit suggestions only, then edit based on `kind`:
+
+- `kind: safety` — escalate to user before adding (touches approval policy)
+- `kind: scope`, `evidence`, `modularity`, `split` — apply via editor or follow up with `adapt` for cross-platform splits
 
 ## Implementation
 
@@ -40,39 +67,20 @@ Skill(skill="rd3:cc-magents", args="refine $ARGUMENTS")
 bun plugins/rd3/skills/cc-magents/scripts/refine.ts $ARGUMENTS
 ```
 
-## Refinement Actions
-
-### Structural Fixes (auto-fix)
-- Remove empty sections
-- Fix duplicate headings
-
-### Quality Improvements (requires approval)
-- Add missing required sections (identity, rules, tools)
-- Merge duplicate sections
-- Expand minimal content sections
-
-### Best Practice Fixes (auto-fix)
-- Remove forbidden AI phrases ("great question", "I'm sorry")
-- Improve operability signals
-
-## CRITICAL Section Protection
-
-Sections containing `[CRITICAL]` markers are NEVER modified, even with `--apply`. This ensures safety rules remain intact.
-
 ## Examples
 
 ```bash
-# Preview changes without applying
-/rd3:magent-refine AGENTS.md --dry-run
+# Generic suggestions (no platform target)
+/rd3:magent-refine AGENTS.md
 
-# Apply fixes to the config
-/rd3:magent-refine CLAUDE.md --apply
+# Platform-specific suggestions for Claude Code (surfaces modularity hints)
+/rd3:magent-refine AGENTS.md --to claude-code
 
-# Save refined version to new file
-/rd3:magent-refine AGENTS.md --output refined-AGENTS.md
+# JSON for automation
+/rd3:magent-refine CLAUDE.md --json --output suggestions.json
 ```
 
 ## Platform Notes
 
-- Claude Code: Invoke via `Skill()` delegation
-- Other platforms: Run script directly via Bash tool
+- Claude Code: Invoke via `Skill()` delegation; `$ARGUMENTS` is Claude-specific syntax
+- Other platforms: Run script directly via Bash tool with literal arguments (no `$ARGUMENTS` substitution)
