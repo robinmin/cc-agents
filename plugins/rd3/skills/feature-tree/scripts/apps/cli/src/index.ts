@@ -17,6 +17,7 @@ import { FeatureUpdateCommand } from './commands/feature-update';
 import { FeatureMoveCommand } from './commands/feature-move';
 import { FeatureUnlinkCommand } from './commands/feature-unlink';
 import { FeatureDigestCommand } from './commands/feature-digest';
+import { FeatureShowCommand } from './commands/feature-show';
 import { FeatureImportCommand } from './commands/feature-import';
 import { CLI_CONFIG } from './config';
 
@@ -49,6 +50,7 @@ cli.register(FeatureUpdateCommand);
 cli.register(FeatureMoveCommand);
 cli.register(FeatureUnlinkCommand);
 cli.register(FeatureDigestCommand);
+cli.register(FeatureShowCommand);
 cli.register(FeatureImportCommand);
 
 cli.runExit(process.argv.slice(2));
