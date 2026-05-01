@@ -51,6 +51,7 @@ SKIP_COMMANDS=false
 SKIP_ORCHESTRATOR=true
 DRY_RUN=false
 VERBOSE=false
+PROFILE="full"
 
 # All supported platform names (user-facing)
 ALL_PLATFORMS="claude-code,codex,gemini-cli,antigravity,opencode,openclaw,pi"
@@ -82,6 +83,7 @@ usage() {
     printf "    --skip-skills        Skip plugin skills installation\n"
     printf "    --skip-subagents     Skip subagent definitions installation\n"
     printf "    --skip-commands      Skip slash command definitions installation\n"
+    printf "    --profile=PROFILE    Token profile: compact, standard, full (default: full)\n"
     printf "    --dry-run            Preview without executing\n"
     printf "    --verbose            Verbose output\n"
     printf "    --help               Show this help message\n\n"
@@ -99,6 +101,7 @@ usage() {
     printf "    ./scripts/setup-all.sh --targets=codex,pi\n"
     printf "    ./scripts/setup-all.sh --skip-magents --dry-run\n"
     printf "    ./scripts/setup-all.sh --plugins=rd3\n"
+    printf "    ./scripts/setup-all.sh --profile=compact --targets=codex\n"
 }
 
 # =============================================================================
@@ -116,6 +119,7 @@ parse_args() {
             --skip-subagents)  SKIP_SUBAGENTS=true; shift ;;
             --skip-commands)    SKIP_COMMANDS=true; shift ;;
             --skip-orchestrator)  SKIP_ORCHESTRATOR=true; shift ;;
+            --profile=*)       PROFILE="${1#*=}"; shift ;;
             --dry-run)         DRY_RUN=true; shift ;;
             --verbose)         VERBOSE=true; shift ;;
             --help|-h)         usage; exit 0 ;;
@@ -214,7 +218,7 @@ install_claude_code() {
     # Install main agent config to ~/.claude/CLAUDE.md
     if [ "$SKIP_MAGENTS" = "false" ]; then
         printf "\n${BOLD}${CYAN}── Main Agent Config (magents) ──${NC}\n"
-        bash "${SCRIPT_DIR}/command/magents.sh" "$AGENT_NAME" claude
+        bash "${SCRIPT_DIR}/command/magents.sh" "$AGENT_NAME" claude --profile="$PROFILE"
     else
         print_info "Skipping magents (--skip-magents)"
     fi
@@ -247,7 +251,7 @@ install_non_claude() {
     if [ "$SKIP_MAGENTS" = "false" ]; then
         printf "\n${BOLD}${CYAN}── Main Agent Config (magents) ──${NC}\n"
 
-        local agent_args=("$AGENT_NAME" "$mapped_targets")
+        local agent_args=("$AGENT_NAME" "$mapped_targets" "--profile=$PROFILE")
         [ "$DRY_RUN" = "true" ] && agent_args+=(--dry-run)
         [ "$VERBOSE" = "true" ] && agent_args+=(--verbose)
 
@@ -366,6 +370,7 @@ main() {
     fi
     print_info "Agent: $AGENT_NAME"
     print_info "Plugins: $PLUGINS"
+    print_info "Profile: $PROFILE"
     echo
 
     # Separate Claude Code from other targets
