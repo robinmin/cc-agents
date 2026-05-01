@@ -3,7 +3,7 @@ import { CORE_CONFIG } from '../src/config';
 
 describe('CORE_CONFIG', () => {
     test('has expected db defaults', () => {
-        expect(CORE_CONFIG.defaultDbPath).toBe('docs/.ftree/db.sqlite');
+        expect(CORE_CONFIG.defaultDbPath).toBe('docs/.ftree/ftree.db');
     });
 
     test('has all SQLite pragmas', () => {
