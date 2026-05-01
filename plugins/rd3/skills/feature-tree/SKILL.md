@@ -111,7 +111,7 @@ ftree <command> [options]
 
 1. `--db <path>` flag (highest priority)
 2. `FTREE_DB` environment variable
-3. Default: `docs/.ftree/db.sqlite`
+3. Default: `docs/.ftree/ftree.db`
 
 ## Commands Reference
 
