@@ -41,7 +41,7 @@ Apply these weights exactly. Generate a `0–100` score with a letter grade.
 
 ## Output Shape
 
-JSON object with these fields:
+Read the result as a JSON object containing four fields:
 
 - `score` — integer 0–100
 - `grade` — letter A through F
