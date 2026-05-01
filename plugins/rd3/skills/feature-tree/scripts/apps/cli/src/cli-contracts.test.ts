@@ -156,4 +156,68 @@ describe('ftree CLI contracts', () => {
         expect(list.exitCode).toBe(0);
         expect(JSON.parse(list.stdout)).toEqual([]);
     });
+
+    test('show renders the full feature tree', async () => {
+        const dir = createTempDir('ftree-cli-show-');
+        const dbPath = join(dir, 'show.sqlite');
+
+        await runCli(['init', '--db', dbPath], { cwd: dir });
+        const parent = await runCli(['add', '--title', 'Root', '--db', dbPath], { cwd: dir });
+        const parentId = parent.stdout.trim();
+
+        await runCli(['add', '--title', 'Child A', '--parent', parentId, '--db', dbPath], { cwd: dir });
+        await runCli(['add', '--title', 'Child B', '--parent', parentId, '--db', dbPath], { cwd: dir });
+
+        const show = await runCli(['show', '--db', dbPath], { cwd: dir });
+        expect(show.exitCode).toBe(0);
+        expect(show.stdout).toContain('Root');
+        expect(show.stdout).toContain('Child A');
+        expect(show.stdout).toContain('Child B');
+        expect(show.stdout).toContain('backlog');
+    });
+
+    test('show --json returns array of root nodes', async () => {
+        const dir = createTempDir('ftree-cli-show-json-');
+        const dbPath = join(dir, 'show-json.sqlite');
+
+        await runCli(['init', '--db', dbPath], { cwd: dir });
+        await runCli(['add', '--title', 'Alpha', '--db', dbPath], { cwd: dir });
+        await runCli(['add', '--title', 'Beta', '--db', dbPath], { cwd: dir });
+
+        const show = await runCli(['show', '--json', '--db', dbPath], { cwd: dir });
+        expect(show.exitCode).toBe(0);
+
+        const parsed = JSON.parse(show.stdout) as Array<Record<string, unknown>>;
+        expect(Array.isArray(parsed)).toBe(true);
+        expect(parsed.map((item) => item.title)).toEqual(expect.arrayContaining(['Alpha', 'Beta']));
+    });
+
+    test('show with empty tree prints placeholder', async () => {
+        const dir = createTempDir('ftree-cli-show-empty-');
+        const dbPath = join(dir, 'show-empty.sqlite');
+
+        await runCli(['init', '--db', dbPath], { cwd: dir });
+
+        const show = await runCli(['show', '--db', dbPath], { cwd: dir });
+        expect(show.exitCode).toBe(0);
+        expect(show.stdout).toContain('(no features)');
+    });
+
+    test('show --root limits to subtree', async () => {
+        const dir = createTempDir('ftree-cli-show-root-');
+        const dbPath = join(dir, 'show-root.sqlite');
+
+        await runCli(['init', '--db', dbPath], { cwd: dir });
+        const rootA = await runCli(['add', '--title', 'Root A', '--db', dbPath], { cwd: dir });
+        const rootAId = rootA.stdout.trim();
+        await runCli(['add', '--title', 'Child A', '--parent', rootAId, '--db', dbPath], { cwd: dir });
+
+        await runCli(['add', '--title', 'Root B', '--db', dbPath], { cwd: dir });
+
+        const show = await runCli(['show', '--root', rootAId, '--db', dbPath], { cwd: dir });
+        expect(show.exitCode).toBe(0);
+        expect(show.stdout).toContain('Root A');
+        expect(show.stdout).toContain('Child A');
+        expect(show.stdout).not.toContain('Root B');
+    });
 });
