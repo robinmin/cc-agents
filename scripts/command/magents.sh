@@ -4,9 +4,24 @@
 # =============================================================================
 #
 # This command installs a main agent's config files to various AI coding agents.
-# Config files (IDENTITY.md, SOUL.md, AGENTS.md, USER.md) are concatenated
-# into a single AGENTS.md at the target location. MEMORY.md is intentionally
-# excluded — each coding agent maintains its own persistent memory independently.
+# Config files (IDENTITY.md, SOUL.md, AGENTS.md, USER.md) are assembled into
+# a single file at the target location, with platform-specific overrides and
+# post-processing applied automatically.
+#
+# Override resolution: for each config file, if overrides/<platform>/<file> exists,
+# it is used instead of the base file. This allows per-platform customization
+# without duplicating the entire config.
+#
+# Platform transforms: after concatenation, platform-specific syntax rewrites
+# are applied (e.g., colon-to-hyphen for skill references, stripping @-file refs).
+#
+# Token profiles: --profile=compact|standard|full controls verbosity.
+#   - full:      everything included (default, same as current behavior)
+#   - standard:  strips XML examples, verbose decision trees
+#   - compact:   strips examples, decision trees, tool decision trees, environment details
+#
+# MEMORY.md is intentionally excluded — each coding agent maintains its own
+# persistent memory independently.
 #
 # Usage:
 #   ./scripts/command/magents.sh <agent-name> <targets> [options]
@@ -16,11 +31,12 @@
 #   targets      Target agents: all, pi, claude, codexcli, geminicli, opencode, openclaw, antigravity
 #
 # Options:
-#   --project       Install to project-level directory (default: global)
-#   --project-dir   Target project directory (default: current directory, used with --project)
-#   --dry-run       Preview changes without executing
-#   --verbose       Enable verbose output
-#   --help          Show this help message
+#   --profile=PROFILE  Token profile: compact, standard, full (default: full)
+#   --project          Install to project-level directory (default: global)
+#   --project-dir      Target project directory (default: current directory, used with --project)
+#   --dry-run          Preview changes without executing
+#   --verbose          Enable verbose output
+#   --help             Show this help message
 #
 # =============================================================================
 
@@ -36,7 +52,8 @@ DRY_RUN=false
 VERBOSE=false
 PROJECT=false
 PROJECT_DIR=""
-PROJECT_AGENTS_WRITTEN=false
+PROFILE="full"
+PROJECT_AGENTS_WRITTEN=""
 
 AVAILABLE_TARGETS="pi,claude,codexcli,geminicli,opencode,openclaw,antigravity"
 
@@ -58,6 +75,18 @@ SYMLINK_MAP=(
     "opencode:.opencode/instructions.md:../AGENTS.md"
 )
 
+# Platform transform chains.
+# Format: "platform:transform1 transform2 ..."
+PLATFORM_TRANSFORM_MAP=(
+    "claude:rewrite_skill_references"
+    "codexcli:rewrite_skill_references strip_at_file_refs"
+    "pi:rewrite_skill_references"
+    "geminicli:rewrite_skill_references"
+    "opencode:rewrite_skill_references"
+    "openclaw:rewrite_skill_references"
+    "antigravity:rewrite_skill_references"
+)
+
 # =============================================================================
 # Usage
 # =============================================================================
@@ -70,14 +99,15 @@ usage() {
     printf "    agent-name   Agent folder name in magents/ (e.g., team-stark-children)\n"
     printf "    targets      Target agents: all, pi, claude, codexcli, geminicli, opencode, openclaw, antigravity\n\n"
     printf "${GREEN}OPTIONS:${NC}\n"
-    printf "    --project       Install to project-level directory (default: global)\n"
-    printf "    --project-dir   Target project directory (default: current directory, used with --project)\n"
-    printf "    --dry-run       Preview changes without executing\n"
-    printf "    --verbose       Enable verbose output\n"
-    printf "    --help          Show this help message\n\n"
+    printf "    --profile=PROFILE  Token profile: compact, standard, full (default: full)\n"
+    printf "    --project          Install to project-level directory (default: global)\n"
+    printf "    --project-dir      Target project directory (default: current directory, used with --project)\n"
+    printf "    --dry-run          Preview changes without executing\n"
+    printf "    --verbose          Enable verbose output\n"
+    printf "    --help             Show this help message\n\n"
     printf "${GREEN}EXAMPLES:${NC}\n"
     printf "    $(basename "$0") team-stark-children pi\n"
-    printf "    $(basename "$0") team-stark-children all\n"
+    printf "    $(basename "$0") team-stark-children all --profile=compact\n"
     printf "    $(basename "$0") team-stark-children claude --project\n"
     printf "    $(basename "$0") team-stark-children codexcli,geminicli --verbose\n\n"
     printf "${GREEN}TARGETS:${NC}\n"
@@ -88,7 +118,11 @@ usage() {
     printf "    opencode       OpenCode CLI (symlink: .opencode/instructions.md -> ../AGENTS.md)\n"
     printf "    openclaw       OpenClaw (AGENTS.md native)\n"
     printf "    antigravity    Antigravity CLI (AGENTS.md native)\n"
-    printf "    all            All supported targets above\n"
+    printf "    all            All supported targets above\n\n"
+    printf "${GREEN}PROFILES:${NC}\n"
+    printf "    full           Include everything (default)\n"
+    printf "    standard       Strip XML examples and verbose decision trees\n"
+    printf "    compact        Strip examples, decision trees, tool trees, environment details\n"
 }
 
 # =============================================================================
@@ -98,6 +132,7 @@ usage() {
 parse_args() {
     while [ $# -gt 0 ]; do
         case $1 in
+            --profile=*)    PROFILE="${1#*=}"; shift ;;
             --project)    PROJECT=true; shift ;;
             --project-dir)
                 PROJECT_DIR="$2"; shift 2 ;;
@@ -126,6 +161,11 @@ parse_args() {
     if [ -z "$TARGETS" ]; then
         print_error "Target agents are required"; usage; exit 1
     fi
+
+    case "$PROFILE" in
+        compact|standard|full) ;;
+        *) print_error "Invalid profile: $PROFILE (use: compact, standard, full)"; exit 1 ;;
+    esac
 }
 
 # =============================================================================
@@ -142,7 +182,7 @@ validate_environment() {
     fi
     print_success "Agent found: magents/${AGENT_NAME}"
 
-    # Count available config files
+    # Count available base config files
     local found_files=0
     for file in "${AGENT_FILES[@]}"; do
         if [ -f "${agent_dir}/${file}" ]; then
@@ -154,7 +194,22 @@ validate_environment() {
         print_error "No config files found in magents/${AGENT_NAME}"
         exit 1
     fi
-    print_success "Found ${found_files} config file(s)"
+    print_success "Found ${found_files} base config file(s)"
+
+    # Report available overrides
+    local override_dir="${agent_dir}/overrides"
+    if [ -d "$override_dir" ]; then
+        for platform_dir in "$override_dir"/*/; do
+            [ -d "$platform_dir" ] || continue
+            local platform_name
+            platform_name=$(basename "$platform_dir")
+            local override_count
+            override_count=$(find "$platform_dir" -maxdepth 1 -name "*.md" -type f | wc -l | tr -d ' ')
+            if [ "$override_count" -gt 0 ]; then
+                print_info "  Override: ${platform_name} (${override_count} file(s))"
+            fi
+        done
+    fi
 
     # Validate target names
     validate_targets "$TARGETS" "$AVAILABLE_TARGETS" || exit 1
@@ -163,34 +218,127 @@ validate_environment() {
 }
 
 # =============================================================================
+# Platform Transform Functions
+# =============================================================================
+
+# Strip @-file references (e.g., @AGENTS.md, @SOUL.md) that some platforms don't support.
+strip_at_file_refs() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+    # Remove lines that are just @-file references used by Claude Code's import system
+    perl -pi -e 's/^\@[\w.-]+(?:\s*#.*)?$//g' "$file"
+    # Collapse multiple blank lines left behind
+    perl -0pi -e 's/\n{3,}/\n\n/g' "$file"
+}
+
+# Apply the registered transform chain for a platform.
+apply_platform_transforms() {
+    local file="$1"
+    local platform="$2"
+
+    local chain=""
+    for entry in "${PLATFORM_TRANSFORM_MAP[@]}"; do
+        IFS=':' read -r p transforms <<< "$entry"
+        if [ "$p" = "$platform" ]; then
+            chain="$transforms"
+            break
+        fi
+    done
+
+    [ -z "$chain" ] && return 0
+
+    for transform_fn in $chain; do
+        if [ "$VERBOSE" = "true" ]; then
+            print_info "  Transform: ${transform_fn}"
+        fi
+        $transform_fn "$file"
+    done
+}
+
+# =============================================================================
+# Token Profile Functions
+# =============================================================================
+
+# Strip content between <!-- profile:standard+ --> ... <!-- /profile --> markers.
+# Also strip <example> blocks and ```text decision trees for compact/standard.
+apply_token_profile() {
+    local file="$1"
+    local profile="$2"
+
+    [ "$profile" = "full" ] && return 0
+
+    # Strip <example>...</example> blocks for standard and compact
+    perl -0pi -e 's/<example[^>]*>.*?<\/example>\s*//gs' "$file"
+
+    if [ "$profile" = "compact" ]; then
+        # Strip ```text ... ``` blocks (decision trees, workflow descriptions)
+        perl -0pi -e 's/```text\n.*?```\n*//gs' "$file"
+
+        # Strip sections between <!-- profile:compact-strip --> and <!-- /profile -->
+        perl -0pi -e 's/<!--\s*profile:compact-strip\s*-->.*?<!--\s*\/profile\s*-->\s*//gs' "$file"
+
+        # Collapse multiple blank lines
+        perl -0pi -e 's/\n{3,}/\n\n/g' "$file"
+    fi
+}
+
+# =============================================================================
 # Config Assembly
 # =============================================================================
+
+# Resolve the source file for a given config layer, preferring platform override.
+resolve_source_file() {
+    local agent_dir="$1"
+    local platform="$2"
+    local file="$3"
+
+    # Check for platform-specific override first
+    local override="${agent_dir}/overrides/${platform}/${file}"
+    if [ -f "$override" ]; then
+        echo "$override"
+        return 0
+    fi
+
+    # Fall back to base file
+    echo "${agent_dir}/${file}"
+}
 
 concatenate_agent_config() {
     local agent_dir="$1"
     local output_file="$2"
+    local platform="$3"
 
     : > "$output_file"
 
     local first=true
     for file in "${AGENT_FILES[@]}"; do
-        local filepath="${agent_dir}/${file}"
-        if [ -f "$filepath" ]; then
+        local source_file
+        source_file=$(resolve_source_file "$agent_dir" "$platform" "$file")
+        if [ -f "$source_file" ]; then
             if [ "$first" = "true" ]; then
                 first=false
             else
                 echo "" >> "$output_file"
             fi
-            cat "$filepath" >> "$output_file"
+            cat "$source_file" >> "$output_file"
             echo "" >> "$output_file"
 
             if [ "$VERBOSE" = "true" ]; then
-                print_info "  Added: ${file}"
+                local rel="${source_file#${agent_dir}/}"
+                if [[ "$rel" == overrides/* ]]; then
+                    print_info "  Added: ${rel} (override)"
+                else
+                    print_info "  Added: ${rel}"
+                fi
             fi
         fi
     done
 
-    rewrite_skill_references "$output_file"
+    # Apply platform transforms
+    apply_platform_transforms "$output_file" "$platform"
+
+    # Apply token profile
+    apply_token_profile "$output_file" "$PROFILE"
 }
 
 # =============================================================================
@@ -227,8 +375,9 @@ backup_if_exists() {
 write_project_agents_file_once() {
     local agent_dir="$1"
     local agents_path="$2"
+    local platform="$3"
 
-    if [ "$PROJECT_AGENTS_WRITTEN" = "true" ]; then
+    if [ -n "$PROJECT_AGENTS_WRITTEN" ] && [ "$PROJECT_AGENTS_WRITTEN" = "$agents_path" ]; then
         return 0
     fi
 
@@ -237,8 +386,8 @@ write_project_agents_file_once() {
     fi
 
     mkdir -p "$(dirname "$agents_path")"
-    concatenate_agent_config "$agent_dir" "$agents_path"
-    PROJECT_AGENTS_WRITTEN=true
+    concatenate_agent_config "$agent_dir" "$agents_path" "$platform"
+    PROJECT_AGENTS_WRITTEN="$agents_path"
     print_success "Wrote: ${agents_path}"
 }
 
@@ -251,6 +400,14 @@ install_project_level() {
     local agent_dir="$2"
     local base_dir="$3"
     local agents_path="${base_dir}/AGENTS.md"
+
+    # For project-level installs with multiple targets, use "claude" as the
+    # canonical platform for the AGENTS.md since it's the primary target.
+    # The first platform wins for the shared AGENTS.md.
+    local write_platform="$target"
+    if [ -n "$PROJECT_AGENTS_WRITTEN" ]; then
+        write_platform="claude"
+    fi
 
     local needs_symlink=false
     local link_path=""
@@ -268,12 +425,12 @@ install_project_level() {
 
     if [ "$needs_symlink" = "true" ]; then
         if [ "$DRY_RUN" = "true" ]; then
-            print_info "Would write: ${agents_path}"
+            print_info "Would write: ${agents_path} (platform: ${write_platform})"
             print_info "Would symlink: ${link_path} -> ${link_target}"
             return 0
         fi
 
-        write_project_agents_file_once "$agent_dir" "$agents_path"
+        write_project_agents_file_once "$agent_dir" "$agents_path" "$write_platform"
 
         if [ -L "$link_path" ]; then
             rm "$link_path"
@@ -287,11 +444,11 @@ install_project_level() {
         print_success "${target}: ${link_path} -> ${link_target}"
     else
         if [ "$DRY_RUN" = "true" ]; then
-            print_info "Would write: ${agents_path}"
+            print_info "Would write: ${agents_path} (platform: ${write_platform})"
             return 0
         fi
 
-        write_project_agents_file_once "$agent_dir" "$agents_path"
+        write_project_agents_file_once "$agent_dir" "$agents_path" "$write_platform"
         print_success "${target}: ${agents_path}"
     fi
 }
@@ -325,13 +482,13 @@ install_global() {
     fi
 
     if [ "$DRY_RUN" = "true" ]; then
-        print_info "Would write: ${output_path}"
+        print_info "Would write: ${output_path} (platform: ${target}, profile: ${PROFILE})"
         return 0
     fi
 
     backup_if_exists "$output_path"
     mkdir -p "$(dirname "$output_path")"
-    concatenate_agent_config "$agent_dir" "$output_path"
+    concatenate_agent_config "$agent_dir" "$output_path" "$target"
     print_success "${target}: ${output_path}"
 }
 
@@ -358,6 +515,7 @@ main() {
     else
         print_info "Installing ${AGENT_NAME} globally (direct write)..."
     fi
+    print_info "Token profile: ${PROFILE}"
     echo
 
     local targets_list
@@ -387,6 +545,7 @@ main() {
         done
     fi
     print_info "Files assembled: ${AGENT_FILES[*]} (MEMORY.md excluded — agent-local)"
+    print_info "Profile: ${PROFILE}"
 }
 
 main "$@"
