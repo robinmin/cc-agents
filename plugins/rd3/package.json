@@ -1,6 +1,6 @@
 {
     "name": "@cc-agents/rd3",
-    "version": "0.6.3",
+    "version": "0.6.4",
     "type": "module",
     "description": "Universal skill creator for multiple AI coding agents",
     "private": true,
