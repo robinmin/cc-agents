@@ -6,7 +6,7 @@
  */
 export const CORE_CONFIG = {
     /** Default SQLite database path when DATABASE_URL is not set */
-    defaultDbPath: 'docs/.ftree/db.sqlite',
+    defaultDbPath: 'docs/.ftree/ftree.db',
 
     /** SQLite pragmas applied on connection */
     pragmas: {
