@@ -1,105 +1,64 @@
 ---
-description: Capture the current brainstorm conversation as a new task file
-argument-hint: "[title] [--folder <path>] [--tags <a,b>] [--dry-run]"
+description: Capture the current brainstorm conversation as a new task file with feature-tree integration and optional plan synthesis
+argument-hint: "[title] [--plan] [--folder <path>] [--tags <a,b>] [--dry-run]"
 allowed-tools: ["Read", "Bash", "AskUserQuestion"]
 ---
 
 # Dev New Task
 
-Convert the current in-context conversation (typically after `/rd3:dev-brainstorm`) into a new task file.
+Convert the in-context conversation (typically after `/rd3:dev-brainstorm`) into a new task file, resolve the owning feature, and optionally synthesize an implementation Plan — all in one pass.
 
-This is **Phase 1** of the two-command task lifecycle:
-
-- **Phase 1 — `/rd3:dev-new-task`**: capture Background + Requirements always; capture Q&A and any Design/Solution only when already discussed.
-- **Phase 2 — `/rd3:dev-plan <wbs>`**: gap-fill missing Design/Solution and synthesize Plan.
-
-Use the global `tasks` CLI for task-file operations. Do **not** invoke `rd3:tasks` via `Skill()`, and do **not** write task files directly.
+This command delegates to `rd3:feature-planning`, which replaces the two-command sequence (`dev-new-task` → `dev-plan`) when `--plan` is used.
 
 ## When to Use
 
 - A brainstorm conversation has reached enough alignment to capture as a task.
 - You want to preserve conversation context as a structured task file before it scrolls out of memory.
+- You want the task automatically linked to the feature tree.
+- You want the Plan section synthesized in the same pass (with `--plan`).
 
 ## Arguments
 
 | Arg / Flag | Required | Default | Description |
 |---|---|---|---|
-| `title` | No | Derived from Background (≤80 chars) | Task name passed to `tasks create` |
+| `title` | No | Derived from conversation | Task name (≤80 chars). Omit to auto-derive from context. |
+| `--plan` | No | `false` | Synthesize Plan section (bypasses separate `/rd3:dev-plan` call) |
 | `--folder <path>` | No | `tasks` config `active_folder` | Target folder override |
 | `--tags <a,b>` | No | none | Forwarded to `tasks create --tags` |
-| `--dry-run` | No | false | Print synthesized markdown; do not create or update any file |
+| `--dry-run` | No | `false` | Print synthesized markdown; do not create or update any file |
 
 ## Workflow
 
-1. **Parse arguments** from `$ARGUMENTS`.
-2. **Synthesize sections** from the in-context conversation:
-   - **Background** (always) — motivation and context.
-   - **Requirements** (always) — required behavior and acceptance criteria as bullets.
-   - **Q&A** (only if clarifications occurred) — verbatim or close-paraphrase Q/A pairs.
-   - **Design** (only if discussed) — opportunistic capture; mark `_partial_` if thin.
-   - **Solution** (only if discussed) — opportunistic capture; mark `_partial_` if thin.
-   - Never populate **Plan / Review / Testing / Artifacts / References** — downstream commands own them.
-3. **Conversation sufficiency check**:
-   - If the conversation has fewer than ~5 substantive turns, warn via `AskUserQuestion` and offer: proceed, abort, or run `/rd3:dev-brainstorm` first.
-4. **Derive title** if omitted from the first clear Background sentence; keep it ≤80 characters.
-5. **Render preview markdown** containing the sections that will be written.
-6. **Gate** via `AskUserQuestion` with choices: approve, edit, abort. Show the derived title, target folder, forwarded flags, and full rendered body. If `--dry-run`, print the preview and exit without asking.
-7. **Create the task** with global `tasks` CLI:
-   - Always start with `tasks create "<title>" --background "<background>" --requirements "<requirements>" [--folder <path>] [--tags <a,b>] --json`.
-   - Parse the returned JSON to get `wbs` and `path`.
-   - If Q&A, Design, or Solution were captured, write each section to a temp file and persist it with `tasks update <wbs> --section <name> --from-file <tmpfile>`.
-8. **Validate and report**:
-   - Run `tasks check <wbs>`.
-   - Print created WBS + path, updated optional sections, and suggest `/rd3:dev-plan <wbs>`.
+1. **Parse arguments** from `$ARGUMENTS`. Detect `--plan`, `--folder`, `--tags`, `--dry-run`. Everything else is the positional `title`.
+2. **Delegate to `rd3:feature-planning`** skill with all parsed arguments. The skill executes:
+   - Stage A: Title determination (scope lens for summarization)
+   - Stage B: Summarize conversation context (scoped by title)
+   - Stage C: Feature-tree resolution (5-tier matching, always skippable)
+   - Stage D: Task creation (tasks CLI) — gated by AskUserQuestion for title + preview
+   - Stage E: Optional plan synthesis (if `--plan`)
+   - Stage F: Feature linking + validation
+3. **Report** final WBS, feature link status, and suggested next command.
 
-## CLI Contract
+## Delegation
 
-Use `Bash` for all task operations:
-
-```bash
-tasks create "<title>" \
-  --background "<background>" \
-  --requirements "<requirements>" \
-  [--folder <path>] [--tags <a,b>] \
-  --json
-
-tasks update <wbs> --section Q&A --from-file /tmp/dev-new-task-qna.md
-tasks update <wbs> --section Design --from-file /tmp/dev-new-task-design.md
-tasks update <wbs> --section Solution --from-file /tmp/dev-new-task-solution.md
-tasks check <wbs>
 ```
-
-Do not use `tasks create --content`; the global CLI contract for rich task creation is create first, then update optional sections.
-
-## Section Quality Contract
-
-| Section | Required | Source | Notes |
-|---|---:|---|---|
-| Background | Yes | Conversation context | Explain why this task exists |
-| Requirements | Yes | User-stated goals | Include acceptance criteria |
-| Q&A | Conditional | Clarification turns | Preserve user intent closely |
-| Design | Conditional | Discussed architecture/UI | Mark `_partial_` if incomplete |
-| Solution | Conditional | Discussed implementation approach | Mark `_partial_` if incomplete |
-| Plan | No | — | Phase 2 only |
-| Review / Testing / Artifacts / References | No | — | Downstream only |
+Skill(skill="rd3:feature-planning", args="$ARGUMENTS")
+```
 
 ## Anti-Hallucination
 
-- Paraphrase only from the conversation; do not invent unsupported technical claims.
-- Mark unverifiable specifics as `_TBD_`.
-- If codebase facts are needed, verify with `Read`/`Bash` before stating them.
-- Do not invent file paths, APIs, libraries, or constraints.
+- Do not invent task content — only synthesize from conversation context.
+- Do not fabricate file paths, APIs, or architectural facts in Plan synthesis.
+- Mark unverified specifics as `_TBD_`.
 
 ## Edge Cases
 
 | Situation | Handling |
 |---|---|
-| Conversation < 5 substantive turns | Warn; ask whether to proceed, abort, or brainstorm first |
-| `tasks create` fails | Surface the error and rendered body so the user can save manually |
-| Optional section update fails | Surface the error; report created WBS and which sections remain pending |
-| `tasks check <wbs>` fails | Report validation output; do not claim completion |
-| `--dry-run` | Print title + body + exact planned commands; never mutate files |
-| `title` omitted | Derive title; show it at the gate so the user can edit |
+| `ftree` unavailable | Skill skips feature linking; task still created |
+| Title omitted, context sparse | Skill prompts for title |
+| `--dry-run` | Print preview; never mutate files |
+| `tasks create` fails | Surface error + rendered body |
 
 ## Examples
 
@@ -110,8 +69,11 @@ Do not use `tasks create --content`; the global CLI contract for rich task creat
 # Explicit title
 /rd3:dev-new-task "Add OAuth support to API"
 
-# Dry-run preview
-/rd3:dev-new-task --dry-run
+# With plan synthesis (bypasses /rd3:dev-plan)
+/rd3:dev-new-task "Refactor auth" --plan
+
+# Dry-run preview with plan
+/rd3:dev-new-task --plan --dry-run
 
 # With folder + tags
 /rd3:dev-new-task "Refactor auth" --folder docs/tasks2 --tags refactor,auth
@@ -119,7 +81,8 @@ Do not use `tasks create --content`; the global CLI contract for rich task creat
 
 ## See Also
 
-- **/rd3:dev-brainstorm** — upstream ideation that produces the conversation
-- **/rd3:dev-plan** — Phase 2: gap-fill Design/Solution and synthesize Plan
-- **/rd3:dev-run** — full implement/test/verify pipeline after planning
-- **tasks** — global task-file CLI (`tasks create`, `tasks update`, `tasks show`, `tasks check`)
+- **rd3:feature-planning** — Skill that executes the full workflow
+- **/rd3:dev-brainstorm** — Upstream ideation that produces the conversation
+- **/rd3:dev-plan** — Standalone plan synthesis (needed only when `--plan` not used here)
+- **/rd3:dev-run** — Full implement/test/verify pipeline after planning
+- **tasks** — Global task-file CLI

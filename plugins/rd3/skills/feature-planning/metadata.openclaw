@@ -1,0 +1,7 @@
+name: feature-planning
+description: Capture a brainstorm conversation as a new task file with
+  feature-tree integration and optional plan synthesis. Phase 1+2 combined entry
+  point that replaces the two-command dev-new-task → dev-plan sequence when
+  --plan is used.
+version: 1.0.0
+emoji: 🛠️
