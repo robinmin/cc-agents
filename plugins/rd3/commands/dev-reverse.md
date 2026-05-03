@@ -1,69 +1,84 @@
 ---
 allowed-tools: ["Read", "Write", "Edit", "Grep", "Glob"]
-description: Generate HLD document and critical issue audit for codebase
-argument-hint: "[<path>] [--focus <security|architecture|all>] [--output <file.md>]"
+description: Reverse engineer a codebase with selectable depth, focus, and output format
+argument-hint: "[<path>] [--mode <briefing|structure|architecture|design|full>] [--focus <all|stack|dependencies|data|flows|api|security|quality|performance>] [--format <markdown|json|both>] [--output <file>]"
 ---
 
 # Dev Reverse
 
-Analyze a codebase to produce a High-Level Design (HLD) document and critical issue audit. Delegates to **rd3:reverse-engineering** skill.
+Analyze a codebase through the **rd3:reverse-engineering** skill. The command is a thin wrapper: parse arguments, preserve backward compatibility, then delegate all analysis behavior to the skill.
 
 ## When to Use
 
-- Identify unfamiliar codebase structure and dependencies
-- Generate architecture documentation for team onboarding
-- Audit code quality before refactoring
-- Find technical debt and security issues
+- Identify unfamiliar codebase structure and dependencies.
+- Produce architecture or design documentation for onboarding.
+- Reconstruct data models, flows, APIs, and module boundaries.
+- Audit security, quality, performance, or technical debt before refactoring.
 
 ## Quick Start
 
 ```bash
-# Analyze current project
+# Default architecture-level analysis of the current project
 /rd3:dev-reverse
 
-# Analyze specific path
-/rd3:dev-reverse src/auth/
+# Fast stack and purpose briefing
+/rd3:dev-reverse --mode briefing --focus stack
 
-# Focus on security issues
-/rd3:dev-reverse --focus security
+# Static component and dependency structure for a subdirectory
+/rd3:dev-reverse src/auth --mode structure --focus dependencies
 
-# Save output to file
-/rd3:dev-reverse --output docs/hld.md
+# Detailed data design reconstruction
+/rd3:dev-reverse --mode design --focus data
+
+# Comprehensive package with audit and roadmap
+/rd3:dev-reverse --mode full --focus all --format both --output docs/reverse-engineering.md
 ```
 
 ## Arguments
 
 | Argument | Description | Default |
-|----------|-------------|---------|
+|---|---|---|
 | `<path>` | Directory or file to analyze | project root |
-| `--focus` | Analysis focus: `security\|architecture\|all` | `all` |
-| `--output` | Write HLD to file instead of conversation | (none) |
+| `--mode` | Analysis depth: `briefing`, `structure`, `architecture`, `design`, `full` | inferred, usually `architecture` |
+| `--focus` | Analysis lens: `all`, `stack`, `dependencies`, `data`, `flows`, `api`, `security`, `quality`, `performance` | `all` |
+| `--format` | Output encoding: `markdown`, `json`, `both` | `markdown` |
+| `--output` | Write output to file instead of conversation | none |
 
-## Workflow (Claude Code)
+## Backward Compatibility
 
-1. Parse `$ARGUMENTS` for `<path>`, `--focus`, and `--output` flags
-2. Invoke `rd3:reverse-engineering` skill with the parsed arguments
-3. Skill executes 4-phase analysis: Reconnaissance -> Component Mapping -> Quality Audit -> Synthesis
-4. Output HLD document with Mermaid diagrams and prioritized audit report
-5. If `--output` specified, write to the given file path; otherwise display in conversation
+Existing invocations using the old `--focus security|architecture|all` shape remain valid:
+
+| Legacy Input | Normalized Behavior |
+|---|---|
+| `--focus security` | `--mode architecture --focus security` |
+| `--focus architecture` | `--mode architecture --focus all` |
+| `--focus all` | `--mode architecture --focus all` |
+
+If the user explicitly asks for "complete", "comprehensive", "full reverse engineering", or equivalent wording, normalize to `--mode full`.
+
+## Workflow
+
+1. Parse `$ARGUMENTS` for path, `--mode`, `--focus`, `--format`, and `--output`.
+2. Normalize legacy focus values.
+3. Delegate to `rd3:reverse-engineering` with normalized arguments.
+4. The skill executes the depth-driven workflow: orient -> index -> classify -> trace -> synthesize -> audit when required.
+5. If `--output` is specified, write the generated report to that path. Otherwise return it in conversation.
 
 ## Output
 
-Review two deliverables:
-- **High-Level Design**: Architecture, components, data design, business flows
-- **Critical Audit**: Prioritized issues with file evidence and remediation steps
+The skill selects deliverables from the depth mode:
+
+| Mode | Output Shape |
+|---|---|
+| `briefing` | purpose, stack, entry points, risks/unknowns |
+| `structure` | repository map, component table, dependency map, boundaries |
+| `architecture` | HLD, context diagram, runtime topology, flows, cross-cutting concerns |
+| `design` | architecture summary, data model, contracts, sequence diagrams, ER/class diagrams when evidence exists |
+| `full` | design package plus audit, roadmap, open questions, evidence index |
+
+`--format json` changes encoding only; it is not an analysis mode.
 
 ## Platform Notes
 
-- **Claude Code**: Invoke via `Skill("rd3:reverse-engineering")` delegation. Parse `$ARGUMENTS` for flags.
-- **Codex**: Run script directly. Arguments passed as prompt context — extract from user message.
-- **Gemini CLI**: Run script directly. Arguments available via TOML prompt template.
-- **OpenClaw**: Run script directly. Arguments dispatched via `command-dispatch` metadata.
-- **OpenCode**: Run script directly. Arguments embedded in chat context.
-- **Antigravity**: Mention-triggered. Extract arguments from user message.
-
-Script path for non-Claude platforms:
-
-```bash
-bun plugins/rd3/skills/reverse-engineering/scripts/analyze.ts <path> --focus <scope> --output <file>
-```
+- **Claude Code**: Invoke via `Skill("rd3:reverse-engineering")` delegation with normalized arguments.
+- **Codex / Gemini CLI / OpenClaw / OpenCode / Antigravity / Pi**: Extract arguments from the user message and follow `rd3:reverse-engineering` directly. There is no deterministic analyzer script in this skill directory; do not call a non-existent script path.
