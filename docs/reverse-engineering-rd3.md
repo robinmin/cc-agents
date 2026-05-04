@@ -561,6 +561,283 @@ The `rd3:anti-hallucination` skill is marked as "always-on" and enforces a zero-
 
 ---
 
+## 13. Recommendations for Exporting
+
+If starting a new AI agent application project, the following components, patterns, and concepts can be extracted from rd3. Items are ranked by maturity and extraction difficulty.
+
+### 13.1 Tier 1: Production-Ready Components (Extract Almost As-Is)
+
+These are mature, well-tested, and loosely coupled enough to extract with minimal modification.
+
+#### 13.1.1 `verification-chain` — Chain-of-Verification Orchestrator
+
+**What it is**: A Maker-Checker pipeline engine where nodes run a "maker" action followed by one or more automated/human "checkers." Supports single nodes, parallel groups with convergence policies (all/any/quorum), human-in-the-loop gates, global retry, and state persistence via SQLite.
+
+**Files to extract** (`plugins/rd3/skills/verification-chain/`):
+```
+scripts/
+├── types.ts          # Full type system (ChainManifest, ChainNode, Checker, etc.)
+├── interpreter.ts    # Core execution engine — walks the chain DAG
+├── store.ts          # SQLite-backed chain state persistence
+├── cli.ts            # Compiled to standalone `cov` binary
+├── methods/
+│   ├── index.ts      # Method dispatch registry
+│   ├── cli.ts        # Shell command checker
+│   ├── llm.ts        # LLM-judged checklist checker
+│   ├── human.ts      # Human approval gate
+│   ├── file_exists.ts
+│   ├── content_match.ts
+│   └── compound.ts   # Composite checker (and/or/quorum)
+tests/
+├── interpreter.test.ts
+├── methods.test.ts
+├── store.test.ts
+├── integration.test.ts
+└── cli.test.ts
+```
+
+**Maturity**: HIGH. 7,703 lines, 5 test files, compiled CLI, production-proven as the orchestration-v2 gate evaluator backend. Type system is clean, method dispatch is extensible, SQLite store handles pause/resume.
+
+**Extraction effort**: Low. Only dependency is `scripts/logger.ts` (trivial to inline). The skill is self-contained — no dependency on other rd3 skills.
+
+**Use cases in a new project**:
+- CI/CD quality gates (build → lint → test → security scan)
+- Deployment verification (deploy → health check → smoke test → human approval)
+- Code review automation (implement → self-review → peer review → merge)
+- Any multi-step process requiring audit trail and pause/resume
+
+#### 13.1.2 `scripts/libs/result.ts` — Railway-Oriented Result Type
+
+**What it is**: A 30-line `Result<T, E>` type with `ok()`, `err()`, `isOk()`, `isErr()` helpers. Used pervasively across the orchestration-v2 and verification-chain code.
+
+```typescript
+type Result<T, E = string> = Ok<T> | Err<E>;
+```
+
+**Maturity**: HIGH. Battle-tested across 40K+ lines of orchestration and verification code. Zero dependencies.
+
+**Extraction effort**: Trivial — copy one file. No dependencies.
+
+#### 13.1.3 `scripts/logger.ts` — Shared Logger Pattern
+
+**What it is**: A 16.6KB structured logger supporting levels (debug/info/warn/error), `globalSilent` flag for test suppression, and structured context. All rd3 scripts route through this instead of `console.*`.
+
+**Key design decisions worth replicating**:
+- `globalSilent` boolean for test mode suppression (avoids `NODE_ENV` coupling)
+- Structured logging with context objects rather than string interpolation
+- No runtime dependency on winston/pino — pure Bun native
+
+**Extraction effort**: Low. Copy and adapt. The pattern matters more than the exact implementation.
+
+#### 13.1.4 `scripts/fs.ts` — Bun-Optimized File System Utilities
+
+**What it is**: 11.8KB of `bun:fs`-first wrappers (`existsSync`, `mkdirSync`, `readFileSync`, `writeFileSync`, `readdirSync`, `statSync`, `rmSync`) that re-export from `node:fs` as fallback. Includes atomic write pattern and directory walking.
+
+**Extraction effort**: Low. Copy the module; it's a drop-in replacement for `node:fs` imports.
+
+---
+
+### 13.2 Tier 2: Well-Designed Patterns to Reimplement
+
+These are not single extractable files but architectural patterns and design decisions worth replicating in a new codebase.
+
+#### 13.2.1 DAG + FSM Pipeline Engine (orchestration-v2 core)
+
+**The pattern**: A scheduling kernel with clear subsystem boundaries. The engine does NOT own verification logic — it delegates to `verification-chain` via a `VerificationDriver` adapter. This is the right decomposition for any pipeline system.
+
+**Concepts to replicate**:
+
+| Concept | Implementation in rd3 | Why it's good |
+|---------|----------------------|---------------|
+| **DAG scheduler** | `engine/dag.ts` — topological sort, parallel-ready phase groups | Phases declare `after:` dependencies; scheduler resolves parallelism automatically |
+| **FSM lifecycle** | 5 states: IDLE → RUNNING → PAUSED/COMPLETED/FAILED | Clean state machine; no ambiguous intermediate states |
+| **Gate evaluator** | 3 gate types: command (shell), auto (CoV checklist), human (pause) | Gates are pluggable; new gate types don't require engine changes |
+| **Executor pool** | Inline, subprocess, ACP adapters | Channel is a routing detail, not a core concept — executor selection is a configuration concern |
+| **Event sourcing** | All state transitions written to `events` table | Enables undo, audit, replay — SQLite WAL mode for concurrent reads |
+| **Verification driver** | Adapter to `rd3:verification-chain` | Engine consumes pass/fail/pause results without owning checker logic |
+
+**What NOT to copy**: The full 33K-line `orchestration-v2` implementation. The codebase has accumulated complexity from supporting legacy presets, channel aliases, and v1 migration. Extract the concepts, not the code.
+
+**Recommended approach**: Implement a minimal kernel (~2-3K lines) with DAG + FSM + SQLite state + pluggable executors. Use `verification-chain` (Tier 1) as the gate backend.
+
+#### 13.2.2 SQLite Event-Sourced State Pattern
+
+**The pattern**: SQLite as the single source of truth for pipeline state, using WAL mode + parameterized queries + typed DAO layer. Both `orchestration-v2` and `verification-chain` use identical patterns independently — proving it's a replicable design:
+
+```
+StateManager (orchestration-v2)          ChainStore (verification-chain)
+├── Database('path.db', {create: true})   ├── Database('path.db', {create: true})
+├── PRAGMA journal_mode = WAL            ├── PRAGMA journal_mode = WAL
+├── PRAGMA busy_timeout = 5000           ├── PRAGMA busy_timeout = 5000
+├── DDL via migrations                    ├── DDL inline (CREATE IF NOT EXISTS)
+├── Prepared statements (bun:sqlite)      ├── Prepared statements (bun:sqlite)
+├── Typed DAO parsers                     ├── Typed serialization helpers
+└── Event sourcing (append-only events)   └── Full state snapshots (JSON column)
+```
+
+**Key design decisions to replicate**:
+- Use `bun:sqlite` (zero npm dependencies, synchronous API, WAL mode)
+- Parameterized queries only — no string concatenation
+- Type-safe record interfaces + parser functions for DB row → domain object
+- Migration system for schema evolution
+- Event sourcing for audit trail (not for all state — full snapshots are fine for checkpoints)
+
+#### 13.2.3 Markdown + YAML Frontmatter Entity Format
+
+**The pattern**: Store domain entities (tasks, chain manifests) as markdown files with YAML frontmatter. Human-readable, git-diffable, LLM-friendly.
+
+```markdown
+---
+wbs: "0266"
+name: "Implement user authentication"
+status: "ready"
+---
+
+# Background
+...
+
+# Requirements
+...
+```
+
+**Why this works**:
+- Humans can read and edit in any text editor
+- Git diffs are meaningful (unlike SQLite or JSON blobs)
+- LLMs natively understand markdown structure
+- YAML frontmatter is machine-parseable for scripting
+- Sections (# Background, # Requirements) provide consistent structure
+
+**Recommended for**: Task definitions, feature specs, design docs, chain manifests — any entity where both humans and agents need read/write access.
+
+**Implementation reference**: `plugins/rd3/scripts/markdown-frontmatter.ts` (2.7KB, parse + serialize).
+
+#### 13.2.4 Method Dispatch Pattern (verification-chain methods/)
+
+**The pattern**: A registry of named method handlers, each implementing a common interface. New checkers are added by creating a new file and adding one line to `index.ts`.
+
+```typescript
+// methods/index.ts — the registry
+export { runCliCheck } from './cli';
+export { runLlmCheck } from './llm';
+export { runHumanCheck } from './human';
+export { runFileExistsCheck } from './file_exists';
+export { runContentMatchCheck } from './content_match';
+export { runCompoundCheck } from './compound';
+
+// Each method: (config) => Promise<MethodResult>
+```
+
+**Why it's good**: Open-closed principle. Adding a new checker method never touches the interpreter, store, or CLI — just one new file + one export line. Each method is independently testable. The type system enforces the contract (`CheckerConfig` discriminated union on `method`).
+
+**Recommended for**: Any system with multiple backend implementations behind a common interface — checkers, executors, notifiers, storage backends.
+
+#### 13.2.5 "Fat Logic, Thin Wrappers" Architecture
+
+**The pattern**: Implementation logic lives in skills (self-contained packages with scripts, tests, references). Commands and agents are thin wrappers (~50-250 lines) that parse arguments and delegate.
+
+```
+Command (dev-review.md, ~80 lines)
+  → "Parse args, normalize focus, delegate to code-review-common"
+
+Agent (super-reviewer.md, ~200 lines)
+  → "Detect review type, delegate to code-review-common or code-improvement"
+
+Skill (code-review-common/SKILL.md, ~300 lines)
+  → ALL review methodology, SECU framework, finding taxonomy
+```
+
+**Why this works**:
+- Commands and agents never contain business logic — they're pure adapters
+- Skills can be tested and evolved independently of their wrappers
+- New platforms only need new thin wrappers, not new skill implementations
+- Clear ownership boundaries: "which file do I change?" is always obvious
+
+**Recommended for**: Any multi-platform, multi-interface system. Define your core logic once; wrap it for each entrypoint.
+
+---
+
+### 13.3 Tier 3: Promising Concepts Worth Tracking
+
+These are conceptually strong but either immature, tightly coupled, or require significant adaptation for reuse.
+
+#### 13.3.1 Feature Tree Hierarchical Model
+
+**Concept**: A SQLite-backed hierarchical feature model with automatic status roll-up (all children done → parent done). Features link to WBS tasks for traceability.
+
+**Status**: 6,636 lines. Functional but still evolving. The "advisory" operating mode is wise — it provides context without becoming a hard dependency of orchestration.
+
+**Worth extracting**: The core data model (features table schema + adjacency queries) and the status roll-up algorithm. Not the full CLI + web UI.
+
+#### 13.3.2 Cross-Platform Agent Delegation via ACP
+
+**Concept**: `acpx` CLI as a headless ACP client for agent-to-agent communication. Enables delegating work from one coding agent platform to another.
+
+**Status**: `run-acp` skill is pure-LLM (no TypeScript). The actual `acpx` tool is an external npm package. The integration layer in `orchestration-v2/scripts/integrations/acp/` is ~2K lines of transport + session + prompt management.
+
+**Worth tracking**: ACP as a protocol for multi-agent systems. The adapter pattern (`acp-oneshot`, `acp-session`) is clean. But `acpx` is young; API stability is unknown.
+
+#### 13.3.3 Anti-Hallucination Verification Protocol
+
+**Concept**: A `Stop` hook that runs before every agent response, verifying claims against external sources. Skills are expected to follow "verify before generate."
+
+**Status**: 1,788 lines (hook + guard script). Claude Code-specific hook implementation. The concept is excellent but the implementation is platform-locked.
+
+**Worth replicating**: The protocol (verify → cite → confidence-score) as a skill instruction pattern. Not the hook mechanism.
+
+#### 13.3.4 Task Lifecycle with WBS Numbering
+
+**Concept**: Tasks follow a strict lifecycle (`backlog → ready → wip → testing → done`) with content gates at each transition. WBS numbers provide globally unique identifiers across all task folders.
+
+**Status**: 15,029 lines. Mature and production-proven. But the `tasks` skill is heavily integrated with the cc-agents project structure (`docs/tasks/`, `docs/.tasks/`).
+
+**Worth extracting**: The WBS numbering scheme, the content-gated state machine, and the markdown task file format. Not the full CLI with Kanban web UI.
+
+#### 13.3.5 Meta-Skill Pattern
+
+**Concept**: Skills that create, validate, and evolve other skills. The four `cc-*` meta-skills form a reflexive architecture where the system manages itself.
+
+**Status**: ~40K lines across cc-skills, cc-agents, cc-commands, cc-magents. Heavily coupled to the cc-agents project conventions.
+
+**Worth tracking conceptually**: The idea that an agent framework should be able to introspect and improve its own skills. But as an extraction target, the meta-skills are too project-specific.
+
+---
+
+### 13.4 Anti-Recommendations: Do NOT Extract
+
+| Component | Reason |
+|-----------|--------|
+| **orchestration-v1** | 8,772 lines of frozen legacy code. Has been superseded by v2. No reason to carry this forward. |
+| **cc-* meta-skills** | ~40K lines tightly coupled to cc-agents project structure, naming conventions, and platform assumptions. The concepts (Tier 3.5) are worth studying; the code is not worth extracting. |
+| **evolution-engine.ts** | 51KB monolith handling all four asset types. Needs to be split before it's extractable. In a new project, build per-domain evolution engines instead. |
+| **Platform-specific hooks** | `hooks.json` is Claude Code-specific. Other platforms get hooks through the `cc-hooks` adapt flow. The concepts are good; the implementation is not portable. |
+| **ACP transport layer** | The `integrations/acp/` code is a thin wrapper around the external `acpx` CLI. Extract the adapter pattern, not the transport code. |
+| **Kanban web UI** | The embedded Vite + React UI in `tasks/scripts/server/ui/` is a nice demo but not production-grade. Use a proper frontend framework in a new project. |
+
+---
+
+### 13.5 Extraction Priority Summary
+
+```
+Priority 1 (this week):
+  ✅ verification-chain — drop-in CoV engine (~1 day to extract and integrate)
+  ✅ result.ts + logger.ts + fs.ts — shared infrastructure (~1 hour)
+
+Priority 2 (this month):
+  📋 DAG+FSM pipeline kernel — reimplement concepts, not code (~1 week)
+  📋 SQLite event-sourced state pattern — reimplement for your domain (~3 days)
+  📋 Markdown+YAML entity format — adopt for task/spec files (~1 day)
+
+Priority 3 (next quarter):
+  🔮 Feature tree hierarchical model — extract core data model (~3 days)
+  🔮 Anti-hallucination protocol — adapt as skill instruction pattern (~1 day)
+  🔮 Meta-skill pattern — study for self-improving agent architecture (research)
+
+Skip entirely:
+  ❌ orchestration-v1, cc-* meta-skills, evolution-engine.ts, platform hooks
+```
+
+---
+
 ## Appendix A: Complete Skill Inventory
 
 | # | Skill | Lines TS | Type | Category |
